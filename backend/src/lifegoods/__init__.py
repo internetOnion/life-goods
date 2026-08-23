@@ -1,0 +1,1 @@
+"""LifeGoods backend package."""
