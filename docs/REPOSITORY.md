@@ -96,6 +96,8 @@ Keep local service definitions and deployment configuration in `infra/`. Databas
 
 Use trunk-based development centered on a protected, deployable `main` branch. Do not create permanent `develop`, `frontend`, `backend`, `staging`, or `production` branches. Environments deploy the same commit with separate configuration and resources.
 
+During the pre-main MVP phase, [`plan/TEAM_EXECUTION_PLAN.md`](plan/TEAM_EXECUTION_PLAN.md) defines `mvp/foundation` as a temporary protected integration branch. Feature branches target `mvp/foundation` until its pilot gates pass, after which one reviewed pull request merges it to `main` and the temporary branch is removed. This is a time-bounded delivery exception, not a permanent `develop` branch.
+
 Create short-lived branches from an up-to-date `main` using these prefixes:
 
 ```text
