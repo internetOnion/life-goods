@@ -16,5 +16,5 @@ class FindPackageMatches:
 
     def execute(self, entered_identifier: str) -> PackageMatchResult:
         identifier = normalize_identifier(entered_identifier)
-        candidates = self._repository.find_candidates(identifier.value)
+        candidates = self._repository.find_candidates(identifier)
         return PackageMatchResult(identifier=identifier, candidates=candidates)

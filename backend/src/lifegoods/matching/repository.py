@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Protocol
 
+from lifegoods.matching.identifier import NormalizedIdentifier
+
 
 @dataclass(frozen=True, slots=True)
 class PackageMatchCandidate:
@@ -9,4 +11,4 @@ class PackageMatchCandidate:
 
 
 class PackageMatchRepository(Protocol):
-    def find_candidates(self, normalized_identifier: str) -> list[PackageMatchCandidate]: ...
+    def find_candidates(self, identifier: NormalizedIdentifier) -> list[PackageMatchCandidate]: ...

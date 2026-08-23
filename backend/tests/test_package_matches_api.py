@@ -1,5 +1,5 @@
 from collections.abc import Iterator
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import pytest
 from fastapi.testclient import TestClient
@@ -10,6 +10,7 @@ from sqlalchemy.pool import StaticPool
 from lifegoods.adapters.catalog_models import (
     EvidenceRecord,
     ExternalIdentifierRecord,
+    IdentifierEvidenceLinkRecord,
     PackageVariantRecord,
     ProductRecord,
 )
@@ -91,17 +92,18 @@ def test_candidate_is_returned_through_the_persistence_boundary(
     with session_factory.begin() as session:
         product = ProductRecord(id="product-1")
         variant = PackageVariantRecord(id="variant-1", product=product)
+        evidence = evidence_record(1)
         identifier = ExternalIdentifierRecord(
             id="identifier-1",
             package_variant=variant,
             scheme="EAN_13",
             normalized_value="4006381333931",
             validation_state="VALID",
-            association_state="ACCEPTED",
-            production_method="HUMAN_OBSERVED",
+            production_method="HUMAN_ENTRY",
             review_state="ACCEPTED",
             confidence=1.0,
-            evidence=evidence_record(1),
+            primary_evidence=evidence,
+            evidence_links=[IdentifierEvidenceLinkRecord(evidence=evidence, stance="SUPPORTS")],
         )
         session.add(identifier)
 
@@ -120,6 +122,7 @@ def test_disputed_identifier_associations_remain_representable(
         for number in (1, 2):
             product = ProductRecord(id=f"product-{number}")
             variant = PackageVariantRecord(id=f"variant-{number}", product=product)
+            evidence = evidence_record(number)
             session.add(
                 ExternalIdentifierRecord(
                     id=f"identifier-{number}",
@@ -127,11 +130,13 @@ def test_disputed_identifier_associations_remain_representable(
                     scheme="EAN_13",
                     normalized_value="4006381333931",
                     validation_state="VALID",
-                    association_state="DISPUTED",
-                    production_method="HUMAN_OBSERVED",
+                    production_method="HUMAN_ENTRY",
                     review_state="DISPUTED",
                     confidence=None,
-                    evidence=evidence_record(number),
+                    primary_evidence=evidence,
+                    evidence_links=[
+                        IdentifierEvidenceLinkRecord(evidence=evidence, stance="SUPPORTS")
+                    ],
                 )
             )
 
@@ -142,3 +147,32 @@ def test_disputed_identifier_associations_remain_representable(
         {"package_variant_id": "variant-1", "product_id": "product-1"},
         {"package_variant_id": "variant-2", "product_id": "product-2"},
     ]
+
+
+def test_rejected_or_not_yet_effective_identifiers_are_not_candidates(
+    client: TestClient, session_factory: sessionmaker[Session]
+) -> None:
+    with session_factory.begin() as session:
+        evidence = evidence_record(1)
+        session.add(
+            ExternalIdentifierRecord(
+                id="identifier-1",
+                package_variant=PackageVariantRecord(
+                    id="variant-1", product=ProductRecord(id="product-1")
+                ),
+                scheme="EAN_13",
+                normalized_value="4006381333931",
+                validation_state="VALID",
+                production_method="HUMAN_ENTRY",
+                review_state="REJECTED",
+                confidence=1.0,
+                effective_from=date(2099, 1, 1),
+                primary_evidence=evidence,
+                evidence_links=[IdentifierEvidenceLinkRecord(evidence=evidence, stance="SUPPORTS")],
+            )
+        )
+
+    response = client.get("/api/v1/package-matches", params={"identifier": "4006381333931"})
+
+    assert response.status_code == 200
+    assert response.json()["candidates"] == []
