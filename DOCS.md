@@ -22,6 +22,7 @@ Offline use, public contribution, SME authenticity advisories, legal compliance 
 - [MVP specification](docs/SPEC.md)
 - [Personas and user stories](docs/USER_STORIES.md)
 - [Conceptual and logical data model](docs/DATA_MODEL.md)
+- [Repository structure and branching](docs/REPOSITORY.md)
 - [Domain glossary](CONTEXT.md)
 - [Food-data availability audit](docs/research/mvp-food-data-availability.md)
 - [Architectural decisions](docs/adr)
