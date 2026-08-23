@@ -5,13 +5,15 @@ export type ClientOptions = {
 };
 
 /**
+ * ErrorCode
+ */
+export type ErrorCode = 'IDENTIFIER_REQUIRED' | 'IDENTIFIER_CHARACTERS_INVALID' | 'IDENTIFIER_LENGTH_UNSUPPORTED' | 'IDENTIFIER_CHECK_DIGIT_INVALID' | 'PACKAGE_MATCH_SOURCE_UNAVAILABLE';
+
+/**
  * ErrorDetail
  */
 export type ErrorDetail = {
-    /**
-     * Code
-     */
-    code: string;
+    code: ErrorCode;
     /**
      * Message
      */
@@ -24,6 +26,11 @@ export type ErrorDetail = {
 export type ErrorEnvelope = {
     error: ErrorDetail;
 };
+
+/**
+ * IdentifierScheme
+ */
+export type IdentifierScheme = 'GTIN_8' | 'UPC_A' | 'EAN_13' | 'GTIN_14';
 
 /**
  * PackageMatchCandidateResponse
@@ -51,10 +58,7 @@ export type PackageMatchesResponse = {
      * Normalized Identifier
      */
     normalized_identifier: string;
-    /**
-     * Scheme
-     */
-    scheme: string;
+    scheme: IdentifierScheme;
 };
 
 export type GetPackageMatchesData = {

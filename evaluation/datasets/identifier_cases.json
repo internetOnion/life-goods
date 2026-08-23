@@ -1,0 +1,14 @@
+{
+  "valid": [
+    { "entered": "9638 5074", "value": "96385074", "scheme": "GTIN_8" },
+    { "entered": "0-12345-67890-5", "value": "012345678905", "scheme": "UPC_A" },
+    { "entered": "4 006381 333931", "value": "4006381333931", "scheme": "EAN_13" },
+    { "entered": "1 0012345 000017", "value": "10012345000017", "scheme": "GTIN_14" }
+  ],
+  "invalid": [
+    { "entered": "", "frontendReason": "required", "backendCode": "IDENTIFIER_REQUIRED" },
+    { "entered": "1234", "frontendReason": "length", "backendCode": "IDENTIFIER_LENGTH_UNSUPPORTED" },
+    { "entered": "40063813A3931", "frontendReason": "characters", "backendCode": "IDENTIFIER_CHARACTERS_INVALID" },
+    { "entered": "4006381333932", "frontendReason": "checkDigit", "backendCode": "IDENTIFIER_CHECK_DIGIT_INVALID" }
+  ]
+}

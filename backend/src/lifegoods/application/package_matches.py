@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 
-from lifegoods.matching.identifier import ExternalIdentifier, normalize_identifier
+from lifegoods.matching.identifier import NormalizedIdentifier, normalize_identifier
 from lifegoods.matching.repository import PackageMatchCandidate, PackageMatchRepository
 
 
 @dataclass(frozen=True, slots=True)
 class PackageMatchResult:
-    identifier: ExternalIdentifier
+    identifier: NormalizedIdentifier
     candidates: list[PackageMatchCandidate]
 
 

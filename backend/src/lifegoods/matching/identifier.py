@@ -1,37 +1,53 @@
 from dataclasses import dataclass
+from enum import StrEnum
 
-SUPPORTED_SCHEMES = {
-    8: "GTIN_8",
-    12: "UPC_A",
-    13: "EAN_13",
-    14: "GTIN_14",
+
+class IdentifierScheme(StrEnum):
+    GTIN_8 = "GTIN_8"
+    UPC_A = "UPC_A"
+    EAN_13 = "EAN_13"
+    GTIN_14 = "GTIN_14"
+
+
+class IdentifierErrorCode(StrEnum):
+    REQUIRED = "IDENTIFIER_REQUIRED"
+    CHARACTERS_INVALID = "IDENTIFIER_CHARACTERS_INVALID"
+    LENGTH_UNSUPPORTED = "IDENTIFIER_LENGTH_UNSUPPORTED"
+    CHECK_DIGIT_INVALID = "IDENTIFIER_CHECK_DIGIT_INVALID"
+
+
+SUPPORTED_SCHEMES: dict[int, IdentifierScheme] = {
+    8: IdentifierScheme.GTIN_8,
+    12: IdentifierScheme.UPC_A,
+    13: IdentifierScheme.EAN_13,
+    14: IdentifierScheme.GTIN_14,
 }
 
 
 class InvalidIdentifierError(ValueError):
-    def __init__(self, code: str) -> None:
+    def __init__(self, code: IdentifierErrorCode) -> None:
         self.code = code
         super().__init__(code)
 
 
 @dataclass(frozen=True, slots=True)
-class ExternalIdentifier:
+class NormalizedIdentifier:
     value: str
-    scheme: str
+    scheme: IdentifierScheme
 
 
-def normalize_identifier(entered: str) -> ExternalIdentifier:
+def normalize_identifier(entered: str) -> NormalizedIdentifier:
     stripped = entered.strip()
     if not stripped:
-        raise InvalidIdentifierError("IDENTIFIER_REQUIRED")
+        raise InvalidIdentifierError(IdentifierErrorCode.REQUIRED)
 
     normalized = stripped.replace(" ", "").replace("-", "")
     if not normalized.isascii() or not normalized.isdigit():
-        raise InvalidIdentifierError("IDENTIFIER_CHARACTERS_INVALID")
+        raise InvalidIdentifierError(IdentifierErrorCode.CHARACTERS_INVALID)
 
     scheme = SUPPORTED_SCHEMES.get(len(normalized))
     if scheme is None:
-        raise InvalidIdentifierError("IDENTIFIER_LENGTH_UNSUPPORTED")
+        raise InvalidIdentifierError(IdentifierErrorCode.LENGTH_UNSUPPORTED)
 
     body, supplied_check_digit = normalized[:-1], int(normalized[-1])
     weighted_sum = sum(
@@ -39,6 +55,6 @@ def normalize_identifier(entered: str) -> ExternalIdentifier:
     )
     expected_check_digit = (10 - weighted_sum % 10) % 10
     if supplied_check_digit != expected_check_digit:
-        raise InvalidIdentifierError("IDENTIFIER_CHECK_DIGIT_INVALID")
+        raise InvalidIdentifierError(IdentifierErrorCode.CHECK_DIGIT_INVALID)
 
-    return ExternalIdentifier(value=normalized, scheme=scheme)
+    return NormalizedIdentifier(value=normalized, scheme=scheme)

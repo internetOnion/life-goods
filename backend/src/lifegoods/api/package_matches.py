@@ -1,7 +1,6 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
 
 from lifegoods.api.contracts import (
     ErrorEnvelope,
@@ -9,13 +8,13 @@ from lifegoods.api.contracts import (
     PackageMatchesResponse,
 )
 from lifegoods.application.package_matches import FindPackageMatches
-from lifegoods.matching.repository import SqlAlchemyPackageMatchRepository
+from lifegoods.matching.repository import PackageMatchRepository
 
 router = APIRouter(prefix="/api/v1", tags=["Package Matches"])
 
 
-def get_session() -> Session:
-    raise RuntimeError("Database session dependency is not configured")
+def get_repository() -> PackageMatchRepository:
+    raise RuntimeError("Package Match repository dependency is not configured")
 
 
 @router.get(
@@ -26,9 +25,9 @@ def get_session() -> Session:
 )
 def get_package_matches(
     identifier: Annotated[str, Query(min_length=1)],
-    session: Annotated[Session, Depends(get_session)],
+    repository: Annotated[PackageMatchRepository, Depends(get_repository)],
 ) -> PackageMatchesResponse:
-    result = FindPackageMatches(SqlAlchemyPackageMatchRepository(session)).execute(identifier)
+    result = FindPackageMatches(repository).execute(identifier)
     return PackageMatchesResponse(
         normalized_identifier=result.identifier.value,
         scheme=result.identifier.scheme,

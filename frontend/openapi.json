@@ -1,11 +1,21 @@
 {
   "components": {
     "schemas": {
+      "ErrorCode": {
+        "enum": [
+          "IDENTIFIER_REQUIRED",
+          "IDENTIFIER_CHARACTERS_INVALID",
+          "IDENTIFIER_LENGTH_UNSUPPORTED",
+          "IDENTIFIER_CHECK_DIGIT_INVALID",
+          "PACKAGE_MATCH_SOURCE_UNAVAILABLE"
+        ],
+        "title": "ErrorCode",
+        "type": "string"
+      },
       "ErrorDetail": {
         "properties": {
           "code": {
-            "title": "Code",
-            "type": "string"
+            "$ref": "#/components/schemas/ErrorCode"
           },
           "message": {
             "title": "Message",
@@ -30,6 +40,16 @@
         ],
         "title": "ErrorEnvelope",
         "type": "object"
+      },
+      "IdentifierScheme": {
+        "enum": [
+          "GTIN_8",
+          "UPC_A",
+          "EAN_13",
+          "GTIN_14"
+        ],
+        "title": "IdentifierScheme",
+        "type": "string"
       },
       "PackageMatchCandidateResponse": {
         "properties": {
@@ -63,8 +83,7 @@
             "type": "string"
           },
           "scheme": {
-            "title": "Scheme",
-            "type": "string"
+            "$ref": "#/components/schemas/IdentifierScheme"
           }
         },
         "required": [

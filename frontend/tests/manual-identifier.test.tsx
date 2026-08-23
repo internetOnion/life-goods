@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, test, vi } from 'vitest'
+import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { App } from '../src/app/App'
 import type { PackageMatchLookup } from '../src/features/package-match/types'
+import i18n from '../src/i18n'
 
 
 function renderJourney(lookup: PackageMatchLookup) {
@@ -18,6 +19,10 @@ function renderJourney(lookup: PackageMatchLookup) {
 
 
 describe('manual identifier journey', () => {
+  beforeEach(async () => {
+    await i18n.changeLanguage('km')
+  })
+
   test('keeps blank and invalid input local with field-associated Khmer guidance', async () => {
     const user = userEvent.setup()
     const lookup = vi.fn<PackageMatchLookup>()
@@ -25,6 +30,10 @@ describe('manual identifier journey', () => {
 
     const input = screen.getByRole('textbox', { name: 'លេខបាកូដ' })
     expect(screen.getByRole('button', { name: 'ពិនិត្យបាកូដ' })).toBeDisabled()
+
+    await user.type(input, '{Enter}')
+    expect(input).toHaveAccessibleErrorMessage('សូមបញ្ចូលលេខបាកូដ។')
+    expect(input).toHaveFocus()
 
     await user.type(input, '1234')
     await user.click(screen.getByRole('button', { name: 'ពិនិត្យបាកូដ' }))
@@ -50,6 +59,7 @@ describe('manual identifier journey', () => {
     expect(screen.getByText('4006381333931')).toBeVisible()
     expect(lookup).toHaveBeenCalledWith('4006381333931')
     expect(screen.getByRole('status')).toHaveTextContent('រកមិនឃើញព័ត៌មានកញ្ចប់')
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 
   test('prevents duplicate submission while announcing progress', async () => {
@@ -107,6 +117,29 @@ describe('manual identifier journey', () => {
     await user.click(screen.getByRole('button', { name: 'English' }))
 
     expect(screen.getByRole('heading', { name: 'No package information found' })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Try another barcode' }))
     expect(screen.getByRole('textbox', { name: 'Barcode number' })).toHaveValue('4006381333931')
+  })
+
+  test('preserves loading and failure state across language changes', async () => {
+    const user = userEvent.setup()
+    let rejectLookup: ((reason: Error) => void) | undefined
+    const lookup = vi.fn<PackageMatchLookup>().mockImplementation(
+      () => new Promise((_resolve, reject) => { rejectLookup = reject }),
+    )
+    renderJourney(lookup)
+
+    await user.type(screen.getByRole('textbox', { name: 'លេខបាកូដ' }), '4006381333931')
+    await user.click(screen.getByRole('button', { name: 'ពិនិត្យបាកូដ' }))
+    await user.click(screen.getByRole('button', { name: 'English' }))
+
+    expect(screen.getByRole('status')).toHaveTextContent('Checking package information')
+    expect(screen.getByRole('textbox', { name: 'Barcode number' })).toHaveValue('4006381333931')
+
+    rejectLookup?.(new Error('unavailable'))
+    expect(await screen.findByRole('heading', { name: 'Could not check right now' })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'ខ្មែរ' }))
+    expect(screen.getByRole('heading', { name: 'មិនអាចពិនិត្យបានឥឡូវនេះ' })).toBeVisible()
+    expect(screen.getByText('4006381333931')).toBeVisible()
   })
 })

@@ -1,8 +1,20 @@
+from enum import StrEnum
+
 from pydantic import BaseModel
+
+from lifegoods.matching.identifier import IdentifierScheme
+
+
+class ErrorCode(StrEnum):
+    IDENTIFIER_REQUIRED = "IDENTIFIER_REQUIRED"
+    IDENTIFIER_CHARACTERS_INVALID = "IDENTIFIER_CHARACTERS_INVALID"
+    IDENTIFIER_LENGTH_UNSUPPORTED = "IDENTIFIER_LENGTH_UNSUPPORTED"
+    IDENTIFIER_CHECK_DIGIT_INVALID = "IDENTIFIER_CHECK_DIGIT_INVALID"
+    PACKAGE_MATCH_SOURCE_UNAVAILABLE = "PACKAGE_MATCH_SOURCE_UNAVAILABLE"
 
 
 class ErrorDetail(BaseModel):
-    code: str
+    code: ErrorCode
     message: str
 
 
@@ -17,5 +29,5 @@ class PackageMatchCandidateResponse(BaseModel):
 
 class PackageMatchesResponse(BaseModel):
     normalized_identifier: str
-    scheme: str
+    scheme: IdentifierScheme
     candidates: list[PackageMatchCandidateResponse]
