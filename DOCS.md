@@ -25,7 +25,3 @@ Offline use, public contribution, SME authenticity advisories, legal compliance 
 - [Domain glossary](CONTEXT.md)
 - [Food-data availability audit](docs/research/mvp-food-data-availability.md)
 - [Architectural decisions](docs/adr)
-
-## Current implementation
-
-The repository currently contains a barcode-scanning test harness under [`testing/barcode-test`](testing/barcode-test). The production MVP described above has not yet been implemented.
