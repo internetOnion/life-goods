@@ -13,7 +13,7 @@ A sealed retail packaged food or non-alcoholic beverage offered for sale in Camb
 _Avoid_: Any Open Food Facts record, all consumer goods
 
 **Anonymous Shopper Session**:
-A scan-and-view interaction that requires no account and retains scan history only for the current session.
+A package-identification-and-view interaction that requires no account and retains lookup history only for the current session.
 _Avoid_: Guest account, anonymous user record
 
 **Contributor**:
@@ -35,7 +35,7 @@ A market-facing form of a Product distinguished by characteristics such as packa
 _Avoid_: Product version, SKU
 
 **External Identifier**:
-A sourced identifier associated with a Package Variant, such as a normalized GTIN or UPC, together with its scheme, validation state, evidence, and any known effective period. It is a lookup key, not the Product's identity.
+A sourced identifier associated with a Package Variant, such as a normalized GTIN-8, UPC-A, EAN-13, or GTIN-14, together with its scheme, validation state, evidence, and any known effective period. It is a lookup key, not the Product's identity.
 _Avoid_: Product ID, barcode primary key
 
 **Package Revision**:
@@ -251,8 +251,12 @@ _Avoid_: Report submission, evidence dossier
 ## Interactions and delivery
 
 **Scan Mode**:
-The shopper-selected identification interface: barcode scan, Package Capture, or catalog browse.
+The shopper-selected identification interface: barcode scan, manual identifier entry, Package Capture, or catalog browse.
 _Avoid_: Camera mode, view type
+
+**Manual Identifier Entry**:
+A shopper-provided External Identifier entered as printed digits, optionally including spaces or hyphens, for validation and Package Match lookup.
+_Avoid_: Free-text product search, Product identity
 
 **Package Match**:
 A set of candidate Package Variants or Revisions retrieved by identifier, appearance, or packaging text. A match is not proof that the physical package is the same revision.

@@ -1,7 +1,11 @@
 .DS_Store
 .env
+.env*.local
+.env.local
 .venv/
 .uv-cache/
+.pnpm-store/
+.vite/
 __pycache__/
 .pytest_cache/
 .ruff_cache/
