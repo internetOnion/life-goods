@@ -142,7 +142,7 @@ Every implementation issue contains:
 7. automated and manual verification;
 8. the release gate it satisfies.
 
-Use `ready-for-agent` only after those decisions are complete. Apply `frontend`, `backend`, `evaluation`, `content-review`, `privacy`, `operations`, `research`, and `accessibility` labels according to actual work.
+Use `Ready for agent` only after those decisions are complete. Apply `Frontend`, `Backend`, `Evaluation`, `Content review`, `Privacy`, `Operations`, `Research`, and `Accessibility` labels according to actual work.
 
 Pull requests explain the user-visible result, link the issue, describe verification, identify contract or migration changes, call out privacy and reviewer implications, and include screenshots for shopper-facing changes.
 
