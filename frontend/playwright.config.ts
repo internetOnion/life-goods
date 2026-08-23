@@ -12,7 +12,7 @@ export default defineConfig({
     {
       command: 'UV_CACHE_DIR=/private/tmp/lifegoods-uv-cache uv run --project ../backend python ../backend/scripts/run_e2e_server.py',
       port: 8000,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
     },
     {
       command: './node_modules/.bin/vite --host 127.0.0.1 --port 4173',
