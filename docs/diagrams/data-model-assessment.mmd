@@ -1,0 +1,142 @@
+erDiagram
+  EVIDENCE ||--o{ LABEL_TRANSCRIPTION : transcribed_as
+  LABEL_TRANSCRIPTION ||--|{ INGREDIENT_OCCURRENCE : contains
+  INGREDIENT_OCCURRENCE ||--o{ INGREDIENT_OCCURRENCE : parent_of
+  INGREDIENT_OCCURRENCE }o--o{ INGREDIENT_MAPPING : proposes
+  NORMALIZED_INGREDIENT ||--o{ INGREDIENT_MAPPING : target
+
+  VOCABULARY_VERSION ||--|{ VOCABULARY_ENTRY : contains
+  NORMALIZED_INGREDIENT ||--o{ VOCABULARY_ENTRY : described_by
+  VOCABULARY_ENTRY ||--o{ VOCABULARY_SYNONYM : recognizes
+  INGREDIENT_OCCURRENCE ||--o{ SAFETY_VOCABULARY_MATCH : matched_from
+  VOCABULARY_SYNONYM ||--o{ SAFETY_VOCABULARY_MATCH : matched_by
+
+  RULE_SET_VERSION ||--|{ REGULATORY_RULE : contains
+  ASSESSMENT_RUN }o--|| VOCABULARY_VERSION : uses
+  ASSESSMENT_RUN }o--|| RULE_SET_VERSION : uses
+  ASSESSMENT_RUN }o--o{ SAFETY_VOCABULARY_MATCH : consumes
+  ASSESSMENT_RUN ||--o{ DERIVED_ASSESSMENT : produces
+  REGULATORY_RULE }o--o{ DERIVED_ASSESSMENT : supports
+  NORMALIZED_INGREDIENT ||--o{ KNOWLEDGE_ENTRY : explained_by
+
+  OBSERVED_PACKAGE ||--o{ DATE_MARKING : declares
+  BATCH o|--o{ DATE_MARKING : may_scope
+  DATE_MARKING ||--o| DATE_INTERPRETATION : interpreted_as
+
+  EVIDENCE {
+    uuid id PK
+    string evidence_type
+    string language_code
+  }
+  LABEL_TRANSCRIPTION {
+    uuid id PK
+    uuid evidence_id FK
+    string original_text
+    string language_code
+    json source_region
+    string coverage_state
+  }
+  INGREDIENT_OCCURRENCE {
+    uuid id PK
+    uuid transcription_id FK
+    uuid parent_id FK
+    int ordinal
+    string source_text
+    decimal declared_percentage
+    json source_span
+  }
+  INGREDIENT_MAPPING {
+    uuid id PK
+    uuid occurrence_id FK
+    uuid normalized_ingredient_id FK
+    string mapping_state
+    decimal confidence
+  }
+  NORMALIZED_INGREDIENT {
+    uuid id PK
+    string canonical_code
+    string ingredient_type
+  }
+  VOCABULARY_VERSION {
+    uuid id PK
+    string version
+    datetime published_at
+  }
+  VOCABULARY_ENTRY {
+    uuid id PK
+    uuid vocabulary_version_id FK
+    uuid normalized_ingredient_id FK
+    string khmer_name
+    string khmer_explanation
+    string review_state
+  }
+  VOCABULARY_SYNONYM {
+    uuid id PK
+    uuid vocabulary_entry_id FK
+    string language_code
+    string source_term
+    string relationship_type
+  }
+  SAFETY_VOCABULARY_MATCH {
+    uuid id PK
+    uuid occurrence_id FK
+    uuid synonym_id FK
+    string match_type
+    json source_span
+  }
+  RULE_SET_VERSION {
+    uuid id PK
+    string version
+    string jurisdiction
+    datetime published_at
+  }
+  REGULATORY_RULE {
+    uuid id PK
+    uuid rule_set_version_id FK
+    string rule_type
+    string food_category
+    date effective_from
+    date effective_to
+    string source_url
+  }
+  ASSESSMENT_RUN {
+    uuid id PK
+    uuid vocabulary_version_id FK
+    uuid rule_set_version_id FK
+    datetime created_at
+  }
+  DERIVED_ASSESSMENT {
+    uuid id PK
+    uuid assessment_run_id FK
+    string assessment_type
+    string outcome
+    string coverage_state
+  }
+  KNOWLEDGE_ENTRY {
+    uuid id PK
+    uuid normalized_ingredient_id FK
+    string locale
+    string review_state
+    string source_url
+  }
+  OBSERVED_PACKAGE {
+    uuid id PK
+  }
+  BATCH {
+    uuid id PK
+    string lot_code
+  }
+  DATE_MARKING {
+    uuid id PK
+    uuid observed_package_id FK
+    uuid batch_id FK
+    string source_text
+    string date_type
+    date parsed_date
+  }
+  DATE_INTERPRETATION {
+    uuid id PK
+    uuid date_marking_id FK
+    string outcome
+    string parser_version
+  }
