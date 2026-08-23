@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from lifegoods.catalog.models import ExternalIdentifierRecord, PackageVariantRecord
+from lifegoods.adapters.catalog_models import ExternalIdentifierRecord, PackageVariantRecord
 from lifegoods.matching.repository import PackageMatchCandidate
 
 

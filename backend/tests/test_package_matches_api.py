@@ -7,14 +7,30 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from lifegoods.adapters.database import Base
-from lifegoods.catalog.models import (
+from lifegoods.adapters.catalog_models import (
     EvidenceRecord,
     ExternalIdentifierRecord,
     PackageVariantRecord,
     ProductRecord,
 )
+from lifegoods.adapters.database import Base
 from lifegoods.main import create_app
+
+
+def evidence_record(number: int) -> EvidenceRecord:
+    timestamp = datetime(2026, 8, 23, tzinfo=UTC)
+    return EvidenceRecord(
+        id=f"evidence-{number}",
+        evidence_type="IDENTIFIER_OBSERVATION",
+        source_name="LifeGoods test fixture",
+        source_uri=f"https://example.test/evidence/{number}",
+        language="und",
+        observed_at=timestamp,
+        retrieved_at=timestamp,
+        license_name="TEST_FIXTURE",
+        integrity_hash=f"sha256:test-{number}",
+        storage_reference=f"fixture://identifier/{number}",
+    )
 
 
 @pytest.fixture
@@ -82,13 +98,10 @@ def test_candidate_is_returned_through_the_persistence_boundary(
             normalized_value="4006381333931",
             validation_state="VALID",
             association_state="ACCEPTED",
-            evidence=[
-                EvidenceRecord(
-                    id="evidence-1",
-                    source_uri="https://example.test/evidence/1",
-                    observed_at=datetime(2026, 8, 23, tzinfo=UTC),
-                )
-            ],
+            production_method="HUMAN_OBSERVED",
+            review_state="ACCEPTED",
+            confidence=1.0,
+            evidence=evidence_record(1),
         )
         session.add(identifier)
 
@@ -115,13 +128,10 @@ def test_disputed_identifier_associations_remain_representable(
                     normalized_value="4006381333931",
                     validation_state="VALID",
                     association_state="DISPUTED",
-                    evidence=[
-                        EvidenceRecord(
-                            id=f"evidence-{number}",
-                            source_uri=f"https://example.test/evidence/{number}",
-                            observed_at=datetime(2026, 8, 23, tzinfo=UTC),
-                        )
-                    ],
+                    production_method="HUMAN_OBSERVED",
+                    review_state="DISPUTED",
+                    confidence=None,
+                    evidence=evidence_record(number),
                 )
             )
 

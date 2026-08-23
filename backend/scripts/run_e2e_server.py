@@ -6,8 +6,8 @@ import uvicorn
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from lifegoods.adapters import catalog_models  # noqa: E402, F401
 from lifegoods.adapters.database import Base, create_session_factory  # noqa: E402
-from lifegoods.catalog import models  # noqa: E402, F401
 from lifegoods.main import create_app  # noqa: E402
 from lifegoods.settings import Settings  # noqa: E402
 

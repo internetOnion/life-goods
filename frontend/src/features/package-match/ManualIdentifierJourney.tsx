@@ -24,6 +24,7 @@ export function ManualIdentifierJourney({ lookup }: ManualIdentifierJourneyProps
   const [enteredIdentifier, setEnteredIdentifier] = useState('')
   const [journey, setJourney] = useState<JourneyState>({ name: 'entry' })
   const inputRef = useRef<HTMLInputElement>(null)
+  const recoveryActionRef = useRef<HTMLButtonElement>(null)
   const pendingIdentifierRef = useRef<string | null>(null)
   const mutation = useMutation({
     mutationFn: (identifier: string) => lookup(identifier),
@@ -45,6 +46,12 @@ export function ManualIdentifierJourney({ lookup }: ManualIdentifierJourneyProps
   useEffect(() => {
     document.documentElement.lang = i18n.language
   }, [i18n.language])
+
+  useEffect(() => {
+    if (journey.name === 'noMatch' || journey.name === 'match' || journey.name === 'failure') {
+      recoveryActionRef.current?.focus()
+    }
+  }, [journey.name])
 
   const submitIdentifier = (value: string) => {
     if (mutation.isPending) return
@@ -175,7 +182,7 @@ export function ManualIdentifierJourney({ lookup }: ManualIdentifierJourneyProps
               <dt>{t('identifierLabel')}</dt>
               <dd>{outcome.result.normalized_identifier}</dd>
             </dl>
-            <button className="secondary-button" onClick={tryAnother} type="button">{t('tryAnother')}</button>
+            <button ref={recoveryActionRef} className="secondary-button" onClick={tryAnother} type="button">{t('tryAnother')}</button>
           </section>
         ) : null}
 
@@ -189,7 +196,7 @@ export function ManualIdentifierJourney({ lookup }: ManualIdentifierJourneyProps
               <dd>{journey.identifier}</dd>
             </dl>
             <div className="recovery-actions">
-              <button className="primary-button" onClick={() => submitIdentifier(journey.identifier)} type="button">
+              <button ref={recoveryActionRef} className="primary-button" onClick={() => submitIdentifier(journey.identifier)} type="button">
                 {t('retry')}
               </button>
               <button className="secondary-button" onClick={tryAnother} type="button">{t('tryAnother')}</button>
