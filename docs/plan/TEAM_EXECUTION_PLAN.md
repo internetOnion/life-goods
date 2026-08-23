@@ -142,7 +142,18 @@ Every implementation issue contains:
 7. automated and manual verification;
 8. the release gate it satisfies.
 
-Use `ready-for-agent` only after those decisions are complete. Apply `frontend`, `backend`, `evaluation`, `content-review`, `privacy`, `operations`, `research`, and `accessibility` labels according to actual work.
+Use exactly one wave label and one or both role labels on each issue. The wave label also states the area:
+
+- `Wave 0 · Foundation`
+- `Wave 1 · Package Match`
+- `Wave 2 · Identification`
+- `Wave 3 · Capture & Evaluation`
+- `Wave 4 · Evidence Foundations`
+- `Wave 5 · Assessments & Guidance`
+- `Wave 6 · Content & Anonymous Experience`
+- `Wave 7 · Deployment & Validation`
+
+Role labels are `Frontend` and `Backend`. Do not add separate status, review, privacy, operations, research, documentation, or readiness labels; those concerns belong in the issue body, milestone, project status, or wave label.
 
 Pull requests explain the user-visible result, link the issue, describe verification, identify contract or migration changes, call out privacy and reviewer implications, and include screenshots for shopper-facing changes.
 
