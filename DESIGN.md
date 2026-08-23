@@ -32,18 +32,18 @@ The palette uses neutral, highly legible surfaces and a restrained lotus green w
 
 ### Primary
 
-- **Lotus Green** (`[to be resolved during implementation]`): Reserved for brand identity, primary actions, current selection, and focus. It must not turn an entire result into positive reassurance.
+- **Lotus Green** (`oklch(0.47 0.115 157)`; dark action tone `oklch(0.36 0.09 157)`): Reserved for brand identity, primary actions, current selection, and focus. It must not turn an entire result into positive reassurance.
 
 ### Secondary
 
-- **Supporting Accent** (`[to be resolved during implementation]`): A visually distinct accent may support links or source-oriented details only when the role cannot be carried by Lotus Green or a semantic color.
+- **Supporting Accent**: No decorative accent is introduced in the manual-identifier slice. Semantic error uses `oklch(0.46 0.17 28)` and is always paired with text.
 
 ### Neutral
 
-- **Background** (`[to be resolved during implementation]`): A true neutral light background suitable for Cambodian retail environments and mobile screens; avoid cream, paper, or lifestyle-wellness tinting.
-- **Surface** (`[to be resolved during implementation]`): A subtle neutral layer for grouped evidence, controls, and temporary panels.
-- **Ink** (`[to be resolved during implementation]`): The primary text color, targeting at least 7:1 contrast against the background where practical.
-- **Muted Ink** (`[to be resolved during implementation]`): Secondary text that still meets WCAG 2.2 AA and remains readable in Khmer.
+- **Background** (`oklch(1 0 0)`): A true neutral light background suitable for Cambodian retail environments and mobile screens.
+- **Surface** (`oklch(0.965 0.008 160)`): A subtle green-neutral layer for grouped evidence, controls, and temporary panels.
+- **Ink** (`oklch(0.235 0.018 165)`): The primary text color, exceeding the WCAG 2.2 AA target on the background.
+- **Muted Ink** (`oklch(0.47 0.018 165)`): Secondary text that remains readable in Khmer.
 
 ### Named Rules
 
@@ -55,9 +55,9 @@ The palette uses neutral, highly legible surfaces and a restrained lotus green w
 
 ## 3. Typography
 
-**Display Font:** Warm humanist sans with strong Khmer and Latin support (`[font family to be selected during implementation]`)
+**Display Font:** Noto Sans Khmer when available, followed by Khmer OS System, Inter, and system UI sans fallbacks.
 
-**Body Font:** The same warm humanist sans direction (`[font family to be selected during implementation]`)
+**Body Font:** The same Noto Sans Khmer-led system stack, avoiding a separate display download in the first low-bandwidth slice.
 
 **Character:** Clear, open, and approachable without becoming playful. A single coherent product-UI voice should carry headings, controls, evidence, and explanatory content across Khmer and English.
 
