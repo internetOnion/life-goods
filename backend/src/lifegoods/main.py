@@ -54,7 +54,7 @@ def create_app(
     ) -> JSONResponse:
         envelope = ErrorEnvelope(
             error=ErrorDetail(
-                code="IDENTIFIER_REQUIRED",
+                code=ErrorCode.IDENTIFIER_REQUIRED,
                 message=ERROR_MESSAGES[ErrorCode.IDENTIFIER_REQUIRED],
             )
         )

@@ -7,7 +7,9 @@
     "test": "pnpm --dir frontend test && pnpm backend:test",
     "test:e2e": "pnpm --dir frontend test:e2e",
     "typecheck": "pnpm --dir frontend typecheck",
-    "lint": "pnpm --dir frontend lint && pnpm backend:lint",
+    "lint": "pnpm frontend:lint:check && pnpm backend:lint",
+    "frontend:lint:check": "prettier --check frontend && pnpm --dir frontend lint",
+    "frontend:lint:format": "prettier --write frontend",
     "backend:sync": "UV_CACHE_DIR=.uv-cache uv sync --project backend --dev",
     "backend:dev": "UV_CACHE_DIR=.uv-cache uv run --project backend uvicorn lifegoods.main:app --app-dir backend/src --reload",
     "backend:test": "UV_CACHE_DIR=.uv-cache uv run --project backend pytest backend/tests",
@@ -15,5 +17,9 @@
     "db:migrate": "UV_CACHE_DIR=.uv-cache uv run --project backend alembic -c backend/alembic.ini upgrade head",
     "api:generate": "UV_CACHE_DIR=.uv-cache uv run --project backend python backend/scripts/export_openapi.py && pnpm --dir frontend api:generate",
     "api:check": "pnpm api:generate && git diff --exit-code -- frontend/openapi.json frontend/src/api/generated"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.6",
+    "prettier-plugin-tailwindcss": "^0.8.1"
   }
 }
