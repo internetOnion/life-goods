@@ -25,3 +25,7 @@ Existing commits use short, imperative, lowercase Conventional-style prefixes su
 ## Agent Workflow & Safety Boundaries
 
 Before implementation, inspect applicable ADRs, especially claim-level provenance and private Package Capture isolation. Prefer small vertical slices, preserve uncertainty explicitly, and keep unsupported safety, Halal, legal, and authenticity conclusions out of the product. Use `apply_patch` for edits, avoid destructive Git commands, and update documentation when a domain or architecture decision changes.
+
+## Design Context
+
+When changing shopper-facing UI or making product/design decisions, read `PRODUCT.md` for product identity, audience, principles, and accessibility, then read `DESIGN.md` for the current visual direction and interface guardrails. Treat the linked Figma concept as an evolving structural reference; implementation remains governed by the repository specification, user stories, glossary, and ADRs.
