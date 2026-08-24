@@ -15,16 +15,18 @@ from lifegoods.matching.external_source import (
     ExternalPackageRecord,
     ExternalPackageUnavailable,
     ExternalSelectedImage,
+    ExternalSourceMetadata,
     ExternalSourceUnavailableReason,
     JsonValue,
     SourcedValue,
 )
 from lifegoods.matching.identifier import NormalizedIdentifier
-
-OPEN_FOOD_FACTS_BASE_URL = "https://world.openfoodfacts.org"
-OPEN_FOOD_FACTS_USER_AGENT = (
-    "LifeGoods/0.1.0 (https://github.com/internetOnion/life-goods)"
+from lifegoods.settings import (
+    DEFAULT_OPEN_FOOD_FACTS_BASE_URL,
+    DEFAULT_OPEN_FOOD_FACTS_TIMEOUT_SECONDS,
+    DEFAULT_OPEN_FOOD_FACTS_USER_AGENT,
 )
+
 SUCCESS_CACHE_TTL_SECONDS = 24 * 60 * 60
 NOT_FOUND_CACHE_TTL_SECONDS = 15 * 60
 DEFAULT_MAX_CACHE_ENTRIES = 1_024
@@ -90,17 +92,13 @@ class OpenFoodFactsPackageSource:
         self,
         client: httpx.Client,
         *,
-        base_url: str = OPEN_FOOD_FACTS_BASE_URL,
-        user_agent: str = OPEN_FOOD_FACTS_USER_AGENT,
-        timeout_seconds: float = 2.0,
+        base_url: str = DEFAULT_OPEN_FOOD_FACTS_BASE_URL,
+        user_agent: str = DEFAULT_OPEN_FOOD_FACTS_USER_AGENT,
+        timeout_seconds: float = DEFAULT_OPEN_FOOD_FACTS_TIMEOUT_SECONDS,
         utc_now: Callable[[], datetime] | None = None,
         monotonic: Callable[[], float] = system_monotonic,
-        success_cache_ttl_seconds: float = SUCCESS_CACHE_TTL_SECONDS,
-        not_found_cache_ttl_seconds: float = NOT_FOUND_CACHE_TTL_SECONDS,
         max_cache_entries: int = DEFAULT_MAX_CACHE_ENTRIES,
     ) -> None:
-        if success_cache_ttl_seconds <= 0 or not_found_cache_ttl_seconds <= 0:
-            raise ValueError("Cache TTLs must be positive")
         if max_cache_entries <= 0:
             raise ValueError("The cache must allow at least one entry")
         self._client = client
@@ -109,9 +107,16 @@ class OpenFoodFactsPackageSource:
         self._timeout_seconds = timeout_seconds
         self._utc_now = utc_now or (lambda: datetime.now(UTC))
         self._monotonic = monotonic
-        self._success_cache_ttl_seconds = success_cache_ttl_seconds
-        self._not_found_cache_ttl_seconds = not_found_cache_ttl_seconds
         self._max_cache_entries = max_cache_entries
+        self._source_metadata = ExternalSourceMetadata(
+            name="Open Food Facts",
+            source_type="COMMUNITY_DATABASE",
+            base_url=self._base_url,
+            attribution="Open Food Facts contributors",
+            database_license="ODbL",
+            contents_license="Database Contents License",
+            image_license="CC BY-SA",
+        )
         self._cache: OrderedDict[str, _CacheEntry] = OrderedDict()
         self._cache_lock = Lock()
 
@@ -146,11 +151,18 @@ class OpenFoodFactsPackageSource:
 
         retrieved_at = self._utc_now()
         if response.status_code == 404:
+            if not _is_confirmed_not_found(response):
+                return ExternalPackageUnavailable(
+                    identifier=identifier.value,
+                    reason=ExternalSourceUnavailableReason.INVALID_RESPONSE,
+                    status_code=404,
+                )
             return ExternalPackageNotFound(
                 identifier=identifier.value,
                 request_url=str(response.request.url),
                 retrieved_at=retrieved_at,
                 raw_response=response.content,
+                source=self._source_metadata,
             )
         if response.status_code != 200:
             if response.status_code == 429:
@@ -169,7 +181,7 @@ class OpenFoodFactsPackageSource:
             payload = response.json()
         except ValueError:
             return _invalid_response(identifier)
-        if not isinstance(payload, dict):
+        if not isinstance(payload, dict) or payload.get("status") != "success":
             return _invalid_response(identifier)
         product = payload.get("product")
         if not isinstance(product, dict) or product.get("code") != identifier.value:
@@ -184,6 +196,7 @@ class OpenFoodFactsPackageSource:
             retrieved_at=retrieved_at,
             source_revision=_source_revision(product.get("last_modified_t")),
             raw_response=response.content,
+            source=self._source_metadata,
             names=_localized_texts(product, LOCALIZED_NAME_FIELDS, primary_language),
             brands=_brands(product),
             quantity=_string_value(product, "quantity"),
@@ -213,9 +226,9 @@ class OpenFoodFactsPackageSource:
 
     def _store(self, identifier: str, result: CacheableLookupResult) -> None:
         if isinstance(result, ExternalPackageFound):
-            ttl_seconds = self._success_cache_ttl_seconds
+            ttl_seconds = SUCCESS_CACHE_TTL_SECONDS
         else:
-            ttl_seconds = self._not_found_cache_ttl_seconds
+            ttl_seconds = NOT_FOUND_CACHE_TTL_SECONDS
         with self._cache_lock:
             now = self._monotonic()
             self._purge_expired(now)
@@ -242,6 +255,17 @@ def _invalid_response(identifier: NormalizedIdentifier) -> ExternalPackageUnavai
         identifier=identifier.value,
         reason=ExternalSourceUnavailableReason.INVALID_RESPONSE,
     )
+
+
+def _is_confirmed_not_found(response: httpx.Response) -> bool:
+    try:
+        payload = response.json()
+    except ValueError:
+        return False
+    if not isinstance(payload, dict):
+        return False
+    result = payload.get("result")
+    return isinstance(result, dict) and result.get("id") == "product_not_found"
 
 
 def _localized_texts(
