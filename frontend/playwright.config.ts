@@ -10,7 +10,7 @@ export default defineConfig({
     webServer: [
         {
             command:
-                "UV_CACHE_DIR=/private/tmp/lifegoods-uv-cache uv run --project ../backend python ../backend/scripts/run_e2e_server.py",
+                "uv run --project ../backend python ../backend/scripts/run_e2e_server.py",
             port: 8000,
             reuseExistingServer: !process.env.CI,
         },

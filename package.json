@@ -10,12 +10,12 @@
     "lint": "pnpm frontend:lint:check && pnpm backend:lint",
     "frontend:lint:check": "prettier --check frontend && pnpm --dir frontend lint",
     "frontend:lint:format": "prettier --write frontend",
-    "backend:sync": "UV_CACHE_DIR=.uv-cache uv sync --project backend --dev",
-    "backend:dev": "UV_CACHE_DIR=.uv-cache uv run --project backend uvicorn lifegoods.main:app --app-dir backend/src --reload",
-    "backend:test": "UV_CACHE_DIR=.uv-cache uv run --project backend pytest backend/tests",
-    "backend:lint": "UV_CACHE_DIR=.uv-cache uv run --project backend ruff check backend/src backend/tests backend/scripts backend/migrations",
-    "db:migrate": "UV_CACHE_DIR=.uv-cache uv run --project backend alembic -c backend/alembic.ini upgrade head",
-    "api:generate": "UV_CACHE_DIR=.uv-cache uv run --project backend python backend/scripts/export_openapi.py && pnpm --dir frontend api:generate",
+    "backend:sync": "uv sync --project backend --dev",
+    "backend:dev": "uv run --project backend uvicorn lifegoods.main:app --app-dir backend/src --reload",
+    "backend:test": "uv run --project backend pytest backend/tests",
+    "backend:lint": "uv run --project backend ruff check backend/src backend/tests backend/scripts backend/migrations",
+    "db:migrate": "uv run --project backend alembic -c backend/alembic.ini upgrade head",
+    "api:generate": "uv run --project backend python backend/scripts/export_openapi.py && pnpm --dir frontend api:generate",
     "api:check": "pnpm api:generate && git diff --exit-code -- frontend/openapi.json frontend/src/api/generated"
   },
   "devDependencies": {
