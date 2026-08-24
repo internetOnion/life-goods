@@ -57,6 +57,14 @@ def test_complete_record_is_returned_with_source_metadata_and_raw_response() -> 
     assert result.record.identifier == "4006381333931"
     assert result.record.source_record_id == "4006381333931"
     assert result.record.source_url == "https://world.openfoodfacts.org/product/4006381333931"
+    assert result.record.source.name == "Open Food Facts"
+    assert result.record.source.source_type == "COMMUNITY_DATABASE"
+    assert result.record.source.base_url == "https://world.openfoodfacts.org"
+    assert result.record.source.attribution == "Open Food Facts contributors"
+    assert result.record.source.database_license == "ODbL"
+    assert result.record.source.contents_license == "Database Contents License"
+    assert result.record.source.image_license == "CC BY-SA"
+    assert result.record.source.terms_version is None
     assert result.record.retrieved_at == retrieved_at
     assert result.record.source_revision == "1787462400"
     assert result.record.raw_response == raw_response
@@ -168,9 +176,37 @@ def test_confirmed_not_found_is_distinct_and_preserves_response() -> None:
     assert result.identifier == "4006381333931"
     assert result.retrieved_at == retrieved_at
     assert result.raw_response == raw_response
+    assert result.source.name == "Open Food Facts"
     assert result.request_url.startswith(
         "https://world.openfoodfacts.org/api/v3/product/4006381333931.json"
     )
+
+
+def test_unconfirmed_not_found_response_is_unavailable_and_not_cached() -> None:
+    request_count = 0
+
+    def respond(_request: httpx.Request) -> httpx.Response:
+        nonlocal request_count
+        request_count += 1
+        return httpx.Response(404, json={"error": "route missing"})
+
+    source = OpenFoodFactsPackageSource(
+        httpx.Client(transport=httpx.MockTransport(respond))
+    )
+    identifier = NormalizedIdentifier(
+        value="4006381333931", scheme=IdentifierScheme.EAN_13
+    )
+
+    first = source.lookup(identifier)
+    second = source.lookup(identifier)
+
+    assert first == ExternalPackageUnavailable(
+        identifier="4006381333931",
+        reason=ExternalSourceUnavailableReason.INVALID_RESPONSE,
+        status_code=404,
+    )
+    assert second == first
+    assert request_count == 2
 
 
 @pytest.mark.parametrize(
@@ -235,6 +271,7 @@ def test_transport_failure_is_unavailable(
         b"not-json",
         b'{"status":"success"}',
         b'{"status":"success","product":{"code":"0000000000000"}}',
+        b'{"status":"failure","product":{"code":"4006381333931"}}',
     ],
 )
 def test_invalid_success_response_is_unavailable(raw_response: bytes) -> None:

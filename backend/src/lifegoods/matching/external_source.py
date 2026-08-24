@@ -23,6 +23,18 @@ class ExternalSelectedImage:
 
 
 @dataclass(frozen=True, slots=True)
+class ExternalSourceMetadata:
+    name: str
+    source_type: str
+    base_url: str
+    attribution: str
+    database_license: str
+    contents_license: str
+    image_license: str
+    terms_version: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class ExternalPackageRecord:
     identifier: str
     source_record_id: str
@@ -31,6 +43,7 @@ class ExternalPackageRecord:
     retrieved_at: datetime
     source_revision: str | None
     raw_response: bytes
+    source: ExternalSourceMetadata
     names: tuple[SourcedValue[str], ...]
     brands: SourcedValue[tuple[str, ...]] | None
     quantity: SourcedValue[str] | None
@@ -57,6 +70,7 @@ class ExternalPackageNotFound:
     request_url: str
     retrieved_at: datetime
     raw_response: bytes
+    source: ExternalSourceMetadata
     kind: Literal["NOT_FOUND"] = field(init=False, default="NOT_FOUND")
 
 
