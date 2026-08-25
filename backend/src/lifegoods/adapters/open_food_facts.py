@@ -120,6 +120,14 @@ class OpenFoodFactsPackageSource:
         self._cache: OrderedDict[str, _CacheEntry] = OrderedDict()
         self._cache_lock = Lock()
 
+    @property
+    def metadata(self) -> ExternalSourceMetadata:
+        return self._source_metadata
+
+    def fetch(self, identifier: NormalizedIdentifier) -> ExternalLookupResult:
+        """Read OFF without the process cache; durable snapshot reuse lives above this seam."""
+        return self._fetch(identifier)
+
     def lookup(self, identifier: NormalizedIdentifier) -> ExternalLookupResult:
         cached = self._cached(identifier.value)
         if cached is not None:

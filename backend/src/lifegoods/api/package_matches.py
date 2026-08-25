@@ -6,15 +6,18 @@ from lifegoods.api.contracts import (
     ErrorEnvelope,
     PackageMatchCandidateResponse,
     PackageMatchesResponse,
+    PackageMatchEvidenceResponse,
+    PackageMatchReferenceImageResponse,
+    PackageMatchSourceResponse,
 )
 from lifegoods.application.package_matches import FindPackageMatches
-from lifegoods.matching.repository import PackageMatchRepository
+from lifegoods.matching.repository import PackageMatchCandidate
 
 router = APIRouter(prefix="/api/v1", tags=["Package Matches"])
 
 
-def get_repository() -> PackageMatchRepository:
-    raise RuntimeError("Package Match repository dependency is not configured")
+def get_finder() -> FindPackageMatches:
+    raise RuntimeError("Package Match application dependency is not configured")
 
 
 @router.get(
@@ -25,17 +28,78 @@ def get_repository() -> PackageMatchRepository:
 )
 def get_package_matches(
     identifier: Annotated[str, Query(min_length=1)],
-    repository: Annotated[PackageMatchRepository, Depends(get_repository)],
+    finder: Annotated[FindPackageMatches, Depends(get_finder)],
 ) -> PackageMatchesResponse:
-    result = FindPackageMatches(repository).execute(identifier)
+    result = finder.execute(identifier)
     return PackageMatchesResponse(
         normalized_identifier=result.identifier.value,
         scheme=result.identifier.scheme,
-        candidates=[
-            PackageMatchCandidateResponse(
-                package_variant_id=candidate.package_variant_id,
-                product_id=candidate.product_id,
+        candidates=[_candidate_response(candidate) for candidate in result.candidates],
+    )
+
+
+def _candidate_response(candidate: PackageMatchCandidate) -> PackageMatchCandidateResponse:
+    source = candidate.source
+    return PackageMatchCandidateResponse(
+        source_kind=candidate.source_kind,
+        package_variant_id=candidate.package_variant_id,
+        product_id=candidate.product_id,
+        external_record_id=candidate.external_record_id,
+        source=(
+            PackageMatchSourceResponse(
+                name=source.name,
+                source_type=source.source_type,
+                base_url=source.base_url,
+                record_url=source.record_url,
+                attribution=source.attribution,
+                database_license=source.database_license,
+                contents_license=source.contents_license,
+                image_license=source.image_license,
+                terms_version=source.terms_version,
             )
-            for candidate in result.candidates
+            if source is not None
+            else None
+        ),
+        identity_evidence=[
+            PackageMatchEvidenceResponse(
+                field=evidence.field,
+                value=evidence.value,
+                source_field=evidence.source_field,
+                source_name=evidence.source_name,
+                source_url=evidence.source_url,
+                language=evidence.language,
+                observed_at=evidence.observed_at,
+                retrieved_at=evidence.retrieved_at,
+            )
+            for evidence in candidate.identity_evidence
         ],
+        label_evidence=[
+            PackageMatchEvidenceResponse(
+                field=evidence.field,
+                value=evidence.value,
+                source_field=evidence.source_field,
+                source_name=evidence.source_name,
+                source_url=evidence.source_url,
+                language=evidence.language,
+                observed_at=evidence.observed_at,
+                retrieved_at=evidence.retrieved_at,
+            )
+            for evidence in candidate.label_evidence
+        ],
+        reference_images=[
+            PackageMatchReferenceImageResponse(
+                role=image.role,
+                url=image.url,
+                source_field=image.source_field,
+                source_name=image.source_name,
+                source_url=image.source_url,
+                attribution=image.attribution,
+                license_name=image.license_name,
+                language=image.language,
+            )
+            for image in candidate.reference_images
+        ],
+        retrieved_at=candidate.retrieved_at,
+        is_current=candidate.is_current,
+        source_revision=candidate.source_revision,
     )

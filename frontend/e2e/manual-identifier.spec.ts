@@ -110,6 +110,10 @@ test("keyboard and live regions expose invalid, loading, failure, and retry stat
     )
 
     await expect(
+        page.getByRole("heading", { name: "មិនអាចពិនិត្យបានឥឡូវនេះ" }),
+    ).toBeFocused()
+    await page.keyboard.press("Tab")
+    await expect(
         page.getByRole("button", { name: "ព្យាយាមម្ដងទៀត" }),
     ).toBeFocused()
     await page.keyboard.press("Enter")

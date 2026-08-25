@@ -37,13 +37,166 @@ export type IdentifierScheme = 'GTIN_8' | 'UPC_A' | 'EAN_13' | 'GTIN_14';
  */
 export type PackageMatchCandidateResponse = {
     /**
+     * External Record Id
+     */
+    external_record_id: string | null;
+    /**
+     * Identity Evidence
+     */
+    identity_evidence: Array<PackageMatchEvidenceResponse>;
+    /**
+     * Is Current
+     */
+    is_current: boolean | null;
+    /**
+     * Label Evidence
+     */
+    label_evidence: Array<PackageMatchEvidenceResponse>;
+    /**
      * Package Variant Id
      */
-    package_variant_id: string;
+    package_variant_id: string | null;
     /**
      * Product Id
      */
-    product_id: string;
+    product_id: string | null;
+    /**
+     * Reference Images
+     */
+    reference_images: Array<PackageMatchReferenceImageResponse>;
+    /**
+     * Retrieved At
+     */
+    retrieved_at: string | null;
+    source: PackageMatchSourceResponse | null;
+    source_kind: PackageMatchSourceKind;
+    /**
+     * Source Revision
+     */
+    source_revision: string | null;
+};
+
+/**
+ * PackageMatchEvidenceResponse
+ */
+export type PackageMatchEvidenceResponse = {
+    /**
+     * Field
+     */
+    field: string;
+    /**
+     * Language
+     */
+    language: string | null;
+    /**
+     * Observed At
+     */
+    observed_at: string | null;
+    /**
+     * Retrieved At
+     */
+    retrieved_at: string;
+    /**
+     * Source Field
+     */
+    source_field: string;
+    /**
+     * Source Name
+     */
+    source_name: string;
+    /**
+     * Source Url
+     */
+    source_url: string;
+    /**
+     * Value
+     */
+    value: unknown;
+};
+
+/**
+ * PackageMatchReferenceImageResponse
+ */
+export type PackageMatchReferenceImageResponse = {
+    /**
+     * Attribution
+     */
+    attribution: string;
+    /**
+     * Language
+     */
+    language: string | null;
+    /**
+     * License Name
+     */
+    license_name: string;
+    /**
+     * Role
+     */
+    role: string;
+    /**
+     * Source Field
+     */
+    source_field: string;
+    /**
+     * Source Name
+     */
+    source_name: string;
+    /**
+     * Source Url
+     */
+    source_url: string;
+    /**
+     * Url
+     */
+    url: string;
+};
+
+/**
+ * PackageMatchSourceKind
+ */
+export type PackageMatchSourceKind = 'REVIEWED_CATALOG' | 'OPEN_FOOD_FACTS';
+
+/**
+ * PackageMatchSourceResponse
+ */
+export type PackageMatchSourceResponse = {
+    /**
+     * Attribution
+     */
+    attribution: string;
+    /**
+     * Base Url
+     */
+    base_url: string;
+    /**
+     * Contents License
+     */
+    contents_license: string;
+    /**
+     * Database License
+     */
+    database_license: string;
+    /**
+     * Image License
+     */
+    image_license: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Record Url
+     */
+    record_url: string;
+    /**
+     * Source Type
+     */
+    source_type: string;
+    /**
+     * Terms Version
+     */
+    terms_version: string | null;
 };
 
 /**

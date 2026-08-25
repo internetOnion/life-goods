@@ -11,7 +11,11 @@ import { useTranslation } from "react-i18next"
 import "../../i18n"
 import { LotusMark } from "../../ui/LotusMark"
 import { validateIdentifier, type IdentifierValidation } from "./identifier"
-import type { PackageMatchLookup, PackageMatchesResponse } from "./types"
+import type {
+    PackageMatchCandidateResponse,
+    PackageMatchLookup,
+    PackageMatchesResponse,
+} from "./types"
 
 type JourneyState =
     | { name: "entry" }
@@ -27,6 +31,44 @@ type ManualIdentifierJourneyProps = {
     lookup: PackageMatchLookup
 }
 
+function evidenceText(
+    candidate: PackageMatchCandidateResponse,
+    field: string,
+    language: string,
+): string | undefined {
+    const matches = candidate.identity_evidence.filter(
+        (evidence) => evidence.field === field,
+    )
+    const preferred =
+        matches.find((evidence) => evidence.language === language) ??
+        matches.find((evidence) => evidence.language === "en") ??
+        matches[0]
+    return printableValue(preferred?.value)
+}
+
+function printableValue(value: unknown): string | undefined {
+    if (typeof value === "string" && value.trim()) return value
+    if (typeof value === "number" || typeof value === "boolean")
+        return String(value)
+    if (
+        Array.isArray(value) &&
+        value.length > 0 &&
+        value.every((item) => typeof item === "string")
+    ) {
+        return value.join(", ")
+    }
+    return undefined
+}
+
+function formatRetrievedAt(value: string, language: string): string {
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return value
+    return new Intl.DateTimeFormat(language === "km" ? "km-KH" : "en", {
+        dateStyle: "medium",
+        timeStyle: "short",
+    }).format(date)
+}
+
 export function ManualIdentifierJourney({
     lookup,
 }: ManualIdentifierJourneyProps) {
@@ -34,7 +76,8 @@ export function ManualIdentifierJourney({
     const [enteredIdentifier, setEnteredIdentifier] = useState("")
     const [journey, setJourney] = useState<JourneyState>({ name: "entry" })
     const inputRef = useRef<HTMLInputElement>(null)
-    const recoveryActionRef = useRef<HTMLButtonElement>(null)
+    const outcomeTitleRef = useRef<HTMLHeadingElement>(null)
+    const failureTitleRef = useRef<HTMLHeadingElement>(null)
     const pendingIdentifierRef = useRef<string | null>(null)
     const mutation = useMutation({
         mutationFn: (identifier: string) => lookup(identifier),
@@ -61,13 +104,9 @@ export function ManualIdentifierJourney({
     }, [i18n.language])
 
     useEffect(() => {
-        if (
-            journey.name === "noMatch" ||
-            journey.name === "match" ||
-            journey.name === "failure"
-        ) {
-            recoveryActionRef.current?.focus()
-        }
+        if (journey.name === "noMatch" || journey.name === "match")
+            outcomeTitleRef.current?.focus()
+        if (journey.name === "failure") failureTitleRef.current?.focus()
     }, [journey.name])
 
     const submitIdentifier = (value: string) => {
@@ -103,6 +142,25 @@ export function ManualIdentifierJourney({
         journey.name === "noMatch" || journey.name === "match"
             ? journey
             : undefined
+    const externalCandidate =
+        outcome?.name === "match"
+            ? outcome.result.candidates.find(
+                  (candidate) => candidate.source_kind === "OPEN_FOOD_FACTS",
+              )
+            : undefined
+    const packageName = externalCandidate
+        ? evidenceText(externalCandidate, "name", i18n.language)
+        : undefined
+    const brands = externalCandidate
+        ? evidenceText(externalCandidate, "brands", i18n.language)
+        : undefined
+    const quantity = externalCandidate
+        ? evidenceText(externalCandidate, "quantity", i18n.language)
+        : undefined
+    const referenceImage =
+        externalCandidate?.reference_images.find(
+            (image) => image.role === "front",
+        ) ?? externalCandidate?.reference_images[0]
     const showForm =
         journey.name === "entry" ||
         journey.name === "invalid" ||
@@ -267,8 +325,10 @@ export function ManualIdentifierJourney({
                             {outcome.name === "noMatch" ? "?" : "i"}
                         </div>
                         <h2
+                            ref={outcomeTitleRef}
                             id="outcome-title"
-                            className="m-0 text-[1.45rem] leading-[1.45] tracking-[-0.025em] text-balance"
+                            className="focus-visible:outline-lotus-dark m-0 text-[1.45rem] leading-[1.45] tracking-[-0.025em] text-balance focus-visible:outline-2 focus-visible:outline-offset-4"
+                            tabIndex={-1}
                         >
                             {t(
                                 outcome.name === "noMatch"
@@ -283,6 +343,143 @@ export function ManualIdentifierJourney({
                                     : "matchBody",
                             )}
                         </p>
+                        {externalCandidate?.source ? (
+                            <div className="mt-7 min-w-0">
+                                <p className="text-muted m-0 leading-[1.75] text-pretty">
+                                    {t("externalDisclosure", {
+                                        source: externalCandidate.source.name,
+                                    })}
+                                </p>
+                                <div
+                                    className={`border-line mt-5 grid min-w-0 gap-5 border-y py-5 sm:items-start ${referenceImage ? "sm:grid-cols-[8.5rem_minmax(0,1fr)]" : ""}`}
+                                >
+                                    {referenceImage ? (
+                                        <figure className="m-0 min-w-0">
+                                            <img
+                                                alt={t("referenceImageAlt", {
+                                                    source: referenceImage.source_name,
+                                                })}
+                                                className="border-line bg-surface h-auto max-h-52 w-full rounded-[10px] border object-contain"
+                                                decoding="async"
+                                                loading="lazy"
+                                                src={referenceImage.url}
+                                            />
+                                            <figcaption className="text-muted mt-2 text-[0.875rem] leading-[1.55] [overflow-wrap:anywhere]">
+                                                {referenceImage.attribution} ·{" "}
+                                                {referenceImage.license_name}
+                                            </figcaption>
+                                        </figure>
+                                    ) : null}
+                                    <div className="min-w-0">
+                                        <h3 className="m-0 text-[1.2rem] leading-[1.5] tracking-[-0.02em] [overflow-wrap:anywhere]">
+                                            {packageName ??
+                                                t("externalPackageName")}
+                                        </h3>
+                                        {brands || quantity ? (
+                                            <dl className="mt-4 grid gap-3">
+                                                {brands ? (
+                                                    <div>
+                                                        <dt className="text-muted text-[0.875rem]">
+                                                            {t("brandLabel")}
+                                                        </dt>
+                                                        <dd className="m-0 mt-1 [overflow-wrap:anywhere]">
+                                                            {brands}
+                                                        </dd>
+                                                    </div>
+                                                ) : null}
+                                                {quantity ? (
+                                                    <div>
+                                                        <dt className="text-muted text-[0.875rem]">
+                                                            {t("quantityLabel")}
+                                                        </dt>
+                                                        <dd className="m-0 mt-1 [overflow-wrap:anywhere]">
+                                                            {quantity}
+                                                        </dd>
+                                                    </div>
+                                                ) : null}
+                                            </dl>
+                                        ) : null}
+                                    </div>
+                                </div>
+                                <dl className="my-5 grid gap-4">
+                                    <div>
+                                        <dt className="text-muted text-[0.875rem]">
+                                            {t("sourceLabel")}
+                                        </dt>
+                                        <dd className="m-0 mt-1 [overflow-wrap:anywhere]">
+                                            {externalCandidate.source.name}
+                                        </dd>
+                                    </div>
+                                    {externalCandidate.retrieved_at ? (
+                                        <div>
+                                            <dt className="text-muted text-[0.875rem]">
+                                                {t("retrievedLabel")}
+                                            </dt>
+                                            <dd className="m-0 mt-1">
+                                                <time
+                                                    dateTime={
+                                                        externalCandidate.retrieved_at
+                                                    }
+                                                >
+                                                    {formatRetrievedAt(
+                                                        externalCandidate.retrieved_at,
+                                                        i18n.language,
+                                                    )}
+                                                </time>
+                                            </dd>
+                                        </div>
+                                    ) : null}
+                                    {externalCandidate.is_current ? (
+                                        <div>
+                                            <dt className="text-muted text-[0.875rem]">
+                                                {t("freshnessLabel")}
+                                            </dt>
+                                            <dd className="m-0 mt-1">
+                                                {t("currentEvidence")}
+                                            </dd>
+                                        </div>
+                                    ) : null}
+                                    <div>
+                                        <dt className="text-muted text-[0.875rem]">
+                                            {t("attributionLabel")}
+                                        </dt>
+                                        <dd className="m-0 mt-1 [overflow-wrap:anywhere]">
+                                            {
+                                                externalCandidate.source
+                                                    .attribution
+                                            }
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-muted text-[0.875rem]">
+                                            {t("licenseLabel")}
+                                        </dt>
+                                        <dd className="m-0 mt-1 [overflow-wrap:anywhere]">
+                                            {
+                                                externalCandidate.source
+                                                    .database_license
+                                            }{" "}
+                                            ·{" "}
+                                            {
+                                                externalCandidate.source
+                                                    .contents_license
+                                            }{" "}
+                                            ·{" "}
+                                            {
+                                                externalCandidate.source
+                                                    .image_license
+                                            }
+                                        </dd>
+                                    </div>
+                                </dl>
+                                <a
+                                    className="text-lotus-dark inline-flex min-h-11 items-center font-[720] underline decoration-1 underline-offset-4"
+                                    href={externalCandidate.source.record_url}
+                                >
+                                    {t("sourceLink")}
+                                </a>
+                            </div>
+                        ) : null}
                         <dl className="bg-surface my-6 rounded-[10px] p-4">
                             <dt className="text-muted text-[0.82rem]">
                                 {t("identifierLabel")}
@@ -292,7 +489,6 @@ export function ManualIdentifierJourney({
                             </dd>
                         </dl>
                         <button
-                            ref={recoveryActionRef}
                             className="border-lotus-dark text-lotus-dark cursor-pointer rounded-[10px] border bg-transparent px-4 py-3 font-[760] transition-[background-color,transform] duration-180 ease-out active:translate-y-[1px]"
                             onClick={tryAnother}
                             type="button"
@@ -314,8 +510,10 @@ export function ManualIdentifierJourney({
                             !
                         </div>
                         <h2
+                            ref={failureTitleRef}
                             id="failure-title"
-                            className="m-0 text-[1.45rem] leading-[1.45] tracking-[-0.025em] text-balance"
+                            className="focus-visible:outline-lotus-dark m-0 text-[1.45rem] leading-[1.45] tracking-[-0.025em] text-balance focus-visible:outline-2 focus-visible:outline-offset-4"
+                            tabIndex={-1}
                         >
                             {t("failureTitle")}
                         </h2>
@@ -332,7 +530,6 @@ export function ManualIdentifierJourney({
                         </dl>
                         <div className="flex flex-col gap-[0.6rem]">
                             <button
-                                ref={recoveryActionRef}
                                 className="border-lotus-dark bg-lotus-dark hover:not-disabled:bg-lotus-hover disabled:border-line disabled:bg-disabled-bg disabled:text-disabled-text mt-0 cursor-pointer rounded-[10px] border px-4 py-3 font-[760] text-white transition-[background-color,transform] duration-180 ease-out active:not-disabled:translate-y-[1px] disabled:cursor-not-allowed"
                                 onClick={() =>
                                     submitIdentifier(journey.identifier)

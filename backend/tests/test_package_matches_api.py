@@ -16,6 +16,35 @@ from lifegoods.adapters.catalog_models import (
 )
 from lifegoods.adapters.database import Base
 from lifegoods.main import create_app
+from lifegoods.matching.external_source import (
+    ExternalLookupResult,
+    ExternalPackageNotFound,
+    ExternalSourceMetadata,
+)
+from lifegoods.matching.identifier import NormalizedIdentifier
+
+
+class ConfirmedNoMatchSource:
+    metadata = ExternalSourceMetadata(
+        name="Open Food Facts",
+        source_type="COMMUNITY_DATABASE",
+        base_url="https://world.openfoodfacts.org",
+        attribution="Open Food Facts contributors",
+        database_license="ODbL",
+        contents_license="Database Contents License",
+        image_license="CC BY-SA",
+    )
+
+    def fetch(self, identifier: NormalizedIdentifier) -> ExternalLookupResult:
+        return ExternalPackageNotFound(
+            identifier=identifier.value,
+            request_url=(
+                f"https://world.openfoodfacts.org/api/v3/product/{identifier.value}.json"
+            ),
+            retrieved_at=datetime(2026, 8, 24, 9, 0, tzinfo=UTC),
+            raw_response=b'{"result":{"id":"product_not_found"}}',
+            source=self.metadata,
+        )
 
 
 def evidence_record(number: int) -> EvidenceRecord:
@@ -47,7 +76,13 @@ def session_factory() -> sessionmaker[Session]:
 
 @pytest.fixture
 def client(session_factory: sessionmaker[Session]) -> Iterator[TestClient]:
-    with TestClient(create_app(session_factory=session_factory)) as test_client:
+    with TestClient(
+        create_app(
+            session_factory=session_factory,
+            external_source=ConfirmedNoMatchSource(),
+            utc_now=lambda: datetime(2026, 8, 24, 9, 0, tzinfo=UTC),
+        )
+    ) as test_client:
         yield test_client
 
 
@@ -111,7 +146,19 @@ def test_candidate_is_returned_through_the_persistence_boundary(
 
     assert response.status_code == 200
     assert response.json()["candidates"] == [
-        {"package_variant_id": "variant-1", "product_id": "product-1"}
+        {
+            "source_kind": "REVIEWED_CATALOG",
+            "package_variant_id": "variant-1",
+            "product_id": "product-1",
+            "external_record_id": None,
+            "source": None,
+            "identity_evidence": [],
+            "label_evidence": [],
+            "reference_images": [],
+            "retrieved_at": None,
+            "is_current": None,
+            "source_revision": None,
+        }
     ]
 
 
@@ -143,9 +190,9 @@ def test_disputed_identifier_associations_remain_representable(
     response = client.get("/api/v1/package-matches", params={"identifier": "4006381333931"})
 
     assert response.status_code == 200
-    assert response.json()["candidates"] == [
-        {"package_variant_id": "variant-1", "product_id": "product-1"},
-        {"package_variant_id": "variant-2", "product_id": "product-2"},
+    assert [candidate["package_variant_id"] for candidate in response.json()["candidates"]] == [
+        "variant-1",
+        "variant-2",
     ]
 
 

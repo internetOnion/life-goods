@@ -20,7 +20,20 @@ export const resources = {
                 "មិនមាន Package Match សម្រាប់បាកូដនេះទេ។ នេះមិនបញ្ជាក់អំពីផលិតផលនៅក្នុងដៃអ្នកឡើយ។",
             matchTitle: "មានព័ត៌មានកញ្ចប់",
             matchBody:
-                "មាន Package Match មួយ ប៉ុន្តែព័ត៌មានលម្អិតមិនទាន់មាននៅក្នុងផ្នែកនេះទេ។",
+                "សូមប្រៀបធៀបព័ត៌មានយោងនេះជាមួយកញ្ចប់នៅក្នុងដៃអ្នក។ ទិន្នន័យនេះមិនទាន់ត្រូវបានពិនិត្យដោយគម្រោងនេះទេ។",
+            externalDisclosure:
+                "ទិន្នន័យសហគមន៍ពី {{source}} — មិនទាន់ត្រូវបានពិនិត្យដោយគម្រោងនេះទេ។",
+            externalPackageName: "ព័ត៌មានកញ្ចប់ពីប្រភពខាងក្រៅ",
+            referenceImageAlt: "រូបភាពកញ្ចប់យោងពី {{source}}",
+            brandLabel: "ម៉ាក",
+            quantityLabel: "បរិមាណ",
+            sourceLabel: "ប្រភព",
+            retrievedLabel: "បានយកទិន្នន័យនៅ",
+            freshnessLabel: "ភាពថ្មីនៃទិន្នន័យ",
+            currentEvidence: "បានយកទិន្នន័យក្នុងរយៈពេល ២៤ ម៉ោងចុងក្រោយ",
+            attributionLabel: "ការផ្តល់កិត្តិយស",
+            licenseLabel: "អាជ្ញាបណ្ណ",
+            sourceLink: "មើលកំណត់ត្រាប្រភព",
             failureTitle: "មិនអាចពិនិត្យបានឥឡូវនេះ",
             failureBody:
                 "សេវាមិនអាចពិនិត្យបាកូដនេះបានឥឡូវនេះទេ។ សូមព្យាយាមម្ដងទៀត។",
@@ -54,7 +67,20 @@ export const resources = {
                 "No Package Match is available for this barcode. This says nothing about the Product in your hand.",
             matchTitle: "Package information is available",
             matchBody:
-                "A Package Match exists, but its details are not included in this slice.",
+                "Compare this reference information with the package in your hand. This data has not been reviewed by this project.",
+            externalDisclosure:
+                "Community data from {{source}}—not yet reviewed by this project.",
+            externalPackageName: "External package record",
+            referenceImageAlt: "Reference package image from {{source}}",
+            brandLabel: "Brand",
+            quantityLabel: "Quantity",
+            sourceLabel: "Source",
+            retrievedLabel: "Retrieved",
+            freshnessLabel: "Freshness",
+            currentEvidence: "Retrieved within the last 24 hours",
+            attributionLabel: "Attribution",
+            licenseLabel: "Licenses",
+            sourceLink: "View source record",
             failureTitle: "Could not check right now",
             failureBody:
                 "The service could not check this barcode right now. Please try again.",

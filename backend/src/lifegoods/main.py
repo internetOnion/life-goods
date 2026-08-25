@@ -1,5 +1,7 @@
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
+from datetime import datetime
 
+import httpx
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,9 +10,19 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from lifegoods.adapters.database import create_session_factory
+from lifegoods.adapters.external_snapshot_repository import (
+    SqlAlchemyExternalSnapshotRepository,
+)
+from lifegoods.adapters.open_food_facts import OpenFoodFactsPackageSource
 from lifegoods.adapters.package_match_repository import SqlAlchemyPackageMatchRepository
 from lifegoods.api.contracts import ErrorCode, ErrorDetail, ErrorEnvelope
-from lifegoods.api.package_matches import get_repository, router
+from lifegoods.api.package_matches import get_finder, router
+from lifegoods.application.package_matches import (
+    FindPackageMatches,
+    PackageMatchSourceUnavailableError,
+)
+from lifegoods.matching.external_requests import ExternalLookupLocks, SlidingWindowRequestBudget
+from lifegoods.matching.external_source import ExternalPackageSource
 from lifegoods.matching.identifier import InvalidIdentifierError
 from lifegoods.settings import Settings
 
@@ -30,9 +42,29 @@ def create_app(
     *,
     settings: Settings | None = None,
     session_factory: sessionmaker[Session] | None = None,
+    external_source: ExternalPackageSource | None = None,
+    request_budget: SlidingWindowRequestBudget | None = None,
+    lookup_locks: ExternalLookupLocks | None = None,
+    utc_now: Callable[[], datetime] | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings()
     resolved_factory = session_factory or create_session_factory(resolved_settings)
+    owned_http_client: httpx.Client | None = None
+    if external_source is None:
+        owned_http_client = httpx.Client()
+        resolved_source: ExternalPackageSource = OpenFoodFactsPackageSource(
+            owned_http_client,
+            base_url=resolved_settings.open_food_facts_base_url,
+            user_agent=resolved_settings.open_food_facts_user_agent,
+            timeout_seconds=resolved_settings.open_food_facts_timeout_seconds,
+            utc_now=utc_now,
+        )
+    else:
+        resolved_source = external_source
+    resolved_budget = request_budget or SlidingWindowRequestBudget(
+        resolved_settings.open_food_facts_requests_per_minute
+    )
+    resolved_locks = lookup_locks or ExternalLookupLocks()
     app = FastAPI(title="LifeGoods API", version="0.1.0")
     app.add_middleware(
         CORSMiddleware,
@@ -41,12 +73,21 @@ def create_app(
         allow_headers=["*"],
     )
     app.include_router(router)
+    if owned_http_client is not None:
+        app.router.add_event_handler("shutdown", owned_http_client.close)
 
-    def provide_repository() -> Iterator[SqlAlchemyPackageMatchRepository]:
+    def provide_finder() -> Iterator[FindPackageMatches]:
         with resolved_factory() as session:
-            yield SqlAlchemyPackageMatchRepository(session)
+            yield FindPackageMatches(
+                SqlAlchemyPackageMatchRepository(session),
+                SqlAlchemyExternalSnapshotRepository(session),
+                resolved_source,
+                resolved_budget,
+                resolved_locks,
+                utc_now=utc_now,
+            )
 
-    app.dependency_overrides[get_repository] = provide_repository
+    app.dependency_overrides[get_finder] = provide_finder
 
     @app.exception_handler(RequestValidationError)
     async def request_validation_handler(
@@ -75,6 +116,18 @@ def create_app(
     @app.exception_handler(SQLAlchemyError)
     async def database_unavailable_handler(
         _request: Request, _error: SQLAlchemyError
+    ) -> JSONResponse:
+        envelope = ErrorEnvelope(
+            error=ErrorDetail(
+                code=ErrorCode.PACKAGE_MATCH_SOURCE_UNAVAILABLE,
+                message="Package Match lookup is temporarily unavailable.",
+            )
+        )
+        return JSONResponse(status_code=503, content=envelope.model_dump())
+
+    @app.exception_handler(PackageMatchSourceUnavailableError)
+    async def source_unavailable_handler(
+        _request: Request, _error: PackageMatchSourceUnavailableError
     ) -> JSONResponse:
         envelope = ErrorEnvelope(
             error=ErrorDetail(

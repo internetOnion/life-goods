@@ -53,20 +53,308 @@
       },
       "PackageMatchCandidateResponse": {
         "properties": {
+          "external_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Record Id"
+          },
+          "identity_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/PackageMatchEvidenceResponse"
+            },
+            "title": "Identity Evidence",
+            "type": "array"
+          },
+          "is_current": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Current"
+          },
+          "label_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/PackageMatchEvidenceResponse"
+            },
+            "title": "Label Evidence",
+            "type": "array"
+          },
           "package_variant_id": {
-            "title": "Package Variant Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Package Variant Id"
           },
           "product_id": {
-            "title": "Product Id",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "reference_images": {
+            "items": {
+              "$ref": "#/components/schemas/PackageMatchReferenceImageResponse"
+            },
+            "title": "Reference Images",
+            "type": "array"
+          },
+          "retrieved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retrieved At"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PackageMatchSourceResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_kind": {
+            "$ref": "#/components/schemas/PackageMatchSourceKind"
+          },
+          "source_revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Revision"
+          }
+        },
+        "required": [
+          "source_kind",
+          "package_variant_id",
+          "product_id",
+          "external_record_id",
+          "source",
+          "identity_evidence",
+          "label_evidence",
+          "reference_images",
+          "retrieved_at",
+          "is_current",
+          "source_revision"
+        ],
+        "title": "PackageMatchCandidateResponse",
+        "type": "object"
+      },
+      "PackageMatchEvidenceResponse": {
+        "properties": {
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "retrieved_at": {
+            "format": "date-time",
+            "title": "Retrieved At",
+            "type": "string"
+          },
+          "source_field": {
+            "title": "Source Field",
+            "type": "string"
+          },
+          "source_name": {
+            "title": "Source Name",
+            "type": "string"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value"
+          }
+        },
+        "required": [
+          "field",
+          "value",
+          "source_field",
+          "source_name",
+          "source_url",
+          "language",
+          "observed_at",
+          "retrieved_at"
+        ],
+        "title": "PackageMatchEvidenceResponse",
+        "type": "object"
+      },
+      "PackageMatchReferenceImageResponse": {
+        "properties": {
+          "attribution": {
+            "title": "Attribution",
+            "type": "string"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "license_name": {
+            "title": "License Name",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "source_field": {
+            "title": "Source Field",
+            "type": "string"
+          },
+          "source_name": {
+            "title": "Source Name",
+            "type": "string"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
             "type": "string"
           }
         },
         "required": [
-          "package_variant_id",
-          "product_id"
+          "role",
+          "url",
+          "source_field",
+          "source_name",
+          "source_url",
+          "attribution",
+          "license_name",
+          "language"
         ],
-        "title": "PackageMatchCandidateResponse",
+        "title": "PackageMatchReferenceImageResponse",
+        "type": "object"
+      },
+      "PackageMatchSourceKind": {
+        "enum": [
+          "REVIEWED_CATALOG",
+          "OPEN_FOOD_FACTS"
+        ],
+        "title": "PackageMatchSourceKind",
+        "type": "string"
+      },
+      "PackageMatchSourceResponse": {
+        "properties": {
+          "attribution": {
+            "title": "Attribution",
+            "type": "string"
+          },
+          "base_url": {
+            "title": "Base Url",
+            "type": "string"
+          },
+          "contents_license": {
+            "title": "Contents License",
+            "type": "string"
+          },
+          "database_license": {
+            "title": "Database License",
+            "type": "string"
+          },
+          "image_license": {
+            "title": "Image License",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "record_url": {
+            "title": "Record Url",
+            "type": "string"
+          },
+          "source_type": {
+            "title": "Source Type",
+            "type": "string"
+          },
+          "terms_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms Version"
+          }
+        },
+        "required": [
+          "name",
+          "source_type",
+          "base_url",
+          "record_url",
+          "attribution",
+          "database_license",
+          "contents_license",
+          "image_license",
+          "terms_version"
+        ],
+        "title": "PackageMatchSourceResponse",
         "type": "object"
       },
       "PackageMatchesResponse": {
