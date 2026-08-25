@@ -2,13 +2,13 @@
 
 ## Project Structure & Module Organization
 
-This is currently a documentation-first repository. Read `CONTEXT.md` for the domain glossary, `docs/SPEC.md` for MVP behavior, `docs/DATA_MODEL.md` for entities and provenance, and relevant `docs/adr/` decisions before changing the model. Research belongs in `docs/research/`; Mermaid source and rendered diagrams belong in `docs/diagrams/`.
+This is a pnpm/uv monorepo with a React/Vite Web Client, FastAPI backend, generated OpenAPI client, SQLAlchemy/Alembic persistence, and focused frontend/backend/e2e tests. Read `CONTEXT.md` for the domain glossary, `docs/SPEC.md` for MVP behavior, `docs/DATA_MODEL.md` for entities and provenance, and relevant `docs/adr/` decisions before changing the model. Research belongs in `docs/research/`; Mermaid source and rendered diagrams belong in `docs/diagrams/`.
 
-The planned implementation layout is `frontend/` (React/Vite/TypeScript), `backend/` (FastAPI/Python), `evaluation/` (datasets and model evaluation), and `infra/` (deployment and local services). Keep Package Capture media isolated from catalog data and training data.
+The implementation layout is `frontend/` (React/Vite/TypeScript Web Client), `backend/` (FastAPI/Python application, matching domain, persistence, migrations, and scripts), `evaluation/` (datasets and model evaluation), and `infra/` (local services). Keep Package Capture media isolated from catalog data and training data.
 
 ## Build, Test, and Development Commands
 
-No executable application or package manifests exist yet, so there is no working build or test command today. For documentation-only changes, use `git diff --check`. When implementation directories land, follow their committed scripts and the technology plan: `pnpm` for the Web Client, `uv run` for Python tooling, Docker Compose for local PostgreSQL/Redis/object storage, and generated OpenAPI client checks in CI.
+Use the root scripts for the normal verification loop: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm test:e2e`, and `pnpm api:check`. Start local PostgreSQL with `docker compose -f infra/compose.yaml up -d postgres`, apply migrations with `pnpm db:migrate`, and run the API and Web Client with `pnpm backend:dev` and `pnpm dev`. Use `pnpm backend:sync` to provision Python dependencies. For documentation-only changes, use `git diff --check`.
 
 ## Coding Style & Naming Conventions
 
@@ -16,7 +16,7 @@ Use strict TypeScript and typed Python. Keep HTTP handlers thin and put domain b
 
 ## Testing Guidelines
 
-Test observable behavior at the highest useful seam. The planned tools are pytest for backend behavior, Vitest and Testing Library for focused Web Client behavior, and Playwright for end-to-end journeys. Use deterministic Open Food Facts fixtures rather than mutable live responses. Cover uncertainty, missing-data semantics, privacy, retention, and source attribution—not only successful matches.
+Test observable behavior at the highest useful seam. Backend behavior uses pytest; focused Web Client behavior uses Vitest and Testing Library; browser journeys use Playwright. The current vertical slice covers identifier validation, Package Match lookup outcomes, accessibility, localization, and failure recovery. Use deterministic catalog fixtures rather than mutable live responses. Cover uncertainty, missing-data semantics, privacy, retention, and source attribution—not only successful matches.
 
 ## Commit & Pull Request Guidelines
 

@@ -1,0 +1,45 @@
+{
+  "code": "4006381333931",
+  "product": {
+    "code": "4006381333931",
+    "product_name": "Dark Chocolate",
+    "product_name_en": "Dark Chocolate",
+    "product_name_km": "សូកូឡាខ្មៅ",
+    "product_name_th": "ดาร์กช็อกโกแลต",
+    "product_name_vi": "Sô-cô-la đen",
+    "product_name_zh": "黑巧克力",
+    "brands": "Example Foods, Example Brand",
+    "quantity": "100 g",
+    "selected_images": {
+      "front": {
+        "display": {
+          "en": "https://images.openfoodfacts.org/images/products/400/front_en.jpg",
+          "km": "https://images.openfoodfacts.org/images/products/400/front_km.jpg"
+        }
+      },
+      "ingredients": {
+        "display": {
+          "en": "https://images.openfoodfacts.org/images/products/400/ingredients_en.jpg"
+        }
+      }
+    },
+    "ingredients_text": "Cocoa mass, sugar, cocoa butter",
+    "ingredients_text_en": "Cocoa mass, sugar, cocoa butter",
+    "ingredients_text_km": "ម៉ាសកាកាវ ស្ករ ប៊ឺកាកាវ",
+    "allergens": "en:milk",
+    "allergens_tags": ["en:milk"],
+    "traces": "en:nuts",
+    "traces_tags": ["en:nuts"],
+    "nutriments": {
+      "energy-kcal_100g": 598,
+      "fat_100g": 43
+    },
+    "nutrition_data_per": "100g",
+    "serving_size": "25 g",
+    "lang": "en",
+    "languages_tags": ["en:english", "en:khmer"],
+    "countries_tags": ["en:cambodia", "en:thailand"],
+    "last_modified_t": 1787462400
+  },
+  "status": "success"
+}

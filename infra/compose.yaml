@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: lifegoods
+      POSTGRES_USER: lifegoods
+      POSTGRES_PASSWORD: lifegoods
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lifegoods -d lifegoods"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - lifegoods-postgres:/var/lib/postgresql
+
+volumes:
+  lifegoods-postgres:
