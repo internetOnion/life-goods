@@ -23,7 +23,7 @@ test("invalid input stays in the browser and valid no-match crosses the API boun
     await expect(
         page.getByRole("heading", { name: "រកមិនឃើញព័ត៌មានកញ្ចប់" }),
     ).toBeVisible()
-    await expect(page.getByText("4006381333931")).toBeVisible()
+    await expect(page.getByText("4006381333931").first()).toBeVisible()
     expect(packageMatchRequests).toBe(1)
 })
 
@@ -34,9 +34,13 @@ test("keyboard order, Khmer layout, announcements, and reduced motion remain usa
     await page.goto("/")
 
     await page.keyboard.press("Tab")
-    await expect(page.getByRole("button", { name: "ខ្មែរ" })).toBeFocused()
+    await expect(
+        page.getByRole("link", { name: "ទៅទំព័រដើម LifeGoods" }),
+    ).toBeFocused()
     await page.keyboard.press("Tab")
-    await expect(page.getByRole("button", { name: "English" })).toBeFocused()
+    await expect(
+        page.getByRole("button", { name: "ប្តូរទៅភាសាអង់គ្លេស" }),
+    ).toBeFocused()
     await page.keyboard.press("Tab")
     await expect(page.getByRole("textbox", { name: "លេខបាកូដ" })).toBeFocused()
     await page.keyboard.type("4006381333931")
@@ -49,7 +53,7 @@ test("keyboard order, Khmer layout, announcements, and reduced motion remain usa
     await expect(page.getByRole("status")).toContainText(
         "រកមិនឃើញព័ត៌មានកញ្ចប់",
     )
-    const outcome = page.locator(".outcome")
+    const outcome = page.locator(".result-outcome")
     await expect(outcome).toBeVisible()
     expect(
         await outcome.evaluate((element) =>
@@ -59,6 +63,81 @@ test("keyboard order, Khmer layout, announcements, and reduced motion remain usa
     expect(
         await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(await page.evaluate(() => window.innerWidth))
+})
+
+test("Open Food Facts evidence is fetched only through the LifeGoods backend", async ({
+    page,
+}) => {
+    const requestedHosts: string[] = []
+    page.on("request", (request) => {
+        requestedHosts.push(new URL(request.url()).host)
+    })
+    await page.route("**/api/v1/package-matches**", async (route) => {
+        await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({
+                normalized_identifier: "4006381333931",
+                scheme: "EAN_13",
+                candidates: [
+                    {
+                        external_record_id: "4006381333931",
+                        identity_evidence: [
+                            {
+                                field: "name",
+                                value: "សូកូឡាខ្មៅ",
+                                language: "km",
+                                observed_at: null,
+                                retrieved_at: "2026-08-24T10:00:00Z",
+                                source_field: "product_name_km",
+                                source_name: "Open Food Facts",
+                                source_url:
+                                    "https://world.openfoodfacts.org/product/4006381333931",
+                            },
+                        ],
+                        is_current: true,
+                        label_evidence: [],
+                        package_variant_id: null,
+                        product_id: null,
+                        reference_images: [],
+                        retrieved_at: "2026-08-24T10:00:00Z",
+                        source: {
+                            attribution: "Open Food Facts contributors",
+                            base_url: "https://world.openfoodfacts.org",
+                            contents_license: "Database Contents License",
+                            database_license: "ODbL",
+                            image_license: "CC BY-SA",
+                            name: "Open Food Facts",
+                            record_url:
+                                "https://world.openfoodfacts.org/product/4006381333931",
+                            source_type: "COMMUNITY_DATABASE",
+                            terms_version: null,
+                        },
+                        source_kind: "OPEN_FOOD_FACTS",
+                        source_revision: "1787462400",
+                    },
+                ],
+            }),
+        })
+    })
+
+    await page.goto("/")
+    await page.getByRole("textbox", { name: "លេខបាកូដ" }).fill("4006381333931")
+    await page.getByRole("button", { name: "ពិនិត្យបាកូដ" }).click()
+
+    await expect(
+        page.getByRole("heading", { name: "សូកូឡាខ្មៅ" }),
+    ).toBeFocused()
+    await expect(
+        page.getByText(/មិនទាន់ត្រូវបានពិនិត្យដោយគម្រោង LifeGoods/),
+    ).toBeVisible()
+    expect(requestedHosts.every((host) => host === "127.0.0.1:4173")).toBe(true)
+    await expect(page.getByRole("navigation")).not.toBeVisible()
+
+    await page.getByRole("button", { name: "ត្រឡប់ទៅទំព័រដើម" }).click()
+    await expect(page.getByRole("textbox", { name: "លេខបាកូដ" })).toHaveValue(
+        "4006381333931",
+    )
 })
 
 test("keyboard and live regions expose invalid, loading, failure, and retry states", async ({
@@ -137,15 +216,24 @@ test("real Khmer copy wraps without clipping at representative narrow widths", a
         await page.goto("/")
         const clippedElements = await page
             .locator("h1, p, label, button")
-            .evaluateAll(
-                (elements) =>
-                    elements.filter(
+            .evaluateAll((elements) =>
+                elements
+                    .filter(
                         (element) =>
                             element.scrollWidth > element.clientWidth + 1 ||
                             element.scrollHeight > element.clientHeight + 1,
-                    ).length,
+                    )
+                    .map((element) => ({
+                        tag: element.tagName,
+                        className: element.getAttribute("class") ?? "",
+                        text: element.textContent,
+                        clientWidth: element.clientWidth,
+                        scrollWidth: element.scrollWidth,
+                        clientHeight: element.clientHeight,
+                        scrollHeight: element.scrollHeight,
+                    })),
             )
-        expect(clippedElements).toBe(0)
+        expect(clippedElements).toEqual([])
         expect(
             await page.evaluate(() => document.documentElement.scrollWidth),
         ).toBeLessThanOrEqual(viewport.width)
