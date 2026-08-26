@@ -33,9 +33,11 @@ export function HomePage({
     initialIdentifier,
     onIdentifierChange,
 }: HomePageProps) {
-    const { t } = useTranslation()
+    const { i18n, t } = useTranslation()
     const location = useLocation()
     const navigate = useNavigate()
+    const currentLanguage = i18n.resolvedLanguage === "en" ? "en" : "km"
+    const targetLanguage = currentLanguage === "km" ? "en" : "km"
     const locationState = location.state as HomeLocationState | null
     const seededIdentifier =
         locationState?.invalidIdentifier ?? initialIdentifier
@@ -93,7 +95,7 @@ export function HomePage({
     }
 
     return (
-        <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] space-y-3 pt-5 pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] max-[650px]:pt-3 max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)] sm:pt-7">
+        <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] space-y-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)] sm:pt-[calc(1.75rem_+_env(safe-area-inset-top))]">
             <section
                 className="border-border bg-muted/60 before:border-primary/25 relative grid h-[clamp(16rem,44svh,26rem)] place-items-center overflow-hidden rounded-3xl border before:absolute before:size-[min(78%,22rem)] before:rotate-[-12deg] before:rounded-[42%_58%_48%_52%/54%_44%_56%_46%] before:border before:content-[''] max-[650px]:h-52"
                 aria-label={t("cameraTitle")}
@@ -119,6 +121,22 @@ export function HomePage({
                     </div>
                 </div>
             </section>
+
+            <div className="grid grid-cols-[minmax(0,1fr)_3.5rem] px-4 sm:grid-cols-[minmax(0,1fr)_4rem] sm:px-5">
+                <Button
+                    className="border-primary/45 bg-background text-foreground hover:bg-primary/10 hover:text-foreground col-start-2 size-11 justify-self-center rounded-full p-0"
+                    variant="outline"
+                    type="button"
+                    aria-label={t(
+                        targetLanguage === "en"
+                            ? "switchToEnglish"
+                            : "switchToKhmer",
+                    )}
+                    onClick={() => void i18n.changeLanguage(targetLanguage)}
+                >
+                    <LanguageFlag language={currentLanguage} />
+                </Button>
+            </div>
 
             <form
                 className="border-border bg-background rounded-2xl border p-4 sm:p-5"
@@ -218,5 +236,42 @@ export function HomePage({
                 ) : null}
             </form>
         </main>
+    )
+}
+
+function LanguageFlag({ language }: { language: "en" | "km" }) {
+    if (language === "km") {
+        return (
+            <svg
+                aria-hidden="true"
+                className="size-7 overflow-hidden rounded-full"
+                data-language-flag="km"
+                preserveAspectRatio="xMidYMid slice"
+                viewBox="0 0 30 20"
+            >
+                <rect width="30" height="20" fill="#032ea1" />
+                <rect width="30" height="10" y="5" fill="#e00025" />
+                <path
+                    d="M7 14h16v-1H21v-1.3h-1V9.6l-1.6-1.4-1.5 1.4v1.1h-1V7.8L15 6.4l-.9 1.4v2.9h-1V9.6l-1.5-1.4L10 9.6v2.1H9V13H7v1Z"
+                    fill="#fff"
+                />
+            </svg>
+        )
+    }
+
+    return (
+        <svg
+            aria-hidden="true"
+            className="size-7 overflow-hidden rounded-full"
+            data-language-flag="en"
+            preserveAspectRatio="xMidYMid slice"
+            viewBox="0 0 30 20"
+        >
+            <rect width="30" height="20" fill="#012169" />
+            <path d="M0 0 30 20M30 0 0 20" stroke="#fff" strokeWidth="5" />
+            <path d="M0 0 30 20M30 0 0 20" stroke="#c8102e" strokeWidth="2.2" />
+            <path d="M15 0v20M0 10h30" stroke="#fff" strokeWidth="6" />
+            <path d="M15 0v20M0 10h30" stroke="#c8102e" strokeWidth="3.4" />
+        </svg>
     )
 }

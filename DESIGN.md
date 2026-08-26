@@ -13,7 +13,7 @@ LifeGoods is a calm, camera-first shopping utility. It uses the familiar structu
 
 The visual world is white, charcoal, pale botanical neutrals, and restrained coconut green. Crisp one-pixel rules and open space create structure without decorative card stacks. The experience is Khmer-first, with generous Khmer line height and original package languages kept visible.
 
-The coconut is the product’s identity motif. The current Phosphor `TreePalmIcon` is only a temporary coconut-adjacent mark for the app shell; it is not approved logo artwork and must be replaced when final brand assets exist. The supplied Open Food Facts screens and the approved `.impeccable/mocks/home-camera-b-approved.png` comp are structural references, not sources for scoring, verdict language, or branding.
+The coconut is the product’s identity motif. The current shell intentionally renders no temporary logo or wordmark; final coconut artwork remains future brand work rather than a placeholder in the shopping task. The supplied Open Food Facts screens and the approved `.impeccable/mocks/home-camera-b-approved.png` comp are structural references, not sources for scoring, verdict language, or branding.
 
 ## 2. Color tokens
 
@@ -52,7 +52,7 @@ Components expand for real Khmer copy. Consequential labels, source state, and e
 
 ## 4. Layout and elevation
 
-The shell is mobile-first and bounded to a 48rem content column on desktop. A compact sticky header carries the temporary mark and one destination-language switch. Home uses one dominant pale viewfinder, an attached barcode form, and a fixed four-item bottom navigation. Result routes hide bottom navigation and expose a visible localized back action.
+The shell is mobile-first and bounded to a 48rem content column on desktop. It is headerless: no logo, wordmark, or replacement top bar competes with the shopping task. Home uses one dominant pale viewfinder, a compact active-language flag aligned directly above the barcode submit column, an attached barcode form, and a fixed four-item bottom navigation. Result routes hide both the language switch and bottom navigation and expose a visible localized back action.
 
 LifeGoods is flat by default. Depth comes from tonal layers, one-pixel rules, and spacing. Rounded corners are restrained and functional; shadows are reserved for temporary overlays. Do not nest evidence in repetitive cards.
 
@@ -62,8 +62,9 @@ Safe-area insets are applied to fixed navigation and result bottoms. The primary
 
 ### App shell
 
-- Left: temporary `TreePalmIcon` and LifeGoods wordmark.
-- Right: one button showing the destination language—“English” in Khmer mode and “ខ្មែរ” in English mode.
+- Top: no branded header, logo, wordmark, or persistent language control.
+- Home only: one circular flag button shows the active interface language—Cambodia in Khmer mode and the United Kingdom in English mode—and its accessible name states the destination language action.
+- The flag occupies its own utility row between the camera placeholder and barcode form, centered over the form’s submit column without overlay positioning.
 - Bottom: Home, Learn, History, and Allergies with Phosphor icons, text, and non-color active treatment.
 
 ### Camera placeholder
@@ -98,7 +99,7 @@ Invalid input remains local to the form. Loading, confirmed no-match, temporary 
 - Motion is limited to brief state feedback; `prefers-reduced-motion` reduces animations and transitions to effectively zero.
 - Image failures become labeled placeholders with no broken-image icon from the browser.
 - Interface locale changes do not refetch data or clear the current identifier.
-- Keyboard order follows header, primary form, then navigation; result outcomes receive focus after asynchronous completion.
+- Home keyboard order follows the language flag, field hint, barcode input, submit action, then navigation; result outcomes receive focus after asynchronous completion.
 
 ## 7. Do and don’t
 

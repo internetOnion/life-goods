@@ -35,12 +35,10 @@ test("keyboard order, Khmer layout, announcements, and reduced motion remain usa
 
     await page.keyboard.press("Tab")
     await expect(
-        page.getByRole("link", { name: "ទៅទំព័រដើម LifeGoods" }),
-    ).toBeFocused()
-    await page.keyboard.press("Tab")
-    await expect(
         page.getByRole("button", { name: "ប្តូរទៅភាសាអង់គ្លេស" }),
     ).toBeFocused()
+    await expect(page.getByRole("banner")).toHaveCount(0)
+    await expect(page.locator('[data-language-flag="km"]')).toBeVisible()
     await page.keyboard.press("Tab")
     await expect(
         page.getByRole("button", { name: "បង្ហាញព័ត៌មានអំពីលេខបាកូដ" }),

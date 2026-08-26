@@ -3,8 +3,6 @@ import {
     BookOpenTextIcon,
     ClockCounterClockwiseIcon,
     HouseIcon,
-    TranslateIcon,
-    TreePalmIcon,
     WarningCircleIcon,
 } from "@phosphor-icons/react"
 import { type ReactNode, useEffect } from "react"
@@ -34,11 +32,10 @@ const navigation = [
 ] as const
 
 export function AppShell({ children }: AppShellProps) {
-    const { i18n, t } = useTranslation()
+    const { i18n } = useTranslation()
     const location = useLocation()
     const isResult = location.pathname.startsWith("/results/")
     const currentLanguage = i18n.resolvedLanguage === "en" ? "en" : "km"
-    const targetLanguage = currentLanguage === "km" ? "en" : "km"
 
     useEffect(() => {
         document.documentElement.lang = currentLanguage
@@ -46,37 +43,6 @@ export function AppShell({ children }: AppShellProps) {
 
     return (
         <div className="bg-background text-foreground min-h-svh">
-            <header className="border-border bg-background sticky top-0 z-30 flex min-h-[calc(4.1rem_+_env(safe-area-inset-top))] items-center justify-between gap-4 border-b px-[max(1rem,env(safe-area-inset-left))] pt-[calc(0.65rem_+_env(safe-area-inset-top))] pr-[max(1rem,env(safe-area-inset-right))] pb-2 sm:px-[max(1.5rem,calc((100%_-_48rem)/2))]">
-                <NavLink
-                    className="text-primary focus-visible:ring-ring inline-flex min-h-11 items-center gap-2 rounded-lg text-base font-extrabold tracking-tight no-underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-                    to="/"
-                    aria-label={t("homeLink")}
-                >
-                    <TreePalmIcon
-                        className="bg-primary/10 text-primary rounded-[42%_58%_48%_52%/52%_44%_56%_48%] p-1.5"
-                        aria-hidden="true"
-                        size={30}
-                        weight="bold"
-                    />
-                    <span>{t("brand")}</span>
-                </NavLink>
-                <Button
-                    className="border-primary text-primary hover:bg-primary/10 hover:text-primary min-w-28 px-3 sm:min-w-32"
-                    variant="outline"
-                    type="button"
-                    aria-label={t(
-                        targetLanguage === "en"
-                            ? "switchToEnglish"
-                            : "switchToKhmer",
-                    )}
-                    onClick={() => void i18n.changeLanguage(targetLanguage)}
-                >
-                    <TranslateIcon aria-hidden="true" size={20} />
-                    <span>
-                        {currentLanguage === "en" ? "English" : "ខ្មែរ"}
-                    </span>
-                </Button>
-            </header>
             {children}
             {!isResult ? <BottomNavigation /> : null}
         </div>

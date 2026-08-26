@@ -81,31 +81,44 @@ describe("manual identifier journey", () => {
         expect(lookup).not.toHaveBeenCalled()
     })
 
-    test("uses one language switch and localized bottom navigation placeholders", async () => {
+    test("uses an active-language flag on home and keeps other routes headerless", async () => {
         const user = userEvent.setup()
         const lookup = vi.fn<PackageMatchLookup>()
         renderJourney(lookup)
+
+        expect(screen.queryByRole("banner")).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("link", { name: "ទៅទំព័រដើម LifeGoods" }),
+        ).not.toBeInTheDocument()
+        const languageSwitch = screen.getByRole("button", {
+            name: "ប្តូរទៅភាសាអង់គ្លេស",
+        })
+        expect(
+            languageSwitch.querySelector('[data-language-flag="km"]'),
+        ).toBeInTheDocument()
 
         expect(screen.getByRole("link", { name: "ទំព័រដើម" })).toHaveAttribute(
             "aria-current",
             "page",
         )
-        await user.click(screen.getByRole("link", { name: "ស្វែងយល់" }))
+        await user.click(languageSwitch)
+        expect(
+            screen
+                .getByRole("button", { name: "Switch to Khmer" })
+                .querySelector('[data-language-flag="en"]'),
+        ).toBeInTheDocument()
 
-        expect(screen.getByRole("heading", { name: "ស្វែងយល់" })).toBeVisible()
-        expect(screen.getByRole("link", { name: "ស្វែងយល់" })).toHaveAttribute(
-            "aria-current",
-            "page",
-        )
-        expect(screen.getAllByRole("button")).toHaveLength(1)
-        await user.click(
-            screen.getByRole("button", { name: "ប្តូរទៅភាសាអង់គ្លេស" }),
-        )
+        await user.click(screen.getByRole("link", { name: "Learn" }))
+
         expect(screen.getByRole("heading", { name: "Learn" })).toBeVisible()
         expect(screen.getByRole("link", { name: "Learn" })).toHaveAttribute(
             "aria-current",
             "page",
         )
+        expect(screen.queryByRole("banner")).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("button", { name: "Switch to Khmer" }),
+        ).not.toBeInTheDocument()
     })
 
     test("navigates to a normalized barcode result and calls the backend", async () => {
@@ -129,6 +142,10 @@ describe("manual identifier journey", () => {
         expect(lookup).toHaveBeenCalledWith("4006381333931")
         expect(screen.getAllByText("4006381333931").length).toBeGreaterThan(0)
         expect(screen.queryByRole("navigation")).not.toBeInTheDocument()
+        expect(screen.queryByRole("banner")).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("button", { name: "ប្តូរទៅភាសាអង់គ្លេស" }),
+        ).not.toBeInTheDocument()
 
         await user.click(
             screen.getByRole("button", { name: "ត្រឡប់ទៅទំព័រដើម" }),
