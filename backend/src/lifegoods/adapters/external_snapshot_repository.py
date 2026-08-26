@@ -196,7 +196,14 @@ def _raw_json(raw_response: bytes) -> dict[str, object]:
 
 
 def _field_evidence(record: ExternalPackageRecord) -> tuple[ExternalFieldEvidence, ...]:
-    evidence: list[ExternalFieldEvidence] = []
+    evidence = [
+        _sourced_value(
+            record,
+            ExternalEvidenceCategory.IDENTITY,
+            "identifier",
+            SourcedValue(value=record.identifier, source_field="code"),
+        )
+    ]
     evidence.extend(
         _sourced_values(record, ExternalEvidenceCategory.IDENTITY, "name", record.names)
     )
