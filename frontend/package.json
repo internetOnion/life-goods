@@ -4,6 +4,7 @@
     "private": true,
     "type": "module",
     "scripts": {
+        "predev": "node scripts/generate-dev-cert.mjs",
         "dev": "vite",
         "build": "tsc -b && vite build",
         "typecheck": "tsc -b --pretty false",
