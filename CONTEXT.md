@@ -250,6 +250,10 @@ _Avoid_: Report submission, evidence dossier
 
 ## Interactions and delivery
 
+**Shopper-Facing Destination**:
+A user-visible entry point into a shopper journey, such as identification, Package Match results, Package Capture, Learn, session history, or dietary preferences. Each destination preserves evidence scope and uncertainty rather than implying a purchase, health, safety, Halal, legal, or authenticity verdict.
+_Avoid_: Route, screen, dashboard
+
 **Scan Mode**:
 The shopper-selected identification interface: barcode scan, manual identifier entry, Package Capture, or catalog browse.
 _Avoid_: Camera mode, view type

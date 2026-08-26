@@ -9,32 +9,35 @@ import { type ReactNode, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { NavLink, useLocation, useNavigate } from "react-router"
 
+import { appRoutes, isFocusedRoute } from "@/app/routes"
 import { Button } from "@/components/ui/button"
+import { MvpDemoModeProvider } from "@/config/MvpDemoModeProvider"
 import { cn } from "@/lib/utils"
 
 type AppShellProps = {
     children: ReactNode
+    demoMode?: boolean
 }
 
 const navigation = [
-    { to: "/", key: "home", icon: HouseIcon, end: true },
-    { to: "/learn", key: "learn", icon: BookOpenTextIcon },
+    { to: appRoutes.home, key: "home", icon: HouseIcon, end: true },
+    { to: appRoutes.learn, key: "learn", icon: BookOpenTextIcon },
     {
-        to: "/history",
+        to: appRoutes.history,
         key: "history",
         icon: ClockCounterClockwiseIcon,
     },
     {
-        to: "/allergies",
+        to: appRoutes.allergies,
         key: "allergies",
         icon: WarningCircleIcon,
     },
 ] as const
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, demoMode }: AppShellProps) {
     const { i18n } = useTranslation()
     const location = useLocation()
-    const isResult = location.pathname.startsWith("/results/")
+    const isFocused = isFocusedRoute(location.pathname)
     const currentLanguage = i18n.resolvedLanguage === "en" ? "en" : "km"
 
     useEffect(() => {
@@ -42,10 +45,12 @@ export function AppShell({ children }: AppShellProps) {
     }, [currentLanguage])
 
     return (
-        <div className="bg-background text-foreground min-h-svh">
-            {children}
-            {!isResult ? <BottomNavigation /> : null}
-        </div>
+        <MvpDemoModeProvider enabled={demoMode}>
+            <div className="bg-background text-foreground min-h-svh">
+                {children}
+                {!isFocused ? <BottomNavigation /> : null}
+            </div>
+        </MvpDemoModeProvider>
     )
 }
 
@@ -114,7 +119,7 @@ export function ResultBackButton({ onBack }: ResultBackButtonProps) {
                     onBack()
                     return
                 }
-                void navigate("/")
+                void navigate(appRoutes.home)
             }}
         >
             <ArrowLeftIcon aria-hidden="true" size={21} weight="bold" />

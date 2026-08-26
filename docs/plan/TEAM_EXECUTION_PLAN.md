@@ -71,6 +71,27 @@ Gate: domain, product direction, data model, repository foundation, and the manu
 
 Gate: known identifiers return attributable candidates; reviewed and external evidence remain distinct; variants, revisions, conflicts, and missing-field semantics are preserved; no empty upstream field becomes a negative Claim.
 
+### Post-Wave 1 — Shopper experience scaffold checkpoint
+
+After [#5](https://github.com/internetOnion/life-goods/issues/5) is complete, [#47](https://github.com/internetOnion/life-goods/issues/47) establishes the production-quality shopper-facing route and page skeleton before the remaining feature backends are available. This checkpoint does not add placeholder HTTP contracts or generated-client changes.
+
+| Foundation first | Parallel page-family work after foundation |
+| --- | --- |
+| [#51 MVP routes, demo mode, and feature-owned translations](https://github.com/internetOnion/life-goods/issues/51) | [#50 Search and reviewed Shopper Guidance skeleton](https://github.com/internetOnion/life-goods/issues/50) |
+|  | [#52 Private Package Capture skeleton](https://github.com/internetOnion/life-goods/issues/52) |
+|  | [#48 Limited Learn index and Allergies preferences skeleton](https://github.com/internetOnion/life-goods/issues/48) |
+
+The scaffold follows these boundaries:
+
+- Real implemented capabilities, including the Open Food Facts Package Match journey, continue using real data and preserve real empty, no-match, and unavailable outcomes.
+- Unfinished interactive flows use visibly simulated inline fixtures only when `VITE_MVP_DEMO_MODE=true`; scenario URLs cannot enable fixture behavior by themselves.
+- Normal builds show honest unavailable states for unfinished capabilities and never fall back to fixtures after a real failure.
+- Package Capture fixtures never request camera permission, open a file picker, read media, upload data, or create provisional storage or API contracts.
+- Scaffold Khmer copy remains draft until the owning feature issue coordinates qualified review.
+- The existing History route and placeholder remain unchanged; [#33](https://github.com/internetOnion/life-goods/issues/33) retains its implementation and session-lifetime decisions.
+
+Gate: every shopper-facing MVP destination has a stable responsive and accessible frontend boundary; demo content remains explicit and isolated; the three page-family issues can proceed in parallel without shared route or translation ownership conflicts.
+
 ### Wave 2 — Identification completeness
 
 | Pod 1: scan and host | Pod 2: search and recovery |
