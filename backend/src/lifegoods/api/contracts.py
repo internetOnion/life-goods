@@ -14,6 +14,9 @@ class ErrorCode(StrEnum):
     IDENTIFIER_LENGTH_UNSUPPORTED = "IDENTIFIER_LENGTH_UNSUPPORTED"
     IDENTIFIER_CHECK_DIGIT_INVALID = "IDENTIFIER_CHECK_DIGIT_INVALID"
     PACKAGE_MATCH_SOURCE_UNAVAILABLE = "PACKAGE_MATCH_SOURCE_UNAVAILABLE"
+    REFERENCE_IMAGE_URL_INVALID = "REFERENCE_IMAGE_URL_INVALID"
+    REFERENCE_IMAGE_NOT_FOUND = "REFERENCE_IMAGE_NOT_FOUND"
+    REFERENCE_IMAGE_SOURCE_UNAVAILABLE = "REFERENCE_IMAGE_SOURCE_UNAVAILABLE"
 
 
 class ErrorDetail(BaseModel):
@@ -57,6 +60,7 @@ class PackageMatchReferenceImageResponse(BaseModel):
     attribution: str
     license_name: str
     language: str | None
+    retrieved_at: datetime
 
 
 class PackageMatchCandidateResponse(BaseModel):

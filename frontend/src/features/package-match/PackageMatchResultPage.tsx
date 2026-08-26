@@ -4,7 +4,7 @@ import {
     WarningCircleIcon,
 } from "@phosphor-icons/react"
 import { useQuery } from "@tanstack/react-query"
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Navigate, useNavigate, useParams } from "react-router"
 
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { ResultBackButton } from "../../ui/AppShell"
 import { validateIdentifier } from "./identifier"
 import { OpenFoodFactsResult } from "./OpenFoodFactsResult"
-import type { PackageMatchLookup } from "./types"
+import { isOpenFoodFactsCandidate, type PackageMatchLookup } from "./types"
 
 type PackageMatchResultPageProps = {
     lookup: PackageMatchLookup
@@ -35,6 +35,8 @@ export function PackageMatchResultPage({
     )
     const normalizedIdentifier = validation.valid ? validation.value : ""
     const outcomeTitleRef = useRef<HTMLHeadingElement>(null)
+    const loadingTitleRef = useRef<HTMLHeadingElement>(null)
+    const [isRetrying, setIsRetrying] = useState(false)
     const query = useQuery({
         queryKey: ["package-match", normalizedIdentifier],
         queryFn: () => lookup(normalizedIdentifier),
@@ -42,28 +44,30 @@ export function PackageMatchResultPage({
         retry: false,
     })
 
-    const offCandidate = query.data?.candidates.find(
-        (candidate) => candidate.source_kind === "OPEN_FOOD_FACTS",
-    )
-    const state: ResultState = query.isPending
-        ? "loading"
-        : query.isError
-          ? "failure"
-          : offCandidate
-            ? "offMatch"
-            : query.data?.candidates.length === 0
-              ? "noMatch"
-              : "unsupported"
+    const offCandidate = query.data?.candidates.find(isOpenFoodFactsCandidate)
+    const state: ResultState =
+        query.isPending || isRetrying
+            ? "loading"
+            : query.isError
+              ? "failure"
+              : offCandidate
+                ? "offMatch"
+                : query.data?.candidates.length === 0
+                  ? "noMatch"
+                  : "unsupported"
 
     useEffect(() => {
         if (validation.valid) onIdentifierChange(validation.value)
     }, [onIdentifierChange, validation])
 
     useEffect(() => {
+        if (state === "loading" && isRetrying) {
+            loadingTitleRef.current?.focus()
+        }
         if (state !== "loading" && state !== "offMatch") {
             outcomeTitleRef.current?.focus()
         }
-    }, [state])
+    }, [isRetrying, state])
 
     if (!validation.valid) {
         return (
@@ -90,6 +94,15 @@ export function PackageMatchResultPage({
         void navigate("/")
     }
 
+    const retry = async () => {
+        setIsRetrying(true)
+        try {
+            await query.refetch()
+        } finally {
+            setIsRetrying(false)
+        }
+    }
+
     return (
         <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pt-[calc(1rem_+_env(safe-area-inset-top))] pb-[calc(2.5rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
             <div className="mb-7 flex items-center justify-between gap-3">
@@ -109,17 +122,18 @@ export function PackageMatchResultPage({
             </div>
 
             {state === "loading" ? (
-                <section
-                    className="grid max-w-xl justify-items-start gap-3 pt-[clamp(2rem,8vh,5rem)]"
-                    aria-live="polite"
-                >
+                <section className="grid max-w-xl justify-items-start gap-3 pt-[clamp(2rem,8vh,5rem)]">
                     <CircleNotchIcon
                         className="text-primary animate-spin motion-reduce:animate-none"
                         aria-hidden="true"
                         size={34}
                         weight="bold"
                     />
-                    <h1 className="text-[clamp(1.8rem,6vw,2.6rem)] leading-[1.7] tracking-tight text-balance">
+                    <h1
+                        className="text-[clamp(1.8rem,6vw,2.6rem)] leading-[1.7] tracking-tight text-balance"
+                        ref={loadingTitleRef}
+                        tabIndex={-1}
+                    >
                         {t("loading")}
                     </h1>
                     <p className="text-muted-foreground leading-relaxed">
@@ -136,7 +150,7 @@ export function PackageMatchResultPage({
                     body={t("failureBody")}
                     identifier={normalizedIdentifier}
                     primaryLabel={t("retry")}
-                    onPrimary={() => void query.refetch()}
+                    onPrimary={() => void retry()}
                     secondaryLabel={t("tryAnother")}
                     onSecondary={returnHome}
                 />

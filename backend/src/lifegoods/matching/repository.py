@@ -47,6 +47,7 @@ class PackageMatchReferenceImage:
     attribution: str
     license_name: str
     language: str | None
+    retrieved_at: datetime
 
 
 @dataclass(frozen=True, slots=True)

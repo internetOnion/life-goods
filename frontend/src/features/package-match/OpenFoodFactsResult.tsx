@@ -8,13 +8,11 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Alert } from "@/components/ui/alert"
-import type {
-    PackageMatchCandidateResponse,
-    PackageMatchEvidenceResponse,
-} from "../../api/generated"
+import type { PackageMatchEvidenceResponse } from "../../api/generated"
+import type { OpenFoodFactsCandidate } from "./types"
 
 export type OpenFoodFactsResultProps = {
-    candidate: PackageMatchCandidateResponse
+    candidate: OpenFoodFactsCandidate
     normalizedIdentifier: string
 }
 
@@ -26,6 +24,37 @@ const evidenceFieldLabels: Record<string, string> = {
     nutrition: "nutritionValueLabel",
     packaging_languages: "packagingLanguagesTitle",
     countries_sold: "countriesSoldTitle",
+}
+
+const offLanguageCodes: Record<string, string> = {
+    chinese: "zh",
+    english: "en",
+    french: "fr",
+    khmer: "km",
+    thai: "th",
+    vietnamese: "vi",
+}
+
+const offCountryCodes: Record<string, string> = {
+    cambodia: "KH",
+    china: "CN",
+    france: "FR",
+    thailand: "TH",
+    vietnam: "VN",
+}
+
+const nutritionLabelKeys: Record<string, string> = {
+    carbohydrates: "nutritionCarbohydratesLabel",
+    energy: "nutritionEnergyLabel",
+    energy_kj: "nutritionEnergyKjLabel",
+    energy_kcal: "nutritionEnergyKcalLabel",
+    fat: "nutritionFatLabel",
+    fiber: "nutritionFiberLabel",
+    proteins: "nutritionProteinLabel",
+    salt: "nutritionSaltLabel",
+    saturated_fat: "nutritionSaturatedFatLabel",
+    sodium: "nutritionSodiumLabel",
+    sugars: "nutritionSugarsLabel",
 }
 
 export function OpenFoodFactsResult({
@@ -60,6 +89,9 @@ export function OpenFoodFactsResult({
         "countries_sold",
     )
     const referenceImage =
+        candidate.reference_images.find(
+            (image) => image.role === "front" && image.language === language,
+        ) ??
         candidate.reference_images.find((image) => image.role === "front") ??
         candidate.reference_images[0]
     const packageName = printableText(selectedName?.value)
@@ -74,7 +106,10 @@ export function OpenFoodFactsResult({
                 className="grid grid-cols-[minmax(6.5rem,8.5rem)_minmax(0,1fr)] items-start gap-4 pb-7 max-[23.5rem]:grid-cols-[6.5rem_minmax(0,1fr)] max-[23.5rem]:gap-3"
                 aria-labelledby="off-result-title"
             >
-                <ReferenceImage image={referenceImage} />
+                <ReferenceImage
+                    image={referenceImage}
+                    packageName={packageName}
+                />
                 <div className="min-w-0">
                     <h1
                         className="text-[clamp(1.6rem,6vw,2.45rem)] leading-[1.7] tracking-tight text-balance wrap-anywhere"
@@ -109,17 +144,17 @@ export function OpenFoodFactsResult({
                 </div>
             </section>
 
+            {referenceImage ? (
+                <ReferenceImageProvenance image={referenceImage} />
+            ) : null}
+
             <Alert
                 className="mb-7"
                 variant="info"
                 aria-label={t("sourceStatusLabel")}
             >
                 <InfoIcon aria-hidden="true" size={25} weight="fill" />
-                <p className="leading-relaxed">
-                    {t("externalDisclosure", {
-                        source: candidate.source?.name ?? "Open Food Facts",
-                    })}
-                </p>
+                <p className="leading-relaxed">{t("externalDisclosure")}</p>
             </Alert>
 
             <EvidenceSection
@@ -168,8 +203,10 @@ export function OpenFoodFactsResult({
 
 function ReferenceImage({
     image,
+    packageName,
 }: {
-    image: PackageMatchCandidateResponse["reference_images"][number] | undefined
+    image: OpenFoodFactsCandidate["reference_images"][number] | undefined
+    packageName: string | undefined
 }) {
     const { t } = useTranslation()
     const [failed, setFailed] = useState(false)
@@ -194,7 +231,16 @@ function ReferenceImage({
             <img
                 className="border-border bg-muted aspect-[4/5] w-full rounded-2xl border object-contain"
                 src={image.url}
-                alt={t("referenceImageAlt", { source: image.source_name })}
+                alt={
+                    packageName
+                        ? t("referenceImageAlt", {
+                              name: packageName,
+                              source: image.source_name,
+                          })
+                        : t("referenceImageAltUnnamed", {
+                              source: image.source_name,
+                          })
+                }
                 decoding="async"
                 onError={() => setFailed(true)}
             />
@@ -202,6 +248,54 @@ function ReferenceImage({
                 {image.attribution} · {image.license_name}
             </figcaption>
         </figure>
+    )
+}
+
+function ReferenceImageProvenance({
+    image,
+}: {
+    image: OpenFoodFactsCandidate["reference_images"][number]
+}) {
+    const { i18n, t } = useTranslation()
+    const language = i18n.resolvedLanguage === "en" ? "en" : "km"
+
+    return (
+        <details className="border-border mb-7 border-y py-2">
+            <summary className="text-primary focus-visible:ring-ring min-h-11 w-fit cursor-pointer py-2 text-sm leading-7 font-semibold underline decoration-1 underline-offset-4 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none">
+                {t("referenceImageDetails")}
+            </summary>
+            <dl className="bg-muted/40 mt-2 grid min-w-0 gap-3 rounded-xl p-3 text-sm leading-relaxed sm:grid-cols-2">
+                <SourceFact
+                    label={t("languageLabel")}
+                    value={
+                        image.language
+                            ? displayLanguage(image.language, language)
+                            : t("notSpecified")
+                    }
+                />
+                <SourceFact
+                    label={t("sourceFieldLabel")}
+                    value={image.source_field}
+                />
+                <SourceFact
+                    label={t("sourceLabel")}
+                    value={image.source_name}
+                />
+                <SourceFact
+                    label={t("retrievedLabel")}
+                    value={formatRetrievedAt(image.retrieved_at, language)}
+                />
+            </dl>
+            <a
+                className="text-primary inline-flex min-h-11 items-center gap-2 font-semibold"
+                href={image.source_url}
+                target="_blank"
+                rel="noreferrer"
+            >
+                <LinkSimpleIcon aria-hidden="true" size={18} />
+                <span>{t("openReferenceImageSource")}</span>
+            </a>
+        </details>
     )
 }
 
@@ -219,7 +313,7 @@ function IdentityFact({
             <dd>
                 {evidence ? (
                     <>
-                        <EvidenceValue value={evidence.value} />
+                        <EvidenceValue evidence={evidence} />
                         <EvidenceProvenance
                             evidence={evidence}
                             fieldLabel={label}
@@ -319,7 +413,7 @@ function EvidenceItem({
                         {displayLanguage(evidence.language, language)}
                     </p>
                 ) : null}
-                <EvidenceValue value={evidence.value} />
+                <EvidenceValue evidence={evidence} />
             </div>
             <EvidenceProvenance
                 evidence={evidence}
@@ -344,10 +438,10 @@ function EvidenceProvenance({
             <summary className="text-primary focus-visible:ring-ring min-h-11 w-fit cursor-pointer py-2 text-sm leading-7 font-semibold underline decoration-1 underline-offset-4 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none">
                 {t("fieldDetailsFor", { field: fieldLabel })}
             </summary>
-            <dl className="border-border bg-muted/40 mt-2 grid gap-3 rounded-xl border p-3 text-sm leading-relaxed">
+            <dl className="border-border bg-muted/40 mt-2 grid min-w-0 gap-3 rounded-xl border p-3 text-sm leading-relaxed">
                 <div>
                     <dt>{t("languageLabel")}</dt>
-                    <dd>
+                    <dd className="wrap-anywhere">
                         {evidence.language
                             ? displayLanguage(evidence.language, language)
                             : t("notSpecified")}
@@ -355,11 +449,11 @@ function EvidenceProvenance({
                 </div>
                 <div>
                     <dt>{t("sourceFieldLabel")}</dt>
-                    <dd>{evidence.source_field}</dd>
+                    <dd className="wrap-anywhere">{evidence.source_field}</dd>
                 </div>
                 <div>
                     <dt>{t("sourceLabel")}</dt>
-                    <dd>{evidence.source_name}</dd>
+                    <dd className="wrap-anywhere">{evidence.source_name}</dd>
                 </div>
                 <div>
                     <dt>{t("retrievedLabel")}</dt>
@@ -369,6 +463,17 @@ function EvidenceProvenance({
                         </time>
                     </dd>
                 </div>
+                {exposesOriginalSourceValue(evidence) ? (
+                    <div>
+                        <dt>{t("sourceValueLabel")}</dt>
+                        <dd className="font-mono text-xs leading-relaxed wrap-anywhere">
+                            {formatOriginalSourceValue(
+                                evidence.value,
+                                evidence.field,
+                            )}
+                        </dd>
+                    </div>
+                ) : null}
             </dl>
             <a
                 className="text-primary inline-flex min-h-11 items-center gap-2 font-semibold"
@@ -377,18 +482,28 @@ function EvidenceProvenance({
                 rel="noreferrer"
             >
                 <LinkSimpleIcon aria-hidden="true" size={18} />
-                <span>{t("openEvidenceSource")}</span>
+                <span>{t("openEvidenceSource", { field: fieldLabel })}</span>
             </a>
         </details>
     )
 }
 
-function EvidenceValue({ value }: { value: unknown }) {
+function EvidenceValue({
+    evidence,
+}: {
+    evidence: PackageMatchEvidenceResponse
+}) {
     const { i18n, t } = useTranslation()
+    const language = i18n.resolvedLanguage === "en" ? "en" : "km"
     const locale = i18n.resolvedLanguage === "en" ? "en" : "km-KH"
+    const value = evidence.value
 
     if (typeof value === "string" && value.trim()) {
-        return <p className="leading-relaxed whitespace-pre-wrap">{value}</p>
+        return (
+            <p className="leading-relaxed wrap-anywhere whitespace-pre-wrap">
+                {value}
+            </p>
+        )
     }
     if (typeof value === "number") {
         return (
@@ -401,28 +516,41 @@ function EvidenceValue({ value }: { value: unknown }) {
         return <p className="leading-relaxed">{String(value)}</p>
     }
     if (isStringArray(value) && value.length > 0) {
+        const displayedValues = value.map((item) =>
+            displaySourceTag(item, evidence.field, language),
+        )
         return (
-            <ul className="list-disc space-y-1 pl-5 leading-relaxed">
-                {value.map((item) => (
-                    <li key={item}>{item}</li>
+            <ul className="list-disc space-y-1 pl-5 leading-relaxed wrap-anywhere">
+                {displayedValues.map((item, index) => (
+                    <li key={`${value[index]}-${index}`}>{item}</li>
                 ))}
             </ul>
         )
     }
     if (isRecord(value)) {
-        const entries = Object.entries(value).filter(([, item]) =>
-            isDisplayableValue(item),
-        )
+        const entries = Object.entries(value)
+            .filter(([, item]) => isDisplayableValue(item))
+            .filter(([key]) =>
+                evidence.field === "nutrition"
+                    ? !isExcludedNutritionKey(key)
+                    : true,
+            )
         if (entries.length > 0) {
             return (
-                <dl className="grid gap-2">
+                <dl className="grid min-w-0 gap-2">
                     {entries.map(([key, item]) => (
                         <div
-                            className="border-border flex items-baseline justify-between gap-4 border-b pb-2 last:border-b-0 last:pb-0"
+                            className="border-border grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-baseline gap-4 border-b pb-2 last:border-b-0 last:pb-0"
                             key={key}
                         >
-                            <dt>{humanizeSourceKey(key)}</dt>
-                            <dd>{formatCompactValue(item, locale)}</dd>
+                            <dt className="wrap-anywhere">
+                                {evidence.field === "nutrition"
+                                    ? displayNutritionKey(key, t)
+                                    : humanizeSourceKey(key)}
+                            </dt>
+                            <dd className="text-right wrap-anywhere">
+                                {formatCompactValue(item, locale)}
+                            </dd>
                         </div>
                     ))}
                 </dl>
@@ -437,11 +565,7 @@ function EvidenceValue({ value }: { value: unknown }) {
     )
 }
 
-function SourceDetails({
-    candidate,
-}: {
-    candidate: PackageMatchCandidateResponse
-}) {
+function SourceDetails({ candidate }: { candidate: OpenFoodFactsCandidate }) {
     const { i18n, t } = useTranslation()
     const language = i18n.resolvedLanguage === "en" ? "en" : "km"
     const source = candidate.source
@@ -524,7 +648,7 @@ function SourceFact({ label, value }: { label: string; value?: string }) {
     return (
         <div>
             <dt>{label}</dt>
-            <dd>
+            <dd className="wrap-anywhere">
                 {value || (
                     <span className="text-muted-foreground italic">
                         {t("unavailableEvidence")}
@@ -600,6 +724,98 @@ function formatCompactValue(value: unknown, locale: string): string {
 
 function humanizeSourceKey(value: string): string {
     return value.replaceAll("_", " ").replaceAll("-", " ")
+}
+
+function displaySourceTag(
+    value: string,
+    field: string,
+    locale: string,
+): string {
+    const tag = value.includes(":")
+        ? value.slice(value.indexOf(":") + 1)
+        : value
+    const code =
+        field === "packaging_languages"
+            ? (offLanguageCodes[tag] ??
+              (/^[a-z]{2,3}$/i.test(tag) ? tag : undefined))
+            : field === "countries_sold"
+              ? (offCountryCodes[tag] ??
+                (/^[a-z]{2}$/i.test(tag) ? tag.toUpperCase() : undefined))
+              : undefined
+    const displayType =
+        field === "packaging_languages"
+            ? "language"
+            : field === "countries_sold"
+              ? "region"
+              : undefined
+
+    if (code && displayType) {
+        try {
+            return (
+                new Intl.DisplayNames([locale], { type: displayType }).of(
+                    code,
+                ) ?? humanizeSourceKey(tag)
+            )
+        } catch {
+            return humanizeSourceKey(tag)
+        }
+    }
+
+    return field === "packaging_languages" || field === "countries_sold"
+        ? humanizeSourceKey(tag)
+        : value
+}
+
+function displayNutritionKey(
+    value: string,
+    t: (key: string) => string,
+): string {
+    const normalized = value.replaceAll("-", "_")
+    const basis = normalized.endsWith("_prepared_100g")
+        ? t("nutritionPreparedPer100g")
+        : normalized.endsWith("_100g")
+          ? t("nutritionPer100g")
+          : normalized.endsWith("_serving")
+            ? t("nutritionPerServing")
+            : undefined
+    const nutrientKey = normalized
+        .replace(/_prepared_100g$/, "")
+        .replace(/_100g$/, "")
+        .replace(/_serving$/, "")
+    const labelKey = nutritionLabelKeys[nutrientKey]
+    const label = labelKey ? t(labelKey) : humanizeSourceKey(nutrientKey)
+    return basis ? `${label} · ${basis}` : label
+}
+
+function isExcludedNutritionKey(value: string): boolean {
+    const normalized = value.toLowerCase().replaceAll("-", "_")
+    return (
+        normalized.startsWith("nova_group") ||
+        normalized.startsWith("nutrition_score") ||
+        normalized.startsWith("nutriscore") ||
+        normalized.startsWith("ecoscore")
+    )
+}
+
+function exposesOriginalSourceValue(
+    evidence: PackageMatchEvidenceResponse,
+): boolean {
+    return ["nutrition", "packaging_languages", "countries_sold"].includes(
+        evidence.field,
+    )
+}
+
+function formatOriginalSourceValue(value: unknown, field: string): string {
+    if (isStringArray(value)) return value.join(", ")
+    if (isRecord(value)) {
+        return Object.entries(value)
+            .filter(([key]) =>
+                field === "nutrition" ? !isExcludedNutritionKey(key) : true,
+            )
+            .map(([key, item]) => `${key}: ${formatCompactValue(item, "en")}`)
+            .join("; ")
+    }
+    return String(value)
 }
 
 function displayLanguage(value: string, locale: string): string {

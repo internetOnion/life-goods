@@ -1,0 +1,34 @@
+{
+    "source_kind": "OPEN_FOOD_FACTS",
+    "package_variant_id": null,
+    "product_id": null,
+    "external_record_id": "8850000000006",
+    "source": {
+        "name": "Open Food Facts",
+        "source_type": "COMMUNITY_DATABASE",
+        "base_url": "https://world.openfoodfacts.org",
+        "record_url": "https://world.openfoodfacts.org/product/8850000000006",
+        "attribution": "Open Food Facts contributors",
+        "database_license": "ODbL",
+        "contents_license": "Database Contents License",
+        "image_license": "CC BY-SA",
+        "terms_version": null
+    },
+    "identity_evidence": [],
+    "label_evidence": [
+        {
+            "field": "packaging_languages",
+            "value": ["en:thai"],
+            "source_field": "languages_tags",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/8850000000006",
+            "language": null,
+            "observed_at": null,
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        }
+    ],
+    "reference_images": [],
+    "retrieved_at": "2026-08-24T10:00:00Z",
+    "is_current": true,
+    "source_revision": null
+}

@@ -1,0 +1,147 @@
+{
+    "source_kind": "OPEN_FOOD_FACTS",
+    "package_variant_id": null,
+    "product_id": null,
+    "external_record_id": "4006381333931",
+    "source": {
+        "name": "Open Food Facts",
+        "source_type": "COMMUNITY_DATABASE",
+        "base_url": "https://world.openfoodfacts.org",
+        "record_url": "https://world.openfoodfacts.org/product/4006381333931",
+        "attribution": "Open Food Facts contributors",
+        "database_license": "ODbL",
+        "contents_license": "Database Contents License",
+        "image_license": "CC BY-SA",
+        "terms_version": null
+    },
+    "identity_evidence": [
+        {
+            "field": "name",
+            "value": "Dark chocolate",
+            "source_field": "product_name_en",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/4006381333931",
+            "language": "en",
+            "observed_at": null,
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        },
+        {
+            "field": "name",
+            "value": "សូកូឡាខ្មៅដែលមានឈ្មោះវែងសម្រាប់សាកល្បងប្លង់",
+            "source_field": "product_name_km",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/4006381333931",
+            "language": "km",
+            "observed_at": null,
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        },
+        {
+            "field": "brands",
+            "value": ["Example Foods"],
+            "source_field": "brands",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/4006381333931",
+            "language": null,
+            "observed_at": null,
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        },
+        {
+            "field": "quantity",
+            "value": "100 g",
+            "source_field": "quantity",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/4006381333931",
+            "language": null,
+            "observed_at": null,
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        }
+    ],
+    "label_evidence": [
+        {
+            "field": "ingredient_text",
+            "value": "Cocoa mass, sugar, cocoa butter. This deliberately long ingredient statement verifies that consequential source evidence remains readable without truncation.",
+            "source_field": "ingredients_text_en",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/4006381333931",
+            "language": "en",
+            "observed_at": null,
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        },
+        {
+            "field": "ingredient_text",
+            "value": "ម៉ាសកាកាវ ស្ករ ប៊ឺកាកាវ និងអត្ថបទគ្រឿងផ្សំវែងសម្រាប់ផ្ទៀងផ្ទាត់ថាខ្លឹមសារសំខាន់មិនត្រូវបានកាត់ឱ្យខ្លី។",
+            "source_field": "ingredients_text_km",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/4006381333931",
+            "language": "km",
+            "observed_at": null,
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        },
+        {
+            "field": "allergen_declaration",
+            "value": "Contains milk",
+            "source_field": "allergens",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/4006381333931",
+            "language": "en",
+            "observed_at": null,
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        },
+        {
+            "field": "trace_declaration",
+            "value": "May contain nuts",
+            "source_field": "traces",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/4006381333931",
+            "language": "en",
+            "observed_at": null,
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        },
+        {
+            "field": "nutrition",
+            "value": { "energy_kcal_100g": 550, "sugars_100g": 23.4 },
+            "source_field": "nutriments",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/4006381333931",
+            "language": null,
+            "observed_at": null,
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        },
+        {
+            "field": "packaging_languages",
+            "value": ["en:english", "en:khmer"],
+            "source_field": "languages_tags",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/4006381333931",
+            "language": null,
+            "observed_at": null,
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        },
+        {
+            "field": "countries_sold",
+            "value": ["en:cambodia", "en:france"],
+            "source_field": "countries_tags",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/4006381333931",
+            "language": null,
+            "observed_at": null,
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        }
+    ],
+    "reference_images": [
+        {
+            "role": "front",
+            "url": "/api/v1/open-food-facts-images?url=https%3A%2F%2Fimages.openfoodfacts.org%2Fimages%2Fproducts%2F400%2Freference.jpg",
+            "source_field": "selected_images.front.display.en",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/4006381333931",
+            "attribution": "Open Food Facts contributors",
+            "license_name": "CC BY-SA",
+            "language": "en",
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        }
+    ],
+    "retrieved_at": "2026-08-24T10:00:00Z",
+    "is_current": true,
+    "source_revision": "1787462400"
+}

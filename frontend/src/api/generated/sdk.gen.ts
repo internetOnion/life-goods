@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetPackageMatchesData, GetPackageMatchesErrors, GetPackageMatchesResponses } from './types.gen';
+import type { GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetPackageMatchesData, GetPackageMatchesErrors, GetPackageMatchesResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -16,6 +16,16 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
      * used to access values that aren't defined as part of the SDK function.
      */
     meta?: Record<string, unknown>;
+};
+
+/**
+ * Get Open Food Facts Image
+ */
+export const getOpenFoodFactsImage = <ThrowOnError extends boolean = false>(options: Options<GetOpenFoodFactsImageData, ThrowOnError>) => {
+    return (options.client ?? client).get<GetOpenFoodFactsImageResponses, GetOpenFoodFactsImageErrors, ThrowOnError>({
+        url: '/api/v1/open-food-facts-images',
+        ...options
+    });
 };
 
 /**

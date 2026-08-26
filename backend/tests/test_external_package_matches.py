@@ -113,6 +113,12 @@ def test_found_snapshot_is_persisted_reused_and_refreshed() -> None:
         "quantity",
     }
     assert candidate["reference_images"]
+    reference_image = candidate["reference_images"][0]
+    assert reference_image["url"].startswith("/api/v1/open-food-facts-images?url=")
+    assert reference_image["source_url"] == (
+        "https://world.openfoodfacts.org/product/4006381333931"
+    )
+    assert reference_image["retrieved_at"] == "2026-08-24T10:00:00Z"
     assert "raw_response" not in json.dumps(first.json())
 
     with factory() as session:
