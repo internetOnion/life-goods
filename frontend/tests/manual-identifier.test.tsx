@@ -35,6 +35,34 @@ describe("manual identifier journey", () => {
         renderJourney(lookup)
 
         const input = screen.getByRole("textbox", { name: "លេខបាកូដ" })
+        const showHintButton = screen.getByRole("button", {
+            name: "បង្ហាញព័ត៌មានអំពីលេខបាកូដ",
+        })
+        expect(
+            screen.queryByText(
+                "គាំទ្រលេខ GTIN, EAN និង UPC ដែលមាន ៨, ១២, ១៣ ឬ ១៤ ខ្ទង់។ អ្នកអាចដាក់ដកឃ្លា ឬសញ្ញាដកបាន។",
+            ),
+        ).not.toBeInTheDocument()
+
+        await user.click(showHintButton)
+        expect(
+            screen.getByText(
+                "គាំទ្រលេខ GTIN, EAN និង UPC ដែលមាន ៨, ១២, ១៣ ឬ ១៤ ខ្ទង់។ អ្នកអាចដាក់ដកឃ្លា ឬសញ្ញាដកបាន។",
+            ),
+        ).toBeVisible()
+        expect(input).toHaveAttribute("aria-describedby", "identifier-hint")
+        await user.click(
+            screen.getByRole("button", {
+                name: "លាក់ព័ត៌មានអំពីលេខបាកូដ",
+            }),
+        )
+        expect(
+            screen.queryByText(
+                "គាំទ្រលេខ GTIN, EAN និង UPC ដែលមាន ៨, ១២, ១៣ ឬ ១៤ ខ្ទង់។ អ្នកអាចដាក់ដកឃ្លា ឬសញ្ញាដកបាន។",
+            ),
+        ).not.toBeInTheDocument()
+        expect(input).not.toHaveAttribute("aria-describedby")
+
         expect(
             screen.getByRole("button", { name: "ពិនិត្យបាកូដ" }),
         ).toBeDisabled()

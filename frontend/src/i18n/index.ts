@@ -23,6 +23,8 @@ export const resources = {
             fieldPlaceholder: "លេខបាកូដ",
             fieldHint:
                 "គាំទ្រលេខ GTIN, EAN និង UPC ដែលមាន ៨, ១២, ១៣ ឬ ១៤ ខ្ទង់។ អ្នកអាចដាក់ដកឃ្លា ឬសញ្ញាដកបាន។",
+            fieldHintShow: "បង្ហាញព័ត៌មានអំពីលេខបាកូដ",
+            fieldHintHide: "លាក់ព័ត៌មានអំពីលេខបាកូដ",
             submit: "ពិនិត្យបាកូដ",
             loading: "កំពុងពិនិត្យព័ត៌មានកញ្ចប់…",
             loadingBody:
@@ -159,6 +161,8 @@ export const resources = {
             fieldPlaceholder: "Barcode number",
             fieldHint:
                 "Supports 8, 12, 13, and 14-digit GTIN, EAN, and UPC identifiers. Spaces and hyphens are okay.",
+            fieldHintShow: "Show barcode format information",
+            fieldHintHide: "Hide barcode format information",
             submit: "Check barcode",
             loading: "Checking package information…",
             loadingBody:

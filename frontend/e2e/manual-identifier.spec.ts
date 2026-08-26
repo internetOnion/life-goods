@@ -42,6 +42,10 @@ test("keyboard order, Khmer layout, announcements, and reduced motion remain usa
         page.getByRole("button", { name: "ប្តូរទៅភាសាអង់គ្លេស" }),
     ).toBeFocused()
     await page.keyboard.press("Tab")
+    await expect(
+        page.getByRole("button", { name: "បង្ហាញព័ត៌មានអំពីលេខបាកូដ" }),
+    ).toBeFocused()
+    await page.keyboard.press("Tab")
     await expect(page.getByRole("textbox", { name: "លេខបាកូដ" })).toBeFocused()
     await page.keyboard.type("4006381333931")
     await page.keyboard.press("Tab")

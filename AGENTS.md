@@ -1,31 +1,33 @@
-# Repository Guidelines
+# Agent Guide
 
-## Project Structure & Module Organization
+## Read Before Changing
 
-This is a pnpm/uv monorepo with a React/Vite Web Client, FastAPI backend, generated OpenAPI client, SQLAlchemy/Alembic persistence, and focused frontend/backend/e2e tests. Read `CONTEXT.md` for the domain glossary, `docs/SPEC.md` for MVP behavior, `docs/DATA_MODEL.md` for entities and provenance, and relevant `docs/adr/` decisions before changing the model. Research belongs in `docs/research/`; Mermaid source and rendered diagrams belong in `docs/diagrams/`.
+- For domain, schema, provenance, or privacy work, read `CONTEXT.md`, `docs/SPEC.md`, `docs/DATA_MODEL.md`, and the applicable accepted ADRs. For shopper-facing UI, read `PRODUCT.md` and then `DESIGN.md`.
+- Use the glossary's exact terms and capitalization: `Product`, `Package Variant`, `Package Revision`, `Claim`, `Evidence`, `Package Match`, and `Shopper Guidance`.
 
-The implementation layout is `frontend/` (React/Vite/TypeScript Web Client), `backend/` (FastAPI/Python application, matching domain, persistence, migrations, and scripts), `evaluation/` (datasets and model evaluation), and `infra/` (local services). Keep Package Capture media isolated from catalog data and training data.
+## Repository Shape
 
-## Build, Test, and Development Commands
+- `frontend/` is the pnpm workspace package on Node.js 24; `backend/` is a separate Python 3.13 uv project. `frontend/src/main.tsx` wires React Router and TanStack Query; routes are composed in `frontend/src/app/App.tsx` and feature behavior lives under `frontend/src/features/`.
+- `backend/src/lifegoods/main.py` is the FastAPI app factory. Keep route handlers in `api/` thin, coordinate use cases in `application/`, keep matching rules in `matching/`, and put database/external integrations in `adapters/`.
+- FastAPI owns the API contract. `frontend/openapi.json` and `frontend/src/api/generated/` are generated; after changing a route or response, run `pnpm api:generate` and review the generated diff rather than editing generated files by hand.
+- Add schema changes as Alembic revisions under `backend/migrations/`. The E2E harness uses disposable SQLite and `create_all`; normal local development uses the PostgreSQL migration path.
 
-Use the root scripts for the normal verification loop: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm test:e2e`, and `pnpm api:check`. Start local PostgreSQL with `docker compose -f infra/compose.yaml up -d postgres`, apply migrations with `pnpm db:migrate`, and run the API and Web Client with `pnpm backend:dev` and `pnpm dev`. Use `pnpm backend:sync` to provision Python dependencies. For documentation-only changes, use `git diff --check`.
+## Commands
 
-## Coding Style & Naming Conventions
+- Install dependencies with `pnpm install` and `pnpm backend:sync`.
+- Normal local setup: `docker compose -f infra/compose.yaml up -d postgres`, then `pnpm db:migrate`. The database is exposed on host port `5433`.
+- Run `pnpm backend:dev` and `pnpm dev` in separate terminals. The frontend predev script requires `openssl` and creates ignored, self-signed certificates, so use `https://localhost:5173` and accept the local certificate warning.
+- Root checks are `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm test:e2e`, and `pnpm api:check`. `typecheck` and `build` cover the frontend; `lint` also runs backend Ruff; `test` runs frontend Vitest then backend pytest.
+- Focused checks: `pnpm --dir frontend exec vitest run tests/identifier.test.ts`, `uv run --project backend pytest backend/tests/test_identifier.py`, and `pnpm --dir frontend exec playwright test e2e/manual-identifier.spec.ts`.
 
-Use strict TypeScript and typed Python. Keep HTTP handlers thin and put domain behavior in application services. Use the glossary’s exact terms and capitalization: `Product`, `Package Variant`, `Package Revision`, `Claim`, `Evidence`, `Package Match`, and `Shopper Guidance`. Preserve field-level provenance; never collapse external data into a product-wide verification flag.
+## Domain Boundaries
 
-## Testing Guidelines
+- An identifier is a lookup key for a `Package Variant`; a `Package Match` is a candidate, not proof of physical-package identity. Preserve field-level provenance, competing Claims, and explicit missing or uncertain evidence.
+- Keep Open Food Facts data attributed and distinguishable from reviewed catalog data; an absent external field is unknown, not a negative Claim.
+- Keep private `Package Capture` media and results isolated from durable catalog data, training, analytics, and manual review; MVP retention is at most 24 hours.
+- Do not introduce safety, health, allergen-free, Halal, legal/compliance, authenticity, or purchase verdicts. If documentation changes, keep research in `docs/research/` and Mermaid source plus rendered output in `docs/diagrams/`.
 
-Test observable behavior at the highest useful seam. Backend behavior uses pytest; focused Web Client behavior uses Vitest and Testing Library; browser journeys use Playwright. The current vertical slice covers identifier validation, Package Match lookup outcomes, accessibility, localization, and failure recovery. Use deterministic catalog fixtures rather than mutable live responses. Cover uncertainty, missing-data semantics, privacy, retention, and source attribution—not only successful matches.
+## Style and Workflow
 
-## Commit & Pull Request Guidelines
-
-Existing commits use short, imperative, lowercase Conventional-style prefixes such as `docs: update technology stack`. Use `feat:`, `fix:`, `docs:`, `test:`, or `chore:` with a focused subject. Pull requests should explain user-visible behavior, link the relevant GitHub issue, describe tests run, call out migrations or privacy implications, and include screenshots for UI changes.
-
-## Agent Workflow & Safety Boundaries
-
-Before implementation, inspect applicable ADRs, especially claim-level provenance and private Package Capture isolation. Prefer small vertical slices, preserve uncertainty explicitly, and keep unsupported safety, Halal, legal, and authenticity conclusions out of the product. Use `apply_patch` for edits, avoid destructive Git commands, and update documentation when a domain or architecture decision changes.
-
-## Design Context
-
-When changing shopper-facing UI or making product/design decisions, read `PRODUCT.md` for product identity, audience, principles, and accessibility, then read `DESIGN.md` for the current visual direction and interface guardrails. Treat the linked Figma concept as an evolving structural reference; implementation remains governed by the repository specification, user stories, glossary, and ADRs.
+- Frontend formatting is enforced by the root Prettier config and Tailwind plugin; use `pnpm frontend:lint:format` or `pnpm --dir frontend lint:format` for formatting. TypeScript is strict and unused locals/parameters fail typecheck.
+- Use lowercase Conventional-style commit prefixes (`feat:`, `fix:`, `docs:`, `test:`, `chore:`) when a commit is explicitly requested.

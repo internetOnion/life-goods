@@ -1,4 +1,9 @@
-import { BarcodeIcon, CameraSlashIcon } from "@phosphor-icons/react"
+import {
+    BarcodeIcon,
+    CameraSlashIcon,
+    InfoIcon,
+    MagnifyingGlassIcon,
+} from "@phosphor-icons/react"
 import {
     type FormEvent,
     type KeyboardEvent,
@@ -45,6 +50,7 @@ export function HomePage({
             ? seededValidation.reason
             : null,
     )
+    const [showIdentifierHint, setShowIdentifierHint] = useState(false)
     const inputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
@@ -75,6 +81,16 @@ export function HomePage({
     const validationMessage = validationReason
         ? t(`error.${validationReason}`)
         : undefined
+    const describedBy = [
+        showIdentifierHint ? "identifier-hint" : null,
+        validationMessage ? "identifier-error" : null,
+    ]
+        .filter(Boolean)
+        .join(" ")
+
+    const toggleIdentifierHint = () => {
+        setShowIdentifierHint((isVisible) => !isVisible)
+    }
 
     return (
         <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] space-y-3 pt-5 pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] max-[650px]:pt-3 max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)] sm:pt-7">
@@ -109,12 +125,36 @@ export function HomePage({
                 noValidate
                 onSubmit={onSubmit}
             >
-                <Label
-                    className="text-primary mb-2.5 inline-block"
-                    htmlFor="identifier"
-                >
-                    {t("fieldLabel")}
-                </Label>
+                <div className="relative mb-2.5 flex items-center gap-1">
+                    <Label className="text-primary" htmlFor="identifier">
+                        {t("fieldLabel")}
+                    </Label>
+                    <Button
+                        aria-controls="identifier-hint"
+                        aria-expanded={showIdentifierHint}
+                        aria-label={t(
+                            showIdentifierHint
+                                ? "fieldHintHide"
+                                : "fieldHintShow",
+                        )}
+                        className="text-primary size-5 !min-h-0 p-0 hover:bg-transparent"
+                        onClick={toggleIdentifierHint}
+                        size="icon"
+                        type="button"
+                        variant="ghost"
+                    >
+                        <InfoIcon aria-hidden="true" size={19} />
+                    </Button>
+                    {showIdentifierHint ? (
+                        <div
+                            className="border-border bg-background text-foreground absolute top-[calc(100%+0.5rem)] right-0 z-20 w-[min(18rem,calc(100vw-2rem))] rounded-xl border p-3 text-left text-sm leading-relaxed shadow-lg sm:top-1/2 sm:right-auto sm:left-full sm:ml-2 sm:-translate-y-1/2"
+                            id="identifier-hint"
+                            role="note"
+                        >
+                            {t("fieldHint")}
+                        </div>
+                    ) : null}
+                </div>
                 <div
                     className={cn(
                         "border-input bg-background focus-within:border-ring focus-within:ring-ring/40 flex min-h-14 overflow-hidden rounded-xl border transition-colors focus-within:ring-2",
@@ -138,11 +178,7 @@ export function HomePage({
                         autoComplete="off"
                         value={enteredIdentifier}
                         placeholder={t("fieldPlaceholder")}
-                        aria-describedby={
-                            validationMessage
-                                ? "identifier-hint identifier-error"
-                                : "identifier-hint"
-                        }
+                        aria-describedby={describedBy || undefined}
                         aria-errormessage={
                             validationMessage ? "identifier-error" : undefined
                         }
@@ -163,19 +199,14 @@ export function HomePage({
                         }}
                     />
                     <Button
+                        aria-label={t("submit")}
                         className="h-auto min-h-14 shrink-0 rounded-none px-4 sm:px-5"
                         type="submit"
                         disabled={!enteredIdentifier.trim()}
                     >
-                        <span>{t("submit")}</span>
+                        <MagnifyingGlassIcon aria-hidden="true" size={24} />
                     </Button>
                 </div>
-                <p
-                    className="text-muted-foreground mt-2 text-sm leading-relaxed"
-                    id="identifier-hint"
-                >
-                    {t("fieldHint")}
-                </p>
                 {validationMessage ? (
                     <p
                         className="text-destructive mt-2 text-sm leading-relaxed font-semibold"
