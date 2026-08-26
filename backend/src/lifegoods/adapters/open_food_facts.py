@@ -77,6 +77,19 @@ LOCALIZED_INGREDIENT_FIELDS = (
     ("ingredients_text_vi", "vi"),
     ("ingredients_text_zh", "zh"),
 )
+NUTRITION_DECLARATION_FIELDS = (
+    "energy",
+    "energy-kj",
+    "energy-kcal",
+    "fat",
+    "saturated-fat",
+    "carbohydrates",
+    "sugars",
+    "fiber",
+    "proteins",
+    "salt",
+    "sodium",
+)
 
 type CacheableLookupResult = ExternalPackageFound | ExternalPackageNotFound
 
@@ -212,9 +225,13 @@ class OpenFoodFactsPackageSource:
             ingredient_texts=_localized_texts(
                 product, LOCALIZED_INGREDIENT_FIELDS, primary_language
             ),
-            allergen_declaration=_string_value(product, "allergens"),
+            allergen_declaration=_string_value(
+                product, "allergens", language=primary_language
+            ),
             allergen_tags=_string_tuple_value(product, "allergens_tags"),
-            trace_declaration=_string_value(product, "traces"),
+            trace_declaration=_string_value(
+                product, "traces", language=primary_language
+            ),
             trace_tags=_string_tuple_value(product, "traces_tags"),
             nutrition=_nutrition(product),
             packaging_languages=_string_tuple_value(product, "languages_tags"),
@@ -303,9 +320,15 @@ def _brands(product: dict[str, Any]) -> SourcedValue[tuple[str, ...]] | None:
     return SourcedValue(value=brands, source_field="brands") if brands else None
 
 
-def _string_value(product: dict[str, Any], field: str) -> SourcedValue[str] | None:
+def _string_value(
+    product: dict[str, Any], field: str, *, language: str | None = None
+) -> SourcedValue[str] | None:
     value = _non_empty_string(product.get(field))
-    return SourcedValue(value=value, source_field=field) if value is not None else None
+    return (
+        SourcedValue(value=value, source_field=field, language=language)
+        if value is not None
+        else None
+    )
 
 
 def _string_tuple_value(
@@ -344,16 +367,27 @@ def _selected_images(product: dict[str, Any]) -> tuple[ExternalSelectedImage, ..
 
 
 def _nutrition(product: dict[str, Any]) -> tuple[SourcedValue[JsonValue], ...]:
-    nutrition_fields = (
-        "nutriments",
-        "nutrition_data_per",
-        "nutrition_data_prepared_per",
-        "serving_size",
-    )
-    return tuple(
-        SourcedValue(value=value, source_field=field)
-        for field in nutrition_fields
-        if (value := product.get(field)) not in (None, "", [], {})
+    values: list[SourcedValue[JsonValue]] = []
+    raw_nutriments = product.get("nutriments")
+    if isinstance(raw_nutriments, dict):
+        nutriments = {
+            field: value
+            for field, value in raw_nutriments.items()
+            if isinstance(field, str) and _is_nutrition_declaration_field(field)
+        }
+        if nutriments:
+            values.append(SourcedValue(value=nutriments, source_field="nutriments"))
+    for field in ("nutrition_data_per", "nutrition_data_prepared_per", "serving_size"):
+        value = product.get(field)
+        if value not in (None, "", [], {}):
+            values.append(SourcedValue(value=value, source_field=field))
+    return tuple(values)
+
+
+def _is_nutrition_declaration_field(field: str) -> bool:
+    return any(
+        field == declaration or field.startswith(f"{declaration}_")
+        for declaration in NUTRITION_DECLARATION_FIELDS
     )
 
 

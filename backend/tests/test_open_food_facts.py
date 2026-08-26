@@ -80,6 +80,10 @@ def test_complete_record_is_returned_with_source_metadata_and_raw_response() -> 
     assert result.record.brands.value == ("Example Foods", "Example Brand")
     assert result.record.quantity is not None
     assert result.record.quantity.value == "100 g"
+    assert result.record.allergen_declaration is not None
+    assert result.record.allergen_declaration.language == "en"
+    assert result.record.trace_declaration is not None
+    assert result.record.trace_declaration.language == "en"
     assert len(result.record.selected_images) == 3
     assert {value.source_field: value.value for value in result.record.nutrition} == {
         "nutriments": {"energy-kcal_100g": 598, "fat_100g": 43},
@@ -138,7 +142,7 @@ def test_sparse_record_keeps_missing_evidence_absent() -> None:
     source = OpenFoodFactsPackageSource(client)
 
     result = source.lookup(
-        NormalizedIdentifier(value="8850000000006", scheme=IdentifierScheme.EAN_13)
+        NormalizedIdentifier(value="8850000000003", scheme=IdentifierScheme.EAN_13)
     )
 
     assert isinstance(result, ExternalPackageFound)
@@ -391,7 +395,7 @@ def test_cache_evicts_the_least_recently_used_entry_at_capacity() -> None:
     )
     identifiers = [
         NormalizedIdentifier(value=value, scheme=IdentifierScheme.EAN_13)
-        for value in ("4006381333931", "8850000000006", "9550000000005")
+        for value in ("4006381333931", "8850000000003", "9550000000005")
     ]
 
     source.lookup(identifiers[0])
@@ -402,7 +406,7 @@ def test_cache_evicts_the_least_recently_used_entry_at_capacity() -> None:
 
     assert requested_identifiers == [
         "4006381333931",
-        "8850000000006",
+        "8850000000003",
         "9550000000005",
-        "8850000000006",
+        "8850000000003",
     ]

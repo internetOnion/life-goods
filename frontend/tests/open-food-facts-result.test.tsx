@@ -91,6 +91,7 @@ describe("OpenFoodFactsResult", () => {
             ["Package name", "product_name_en"],
             ["Brand", "brands"],
             ["Quantity", "quantity"],
+            ["Checked barcode", "code"],
         ] as const) {
             const summary = screen.getByText(`Source details for ${label}`)
             const disclosure = summary.closest("details")

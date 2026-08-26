@@ -69,6 +69,10 @@ export function OpenFoodFactsResult({
     const alternateNames = names.filter((item) => item !== selectedName)
     const brands = fieldEvidence(candidate.identity_evidence, "brands")
     const quantities = fieldEvidence(candidate.identity_evidence, "quantity")
+    const identifierEvidence = fieldEvidence(
+        candidate.identity_evidence,
+        "identifier",
+    )[0]
     const ingredients = fieldEvidence(
         candidate.label_evidence,
         "ingredient_text",
@@ -138,6 +142,12 @@ export function OpenFoodFactsResult({
                             <dt>{t("identifierLabel")}</dt>
                             <dd className="mt-1 font-mono text-sm wrap-anywhere tabular-nums">
                                 {normalizedIdentifier}
+                                {identifierEvidence ? (
+                                    <EvidenceProvenance
+                                        evidence={identifierEvidence}
+                                        fieldLabel={t("identifierLabel")}
+                                    />
+                                ) : null}
                             </dd>
                         </div>
                     </dl>

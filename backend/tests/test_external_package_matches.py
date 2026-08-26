@@ -108,6 +108,7 @@ def test_found_snapshot_is_persisted_reused_and_refreshed() -> None:
     assert candidate["is_current"] is True
     assert candidate["source_revision"] == "1787462400"
     assert {item["field"] for item in candidate["identity_evidence"]} >= {
+        "identifier",
         "name",
         "brands",
         "quantity",
@@ -210,7 +211,6 @@ def test_confirmed_no_match_is_persisted_briefly_then_retried() -> None:
 
 def test_sparse_record_omits_missing_fields_instead_of_creating_negative_evidence() -> None:
     sparse_payload = json.loads(SPARSE_RESPONSE)
-    sparse_payload["product"]["code"] = "8850000000003"
     source = OpenFoodFactsPackageSource(
         httpx.Client(
             transport=httpx.MockTransport(
@@ -226,7 +226,10 @@ def test_sparse_record_omits_missing_fields_instead_of_creating_negative_evidenc
 
     assert response.status_code == 200
     candidate = response.json()["candidates"][0]
-    assert {item["field"] for item in candidate["identity_evidence"]} == {"name"}
+    assert {item["field"] for item in candidate["identity_evidence"]} == {
+        "identifier",
+        "name",
+    }
     assert {item["field"] for item in candidate["label_evidence"]} == {
         "packaging_languages"
     }

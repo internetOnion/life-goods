@@ -16,6 +16,16 @@
     },
     "identity_evidence": [
         {
+            "field": "identifier",
+            "value": "4006381333931",
+            "source_field": "code",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/4006381333931",
+            "language": null,
+            "observed_at": null,
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        },
+        {
             "field": "name",
             "value": "Dark chocolate",
             "source_field": "product_name_en",

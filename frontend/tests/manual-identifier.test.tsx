@@ -2,14 +2,16 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router"
-import { beforeEach, describe, expect, test, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 
+import { client } from "../src/api/generated/client.gen"
 import { App } from "../src/app/App"
 import type {
     PackageMatchCandidateResponse,
     PackageMatchesResponse,
 } from "../src/api/generated"
 import type { PackageMatchLookup } from "../src/features/package-match/types"
+import { lookupPackageMatches } from "../src/features/package-match/api"
 import i18n from "../src/i18n"
 import {
     completeOffCandidate,
@@ -37,6 +39,10 @@ function renderJourney(lookup: PackageMatchLookup) {
 }
 
 describe("manual identifier journey", () => {
+    afterEach(() => {
+        vi.unstubAllGlobals()
+    })
+
     beforeEach(async () => {
         await i18n.changeLanguage("km")
     })
@@ -173,10 +179,21 @@ describe("manual identifier journey", () => {
     test("renders a complete OFF match through the English journey", async () => {
         await i18n.changeLanguage("en")
         const user = userEvent.setup()
-        const lookup = vi
-            .fn<PackageMatchLookup>()
-            .mockResolvedValue(packageMatches(completeOffCandidate()))
-        renderJourney(lookup)
+        const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+            new Response(
+                JSON.stringify(packageMatches(completeOffCandidate())),
+                {
+                    status: 200,
+                    headers: { "content-type": "application/json" },
+                },
+            ),
+        )
+        vi.stubGlobal("fetch", fetchMock)
+        client.setConfig({
+            baseUrl: "https://lifegoods.test",
+            fetch: fetchMock,
+        })
+        renderJourney(lookupPackageMatches)
 
         await user.type(
             screen.getByRole("textbox", { name: "Barcode number" }),
@@ -190,7 +207,11 @@ describe("manual identifier journey", () => {
         expect(screen.getByRole("status")).toHaveTextContent(
             "Open Food Facts package information is available",
         )
-        expect(lookup).toHaveBeenCalledWith("4006381333931")
+        const request = fetchMock.mock.calls[0]?.[0]
+        expect(request).toBeInstanceOf(Request)
+        expect((request as Request).url).toBe(
+            "https://lifegoods.test/api/v1/package-matches?identifier=4006381333931",
+        )
         expect(
             screen.getByText(
                 "Community data from Open Food Facts—not yet reviewed by this project.",

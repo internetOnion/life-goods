@@ -32,7 +32,9 @@
     "traces_tags": ["en:nuts"],
     "nutriments": {
       "energy-kcal_100g": 598,
-      "fat_100g": 43
+      "fat_100g": 43,
+      "nutrition-score-fr_100g": 18,
+      "nova-group_100g": 4
     },
     "nutrition_data_per": "100g",
     "serving_size": "25 g",
