@@ -89,7 +89,7 @@ API failures will use a consistent error envelope with stable machine-readable c
 
 ### Backend
 
-Use pytest for unit and integration coverage of:
+Use pytest for MVP unit and API/database integration coverage of:
 
 - Identifier check digits and normalization.
 - Open Food Facts mapping and missing-field semantics.
@@ -101,7 +101,7 @@ Use pytest for unit and integration coverage of:
 
 ### Frontend
 
-Use Vitest and Testing Library for:
+Use Vitest and Testing Library for MVP frontend unit and component coverage of:
 
 - Scanner and manual-entry states.
 - Uncertainty language and source attribution.
@@ -109,14 +109,7 @@ Use Vitest and Testing Library for:
 - Telegram and standalone-browser adapters.
 - Khmer and English presentation behavior.
 
-Use Playwright for end-to-end coverage of:
-
-- Manual identifier entry.
-- Known, unknown, invalid, and conflicting results.
-- Generated-client compatibility.
-- Responsive layouts and supported recovery actions.
-
-Camera behavior must also be tested on representative physical devices because browser automation cannot reproduce every camera and WebView condition.
+Browser end-to-end automation is outside the MVP scope. Manual identifier, scanner, recovery, responsive-layout, Telegram WebView, and representative physical-device checks remain part of pilot validation and are not automated release gates.
 
 ### Privacy and acceptance
 
@@ -129,7 +122,7 @@ Camera behavior must also be tested on representative physical devices because b
 
 - Cloudflare Pages will provide frontend preview deployments for pull requests.
 - Staging will use isolated Neon, Upstash, and R2 resources.
-- Production deployment requires successful automated tests, generated-client drift checks, migration validation, and a staging smoke test.
+- Production deployment requires successful MVP unit/component and API/database tests, generated-client drift checks, migration validation, and a staging smoke test.
 - Run Alembic migrations as a separate release step before deploying application processes that require the new schema.
 - Use scrubbed Sentry tracing for the React application, FastAPI, and Celery.
 - Store only allowlisted anonymous journey and failure events internally with short retention.

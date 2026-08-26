@@ -15,5 +15,4 @@ node_modules/
 dist/
 frontend/certs/
 coverage/
-playwright-report/
 test-results/

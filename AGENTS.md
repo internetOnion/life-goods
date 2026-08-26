@@ -1,33 +1,40 @@
 # Agent Guide
 
-## Read Before Changing
+## Before Changing
 
-- For domain, schema, provenance, or privacy work, read `CONTEXT.md`, `docs/SPEC.md`, `docs/DATA_MODEL.md`, and the applicable accepted ADRs. For shopper-facing UI, read `PRODUCT.md` and then `DESIGN.md`.
-- Use the glossary's exact terms and capitalization: `Product`, `Package Variant`, `Package Revision`, `Claim`, `Evidence`, `Package Match`, and `Shopper Guidance`.
+- For domain, schema, provenance, or privacy work, read `CONTEXT.md`, `docs/SPEC.md`, `docs/DATA_MODEL.md`, and the applicable accepted ADRs.
+- For shopper-facing UI, read `PRODUCT.md` and then `DESIGN.md`.
+- Use the exact glossary terms and capitalization: `Product`, `Package Variant`, `Package Revision`, `Claim`, `Evidence`, `Package Match`, and `Shopper Guidance`.
 
-## Repository Shape
+## Structure
 
-- `frontend/` is the pnpm workspace package on Node.js 24; `backend/` is a separate Python 3.13 uv project. `frontend/src/main.tsx` wires React Router and TanStack Query; routes are composed in `frontend/src/app/App.tsx` and feature behavior lives under `frontend/src/features/`.
-- `backend/src/lifegoods/main.py` is the FastAPI app factory. Keep route handlers in `api/` thin, coordinate use cases in `application/`, keep matching rules in `matching/`, and put database/external integrations in `adapters/`.
-- FastAPI owns the API contract. `frontend/openapi.json` and `frontend/src/api/generated/` are generated; after changing a route or response, run `pnpm api:generate` and review the generated diff rather than editing generated files by hand.
-- Add schema changes as Alembic revisions under `backend/migrations/`. The E2E harness uses disposable SQLite and `create_all`; normal local development uses the PostgreSQL migration path.
+- `frontend/` is the only pnpm workspace package; `backend/` is a separate Python 3.13 uv project.
+- `frontend/src/main.tsx` is the React entrypoint; `frontend/src/app/App.tsx` composes routes and feature behavior lives under `frontend/src/features/`.
+- `backend/src/lifegoods/main.py` is the FastAPI app factory. Keep handlers in `api/` thin, coordinate use cases in `application/`, keep matching rules in `matching/`, and place persistence/external integrations in `adapters/`.
+- The frontend calls the backend through the generated client; FastAPI owns the contract. `frontend/openapi.json` and `frontend/src/api/generated/` are generated files.
 
 ## Commands
 
-- Install dependencies with `pnpm install` and `pnpm backend:sync`.
-- Normal local setup: `docker compose -f infra/compose.yaml up -d postgres`, then `pnpm db:migrate`. The database is exposed on host port `5433`.
-- Run `pnpm backend:dev` and `pnpm dev` in separate terminals. The frontend predev script requires `openssl` and creates ignored, self-signed certificates, so use `https://localhost:5173` and accept the local certificate warning.
-- Root checks are `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm test:e2e`, and `pnpm api:check`. `typecheck` and `build` cover the frontend; `lint` also runs backend Ruff; `test` runs frontend Vitest then backend pytest.
-- Focused checks: `pnpm --dir frontend exec vitest run tests/identifier.test.ts`, `uv run --project backend pytest backend/tests/test_identifier.py`, and `pnpm --dir frontend exec playwright test e2e/manual-identifier.spec.ts`.
+- Requirements are Node.js 24, pnpm, Python 3.13, uv, and Docker Compose.
+- Install with `pnpm install` and `pnpm backend:sync`.
+- Start PostgreSQL with `docker compose -f infra/compose.yaml up -d postgres`, then apply migrations with `pnpm db:migrate`; PostgreSQL is exposed on host port `5433`.
+- Run `pnpm backend:dev` and `pnpm dev` in separate terminals for HTTP at `http://localhost:5173`.
+- Use `pnpm dev:https` for frontend HTTPS at `https://localhost:5173`; it requires `openssl`, generates an ignored self-signed certificate under `frontend/certs/`, and still proxies `/api` to the HTTP API.
+- The normal verification set is `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`, and `pnpm api:check`.
+- `pnpm test` runs frontend Vitest followed by backend pytest; focused tests are `pnpm --dir frontend exec vitest run tests/identifier.test.ts` and `uv run --project backend pytest backend/tests/test_identifier.py`.
+- `pnpm lint` runs frontend Prettier before ESLint and backend Ruff; if existing `frontend/index.html` or `.impeccable/live` formatting blocks it, run the ESLint and Ruff commands separately rather than reformatting unrelated live files.
+- After changing an API route or response, run `pnpm api:generate`; use `pnpm api:check` to regenerate and fail on committed OpenAPI/client drift. Never edit generated files by hand.
 
-## Domain Boundaries
+## Boundaries
 
 - An identifier is a lookup key for a `Package Variant`; a `Package Match` is a candidate, not proof of physical-package identity. Preserve field-level provenance, competing Claims, and explicit missing or uncertain evidence.
-- Keep Open Food Facts data attributed and distinguishable from reviewed catalog data; an absent external field is unknown, not a negative Claim.
+- Keep Open Food Facts data attributed and distinct from reviewed catalog data; an absent external field is unknown, not a negative Claim.
 - Keep private `Package Capture` media and results isolated from durable catalog data, training, analytics, and manual review; MVP retention is at most 24 hours.
-- Do not introduce safety, health, allergen-free, Halal, legal/compliance, authenticity, or purchase verdicts. If documentation changes, keep research in `docs/research/` and Mermaid source plus rendered output in `docs/diagrams/`.
+- Do not introduce safety, health, allergen-free, Halal, legal/compliance, authenticity, or purchase verdicts.
 
-## Style and Workflow
+## Project Conventions
 
-- Frontend formatting is enforced by the root Prettier config and Tailwind plugin; use `pnpm frontend:lint:format` or `pnpm --dir frontend lint:format` for formatting. TypeScript is strict and unused locals/parameters fail typecheck.
-- Use lowercase Conventional-style commit prefixes (`feat:`, `fix:`, `docs:`, `test:`, `chore:`) when a commit is explicitly requested.
+- TypeScript is strict; unused locals and parameters fail typecheck. Frontend formatting uses the root Prettier config and Tailwind plugin; use `pnpm frontend:lint:format` or `pnpm --dir frontend lint:format`.
+- Add schema changes as Alembic revisions under `backend/migrations/`; normal development uses the PostgreSQL migration path and tests use disposable database fixtures where appropriate.
+- If documentation changes, put research in `docs/research/` and Mermaid source plus rendered output in `docs/diagrams/`.
+- Use lowercase Conventional-style commit prefixes (`feat:`, `fix:`, `docs:`, `test:`, `chore:`) only when a commit is explicitly requested.

@@ -6,7 +6,6 @@ coverage/
 .ruff_cache/
 __pycache__/
 test-results/
-playwright-report/
 pnpm-lock.yaml
 frontend/src/api/generated/
 frontend/openapi.json

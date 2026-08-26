@@ -4,8 +4,9 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "predev": "node scripts/generate-dev-cert.mjs",
-        "dev": "vite",
+        "dev": "vite --mode http",
+        "predev:https": "node scripts/generate-dev-cert.mjs",
+        "dev:https": "vite --mode https",
         "build": "tsc -b && vite build",
         "typecheck": "tsc -b --pretty false",
         "lint": "pnpm check:styling && eslint .",
@@ -13,7 +14,6 @@
         "lint:check": "prettier --check . && eslint .",
         "lint:format": "prettier --write .",
         "test": "vitest run",
-        "test:e2e": "playwright test",
         "api:generate": "openapi-ts -i openapi.json -o src/api/generated"
     },
     "dependencies": {
@@ -36,7 +36,6 @@
     "devDependencies": {
         "@eslint/js": "^9.34.0",
         "@hey-api/openapi-ts": "^0.84.1",
-        "@playwright/test": "^1.55.0",
         "@tailwindcss/vite": "^4.1.12",
         "@testing-library/jest-dom": "^6.8.0",
         "@testing-library/react": "^16.3.0",

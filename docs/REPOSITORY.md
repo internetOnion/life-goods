@@ -40,7 +40,6 @@ life-goods/
 │   │   ├── i18n/
 │   │   └── ui/
 │   ├── tests/
-│   └── e2e/
 ├── backend/
 │   ├── src/lifegoods/
 │   │   ├── api/
