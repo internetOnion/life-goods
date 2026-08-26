@@ -7,10 +7,13 @@ import {
     useState,
 } from "react"
 import { useTranslation } from "react-i18next"
-import { useLocation } from "react-router"
+import { useLocation, useNavigate } from "react-router"
 
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { cn } from "@/lib/utils"
 import { validateIdentifier, type IdentifierValidation } from "./identifier"
-import { ProductDetailsSheet } from "./ProductDetailsSheet"
 
 type HomePageProps = {
     initialIdentifier: string
@@ -27,6 +30,7 @@ export function HomePage({
 }: HomePageProps) {
     const { t } = useTranslation()
     const location = useLocation()
+    const navigate = useNavigate()
     const locationState = location.state as HomeLocationState | null
     const seededIdentifier =
         locationState?.invalidIdentifier ?? initialIdentifier
@@ -42,22 +46,12 @@ export function HomePage({
             : null,
     )
     const inputRef = useRef<HTMLInputElement>(null)
-    const wasSheetOpenRef = useRef(false)
-    const [sheetIdentifier, setSheetIdentifier] = useState<string | null>(null)
 
     useEffect(() => {
         if (!enteredIdentifier && initialIdentifier) {
             setEnteredIdentifier(initialIdentifier)
         }
     }, [enteredIdentifier, initialIdentifier])
-
-    useEffect(() => {
-        const isSheetOpen = sheetIdentifier !== null
-        if (!isSheetOpen && wasSheetOpenRef.current) {
-            inputRef.current?.focus()
-        }
-        wasSheetOpenRef.current = isSheetOpen
-    }, [sheetIdentifier])
 
     const submitIdentifier = (value: string) => {
         const validation = validateIdentifier(value)
@@ -70,7 +64,7 @@ export function HomePage({
         setValidationReason(null)
         setEnteredIdentifier(validation.value)
         onIdentifierChange(validation.value)
-        setSheetIdentifier(validation.value)
+        void navigate(`/results/${validation.value}`)
     }
 
     const onSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -83,36 +77,60 @@ export function HomePage({
         : undefined
 
     return (
-        <>
-            <main className="home-page page-with-nav">
+        <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] space-y-3 pt-5 pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] max-[650px]:pt-3 max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)] sm:pt-7">
             <section
-                className="camera-placeholder"
+                className="border-border bg-muted/60 before:border-primary/25 relative grid h-[clamp(16rem,44svh,26rem)] place-items-center overflow-hidden rounded-3xl border before:absolute before:size-[min(78%,22rem)] before:rotate-[-12deg] before:rounded-[42%_58%_48%_52%/54%_44%_56%_46%] before:border before:content-[''] max-[650px]:h-52"
                 aria-label={t("cameraTitle")}
             >
-                <span className="camera-corner camera-corner--top-left" />
-                <span className="camera-corner camera-corner--top-right" />
-                <span className="camera-corner camera-corner--bottom-left" />
-                <span className="camera-corner camera-corner--bottom-right" />
-                <div className="camera-placeholder__content">
+                <span className="border-primary/90 absolute top-4 left-4 h-8 w-8 rounded-tl-lg border-t-2 border-l-2" />
+                <span className="border-primary/90 absolute top-4 right-4 h-8 w-8 rounded-tr-lg border-t-2 border-r-2" />
+                <span className="border-primary/90 absolute bottom-4 left-4 h-8 w-8 rounded-bl-lg border-b-2 border-l-2" />
+                <span className="border-primary/90 absolute right-4 bottom-4 h-8 w-8 rounded-br-lg border-r-2 border-b-2" />
+                <div className="relative z-10 grid max-w-md justify-items-center gap-3 px-8 py-8 text-center">
                     <span
-                        className="camera-placeholder__icon"
+                        className="border-primary/15 bg-background text-primary grid size-[4.6rem] place-items-center rounded-[44%_56%_50%_50%/52%_45%_55%_48%] border"
                         aria-hidden="true"
                     >
                         <CameraSlashIcon size={52} weight="light" />
                     </span>
+                    <div>
+                        <h1 className="text-xl leading-[1.7] font-bold tracking-tight text-balance">
+                            {t("cameraTitle")}
+                        </h1>
+                        <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+                            {t("cameraComingSoon")}
+                        </p>
+                    </div>
                 </div>
             </section>
 
-            <form className="barcode-form" noValidate onSubmit={onSubmit}>
-                <label htmlFor="identifier">{t("fieldLabel")}</label>
-                <div
-                    className={`barcode-control${validationMessage ? " barcode-control--invalid" : ""}`}
+            <form
+                className="border-border bg-background rounded-2xl border p-4 sm:p-5"
+                noValidate
+                onSubmit={onSubmit}
+            >
+                <Label
+                    className="text-primary mb-2.5 inline-block"
+                    htmlFor="identifier"
                 >
-                    <span className="barcode-control__icon" aria-hidden="true">
+                    {t("fieldLabel")}
+                </Label>
+                <div
+                    className={cn(
+                        "border-input bg-background focus-within:border-ring focus-within:ring-ring/40 flex min-h-14 overflow-hidden rounded-xl border transition-colors focus-within:ring-2",
+                        validationMessage &&
+                            "border-destructive focus-within:border-destructive focus-within:ring-destructive/30",
+                    )}
+                >
+                    <span
+                        className="text-muted-foreground grid shrink-0 place-items-center pl-3"
+                        aria-hidden="true"
+                    >
                         <BarcodeIcon size={25} />
                     </span>
-                    <input
+                    <Input
                         ref={inputRef}
+                        className="h-auto min-w-0 flex-1 rounded-none border-0 px-3 py-3 text-base shadow-none focus-visible:ring-0"
                         id="identifier"
                         name="identifier"
                         type="text"
@@ -121,7 +139,9 @@ export function HomePage({
                         value={enteredIdentifier}
                         placeholder={t("fieldPlaceholder")}
                         aria-describedby={
-                            validationMessage ? "identifier-error" : undefined
+                            validationMessage
+                                ? "identifier-hint identifier-error"
+                                : "identifier-hint"
                         }
                         aria-errormessage={
                             validationMessage ? "identifier-error" : undefined
@@ -142,13 +162,23 @@ export function HomePage({
                             setValidationReason(null)
                         }}
                     />
-                    <button type="submit" disabled={!enteredIdentifier.trim()}>
+                    <Button
+                        className="h-auto min-h-14 shrink-0 rounded-none px-4 sm:px-5"
+                        type="submit"
+                        disabled={!enteredIdentifier.trim()}
+                    >
                         <span>{t("submit")}</span>
-                    </button>
+                    </Button>
                 </div>
+                <p
+                    className="text-muted-foreground mt-2 text-sm leading-relaxed"
+                    id="identifier-hint"
+                >
+                    {t("fieldHint")}
+                </p>
                 {validationMessage ? (
                     <p
-                        className="field-error"
+                        className="text-destructive mt-2 text-sm leading-relaxed font-semibold"
                         id="identifier-error"
                         role="alert"
                     >
@@ -156,12 +186,6 @@ export function HomePage({
                     </p>
                 ) : null}
             </form>
-            </main>
-            <ProductDetailsSheet
-                identifier={sheetIdentifier ?? ""}
-                open={sheetIdentifier !== null}
-                onClose={() => setSheetIdentifier(null)}
-            />
-        </>
+        </main>
     )
 }

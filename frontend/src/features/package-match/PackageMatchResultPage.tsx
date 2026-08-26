@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { Navigate, useNavigate, useParams } from "react-router"
 
+import { Button } from "@/components/ui/button"
 import { ResultBackButton } from "../../ui/AppShell"
 import { validateIdentifier } from "./identifier"
 import { OpenFoodFactsResult } from "./OpenFoodFactsResult"
@@ -90,10 +91,10 @@ export function PackageMatchResultPage({
     }
 
     return (
-        <main className="result-page">
-            <div className="result-page__topline">
+        <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pt-4 pb-[calc(2.5rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
+            <div className="mb-7 flex items-center justify-between gap-3">
                 <ResultBackButton onBack={returnHome} />
-                <span className="result-page__identifier">
+                <span className="text-muted-foreground min-w-0 font-mono text-sm tracking-wide wrap-anywhere tabular-nums">
                     {normalizedIdentifier}
                 </span>
             </div>
@@ -108,15 +109,22 @@ export function PackageMatchResultPage({
             </div>
 
             {state === "loading" ? (
-                <section className="result-state result-state--loading">
+                <section
+                    className="grid max-w-xl justify-items-start gap-3 pt-[clamp(2rem,8vh,5rem)]"
+                    aria-live="polite"
+                >
                     <CircleNotchIcon
-                        className="loading-icon"
+                        className="text-primary animate-spin motion-reduce:animate-none"
                         aria-hidden="true"
                         size={34}
                         weight="bold"
                     />
-                    <h1>{t("loading")}</h1>
-                    <p>{t("loadingBody")}</p>
+                    <h1 className="text-[clamp(1.8rem,6vw,2.6rem)] leading-[1.7] tracking-tight text-balance">
+                        {t("loading")}
+                    </h1>
+                    <p className="text-muted-foreground leading-relaxed">
+                        {t("loadingBody")}
+                    </p>
                 </section>
             ) : null}
 
@@ -195,34 +203,38 @@ function ResultStateMessage({
     const Icon = icon === "warning" ? WarningCircleIcon : InfoIcon
 
     return (
-        <section className="result-state result-outcome">
-            <Icon className="result-state__icon" aria-hidden="true" size={38} />
-            <h1 ref={ref} tabIndex={-1}>
+        <section className="animate-in fade-in slide-in-from-bottom-1 max-w-xl pt-[clamp(2rem,8vh,5rem)] duration-200 motion-reduce:animate-none">
+            <Icon className="text-foreground" aria-hidden="true" size={38} />
+            <h1
+                className="mt-4 text-[clamp(1.8rem,6vw,2.6rem)] leading-[1.7] tracking-tight text-balance"
+                ref={ref}
+                tabIndex={-1}
+            >
                 {title}
             </h1>
-            <p>{body}</p>
-            <dl className="identifier-summary">
+            <p className="text-muted-foreground leading-relaxed">{body}</p>
+            <dl className="border-border bg-muted/40 my-6 rounded-2xl border p-4">
                 <div>
-                    <dt>{t("identifierLabel")}</dt>
-                    <dd>{identifier}</dd>
+                    <dt className="text-muted-foreground text-sm leading-relaxed">
+                        {t("identifierLabel")}
+                    </dt>
+                    <dd className="mt-1 font-mono wrap-anywhere tabular-nums">
+                        {identifier}
+                    </dd>
                 </div>
             </dl>
-            <div className="result-actions">
-                <button
-                    className="button-primary"
-                    type="button"
-                    onClick={onPrimary}
-                >
+            <div className="flex flex-wrap gap-3">
+                <Button type="button" onClick={onPrimary}>
                     {primaryLabel}
-                </button>
+                </Button>
                 {secondaryLabel && onSecondary ? (
-                    <button
-                        className="button-secondary"
+                    <Button
+                        variant="outline"
                         type="button"
                         onClick={onSecondary}
                     >
                         {secondaryLabel}
-                    </button>
+                    </Button>
                 ) : null}
             </div>
         </section>

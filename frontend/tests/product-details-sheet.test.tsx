@@ -1,9 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, test, vi } from "vitest"
-import { MemoryRouter } from "react-router"
 
-import { HomePage } from "../src/features/package-match/HomePage"
 import { ProductDetailsSheet } from "../src/features/package-match/ProductDetailsSheet"
 import i18n from "../src/i18n"
 
@@ -34,34 +32,6 @@ describe("ProductDetailsSheet", () => {
         expect(screen.getAllByText("—").length).toBeGreaterThan(8)
     })
 
-    test("opens from a valid barcode and restores focus after closing", async () => {
-        const user = userEvent.setup()
-        const onIdentifierChange = vi.fn()
-
-        render(
-            <MemoryRouter>
-                <HomePage
-                    initialIdentifier=""
-                    onIdentifierChange={onIdentifierChange}
-                />
-            </MemoryRouter>,
-        )
-
-        const input = screen.getByRole("textbox", { name: "Barcode number" })
-        await user.type(input, "4 006381 333931")
-        await user.click(screen.getByRole("button", { name: "Check barcode" }))
-
-        expect(
-            await screen.findByRole("dialog", { name: "Product details" }),
-        ).toBeVisible()
-        expect(onIdentifierChange).toHaveBeenLastCalledWith("4006381333931")
-
-        await user.click(
-            screen.getByRole("button", { name: "Close product details" }),
-        )
-        await waitFor(() => expect(input).toHaveFocus())
-    })
-
     test("closes from the close button and Escape key", async () => {
         const user = userEvent.setup()
         const onClose = vi.fn()
@@ -73,7 +43,9 @@ describe("ProductDetailsSheet", () => {
             />,
         )
 
-        await user.click(screen.getByRole("button", { name: "Close product details" }))
+        await user.click(
+            screen.getByRole("button", { name: "Close product details" }),
+        )
         await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
 
         onClose.mockClear()

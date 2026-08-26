@@ -7,15 +7,18 @@ import {
     LeafIcon,
     XIcon,
 } from "@phosphor-icons/react"
-import {
-    useCallback,
-    useEffect,
-    useRef,
-    useState,
-    type PointerEvent as ReactPointerEvent,
-    type ReactNode,
-} from "react"
 import { useTranslation } from "react-i18next"
+
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+    Sheet,
+    SheetClose,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+} from "@/components/ui/sheet"
 
 type ProductDetailsSheetData = {
     name?: string
@@ -49,164 +52,51 @@ export function ProductDetailsSheet({
     placeholderData,
 }: ProductDetailsSheetProps) {
     const { t } = useTranslation()
-    const sheetRef = useRef<HTMLElement>(null)
-    const closeTimerRef = useRef<number | null>(null)
-    const dragStartYRef = useRef<number | null>(null)
-    const [isClosing, setIsClosing] = useState(false)
-    const [isDragging, setIsDragging] = useState(false)
-    const [dragOffset, setDragOffset] = useState(0)
-
     const data = placeholderData ?? {}
     const display = (value?: string) => value?.trim() || unavailable
 
-    const requestClose = useCallback(() => {
-        if (isClosing) return
-
-        setIsClosing(true)
-        closeTimerRef.current = window.setTimeout(() => {
-            onClose()
-        }, 220)
-    }, [isClosing, onClose])
-
-    useEffect(() => {
-        if (!open) {
-            setIsClosing(false)
-            setDragOffset(0)
-            setIsDragging(false)
-            return
-        }
-
-        sheetRef.current?.focus()
-
-        const previousOverflow = document.body.style.overflow
-        document.body.style.overflow = "hidden"
-        return () => {
-            document.body.style.overflow = previousOverflow
-        }
-    }, [open])
-
-    useEffect(() => {
-        return () => {
-            if (closeTimerRef.current !== null) {
-                window.clearTimeout(closeTimerRef.current)
-            }
-        }
-    }, [])
-
-    useEffect(() => {
-        if (!open) return
-
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape") {
-                event.preventDefault()
-                requestClose()
-            }
-        }
-
-        document.addEventListener("keydown", handleKeyDown)
-        return () => document.removeEventListener("keydown", handleKeyDown)
-    }, [open, requestClose])
-
-    const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-        if (event.pointerType === "mouse" && event.button !== 0) return
-
-        dragStartYRef.current = event.clientY
-        setIsDragging(true)
-        event.currentTarget.setPointerCapture(event.pointerId)
-    }
-
-    const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-        if (dragStartYRef.current === null) return
-
-        const offset = Math.max(0, event.clientY - dragStartYRef.current)
-        setDragOffset(offset)
-    }
-
-    const finishPointerDrag = () => {
-        if (dragStartYRef.current === null) return
-
-        const closeThreshold = Math.max(
-            120,
-            (sheetRef.current?.offsetHeight ?? window.innerHeight) * 0.24,
-        )
-        const shouldClose = dragOffset >= closeThreshold
-
-        dragStartYRef.current = null
-        setIsDragging(false)
-
-        if (shouldClose) {
-            requestClose()
-            return
-        }
-
-        setDragOffset(0)
-    }
-
-    if (!open && !isClosing) return null
-
-    const sheetStyle =
-        isDragging || dragOffset > 0 || isClosing
-            ? {
-                  transform: `translateY(${isClosing ? "100%" : `${dragOffset}px`})`,
-                  transition: isDragging ? "none" : undefined,
-              }
-            : undefined
-
     return (
-        <div className="product-sheet-layer">
-            <div className="product-sheet-backdrop" aria-hidden="true" />
-            <section
-                ref={sheetRef}
-                className={`product-sheet${isClosing ? " product-sheet--closing" : ""}`}
-                style={sheetStyle}
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="product-details-title"
+        <Sheet
+            open={open}
+            onOpenChange={(nextOpen) => {
+                if (!nextOpen) onClose()
+            }}
+        >
+            <SheetContent
                 aria-describedby="product-details-description"
-                tabIndex={-1}
+                aria-labelledby="product-details-title"
+                className="gap-0"
             >
-                <header className="product-sheet__header">
-                    <div
-                        className="product-sheet__drag-handle"
-                        aria-hidden="true"
-                        onPointerDown={handlePointerDown}
-                        onPointerMove={handlePointerMove}
-                        onPointerUp={finishPointerDrag}
-                        onPointerCancel={finishPointerDrag}
-                    >
-                        <span />
-                    </div>
-                    <h2 id="product-details-title">
+                <SheetHeader>
+                    <SheetTitle id="product-details-title">
                         {t("productDetailsTitle")}
-                    </h2>
-                    <button
-                        className="product-sheet__close"
-                        type="button"
-                        aria-label={t("productDetailsClose")}
-                        onClick={requestClose}
-                    >
-                        <XIcon aria-hidden="true" size={22} weight="regular" />
-                    </button>
-                </header>
+                    </SheetTitle>
+                    <SheetDescription id="product-details-description">
+                        {t("productDetailsDescription")}
+                    </SheetDescription>
+                    <SheetClose asChild>
+                        <Button
+                            className="text-foreground absolute top-3 right-3"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={t("productDetailsClose")}
+                        >
+                            <XIcon aria-hidden="true" size={22} />
+                        </Button>
+                    </SheetClose>
+                </SheetHeader>
 
                 <div
-                    className="product-sheet__scroll"
+                    className="min-h-0 overflow-y-auto overscroll-contain px-[max(1rem,env(safe-area-inset-left))] pt-5 pr-[max(1rem,env(safe-area-inset-right))] pb-[calc(2rem_+_env(safe-area-inset-bottom))]"
                     aria-label={t("productDetailsScrollRegion")}
                     tabIndex={0}
                 >
-                    <p
-                        className="product-sheet__description"
-                        id="product-details-description"
-                    >
-                        {t("productDetailsDescription")}
-                    </p>
-
                     <section
-                        className="product-sheet__identity"
+                        className="grid grid-cols-[6.25rem_minmax(0,1fr)] items-start gap-4 pb-5 max-[23.5rem]:grid-cols-[5.8rem_minmax(0,1fr)] max-[23.5rem]:gap-3"
                         aria-label={t("productDetailsIdentity")}
                     >
                         <div
-                            className="product-sheet__image-placeholder"
+                            className="border-border bg-coconut-brown-soft text-coconut-brown grid aspect-[4/5] content-center justify-items-center gap-2 rounded-2xl border p-3 text-center text-xs leading-relaxed"
                             role="img"
                             aria-label={t("productDetailsImageAlt")}
                         >
@@ -217,16 +107,18 @@ export function ProductDetailsSheet({
                             />
                             <span>{t("productDetailsImagePlaceholder")}</span>
                         </div>
-                        <div className="product-sheet__identity-copy">
-                            <h3>{display(data.name)}</h3>
+                        <div className="min-w-0">
+                            <h3 className="text-2xl leading-snug font-semibold wrap-anywhere">
+                                {display(data.name)}
+                            </h3>
                             <div
-                                className="product-sheet__chips"
+                                className="mt-3 flex flex-wrap gap-2"
                                 aria-label={t("productDetailsTags")}
                             >
-                                <span>{display(data.category)}</span>
-                                <span>{display(data.quantity)}</span>
+                                <Badge>{display(data.category)}</Badge>
+                                <Badge>{display(data.quantity)}</Badge>
                             </div>
-                            <p className="product-sheet__placeholder-note">
+                            <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
                                 {t("productDetailsPlaceholderNote")}
                             </p>
                         </div>
@@ -236,11 +128,23 @@ export function ProductDetailsSheet({
                         icon={<InfoIcon aria-hidden="true" size={20} />}
                         title={t("productDetailsInformation")}
                     >
-                        <dl className="product-sheet__facts">
-                            <FactRow label={t("productDetailsBrand")} value={display(data.brand)} />
-                            <FactRow label={t("productDetailsOrigin")} value={display(data.origin)} />
-                            <FactRow label={t("productDetailsBarcode")} value={display(identifier)} />
-                            <FactRow label={t("productDetailsCategory")} value={display(data.category)} />
+                        <dl className="grid grid-cols-2 gap-3">
+                            <FactRow
+                                label={t("productDetailsBrand")}
+                                value={display(data.brand)}
+                            />
+                            <FactRow
+                                label={t("productDetailsOrigin")}
+                                value={display(data.origin)}
+                            />
+                            <FactRow
+                                label={t("productDetailsBarcode")}
+                                value={display(identifier)}
+                            />
+                            <FactRow
+                                label={t("productDetailsCategory")}
+                                value={display(data.category)}
+                            />
                         </dl>
                     </SheetPanel>
 
@@ -249,12 +153,27 @@ export function ProductDetailsSheet({
                         title={t("productDetailsNutrition")}
                         trailing={t("productDetailsPer100")}
                     >
-                        <dl className="product-sheet__nutrition">
-                            <FactRow label={t("productDetailsEnergy")} value={display(data.energy)} />
-                            <FactRow label={t("productDetailsProtein")} value={display(data.protein)} />
-                            <FactRow label={t("productDetailsFat")} value={display(data.fat)} />
-                            <FactRow label={t("productDetailsCarbohydrates")} value={display(data.carbohydrates)} />
-                            <FactRow label={t("productDetailsSugars")} value={display(data.sugars)} />
+                        <dl className="grid gap-2">
+                            <FactRow
+                                label={t("productDetailsEnergy")}
+                                value={display(data.energy)}
+                            />
+                            <FactRow
+                                label={t("productDetailsProtein")}
+                                value={display(data.protein)}
+                            />
+                            <FactRow
+                                label={t("productDetailsFat")}
+                                value={display(data.fat)}
+                            />
+                            <FactRow
+                                label={t("productDetailsCarbohydrates")}
+                                value={display(data.carbohydrates)}
+                            />
+                            <FactRow
+                                label={t("productDetailsSugars")}
+                                value={display(data.sugars)}
+                            />
                         </dl>
                     </SheetPanel>
 
@@ -262,36 +181,38 @@ export function ProductDetailsSheet({
                         icon={<LeafIcon aria-hidden="true" size={20} />}
                         title={t("productDetailsIngredients")}
                     >
-                        <p className="product-sheet__panel-value">
+                        <p className="min-h-6 leading-relaxed whitespace-pre-wrap">
                             {display(data.ingredients)}
                         </p>
                     </SheetPanel>
-
                     <SheetPanel
                         icon={<InfoIcon aria-hidden="true" size={20} />}
                         title={t("productDetailsAllergens")}
                     >
-                        <p className="product-sheet__panel-value">
+                        <p className="min-h-6 leading-relaxed whitespace-pre-wrap">
                             {display(data.allergens)}
                         </p>
                     </SheetPanel>
-
                     <SheetPanel
                         icon={<FactoryIcon aria-hidden="true" size={20} />}
                         title={t("productDetailsManufacturer")}
                     >
-                        <p className="product-sheet__panel-value">
+                        <p className="min-h-6 leading-relaxed whitespace-pre-wrap">
                             {display(data.manufacturer)}
                         </p>
                     </SheetPanel>
 
-                    <div className="product-sheet__footer-note">
-                        <BarcodeIcon aria-hidden="true" size={18} />
+                    <p className="text-muted-foreground mt-4 flex items-start gap-2 py-1 text-sm leading-relaxed">
+                        <BarcodeIcon
+                            aria-hidden="true"
+                            className="text-primary mt-1 shrink-0"
+                            size={18}
+                        />
                         <span>{t("productDetailsSourceNotice")}</span>
-                    </div>
+                    </p>
                 </div>
-            </section>
-        </div>
+            </SheetContent>
+        </Sheet>
     )
 }
 
@@ -301,20 +222,22 @@ function SheetPanel({
     title,
     trailing,
 }: {
-    children: ReactNode
-    icon: ReactNode
+    children: React.ReactNode
+    icon: React.ReactNode
     title: string
     trailing?: string
 }) {
     return (
-        <section className="product-sheet__panel">
-            <div className="product-sheet__panel-heading">
-                <div className="product-sheet__panel-title">
-                    {icon}
-                    <h3>{title}</h3>
+        <section className="bg-muted/60 mt-3 rounded-2xl p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2">
+                    <span className="text-primary shrink-0">{icon}</span>
+                    <h3 className="text-base leading-snug font-semibold">
+                        {title}
+                    </h3>
                 </div>
                 {trailing ? (
-                    <span className="product-sheet__panel-trailing">
+                    <span className="text-muted-foreground shrink-0 text-xs leading-relaxed">
                         {trailing}
                     </span>
                 ) : null}
@@ -326,9 +249,13 @@ function SheetPanel({
 
 function FactRow({ label, value }: { label: string; value: string }) {
     return (
-        <div>
-            <dt>{label}</dt>
-            <dd>{value}</dd>
+        <div className="min-w-0">
+            <dt className="text-muted-foreground text-xs leading-relaxed">
+                {label}
+            </dt>
+            <dd className="mt-1 text-sm leading-relaxed wrap-anywhere">
+                {value}
+            </dd>
         </div>
     )
 }

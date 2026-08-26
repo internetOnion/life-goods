@@ -17,19 +17,19 @@ The coconut is the product’s identity motif. The current Phosphor `TreePalmIco
 
 ## 2. Color tokens
 
-The implemented palette lives in `frontend/src/styles.css` as OKLCH tokens:
+The implemented palette lives in `frontend/src/styles.css` as OKLCH tokens. The shadcn semantic tokens map to these roles:
 
-- **Brand** — `oklch(0.47 0.115 157)`: identity, primary actions, active navigation, focus, and source links.
-- **Brand dark** — `oklch(0.36 0.09 157)`: text and borders requiring stronger contrast.
+- **Brand** — `oklch(0.47 0.115 157)`: identity accent.
+- **Brand dark** — `oklch(0.36 0.09 157)`: primary actions, active navigation, focus, and source links.
 - **Brand hover** — `oklch(0.31 0.08 157)`: interactive hover only.
 - **Brand soft** — `oklch(0.94 0.025 157)`: selected icon wells and quiet disclosure surfaces.
-- **Page** — `oklch(0.992 0.002 160)`: near-white app background.
-- **Surface** — `oklch(0.965 0.008 160)`: viewfinder and grouped source surfaces.
-- **Surface strong** — `oklch(0.925 0.014 160)`: disabled and secondary control distinction.
-- **Ink** — `oklch(0.235 0.018 165)`: primary text and icon color.
-- **Muted** — `oklch(0.43 0.018 165)`: secondary text that still meets the contrast target.
-- **Line** — `oklch(0.84 0.012 160)`: separators and quiet boundaries.
-- **Error** — `oklch(0.44 0.17 28)`: validation and temporary failure support, always paired with text.
+- **Page / background** — `oklch(0.992 0.002 160)`: near-white app background.
+- **Surface / muted** — `oklch(0.965 0.008 160)`: viewfinder and grouped source surfaces.
+- **Surface strong / secondary** — `oklch(0.925 0.014 160)`: disabled and secondary control distinction.
+- **Ink / foreground** — `oklch(0.235 0.018 165)`: primary text and icon color.
+- **Muted foreground** — `oklch(0.43 0.018 165)`: secondary text that still meets the contrast target.
+- **Line / border** — `oklch(0.84 0.012 160)`: separators and quiet boundaries.
+- **Error / destructive** — `oklch(0.44 0.17 28)`: validation and temporary failure support, always paired with text.
 
 ### Color rules
 

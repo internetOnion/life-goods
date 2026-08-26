@@ -7,6 +7,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
+import { Alert } from "@/components/ui/alert"
 import type {
     PackageMatchCandidateResponse,
     PackageMatchEvidenceResponse,
@@ -68,14 +69,19 @@ export function OpenFoodFactsResult({
     }, [])
 
     return (
-        <article className="off-result result-outcome">
+        <article className="animate-in fade-in slide-in-from-bottom-1 min-w-0 duration-200">
             <section
-                className="off-identity"
+                className="grid grid-cols-[minmax(6.5rem,8.5rem)_minmax(0,1fr)] items-start gap-4 pb-7 max-[23.5rem]:grid-cols-[6.5rem_minmax(0,1fr)] max-[23.5rem]:gap-3"
                 aria-labelledby="off-result-title"
             >
                 <ReferenceImage image={referenceImage} />
-                <div className="off-identity__copy">
-                    <h1 ref={headingRef} id="off-result-title" tabIndex={-1}>
+                <div className="min-w-0">
+                    <h1
+                        className="text-[clamp(1.6rem,6vw,2.45rem)] leading-[1.7] tracking-tight text-balance wrap-anywhere"
+                        ref={headingRef}
+                        id="off-result-title"
+                        tabIndex={-1}
+                    >
                         {packageName ?? t("externalPackageName")}
                     </h1>
                     {selectedName ? (
@@ -84,7 +90,7 @@ export function OpenFoodFactsResult({
                             fieldLabel={t("nameLabel")}
                         />
                     ) : null}
-                    <dl className="identity-facts">
+                    <dl className="mt-4 grid gap-3">
                         <IdentityFact
                             label={t("brandLabel")}
                             evidence={preferredEvidence(brands, language)}
@@ -95,7 +101,7 @@ export function OpenFoodFactsResult({
                         />
                         <div>
                             <dt>{t("identifierLabel")}</dt>
-                            <dd className="tabular-value">
+                            <dd className="mt-1 font-mono text-sm wrap-anywhere tabular-nums">
                                 {normalizedIdentifier}
                             </dd>
                         </div>
@@ -103,17 +109,18 @@ export function OpenFoodFactsResult({
                 </div>
             </section>
 
-            <section
-                className="community-disclosure"
+            <Alert
+                className="mb-7"
+                variant="info"
                 aria-label={t("sourceStatusLabel")}
             >
                 <InfoIcon aria-hidden="true" size={25} weight="fill" />
-                <p>
+                <p className="leading-relaxed">
                     {t("externalDisclosure", {
                         source: candidate.source?.name ?? "Open Food Facts",
                     })}
                 </p>
-            </section>
+            </Alert>
 
             <EvidenceSection
                 title={t("alternateNamesTitle")}
@@ -141,7 +148,7 @@ export function OpenFoodFactsResult({
                 description={t("nutritionBody")}
                 evidence={nutrition}
             />
-            <div className="metadata-grid">
+            <div className="grid gap-0 sm:grid-cols-2 sm:gap-6">
                 <EvidenceSection
                     compact
                     title={t("packagingLanguagesTitle")}
@@ -172,7 +179,7 @@ function ReferenceImage({
     if (!image || failed) {
         return (
             <div
-                className="reference-image reference-image--missing"
+                className="border-border bg-coconut-brown-soft text-coconut-brown grid aspect-[4/5] min-w-0 content-center justify-items-center gap-2 rounded-2xl border p-3 text-center text-xs leading-relaxed"
                 role="img"
                 aria-label={t("imageUnavailable")}
             >
@@ -183,14 +190,15 @@ function ReferenceImage({
     }
 
     return (
-        <figure className="reference-image">
+        <figure className="m-0 min-w-0">
             <img
+                className="border-border bg-muted aspect-[4/5] w-full rounded-2xl border object-contain"
                 src={image.url}
                 alt={t("referenceImageAlt", { source: image.source_name })}
                 decoding="async"
                 onError={() => setFailed(true)}
             />
-            <figcaption>
+            <figcaption className="text-muted-foreground mt-1 text-xs leading-relaxed wrap-anywhere">
                 {image.attribution} · {image.license_name}
             </figcaption>
         </figure>
@@ -218,7 +226,7 @@ function IdentityFact({
                         />
                     </>
                 ) : (
-                    <span className="unavailable-text">
+                    <span className="text-muted-foreground italic">
                         {t("unavailableEvidence")}
                     </span>
                 )}
@@ -254,14 +262,24 @@ function EvidenceSection({
 
     return (
         <section
-            className={`evidence-section${compact ? " evidence-section--compact" : ""}`}
+            className={
+                compact
+                    ? "border-border border-t py-7 first:border-t-0"
+                    : "border-border border-t py-7"
+            }
         >
-            <div className="evidence-section__heading">
-                <h2>{title}</h2>
-                {description ? <p>{description}</p> : null}
+            <div>
+                <h2 className="text-[clamp(1.25rem,4.6vw,1.65rem)] leading-snug tracking-tight text-balance">
+                    {title}
+                </h2>
+                {description ? (
+                    <p className="text-muted-foreground mt-1 max-w-[68ch] leading-relaxed">
+                        {description}
+                    </p>
+                ) : null}
             </div>
             {orderedEvidence.length > 0 ? (
-                <div className="evidence-list">
+                <div className="mt-4">
                     {orderedEvidence.map((item, index) => (
                         <EvidenceItem
                             key={`${item.field}-${item.source_field}-${item.language ?? "und"}-${index}`}
@@ -270,7 +288,7 @@ function EvidenceSection({
                     ))}
                 </div>
             ) : (
-                <p className="unavailable-evidence">
+                <p className="text-muted-foreground mt-4 inline-flex items-start gap-2 leading-relaxed">
                     <InfoIcon aria-hidden="true" size={19} />
                     <span>{t("unavailableEvidence")}</span>
                 </p>
@@ -289,13 +307,15 @@ function EvidenceItem({
     const itemLabelKey = evidenceFieldLabels[evidence.field]
 
     return (
-        <div className="evidence-item">
-            <div className="evidence-item__value">
+        <div className="border-border border-t pt-4 first:border-t-0 first:pt-0 [&+&]:mt-4">
+            <div>
                 {itemLabelKey ? (
-                    <p className="evidence-item__label">{t(itemLabelKey)}</p>
+                    <p className="text-muted-foreground text-sm leading-relaxed font-semibold">
+                        {t(itemLabelKey)}
+                    </p>
                 ) : null}
                 {evidence.language ? (
-                    <p className="language-tag">
+                    <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
                         {displayLanguage(evidence.language, language)}
                     </p>
                 ) : null}
@@ -320,9 +340,11 @@ function EvidenceProvenance({
     const language = i18n.resolvedLanguage === "en" ? "en" : "km"
 
     return (
-        <details className="evidence-provenance">
-            <summary>{t("fieldDetailsFor", { field: fieldLabel })}</summary>
-            <dl>
+        <details className="group mt-3">
+            <summary className="text-primary focus-visible:ring-ring min-h-11 w-fit cursor-pointer py-2 text-sm leading-7 font-semibold underline decoration-1 underline-offset-4 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none">
+                {t("fieldDetailsFor", { field: fieldLabel })}
+            </summary>
+            <dl className="border-border bg-muted/40 mt-2 grid gap-3 rounded-xl border p-3 text-sm leading-relaxed">
                 <div>
                     <dt>{t("languageLabel")}</dt>
                     <dd>
@@ -348,7 +370,12 @@ function EvidenceProvenance({
                     </dd>
                 </div>
             </dl>
-            <a href={evidence.source_url} target="_blank" rel="noreferrer">
+            <a
+                className="text-primary inline-flex min-h-11 items-center gap-2 font-semibold"
+                href={evidence.source_url}
+                target="_blank"
+                rel="noreferrer"
+            >
                 <LinkSimpleIcon aria-hidden="true" size={18} />
                 <span>{t("openEvidenceSource")}</span>
             </a>
@@ -361,21 +388,21 @@ function EvidenceValue({ value }: { value: unknown }) {
     const locale = i18n.resolvedLanguage === "en" ? "en" : "km-KH"
 
     if (typeof value === "string" && value.trim()) {
-        return <p className="evidence-value evidence-value--text">{value}</p>
+        return <p className="leading-relaxed whitespace-pre-wrap">{value}</p>
     }
     if (typeof value === "number") {
         return (
-            <p className="evidence-value tabular-value">
+            <p className="font-mono leading-relaxed tabular-nums">
                 {new Intl.NumberFormat(locale).format(value)}
             </p>
         )
     }
     if (typeof value === "boolean") {
-        return <p className="evidence-value">{String(value)}</p>
+        return <p className="leading-relaxed">{String(value)}</p>
     }
     if (isStringArray(value) && value.length > 0) {
         return (
-            <ul className="evidence-values">
+            <ul className="list-disc space-y-1 pl-5 leading-relaxed">
                 {value.map((item) => (
                     <li key={item}>{item}</li>
                 ))}
@@ -388,9 +415,12 @@ function EvidenceValue({ value }: { value: unknown }) {
         )
         if (entries.length > 0) {
             return (
-                <dl className="nutrition-values">
+                <dl className="grid gap-2">
                     {entries.map(([key, item]) => (
-                        <div key={key}>
+                        <div
+                            className="border-border flex items-baseline justify-between gap-4 border-b pb-2 last:border-b-0 last:pb-0"
+                            key={key}
+                        >
                             <dt>{humanizeSourceKey(key)}</dt>
                             <dd>{formatCompactValue(item, locale)}</dd>
                         </div>
@@ -400,7 +430,11 @@ function EvidenceValue({ value }: { value: unknown }) {
         }
     }
 
-    return <p className="unavailable-text">{t("unavailableEvidence")}</p>
+    return (
+        <p className="text-muted-foreground italic">
+            {t("unavailableEvidence")}
+        </p>
+    )
 }
 
 function SourceDetails({
@@ -414,14 +448,19 @@ function SourceDetails({
 
     return (
         <section
-            className="source-details"
+            className="border-border bg-muted/40 mt-4 rounded-2xl border p-5"
             aria-labelledby="source-details-title"
         >
-            <div className="source-details__heading">
+            <div className="flex items-center gap-2">
                 <ClockIcon aria-hidden="true" size={23} />
-                <h2 id="source-details-title">{t("sourceDetailsTitle")}</h2>
+                <h2
+                    className="text-xl leading-snug font-semibold"
+                    id="source-details-title"
+                >
+                    {t("sourceDetailsTitle")}
+                </h2>
             </div>
-            <dl>
+            <dl className="mt-4 grid gap-3 sm:grid-cols-2">
                 <SourceFact label={t("sourceLabel")} value={source?.name} />
                 <SourceFact
                     label={t("retrievedLabel")}
@@ -467,7 +506,7 @@ function SourceDetails({
             </dl>
             {source?.record_url ? (
                 <a
-                    className="source-record-link"
+                    className="text-primary mt-2 inline-flex min-h-11 items-center gap-2 font-semibold"
                     href={source.record_url}
                     target="_blank"
                     rel="noreferrer"
@@ -487,7 +526,7 @@ function SourceFact({ label, value }: { label: string; value?: string }) {
             <dt>{label}</dt>
             <dd>
                 {value || (
-                    <span className="unavailable-text">
+                    <span className="text-muted-foreground italic">
                         {t("unavailableEvidence")}
                     </span>
                 )}

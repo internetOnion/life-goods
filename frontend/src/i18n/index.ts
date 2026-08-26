@@ -44,8 +44,7 @@ export const resources = {
             productDetailsTitle: "ព័ត៌មានផលិតផល",
             productDetailsClose: "បិទព័ត៌មានផលិតផល",
             productDetailsScrollRegion: "តំបន់ព័ត៌មានផលិតផលដែលអាចរមូរ",
-            productDetailsDescription:
-                "ព័ត៌មានលម្អិតសម្រាប់បាកូដដែលបានបញ្ចូល។",
+            productDetailsDescription: "ព័ត៌មានលម្អិតសម្រាប់បាកូដដែលបានបញ្ចូល។",
             productDetailsIdentity: "អត្តសញ្ញាណកញ្ចប់",
             productDetailsTags: "ប្រភេទ និងបរិមាណកញ្ចប់",
             productDetailsImageAlt: "ទីតាំងរូបភាពកញ្ចប់",
@@ -181,8 +180,7 @@ export const resources = {
             productDetailsTitle: "Product details",
             productDetailsClose: "Close product details",
             productDetailsScrollRegion: "Scrollable product details",
-            productDetailsDescription:
-                "Details for the barcode you entered.",
+            productDetailsDescription: "Details for the barcode you entered.",
             productDetailsIdentity: "Package identity",
             productDetailsTags: "Package category and quantity",
             productDetailsImageAlt: "Package image placeholder",

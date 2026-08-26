@@ -53,7 +53,9 @@ test("keyboard order, Khmer layout, announcements, and reduced motion remain usa
     await expect(page.getByRole("status")).toContainText(
         "រកមិនឃើញព័ត៌មានកញ្ចប់",
     )
-    const outcome = page.locator(".result-outcome")
+    const outcome = page
+        .getByRole("heading", { name: "រកមិនឃើញព័ត៌មានកញ្ចប់" })
+        .locator("..")
     await expect(outcome).toBeVisible()
     expect(
         await outcome.evaluate((element) =>

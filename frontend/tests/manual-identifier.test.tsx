@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router"
 import { beforeEach, describe, expect, test, vi } from "vitest"
@@ -80,9 +80,13 @@ describe("manual identifier journey", () => {
         )
     })
 
-    test("opens the placeholder sheet for a normalized barcode without calling the backend", async () => {
+    test("navigates to a normalized barcode result and calls the backend", async () => {
         const user = userEvent.setup()
-        const lookup = vi.fn<PackageMatchLookup>()
+        const lookup = vi.fn<PackageMatchLookup>().mockResolvedValue({
+            normalized_identifier: "4006381333931",
+            scheme: "EAN_13",
+            candidates: [],
+        })
         renderJourney(lookup)
 
         const input = screen.getByRole("textbox", { name: "លេខបាកូដ" })
@@ -90,16 +94,19 @@ describe("manual identifier journey", () => {
         await user.click(screen.getByRole("button", { name: "ពិនិត្យបាកូដ" }))
 
         expect(
-            await screen.findByRole("dialog", { name: "ព័ត៌មានផលិតផល" }),
+            await screen.findByRole("heading", {
+                name: "រកមិនឃើញព័ត៌មានកញ្ចប់",
+            }),
         ).toBeVisible()
-        expect(screen.getAllByText("4006381333931")).not.toHaveLength(0)
-        expect(screen.getAllByText("—").length).toBeGreaterThan(8)
-        expect(lookup).not.toHaveBeenCalled()
-        expect(screen.getByRole("navigation")).toBeVisible()
+        expect(lookup).toHaveBeenCalledWith("4006381333931")
+        expect(screen.getAllByText("4006381333931").length).toBeGreaterThan(0)
+        expect(screen.queryByRole("navigation")).not.toBeInTheDocument()
 
         await user.click(
-            screen.getByRole("button", { name: "បិទព័ត៌មានផលិតផល" }),
+            screen.getByRole("button", { name: "ត្រឡប់ទៅទំព័រដើម" }),
         )
-        await waitFor(() => expect(input).toHaveFocus())
+        expect(screen.getByRole("textbox", { name: "លេខបាកូដ" })).toHaveValue(
+            "4006381333931",
+        )
     })
 })
