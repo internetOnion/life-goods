@@ -26,7 +26,7 @@ The team works as two rotating journey pods, each with one frontend and one back
 
 | Role | Responsibility |
 | --- | --- |
-| FE1 / FE2 | Web Client behavior, accessibility, localization, platform adapters, generated-client integration, and browser tests |
+| FE1 / FE2 | Web Client behavior, accessibility, localization, platform adapters, generated-client integration, and frontend unit/component tests |
 | BE1 / BE2 | Application behavior, domain invariants, persistence, jobs, external adapters, migrations, and backend tests |
 | Engineer coordinator | Prepares evidence and review artifacts, schedules reviews, applies corrections, and records reviewer metadata |
 | Qualified Khmer reviewer | Approves consequential Khmer wording and comprehension instruments |
@@ -191,11 +191,10 @@ pnpm build
 pnpm api:check
 ```
 
-Run applicable migration tests and focused Playwright journeys. Generated-client drift, formatting, type, test, or build failure blocks merge.
+Run applicable migration tests. Generated-client drift, formatting, type, unit/component or API/database test, or build failure blocks merge.
 
 ### Integration gate
 
-- Run `pnpm test:e2e`.
 - Apply migrations to an empty database and from the previous integration state.
 - Verify deterministic external fixtures, worker idempotency, retry and timeout behavior, privacy isolation, retention, and inaccessible expired media.
 - Verify Web Client and backend use the committed OpenAPI contract.

@@ -1,5 +1,6 @@
 from collections.abc import Iterator
 from datetime import UTC, date, datetime
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -15,6 +16,7 @@ from lifegoods.adapters.catalog_models import (
     ProductRecord,
 )
 from lifegoods.adapters.database import Base
+from lifegoods.api.contracts import PackageMatchCandidateResponse
 from lifegoods.main import create_app
 from lifegoods.matching.external_source import (
     ExternalLookupResult,
@@ -22,6 +24,10 @@ from lifegoods.matching.external_source import (
     ExternalSourceMetadata,
 )
 from lifegoods.matching.identifier import NormalizedIdentifier
+
+PACKAGE_MATCH_FIXTURES = (
+    Path(__file__).parents[2] / "evaluation" / "fixtures" / "package_matches"
+)
 
 
 class ConfirmedNoMatchSource:
@@ -45,6 +51,13 @@ class ConfirmedNoMatchSource:
             raw_response=b'{"result":{"id":"product_not_found"}}',
             source=self.metadata,
         )
+
+
+@pytest.mark.parametrize("fixture_name", ["off_complete.json", "off_sparse.json"])
+def test_shared_off_candidate_fixtures_match_the_api_contract(fixture_name: str) -> None:
+    PackageMatchCandidateResponse.model_validate_json(
+        (PACKAGE_MATCH_FIXTURES / fixture_name).read_text()
+    )
 
 
 def evidence_record(number: int) -> EvidenceRecord:
@@ -117,6 +130,20 @@ def test_missing_identifier_uses_the_stable_error_envelope(client: TestClient) -
         "error": {
             "code": "IDENTIFIER_REQUIRED",
             "message": "An identifier is required.",
+        }
+    }
+
+
+def test_missing_reference_image_url_uses_the_image_error_envelope(
+    client: TestClient,
+) -> None:
+    response = client.get("/api/v1/open-food-facts-images")
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "error": {
+            "code": "REFERENCE_IMAGE_URL_INVALID",
+            "message": "A valid reference image URL is required.",
         }
     }
 

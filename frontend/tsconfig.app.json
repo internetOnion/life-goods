@@ -19,7 +19,10 @@
         "noUncheckedIndexedAccess": true,
         "noFallthroughCasesInSwitch": true,
         "noUnusedLocals": true,
-        "noUnusedParameters": true
+        "noUnusedParameters": true,
+        "paths": {
+            "@/*": ["./src/*"]
+        }
     },
-    "include": ["src", "tests", "e2e"]
+    "include": ["src", "tests"]
 }

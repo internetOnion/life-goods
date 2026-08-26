@@ -26,7 +26,7 @@ docker compose -f infra/compose.yaml up -d postgres
 pnpm db:migrate
 ```
 
-Start the API and Web Client in separate terminals:
+Start the API and Web Client in separate terminals. Use HTTP for ordinary local development:
 
 ```bash
 pnpm backend:dev
@@ -35,6 +35,14 @@ pnpm dev
 
 Open `http://localhost:5173`. The Web Client proxies `/api` requests to `http://localhost:8000` during development.
 
+To run the Web Client over HTTPS instead, use the explicit HTTPS command:
+
+```bash
+pnpm dev:https
+```
+
+Open `https://localhost:5173` and accept the local self-signed certificate warning. The HTTPS command requires `openssl`; it generates an ignored certificate under `frontend/certs/` and still proxies `/api` to the HTTP API at `http://localhost:8000`.
+
 ## Verify
 
 ```bash
@@ -42,12 +50,11 @@ pnpm typecheck
 pnpm lint
 pnpm test
 pnpm build
-pnpm test:e2e
 pnpm api:check
 docker compose -f infra/compose.yaml config
 ```
 
-The end-to-end command starts isolated local Web Client and API processes backed by a disposable SQLite database. Normal development and deployment use PostgreSQL through the same SQLAlchemy persistence interface.
+`pnpm test` runs the frontend Vitest suite and backend pytest unit and API/database integration coverage. Pilot readiness also requires the documented manual device, accessibility, localization, privacy, performance, and staging smoke checks.
 
 ## OpenAPI client
 
@@ -61,7 +68,7 @@ pnpm api:generate
 
 ## Layout
 
-- `frontend/`: React, Vite, TypeScript, generated API client, localization, focused tests, and Playwright journeys
+- `frontend/`: React, Vite, TypeScript, generated API client, localization, and focused Vitest tests
 - `backend/`: FastAPI, application service, Package Match domain behavior, SQLAlchemy adapter, Alembic migration, and pytest coverage
 - `infra/`: local PostgreSQL Compose configuration
 

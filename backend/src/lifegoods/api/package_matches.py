@@ -1,4 +1,5 @@
 from typing import Annotated
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Query
 
@@ -11,7 +12,7 @@ from lifegoods.api.contracts import (
     PackageMatchSourceResponse,
 )
 from lifegoods.application.package_matches import FindPackageMatches
-from lifegoods.matching.repository import PackageMatchCandidate
+from lifegoods.matching.repository import PackageMatchCandidate, PackageMatchSourceKind
 
 router = APIRouter(prefix="/api/v1", tags=["Package Matches"])
 
@@ -89,13 +90,18 @@ def _candidate_response(candidate: PackageMatchCandidate) -> PackageMatchCandida
         reference_images=[
             PackageMatchReferenceImageResponse(
                 role=image.role,
-                url=image.url,
+                url=(
+                    f"/api/v1/open-food-facts-images?{urlencode({'url': image.url})}"
+                    if candidate.source_kind is PackageMatchSourceKind.OPEN_FOOD_FACTS
+                    else image.url
+                ),
                 source_field=image.source_field,
                 source_name=image.source_name,
                 source_url=image.source_url,
                 attribution=image.attribution,
                 license_name=image.license_name,
                 language=image.language,
+                retrieved_at=image.retrieved_at,
             )
             for image in candidate.reference_images
         ],

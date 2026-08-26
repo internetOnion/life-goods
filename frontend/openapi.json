@@ -7,7 +7,10 @@
           "IDENTIFIER_CHARACTERS_INVALID",
           "IDENTIFIER_LENGTH_UNSUPPORTED",
           "IDENTIFIER_CHECK_DIGIT_INVALID",
-          "PACKAGE_MATCH_SOURCE_UNAVAILABLE"
+          "PACKAGE_MATCH_SOURCE_UNAVAILABLE",
+          "REFERENCE_IMAGE_URL_INVALID",
+          "REFERENCE_IMAGE_NOT_FOUND",
+          "REFERENCE_IMAGE_SOURCE_UNAVAILABLE"
         ],
         "title": "ErrorCode",
         "type": "string"
@@ -255,6 +258,11 @@
             "title": "License Name",
             "type": "string"
           },
+          "retrieved_at": {
+            "format": "date-time",
+            "title": "Retrieved At",
+            "type": "string"
+          },
           "role": {
             "title": "Role",
             "type": "string"
@@ -284,7 +292,8 @@
           "source_url",
           "attribution",
           "license_name",
-          "language"
+          "language",
+          "retrieved_at"
         ],
         "title": "PackageMatchReferenceImageResponse",
         "type": "object"
@@ -390,6 +399,98 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/open-food-facts-images": {
+      "get": {
+        "operationId": "getOpenFoodFactsImage",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "url",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "title": "Url",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/gif": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "image/jpeg": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          }
+        },
+        "summary": "Get Open Food Facts Image",
+        "tags": [
+          "Open Food Facts Images"
+        ]
+      }
+    },
     "/api/v1/package-matches": {
       "get": {
         "operationId": "getPackageMatches",

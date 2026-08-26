@@ -14,13 +14,17 @@ from lifegoods.adapters.external_snapshot_repository import (
     SqlAlchemyExternalSnapshotRepository,
 )
 from lifegoods.adapters.open_food_facts import OpenFoodFactsPackageSource
+from lifegoods.adapters.open_food_facts_images import OpenFoodFactsImageSource
 from lifegoods.adapters.package_match_repository import SqlAlchemyPackageMatchRepository
 from lifegoods.api.contracts import ErrorCode, ErrorDetail, ErrorEnvelope
+from lifegoods.api.open_food_facts_images import get_image_source
+from lifegoods.api.open_food_facts_images import router as open_food_facts_images_router
 from lifegoods.api.package_matches import get_finder, router
 from lifegoods.application.package_matches import (
     FindPackageMatches,
     PackageMatchSourceUnavailableError,
 )
+from lifegoods.matching.external_images import ExternalImageSource
 from lifegoods.matching.external_requests import ExternalLookupLocks, SlidingWindowRequestBudget
 from lifegoods.matching.external_source import ExternalPackageSource
 from lifegoods.matching.identifier import InvalidIdentifierError
@@ -43,17 +47,19 @@ def create_app(
     settings: Settings | None = None,
     session_factory: sessionmaker[Session] | None = None,
     external_source: ExternalPackageSource | None = None,
+    image_source: ExternalImageSource | None = None,
     request_budget: SlidingWindowRequestBudget | None = None,
     lookup_locks: ExternalLookupLocks | None = None,
     utc_now: Callable[[], datetime] | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings()
     resolved_factory = session_factory or create_session_factory(resolved_settings)
-    owned_http_client: httpx.Client | None = None
+    owned_http_clients: list[httpx.Client] = []
     if external_source is None:
-        owned_http_client = httpx.Client()
+        package_http_client = httpx.Client()
+        owned_http_clients.append(package_http_client)
         resolved_source: ExternalPackageSource = OpenFoodFactsPackageSource(
-            owned_http_client,
+            package_http_client,
             base_url=resolved_settings.open_food_facts_base_url,
             user_agent=resolved_settings.open_food_facts_user_agent,
             timeout_seconds=resolved_settings.open_food_facts_timeout_seconds,
@@ -61,6 +67,18 @@ def create_app(
         )
     else:
         resolved_source = external_source
+    if image_source is None:
+        image_http_client = httpx.Client()
+        owned_http_clients.append(image_http_client)
+        resolved_image_source: ExternalImageSource = OpenFoodFactsImageSource(
+            image_http_client,
+            image_base_url=resolved_settings.open_food_facts_image_base_url,
+            user_agent=resolved_settings.open_food_facts_user_agent,
+            timeout_seconds=resolved_settings.open_food_facts_timeout_seconds,
+            requests_per_minute=resolved_settings.open_food_facts_image_requests_per_minute,
+        )
+    else:
+        resolved_image_source = image_source
     resolved_budget = request_budget or SlidingWindowRequestBudget(
         resolved_settings.open_food_facts_requests_per_minute
     )
@@ -73,7 +91,8 @@ def create_app(
         allow_headers=["*"],
     )
     app.include_router(router)
-    if owned_http_client is not None:
+    app.include_router(open_food_facts_images_router)
+    for owned_http_client in owned_http_clients:
         app.router.add_event_handler("shutdown", owned_http_client.close)
 
     def provide_finder() -> Iterator[FindPackageMatches]:
@@ -88,11 +107,20 @@ def create_app(
             )
 
     app.dependency_overrides[get_finder] = provide_finder
+    app.dependency_overrides[get_image_source] = lambda: resolved_image_source
 
     @app.exception_handler(RequestValidationError)
     async def request_validation_handler(
-        _request: Request, _error: RequestValidationError
+        request: Request, _error: RequestValidationError
     ) -> JSONResponse:
+        if request.url.path == "/api/v1/open-food-facts-images":
+            envelope = ErrorEnvelope(
+                error=ErrorDetail(
+                    code=ErrorCode.REFERENCE_IMAGE_URL_INVALID,
+                    message="A valid reference image URL is required.",
+                )
+            )
+            return JSONResponse(status_code=422, content=envelope.model_dump())
         envelope = ErrorEnvelope(
             error=ErrorDetail(
                 code=ErrorCode.IDENTIFIER_REQUIRED,

@@ -7,7 +7,7 @@ export type ClientOptions = {
 /**
  * ErrorCode
  */
-export type ErrorCode = 'IDENTIFIER_REQUIRED' | 'IDENTIFIER_CHARACTERS_INVALID' | 'IDENTIFIER_LENGTH_UNSUPPORTED' | 'IDENTIFIER_CHECK_DIGIT_INVALID' | 'PACKAGE_MATCH_SOURCE_UNAVAILABLE';
+export type ErrorCode = 'IDENTIFIER_REQUIRED' | 'IDENTIFIER_CHARACTERS_INVALID' | 'IDENTIFIER_LENGTH_UNSUPPORTED' | 'IDENTIFIER_CHECK_DIGIT_INVALID' | 'PACKAGE_MATCH_SOURCE_UNAVAILABLE' | 'REFERENCE_IMAGE_URL_INVALID' | 'REFERENCE_IMAGE_NOT_FOUND' | 'REFERENCE_IMAGE_SOURCE_UNAVAILABLE';
 
 /**
  * ErrorDetail
@@ -131,6 +131,10 @@ export type PackageMatchReferenceImageResponse = {
      */
     license_name: string;
     /**
+     * Retrieved At
+     */
+    retrieved_at: string;
+    /**
      * Role
      */
     role: string;
@@ -213,6 +217,48 @@ export type PackageMatchesResponse = {
     normalized_identifier: string;
     scheme: IdentifierScheme;
 };
+
+export type GetOpenFoodFactsImageData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Url
+         */
+        url: string;
+    };
+    url: '/api/v1/open-food-facts-images';
+};
+
+export type GetOpenFoodFactsImageErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorEnvelope;
+    /**
+     * Not Found
+     */
+    404: ErrorEnvelope;
+    /**
+     * Unprocessable Content
+     */
+    422: ErrorEnvelope;
+    /**
+     * Bad Gateway
+     */
+    502: ErrorEnvelope;
+};
+
+export type GetOpenFoodFactsImageError = GetOpenFoodFactsImageErrors[keyof GetOpenFoodFactsImageErrors];
+
+export type GetOpenFoodFactsImageResponses = {
+    /**
+     * Successful Response
+     */
+    200: Blob | File;
+};
+
+export type GetOpenFoodFactsImageResponse = GetOpenFoodFactsImageResponses[keyof GetOpenFoodFactsImageResponses];
 
 export type GetPackageMatchesData = {
     body?: never;

@@ -1,46 +1,88 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-@theme {
+@theme inline {
     --font-sans:
         "Noto Sans Khmer", "Khmer OS System", Inter, ui-sans-serif, system-ui,
         sans-serif;
-    --color-lotus: oklch(0.47 0.115 157);
-    --color-lotus-dark: oklch(0.36 0.09 157);
-    --color-lotus-hover: oklch(0.31 0.08 157);
-    --color-surface: oklch(0.965 0.008 160);
-    --color-ink: oklch(0.235 0.018 165);
-    --color-muted: oklch(0.47 0.018 165);
-    --color-line: oklch(0.84 0.012 160);
-    --color-input-border: oklch(0.66 0.018 160);
-    --color-disabled-text: oklch(0.55 0.01 160);
-    --color-disabled-bg: oklch(0.92 0.006 160);
-    --color-error: oklch(0.46 0.17 28);
-
-    --animate-settle: settle 200ms cubic-bezier(0.22, 1, 0.36, 1);
-
-    @keyframes settle {
-        from {
-            opacity: 0;
-            transform: translateY(5px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
+    --color-brand: var(--brand);
+    --color-brand-dark: var(--brand-dark);
+    --color-brand-hover: var(--brand-hover);
+    --color-brand-soft: var(--brand-soft);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-destructive: var(--destructive);
+    --color-coconut-brown: var(--coconut-brown);
+    --color-coconut-brown-soft: var(--coconut-brown-soft);
 }
 
 :root {
-    font-synthesis: none;
+    color-scheme: light;
+    --brand: oklch(0.47 0.115 157);
+    --brand-dark: oklch(0.36 0.09 157);
+    --brand-hover: oklch(0.31 0.08 157);
+    --brand-soft: oklch(0.94 0.025 157);
+    --page: oklch(0.992 0.002 160);
+    --surface: oklch(0.965 0.008 160);
+    --surface-strong: oklch(0.925 0.014 160);
+    --ink: oklch(0.235 0.018 165);
+    --muted-ink: oklch(0.43 0.018 165);
+    --line: oklch(0.84 0.012 160);
+    --background: var(--page);
+    --foreground: var(--ink);
+    --card: var(--page);
+    --card-foreground: var(--ink);
+    --primary: var(--brand-dark);
+    --primary-foreground: oklch(0.99 0 0);
+    --secondary: var(--surface-strong);
+    --secondary-foreground: var(--ink);
+    --muted: var(--surface);
+    --muted-foreground: var(--muted-ink);
+    --accent: var(--brand-soft);
+    --accent-foreground: var(--brand-hover);
+    --border: var(--line);
+    --input: oklch(0.57 0.03 145);
+    --ring: oklch(0.36 0.09 157);
+    --destructive: oklch(0.44 0.17 28);
+    --coconut-brown: oklch(0.48 0.09 72);
+    --coconut-brown-soft: oklch(0.94 0.035 78);
+}
+
+* {
+    box-sizing: border-box;
+    border-color: var(--border);
+}
+
+html {
+    min-width: 320px;
+    background: var(--background);
+    scrollbar-color: var(--primary) var(--muted);
+    scrollbar-width: thin;
 }
 
 body {
-    margin: 0;
     min-width: 320px;
     min-height: 100vh;
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
     font-family: var(--font-sans);
-    color: var(--color-ink);
-    background: oklch(1 0 0);
+    font-synthesis: none;
+    line-height: 1.65;
+    text-rendering: optimizeLegibility;
 }
 
 button,
@@ -48,14 +90,48 @@ input {
     font: inherit;
 }
 
+button,
+a {
+    -webkit-tap-highlight-color: transparent;
+}
+
 button {
     min-height: 44px;
 }
 
-button:focus-visible,
-input:focus-visible {
-    outline: 3px solid var(--color-lotus-dark);
+input {
+    caret-color: var(--primary);
+}
+
+a:focus-visible,
+summary:focus-visible,
+[tabindex="-1"]:focus-visible {
+    outline: 3px solid var(--ring);
     outline-offset: 3px;
+}
+
+a {
+    color: var(--primary);
+    text-underline-offset: 0.2em;
+}
+
+::selection {
+    color: var(--foreground);
+    background: var(--accent);
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--muted);
+}
+
+::-webkit-scrollbar-thumb {
+    border: 2px solid var(--muted);
+    border-radius: 999px;
+    background: var(--primary);
 }
 
 @media (prefers-reduced-motion: reduce) {

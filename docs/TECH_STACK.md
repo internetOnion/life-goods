@@ -8,9 +8,9 @@ The project will use:
 - FastAPI and Python for the REST API.
 - Celery and Python for durable background work.
 - Python for AI benchmarking and image-processing experiments.
-- Tailwind CSS for initial UI styling.
+- shadcn/ui components with Tailwind CSS utilities for frontend styling.
 
-Fonts, icons, component libraries, and the broader visual direction will be selected during a later design phase.
+The frontend component and utility conventions are fixed by this document; broader visual direction remains governed by PRODUCT.md and DESIGN.md.
 
 The first implementation milestone is a known-barcode-to-evidence-backed-package-candidates vertical slice. AI extraction and moderation will follow after the identity and provenance foundation is working.
 
@@ -29,7 +29,10 @@ The first implementation milestone is a known-barcode-to-evidence-backed-package
 - Use React Router for navigation.
 - Use TanStack Query for server state.
 - Use react-i18next for Khmer-first localization with optional English.
-- Use Tailwind CSS for styling without selecting a component library yet.
+- Use shadcn/ui source components styled with Tailwind CSS utilities. Keep the
+  Phosphor icon set, and allow only semantic theme tokens and essential global
+  browser/accessibility rules in the application stylesheet. Component styles
+  belong in utility class names and reusable shadcn primitives.
 - Use `@zxing/browser` for camera and image-based barcode scanning.
 - Support standalone browsers and Telegram through a thin adapter for theme, viewport, safe-area, haptic, and validated launch-data behavior.
 - Prioritize low- and mid-range Android Chrome and Telegram WebView while maintaining iOS Safari support.
@@ -86,7 +89,7 @@ API failures will use a consistent error envelope with stable machine-readable c
 
 ### Backend
 
-Use pytest for unit and integration coverage of:
+Use pytest for MVP unit and API/database integration coverage of:
 
 - Identifier check digits and normalization.
 - Open Food Facts mapping and missing-field semantics.
@@ -98,7 +101,7 @@ Use pytest for unit and integration coverage of:
 
 ### Frontend
 
-Use Vitest and Testing Library for:
+Use Vitest and Testing Library for MVP frontend unit and component coverage of:
 
 - Scanner and manual-entry states.
 - Uncertainty language and source attribution.
@@ -106,14 +109,7 @@ Use Vitest and Testing Library for:
 - Telegram and standalone-browser adapters.
 - Khmer and English presentation behavior.
 
-Use Playwright for end-to-end coverage of:
-
-- Manual identifier entry.
-- Known, unknown, invalid, and conflicting results.
-- Generated-client compatibility.
-- Responsive layouts and supported recovery actions.
-
-Camera behavior must also be tested on representative physical devices because browser automation cannot reproduce every camera and WebView condition.
+Browser end-to-end automation is outside the MVP scope. Manual identifier, scanner, recovery, responsive-layout, Telegram WebView, and representative physical-device checks remain part of pilot validation and are not automated release gates.
 
 ### Privacy and acceptance
 
@@ -126,7 +122,7 @@ Camera behavior must also be tested on representative physical devices because b
 
 - Cloudflare Pages will provide frontend preview deployments for pull requests.
 - Staging will use isolated Neon, Upstash, and R2 resources.
-- Production deployment requires successful automated tests, generated-client drift checks, migration validation, and a staging smoke test.
+- Production deployment requires successful MVP unit/component and API/database tests, generated-client drift checks, migration validation, and a staging smoke test.
 - Run Alembic migrations as a separate release step before deploying application processes that require the new schema.
 - Use scrubbed Sentry tracing for the React application, FastAPI, and Celery.
 - Store only allowlisted anonymous journey and failure events internally with short retention.
@@ -140,5 +136,6 @@ Camera behavior must also be tested on representative physical devices because b
 - Cloudflare R2's Asia-Pacific placement hint is accepted; strict Singapore data residency is not currently required.
 - Shopper access remains anonymous.
 - Moderator authentication and moderation UI begin after the identity slice.
-- Fonts, icons, component libraries, and visual direction are deferred.
+- The frontend uses shadcn/ui source components, Tailwind CSS v4, and Phosphor
+  icons. Visual direction remains governed by PRODUCT.md and DESIGN.md.
 - Next.js, Firebase, GraphQL, Kubernetes, native mobile applications, and direct browser access to PostgreSQL are excluded from the initial architecture.

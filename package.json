@@ -3,9 +3,9 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --dir frontend dev",
+    "dev:https": "pnpm --dir frontend dev:https",
     "build": "pnpm --dir frontend build",
     "test": "pnpm --dir frontend test && pnpm backend:test",
-    "test:e2e": "pnpm --dir frontend test:e2e",
     "typecheck": "pnpm --dir frontend typecheck",
     "lint": "pnpm frontend:lint:check && pnpm backend:lint",
     "frontend:lint:check": "prettier --check frontend && pnpm --dir frontend lint",

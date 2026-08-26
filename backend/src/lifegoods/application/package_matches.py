@@ -150,6 +150,7 @@ def _candidate_from_snapshot(
                 attribution=evidence.attribution,
                 license_name=evidence.license_name,
                 language=evidence.language,
+                retrieved_at=evidence.retrieved_at,
             )
         )
     return PackageMatchCandidate(

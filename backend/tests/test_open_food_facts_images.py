@@ -1,0 +1,239 @@
+from collections.abc import Callable
+
+import httpx
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from lifegoods.adapters.open_food_facts_images import OpenFoodFactsImageSource
+from lifegoods.api.open_food_facts_images import get_image_source, router
+from lifegoods.matching.external_images import (
+    ExternalImage,
+    ExternalImageNotFoundError,
+    ExternalImageUnavailableError,
+    ExternalImageUrlInvalidError,
+)
+
+IMAGE_URL = "https://images.openfoodfacts.org/images/products/400/front_en.jpg"
+JPEG_BYTES = b"\xff\xd8\xffjpeg"
+
+
+def image_source(
+    respond: httpx.MockTransport,
+    *,
+    max_image_bytes: int = 10 * 1024 * 1024,
+    requests_per_minute: int = 60,
+    cache_ttl_seconds: float = 24 * 60 * 60,
+    monotonic: Callable[[], float] | None = None,
+) -> OpenFoodFactsImageSource:
+    return OpenFoodFactsImageSource(
+        httpx.Client(transport=respond),
+        image_base_url="https://images.openfoodfacts.org",
+        user_agent="LifeGoods tests",
+        timeout_seconds=2,
+        requests_per_minute=requests_per_minute,
+        max_image_bytes=max_image_bytes,
+        cache_ttl_seconds=cache_ttl_seconds,
+        **({"monotonic": monotonic} if monotonic is not None else {}),
+    )
+
+
+def test_fetches_only_supported_images_from_the_configured_origin() -> None:
+    requests: list[httpx.Request] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(
+            200, content=JPEG_BYTES, headers={"content-type": "image/jpeg"}
+        )
+
+    source = image_source(httpx.MockTransport(respond))
+    image = source.fetch(IMAGE_URL)
+    cached = source.fetch(IMAGE_URL)
+
+    assert image == cached == ExternalImage(content=JPEG_BYTES, media_type="image/jpeg")
+    assert len(requests) == 1
+    assert requests[0].headers["accept"] == "image/*"
+    assert requests[0].headers["user-agent"] == "LifeGoods tests"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://images.openfoodfacts.org/image.jpg",
+        "https://images.openfoodfacts.org.evil.test/image.jpg",
+        "https://user@images.openfoodfacts.org/image.jpg",
+        "https://images.openfoodfacts.org:invalid/image.jpg",
+        "https://images.openfoodfacts.org/api/status.jpg",
+        f"{IMAGE_URL}?download=1",
+    ],
+)
+def test_rejects_image_urls_outside_the_exact_https_origin(url: str) -> None:
+    source = image_source(
+        httpx.MockTransport(lambda _request: pytest.fail("HTTP must not be called"))
+    )
+
+    with pytest.raises(ExternalImageUrlInvalidError):
+        source.fetch(url)
+
+
+@pytest.mark.parametrize(
+    ("status_code", "headers", "content"),
+    [
+        (302, {"location": "https://example.test/image.jpg"}, b""),
+        (200, {"content-type": "image/svg+xml"}, b"<svg/>"),
+        (200, {"content-type": "image/jpeg", "content-length": "5"}, b"large"),
+    ],
+)
+def test_rejects_redirects_unsupported_types_and_large_images(
+    status_code: int,
+    headers: dict[str, str],
+    content: bytes,
+) -> None:
+    source = image_source(
+        httpx.MockTransport(
+            lambda _request: httpx.Response(status_code, headers=headers, content=content)
+        ),
+        max_image_bytes=4,
+    )
+
+    with pytest.raises(ExternalImageUnavailableError):
+        source.fetch(IMAGE_URL)
+
+
+def test_maps_transport_failures_to_unavailable() -> None:
+    def fail(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("timed out", request=request)
+
+    with pytest.raises(ExternalImageUnavailableError):
+        image_source(httpx.MockTransport(fail)).fetch(IMAGE_URL)
+
+
+def test_rejects_a_chunked_image_that_exceeds_the_byte_limit() -> None:
+    source = image_source(
+        httpx.MockTransport(
+            lambda _request: httpx.Response(
+                200,
+                headers={"content-type": "image/jpeg"},
+                stream=httpx.ByteStream(JPEG_BYTES),
+            )
+        ),
+        max_image_bytes=4,
+    )
+
+    with pytest.raises(ExternalImageUnavailableError):
+        source.fetch(IMAGE_URL)
+
+
+def test_applies_the_image_request_budget_only_to_cache_misses() -> None:
+    source = image_source(
+        httpx.MockTransport(
+            lambda _request: httpx.Response(
+                200,
+                content=JPEG_BYTES,
+                headers={"content-type": "image/jpeg"},
+            )
+        ),
+        requests_per_minute=1,
+    )
+
+    source.fetch(IMAGE_URL)
+    source.fetch(IMAGE_URL)
+    with pytest.raises(ExternalImageUnavailableError):
+        source.fetch(
+            "https://images.openfoodfacts.org/images/products/401/front_en.jpg"
+        )
+
+
+def test_refetches_an_image_after_the_bounded_cache_ttl() -> None:
+    now = 0.0
+    request_count = 0
+
+    def respond(_request: httpx.Request) -> httpx.Response:
+        nonlocal request_count
+        request_count += 1
+        return httpx.Response(
+            200,
+            content=JPEG_BYTES,
+            headers={"content-type": "image/jpeg"},
+        )
+
+    source = image_source(
+        httpx.MockTransport(respond),
+        cache_ttl_seconds=10,
+        monotonic=lambda: now,
+    )
+
+    source.fetch(IMAGE_URL)
+    source.fetch(IMAGE_URL)
+    now = 11
+    source.fetch(IMAGE_URL)
+
+    assert request_count == 2
+
+
+def test_rejects_content_that_does_not_match_its_image_media_type() -> None:
+    source = image_source(
+        httpx.MockTransport(
+            lambda _request: httpx.Response(
+                200,
+                content=b"not-a-jpeg",
+                headers={"content-type": "image/jpeg"},
+            )
+        )
+    )
+
+    with pytest.raises(ExternalImageUnavailableError):
+        source.fetch(IMAGE_URL)
+
+
+class StubImageSource:
+    def __init__(self, result: ExternalImage | Exception) -> None:
+        self.result = result
+
+    def fetch(self, _url: str) -> ExternalImage:
+        if isinstance(self.result, Exception):
+            raise self.result
+        return self.result
+
+
+def client_for(result: ExternalImage | Exception) -> TestClient:
+    app = FastAPI()
+    app.include_router(router)
+    app.dependency_overrides[get_image_source] = lambda: StubImageSource(result)
+    return TestClient(app)
+
+
+def test_proxy_returns_same_origin_cacheable_image_bytes() -> None:
+    with client_for(ExternalImage(content=b"jpeg", media_type="image/jpeg")) as client:
+        response = client.get("/api/v1/open-food-facts-images", params={"url": IMAGE_URL})
+
+    assert response.status_code == 200
+    assert response.content == b"jpeg"
+    assert response.headers["content-type"] == "image/jpeg"
+    assert response.headers["cache-control"] == "public, max-age=86400"
+    assert response.headers["x-content-type-options"] == "nosniff"
+
+
+@pytest.mark.parametrize(
+    ("error", "status_code", "code"),
+    [
+        (ExternalImageUrlInvalidError(), 400, "REFERENCE_IMAGE_URL_INVALID"),
+        (ExternalImageNotFoundError(), 404, "REFERENCE_IMAGE_NOT_FOUND"),
+        (
+            ExternalImageUnavailableError(),
+            502,
+            "REFERENCE_IMAGE_SOURCE_UNAVAILABLE",
+        ),
+    ],
+)
+def test_proxy_returns_stable_error_envelopes(
+    error: Exception,
+    status_code: int,
+    code: str,
+) -> None:
+    with client_for(error) as client:
+        response = client.get("/api/v1/open-food-facts-images", params={"url": IMAGE_URL})
+
+    assert response.status_code == status_code
+    assert response.json()["error"]["code"] == code
