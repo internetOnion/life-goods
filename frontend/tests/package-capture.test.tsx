@@ -81,8 +81,8 @@ async function openAndCapture(user: ReturnType<typeof userEvent.setup>) {
     if (openButton) {
         await user.click(openButton)
     }
-    await waitFor(() => expect(screen.getByText("Camera active")).toBeVisible())
     const video = screen.getByLabelText("Live camera preview")
+    await waitFor(() => expect(video).toBeVisible())
     Object.defineProperties(video, {
         videoWidth: { configurable: true, value: 1280 },
         videoHeight: { configurable: true, value: 720 },
@@ -120,6 +120,11 @@ describe("Package Capture journey", () => {
 
         expect(screen.getByText("Capture package")).toBeVisible()
         expect(
+            screen.queryByText(
+                "Fit the product name and the full front of the package inside the frame.",
+            ),
+        ).not.toBeInTheDocument()
+        expect(
             screen.getByRole("button", { name: "Scan barcode Soon" }),
         ).toBeDisabled()
         expect(getUserMedia).not.toHaveBeenCalled()
@@ -127,7 +132,7 @@ describe("Package Capture journey", () => {
         await user.click(screen.getByRole("button", { name: "Open camera" }))
 
         expect(getUserMedia).toHaveBeenCalledOnce()
-        expect(screen.getByText("Camera active")).toBeVisible()
+        expect(screen.queryByText("Camera active")).not.toBeInTheDocument()
     })
 
     test("normalizes the first step and removes unsupported query data", async () => {
@@ -162,7 +167,7 @@ describe("Package Capture journey", () => {
 
         await user.click(screen.getByRole("button", { name: "Open camera" }))
 
-        expect(screen.getByText("Camera active")).toBeVisible()
+        expect(screen.queryByText("Camera active")).not.toBeInTheDocument()
     })
 
     test("captures, previews, and retakes the front photo", async () => {

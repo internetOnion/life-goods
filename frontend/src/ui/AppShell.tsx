@@ -7,9 +7,9 @@ import {
 } from "@phosphor-icons/react"
 import { type ReactNode, useEffect } from "react"
 import { useTranslation } from "react-i18next"
-import { NavLink, useLocation, useNavigate } from "react-router"
+import { NavLink, useNavigate } from "react-router"
 
-import { appRoutes, isFocusedRoute } from "@/app/routes"
+import { appRoutes } from "@/app/routes"
 import { Button } from "@/components/ui/button"
 import { MvpDemoModeProvider } from "@/config/MvpDemoModeProvider"
 import { cn } from "@/lib/utils"
@@ -36,8 +36,6 @@ const navigation = [
 
 export function AppShell({ children, demoMode }: AppShellProps) {
     const { i18n } = useTranslation()
-    const location = useLocation()
-    const isFocused = isFocusedRoute(location.pathname)
     const currentLanguage = i18n.resolvedLanguage === "en" ? "en" : "km"
 
     useEffect(() => {
@@ -48,7 +46,7 @@ export function AppShell({ children, demoMode }: AppShellProps) {
         <MvpDemoModeProvider enabled={demoMode}>
             <div className="bg-background text-foreground min-h-svh">
                 {children}
-                {!isFocused ? <BottomNavigation /> : null}
+                <BottomNavigation />
             </div>
         </MvpDemoModeProvider>
     )

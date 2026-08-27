@@ -99,7 +99,7 @@ function SimulatedCaptureResult() {
     return (
         <>
             <DemoNotice active />
-            <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pt-5 pb-[calc(2rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
+            <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pt-5 pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
                 <div className="grid grid-cols-3 items-start gap-2">
                     <Button
                         variant="ghost"

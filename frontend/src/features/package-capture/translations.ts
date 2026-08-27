@@ -45,7 +45,6 @@ export const packageCaptureTranslations = {
             camera: {
                 open: "បើកកាមេរ៉ា",
                 opening: "កំពុងបើកកាមេរ៉ា…",
-                active: "កាមេរ៉ាកំពុងដំណើរការ",
                 off: "កាមេរ៉ានឹងបើកតែពេលអ្នកជ្រើសរើសប៉ុណ្ណោះ។",
                 livePreview: "ទិដ្ឋភាពកាមេរ៉ាផ្ទាល់",
                 ready: "រក្សាទូរសព្ទឱ្យនឹង ហើយចុចប៊ូតុងថត។",
@@ -208,7 +207,6 @@ export const packageCaptureTranslations = {
             camera: {
                 open: "Open camera",
                 opening: "Opening camera…",
-                active: "Camera active",
                 off: "The camera opens only when you choose.",
                 livePreview: "Live camera preview",
                 ready: "Hold steady, then use the shutter button.",

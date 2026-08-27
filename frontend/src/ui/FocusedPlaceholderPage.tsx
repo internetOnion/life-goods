@@ -11,6 +11,8 @@ type FocusedPlaceholderPageProps = {
     actionLabel: string
     actionIcon: "back" | "exit"
     actionTo: string
+    showLanguageSwitch?: boolean
+    languageSwitchShape?: "circle" | "rectangle"
 }
 
 export function FocusedPlaceholderPage({
@@ -19,6 +21,8 @@ export function FocusedPlaceholderPage({
     actionLabel,
     actionIcon,
     actionTo,
+    showLanguageSwitch = true,
+    languageSwitchShape = "circle",
 }: FocusedPlaceholderPageProps) {
     const navigate = useNavigate()
     const headingRef = useRef<HTMLHeadingElement>(null)
@@ -29,7 +33,7 @@ export function FocusedPlaceholderPage({
     }, [title])
 
     return (
-        <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pt-[calc(1rem_+_env(safe-area-inset-top))] pb-[calc(2.5rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
+        <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pt-[calc(1rem_+_env(safe-area-inset-top))] pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
             <div className="grid grid-cols-[1fr_auto] items-start gap-2">
                 <Button
                     className="border-primary text-primary hover:bg-primary/10 hover:text-primary min-w-0 px-3"
@@ -40,7 +44,9 @@ export function FocusedPlaceholderPage({
                     <Icon aria-hidden="true" size={21} weight="bold" />
                     <span>{actionLabel}</span>
                 </Button>
-                <LanguageSwitchButton />
+                {showLanguageSwitch ? (
+                    <LanguageSwitchButton shape={languageSwitchShape} />
+                ) : null}
             </div>
 
             <section className="pt-[clamp(3rem,12vh,7rem)]">

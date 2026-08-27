@@ -162,7 +162,9 @@ describe("manual identifier journey", () => {
         )
         expect(lookup).toHaveBeenCalledWith("4006381333931")
         expect(screen.getAllByText("4006381333931").length).toBeGreaterThan(0)
-        expect(screen.queryByRole("navigation")).not.toBeInTheDocument()
+        expect(
+            screen.getByRole("navigation", { name: "ការរុករកចម្បង" }),
+        ).toBeVisible()
         expect(screen.queryByRole("banner")).not.toBeInTheDocument()
         expect(
             screen.getByRole("button", { name: "ប្តូរទៅភាសាអង់គ្លេស" }),

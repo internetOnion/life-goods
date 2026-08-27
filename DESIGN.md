@@ -52,7 +52,7 @@ Components expand for real Khmer copy. Consequential labels, source state, and e
 
 ## 4. Layout and elevation
 
-The shell is mobile-first and bounded to a 48rem content column on desktop. It is headerless: no logo, wordmark, or replacement top bar competes with the shopping task. Home uses one dominant pale viewfinder, a compact active-language flag aligned directly above the barcode submit column, an attached barcode form, and a fixed four-item bottom navigation. Result routes hide both the language switch and bottom navigation and expose a visible localized back action.
+The shell is mobile-first and bounded to a 48rem content column on desktop. It is headerless: no logo, wordmark, or replacement top bar competes with the shopping task. Home uses one dominant pale viewfinder, a compact active-language flag aligned directly above the barcode submit column, and an attached barcode form. A fixed four-item bottom navigation remains available on every route; capture journeys place the language switch in the top-right utility row above the camera surface. Result routes expose a visible localized back action in addition to the persistent navigation.
 
 LifeGoods is flat by default. Depth comes from tonal layers, one-pixel rules, and spacing. Rounded corners are restrained and functional; shadows are reserved for temporary overlays. Do not nest evidence in repetitive cards.
 
@@ -63,15 +63,16 @@ Safe-area insets are applied to fixed navigation and result bottoms. The primary
 ### App shell
 
 - Top: no branded header, logo, wordmark, or persistent language control.
-- Home only: one circular flag button shows the active interface language—Cambodia in Khmer mode and the United Kingdom in English mode—and its accessible name states the destination language action.
+- Home: one circular flag button shows the active interface language—Cambodia in Khmer mode and the United Kingdom in English mode—and its accessible name states the destination language action.
 - The flag occupies its own utility row between the camera placeholder and barcode form, centered over the form’s submit column without overlay positioning.
-- Bottom: Home, Learn, History, and Allergies with Phosphor icons, text, and non-color active treatment.
+- Bottom on every route: Home, Learn, History, and Allergies with Phosphor icons, text, and non-color active treatment. Capture journeys place a compact rectangular language switch in the top-right utility row above the camera surface.
 
 ### Camera placeholder
 
 - Looks like a viewfinder but has no interactive affordance.
 - Uses `CameraSlashIcon` and explicit “coming soon” copy.
 - Never requests permission, animates like a live feed, or implies an active preview.
+- Live camera overlays keep only the photographic instruction, use translucent surfaces, and place the shutter control above the lower guide line without an extra active-status badge.
 
 ### Barcode control
 

@@ -18,6 +18,7 @@ export function NewCapturePage() {
                 actionLabel={t("capture.exit")}
                 actionIcon="exit"
                 actionTo={appRoutes.home}
+                languageSwitchShape="rectangle"
             />
         )
     }

@@ -13,7 +13,6 @@ type CameraStageProps = {
     step: Exclude<CaptureStep, "review">
     headingRef: RefObject<HTMLHeadingElement | null>
     title: string
-    instruction: string
     stepLabel: string
     photo: CapturedPackagePhoto | null
     cameraState: CameraState
@@ -30,7 +29,6 @@ export function CameraStage({
     step,
     headingRef,
     title,
-    instruction,
     stepLabel,
     photo,
     cameraState,
@@ -50,7 +48,7 @@ export function CameraStage({
         <div className="mt-5 sm:mt-6">
             <div className="border-border bg-muted relative h-[clamp(22rem,68svh,42rem)] overflow-hidden rounded-[1.75rem] border">
                 <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex items-start justify-between gap-2 sm:inset-x-4 sm:top-4">
-                    <div className="bg-background/90 text-foreground max-w-[75%] rounded-2xl px-3 py-2 backdrop-blur-sm">
+                    <div className="bg-background/60 text-foreground max-w-[75%] rounded-2xl px-3 py-2 backdrop-blur-sm">
                         <h1
                             ref={headingRef}
                             tabIndex={-1}
@@ -58,11 +56,8 @@ export function CameraStage({
                         >
                             {title}
                         </h1>
-                        <p className="text-muted-foreground mt-0.5 text-xs leading-snug">
-                            {instruction}
-                        </p>
                     </div>
-                    <span className="bg-background/90 text-muted-foreground shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-sm">
+                    <span className="bg-background/60 text-foreground shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-sm">
                         {stepLabel}
                     </span>
                 </div>
@@ -125,17 +120,7 @@ export function CameraStage({
                 />
 
                 {cameraState === "live" ? (
-                    <div className="bg-background/95 absolute top-24 left-3 flex min-h-8 items-center gap-2 rounded-full px-3 py-1 text-sm font-bold sm:top-28 sm:left-4">
-                        <span
-                            className="bg-primary size-2 rounded-full"
-                            aria-hidden="true"
-                        />
-                        {t("capture.camera.active")}
-                    </div>
-                ) : null}
-
-                {cameraState === "live" ? (
-                    <div className="absolute inset-x-0 bottom-5 grid justify-items-center gap-2 px-4">
+                    <div className="absolute inset-x-0 bottom-10 z-10 grid justify-items-center gap-2 px-4">
                         <Button
                             type="button"
                             size="icon"
@@ -154,7 +139,7 @@ export function CameraStage({
                         >
                             <CameraIcon aria-hidden="true" weight="fill" />
                         </Button>
-                        <p className="bg-background/95 rounded-lg px-3 py-1 text-center text-xs font-semibold">
+                        <p className="bg-background/60 rounded-lg px-3 py-1 text-center text-xs font-semibold backdrop-blur-sm">
                             {t(
                                 cameraReady
                                     ? "capture.camera.ready"
@@ -166,7 +151,7 @@ export function CameraStage({
 
                 {cameraState === "opening" ? (
                     <p
-                        className="bg-background/95 absolute inset-x-4 top-1/2 -translate-y-1/2 rounded-xl px-4 py-3 text-center font-semibold"
+                        className="bg-background/70 absolute inset-x-4 top-1/2 -translate-y-1/2 rounded-xl px-4 py-3 text-center font-semibold backdrop-blur-sm"
                         role="status"
                     >
                         {t("capture.camera.opening")}

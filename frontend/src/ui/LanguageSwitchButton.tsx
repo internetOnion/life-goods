@@ -2,14 +2,24 @@ import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 
-export function LanguageSwitchButton() {
+type LanguageSwitchButtonProps = {
+    shape?: "circle" | "rectangle"
+}
+
+export function LanguageSwitchButton({
+    shape = "circle",
+}: LanguageSwitchButtonProps) {
     const { i18n, t } = useTranslation()
     const currentLanguage = i18n.resolvedLanguage === "en" ? "en" : "km"
     const targetLanguage = currentLanguage === "km" ? "en" : "km"
 
     return (
         <Button
-            className="border-primary/45 bg-background text-foreground hover:bg-primary/10 hover:text-foreground size-11 rounded-full p-0"
+            className={
+                shape === "rectangle"
+                    ? "border-primary/45 bg-background text-foreground hover:bg-primary/10 hover:text-foreground h-11 w-14 rounded-lg p-0"
+                    : "border-primary/45 bg-background text-foreground hover:bg-primary/10 hover:text-foreground size-11 rounded-full p-0"
+            }
             variant="outline"
             type="button"
             aria-label={t(
@@ -17,17 +27,28 @@ export function LanguageSwitchButton() {
             )}
             onClick={() => void i18n.changeLanguage(targetLanguage)}
         >
-            <LanguageFlag language={currentLanguage} />
+            <LanguageFlag language={currentLanguage} shape={shape} />
         </Button>
     )
 }
 
-function LanguageFlag({ language }: { language: "en" | "km" }) {
+function LanguageFlag({
+    language,
+    shape,
+}: {
+    language: "en" | "km"
+    shape: "circle" | "rectangle"
+}) {
+    const className =
+        shape === "rectangle"
+            ? "h-7 w-10 overflow-hidden rounded-md"
+            : "size-7 overflow-hidden rounded-full"
+
     if (language === "km") {
         return (
             <svg
                 aria-hidden="true"
-                className="size-7 overflow-hidden rounded-full"
+                className={className}
                 data-language-flag="km"
                 preserveAspectRatio="xMidYMid slice"
                 viewBox="0 0 30 20"
@@ -45,7 +66,7 @@ function LanguageFlag({ language }: { language: "en" | "km" }) {
     return (
         <svg
             aria-hidden="true"
-            className="size-7 overflow-hidden rounded-full"
+            className={className}
             data-language-flag="en"
             preserveAspectRatio="xMidYMid slice"
             viewBox="0 0 30 20"

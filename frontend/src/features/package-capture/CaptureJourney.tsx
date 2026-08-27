@@ -33,7 +33,7 @@ export function CaptureJourney() {
         : t(`capture.${step}.title`)
 
     return (
-        <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pt-[calc(1rem_+_env(safe-area-inset-top))] pb-[calc(1rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
+        <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pt-[calc(1rem_+_env(safe-area-inset-top))] pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
             <div className="flex items-start justify-between gap-2">
                 <Button
                     variant="ghost"
@@ -45,7 +45,6 @@ export function CaptureJourney() {
                     {t("capture.exit")}
                 </Button>
                 <div className="flex items-start gap-2">
-                    {step === "review" ? <LanguageSwitchButton /> : null}
                     {step === "front" ? null : (
                         <Button
                             variant="ghost"
@@ -53,13 +52,11 @@ export function CaptureJourney() {
                             type="button"
                             onClick={actions.goBack}
                         >
-                            <ArrowLeftIcon
-                                aria-hidden="true"
-                                weight="bold"
-                            />
+                            <ArrowLeftIcon aria-hidden="true" weight="bold" />
                             {t("capture.backAction")}
                         </Button>
                     )}
+                    <LanguageSwitchButton shape="rectangle" />
                 </div>
             </div>
 
@@ -92,7 +89,6 @@ export function CaptureJourney() {
                         step={step}
                         headingRef={headingRef}
                         title={title}
-                        instruction={t(`capture.${step}.body`)}
                         stepLabel={
                             isCloseUp
                                 ? t("capture.followUpStep")
@@ -110,9 +106,6 @@ export function CaptureJourney() {
                         onOpen={() => void actions.openCamera()}
                         onCapture={() => void actions.takePhoto()}
                     />
-                    <div className="mt-3 flex justify-end">
-                        <LanguageSwitchButton />
-                    </div>
                     {showReloadRecovery && step === "front" ? (
                         <p
                             className="border-border bg-brand-soft mt-5 rounded-xl border px-4 py-3 text-sm leading-relaxed"
@@ -159,7 +152,7 @@ export function CaptureJourney() {
                         </p>
                     ) : null}
                     {photos.current || step === "ingredients" ? (
-                        <div className="border-border bg-background sticky bottom-0 z-10 mt-5 flex flex-wrap gap-3 border-t py-3 pb-[calc(0.75rem_+_env(safe-area-inset-bottom))]">
+                        <div className="border-border bg-background sticky bottom-[calc(5rem_+_env(safe-area-inset-bottom))] z-10 mt-5 flex flex-wrap gap-3 border-t py-3">
                             {step === "ingredients" && !photos.current ? (
                                 <Button
                                     className="min-w-0 flex-1"
