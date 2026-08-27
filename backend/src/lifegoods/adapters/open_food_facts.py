@@ -51,6 +51,15 @@ OPEN_FOOD_FACTS_FIELDS = (
     "allergens_tags",
     "traces",
     "traces_tags",
+    "additives_tags",
+    "manufacturing_places",
+    "conservation_conditions",
+    "conservation_conditions_en",
+    "conservation_conditions_km",
+    "conservation_conditions_th",
+    "conservation_conditions_vi",
+    "conservation_conditions_zh",
+    "labels_tags",
     "nutriments",
     "nutrition_data_per",
     "nutrition_data_prepared_per",
@@ -76,6 +85,14 @@ LOCALIZED_INGREDIENT_FIELDS = (
     ("ingredients_text_th", "th"),
     ("ingredients_text_vi", "vi"),
     ("ingredients_text_zh", "zh"),
+)
+LOCALIZED_STORAGE_FIELDS = (
+    ("conservation_conditions", None),
+    ("conservation_conditions_en", "en"),
+    ("conservation_conditions_km", "km"),
+    ("conservation_conditions_th", "th"),
+    ("conservation_conditions_vi", "vi"),
+    ("conservation_conditions_zh", "zh"),
 )
 NUTRITION_DECLARATION_FIELDS = (
     "energy",
@@ -233,6 +250,14 @@ class OpenFoodFactsPackageSource:
                 product, "traces", language=primary_language
             ),
             trace_tags=_string_tuple_value(product, "traces_tags"),
+            additives=_string_tuple_value(product, "additives_tags"),
+            manufacturing_places=_string_value(
+                product, "manufacturing_places", language=primary_language
+            ),
+            storage_conditions=_localized_texts(
+                product, LOCALIZED_STORAGE_FIELDS, primary_language, deduplicate=True
+            ),
+            halal_label_claim=_halal_label_claim(product),
             nutrition=_nutrition(product),
             packaging_languages=_string_tuple_value(product, "languages_tags"),
             countries_sold=_string_tuple_value(product, "countries_tags"),
@@ -297,16 +322,23 @@ def _localized_texts(
     product: dict[str, Any],
     fields: tuple[tuple[str, str | None], ...],
     primary_language: str | None,
+    *,
+    deduplicate: bool = False,
 ) -> tuple[SourcedValue[str], ...]:
     values: list[SourcedValue[str]] = []
+    seen: set[tuple[str, str | None]] = set()
     for source_field, language in fields:
         value = _non_empty_string(product.get(source_field))
         if value is not None:
+            resolved_language = primary_language if language is None else language
+            if deduplicate and (value, resolved_language) in seen:
+                continue
+            seen.add((value, resolved_language))
             values.append(
                 SourcedValue(
                     value=value,
                     source_field=source_field,
-                    language=primary_language if language is None else language,
+                    language=resolved_language,
                 )
             )
     return tuple(values)
@@ -339,6 +371,18 @@ def _string_tuple_value(
         return None
     values = tuple(value for value in raw_value if isinstance(value, str) and value)
     return SourcedValue(value=values, source_field=field) if values else None
+
+
+def _halal_label_claim(product: dict[str, Any]) -> SourcedValue[tuple[str, ...]] | None:
+    raw_value = product.get("labels_tags")
+    if not isinstance(raw_value, list):
+        return None
+    values = tuple(
+        value
+        for value in raw_value
+        if isinstance(value, str) and value.lower() == "en:halal"
+    )
+    return SourcedValue(value=values, source_field="labels_tags") if values else None
 
 
 def _selected_images(product: dict[str, Any]) -> tuple[ExternalSelectedImage, ...]:

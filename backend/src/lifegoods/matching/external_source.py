@@ -53,6 +53,10 @@ class ExternalPackageRecord:
     allergen_tags: SourcedValue[tuple[str, ...]] | None
     trace_declaration: SourcedValue[str] | None
     trace_tags: SourcedValue[tuple[str, ...]] | None
+    additives: SourcedValue[tuple[str, ...]] | None
+    manufacturing_places: SourcedValue[str] | None
+    storage_conditions: tuple[SourcedValue[str], ...]
+    halal_label_claim: SourcedValue[tuple[str, ...]] | None
     nutrition: tuple[SourcedValue[JsonValue], ...]
     packaging_languages: SourcedValue[tuple[str, ...]] | None
     countries_sold: SourcedValue[tuple[str, ...]] | None

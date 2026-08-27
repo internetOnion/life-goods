@@ -120,26 +120,46 @@ describe("manual identifier journey", () => {
             languageSwitch.compareDocumentPosition(submit) &
                 Node.DOCUMENT_POSITION_FOLLOWING,
         ).toBeTruthy()
-        expect(languageSwitch).toHaveClass("size-11", "border-0", "p-0")
-        expect(flag).toBeInTheDocument()
-        expect(flag).toHaveClass("size-full")
-        expect(flag?.parentElement).toHaveClass(
+        expect(languageSwitch).toHaveClass(
+            "!min-h-0",
             "size-9",
-            "overflow-hidden",
-            "rounded-full",
-            "border",
+            "border-0",
+            "p-0",
         )
+        expect(flag).toBeInTheDocument()
+        expect(flag).toBeInstanceOf(HTMLImageElement)
+        expect(flag).toHaveAttribute("src", "/flags/cambodia.svg")
+        expect(flag).toHaveAttribute("alt", "")
+        expect(flag).toHaveAttribute("aria-hidden", "true")
+        expect(flag).toHaveAttribute("width", "1000")
+        expect(flag).toHaveAttribute("height", "640")
+        expect(flag).toHaveClass("size-full", "rounded-full", "object-cover")
+        expect(flag?.parentElement).toHaveClass("size-9", "rounded-full")
 
         expect(screen.getByRole("link", { name: "ទំព័រដើម" })).toHaveAttribute(
             "aria-current",
             "page",
         )
         await user.click(languageSwitch)
-        expect(
-            screen
-                .getByRole("button", { name: "Switch to Khmer" })
-                .querySelector('[data-language-flag="en"]'),
-        ).toBeInTheDocument()
+        const englishLanguageSwitch = screen.getByRole("button", {
+            name: "Switch to Khmer",
+        })
+        const englishFlag = englishLanguageSwitch.querySelector(
+            '[data-language-flag="en"]',
+        )
+        expect(englishLanguageSwitch).toHaveClass(
+            "!min-h-0",
+            "size-9",
+            "rounded-full",
+        )
+        expect(englishFlag).toBeInTheDocument()
+        expect(englishFlag).toHaveClass(
+            "size-full",
+            "overflow-hidden",
+            "rounded-full",
+            "object-cover",
+        )
+        expect(englishFlag?.parentElement).toHaveClass("size-9", "rounded-full")
 
         await user.click(screen.getByRole("link", { name: "Learn" }))
 
@@ -228,7 +248,7 @@ describe("manual identifier journey", () => {
             await screen.findByRole("heading", { name: "Dark chocolate" }),
         ).toHaveFocus()
         expect(screen.getByRole("status")).toHaveTextContent(
-            "Open Food Facts package information is available",
+            "Community package information is available",
         )
         const request = fetchMock.mock.calls[0]?.[0]
         expect(request).toBeInstanceOf(Request)
@@ -236,9 +256,7 @@ describe("manual identifier journey", () => {
             "https://lifegoods.test/api/v1/package-matches?identifier=4006381333931",
         )
         expect(
-            screen.getByText(
-                "Community data from Open Food Facts—not yet reviewed by this project.",
-            ),
+            screen.getByText("Community data—not yet reviewed by LifeGoods."),
         ).toBeVisible()
     })
 
@@ -295,17 +313,17 @@ describe("manual identifier journey", () => {
 
         expect(
             await screen.findByRole("heading", {
-                name: "មិនមានឈ្មោះកញ្ចប់ពី Open Food Facts",
+                name: "8850000000003",
             }),
         ).toHaveFocus()
         expect(
-            screen.getAllByText("មិនមានពី Open Food Facts").length,
-        ).toBeGreaterThan(4)
+            screen.getByText(/មិនមានព័ត៌មាននេះនៅក្នុងកំណត់ត្រាសហគមន៍/),
+        ).toBeVisible()
 
         await i18n.changeLanguage("en")
         expect(
             await screen.findByRole("heading", {
-                name: "Package name unavailable from Open Food Facts",
+                name: "8850000000003",
             }),
         ).toBeVisible()
         expect(lookup).toHaveBeenCalledTimes(1)
@@ -427,7 +445,7 @@ describe("manual identifier journey", () => {
         await user.click(screen.getByRole("button", { name: "ព្យាយាមម្ដងទៀត" }))
         expect(
             await screen.findByRole("heading", {
-                name: "មិនមានឈ្មោះកញ្ចប់ពី Open Food Facts",
+                name: "4006381333931",
             }),
         ).toHaveFocus()
         expect(lookup).toHaveBeenNthCalledWith(1, "4006381333931")

@@ -1,6 +1,7 @@
 import {
     ArrowClockwiseIcon,
     BarcodeIcon,
+    CameraIcon,
     InfoIcon,
     MagnifyingGlassIcon,
     WarningCircleIcon,
@@ -355,13 +356,43 @@ export function HomePage({
                 </div>
             </section>
 
+            <div
+                className="border-border bg-muted mx-4 grid grid-cols-2 gap-1 rounded-xl border p-1 max-[23.5rem]:mx-[0.625rem] sm:mx-0"
+                role="group"
+                aria-label={t("scanModeLabel")}
+            >
+                <Button
+                    className="border-border bg-background text-foreground hover:bg-background min-h-11 min-w-0 rounded-lg border px-3 py-2 shadow-none"
+                    type="button"
+                    variant="ghost"
+                    aria-pressed="true"
+                >
+                    <BarcodeIcon aria-hidden="true" size={20} />
+                    <span className="min-w-0 text-sm leading-[1.65]">
+                        {t("scanModeBarcode")}
+                    </span>
+                </Button>
+                <Button
+                    className="bg-secondary text-muted-foreground min-h-11 min-w-0 rounded-lg px-3 py-2 opacity-70 shadow-none disabled:opacity-70"
+                    type="button"
+                    variant="ghost"
+                    aria-pressed="false"
+                    disabled
+                >
+                    <CameraIcon aria-hidden="true" size={20} />
+                    <span className="min-w-0 text-sm leading-[1.65]">
+                        {t("scanModeCamera")}
+                    </span>
+                </Button>
+            </div>
+
             <form
                 className="border-border bg-background mx-4 grid grid-cols-[minmax(0,1fr)_3.5rem] gap-x-1 gap-y-2 rounded-2xl border p-4 max-[23.5rem]:mx-[0.625rem] sm:mx-0 sm:grid-cols-[minmax(0,1fr)_4rem] sm:gap-x-2 sm:p-5"
                 noValidate
                 onSubmit={onSubmit}
             >
                 <Button
-                    className="text-primary hover:text-primary col-start-2 row-start-1 size-11 justify-self-center rounded-full border-0 bg-transparent p-0 hover:bg-transparent"
+                    className="text-primary hover:text-primary col-start-2 row-start-1 size-9 !min-h-0 justify-self-center rounded-full border-0 bg-transparent p-0 hover:bg-transparent [&_svg]:size-full"
                     variant="outline"
                     type="button"
                     aria-label={t(
@@ -371,7 +402,7 @@ export function HomePage({
                     )}
                     onClick={() => void i18n.changeLanguage(targetLanguage)}
                 >
-                    <span className="border-primary/45 bg-background grid size-9 place-items-center overflow-hidden rounded-full border">
+                    <span className="grid size-9 place-items-center rounded-full">
                         <LanguageFlag language={currentLanguage} />
                     </span>
                 </Button>
@@ -474,27 +505,22 @@ export function HomePage({
 function LanguageFlag({ language }: { language: "en" | "km" }) {
     if (language === "km") {
         return (
-            <svg
+            <img
+                alt=""
                 aria-hidden="true"
-                className="size-full overflow-hidden rounded-full"
+                className="size-full rounded-full object-cover"
                 data-language-flag="km"
-                preserveAspectRatio="xMidYMid slice"
-                viewBox="0 0 30 20"
-            >
-                <rect width="30" height="20" fill="#032ea1" />
-                <rect width="30" height="10" y="5" fill="#e00025" />
-                <path
-                    d="M7 14h16v-1H21v-1.3h-1V9.6l-1.6-1.4-1.5 1.4v1.1h-1V7.8L15 6.4l-.9 1.4v2.9h-1V9.6l-1.5-1.4L10 9.6v2.1H9V13H7v1Z"
-                    fill="#fff"
-                />
-            </svg>
+                height="640"
+                src="/flags/cambodia.svg"
+                width="1000"
+            />
         )
     }
 
     return (
         <svg
             aria-hidden="true"
-            className="size-full overflow-hidden rounded-full"
+            className="size-full overflow-hidden rounded-full object-cover"
             data-language-flag="en"
             preserveAspectRatio="xMidYMid slice"
             viewBox="0 0 30 20"

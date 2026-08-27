@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router"
 import { beforeEach, describe, expect, test, vi } from "vitest"
@@ -114,6 +114,36 @@ describe("camera barcode scanner", () => {
         expect(
             screen.queryByRole("button", { name: "Stop camera" }),
         ).not.toBeInTheDocument()
+    })
+
+    test("shows Barcode as the selected mode and keeps Camera disabled", async () => {
+        const user = userEvent.setup()
+        const stop = vi.fn()
+        startMock.mockResolvedValue({ stop })
+        const lookup = vi.fn<PackageMatchLookup>()
+        renderJourney(lookup)
+
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
+
+        const modeGroup = screen.getByRole("group", { name: "Scan method" })
+        const modeButtons = within(modeGroup).getAllByRole("button")
+
+        expect(modeButtons).toHaveLength(2)
+        expect(modeButtons[0]).toHaveAccessibleName("Barcode")
+        expect(modeButtons[0]).toHaveAttribute("aria-pressed", "true")
+        expect(modeButtons[0]).toBeEnabled()
+        expect(modeButtons[1]).toHaveAccessibleName("Camera")
+        expect(modeButtons[1]).toHaveAttribute("aria-pressed", "false")
+        expect(modeButtons[1]).toBeDisabled()
+
+        await user.click(modeButtons[1]!)
+
+        expect(modeButtons[0]).toHaveAttribute("aria-pressed", "true")
+        expect(modeButtons[1]).toHaveAttribute("aria-pressed", "false")
+        expect(startMock).toHaveBeenCalledTimes(1)
+        expect(
+            screen.getByRole("textbox", { name: "Barcode number" }),
+        ).toBeVisible()
     })
 
     test("shows a plain camera surface while scanner startup is still pending", async () => {

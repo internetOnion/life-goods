@@ -108,6 +108,56 @@
             "retrieved_at": "2026-08-24T10:00:00Z"
         },
         {
+            "field": "additive_tags",
+            "value": ["en:e322", "en:e330"],
+            "source_field": "additives_tags",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/4006381333931",
+            "language": null,
+            "observed_at": null,
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        },
+        {
+            "field": "manufacturing_places",
+            "value": "Cambodia",
+            "source_field": "manufacturing_places",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/4006381333931",
+            "language": "en",
+            "observed_at": null,
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        },
+        {
+            "field": "storage_instructions",
+            "value": "Keep in a cool, dry place",
+            "source_field": "conservation_conditions_en",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/4006381333931",
+            "language": "en",
+            "observed_at": null,
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        },
+        {
+            "field": "storage_instructions",
+            "value": "រក្សាទុកកន្លែងត្រជាក់ និងស្ងួត",
+            "source_field": "conservation_conditions_km",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/4006381333931",
+            "language": "km",
+            "observed_at": null,
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        },
+        {
+            "field": "halal_label_claim",
+            "value": ["en:halal"],
+            "source_field": "labels_tags",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/4006381333931",
+            "language": null,
+            "observed_at": null,
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        },
+        {
             "field": "nutrition",
             "value": { "energy_kcal_100g": 550, "sugars_100g": 23.4 },
             "source_field": "nutriments",

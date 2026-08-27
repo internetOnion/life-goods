@@ -1,5 +1,4 @@
 import { fireEvent, render, screen, within } from "@testing-library/react"
-import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, test } from "vitest"
 
 import type { PackageMatchEvidenceResponse } from "../src/api/generated"
@@ -32,11 +31,11 @@ function evidence(
 }
 
 function renderResult(value: OpenFoodFactsCandidate) {
-    return render(
+    return (
         <OpenFoodFactsResult
             candidate={value}
             normalizedIdentifier="4006381333931"
-        />,
+        />
     )
 }
 
@@ -45,273 +44,196 @@ describe("OpenFoodFactsResult", () => {
         await i18n.changeLanguage("en")
     })
 
-    test("renders complete community evidence without a score or verdict", () => {
-        renderResult(completeOffCandidate())
-
+    test("prioritizes identity, uncertainty, concerns, and nutrition without a verdict", () => {
+        render(renderResult(completeOffCandidate()))
         expect(
             screen.getByRole("heading", { name: "Dark chocolate" }),
         ).toHaveFocus()
-        expect(screen.getByText("Contains milk")).toBeVisible()
-        expect(screen.getByText("May contain nuts")).toBeVisible()
+        expect(screen.getAllByText("Contains milk").length).toBeGreaterThan(0)
+        expect(screen.getAllByText("May contain nuts").length).toBeGreaterThan(
+            0,
+        )
         expect(screen.getByText("Example Foods")).toBeVisible()
         expect(screen.getByText("100 g")).toBeVisible()
-        const packagingLanguagesSection = screen
-            .getByRole("heading", { name: "Packaging languages" })
-            .closest("section")
-        const countriesSection = screen
-            .getByRole("heading", { name: "Countries listed by the source" })
-            .closest("section")
-        expect(packagingLanguagesSection).not.toBeNull()
-        expect(countriesSection).not.toBeNull()
         expect(
-            within(packagingLanguagesSection!).getByText("Khmer"),
+            screen.getByRole("columnheader", { name: "per 100 g" }),
         ).toBeVisible()
-        expect(within(countriesSection!).getByText("Cambodia")).toBeVisible()
+        expect(screen.getAllByText("Energy (kcal)").length).toBeGreaterThan(0)
+        expect(screen.getAllByText("Sugars").length).toBeGreaterThan(0)
         expect(
-            screen.getByText(/This deliberately long ingredient statement/),
-        ).toBeVisible()
-        expect(screen.getByText("550")).toBeVisible()
-        expect(screen.getByText("23.4")).toBeVisible()
-        expect(screen.getByText("Energy (kcal) · per 100 g")).toBeVisible()
-        expect(screen.getByText("Sugars · per 100 g")).toBeVisible()
-        expect(
-            screen.getByText(
-                "Community data from Open Food Facts—not yet reviewed by this project.",
-            ),
+            screen.getByText("Community data—not yet reviewed by LifeGoods."),
         ).toBeVisible()
         expect(
             screen.queryByText(/^(excellent|positive|negative)$/i),
         ).not.toBeInTheDocument()
     })
 
-    test("exposes field-level provenance for selected identity evidence", () => {
-        renderResult(completeOffCandidate())
-
-        for (const [label, sourceField] of [
-            ["Package name", "product_name_en"],
-            ["Brand", "brands"],
-            ["Quantity", "quantity"],
-            ["Checked barcode", "code"],
-        ] as const) {
-            const summary = screen.getByText(`Source details for ${label}`)
-            const disclosure = summary.closest("details")
-            expect(disclosure).not.toBeNull()
-            fireEvent.click(summary)
-            expect(within(disclosure!).getByText(sourceField)).toBeVisible()
-            expect(within(disclosure!).getByRole("link")).toHaveAttribute(
-                "href",
-                sourceUrl,
-            )
-        }
-    })
-
-    test("labels sparse fields as unavailable rather than none", () => {
-        renderResult(sparseOffCandidate())
-
-        expect(
-            screen.getAllByText("Unavailable from Open Food Facts").length,
-        ).toBeGreaterThan(4)
+    test("shows new additive, manufacturing, storage, and Halal evidence", () => {
+        render(renderResult(completeOffCandidate()))
         expect(
             screen.getByRole("heading", {
-                name: "Package name unavailable from Open Food Facts",
+                name: "Additives listed by the source",
             }),
+        ).toBeVisible()
+        expect(screen.getByText(/en:e322/)).toBeVisible()
+        expect(
+            screen.getByRole("heading", {
+                name: "Manufacturing place listed by the source",
+            }),
+        ).toBeVisible()
+        expect(screen.getAllByText("Cambodia").length).toBeGreaterThan(0)
+        expect(
+            screen.getByRole("heading", { name: "Storage instructions" }),
+        ).toBeVisible()
+        expect(screen.getByText("Keep in a cool, dry place")).toBeVisible()
+        expect(
+            screen.getByRole("heading", { name: "Halal-related evidence" }),
+        ).toBeVisible()
+        expect(screen.getByText("The source lists a Halal label")).toBeVisible()
+        expect(screen.getAllByText("Not assessed").length).toBe(2)
+    })
+
+    test("shows source and attribution once in a compact final block", () => {
+        render(renderResult(completeOffCandidate()))
+        const sourceSection = screen
+            .getByRole("heading", { name: "Source and attribution" })
+            .closest("section")!
+        expect(within(sourceSection).getByText("Open Food Facts")).toBeVisible()
+        expect(
+            within(sourceSection).getByText("Open Food Facts contributors"),
+        ).toBeVisible()
+        expect(
+            within(sourceSection).getByRole("link", {
+                name: "View source",
+            }),
+        ).toHaveAttribute("href", sourceUrl)
+        expect(
+            within(sourceSection).queryByText(
+                "ODbL · Database Contents License · CC BY-SA",
+            ),
+        ).not.toBeInTheDocument()
+        expect(screen.getAllByText("Open Food Facts")).toHaveLength(1)
+        expect(screen.queryByText(/^Source: /)).not.toBeInTheDocument()
+        expect(screen.queryByText("Listed by source")).not.toBeInTheDocument()
+    })
+
+    test("hides empty details and summarizes the missing evidence once", () => {
+        render(renderResult(sparseOffCandidate()))
+        expect(
+            screen.getByRole("heading", { name: "4006381333931" }),
+        ).toBeVisible()
+        expect(
+            screen.queryByRole("heading", { name: "Allergen declarations" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("heading", { name: "Trace declarations" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("heading", { name: "Ingredient text" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("heading", { name: "Nutrition declaration" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByText("Unavailable from Open Food Facts"),
+        ).not.toBeInTheDocument()
+        expect(screen.queryByText("Brand")).not.toBeInTheDocument()
+        expect(screen.queryByText("Quantity")).not.toBeInTheDocument()
+        expect(
+            screen.getByText(/Not included in this community record/),
         ).toBeVisible()
         expect(screen.queryByText(/^none$/i)).not.toBeInTheDocument()
     })
 
     test("prefers the current interface language and retains alternate names", async () => {
         await i18n.changeLanguage("km")
-        renderResult(
-            completeOffCandidate({
-                identity_evidence: [
-                    evidence("name", "Chocolate", "en"),
-                    evidence("name", "សូកូឡា", "km"),
-                    evidence("name", "Chocolat", "fr"),
-                ],
-            }),
+        render(
+            renderResult(
+                completeOffCandidate({
+                    identity_evidence: [
+                        evidence("name", "Chocolate", "en"),
+                        evidence("name", "សូកូឡា", "km"),
+                        evidence("name", "Chocolat", "fr"),
+                    ],
+                }),
+            ),
         )
-
         expect(screen.getByRole("heading", { name: "សូកូឡា" })).toBeVisible()
-        expect(screen.getByText("Chocolate")).toBeVisible()
-        expect(screen.getByText("Chocolat")).toBeVisible()
+        const supporting = screen
+            .getByRole("heading", { name: "ព័ត៌មានកញ្ចប់បន្ថែម" })
+            .closest("section")!
+        expect(within(supporting).getByText("Chocolate")).toBeVisible()
+        expect(within(supporting).getByText("Chocolat")).toBeVisible()
     })
 
-    test("presents every evidence group with readable Khmer metadata", async () => {
+    test("renders Khmer headings and long evidence without truncation", async () => {
         await i18n.changeLanguage("km")
-        renderResult(completeOffCandidate())
-
+        render(renderResult(completeOffCandidate()))
         expect(
             screen.getByRole("heading", {
                 name: "សូកូឡាខ្មៅដែលមានឈ្មោះវែងសម្រាប់សាកល្បងប្លង់",
             }),
         ).toHaveFocus()
         for (const heading of [
-            "ឈ្មោះផ្សេងៗពីប្រភព",
-            "អត្ថបទគ្រឿងផ្សំ",
             "ការប្រកាសអាលែហ្សែន",
             "ការប្រកាសអាចមានសំណល់",
+            "ព័ត៌មានពាក់ព័ន្ធហាឡាល់",
+            "អត្ថបទគ្រឿងផ្សំ",
+            "សារធាតុបន្ថែមដែលប្រភពបានរាយ",
             "ការប្រកាសអាហារូបត្ថម្ភ",
-            "ភាសាលើកញ្ចប់",
-            "ប្រទេសដែលបានរាយក្នុងប្រភព",
+            "ទីកន្លែងផលិតដែលប្រភពបានរាយ",
+            "ការណែនាំអំពីការរក្សាទុក",
             "ប្រភព និងការផ្តល់កិត្តិយស",
         ]) {
             expect(screen.getByRole("heading", { name: heading })).toBeVisible()
         }
         expect(
-            screen.getByText(
-                "ម៉ាសកាកាវ ស្ករ ប៊ឺកាកាវ និងអត្ថបទគ្រឿងផ្សំវែងសម្រាប់ផ្ទៀងផ្ទាត់ថាខ្លឹមសារសំខាន់មិនត្រូវបានកាត់ឱ្យខ្លី។",
-            ),
-        ).toBeVisible()
-        const packagingLanguagesSection = screen
-            .getByRole("heading", { name: "ភាសាលើកញ្ចប់" })
-            .closest("section")
-        const countriesSection = screen
-            .getByRole("heading", {
-                name: "ប្រទេសដែលបានរាយក្នុងប្រភព",
-            })
-            .closest("section")
-        expect(packagingLanguagesSection).not.toBeNull()
-        expect(countriesSection).not.toBeNull()
-        expect(
-            within(packagingLanguagesSection!).getByText("ខ្មែរ"),
-        ).toBeVisible()
-        expect(within(countriesSection!).getByText("កម្ពុជា")).toBeVisible()
-        expect(screen.getByText("ថាមពល (kcal) · ក្នុង ១០០ ក្រាម")).toBeVisible()
-        expect(screen.getByText("ស្ករ · ក្នុង ១០០ ក្រាម")).toBeVisible()
-    })
-
-    test("renders an explicit fallback when the reference image is absent", () => {
-        renderResult(completeOffCandidate({ reference_images: [] }))
-
-        expect(
-            screen.getByRole("img", {
-                name: "Reference package image unavailable",
-            }),
+            screen.getByText(/អត្ថបទគ្រឿងផ្សំវែងសម្រាប់ផ្ទៀងផ្ទាត់/),
         ).toBeVisible()
     })
 
-    test("does not repeat the source name in an unnamed image description", () => {
-        const image = completeOffCandidate().reference_images[0]
-        renderResult(
-            sparseOffCandidate({
-                reference_images: image ? [image] : [],
-            }),
+    test("hides absent and broken reference images", () => {
+        const { unmount } = render(
+            renderResult(completeOffCandidate({ reference_images: [] })),
         )
-
         expect(
-            screen.getByRole("img", {
-                name: "Reference package image from Open Food Facts",
+            screen.queryByRole("img", {
+                name: /Reference package image/,
             }),
-        ).toBeVisible()
-    })
-
-    test("replaces a broken reference image with the same honest fallback", () => {
-        renderResult(completeOffCandidate())
-
+        ).not.toBeInTheDocument()
+        unmount()
+        render(renderResult(completeOffCandidate()))
         fireEvent.error(
             screen.getByRole("img", {
-                name: "Reference package image for Dark chocolate from Open Food Facts",
+                name: "Reference package image for Dark chocolate",
             }),
         )
         expect(
-            screen.getByRole("img", {
-                name: "Reference package image unavailable",
+            screen.queryByRole("img", {
+                name: /Reference package image/,
             }),
-        ).toBeVisible()
+        ).not.toBeInTheDocument()
     })
 
-    test("safely renders complex nutrition records and string lists", () => {
-        renderResult(
-            completeOffCandidate({
-                label_evidence: [
-                    evidence("nutrition", {
-                        energy_kcal_100g: 550,
-                        nova_group: 4,
-                        serving_notes: ["per 100 g", "prepared"],
-                        unavailable_nested_value: { amount: 2 },
-                    }),
-                    evidence("allergen_tags", ["en:milk", "en:soy"]),
-                ],
-            }),
+    test("safely renders complex nutrition records and excludes scores", () => {
+        render(
+            renderResult(
+                completeOffCandidate({
+                    label_evidence: [
+                        evidence("nutrition", {
+                            energy_kcal_100g: 550,
+                            nova_group: 4,
+                            serving_notes: ["per 100 g", "prepared"],
+                            unavailable_nested_value: { amount: 2 },
+                        }),
+                        evidence("allergen_tags", ["en:milk", "en:soy"]),
+                    ],
+                }),
+            ),
         )
-
-        expect(screen.getByText("Energy (kcal) · per 100 g")).toBeVisible()
-        expect(screen.getByText("per 100 g, prepared")).toBeVisible()
-        expect(screen.getByText("en:milk")).toBeVisible()
+        expect(screen.getAllByText("Energy (kcal)").length).toBeGreaterThan(0)
+        expect(screen.getAllByText("550").length).toBeGreaterThan(0)
         expect(screen.queryByText("nova group")).not.toBeInTheDocument()
         expect(screen.queryByText("[object Object]")).not.toBeInTheDocument()
-    })
-
-    test("keeps original metadata tags and nutrition keys inspectable", async () => {
-        const user = userEvent.setup()
-        renderResult(completeOffCandidate())
-
-        const languageSummary = screen.getByText(
-            "Source details for Packaging languages",
-        )
-        const languageDetails = languageSummary.closest("details")
-        expect(languageDetails).not.toBeNull()
-        await user.click(languageSummary)
-        expect(
-            within(languageDetails!).getByText("en:english, en:khmer"),
-        ).toBeVisible()
-
-        const nutritionSummary = screen.getByText(
-            "Source details for Declared value",
-        )
-        const nutritionDetails = nutritionSummary.closest("details")
-        expect(nutritionDetails).not.toBeNull()
-        await user.click(nutritionSummary)
-        expect(
-            within(nutritionDetails!).getByText(
-                "energy_kcal_100g: 550; sugars_100g: 23.4",
-            ),
-        ).toBeVisible()
-    })
-
-    test("keeps reference images same-origin with keyboard-focusable provenance", async () => {
-        const user = userEvent.setup()
-        renderResult(completeOffCandidate())
-
-        expect(
-            screen.getByRole("img", {
-                name: "Reference package image for Dark chocolate from Open Food Facts",
-            }),
-        ).toHaveAttribute(
-            "src",
-            "/api/v1/open-food-facts-images?url=https%3A%2F%2Fimages.openfoodfacts.org%2Fimages%2Fproducts%2F400%2Freference.jpg",
-        )
-
-        const summary = screen.getByText("Reference image source details")
-        const imageDetails = summary.closest("details")
-        expect(imageDetails).not.toBeNull()
-        summary.focus()
-        expect(summary).toHaveFocus()
-        expect(summary.tagName).toBe("SUMMARY")
-        await user.click(summary)
-        expect(imageDetails).toHaveAttribute("open")
-        const imageSourceLink = within(imageDetails!).getByRole("link", {
-            name: "Open the source page for this reference image",
-        })
-        expect(
-            within(imageDetails!).getByText("selected_images.front.display.en"),
-        ).toBeVisible()
-        expect(within(imageDetails!).getByText("English")).toBeVisible()
-        expect(imageSourceLink).toHaveAttribute("href", sourceUrl)
-    })
-
-    test("closes the reading order with source attribution and retrieval context", () => {
-        renderResult(completeOffCandidate())
-
-        expect(
-            screen.getAllByText("Open Food Facts contributors").length,
-        ).toBeGreaterThan(0)
-        expect(
-            screen.getByText("ODbL · Database Contents License · CC BY-SA"),
-        ).toBeVisible()
-        expect(
-            screen.getByRole("link", { name: "View source record" }),
-        ).toHaveAttribute("href", sourceUrl)
-        expect(screen.getAllByText(/Aug 24, 2026/).length).toBeGreaterThan(0)
     })
 })

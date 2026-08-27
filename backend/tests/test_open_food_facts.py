@@ -84,6 +84,16 @@ def test_complete_record_is_returned_with_source_metadata_and_raw_response() -> 
     assert result.record.allergen_declaration.language == "en"
     assert result.record.trace_declaration is not None
     assert result.record.trace_declaration.language == "en"
+    assert result.record.additives is not None
+    assert result.record.additives.value == ("en:e322", "en:e330")
+    assert result.record.manufacturing_places is not None
+    assert result.record.manufacturing_places.value == "Cambodia"
+    assert [(item.value, item.language) for item in result.record.storage_conditions] == [
+        ("Keep in a cool, dry place", "en"),
+        ("រក្សាទុកកន្លែងត្រជាក់ និងស្ងួត", "km"),
+    ]
+    assert result.record.halal_label_claim is not None
+    assert result.record.halal_label_claim.value == ("en:halal",)
     assert len(result.record.selected_images) == 3
     assert {value.source_field: value.value for value in result.record.nutrition} == {
         "nutriments": {"energy-kcal_100g": 598, "fat_100g": 43},
@@ -101,7 +111,14 @@ def test_complete_record_is_returned_with_source_metadata_and_raw_response() -> 
     assert set(request.url.params["fields"].split(",")) == {
         "allergens",
         "allergens_tags",
+        "additives_tags",
         "brands",
+        "conservation_conditions",
+        "conservation_conditions_en",
+        "conservation_conditions_km",
+        "conservation_conditions_th",
+        "conservation_conditions_vi",
+        "conservation_conditions_zh",
         "code",
         "countries_tags",
         "ingredients_text",
@@ -112,7 +129,9 @@ def test_complete_record_is_returned_with_source_metadata_and_raw_response() -> 
         "ingredients_text_zh",
         "lang",
         "languages_tags",
+        "labels_tags",
         "last_modified_t",
+        "manufacturing_places",
         "nutriments",
         "nutrition_data_per",
         "nutrition_data_prepared_per",
@@ -157,6 +176,10 @@ def test_sparse_record_keeps_missing_evidence_absent() -> None:
     assert result.record.allergen_tags is None
     assert result.record.trace_declaration is None
     assert result.record.trace_tags is None
+    assert result.record.additives is None
+    assert result.record.manufacturing_places is None
+    assert result.record.storage_conditions == ()
+    assert result.record.halal_label_claim is None
     assert result.record.nutrition == ()
     assert result.record.packaging_languages is not None
     assert result.record.packaging_languages.value == ("en:thai",)

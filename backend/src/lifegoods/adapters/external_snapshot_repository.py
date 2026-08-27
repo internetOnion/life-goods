@@ -228,6 +228,9 @@ def _field_evidence(record: ExternalPackageRecord) -> tuple[ExternalFieldEvidenc
         ("allergen_tags", record.allergen_tags),
         ("trace_declaration", record.trace_declaration),
         ("trace_tags", record.trace_tags),
+        ("additive_tags", record.additives),
+        ("manufacturing_places", record.manufacturing_places),
+        ("halal_label_claim", record.halal_label_claim),
         ("packaging_languages", record.packaging_languages),
         ("countries_sold", record.countries_sold),
     ):
@@ -235,6 +238,14 @@ def _field_evidence(record: ExternalPackageRecord) -> tuple[ExternalFieldEvidenc
             evidence.append(
                 _sourced_value(record, ExternalEvidenceCategory.LABEL, mapped_field, value)
             )
+    evidence.extend(
+        _sourced_values(
+            record,
+            ExternalEvidenceCategory.LABEL,
+            "storage_instructions",
+            record.storage_conditions,
+        )
+    )
     evidence.extend(
         _sourced_values(
             record,

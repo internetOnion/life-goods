@@ -30,6 +30,12 @@
     "allergens_tags": ["en:milk"],
     "traces": "en:nuts",
     "traces_tags": ["en:nuts"],
+    "additives_tags": ["en:e322", "en:e330"],
+    "manufacturing_places": "Cambodia",
+    "conservation_conditions": "Keep in a cool, dry place",
+    "conservation_conditions_en": "Keep in a cool, dry place",
+    "conservation_conditions_km": "រក្សាទុកកន្លែងត្រជាក់ និងស្ងួត",
+    "labels_tags": ["en:halal", "en:organic"],
     "nutriments": {
       "energy-kcal_100g": 598,
       "fat_100g": 43,

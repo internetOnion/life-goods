@@ -203,14 +203,14 @@ export function PackageMatchResultPage({
                 tabIndex={-1}
                 onKeyDown={keepFocusInside}
             >
-                <div className="border-border bg-background relative z-20 flex min-h-16 shrink-0 items-center justify-center border-b px-16 pt-[env(safe-area-inset-top)] sm:min-h-14 sm:pt-0">
+                <div className="border-border bg-background relative z-20 flex min-h-16 shrink-0 items-center justify-center border-b px-16 sm:min-h-14">
                     <span
                         className="bg-muted-foreground/65 absolute top-2.5 h-1 w-14 rounded-full sm:hidden"
                         aria-hidden="true"
                     />
-                    <p className="text-muted-foreground font-mono text-sm tracking-wide wrap-anywhere tabular-nums">
-                        {normalizedIdentifier}
-                    </p>
+                    <h1 className="text-lg leading-[1.7] font-semibold">
+                        {t("productDetailsTitle")}
+                    </h1>
                     <Button
                         className="text-foreground hover:bg-muted absolute right-2 size-11 rounded-full p-0"
                         variant="ghost"

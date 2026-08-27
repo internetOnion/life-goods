@@ -55,9 +55,9 @@ class ConfirmedNoMatchSource:
 
 @pytest.mark.parametrize("fixture_name", ["off_complete.json", "off_sparse.json"])
 def test_shared_off_candidate_fixtures_match_the_api_contract(fixture_name: str) -> None:
-    PackageMatchCandidateResponse.model_validate_json(
-        (PACKAGE_MATCH_FIXTURES / fixture_name).read_text()
-    )
+        PackageMatchCandidateResponse.model_validate_json(
+            (PACKAGE_MATCH_FIXTURES / fixture_name).read_text(encoding="utf-8")
+        )
 
 
 def evidence_record(number: int) -> EvidenceRecord:
