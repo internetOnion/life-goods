@@ -19,39 +19,27 @@ pnpm backend:sync
 
 ## Run locally
 
-### 1. Start databases and apply PostgreSQL migrations
-
-Start both PostgreSQL and MongoDB containers:
+Start PostgreSQL and MongoDB, then apply the relational migration:
 
 ```bash
-docker compose -f infra/compose.yaml up -d
+docker compose -f infra/compose.yaml up -d postgres mongodb
 pnpm db:migrate
 ```
 
-PostgreSQL is exposed on port `5433` and MongoDB on port `27018`. Data is stored in named Docker volumes (`lifegoods-postgres` and `lifegoods-mongodb`) and persists across `docker compose down`.
+Package Match requires an Active OFF Dataset Version. Importing the full global export is
+an explicit operator action; see [`docs/OFF_DATASET.md`](docs/OFF_DATASET.md) for the
+sample workflow, production-sized import, validation, activation, rollback, and backup gate.
 
-### 2. Populate the Open Food Facts dataset (Initial setup)
-
-The FastAPI backend uses MongoDB as a local read-only mirror for Open Food Facts data. Import and activate the dataset:
+The FastAPI backend uses MongoDB with a read-only application credential. Dataset commands
+use the separate operator credential:
 
 ```bash
 pnpm off:dataset -- import-url
-```
-
-The command streams, verifies, and indexes the export into a versioned MongoDB collection, then outputs a JSON manifest containing the new version `_id`. Activate that version:
-
-```bash
+pnpm off:dataset -- list
 pnpm off:dataset -- activate <version_id>
 ```
 
-> Additional dataset management commands:
-> - `pnpm off:dataset -- list`: List all imported dataset versions and their statuses.
-> - `pnpm off:dataset -- revalidate <version_id>`: Re-validate an existing dataset version against current checks without re-downloading.
-> - `pnpm off:dataset -- delete <version_id>`: Delete an inactive dataset version and drop its collection.
-> - `pnpm off:dataset -- rollback`: Roll back to the immediately preceding active version.
-> - `pnpm off:dataset -- prune`: Remove old inactive versions (retaining active and previous versions).
-
-### 3. Start development servers
+Additional lifecycle commands are documented in `docs/OFF_DATASET.md`.
 
 Start the API and Web Client in separate terminals. Use HTTP for ordinary local development:
 
@@ -102,4 +90,3 @@ pnpm api:generate
 See [`docs/REPOSITORY.md`](docs/REPOSITORY.md) for the planned monorepo structure and branch workflow.
 
 Khmer interface copy in this first slice is an implementation draft and requires the language review called for by issue #4 before production release.
-

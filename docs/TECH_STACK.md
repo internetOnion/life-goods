@@ -44,8 +44,8 @@ The first implementation milestone is a known-barcode-to-evidence-backed-package
 - Use Neon-managed PostgreSQL in Singapore.
 - Keep all catalog and durable data access behind FastAPI; the browser must never connect directly to PostgreSQL.
 - Keep repositories and application services separate from HTTP route handlers.
-- Begin with Product, Package Variant, External Identifier, External Snapshot, Claim, Evidence, and field-level provenance.
-- Preserve raw Open Food Facts snapshots in JSONB with their source URL, retrieval time, source revision, response hash, attribution, and license metadata.
+- Begin with Product, Package Variant, External Identifier, Claim, Evidence, and field-level provenance.
+- Serve a manually activated OFF Dataset Version from a separate read-only MongoDB database. Preserve full external documents and an immutable manifest with source URL, retrieval and activation times, integrity hash, counts, schema versions, attribution, and license metadata.
 - Enforce domain invariants through PostgreSQL constraints and reviewed Alembic SQL migrations.
 
 ## Public API
@@ -93,7 +93,7 @@ Use pytest for MVP unit and API/database integration coverage of:
 
 - Identifier check digits and normalization.
 - Open Food Facts mapping and missing-field semantics.
-- External snapshots and field-level provenance.
+- OFF Dataset Version import, validation, activation, rollback, and field-level provenance.
 - PostgreSQL constraints and transactions.
 - API validation and error responses.
 - Job retries, idempotency, timeouts, and partial extraction results.
