@@ -24,6 +24,8 @@ LifeGoods is an evidence-scoped package-label guide for Cambodian shoppers. Its 
 
 Open Food Facts and other external records remain attributed external evidence. Internally reviewed Claims remain distinguishable from community data, and a barcode or reference image produces a Package Match candidate rather than proof that the shopper holds the same Package Revision.
 
+MVP-1 uses Product records only from a project-hosted Open Food Facts Dataset Version. It may prioritize evidence-scoped Allergen, Halal Ingredient, and Additive Assessments produced from separately activated, human-reviewed reference datasets, but neither local hosting nor reference approval reviews or verifies the Product. Ingredient descriptions and Learn content are English-first in MVP-1; Khmer translation follows in the next version.
+
 ## Operating Context
 
 - The primary journey occurs on a mobile device while a shopper is handling a physical package in a Cambodian store or market.
@@ -59,9 +61,9 @@ LifeGoods must not resemble promotional wellness marketing built around purity l
 - The repository specifications, domain glossary, data model, ADRs, user stories, and research documents are the authoritative evidence for product behavior and terminology.
 - The existing Figma concept remains an evolving structural reference rather than an exact visual specification.
 - The following user-supplied mobile screenshots are visual references for future design work:
-  - `C:/Users/Lenovo/AppData/Local/Temp/codex-clipboard-b8c7f600-c459-463b-a1ca-51c2a1465aa0.png`
-  - `C:/Users/Lenovo/AppData/Local/Temp/codex-clipboard-44a48a6d-ee36-4c00-aaf6-ba04d8d9a169.png`
-  - `C:/Users/Lenovo/AppData/Local/Temp/codex-clipboard-99d064af-cbc5-4be2-91ad-a74e997ae465.png`
+    - `C:/Users/Lenovo/AppData/Local/Temp/codex-clipboard-b8c7f600-c459-463b-a1ca-51c2a1465aa0.png`
+    - `C:/Users/Lenovo/AppData/Local/Temp/codex-clipboard-44a48a6d-ee36-4c00-aaf6-ba04d8d9a169.png`
+    - `C:/Users/Lenovo/AppData/Local/Temp/codex-clipboard-99d064af-cbc5-4be2-91ad-a74e997ae465.png`
 - No final coconut artwork, detailed palette, type system, or component language has been approved. Those remain decisions for subsequent visual-world and implementation work.
 
 ## Product Principles

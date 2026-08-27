@@ -21,7 +21,7 @@ A deferred post-MVP role for a person who offers evidence for possible shared ca
 _Avoid_: MVP shopper, Telegram user
 
 **Moderator**:
-An authenticated project-team member who reviews claims, evidence, catalog candidates, and conflicts under an auditable policy.
+A deferred post-MVP authenticated project-team member who reviews Claims, Evidence, Catalog Candidates, and conflicts under an auditable policy.
 _Avoid_: Community verifier, admin
 
 ## Product identity
@@ -85,7 +85,7 @@ A concise Khmer display name linked to source text and any Normalized Ingredient
 _Avoid_: Ingredient description, rewritten ingredient list
 
 **Ingredient Explainer**:
-A reusable Khmer description of a Normalized Ingredient's identity, common function, relevant evidence, and uncertainty, opened on demand.
+A reusable, language-tagged description of a Normalized Ingredient's identity, common function, relevant evidence, and uncertainty, opened on demand.
 _Avoid_: Product warning, per-product translation
 
 **Date Marking**:
@@ -154,14 +154,30 @@ _Avoid_: Mutable warning calculation
 A third-party source such as Open Food Facts whose fields and images remain individually attributed, dated, and distinguishable from project-reviewed Claims.
 _Avoid_: Imported Product truth, silent data merge
 
+**OFF Dataset Version**:
+An immutable, identified export of Open Food Facts Product documents with its source location, retrieval time, and integrity hash. Its age limits what it can say about upstream Open Food Facts, but does not erase its value as dated external Evidence.
+_Avoid_: Current OFF data, reviewed catalog, local Product truth
+
+**Active OFF Dataset Version**:
+The OFF Dataset Version selected for Package Match lookup until an operator explicitly activates another version. Active means locally selected, not synchronized with or verified by Open Food Facts.
+_Avoid_: Latest OFF data, live mirror, source of truth
+
+**Reference Dataset Version**:
+An immutable, human-reviewed release of sourced concepts, mappings, rules, descriptions, or Knowledge Entries used to interpret Evidence. Its approval applies to that reference release and never reviews or verifies a Product record.
+_Avoid_: Verified Product data, universal truth list, mutable lookup table
+
+**Active Reference Dataset Version**:
+The Reference Dataset Version explicitly selected for an assessment purpose. Active means approved for that scoped use, not universally authoritative or applicable outside its recorded jurisdiction and effective period.
+_Avoid_: Current truth, globally valid rule, Product approval
+
 ## Vocabulary, translation, and education
 
 **Reviewed Safety Vocabulary**:
-A versioned set of human-reviewed Khmer names, explanations, critical phrases, and multilingual source synonyms for allergens and additives.
-_Avoid_: AI glossary, timeless Codex 14 list
+A versioned set of human-reviewed concepts, source terms, synonyms, derivative mappings, explanations, and critical phrases used by Allergen, Halal Ingredient, and Additive Assessments.
+_Avoid_: AI glossary, universal allergen list, global Halal truth list
 
 **Vocabulary Review State**:
-The editorial state `AI_DRAFT`, `IN_LANGUAGE_REVIEW`, `IN_DOMAIN_REVIEW`, `APPROVED`, `REJECTED`, or `SUPERSEDED`. Only `APPROVED` wording may be presented as reviewed safety guidance.
+A deferred granular editorial state for future authoring: `AI_DRAFT`, `IN_LANGUAGE_REVIEW`, `IN_DOMAIN_REVIEW`, `APPROVED`, `REJECTED`, or `SUPERSEDED`. MVP-1 approval applies to an immutable Reference Dataset Version rather than a runtime per-entry workflow.
 _Avoid_: AI confidence, translated
 
 **Safety Vocabulary Match**:
@@ -169,7 +185,7 @@ A traceable mapping from original Label Transcription to an approved canonical a
 _Avoid_: Translation match, AI safety guess
 
 **Knowledge Entry**:
-A reusable, versioned Khmer-first explanation linked to a canonical ingredient, allergen, additive, date, or certification concept, with sources, review state, and jurisdiction where relevant.
+A reusable, versioned, language-tagged explanation linked to a canonical ingredient, allergen, additive, date, or certification concept, with sources, review state, and jurisdiction where relevant.
 _Avoid_: Scraped article, Product description, uncited AI content
 
 **Contextual Explainer**:
@@ -194,6 +210,10 @@ _Avoid_: Halal certified, safe for Muslims
 An assessment identifying a declared additive, function, and any regulatory status demonstrably applicable by jurisdiction, food category, concentration when known, and effective period. Otherwise it provides a neutral explainer.
 _Avoid_: Hazard Flag, dangerous chemical badge
 
+**International Reference Concern**:
+An Additive Assessment outcome indicating that declared evidence exceeds a reviewed international reference when no applicable Cambodian rule is available. It is not a Cambodian legal or Compliance Assessment.
+_Avoid_: Illegal additive, Cambodia limit violation, global law
+
 **Critical Declared Concern**:
 A prominent indication that label evidence declares an allergen, explicit non-Halal ingredient, or passed expiry date. It does not imply independent testing.
 _Avoid_: Universal Warning, confirmed hazard
@@ -207,7 +227,7 @@ A prioritized presentation of declared concerns, uncertainty, Khmer label facts,
 _Avoid_: Product recommendation, safety verdict
 
 **Dietary Preference Profile**:
-An optional, locally stored configuration that prioritizes matching concerns without onboarding or an account. It never hides other critical concerns or uncertainty.
+An optional device-local selection of supported reviewed allergens that prioritizes matching concerns without onboarding or an account. It never changes assessment logic or hides other critical concerns or uncertainty.
 _Avoid_: Mandatory profile, medical record
 
 ## Certification and regulation

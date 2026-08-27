@@ -2,6 +2,8 @@
 
 This model implements the domain vocabulary in [`CONTEXT.md`](../CONTEXT.md) and the MVP behavior in [`SPEC.md`](SPEC.md). It is technology-neutral at the conceptual level and relational at the logical level.
 
+The Product/Package Variant/Package Revision/Claim model remains the post-MVP target for project-reviewed catalog evidence. MVP-1 serves Product records only from the Active OFF Dataset Version and uses a separate PostgreSQL reference-data model for reviewed assessment inputs; activating reference data never reviews an OFF Product.
+
 ## 1. Modeling principles
 
 1. **A barcode is a lookup key, not Product identity.** Product, Package Variant, Package Revision, Observed Package, and Batch use separate immutable internal IDs.
@@ -12,6 +14,7 @@ This model implements the domain vocabulary in [`CONTEXT.md`](../CONTEXT.md) and
 6. **Physical-package data stays physical.** Concrete dates and lot codes belong to Observed Packages or Batches, not Products.
 7. **External data remains external in provenance.** Open Food Facts fields and images retain source, retrieval, revision, attribution, and license metadata.
 8. **Private Package Capture is not catalog ingestion.** MVP shopper media and output remain in an isolated ephemeral store and expire within 24 hours.
+9. **Reference review is not Product review.** Human approval of an allergen mapping, Halal ingredient mapping, additive rule, explanation, or Knowledge Entry applies only to that immutable reference version.
 
 ## 2. Core catalog and provenance model
 
@@ -21,15 +24,17 @@ Source: [`diagrams/data-model-core.mmd`](diagrams/data-model-core.mmd)
 
 ### Product hierarchy
 
-| Entity | Purpose | Important fields and constraints |
-|---|---|---|
-| `Product` | Stable consumer-recognizable offering | Immutable `id`; contains no barcode, current ingredients, expiry date, or global verification status |
-| `PackageVariant` | Market/quantity/language form of a Product | `product_id`; intended market; original quantity text; normalized quantity/unit; multipack and drained-weight structure |
-| `ExternalIdentifier` | GTIN, UPC, or other lookup identifier | `package_variant_id`; scheme; normalized value; check-digit/validation state; evidence; optional effective period; unique by scheme/value only when not disputed |
-| `PackageRevision` | Historical label/formulation of a Package Variant | `package_variant_id`; observed period; never overwritten by a later formulation |
-| `ObservedPackage` | Evidence from one physical package | optional matched revision; observed time; evidence coverage; optional coarse Market Observation for project-owned catalog work |
-| `Batch` | Manufacturer lot grouping | lot code; concrete date Claims; may group several Observed Packages |
-| `CatalogCandidate` | Internal moderation proposal | target type; proposed identity; status; created/reviewed by project team only |
+The hierarchy below is retained as the post-MVP reviewed-catalog model. MVP-1 must not create production Product Claims, Preferred Claims, Unresolved Conflicts, reviewed Package Revisions, or local-primary ranking from OFF insertion or reference-data activation.
+
+| Entity               | Purpose                                           | Important fields and constraints                                                                                                                                 |
+| -------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Product`            | Stable consumer-recognizable offering             | Immutable `id`; contains no barcode, current ingredients, expiry date, or global verification status                                                             |
+| `PackageVariant`     | Market/quantity/language form of a Product        | `product_id`; intended market; original quantity text; normalized quantity/unit; multipack and drained-weight structure                                          |
+| `ExternalIdentifier` | GTIN, UPC, or other lookup identifier             | `package_variant_id`; scheme; normalized value; check-digit/validation state; evidence; optional effective period; unique by scheme/value only when not disputed |
+| `PackageRevision`    | Historical label/formulation of a Package Variant | `package_variant_id`; observed period; never overwritten by a later formulation                                                                                  |
+| `ObservedPackage`    | Evidence from one physical package                | optional matched revision; observed time; evidence coverage; optional coarse Market Observation for project-owned catalog work                                   |
+| `Batch`              | Manufacturer lot grouping                         | lot code; concrete date Claims; may group several Observed Packages                                                                                              |
+| `CatalogCandidate`   | Internal moderation proposal                      | target type; proposed identity; status; created/reviewed by project team only                                                                                    |
 
 ### Names, quantities, and categories
 
@@ -66,17 +71,17 @@ Manufacture origin is its own Claim. Brand country and GS1 prefix must never pop
 
 A logical `Claim` contains:
 
-| Field | Meaning |
-|---|---|
-| `id` | Immutable internal identifier |
+| Field                         | Meaning                                                                                                                    |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `id`                          | Immutable internal identifier                                                                                              |
 | `subject_kind` / `subject_id` | Product, Package Variant, Package Revision, Observed Package, Batch, Organization, Certificate, or other supported subject |
-| `predicate` | Stable vocabulary such as `product.name`, `package.ingredients_declared`, or `batch.expiry_date` |
-| `value_json` | Typed value encoded according to the predicate schema |
-| `production_method` | `HUMAN_ENTRY`, `AI_EXTRACTION`, `EXTERNAL_IMPORT`, `RULE_DERIVATION`, or `REGISTRY_LOOKUP` |
-| `review_state` | `PROPOSED`, `ACCEPTED`, `DISPUTED`, `REJECTED`, `SUPERSEDED`, or `WITHDRAWN` |
-| `confidence` | Method confidence, never a substitute for review or authority |
-| `created_at` | Claim creation time |
-| `supersedes_claim_id` | Optional historical relationship |
+| `predicate`                   | Stable vocabulary such as `product.name`, `package.ingredients_declared`, or `batch.expiry_date`                           |
+| `value_json`                  | Typed value encoded according to the predicate schema                                                                      |
+| `production_method`           | `HUMAN_ENTRY`, `AI_EXTRACTION`, `EXTERNAL_IMPORT`, `RULE_DERIVATION`, or `REGISTRY_LOOKUP`                                 |
+| `review_state`                | `PROPOSED`, `ACCEPTED`, `DISPUTED`, `REJECTED`, `SUPERSEDED`, or `WITHDRAWN`                                               |
+| `confidence`                  | Method confidence, never a substitute for review or authority                                                              |
+| `created_at`                  | Claim creation time                                                                                                        |
+| `supersedes_claim_id`         | Optional historical relationship                                                                                           |
 
 For a relational implementation, use typed subject junction tables or nullable typed foreign keys with a `CHECK` constraint requiring exactly one subject. Do not rely on an unconstrained polymorphic ID.
 
@@ -129,20 +134,13 @@ Source: [`diagrams/data-model-assessment.mmd`](diagrams/data-model-assessment.mm
 
 ### Reviewed Safety Vocabulary
 
-`VocabularyVersion` is immutable after publication. It contains `VocabularyEntry` records for canonical ingredients, allergens, additives, critical phrases, and Khmer explanations.
+`VocabularyVersion` is immutable after publication. It contains `VocabularyEntry` records for canonical ingredients, allergens, additives, critical phrases, and language-tagged explanations.
 
-`VocabularyEntry.review_state` is one of:
-
-- `AI_DRAFT`
-- `IN_LANGUAGE_REVIEW`
-- `IN_DOMAIN_REVIEW`
-- `APPROVED`
-- `REJECTED`
-- `SUPERSEDED`
+MVP-1 activates an immutable Reference Dataset Version after one-time qualified human review; it does not require a runtime per-entry moderation state machine. Invalid, unsupported, or ambiguous mappings are excluded from automatic matching or retained as non-driving uncertainty metadata. Corrections create a new version.
 
 `VocabularySynonym` maps reviewed source terms and derivatives in Khmer, English, Vietnamese, Simplified Chinese, and Thai to a canonical entry. Store relationship type such as `EXACT_NAME`, `SPELLING_VARIANT`, `DERIVED_FROM`, `CONTAINS_SOURCE`, or `PRECAUTIONARY_PHRASE`.
 
-`SafetyVocabularyMatch` links an exact original transcription span to the approved synonym that matched it. The Khmer Ingredient Name is presentation only and is not the safety input.
+`SafetyVocabularyMatch` links an exact original transcription span to the mapping in the Active Reference Dataset Version that matched it. Any translated name or Ingredient Explainer is presentation only and is not the assessment input.
 
 ### Rules and assessments
 
@@ -161,12 +159,12 @@ Source: [`diagrams/data-model-assessment.mmd`](diagrams/data-model-assessment.mm
 
 Required outcome families:
 
-| Assessment | Outcomes |
-|---|---|
-| Allergen | `DECLARED_CONTAINS`, `DECLARED_MAY_CONTAIN`, `DERIVED_FROM_INGREDIENT`, `NO_DECLARATION_DETECTED_IN_READABLE_LABEL`, `LABEL_INCOMPLETE_OR_UNREADABLE`, `NOT_ASSESSED` |
+| Assessment       | Outcomes                                                                                                                                                              |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Allergen         | `DECLARED_CONTAINS`, `DECLARED_MAY_CONTAIN`, `DERIVED_FROM_INGREDIENT`, `NO_DECLARATION_DETECTED_IN_READABLE_LABEL`, `LABEL_INCOMPLETE_OR_UNREADABLE`, `NOT_ASSESSED` |
 | Halal ingredient | `EXPLICIT_PROHIBITED_INGREDIENT_DECLARED`, `SOURCE_AMBIGUOUS`, `NO_NON_HALAL_INGREDIENT_DETECTED_IN_READABLE_LABEL`, `LABEL_INCOMPLETE_OR_UNREADABLE`, `NOT_ASSESSED` |
-| Additive | `IDENTIFIED`, `RULE_APPLIES`, `CONCENTRATION_UNKNOWN`, `CATEGORY_UNCERTAIN`, `NEUTRAL_EXPLAINER_ONLY`, `NOT_ASSESSED` |
-| Date | `DATE_HAS_PASSED`, `DATE_HAS_NOT_PASSED`, `DATE_MEANING_UNCERTAIN`, `NOT_ASSESSED` |
+| Additive         | `IDENTIFIED`, `RULE_APPLIES`, `CONCENTRATION_UNKNOWN`, `CATEGORY_UNCERTAIN`, `INTERNATIONAL_REFERENCE_CONCERN`, `NEUTRAL_EXPLAINER_ONLY`, `NOT_ASSESSED`              |
+| Date             | `DATE_HAS_PASSED`, `DATE_HAS_NOT_PASSED`, `DATE_MEANING_UNCERTAIN`, `NOT_ASSESSED`                                                                                    |
 
 Absence-style outcomes require complete readable evidence. A partial label cannot produce `NO_DECLARATION_DETECTED_IN_READABLE_LABEL`.
 
@@ -192,18 +190,44 @@ Nutrition Visualization is deferred, but normalized values may be retained when 
 
 ## 6. External-source model
 
-`ExternalSource` records source name, type, base URL, license, attribution requirement, and terms version. `ExternalSnapshot` records source record ID, request/source URL, retrieval time, source revision, response hash, and optionally the raw response needed for audit.
+External source metadata includes source name, type, base URL, license, attribution requirement, and terms version. An `OFF Dataset Version` manifest records a stable version ID, official export URL, retrieval and activation times, compressed-stream integrity hash, byte and document counts, observed schema versions, validation results, and immutable MongoDB collection name. The full source document plus this manifest is the external Evidence record; LifeGoods does not duplicate lookup snapshots or OFF Product Claims in PostgreSQL.
 
 For Open Food Facts:
 
-- map each non-empty field to proposed Claims with field-level provenance;
+- expose each eligible non-empty field as cited external Evidence in MVP-1; future reviewed-catalog ingestion may separately propose Claims;
 - preserve selected image attribution and source URLs;
 - record `last_modified_t` or equivalent source revision data;
+- identify every returned field with the OFF Dataset Version from which it was read;
 - never create negative Claims from missing fields;
 - never derive manufacture origin from the GS1 prefix;
 - keep OFF-only results distinguishable in queries and UI.
 
-## 7. Ephemeral shopper boundary
+## 7. Assessment reference-data model
+
+Reference data is relational and separately versioned in PostgreSQL:
+
+| Entity                    | Purpose                                                                                                                            |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `ReferenceSource`         | Source identity, URL, license/reuse decision, jurisdiction, publisher, edition, and terms metadata                                 |
+| `ReferenceDatasetVersion` | Immutable import with retrieval time, integrity hash, validation results, reviewer, review date, activation time, and supersession |
+| `ReferenceConcept`        | Stable allergen, ingredient, additive, chemical, rule, or educational concept identifier                                           |
+| `LexicalMapping`          | Language-tagged exact term, synonym, precautionary phrase, or reviewed derivative mapping to a Reference Concept                   |
+| `AllergenRule`            | Codex baseline or separately scoped jurisdiction-specific declaration/derivative rule                                              |
+| `HalalIngredientMapping`  | Project-authored explicit-prohibited or source-ambiguous mapping with cited rule basis                                             |
+| `AdditiveRule`            | Cambodian or separately labeled international-reference rule with food category, effective period, limit, and unit                 |
+| `IngredientDescription`   | Project-authored language-tagged neutral explanation linked to stable concepts and citations                                       |
+| `KnowledgeEntry`          | Locally hosted contextual explanation released through the same versioned source/review boundary                                   |
+
+Invariants:
+
+- Only an Active Reference Dataset Version may drive an automated assessment.
+- Cambodian rules, Codex international references, jurisdiction-specific allergen rules, external lexical taxonomies, ontologies, and project-authored wording remain separate source sets.
+- Activation is manual and atomic; corrections create a new immutable version and the previous valid version remains available for rollback.
+- Every Assessment Run records the exact reference versions, rules, mappings, and original OFF Evidence used.
+- A reference-data record cannot create a Product, reviewed Package Revision, accepted Product Claim, Preferred Claim, or Product verification state.
+- Missing, ambiguous, inapplicable, or unavailable reference data produces Evidence Uncertainty or `NOT_ASSESSED`.
+
+## 8. Ephemeral shopper boundary
 
 The MVP uses a physically or logically separate ephemeral store for `ShopperSession`, `PackageCaptureJob`, temporary `CaptureMedia`, private `ExtractionRun`, and private result data.
 
@@ -218,15 +242,15 @@ Invariants:
 
 Catalog ingestion uses project-owned or separately licensed evidence through a distinct internal workflow.
 
-## 8. AI provenance
+## 9. AI provenance
 
 `ExtractionRun` records provider, model, prompt version, schema version, processing time, status, latency, failure reason, raw structured output, and proposed Claims/translations. It links to every input Evidence item.
 
 Model choice is configuration, not a domain status. Benchmark results should be stored in a separate evaluation dataset containing expected transcriptions and assessments, without mixing evaluation media into shopper Package Capture.
 
-## 9. Moderation and audit
+## 10. Moderation and audit
 
-Every moderator action records actor, action type, subject, before/after state, reason, evidence/rule references, and timestamp. MVP Moderators may:
+Product catalog moderation is post-MVP. When introduced, every moderator action records actor, action type, subject, before/after state, reason, evidence/rule references, and timestamp. Moderators may:
 
 - accept, dispute, reject, or supersede Claims;
 - create or split Package Revisions;
@@ -235,7 +259,7 @@ Every moderator action records actor, action type, subject, before/after state, 
 
 Moderator acceptance is not authoritative-source confirmation. Store authoritative confirmation as a separate verification event with source evidence.
 
-## 10. Key database invariants
+## 11. Key database invariants
 
 1. A Product has no barcode, expiry date, ingredient list, or verification-status column.
 2. Every active Package Revision belongs to exactly one Package Variant.
@@ -247,14 +271,17 @@ Moderator acceptance is not authoritative-source confirmation. Store authoritati
 8. External Claims retain source, retrieval time, and license metadata.
 9. A seal observation cannot imply certificate verification.
 10. Ephemeral shopper data cannot cross into durable catalog tables.
+11. Reference Dataset Version activation cannot imply review or verification of an OFF Product.
+12. An international additive reference cannot be represented as a Cambodian rule or Compliance Assessment.
 
-## 11. Suggested implementation order
+## 12. Suggested implementation order
 
-1. Product hierarchy, External Identifiers, names, and OFF snapshots
-2. Claims, Evidence, ClaimEvidence, and Preferred Claims
-3. Label transcription and ingredient tree
-4. Versioned vocabulary, synonyms, and Safety Vocabulary Matches
-5. Extraction Runs, Assessment Runs, and assessment outcomes
-6. Ephemeral Package Capture boundary and deletion enforcement
-7. Knowledge Entries and moderation audit
-8. Deferred certification, compliance, contribution, and sharing structures only when those features enter scope
+1. Active OFF Dataset Version, field/image citations, and OFF-only Package Match
+2. Immutable Reference Dataset Versions, source separation, activation, and rollback
+3. Original ingredient evidence, lexical mappings, and English ingredient descriptions
+4. Allergen, Halal Ingredient, and Additive Assessment Runs
+5. Device-local Dietary Preference Profile and evidence-scoped result ordering
+6. Knowledge Entries and contextual Learn
+7. Ephemeral Package Capture boundary and deletion enforcement
+8. Post-MVP Product hierarchy, Claims, Evidence, Preferred Claims, conflicts, and moderation
+9. Deferred certification, compliance, contribution, and sharing structures only when those features enter scope

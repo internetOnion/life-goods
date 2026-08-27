@@ -8,7 +8,7 @@ The identifier is a lookup key for a `Package Variant`; it is not a `Product` id
 
 - Node.js 24 LTS and pnpm
 - Python 3.13 and uv
-- Docker with Compose for local PostgreSQL
+- Docker with Compose for local PostgreSQL and MongoDB
 
 ## Install
 
@@ -19,12 +19,16 @@ pnpm backend:sync
 
 ## Run locally
 
-Start PostgreSQL and apply the migration:
+Start PostgreSQL and MongoDB, then apply the relational migration:
 
 ```bash
-docker compose -f infra/compose.yaml up -d postgres
+docker compose -f infra/compose.yaml up -d postgres mongodb
 pnpm db:migrate
 ```
+
+Package Match requires an Active OFF Dataset Version. Importing the full global export is
+an explicit operator action; see [`docs/OFF_DATASET.md`](docs/OFF_DATASET.md) for the
+sample workflow, production-sized import, validation, activation, rollback, and backup gate.
 
 Start the API and Web Client in separate terminals. Use HTTP for ordinary local development:
 
@@ -70,7 +74,7 @@ pnpm api:generate
 
 - `frontend/`: React, Vite, TypeScript, generated API client, localization, and focused Vitest tests
 - `backend/`: FastAPI, application service, Package Match domain behavior, SQLAlchemy adapter, Alembic migration, and pytest coverage
-- `infra/`: local PostgreSQL Compose configuration
+- `infra/`: local PostgreSQL and MongoDB Compose configuration
 
 See [`docs/REPOSITORY.md`](docs/REPOSITORY.md) for the planned monorepo structure and branch workflow.
 
