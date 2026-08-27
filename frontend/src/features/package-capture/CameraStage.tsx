@@ -11,6 +11,10 @@ import type { CameraError, CameraState } from "./usePackageCaptureJourney"
 
 type CameraStageProps = {
     step: Exclude<CaptureStep, "review">
+    headingRef: RefObject<HTMLHeadingElement | null>
+    title: string
+    instruction: string
+    stepLabel: string
     photo: CapturedPackagePhoto | null
     cameraState: CameraState
     cameraReady: boolean
@@ -24,6 +28,10 @@ type CameraStageProps = {
 
 export function CameraStage({
     step,
+    headingRef,
+    title,
+    instruction,
+    stepLabel,
     photo,
     cameraState,
     cameraReady,
@@ -40,7 +48,25 @@ export function CameraStage({
 
     return (
         <div className="mt-5 sm:mt-6">
-            <div className="border-border bg-muted relative h-[clamp(14rem,44svh,34rem)] overflow-hidden rounded-2xl border">
+            <div className="border-border bg-muted relative h-[clamp(22rem,68svh,42rem)] overflow-hidden rounded-[1.75rem] border shadow-[0_18px_44px_oklch(0.2_0.02_160/0.12)]">
+                <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex items-start justify-between gap-2 sm:inset-x-4 sm:top-4">
+                    <div className="bg-background/90 text-foreground max-w-[75%] rounded-2xl px-3 py-2 shadow-[0_4px_18px_oklch(0.2_0.02_160/0.12)] backdrop-blur-sm">
+                        <h1
+                            ref={headingRef}
+                            tabIndex={-1}
+                            className="text-sm leading-snug font-bold text-balance !outline-none"
+                        >
+                            {title}
+                        </h1>
+                        <p className="text-muted-foreground mt-0.5 text-xs leading-snug">
+                            {instruction}
+                        </p>
+                    </div>
+                    <span className="bg-background/90 text-muted-foreground shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold shadow-[0_4px_18px_oklch(0.2_0.02_160/0.12)] backdrop-blur-sm">
+                        {stepLabel}
+                    </span>
+                </div>
+
                 <video
                     ref={videoRef}
                     className={
@@ -93,8 +119,13 @@ export function CameraStage({
                     </div>
                 ) : null}
 
+                <div
+                    className="border-foreground/35 pointer-events-none absolute inset-[13%_10%] z-[1] rounded-[1.5rem] border border-dashed"
+                    aria-hidden="true"
+                />
+
                 {cameraState === "live" ? (
-                    <div className="bg-background/95 absolute top-3 left-3 flex min-h-8 items-center gap-2 rounded-full px-3 py-1 text-sm font-bold">
+                    <div className="bg-background/95 absolute top-24 left-3 flex min-h-8 items-center gap-2 rounded-full px-3 py-1 text-sm font-bold sm:top-28 sm:left-4">
                         <span
                             className="bg-primary size-2 rounded-full"
                             aria-hidden="true"

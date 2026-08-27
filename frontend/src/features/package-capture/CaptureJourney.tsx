@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { LanguageSwitchButton } from "@/ui/LanguageSwitchButton"
 
 import { CameraStage } from "./CameraStage"
-import { captureStepNumbers, type CaptureStep } from "./captureRoute"
+import { captureStepNumbers } from "./captureRoute"
 import { ReviewStep } from "./ReviewStep"
 import { usePackageCaptureJourney } from "./usePackageCaptureJourney"
 
@@ -61,57 +61,50 @@ export function CaptureJourney() {
                 </Button>
             </div>
 
-            <section className="relative pt-6 sm:pt-7">
-                <TreePalmIcon
-                    className="text-primary/15 pointer-events-none absolute top-5 right-0 size-16 -rotate-12 sm:size-20"
-                    aria-hidden="true"
-                    weight="thin"
-                />
-                <div className="relative z-10">
-                    {isCloseUp ? (
-                        <p className="text-muted-foreground text-sm font-semibold">
-                            {t("capture.followUpStep")}
-                        </p>
-                    ) : (
-                        <CaptureProgress step={step} />
-                    )}
-                    <h1
-                        ref={headingRef}
-                        tabIndex={-1}
-                        className="mt-2 max-w-[18ch] text-[clamp(1.75rem,7vw,2.75rem)] leading-[1.7] font-bold tracking-[-0.025em] text-balance"
-                    >
-                        {title}
-                    </h1>
-                    <p className="text-muted-foreground mt-2 max-w-[65ch] leading-relaxed">
-                        {isReview
-                            ? t("capture.review.body")
-                            : t(`capture.${step}.body`)}
-                    </p>
-                </div>
-            </section>
-
-            {showReloadRecovery && step === "front" ? (
-                <p
-                    className="border-border bg-brand-soft mt-5 rounded-xl border px-4 py-3 text-sm leading-relaxed"
-                    role="status"
-                >
-                    {t("capture.reloadRecovery")}
-                </p>
-            ) : null}
-
             {isReview ? (
-                <ReviewStep
-                    frontPhoto={photos.front}
-                    backPhoto={photos.back}
-                    ingredientPhoto={photos.ingredients}
-                    ingredientDecision={ingredientDecision}
-                    onEdit={actions.editStep}
-                    onStart={actions.startDemo}
-                />
+                <>
+                    <section className="relative pt-6 sm:pt-7">
+                        <TreePalmIcon
+                            className="text-primary/15 pointer-events-none absolute top-5 right-0 size-16 -rotate-12 sm:size-20"
+                            aria-hidden="true"
+                            weight="thin"
+                        />
+                        <div className="relative z-10">
+                            <h1
+                                ref={headingRef}
+                                tabIndex={-1}
+                                className="max-w-[18ch] text-[clamp(1.75rem,7vw,2.75rem)] leading-[1.7] font-bold tracking-[-0.025em] text-balance"
+                            >
+                                {title}
+                            </h1>
+                            <p className="text-muted-foreground mt-2 max-w-[65ch] leading-relaxed">
+                                {t("capture.review.body")}
+                            </p>
+                        </div>
+                    </section>
+                    <ReviewStep
+                        frontPhoto={photos.front}
+                        backPhoto={photos.back}
+                        ingredientPhoto={photos.ingredients}
+                        ingredientDecision={ingredientDecision}
+                        onEdit={actions.editStep}
+                        onStart={actions.startDemo}
+                    />
+                </>
             ) : (
                 <>
                     <CameraStage
                         step={step}
+                        headingRef={headingRef}
+                        title={title}
+                        instruction={t(`capture.${step}.body`)}
+                        stepLabel={
+                            isCloseUp
+                                ? t("capture.followUpStep")
+                                : t("capture.step", {
+                                      current: captureStepNumbers[step],
+                                  })
+                        }
                         photo={photos.current}
                         cameraState={camera.state}
                         cameraReady={camera.ready}
@@ -122,6 +115,14 @@ export function CaptureJourney() {
                         onOpen={() => void actions.openCamera()}
                         onCapture={() => void actions.takePhoto()}
                     />
+                    {showReloadRecovery && step === "front" ? (
+                        <p
+                            className="border-border bg-brand-soft mt-5 rounded-xl border px-4 py-3 text-sm leading-relaxed"
+                            role="status"
+                        >
+                            {t("capture.reloadRecovery")}
+                        </p>
+                    ) : null}
                     <div
                         className="border-border bg-muted mt-4 grid grid-cols-2 gap-1 rounded-xl border p-1"
                         aria-label={t("capture.method.label")}
@@ -210,32 +211,5 @@ export function CaptureJourney() {
                 </>
             )}
         </main>
-    )
-}
-
-function CaptureProgress({ step }: { step: Exclude<CaptureStep, "close-up"> }) {
-    const { t } = useTranslation()
-    const steps = ["front", "back", "ingredients", "review"] as const
-    const current = captureStepNumbers[step]
-
-    return (
-        <div className="max-w-xs" aria-label={t("capture.progress.label")}>
-            <div className="flex gap-1" aria-hidden="true">
-                {steps.map((item, index) => (
-                    <span
-                        key={item}
-                        className={`h-1.5 flex-1 rounded-full ${
-                            index < current ? "bg-primary" : "bg-border"
-                        }`}
-                    />
-                ))}
-            </div>
-            <p className="text-muted-foreground mt-2 text-sm font-semibold">
-                {t("capture.step", { current })}
-                {step === "ingredients"
-                    ? ` · ${t("capture.ingredients.optional")}`
-                    : null}
-            </p>
-        </div>
     )
 }
