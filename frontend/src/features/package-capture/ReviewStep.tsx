@@ -102,10 +102,10 @@ export function ReviewStep({
         <div className="mt-6 space-y-4 sm:mt-7">
             <section className="border-border bg-background relative overflow-hidden rounded-2xl border">
                 <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex items-start justify-between gap-3 sm:inset-x-5 sm:top-5">
-                    <span className="bg-primary text-primary-foreground max-w-[70%] rounded-full px-3 py-1.5 text-xs font-bold shadow-sm">
+                    <span className="bg-primary text-primary-foreground max-w-[70%] min-w-0 rounded-full px-3 py-1.5 text-xs font-bold shadow-sm">
                         {selectedPhoto.label}
                     </span>
-                    <span className="bg-primary text-primary-foreground rounded-full px-3 py-1.5 text-xs font-semibold tabular-nums shadow-sm">
+                    <span className="bg-primary text-primary-foreground shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold tabular-nums shadow-sm">
                         {selectedIndex + 1} / {photos.length}
                     </span>
                 </div>

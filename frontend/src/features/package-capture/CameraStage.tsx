@@ -151,7 +151,7 @@ export function CameraStage({
 
                 {cameraState === "opening" ? (
                     <p
-                        className="bg-background/70 absolute inset-x-4 top-1/2 -translate-y-1/2 rounded-xl px-4 py-3 text-center font-semibold backdrop-blur-sm"
+                        className="bg-background/70 absolute top-1/2 left-1/2 w-fit max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 rounded-xl px-3 py-2 text-center font-semibold backdrop-blur-sm"
                         role="status"
                     >
                         {t("capture.camera.opening")}

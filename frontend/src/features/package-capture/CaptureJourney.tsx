@@ -1,5 +1,4 @@
 import {
-    ArrowLeftIcon,
     CameraIcon,
     CheckIcon,
     LockKeyIcon,
@@ -45,24 +44,13 @@ export function CaptureJourney() {
                     {t("capture.exit")}
                 </Button>
                 <div className="flex items-start gap-2">
-                    {step === "front" ? null : (
-                        <Button
-                            variant="ghost"
-                            className="h-auto min-w-0 justify-self-end px-2 text-end leading-relaxed whitespace-normal sm:-mr-3 sm:px-3"
-                            type="button"
-                            onClick={actions.goBack}
-                        >
-                            <ArrowLeftIcon aria-hidden="true" weight="bold" />
-                            {t("capture.backAction")}
-                        </Button>
-                    )}
                     <LanguageSwitchButton shape="rectangle" />
                 </div>
             </div>
 
             {isReview ? (
                 <>
-                    <section className="pt-4 text-center sm:pt-5">
+                    <section className="pt-4 text-start sm:pt-5">
                         <h1
                             ref={headingRef}
                             tabIndex={-1}
@@ -70,9 +58,6 @@ export function CaptureJourney() {
                         >
                             {title}
                         </h1>
-                        <p className="text-muted-foreground mx-auto mt-2 max-w-[52ch] leading-relaxed">
-                            {t("capture.review.body")}
-                        </p>
                     </section>
                     <ReviewStep
                         frontPhoto={photos.front}

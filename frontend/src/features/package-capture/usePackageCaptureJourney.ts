@@ -41,7 +41,6 @@ type PackageCaptureJourney = {
         openCamera: () => Promise<void>
         takePhoto: () => Promise<void>
         retake: () => void
-        goBack: () => void
         continueJourney: () => void
         skipIngredients: () => void
         editStep: (step: "front" | "back" | "ingredients") => void
@@ -211,11 +210,6 @@ export function usePackageCaptureJourney(): PackageCaptureJourney {
         void navigate(buildCaptureUrl(nextStep, location.search))
     }
 
-    const goBack = () => {
-        camera.stop()
-        void navigate(-1)
-    }
-
     const continueJourney = () => {
         if (step === "close-up") {
             if (!ingredientPhoto) return
@@ -372,7 +366,6 @@ export function usePackageCaptureJourney(): PackageCaptureJourney {
             openCamera,
             takePhoto,
             retake,
-            goBack,
             continueJourney,
             skipIngredients,
             editStep,

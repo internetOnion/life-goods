@@ -94,6 +94,8 @@ Safe-area insets are applied to fixed navigation and result bottoms. The primary
 
 Invalid input remains local to the form. Loading, confirmed no-match, temporary failure, OFF match, and unsupported non-OFF candidates are distinct states with live announcements and focused outcome headings. Retry and back navigation preserve the normalized identifier.
 
+The review step uses one white, horizontally scrollable photo viewer with Front, Back, and Ingredient tabs plus previous/next controls; it does not repeat the selected photos in a separate thumbnail review panel.
+
 ## 6. Interaction and accessibility
 
 - Target WCAG 2.2 AA with visible `:focus-visible` outlines and at least 44×44 CSS-pixel targets.

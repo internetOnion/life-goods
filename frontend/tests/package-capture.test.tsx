@@ -224,13 +224,46 @@ describe("Package Capture journey", () => {
         expect(
             screen.getByRole("heading", { name: "Review your photos" }),
         ).toBeVisible()
-        expect(screen.getAllByRole("img")).toHaveLength(2)
+        expect(
+            screen.queryByText(
+                "Check that the front and back are clear. Ingredients are optional before entering the demo journey.",
+            ),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("button", { name: "Back to Package Capture" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.getByRole("tab", { name: "Front package" }),
+        ).toHaveAttribute("aria-selected", "true")
+        expect(screen.getByAltText("Front package preview")).toBeVisible()
+        expect(screen.getByRole("tab", { name: "Back package" })).toBeVisible()
+        expect(
+            screen.getByRole("tab", { name: "Ingredient panel" }),
+        ).toBeVisible()
         expect(screen.getByText("Not provided")).toBeVisible()
         expect(
             screen.getByText(
                 "These photos stay on this device. This demo will not send, save, or analyze them.",
             ),
         ).toBeVisible()
+        expect(
+            screen.getByRole("button", { name: "Previous photo" }),
+        ).toBeDisabled()
+        expect(screen.getByRole("button", { name: "Next photo" })).toBeEnabled()
+
+        await user.click(screen.getByRole("button", { name: "Next photo" }))
+        expect(
+            screen.getByRole("tab", { name: "Back package" }),
+        ).toHaveAttribute("aria-selected", "true")
+        expect(screen.getByAltText("Back package preview")).toBeVisible()
+
+        await user.click(screen.getByRole("button", { name: "Next photo" }))
+        expect(
+            screen.getByRole("tab", { name: "Ingredient panel" }),
+        ).toHaveAttribute("aria-selected", "true")
+        expect(
+            screen.getByRole("button", { name: "Next photo" }),
+        ).toBeDisabled()
 
         await user.click(
             screen.getByRole("button", { name: "Discard photos and continue" }),
@@ -404,25 +437,22 @@ describe("Package Capture journey", () => {
         expect(screen.getByTestId("location")).toHaveTextContent("step=front")
     })
 
-    test("visible Back does not add a duplicate capture step to history", async () => {
+    test("capture steps do not show a back-to-capture control", async () => {
         const user = userEvent.setup()
         installCamera()
         renderRoute("/capture/new")
 
         await openAndCapture(user)
         await user.click(screen.getByRole("button", { name: "Continue" }))
-        await user.click(
-            screen.getByRole("button", { name: "Back to Package Capture" }),
-        )
-        await user.click(screen.getByRole("button", { name: "Browser back" }))
 
         expect(
-            screen.getByRole("heading", { name: "Photograph the front" }),
+            screen.queryByRole("heading", { name: "Photograph the front" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.getByRole("heading", { name: "Photograph the back" }),
         ).toBeVisible()
         expect(
-            screen.queryByRole("heading", {
-                name: "Photograph the back",
-            }),
+            screen.queryByRole("button", { name: "Back to Package Capture" }),
         ).not.toBeInTheDocument()
     })
 
