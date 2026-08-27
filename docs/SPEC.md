@@ -28,17 +28,20 @@ Unsupported products receive an explicit scope message rather than a generic ass
 
 - Barcode scan and multilingual catalog search
 - Open Food Facts identity and label evidence with field-level provenance
-- Internally reviewed pilot catalog of approximately 100–200 locally observed Products
+- A manually activated, project-hosted OFF Dataset Version for Product lookup
+- Locally hosted, immutable, human-reviewed reference datasets for allergen, Halal ingredient, and additive assessments
 - Temporary private Package Capture when current label evidence is missing
-- Original label transcription and concise Khmer ingredient names
+- Original label transcription and concise source-cited English ingredient descriptions
 - Allergen, Halal-ingredient, additive, and date assessments
 - Evidence uncertainty and source inspection
-- Approximately 20–30 contextual Learn More entries
+- A data-driven Learn section covering every consequential concept presented by the MVP
 - Optional local preference prioritization
 - Khmer interface with optional English
 
 ### Deferred capabilities
 
+- Locally observed Product seed data, reviewed-local precedence, Product Claims, Preferred Claims, conflicts, and catalog moderation
+- Khmer ingredient descriptions and Khmer Knowledge Entry translation
 - Offline operation
 - Public contributions and community verification
 - SME authenticity advisories
@@ -53,14 +56,14 @@ Unsupported products receive an explicit scope message rather than a generic ass
 
 1. The shopper scans a barcode.
 2. The system validates and normalizes the identifier.
-3. The system finds Package Variant candidates in the reviewed catalog and Open Food Facts.
+3. The system finds Package Match candidates in the Active OFF Dataset Version.
 4. The result displays immediately with a reference package image and “Different package?” action.
 5. The first screen prioritizes:
-   1. candidate identity;
-   2. Critical Declared Concerns;
-   3. Evidence Uncertainty;
-   4. Khmer label summary;
-   5. source evidence and observation date.
+    1. candidate identity;
+    2. profile-matched and other evidence-scoped concerns;
+    3. Evidence Uncertainty;
+    4. available original label evidence and English ingredient explanations;
+    5. source evidence and observation date.
 6. Missing, inconsistent, or visibly different evidence leads to optional private Package Capture.
 7. The shopper may open reusable Knowledge Entries for details.
 
@@ -86,8 +89,8 @@ No confirmation blocks the initial result. Barcode identity and visual similarit
 
 ### Search
 
-- Search identifiers, reviewed Khmer names, and original Product/brand names.
-- Cover Khmer, English, Vietnamese, Simplified Chinese, and Thai source names.
+- Search identifiers and available Product/brand names in the Active OFF Dataset Version.
+- Preserve any Khmer, English, Vietnamese, Simplified Chinese, and Thai source names present in OFF without inventing translations.
 - Preserve language and source for every name.
 - Distinguish Package Variants rather than merging sizes and markets.
 
@@ -99,20 +102,39 @@ Open Food Facts is an External Evidence Source, not the source of truth. The dat
 
 The MVP may use all eligible available fields, including identifiers, names, brands, selected images, original ingredient text, declared allergen/trace tags, nutrition declarations, categories, packaging languages, and source metadata.
 
+Package Match reads these fields from the Active OFF Dataset Version: a manually imported, full global official export stored read-only in project-operated MongoDB. The dataset version is immutable and identified by its source URL, retrieval and activation times, integrity hash, and observed schema versions. It remains active until an operator validates and atomically activates another version; no age implies synchronization with upstream OFF.
+
 Rules:
 
 - Preserve source URL, attribution, retrieval time, source revision/last-modified data, and field provenance.
-- Keep OFF Claims distinguishable from internally reviewed Claims.
+- Treat citations and integrity hashes as provenance metadata only; they do not verify the Product, package, or any Claim.
+- Keep OFF Evidence distinguishable from future project-reviewed Product Claims.
 - Never interpret an empty field as a negative result.
 - Display OFF-only results as external community data not reviewed by this project.
 - Link to the source Product and comply with ODbL, Database Contents License, and image CC BY-SA obligations after licensing review.
+- Expose the OFF Dataset Version and retrieval date with every OFF Package Match.
+- Return the unavailable journey when no valid Active OFF Dataset Version can serve a cited candidate.
+- Do not fall back to the public OFF product API. Selected image URLs may continue through the constrained image proxy.
 
-### Reviewed pilot catalog
+### Assessment reference datasets
 
-- Review approximately 100–200 Products physically observed in selected Cambodian stores and markets.
-- Prioritize common snacks, noodles, sauces, dairy, canned foods, and non-alcoholic drinks.
-- Require front and ingredient-panel evidence before treating a Package Revision as reviewed.
-- Expand based on scan demand and market observation rather than claiming national coverage.
+MVP-1 hosts Reference Dataset Versions in PostgreSQL for allergen vocabulary, Halal ingredient mappings, additive rules, ingredient concepts and English descriptions, and Knowledge Entries.
+
+Rules:
+
+- Record source URL, license/reuse decision, jurisdiction, edition/effective period where applicable, retrieval time, integrity hash, reviewer, review date, validation result, and activation time.
+- Keep source sets separate rather than merging Cambodian rules, international references, lexical taxonomies, ontologies, and project-authored explanations into one truth table.
+- Require a one-time qualified human review before a version is activated; corrections create a new immutable version.
+- Treat activation as approval for a scoped assessment input, never Product review or verification.
+- Begin the allergen vocabulary with the current Codex major-allergen baseline; keep jurisdiction-specific extensions and exemptions separate.
+- Maintain a small project-authored Halal mapping that distinguishes explicit prohibited ingredients from source-dependent ambiguity and cites Cambodian and properly licensed international sources.
+- Prefer reviewed Cambodian additive rules. If none apply, a reviewed Codex rule may be used only as an explicitly labeled international reference.
+- Host concise project-authored English ingredient descriptions linked to stable identifiers and cited sources; defer Khmer translation.
+- Use manual import, validation, activation, and rollback. Do not synchronize reference data automatically in MVP-1.
+
+### Reviewed Product catalog
+
+Locally observed Product seed data, reviewed Package Revisions, Product Claims, Preferred Claims, Unresolved Conflicts, moderator workflow, and reviewed-local precedence are post-MVP. The future reviewed catalog remains separate from OFF and from the reference datasets used for interpretation.
 
 ### Private Package Capture
 
@@ -128,30 +150,27 @@ Rules:
 ### Ingredient presentation
 
 - Preserve original label text, order, punctuation, percentages, and compound-ingredient structure.
-- Show concise Khmer names alongside source terms.
+- Show concise, project-authored, source-cited English descriptions alongside source terms when available.
 - Put longer explanations behind Learn More.
-- Use approved human-reviewed Khmer wording for safety-critical terms.
-- Clearly mark AI-generated ordinary ingredient names as unreviewed.
+- Use approved human-reviewed interface wording for consequential assessment states.
+- Do not use AI-generated translations or descriptions as assessment inputs.
 - Keep ambiguous terms untranslated and show uncertainty.
 
 ### Reviewed Safety Vocabulary
 
 Initial content:
 
-- Current Codex allergen concepts plus Cambodia-specific decisions after review
-- Highest-frequency 100–150 additives observed in pilot evidence
-- Approximately 40–80 critical declaration and uncertainty phrases
-- Multilingual source synonyms and derivatives in Khmer, English, Vietnamese, Simplified Chinese, and Thai
+- Current Codex major-allergen baseline, with jurisdiction-specific additions and exemptions kept separate
+- Reviewed declaration, precautionary, synonym, and ingredient-derivative mappings required by deterministic MVP scenarios
+- A small project-authored Halal ingredient mapping with explicit-prohibited and source-ambiguous states
+- Additive concepts and Cambodian rules where available, plus a separate Codex international-reference rule set
+- Multilingual source synonyms only where supported and reviewed; no invented translation coverage
 
-Workflow states:
-
-`AI_DRAFT → IN_LANGUAGE_REVIEW → IN_DOMAIN_REVIEW → APPROVED`
-
-Entries may also become `REJECTED` or `SUPERSEDED`. AI generates structured drafts; Khmer language and food-domain reviewers approve them. Only approved wording powers safety-critical shopper guidance.
+Each immutable version is imported, validated, reviewed by qualified humans, and explicitly activated. MVP-1 does not require a general Product verification or moderator system. Only activated reference mappings may power consequential assessments.
 
 ## 7. Assessment semantics
 
-All assessments are derived from original readable evidence through approved vocabulary and versioned rules. A Khmer translation alone is never the safety input.
+All assessments are derived from original readable Evidence through an Active Reference Dataset Version and versioned rules. A translation or Ingredient Explainer is never the assessment input.
 
 ### Allergen
 
@@ -166,6 +185,8 @@ Supported outcomes:
 
 “No declaration detected” must state that it is not an allergen-free guarantee.
 
+The Dietary Preference Profile may prioritize matching outcomes but does not change assessment logic or hide other concerns or Evidence Uncertainty.
+
 ### Halal-related ingredient evidence
 
 Supported outcomes:
@@ -176,13 +197,14 @@ Supported outcomes:
 - label incomplete or unreadable;
 - not assessed.
 
-Ingredient screening, seal observation, and certificate verification are separate. The MVP observes seals but does not verify certificates unless a supported authoritative check becomes available and is separately approved.
+Ingredient screening, Seal Observation, and certificate verification are separate. Seal Observation and certificate verification are deferred in MVP-1; ingredient screening never populates either.
 
 ### Additives
 
 - Identify exact approved names, synonyms, INS/E-numbers, and functions.
-- Provide neutral reviewed Khmer explanations.
-- State regulatory restriction only when jurisdiction, food category, effective period, and required concentration support it.
+- Provide neutral reviewed English explanations in MVP-1.
+- State a Cambodian limit concern only when jurisdiction, food category, effective period, and required concentration support it.
+- When no applicable Cambodian rule is available, a reviewed Codex rule may produce an explicitly labeled International Reference Concern, never a Cambodian legal conclusion.
 - Use `CONCENTRATION_UNKNOWN` when amount is required but not declared.
 - Never label an additive dangerous merely because it appears.
 
@@ -196,7 +218,11 @@ Ingredient screening, seal observation, and certificate verification are separat
 
 ## 8. Trust and moderation
 
-Verification belongs to individual Claims, not an entire Product.
+MVP-1 does not review or verify OFF Products. Citations, local storage, integrity hashes, and dataset activation establish provenance and operational integrity only.
+
+Reference Dataset Version approval is a narrow release decision for assessment inputs. It does not create accepted Product Claims, Preferred Claims, Unresolved Conflicts, or reviewed Package Revisions.
+
+The following reviewed Product catalog model is deferred until after MVP-1. When introduced, verification belongs to individual Claims, not an entire Product.
 
 Claim review states:
 
@@ -209,7 +235,7 @@ Claim review states:
 
 Production method, confidence, source authority, and review state are separate attributes. Competing Claims remain preserved. A Preferred Claim may be selected for a Package Revision without deleting conflicts.
 
-Only project-team Moderators accept shared Claims during the MVP. “Official” confirmation requires identifiable authoritative evidence rather than moderator opinion.
+Future project-team Moderators may accept shared Product Claims only under an approved workflow. “Official” confirmation will require identifiable authoritative Evidence rather than moderator opinion.
 
 ## 9. AI and rule provenance
 
@@ -231,7 +257,8 @@ Unsupported accuracy, “zero hallucination,” and “zero false negative” cl
 ## 10. Privacy and analytics
 
 - No account is required for shopper features.
-- Preferences remain local and prioritize rather than hide concerns.
+- The Dietary Preference Profile offers only allergens from the Active Reference Dataset Version and persists only in that browser/device until reset.
+- Preference values never enter backend storage or analytics and prioritize rather than hide concerns.
 - Scan history is current-session only.
 - Do not collect GPS by default or retain EXIF metadata.
 - Analytics use short-lived random sessions and record journey/failure events only.
@@ -240,11 +267,11 @@ Unsupported accuracy, “zero hallucination,” and “zero false negative” cl
 
 ## 11. Knowledge content
 
-- Launch with approximately 20–30 high-priority Knowledge Entries.
-- Draft original Khmer summaries with AI from primary sources.
+- Use no fixed topic-count target; publish the reviewed entries needed to explain every consequential MVP-1 concept.
+- Author concise original English summaries from primary or authoritative sources; defer Khmer translation.
 - Preserve source, edition, jurisdiction, retrieval date, author/reviewer, and review state.
-- Publish approved guidance only after language and domain review.
-- Link to official material when a reviewed local entry is unavailable.
+- Publish only after applicable language and domain review and explicit version activation.
+- Link to official material when an activated local entry is unavailable.
 - Do not scrape and republish content merely because it is publicly accessible.
 
 ## 12. Pilot research and gates

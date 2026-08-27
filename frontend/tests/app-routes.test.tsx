@@ -94,6 +94,11 @@ describe("app routes and shell", () => {
             normalized_identifier: "4006381333931",
             scheme: "EAN_13",
             candidates: [],
+            open_food_facts: {
+                status: "NOT_FOUND",
+                dataset_version: null,
+                error_code: null,
+            },
         })
         renderRoute("/results/4006381333931", lookup)
 

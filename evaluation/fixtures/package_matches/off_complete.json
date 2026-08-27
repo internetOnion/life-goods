@@ -1,7 +1,5 @@
 {
     "source_kind": "OPEN_FOOD_FACTS",
-    "package_variant_id": null,
-    "product_id": null,
     "external_record_id": "4006381333931",
     "source": {
         "name": "Open Food Facts",
@@ -23,7 +21,8 @@
             "source_url": "https://world.openfoodfacts.org/product/4006381333931",
             "language": null,
             "observed_at": null,
-            "retrieved_at": "2026-08-24T10:00:00Z"
+            "retrieved_at": "2026-08-24T10:00:00Z",
+            "dataset_version_id": "dataset-2026-08-27"
         },
         {
             "field": "name",
@@ -33,7 +32,8 @@
             "source_url": "https://world.openfoodfacts.org/product/4006381333931",
             "language": "en",
             "observed_at": null,
-            "retrieved_at": "2026-08-24T10:00:00Z"
+            "retrieved_at": "2026-08-24T10:00:00Z",
+            "dataset_version_id": "dataset-2026-08-27"
         },
         {
             "field": "name",
@@ -43,7 +43,8 @@
             "source_url": "https://world.openfoodfacts.org/product/4006381333931",
             "language": "km",
             "observed_at": null,
-            "retrieved_at": "2026-08-24T10:00:00Z"
+            "retrieved_at": "2026-08-24T10:00:00Z",
+            "dataset_version_id": "dataset-2026-08-27"
         },
         {
             "field": "brands",
@@ -53,7 +54,8 @@
             "source_url": "https://world.openfoodfacts.org/product/4006381333931",
             "language": null,
             "observed_at": null,
-            "retrieved_at": "2026-08-24T10:00:00Z"
+            "retrieved_at": "2026-08-24T10:00:00Z",
+            "dataset_version_id": "dataset-2026-08-27"
         },
         {
             "field": "quantity",
@@ -63,7 +65,8 @@
             "source_url": "https://world.openfoodfacts.org/product/4006381333931",
             "language": null,
             "observed_at": null,
-            "retrieved_at": "2026-08-24T10:00:00Z"
+            "retrieved_at": "2026-08-24T10:00:00Z",
+            "dataset_version_id": "dataset-2026-08-27"
         }
     ],
     "label_evidence": [
@@ -75,7 +78,8 @@
             "source_url": "https://world.openfoodfacts.org/product/4006381333931",
             "language": "en",
             "observed_at": null,
-            "retrieved_at": "2026-08-24T10:00:00Z"
+            "retrieved_at": "2026-08-24T10:00:00Z",
+            "dataset_version_id": "dataset-2026-08-27"
         },
         {
             "field": "ingredient_text",
@@ -85,7 +89,8 @@
             "source_url": "https://world.openfoodfacts.org/product/4006381333931",
             "language": "km",
             "observed_at": null,
-            "retrieved_at": "2026-08-24T10:00:00Z"
+            "retrieved_at": "2026-08-24T10:00:00Z",
+            "dataset_version_id": "dataset-2026-08-27"
         },
         {
             "field": "allergen_declaration",
@@ -95,7 +100,8 @@
             "source_url": "https://world.openfoodfacts.org/product/4006381333931",
             "language": "en",
             "observed_at": null,
-            "retrieved_at": "2026-08-24T10:00:00Z"
+            "retrieved_at": "2026-08-24T10:00:00Z",
+            "dataset_version_id": "dataset-2026-08-27"
         },
         {
             "field": "trace_declaration",
@@ -105,7 +111,8 @@
             "source_url": "https://world.openfoodfacts.org/product/4006381333931",
             "language": "en",
             "observed_at": null,
-            "retrieved_at": "2026-08-24T10:00:00Z"
+            "retrieved_at": "2026-08-24T10:00:00Z",
+            "dataset_version_id": "dataset-2026-08-27"
         },
         {
             "field": "nutrition",
@@ -115,7 +122,10 @@
             "source_url": "https://world.openfoodfacts.org/product/4006381333931",
             "language": null,
             "observed_at": null,
-            "retrieved_at": "2026-08-24T10:00:00Z"
+            "retrieved_at": "2026-08-24T10:00:00Z",
+            "original_url": "https://images.openfoodfacts.org/images/products/400/reference.jpg",
+            "image_revision": null,
+            "dataset_version_id": "dataset-2026-08-27"
         },
         {
             "field": "packaging_languages",
@@ -142,6 +152,7 @@
         {
             "role": "front",
             "url": "/api/v1/open-food-facts-images?url=https%3A%2F%2Fimages.openfoodfacts.org%2Fimages%2Fproducts%2F400%2Freference.jpg",
+            "original_url": "https://images.openfoodfacts.org/images/products/400/reference.jpg",
             "source_field": "selected_images.front.display.en",
             "source_name": "Open Food Facts",
             "source_url": "https://world.openfoodfacts.org/product/4006381333931",
@@ -152,6 +163,12 @@
         }
     ],
     "retrieved_at": "2026-08-24T10:00:00Z",
-    "is_current": true,
-    "source_revision": "1787462400"
+    "source_revision": "1787462400",
+    "dataset_version": {
+        "id": "dataset-2026-08-27",
+        "source_url": "https://static.openfoodfacts.org/data/export.jsonl.gz",
+        "retrieved_at": "2026-08-27T08:00:00Z",
+        "activated_at": "2026-08-27T09:00:00Z",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
 }

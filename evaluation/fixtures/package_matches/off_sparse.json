@@ -1,7 +1,5 @@
 {
     "source_kind": "OPEN_FOOD_FACTS",
-    "package_variant_id": null,
-    "product_id": null,
     "external_record_id": "8850000000003",
     "source": {
         "name": "Open Food Facts",
@@ -40,6 +38,12 @@
     ],
     "reference_images": [],
     "retrieved_at": "2026-08-24T10:00:00Z",
-    "is_current": true,
-    "source_revision": null
+    "source_revision": null,
+    "dataset_version": {
+        "id": "dataset-2026-08-27",
+        "source_url": "https://static.openfoodfacts.org/data/export.jsonl.gz",
+        "retrieved_at": "2026-08-27T08:00:00Z",
+        "activated_at": "2026-08-27T09:00:00Z",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
 }

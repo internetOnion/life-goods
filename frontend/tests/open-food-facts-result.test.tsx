@@ -8,6 +8,7 @@ import type { OpenFoodFactsCandidate } from "../src/features/package-match/types
 import i18n from "../src/i18n"
 import {
     completeOffCandidate,
+    datasetVersion,
     sparseOffCandidate,
 } from "./package-match-fixtures"
 
@@ -46,13 +47,29 @@ describe("OpenFoodFactsResult", () => {
     })
 
     test("renders complete community evidence without a score or verdict", () => {
-        renderResult(completeOffCandidate())
+        renderResult(
+            completeOffCandidate({
+                dataset_version: datasetVersion,
+            }),
+        )
 
         expect(
             screen.getByRole("heading", { name: "Dark chocolate" }),
         ).toHaveFocus()
         expect(screen.getByText("Contains milk")).toBeVisible()
         expect(screen.getByText("May contain nuts")).toBeVisible()
+        expect(
+            screen.getAllByText("dataset-2026-08-27").length,
+        ).toBeGreaterThan(0)
+        expect(screen.getByText(/Open Food Facts data as of/)).toBeVisible()
+        expect(screen.getByText("Dataset activated")).toBeVisible()
+        expect(
+            screen.getByText("Dataset integrity hash (SHA-256)"),
+        ).toBeVisible()
+        expect(screen.getByText("a".repeat(64))).toBeVisible()
+        expect(
+            screen.getByRole("link", { name: "Open the dataset source" }),
+        ).toHaveAttribute("href", datasetVersion.source_url)
         expect(screen.getByText("Example Foods")).toBeVisible()
         expect(screen.getByText("100 g")).toBeVisible()
         const packagingLanguagesSection = screen

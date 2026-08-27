@@ -1,31 +1,13 @@
 from datetime import datetime
-from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel
 
-from lifegoods.matching.identifier import IdentifierScheme
-from lifegoods.matching.repository import PackageMatchSourceKind
-
-
-class ErrorCode(StrEnum):
-    IDENTIFIER_REQUIRED = "IDENTIFIER_REQUIRED"
-    IDENTIFIER_CHARACTERS_INVALID = "IDENTIFIER_CHARACTERS_INVALID"
-    IDENTIFIER_LENGTH_UNSUPPORTED = "IDENTIFIER_LENGTH_UNSUPPORTED"
-    IDENTIFIER_CHECK_DIGIT_INVALID = "IDENTIFIER_CHECK_DIGIT_INVALID"
-    PACKAGE_MATCH_SOURCE_UNAVAILABLE = "PACKAGE_MATCH_SOURCE_UNAVAILABLE"
-    REFERENCE_IMAGE_URL_INVALID = "REFERENCE_IMAGE_URL_INVALID"
-    REFERENCE_IMAGE_NOT_FOUND = "REFERENCE_IMAGE_NOT_FOUND"
-    REFERENCE_IMAGE_SOURCE_UNAVAILABLE = "REFERENCE_IMAGE_SOURCE_UNAVAILABLE"
-
-
-class ErrorDetail(BaseModel):
-    code: ErrorCode
-    message: str
-
-
-class ErrorEnvelope(BaseModel):
-    error: ErrorDetail
+from lifegoods.identifiers.models import IdentifierScheme
+from lifegoods.package_matches.models import (
+    OpenFoodFactsLookupStatus,
+    PackageMatchSourceKind,
+)
 
 
 class PackageMatchSourceResponse(BaseModel):
@@ -49,11 +31,14 @@ class PackageMatchEvidenceResponse(BaseModel):
     language: str | None
     observed_at: datetime | None
     retrieved_at: datetime
+    source_revision: str | None = None
+    dataset_version_id: str | None = None
 
 
 class PackageMatchReferenceImageResponse(BaseModel):
     role: str
     url: str
+    original_url: str
     source_field: str
     source_name: str
     source_url: str
@@ -61,23 +46,39 @@ class PackageMatchReferenceImageResponse(BaseModel):
     license_name: str
     language: str | None
     retrieved_at: datetime
+    source_revision: str | None = None
+    image_revision: str | None = None
+    dataset_version_id: str | None = None
+
+
+class ExternalDatasetVersionResponse(BaseModel):
+    id: str
+    source_url: str
+    retrieved_at: datetime
+    activated_at: datetime
+    sha256: str
 
 
 class PackageMatchCandidateResponse(BaseModel):
     source_kind: PackageMatchSourceKind
-    package_variant_id: str | None
-    product_id: str | None
     external_record_id: str | None
     source: PackageMatchSourceResponse | None
     identity_evidence: list[PackageMatchEvidenceResponse]
     label_evidence: list[PackageMatchEvidenceResponse]
     reference_images: list[PackageMatchReferenceImageResponse]
     retrieved_at: datetime | None
-    is_current: bool | None
     source_revision: str | None
+    dataset_version: ExternalDatasetVersionResponse
+
+
+class OpenFoodFactsLookupResponse(BaseModel):
+    status: OpenFoodFactsLookupStatus
+    dataset_version: ExternalDatasetVersionResponse | None
+    error_code: str | None
 
 
 class PackageMatchesResponse(BaseModel):
     normalized_identifier: str
     scheme: IdentifierScheme
     candidates: list[PackageMatchCandidateResponse]
+    open_food_facts: OpenFoodFactsLookupResponse
