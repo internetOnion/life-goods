@@ -36,8 +36,7 @@ export function FocusedPlaceholderPage({
         <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pt-[calc(1rem_+_env(safe-area-inset-top))] pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
             <div className="grid grid-cols-[1fr_auto] items-start gap-2">
                 <Button
-                    className="border-primary text-primary hover:bg-primary/10 hover:text-primary min-w-0 px-3"
-                    variant="outline"
+                    className="bg-background text-foreground hover:bg-muted hover:text-foreground min-w-0 px-3"
                     type="button"
                     onClick={() => void navigate(actionTo)}
                 >

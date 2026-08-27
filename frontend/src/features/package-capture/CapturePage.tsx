@@ -1,6 +1,5 @@
 import {
     ArrowClockwiseIcon,
-    ArrowLeftIcon,
     CameraIcon,
     ClockIcon,
     FileTextIcon,
@@ -54,9 +53,10 @@ export function CapturePage() {
             <FocusedPlaceholderPage
                 title={t("placeholder.captureDetail.title")}
                 body={t("placeholder.captureDetail.body")}
-                actionLabel={t("capture.backAction")}
-                actionIcon="back"
-                actionTo={appRoutes.captureNew}
+                actionLabel={t("capture.result.exit")}
+                actionIcon="exit"
+                actionTo={appRoutes.home}
+                languageSwitchShape="rectangle"
             />
         )
     }
@@ -99,54 +99,43 @@ function SimulatedCaptureResult() {
     return (
         <>
             <DemoNotice active />
-            <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pt-5 pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
-                <div className="grid grid-cols-3 items-start gap-2">
+            <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
+                <div className="grid grid-cols-[1fr_auto] items-start gap-2 pt-[calc(1rem_+_env(safe-area-inset-top))]">
                     <Button
-                        variant="ghost"
-                        className="h-auto min-w-0 justify-self-start px-2 leading-relaxed whitespace-normal sm:-ml-3 sm:px-3"
-                        type="button"
-                        onClick={() =>
-                            void navigate(
-                                buildCaptureUrl("front", location.search),
-                            )
-                        }
-                    >
-                        <ArrowLeftIcon aria-hidden="true" weight="bold" />
-                        {t("capture.backAction")}
-                    </Button>
-                    <div className="justify-self-center">
-                        <LanguageSwitchButton />
-                    </div>
-                    <Button
-                        variant="ghost"
-                        className="h-auto min-w-0 justify-self-end px-2 text-end leading-relaxed whitespace-normal sm:-mr-3 sm:px-3"
+                        className="bg-background text-foreground hover:bg-muted hover:text-foreground min-w-0 justify-self-start rounded-full px-4"
                         type="button"
                         onClick={() => void navigate(appRoutes.home)}
                     >
                         <XIcon aria-hidden="true" weight="bold" />
                         {t("capture.result.exit")}
                     </Button>
+                    <LanguageSwitchButton shape="rectangle" />
                 </div>
 
-                <section className="pt-[clamp(2.5rem,10vh,6rem)]">
+                <section className="mx-auto flex max-w-[36rem] flex-col items-center pt-[clamp(3rem,12vh,7rem)] text-center">
                     <ResultIcon scenario={scenario} />
                     <h1
                         ref={headingRef}
                         tabIndex={-1}
-                        className="mt-6 max-w-[18ch] text-[clamp(2rem,7vw,3.2rem)] leading-[1.7] font-bold tracking-[-0.025em] text-balance"
+                        className="mt-6 max-w-[20ch] text-[clamp(1.75rem,6vw,2.6rem)] leading-[1.6] font-bold tracking-[-0.025em] text-balance"
                     >
                         {t(`capture.result.${stateKey}.title`)}
                     </h1>
-                    <p className="text-muted-foreground mt-3 max-w-[65ch] text-[1.05rem] leading-relaxed">
+                    <p className="text-muted-foreground mt-3 max-w-[46ch] text-[0.95rem] leading-relaxed">
                         {t(`capture.result.${stateKey}.body`)}
                     </p>
                 </section>
 
                 {isProgress ? (
-                    <div className="mt-8">
-                        <ol className="border-border grid grid-cols-3 border-y py-4 text-center text-sm">
+                    <div className="mx-auto mt-10 max-w-[40rem]">
+                        <ol
+                            className="border-border grid grid-cols-1 border-y py-2 text-start text-sm sm:grid-cols-3 sm:text-center"
+                            aria-label={t("capture.progress.label")}
+                        >
                             <li className="font-bold">
-                                1. {t("capture.reviewAction")}
+                                <span className="inline-block py-2">
+                                    1. {t("capture.reviewAction")}
+                                </span>
                             </li>
                             <li
                                 className={
@@ -155,35 +144,41 @@ function SimulatedCaptureResult() {
                                         : "text-muted-foreground"
                                 }
                             >
-                                2. {t("capture.result.processing.title")}
+                                <span className="inline-block py-2">
+                                    2. {t("capture.result.processing.title")}
+                                </span>
                             </li>
                             <li className="text-muted-foreground">
-                                3. {t("capture.result.completed.title")}
+                                <span className="inline-block py-2">
+                                    3. {t("capture.result.completed.title")}
+                                </span>
                             </li>
                         </ol>
-                        <Button
-                            className="mt-6 w-full"
-                            type="button"
-                            onClick={showNextState}
-                        >
-                            {scenario === "queued" ? (
-                                <ArrowClockwiseIcon
-                                    aria-hidden="true"
-                                    weight="bold"
-                                />
-                            ) : (
-                                <FileTextIcon
-                                    aria-hidden="true"
-                                    weight="bold"
-                                />
-                            )}
-                            {t(`capture.result.${stateKey}.action`)}
-                        </Button>
+                        <div className="mt-7 flex justify-center">
+                            <Button
+                                className="rounded-full px-7"
+                                type="button"
+                                onClick={showNextState}
+                            >
+                                {scenario === "queued" ? (
+                                    <ArrowClockwiseIcon
+                                        aria-hidden="true"
+                                        weight="bold"
+                                    />
+                                ) : (
+                                    <FileTextIcon
+                                        aria-hidden="true"
+                                        weight="bold"
+                                    />
+                                )}
+                                {t(`capture.result.${stateKey}.action`)}
+                            </Button>
+                        </div>
                     </div>
                 ) : isCompleted ? (
                     <DemoResultStructure />
                 ) : (
-                    <div className="border-border bg-muted mt-8 rounded-xl border p-4">
+                    <div className="border-border bg-muted mx-auto mt-10 max-w-[40rem] rounded-xl border p-4 text-start">
                         <div className="flex items-start gap-3">
                             <WarningCircleIcon
                                 className="text-coconut-brown mt-0.5 shrink-0"
@@ -204,41 +199,43 @@ function SimulatedCaptureResult() {
                 )}
 
                 {!isProgress ? (
-                    <Button
-                        className="mt-6 w-full"
-                        type="button"
-                        onClick={() =>
-                            void navigate(
-                                buildCaptureUrl(
-                                    scenario === "partial"
-                                        ? "close-up"
-                                        : "front",
-                                    scenario === "completed"
-                                        ? ""
-                                        : location.search,
-                                ),
-                            )
-                        }
-                    >
-                        {scenario === "partial" ? (
-                            <CameraIcon aria-hidden="true" weight="bold" />
-                        ) : (
-                            <ArrowClockwiseIcon
-                                aria-hidden="true"
-                                weight="bold"
-                            />
-                        )}
-                        {t(
-                            scenario === "partial"
-                                ? "capture.result.partial.action"
-                                : scenario === "completed"
-                                  ? "capture.result.newCapture"
-                                  : "capture.result.retryCapture",
-                        )}
-                    </Button>
+                    <div className="mt-7 flex justify-center">
+                        <Button
+                            className="rounded-full px-7"
+                            type="button"
+                            onClick={() =>
+                                void navigate(
+                                    buildCaptureUrl(
+                                        scenario === "partial"
+                                            ? "close-up"
+                                            : "front",
+                                        scenario === "completed"
+                                            ? ""
+                                            : location.search,
+                                    ),
+                                )
+                            }
+                        >
+                            {scenario === "partial" ? (
+                                <CameraIcon aria-hidden="true" weight="bold" />
+                            ) : (
+                                <ArrowClockwiseIcon
+                                    aria-hidden="true"
+                                    weight="bold"
+                                />
+                            )}
+                            {t(
+                                scenario === "partial"
+                                    ? "capture.result.partial.action"
+                                    : scenario === "completed"
+                                      ? "capture.result.newCapture"
+                                      : "capture.result.retryCapture",
+                            )}
+                        </Button>
+                    </div>
                 ) : null}
 
-                <div className="border-border mt-8 flex items-start gap-3 border-t pt-5 text-sm leading-relaxed">
+                <div className="border-border mx-auto mt-10 flex max-w-[40rem] items-start gap-3 border-t pt-5 text-start text-sm leading-relaxed">
                     <LockKeyIcon
                         className="text-primary mt-0.5 shrink-0"
                         aria-hidden="true"
@@ -271,12 +268,12 @@ function ResultIcon({ scenario }: { scenario: CaptureScenario }) {
         <span
             className={
                 isUncertain
-                    ? "bg-coconut-brown-soft text-coconut-brown grid size-16 place-items-center rounded-full"
-                    : "bg-brand-soft text-primary grid size-16 place-items-center rounded-full"
+                    ? "bg-coconut-brown-soft text-coconut-brown grid size-20 place-items-center rounded-[1.5rem]"
+                    : "bg-brand-soft text-primary grid size-20 place-items-center rounded-[1.5rem]"
             }
             aria-hidden="true"
         >
-            <Icon size={31} weight="bold" />
+            <Icon size={42} weight="bold" />
         </span>
     )
 }

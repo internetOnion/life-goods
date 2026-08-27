@@ -56,15 +56,15 @@ describe("app routes and shell", () => {
             true,
         )
 
-        const captureNavigation = screen.getByRole("navigation", {
-            name: "Primary navigation",
-        })
         const languageSwitch = screen.getByRole("button", {
             name: "Switch to Khmer",
         })
         expect(languageSwitch).toBeInTheDocument()
         expect(languageSwitch).toHaveClass("h-11", "w-14", "rounded-lg")
-        expect(captureNavigation.querySelector("button")).toBeNull()
+        const captureNavigation = screen.getByRole("navigation", {
+            name: "Primary navigation",
+        })
+        expect(captureNavigation).toBeVisible()
 
         captureRender.unmount()
         const placeholderRender = renderRoute("/capture/new")
@@ -73,24 +73,37 @@ describe("app routes and shell", () => {
         ).toHaveClass("h-11", "w-14", "rounded-lg")
 
         placeholderRender.unmount()
-        renderRoute("/learn")
+        const ordinaryRender = renderRoute("/learn")
 
         const ordinaryNavigation = screen.getByRole("navigation", {
             name: "Primary navigation",
         })
         expect(ordinaryNavigation.querySelector("button")).toBeNull()
+        ordinaryRender.unmount()
 
         renderRoute("/captures/capture-123")
 
-        const captureResultNavigation = screen
-            .getAllByRole("navigation", {
-                name: "Primary navigation",
-            })
-            .at(-1)
-        expect(captureResultNavigation?.querySelector("button")).toBeNull()
+        const captureResultNavigation = screen.getByRole("navigation", {
+            name: "Primary navigation",
+        })
+        expect(captureResultNavigation).toBeVisible()
+        const captureResultHeader = screen
+            .getByRole("heading", { name: "Package Capture result" })
+            .closest("main")?.firstElementChild
+        expect(captureResultHeader).not.toBeNull()
+        expect(captureResultHeader).toHaveClass("grid-cols-[1fr_auto]")
         expect(
-            screen.getByRole("button", { name: "Switch to Khmer" }),
-        ).toHaveClass("size-11", "rounded-full")
+            screen.queryByRole("button", { name: "Back to Package Capture" }),
+        ).not.toBeInTheDocument()
+        const exitButton = screen.getByRole("button", {
+            name: "Exit to Home",
+        })
+        const languageButton = screen.getByRole("button", {
+            name: "Switch to Khmer",
+        })
+        expect(captureResultHeader?.firstElementChild).toBe(exitButton)
+        expect(captureResultHeader?.children[1]).toBe(languageButton)
+        expect(languageButton).toHaveClass("h-11", "w-14", "rounded-lg")
     })
 
     test("preserves the existing History placeholder", () => {
@@ -122,7 +135,7 @@ describe("app routes and shell", () => {
         ).toBeVisible()
     })
 
-    test("keeps bottom navigation and returns capture results to capture start", async () => {
+    test("keeps bottom navigation and exits capture results from the left", async () => {
         const user = userEvent.setup()
         renderRoute("/captures/capture-123")
 
@@ -133,11 +146,27 @@ describe("app routes and shell", () => {
             screen.getByRole("navigation", { name: "Primary navigation" }),
         ).toBeVisible()
 
-        await user.click(
-            screen.getByRole("button", { name: "Back to Package Capture" }),
-        )
         expect(
-            screen.getByRole("heading", { name: "New Package Capture" }),
+            screen.queryByRole("button", { name: "Back to Package Capture" }),
+        ).not.toBeInTheDocument()
+        const resultMain = screen
+            .getByRole("heading", { name: "Package Capture result" })
+            .closest("main")
+        const resultHeader = resultMain?.firstElementChild
+        expect(resultHeader).toHaveClass("grid-cols-[1fr_auto]")
+        const exitButton = screen.getByRole("button", {
+            name: "Exit to Home",
+        })
+        const languageButton = screen.getByRole("button", {
+            name: "Switch to Khmer",
+        })
+        expect(resultHeader?.firstElementChild).toBe(exitButton)
+        expect(resultHeader?.children[1]).toBe(languageButton)
+        expect(languageButton).toHaveClass("h-11", "w-14", "rounded-lg")
+
+        await user.click(exitButton)
+        expect(
+            screen.getByRole("heading", { name: "Scan with the camera" }),
         ).toBeVisible()
     })
 
@@ -157,6 +186,25 @@ describe("app routes and shell", () => {
         expect(
             screen.getByRole("navigation", { name: "Primary navigation" }),
         ).toBeVisible()
+        const resultHeader = screen
+            .getByRole("heading", { name: "No package information found" })
+            .closest("main")?.firstElementChild
+        expect(resultHeader).toHaveClass("grid-cols-[1fr_auto_1fr]")
+        const backHomeButton = screen.getByRole("button", {
+            name: "Back to Home",
+        })
+        expect(resultHeader?.firstElementChild).toBe(backHomeButton)
+        expect(backHomeButton).toHaveClass("gap-1", "px-2", "text-xs")
+        expect(backHomeButton.querySelector("svg")).toHaveAttribute(
+            "width",
+            "18",
+        )
+        expect(resultHeader?.children[2]).toContainElement(
+            screen.getByRole("button", { name: "Switch to Khmer" }),
+        )
+        expect(
+            screen.getByRole("button", { name: "Switch to Khmer" }),
+        ).toHaveClass("h-11", "w-14", "rounded-lg")
     })
 
     test("renders an explicit not-found page without redirecting", () => {

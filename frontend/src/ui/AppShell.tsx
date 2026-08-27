@@ -109,8 +109,8 @@ export function ResultBackButton({ onBack }: ResultBackButtonProps) {
 
     return (
         <Button
-            className="border-primary text-primary hover:bg-primary/10 hover:text-primary px-3"
-            variant="outline"
+            className="bg-background text-foreground hover:bg-muted hover:text-foreground gap-1 px-2 text-xs"
+            size="sm"
             type="button"
             onClick={() => {
                 if (onBack) {
@@ -120,7 +120,7 @@ export function ResultBackButton({ onBack }: ResultBackButtonProps) {
                 void navigate(appRoutes.home)
             }}
         >
-            <ArrowLeftIcon aria-hidden="true" size={21} weight="bold" />
+            <ArrowLeftIcon aria-hidden="true" size={18} weight="bold" />
             <span>{t("backHome")}</span>
         </Button>
     )

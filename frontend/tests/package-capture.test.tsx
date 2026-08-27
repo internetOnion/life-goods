@@ -515,6 +515,23 @@ describe("simulated Package Capture results", () => {
         expect(
             screen.getByRole("status", { name: "Demo data is active" }),
         ).toBeVisible()
+        const waitingMain = screen
+            .getByRole("heading", { name: "Photos ready for the demo" })
+            .closest("main")
+        const exitButton = screen.getByRole("button", {
+            name: "Exit to Home",
+        })
+        const languageButton = screen.getByRole("button", {
+            name: "Switch to Khmer",
+        })
+        const waitingHeader = waitingMain?.firstElementChild
+        expect(waitingHeader?.firstElementChild).toBe(exitButton)
+        expect(waitingHeader?.children[1]).toBe(languageButton)
+        expect(exitButton).toHaveClass(
+            "bg-background",
+            "text-foreground",
+            "hover:bg-muted",
+        )
 
         await user.click(
             screen.getByRole("button", { name: "Start demo processing" }),
@@ -544,19 +561,31 @@ describe("simulated Package Capture results", () => {
         renderRoute("/captures/demo-capture?scenario=completed")
 
         expect(screen.getByText(/Demo structure only/)).toBeVisible()
-        expect(
-            screen.getByRole("tab", { name: "Information" }),
-        ).toHaveAttribute("aria-selected", "true")
+        const informationTab = screen.getByRole("tab", {
+            name: "Information",
+        })
+        expect(informationTab).toHaveAttribute("aria-selected", "true")
+        expect(informationTab).toHaveClass(
+            "data-[state=active]:bg-brand-soft",
+            "data-[state=active]:font-bold",
+            "data-[state=active]:border-brand-dark",
+        )
         expect(screen.getByText("Product name")).toBeVisible()
         expect(screen.getByText("Brand")).toBeVisible()
-        expect(screen.getAllByText("—").length).toBe(4)
+        expect(screen.getAllByText("Unavailable in this demo").length).toBe(4)
 
         await user.click(screen.getByRole("tab", { name: "Ingredients" }))
         expect(screen.getByText("Declared allergens")).toBeVisible()
         expect(screen.getByText("Additives")).toBeVisible()
-        expect(
-            screen.getByRole("tab", { name: "Ingredients" }),
-        ).toHaveAttribute("aria-selected", "true")
+        const ingredientsTab = screen.getByRole("tab", {
+            name: "Ingredients",
+        })
+        expect(ingredientsTab).toHaveAttribute("aria-selected", "true")
+        expect(ingredientsTab).toHaveClass(
+            "data-[state=active]:bg-brand-soft",
+            "data-[state=active]:font-bold",
+            "data-[state=active]:border-brand-dark",
+        )
 
         await user.click(screen.getByRole("tab", { name: "Nutrition" }))
         expect(screen.getByText("Calories")).toBeVisible()

@@ -15,7 +15,10 @@ const fields: Record<ResultTab, readonly string[]> = {
 export function DemoResultStructure() {
     const { t } = useTranslation()
     return (
-        <section className="relative mt-8" aria-labelledby="demo-data-title">
+        <section
+            className="relative mx-auto mt-10 max-w-[40rem]"
+            aria-labelledby="demo-data-title"
+        >
             <TreePalmIcon
                 className="text-primary/15 pointer-events-none absolute top-0 right-0 size-20 -rotate-12"
                 aria-hidden="true"
@@ -47,14 +50,14 @@ export function DemoResultStructure() {
 
             <Tabs defaultValue="information">
                 <TabsList
-                    className="border-border mt-7 flex gap-1 overflow-x-auto border-b"
+                    className="mt-7 flex gap-1 overflow-x-auto"
                     aria-label={t("capture.result.completed.tabsLabel")}
                 >
                     {tabs.map((tab) => (
                         <TabsTrigger
                             key={tab}
                             value={tab}
-                            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring data-[state=active]:border-primary data-[state=active]:text-primary shrink-0 border-b-2 border-transparent px-3 text-sm font-bold transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring data-[state=active]:border-brand-dark data-[state=active]:bg-brand-soft data-[state=active]:text-primary shrink-0 border-b-2 border-transparent px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none data-[state=active]:font-bold"
                         >
                             {t(`capture.result.completed.${tab}`)}
                         </TabsTrigger>
@@ -85,8 +88,11 @@ function DemoField({ label }: { label: string }) {
     return (
         <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 py-4 text-sm">
             <dt className="font-semibold wrap-anywhere">{label}</dt>
-            <dd aria-label={t("capture.result.completed.unavailableValue")}>
-                —
+            <dd
+                className="text-muted-foreground max-w-[12rem] text-end"
+                aria-label={t("capture.result.completed.unavailableValue")}
+            >
+                {t("capture.result.completed.unavailableValue")}
             </dd>
         </div>
     )
