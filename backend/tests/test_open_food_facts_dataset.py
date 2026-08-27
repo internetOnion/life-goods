@@ -98,3 +98,149 @@ def test_missing_active_version_is_unavailable() -> None:
 
     assert isinstance(result, ExternalPackageUnavailable)
     assert result.reason == "DATASET_UNAVAILABLE"
+
+
+def test_dataset_lookup_parses_mongodb_images_selected_with_partitioned_barcode() -> None:
+    database = dataset_database()
+    product = {
+        "code": "0000101209159",
+        "product_name": "Bovetti Chocolate Spread",
+        "images": {
+            "selected": {
+                "front": {
+                    "fr": {
+                        "imgid": "1",
+                        "rev": "4",
+                        "sizes": {
+                            "100": {"w": 75, "h": 100},
+                            "400": {"w": 300, "h": 400},
+                        },
+                    }
+                },
+                "ingredients": {
+                    "fr": {
+                        "imgid": "2",
+                        "rev": "10",
+                    }
+                },
+                "nutrition": {
+                    "fr": {
+                        "imgid": "3",
+                        "rev": 15,
+                    }
+                },
+            }
+        },
+    }
+    database[COLLECTION_NAME].insert_one(product)
+    source = OpenFoodFactsDatasetSource(database)
+
+    result = source.fetch(normalize_identifier("0000101209159"))
+
+    assert isinstance(result, ExternalPackageFound)
+    images = result.record.selected_images
+    assert len(images) == 3
+
+    front_image = next(img for img in images if img.role == "front")
+    assert front_image.url == (
+        "https://images.openfoodfacts.org/images/products/000/010/120/9159/front_fr.4.400.jpg"
+    )
+    assert front_image.source_field == "images.selected.front.fr"
+    assert front_image.language == "fr"
+
+    ingredients_image = next(img for img in images if img.role == "ingredients")
+    assert ingredients_image.url == (
+        "https://images.openfoodfacts.org/images/products/000/010/120/9159/ingredients_fr.10.400.jpg"
+    )
+    assert ingredients_image.source_field == "images.selected.ingredients.fr"
+    assert ingredients_image.language == "fr"
+
+    nutrition_image = next(img for img in images if img.role == "nutrition")
+    assert nutrition_image.url == (
+        "https://images.openfoodfacts.org/images/products/000/010/120/9159/nutrition_fr.15.400.jpg"
+    )
+    assert nutrition_image.source_field == "images.selected.nutrition.fr"
+    assert nutrition_image.language == "fr"
+
+
+def test_dataset_lookup_handles_short_gtin8_barcode_unpartitioned() -> None:
+    database = dataset_database()
+    product = {
+        "code": "42104964",
+        "product_name": "Ciel 33cl",
+        "images": {
+            "selected": {
+                "front": {
+                    "en": {
+                        "imgid": "1",
+                        "rev": "2",
+                    }
+                }
+            }
+        },
+    }
+    database[COLLECTION_NAME].insert_one(product)
+    source = OpenFoodFactsDatasetSource(database)
+
+    result = source.fetch(normalize_identifier("42104964"))
+
+    assert isinstance(result, ExternalPackageFound)
+    images = result.record.selected_images
+    assert len(images) == 1
+    assert images[0].url == (
+        "https://images.openfoodfacts.org/images/products/42104964/front_en.2.400.jpg"
+    )
+    assert images[0].source_field == "images.selected.front.en"
+
+
+def test_dataset_lookup_handles_12_digit_upc_barcode_partitioning() -> None:
+    database = dataset_database()
+    product = {
+        "code": "737628064502",
+        "product_name": "UPC Product",
+        "images": {
+            "selected": {
+                "front": {
+                    "en": {
+                        "imgid": "1",
+                    }
+                }
+            }
+        },
+    }
+    database[COLLECTION_NAME].insert_one(product)
+    source = OpenFoodFactsDatasetSource(database)
+
+    result = source.fetch(normalize_identifier("737628064502"))
+
+    assert isinstance(result, ExternalPackageFound)
+    images = result.record.selected_images
+    assert len(images) == 1
+    assert images[0].url == (
+        "https://images.openfoodfacts.org/images/products/737/628/064/502/front_en.400.jpg"
+    )
+    assert images[0].source_field == "images.selected.front.en"
+
+
+def test_dataset_lookup_falls_back_to_direct_image_urls() -> None:
+    database = dataset_database()
+    product = {
+        "code": "4006381333931",
+        "product_name": "Fallback Image Product",
+        "lang": "en",
+        "image_front_url": "https://images.openfoodfacts.org/images/products/400/front.jpg",
+    }
+    database[COLLECTION_NAME].insert_one(product)
+    source = OpenFoodFactsDatasetSource(database)
+
+    result = source.fetch(normalize_identifier("4006381333931"))
+
+    assert isinstance(result, ExternalPackageFound)
+    images = result.record.selected_images
+    assert len(images) == 1
+    assert images[0].url == (
+        "https://images.openfoodfacts.org/images/products/400/front.jpg"
+    )
+    assert images[0].source_field == "image_front_url"
+    assert images[0].role == "front"
+    assert images[0].language == "en"

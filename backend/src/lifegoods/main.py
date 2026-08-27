@@ -5,8 +5,9 @@ import httpx
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from pymongo import MongoClient
+from scalar_fastapi import get_scalar_api_reference
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -62,7 +63,8 @@ def create_app(
         )
         owned_mongo_clients.append(mongo_client)
         resolved_source: ExternalPackageSource = OpenFoodFactsDatasetSource(
-            mongo_client[resolved_settings.off_mongodb_database]
+            mongo_client[resolved_settings.off_mongodb_database],
+            image_base_url=resolved_settings.open_food_facts_image_base_url,
         )
     else:
         resolved_source = external_source
@@ -87,6 +89,14 @@ def create_app(
     )
     app.include_router(package_matches_router)
     app.include_router(open_food_facts_image_router)
+
+    @app.get("/scalar", include_in_schema=False)
+    async def scalar_html() -> HTMLResponse:
+        return get_scalar_api_reference(
+            openapi_url=app.openapi_url or "/openapi.json",
+            title=f"{app.title} - Scalar Reference",
+        )
+
     for owned_http_client in owned_http_clients:
         app.router.add_event_handler("shutdown", owned_http_client.close)
     for owned_mongo_client in owned_mongo_clients:

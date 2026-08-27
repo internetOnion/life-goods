@@ -224,6 +224,71 @@ def prune_versions(database: Database[dict[str, Any]]) -> list[str]:
     return removed
 
 
+def delete_version(
+    database: Database[dict[str, Any]],
+    version_id: str,
+) -> dict[str, Any]:
+    pointer = database[CONTROL_COLLECTION].find_one({"_id": ACTIVE_POINTER_ID}) or {}
+    if pointer.get("active_version_id") == version_id:
+        raise ValueError("Cannot delete the active dataset version")
+    manifest = database[VERSIONS_COLLECTION].find_one({"_id": version_id})
+    if manifest is None:
+        raise ValueError(f"Dataset version {version_id} does not exist")
+    collection_name = manifest.get("collection_name")
+    if isinstance(collection_name, str):
+        database.drop_collection(collection_name)
+    database[VERSIONS_COLLECTION].delete_one({"_id": version_id})
+    if pointer.get("previous_version_id") == version_id:
+        database[CONTROL_COLLECTION].update_one(
+            {"_id": ACTIVE_POINTER_ID},
+            {"$unset": {"previous_version_id": ""}},
+        )
+    return {"deleted_version_id": version_id}
+
+
+def revalidate_version(
+    database: Database[dict[str, Any]],
+    version_id: str,
+    *,
+    probe_codes: tuple[str, ...] = DEFAULT_PROBE_CODES,
+    now: Callable[[], datetime] | None = None,
+) -> dict[str, Any]:
+    utc_now = now or (lambda: datetime.now(UTC))
+    versions = database[VERSIONS_COLLECTION]
+    manifest = versions.find_one({"_id": version_id})
+    if manifest is None:
+        raise ValueError(f"Dataset version {version_id} does not exist")
+    collection_name = manifest.get("collection_name")
+    if (
+        not isinstance(collection_name, str)
+        or collection_name not in database.list_collection_names()
+    ):
+        raise ValueError("Dataset product collection is unavailable")
+
+    validation_errors = _validate_import(
+        database,
+        collection_name,
+        manifest,
+        probe_codes,
+    )
+    status = "READY" if not validation_errors else "FAILED"
+    update: dict[str, Any] = {
+        "status": status,
+        "probe_codes": list(probe_codes),
+        "validation_errors": validation_errors,
+        "revalidated_at": utc_now(),
+    }
+    if validation_errors:
+        update["failure"] = "; ".join(validation_errors)
+    else:
+        update["failure"] = None
+    versions.update_one({"_id": version_id}, {"$set": update})
+    result = _required_manifest(versions.find_one({"_id": version_id}))
+    if validation_errors:
+        raise DatasetImportError("; ".join(validation_errors))
+    return result
+
+
 def list_versions(database: Database[dict[str, Any]]) -> list[dict[str, Any]]:
     return list(database[VERSIONS_COLLECTION].find({}).sort("retrieval_started_at", -1))
 
@@ -351,20 +416,23 @@ def _validate_import(
     probe_codes: tuple[str, ...],
 ) -> list[str]:
     errors: list[str] = []
-    if report["byte_count"] <= 0 or report["document_count"] <= 0:
+    if report.get("byte_count", 0) <= 0 or report.get("document_count", 0) <= 0:
         errors.append("The export contained no product data")
-    if report["malformed_count"]:
+    if report.get("malformed_count", 0):
         errors.append(f"Malformed documents: {report['malformed_count']}")
-    if report["duplicate_count"]:
-        errors.append(f"Duplicate product codes: {report['duplicate_count']}")
-    if report["inserted_count"] != report["document_count"]:
+    if (
+        report.get("inserted_count", 0)
+        + report.get("duplicate_count", 0)
+        + report.get("malformed_count", 0)
+        != report.get("document_count", 0)
+    ):
         errors.append("Parsed and inserted document counts do not match")
     collection = database[collection_name]
     try:
         collection.create_index([("code", ASCENDING)], unique=True, name="uq_off_code")
     except PyMongoError as error:
         errors.append(f"Unique product-code index failed: {error}")
-    if collection.count_documents({}) != report["inserted_count"]:
+    if collection.count_documents({}) != report.get("inserted_count", 0):
         errors.append("MongoDB document count does not match the import report")
     missing_probes = [
         code for code in probe_codes if collection.find_one({"code": code}) is None
@@ -402,8 +470,13 @@ def main(argv: list[str] | None = None) -> int:
         default=DEFAULT_PROGRESS_INTERVAL_SECONDS,
         help="Progress logging interval (default: 5 seconds)",
     )
+    revalidate_parser = subparsers.add_parser("revalidate")
+    revalidate_parser.add_argument("version_id")
+    revalidate_parser.add_argument("--probe", action="append", dest="probes")
     activate_parser = subparsers.add_parser("activate")
     activate_parser.add_argument("version_id")
+    delete_parser = subparsers.add_parser("delete")
+    delete_parser.add_argument("version_id")
     subparsers.add_parser("list")
     subparsers.add_parser("rollback")
     subparsers.add_parser("prune")
@@ -437,8 +510,16 @@ def main(argv: list[str] | None = None) -> int:
                 progress=report_progress,
                 progress_interval_seconds=args.progress_seconds,
             )
+        elif args.command == "revalidate":
+            output = revalidate_version(
+                database,
+                args.version_id,
+                probe_codes=tuple(args.probes or DEFAULT_PROBE_CODES),
+            )
         elif args.command == "activate":
             output = activate_version(database, args.version_id)
+        elif args.command == "delete":
+            output = delete_version(database, args.version_id)
         elif args.command == "rollback":
             output = rollback_version(database)
         elif args.command == "prune":

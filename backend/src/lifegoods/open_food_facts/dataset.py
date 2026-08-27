@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import UTC, datetime
 from typing import Any
 
@@ -25,6 +26,7 @@ VERSIONS_COLLECTION = "off_dataset_versions"
 ACTIVE_POINTER_ID = "active"
 PRODUCT_COLLECTION_PREFIX = "off_products_"
 OPEN_FOOD_FACTS_BASE_URL = "https://world.openfoodfacts.org"
+DEFAULT_OPEN_FOOD_FACTS_IMAGE_BASE_URL = "https://images.openfoodfacts.org"
 
 LOCALIZED_NAME_FIELDS = (
     ("product_name", None),
@@ -58,8 +60,14 @@ NUTRITION_DECLARATION_FIELDS = (
 
 
 class OpenFoodFactsDatasetSource:
-    def __init__(self, database: Database[dict[str, Any]]) -> None:
+    def __init__(
+        self,
+        database: Database[dict[str, Any]],
+        *,
+        image_base_url: str = DEFAULT_OPEN_FOOD_FACTS_IMAGE_BASE_URL,
+    ) -> None:
         self._database = database
+        self._image_base_url = image_base_url
         self._source_metadata = ExternalSourceMetadata(
             name="Open Food Facts",
             source_type="COMMUNITY_DATABASE",
@@ -111,6 +119,7 @@ class OpenFoodFactsDatasetSource:
                 product,
                 self._source_metadata,
                 dataset_version,
+                self._image_base_url,
             )
         )
 
@@ -146,6 +155,7 @@ def _record_from_product(
     product: dict[str, Any],
     source: ExternalSourceMetadata,
     dataset_version: ExternalDatasetVersion,
+    image_base_url: str = DEFAULT_OPEN_FOOD_FACTS_IMAGE_BASE_URL,
 ) -> ExternalPackageRecord:
     primary_language = _non_empty_string(product.get("lang"))
     source_url = f"{OPEN_FOOD_FACTS_BASE_URL}/product/{identifier.value}"
@@ -161,7 +171,7 @@ def _record_from_product(
         names=_localized_texts(product, LOCALIZED_NAME_FIELDS, primary_language),
         brands=_brands(product),
         quantity=_string_value(product, "quantity"),
-        selected_images=_selected_images(product),
+        selected_images=_selected_images(product, identifier.value, image_base_url),
         ingredient_texts=_localized_texts(
             product, LOCALIZED_INGREDIENT_FIELDS, primary_language
         ),
@@ -232,28 +242,96 @@ def _string_tuple_value(
     return SourcedValue(value=values, source_field=field) if values else None
 
 
-def _selected_images(product: dict[str, Any]) -> tuple[ExternalSelectedImage, ...]:
-    selected_images = product.get("selected_images")
-    if not isinstance(selected_images, dict):
-        return ()
+def _barcode_image_path(barcode: str) -> str:
+    if len(barcode) > 8 and barcode.isdigit():
+        match = re.match(r"^(\d{3})(\d{3})(\d{3})(\d+)$", barcode)
+        if match:
+            return "/".join(match.groups())
+    return barcode
+
+
+def _selected_images(
+    product: dict[str, Any],
+    barcode: str,
+    image_base_url: str = DEFAULT_OPEN_FOOD_FACTS_IMAGE_BASE_URL,
+) -> tuple[ExternalSelectedImage, ...]:
     images: list[ExternalSelectedImage] = []
-    for role, variants in selected_images.items():
-        if not isinstance(role, str) or not isinstance(variants, dict):
-            continue
-        display = variants.get("display")
-        if not isinstance(display, dict):
-            continue
-        for language, raw_url in display.items():
-            url = _non_empty_string(raw_url)
-            if isinstance(language, str) and url is not None:
-                images.append(
-                    ExternalSelectedImage(
-                        role=role,
-                        url=url,
-                        source_field=f"selected_images.{role}.display.{language}",
-                        language=language,
+    seen_urls: set[str] = set()
+
+    # 1. Raw MongoDB export structure: images.selected.<role>.<language>
+    raw_images = product.get("images")
+    if isinstance(raw_images, dict):
+        selected = raw_images.get("selected")
+        if isinstance(selected, dict):
+            barcode_path = _barcode_image_path(barcode)
+            for role, lang_map in selected.items():
+                if not isinstance(role, str) or not isinstance(lang_map, dict):
+                    continue
+                for language, details in lang_map.items():
+                    if not isinstance(language, str) or not isinstance(details, dict):
+                        continue
+                    rev = details.get("rev")
+                    rev_str = str(rev).strip() if rev is not None and str(rev).strip() else None
+                    if rev_str is not None:
+                        filename = f"{role}_{language}.{rev_str}.400.jpg"
+                    else:
+                        filename = f"{role}_{language}.400.jpg"
+                    url = f"{image_base_url}/images/products/{barcode_path}/{filename}"
+                    if url not in seen_urls:
+                        seen_urls.add(url)
+                        images.append(
+                            ExternalSelectedImage(
+                                role=role,
+                                url=url,
+                                source_field=f"images.selected.{role}.{language}",
+                                language=language,
+                            )
+                        )
+
+    # 2. HTTP API response / fixture structure: selected_images.<role>.display.<language>
+    raw_selected_images = product.get("selected_images")
+    if isinstance(raw_selected_images, dict):
+        for role, variants in raw_selected_images.items():
+            if not isinstance(role, str) or not isinstance(variants, dict):
+                continue
+            display = variants.get("display")
+            if not isinstance(display, dict):
+                continue
+            for language, raw_url in display.items():
+                url = _non_empty_string(raw_url)
+                if isinstance(language, str) and url is not None and url not in seen_urls:
+                    seen_urls.add(url)
+                    images.append(
+                        ExternalSelectedImage(
+                            role=role,
+                            url=url,
+                            source_field=f"selected_images.{role}.display.{language}",
+                            language=language,
+                        )
                     )
+
+    # 3. Direct URL fields fallback
+    primary_language = _non_empty_string(product.get("lang"))
+    direct_fields = (
+        ("image_front_url", "front"),
+        ("image_ingredients_url", "ingredients"),
+        ("image_nutrition_url", "nutrition"),
+        ("image_packaging_url", "packaging"),
+        ("image_url", "front"),
+    )
+    for field_name, role in direct_fields:
+        raw_url = _non_empty_string(product.get(field_name))
+        if raw_url is not None and raw_url not in seen_urls:
+            seen_urls.add(raw_url)
+            images.append(
+                ExternalSelectedImage(
+                    role=role,
+                    url=raw_url,
+                    source_field=field_name,
+                    language=primary_language,
                 )
+            )
+
     return tuple(images)
 
 

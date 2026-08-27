@@ -15,9 +15,11 @@ from lifegoods.open_food_facts import (
 from lifegoods.open_food_facts.cli import (
     DatasetImportError,
     activate_version,
+    delete_version,
     import_url,
     list_versions,
     prune_versions,
+    revalidate_version,
     rollback_version,
 )
 
@@ -93,14 +95,106 @@ def test_import_streams_hashes_validates_and_preserves_full_documents() -> None:
     assert progress[-1]["inserted_count"] == 2
 
 
+def test_import_permits_and_records_duplicate_barcodes() -> None:
+    database = mongomock.MongoClient().lifegoods_off
+    content = export_bytes(
+        [
+            product(PROBE_CODE, name="Original product"),
+            product(PROBE_CODE, name="Duplicate product"),
+        ]
+    )
+
+    manifest = import_url(
+        database,
+        SOURCE_URL,
+        probe_codes=(PROBE_CODE,),
+        client=http_client(content),
+        now=clock(datetime(2026, 8, 27, tzinfo=UTC)),
+    )
+
+    assert manifest["status"] == "READY"
+    assert manifest["document_count"] == 2
+    assert manifest["inserted_count"] == 1
+    assert manifest["duplicate_count"] == 1
+    assert manifest["malformed_count"] == 0
+    stored = database[manifest["collection_name"]].find_one({"code": PROBE_CODE})
+    assert stored is not None
+    assert stored["product_name"] == "Original product"
+
+
+def test_revalidate_version_updates_failed_dataset_to_ready() -> None:
+    database = mongomock.MongoClient().lifegoods_off
+    collection_name = "off_products_test_version"
+    database[collection_name].insert_one(product(PROBE_CODE, name="Probe item"))
+    database[VERSIONS_COLLECTION].insert_one(
+        {
+            "_id": "test_version",
+            "collection_name": collection_name,
+            "source_url": SOURCE_URL,
+            "retrieval_started_at": datetime(2026, 8, 27, 8, 0, tzinfo=UTC),
+            "retrieval_completed_at": datetime(2026, 8, 27, 9, 0, tzinfo=UTC),
+            "status": "FAILED",
+            "byte_count": 1000,
+            "document_count": 2,
+            "inserted_count": 1,
+            "malformed_count": 0,
+            "duplicate_count": 1,
+            "schema_versions": [1003],
+            "probe_codes": [PROBE_CODE],
+            "validation_errors": ["Duplicate product codes: 1"],
+            "sha256": "a" * 64,
+            "failure": "Duplicate product codes: 1",
+        }
+    )
+
+    result = revalidate_version(database, "test_version", probe_codes=(PROBE_CODE,))
+
+    assert result["status"] == "READY"
+    assert result["validation_errors"] == []
+    assert result["failure"] is None
+    activated = activate_version(database, "test_version")
+    assert activated["status"] == "ACTIVE"
+
+
+def test_delete_version_removes_collection_and_manifest() -> None:
+    database = mongomock.MongoClient().lifegoods_off
+    collection_name = "off_products_to_delete"
+    database[collection_name].insert_one(product(PROBE_CODE))
+    database[VERSIONS_COLLECTION].insert_one(
+        {
+            "_id": "version_to_delete",
+            "collection_name": collection_name,
+            "status": "IMPORTING",
+        }
+    )
+
+    result = delete_version(database, "version_to_delete")
+    assert result == {"deleted_version_id": "version_to_delete"}
+    assert database[VERSIONS_COLLECTION].find_one({"_id": "version_to_delete"}) is None
+    assert collection_name not in database.list_collection_names()
+
+
+def test_delete_version_rejects_active_version() -> None:
+    database = mongomock.MongoClient().lifegoods_off
+    database[CONTROL_COLLECTION].insert_one(
+        {"_id": ACTIVE_POINTER_ID, "active_version_id": "active_ver"}
+    )
+    database[VERSIONS_COLLECTION].insert_one(
+        {
+            "_id": "active_ver",
+            "collection_name": "off_products_active_ver",
+            "status": "ACTIVE",
+        }
+    )
+
+    with pytest.raises(ValueError, match="Cannot delete the active dataset version"):
+        delete_version(database, "active_ver")
+
+
 @pytest.mark.parametrize(
     "content, expected",
     [
         (gzip.compress(b"not-json\n", mtime=0), "Malformed documents: 1"),
-        (
-            export_bytes([product(PROBE_CODE), product(PROBE_CODE, name="Duplicate")]),
-            "Duplicate product codes: 1",
-        ),
         (export_bytes([product("8850000000003")]), "Known barcode probes missing"),
         (gzip.compress(b"", mtime=0), "contained no product data"),
     ],
