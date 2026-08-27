@@ -112,7 +112,7 @@ export function HomePage({
                         <CameraSlashIcon size={52} weight="light" />
                     </span>
                     <div>
-                        <h1 className="text-xl leading-[1.7] font-bold tracking-tight text-balance">
+                        <h1 className="text-lg leading-[1.7] font-bold tracking-tight text-balance">
                             {t("cameraTitle")}
                         </h1>
                         <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
