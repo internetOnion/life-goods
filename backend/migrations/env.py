@@ -3,9 +3,9 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from lifegoods.adapters import catalog_models  # noqa: F401
-from lifegoods.adapters.database import Base
-from lifegoods.settings import Settings
+from lifegoods.catalog import models as catalog_models  # noqa: F401
+from lifegoods.core.database import Base
+from lifegoods.core.settings import Settings
 
 config = context.config
 if config.config_file_name is not None:

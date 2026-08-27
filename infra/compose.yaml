@@ -15,5 +15,31 @@ services:
     volumes:
       - lifegoods-postgres:/var/lib/postgresql
 
+  mongodb:
+    image: mongo:8.2
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: lifegoods_root
+      LIFEGOODS_OFF_DATABASE: lifegoods_off
+      LIFEGOODS_OFF_READER_USERNAME: lifegoods_reader
+      LIFEGOODS_OFF_READER_PASSWORD: lifegoods_reader
+      LIFEGOODS_OFF_WRITER_USERNAME: lifegoods_writer
+      LIFEGOODS_OFF_WRITER_PASSWORD: lifegoods_writer
+    ports:
+      - "27018:27017"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --quiet --username root --password lifegoods_root --authenticationDatabase admin --eval 'db.adminCommand({ ping: 1 })'",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - lifegoods-mongodb:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+
 volumes:
   lifegoods-postgres:
+  lifegoods-mongodb:

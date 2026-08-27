@@ -4,7 +4,7 @@ This document defines the first pilot for the Khmer Food Product Intelligence pl
 
 ## Product outcome
 
-A Cambodian shopper scans or photographs a sealed packaged food before purchase and receives understandable Khmer label information, evidence-scoped assessments, and visible uncertainty. The platform informs the shopper; it does not issue a buy/don't-buy verdict or declare a Product safe, healthy, Halal, legal, or authentic.
+A Cambodian shopper scans or photographs a sealed packaged food before purchase and receives original label evidence, English-first ingredient explanations, evidence-scoped assessments, and visible uncertainty through a Khmer-first interface. The platform informs the shopper; it does not issue a buy/don't-buy verdict or declare a Product safe, healthy, Halal, legal, compliant, verified, or authentic.
 
 ## Personas
 
@@ -67,7 +67,7 @@ As a Primary Shopper, I want to search when scanning is unavailable so that I ca
 
 Acceptance criteria:
 
-- Searches by barcode, reviewed Khmer names, and original names or brands in Khmer, English, Vietnamese, Simplified Chinese, and Thai.
+- Searches the Active OFF Dataset Version by barcode and available original Product or brand names.
 - Preserves a language tag and source for every displayed name.
 - Handles Unicode normalization and common spacing or punctuation differences.
 - Does not promise untested cross-script transliteration or typo tolerance.
@@ -77,16 +77,16 @@ Acceptance criteria:
 
 ### US-2.1 — View an Open Food Facts result
 
-As a Primary Shopper, I want available community data to be useful even when the Product is not in the reviewed pilot catalog.
+As a Primary Shopper, I want locally available community data to be useful while LifeGoods has no reviewed Product catalog.
 
 Acceptance criteria:
 
 - Uses eligible Open Food Facts fields as field-level external Evidence, not as one authoritative Product record.
 - Labels the result “Community data from Open Food Facts—not yet reviewed by this project.”
-- Shows attribution, source link, retrieval time, and relevant source modification data.
+- Shows attribution, source link, retrieval/activation times, Dataset Version, integrity metadata, and relevant source modification data.
 - Never interprets an empty ingredient, allergen, trace, or nutrition field as “none.”
 - Asks the shopper to compare the reference front image with the physical package.
-- Runs approved safety vocabulary rules only against readable source evidence.
+- Runs activated human-reviewed reference mappings only against readable source evidence.
 - Offers private Package Capture when evidence is missing, inconsistent, or does not match.
 
 ### US-2.2 — Capture a package privately
@@ -115,7 +115,7 @@ Acceptance criteria:
 - Ingredient, allergen, date, certification, importer, or front-design differences are material.
 - A shopper capture never automatically overwrites or publishes a Package Revision.
 
-## Epic 3: Understand the label in Khmer
+## Epic 3: Understand the available label evidence
 
 ### US-3.1 — See a prioritized result
 
@@ -123,23 +123,22 @@ As a Primary Shopper, I want the most consequential information first so that I 
 
 Acceptance criteria:
 
-- Presents, in order: package identity, Critical Declared Concerns, Evidence Uncertainty, Khmer label summary, and source access.
+- Presents, in order: package identity, profile-matched and other concerns, Evidence Uncertainty, available label evidence and English explanations, and source access.
 - Includes the original source text or image location for important findings.
 - Does not show a universal health score or purchase verdict.
 - Uses “declared,” “detected in readable label,” “uncertain,” and “not assessed” consistently.
 
-### US-3.2 — Read ingredient names in Khmer
+### US-3.2 — Read ingredient explanations
 
-As a Primary Shopper, I want concise Khmer ingredient names alongside the original label wording so that I can scan the list without losing the source meaning.
+As a Primary Shopper, I want concise English ingredient descriptions alongside the original label wording when they are available so that I can inspect meaning without losing the source.
 
 Acceptance criteria:
 
 - Preserves original ingredient order, nesting, percentages, and source text.
-- Shows approved Khmer vocabulary for safety-critical ingredients and additives.
-- May show clearly marked AI-generated names for ordinary ingredients.
+- Shows project-authored, source-cited, activated English descriptions linked to stable ingredient concepts.
 - Keeps ambiguous terms in the original language and marks them uncertain.
-- Does not use an unreviewed Khmer translation as the sole basis of an assessment.
-- Lets the shopper flag an unclear translation.
+- Does not use a description or translation as the assessment input.
+- Defers Khmer ingredient-description translation to the next version.
 
 ### US-3.3 — Learn about a term
 
@@ -148,9 +147,9 @@ As a Primary Shopper, I want an explanation only when I ask for it so that the m
 Acceptance criteria:
 
 - Opens a contextual Learn More view without leaving the result.
-- Uses one of the 20–30 source-cited, reviewed MVP Knowledge Entries when available.
+- Uses a locally hosted, source-cited, activated English Knowledge Entry when available.
 - Shows original summaries rather than copied web text.
-- Provides an official external link when reviewed local content is unavailable.
+- Provides an authoritative external link when activated local content is unavailable.
 - Keeps Product-specific conclusions separate from general education.
 
 ## Epic 4: Interpret declared concerns conservatively
@@ -162,10 +161,10 @@ As an allergy-conscious shopper, I want the app to distinguish what the label sa
 Acceptance criteria:
 
 - Supports `DECLARED_CONTAINS`, `DECLARED_MAY_CONTAIN`, `DERIVED_FROM_INGREDIENT`, `NO_DECLARATION_DETECTED_IN_READABLE_LABEL`, `LABEL_INCOMPLETE_OR_UNREADABLE`, and `NOT_ASSESSED` outcomes.
-- Approved exact, synonym, and derivative matches may produce automatic assessments.
-- New AI-suggested mappings remain uncertain until reviewed.
+- Activated exact, synonym, precautionary, and derivative mappings may produce automatic assessments.
+- Missing, ambiguous, or inactive mappings remain uncertain.
 - “No declaration detected” includes the qualification that it is not an allergen-free guarantee.
-- Every assessment points to the original label evidence and vocabulary/rule version.
+- Every assessment points to original OFF evidence and the exact Reference Dataset Version.
 
 ### US-4.2 — Understand Halal-related evidence
 
@@ -174,10 +173,10 @@ As a Halal-conscious shopper, I want ingredient screening and certification kept
 Acceptance criteria:
 
 - Ingredient outcomes distinguish explicit prohibited ingredient, ambiguous source, no declared non-Halal ingredient detected in readable evidence, incomplete evidence, and not assessed.
-- Seal outcomes distinguish observed, unreadable, absent from photographed area, and not assessed.
-- Does not label a Product “Halal” from ingredient screening or logo recognition.
-- If no authoritative registry check exists, certificate verification remains not assessed.
-- Every outcome points to its original label evidence.
+- Uses a project-authored, human-reviewed mapping derived from cited Cambodian and properly licensed international sources.
+- Does not label a Product “Halal” from ingredient screening, lack of a match, logo, brand, origin, or Product category.
+- Keeps Seal Observation and certificate verification separate and not assessed in this slice.
+- Every outcome points to original label evidence and the exact Reference Dataset Version.
 
 ### US-4.3 — Understand an additive
 
@@ -186,9 +185,10 @@ As a Primary Shopper, I want an additive identified and explained without unsupp
 Acceptance criteria:
 
 - Matches approved INS/E-number, name, synonym, and function data.
-- Launches with reviewed Khmer coverage for the highest-frequency 100–150 additives found in pilot evidence.
+- Provides a neutral, source-cited English explanation when available.
 - Shows unknown codes or terms with an explanation pending state rather than guessing.
-- States a restriction only when jurisdiction, food category, effective period, and any required concentration support it.
+- Uses a reviewed Cambodian rule when applicable; otherwise a reviewed Codex rule may appear only as an international reference.
+- States a limit concern only when jurisdiction/reference scope, food category, effective period, concentration, and unit support it.
 - Otherwise provides a neutral, source-cited explainer.
 - Never infers excessive quantity when concentration is not declared.
 
@@ -214,9 +214,10 @@ As a shopper with specific needs, I want an optional preferences page so that re
 Acceptance criteria:
 
 - Requires no account and does not appear as a blocking first-run step.
-- Stores preferences locally on the device.
-- Prioritizes selected concerns but never hides unselected critical concerns or uncertainty.
-- Says “prioritized for your preferences,” not “only risks relevant to you.”
+- Offers only allergens from the activated reviewed vocabulary and accepts no free text.
+- Stores preferences only in that browser/device until reset and never sends values to the backend or analytics.
+- Prioritizes matching declared, may-contain, and derived outcomes without changing assessment logic or hiding other concerns or uncertainty.
+- Says “matches your selected concern,” not “harmful” or “safe for you.”
 
 ### US-5.2 — Use the app anonymously
 
@@ -246,7 +247,8 @@ Before treating the persona and stories as final:
 
 - Interview and observe approximately 8–12 relevant Cambodian shoppers across several shopping contexts.
 - Run iterative Khmer usability rounds of about five participants each.
-- Test comprehension of declared concern, none detected in readable evidence, uncertain, unreviewed AI translation, and seal/certificate status.
+- Test comprehension of declarations, derived matches, none detected in readable evidence, uncertainty, international additive references, and ingredient screening versus certification.
+- Measure whether English-first ingredient descriptions are usable and document the audience excluded until Khmer translation ships.
 - Confirm shoppers compare package images and can complete the primary journey without assistance.
 - Maintain an evaluation set of 50–100 project-owned or appropriately consented package images spanning Khmer, English, Vietnamese, Simplified Chinese, and Thai.
 
@@ -268,4 +270,7 @@ Initial pilot gates:
 - Khmer-label legal Compliance Assessments
 - Telegram Share Cards
 - Official Report Referral
-- Broad standalone Food Literacy Hub content beyond 20–30 contextual Knowledge Entries
+- Locally observed Product seed data and reviewed-local precedence
+- Product Claim moderation, Preferred Claims, and Unresolved Conflicts
+- Khmer ingredient-description and Knowledge Entry translation
+- Broad standalone Food Literacy Hub content

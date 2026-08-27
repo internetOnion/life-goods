@@ -2,20 +2,21 @@
 
 A Khmer-first online product for helping Cambodian shoppers understand evidence from sealed packaged-food labels before purchase. The MVP runs as a responsive website and Telegram Mini App.
 
-The platform presents declared concerns, uncertainty, Khmer ingredient names, and source evidence. It does not tell shoppers whether to buy a Product and does not declare a Product safe, healthy, allergen-free, Halal, legal, or authentic.
+The platform presents evidence-scoped concerns, uncertainty, English-first ingredient explanations, and source evidence through a Khmer-first interface. It does not tell shoppers whether to buy a Product and does not declare a Product safe, healthy, allergen-free, Halal, legal, compliant, verified, or authentic.
 
 ## MVP
 
 - Barcode scan and multilingual catalog search
-- Open Food Facts lookup with field-level provenance and attribution
-- Internally reviewed pilot catalog of approximately 100–200 locally observed Products
+- Product lookup from a manually activated, project-hosted OFF Dataset Version with field-level provenance and attribution
+- Locally hosted, immutable, human-reviewed reference datasets for allergen, Halal ingredient, and additive assessments
 - Temporary private Package Capture for missing or current label evidence
-- Original label transcription with concise Khmer ingredient names
+- Original label transcription with concise source-cited English ingredient descriptions
 - Conservative allergen, Halal-ingredient, additive, and date assessments
-- Approximately 20–30 reviewed contextual Learn More entries
+- A data-driven Learn section covering every consequential concept shown by the MVP
+- Device-local allergen preferences that prioritize matching concerns
 - Khmer interface with optional English
 
-Offline use, public contribution, SME authenticity advisories, legal compliance assessments, certificate verification, share cards, and official-report referrals are deferred.
+Locally observed Product seed data, reviewed-local precedence, Product Claim moderation, Khmer ingredient-description translation, offline use, public contribution, SME authenticity advisories, legal Compliance Assessments, certificate verification, share cards, and official-report referrals are deferred.
 
 ## Documentation
 

@@ -1,15 +1,24 @@
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import Protocol
 
-from lifegoods.matching.external_source import JsonValue
-from lifegoods.matching.identifier import NormalizedIdentifier
+from lifegoods.identifiers.models import NormalizedIdentifier
+from lifegoods.open_food_facts.models import ExternalDatasetVersion, JsonValue
 
 
 class PackageMatchSourceKind(StrEnum):
     REVIEWED_CATALOG = "REVIEWED_CATALOG"
     OPEN_FOOD_FACTS = "OPEN_FOOD_FACTS"
+
+
+class OpenFoodFactsLookupStatus(StrEnum):
+    AVAILABLE = "AVAILABLE"
+    NOT_FOUND = "NOT_FOUND"
+    UNAVAILABLE = "UNAVAILABLE"
+
+
+class PackageMatchSourceUnavailableError(Exception):
+    pass
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,6 +44,8 @@ class PackageMatchEvidence:
     language: str | None
     observed_at: datetime | None
     retrieved_at: datetime
+    source_revision: str | None = None
+    dataset_version_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,11 +59,15 @@ class PackageMatchReferenceImage:
     license_name: str
     language: str | None
     retrieved_at: datetime
+    source_revision: str | None = None
+    original_url: str | None = None
+    image_revision: str | None = None
+    dataset_version_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
 class PackageMatchCandidate:
-    source_kind: PackageMatchSourceKind = PackageMatchSourceKind.REVIEWED_CATALOG
+    source_kind: PackageMatchSourceKind = PackageMatchSourceKind.OPEN_FOOD_FACTS
     package_variant_id: str | None = None
     product_id: str | None = None
     external_record_id: str | None = None
@@ -63,7 +78,18 @@ class PackageMatchCandidate:
     retrieved_at: datetime | None = None
     is_current: bool | None = None
     source_revision: str | None = None
+    dataset_version: ExternalDatasetVersion | None = None
 
 
-class PackageMatchRepository(Protocol):
-    def find_candidates(self, identifier: NormalizedIdentifier) -> list[PackageMatchCandidate]: ...
+@dataclass(frozen=True, slots=True)
+class OpenFoodFactsLookup:
+    status: OpenFoodFactsLookupStatus
+    dataset_version: ExternalDatasetVersion | None
+    error_code: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class PackageMatchResult:
+    identifier: NormalizedIdentifier
+    candidates: list[PackageMatchCandidate]
+    open_food_facts: OpenFoodFactsLookup

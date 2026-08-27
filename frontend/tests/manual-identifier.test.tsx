@@ -145,6 +145,11 @@ describe("manual identifier journey", () => {
             normalized_identifier: "4006381333931",
             scheme: "EAN_13",
             candidates: [],
+            open_food_facts: {
+                status: "NOT_FOUND",
+                dataset_version: null,
+                error_code: null,
+            },
         })
         renderJourney(lookup)
 
@@ -273,7 +278,7 @@ describe("manual identifier journey", () => {
 
         expect(
             await screen.findByRole("heading", {
-                name: "A different Package Match is available",
+                name: "Could not check right now",
             }),
         ).toHaveFocus()
         expect(
@@ -281,6 +286,35 @@ describe("manual identifier journey", () => {
                 "Community data from Open Food Facts—not yet reviewed by this project.",
             ),
         ).not.toBeInTheDocument()
+    })
+
+    test("does not fall back to reviewed candidates when OFF is unavailable", async () => {
+        await i18n.changeLanguage("en")
+        const user = userEvent.setup()
+        const reviewedCandidate: PackageMatchCandidateResponse = {
+            ...completeOffCandidate(),
+            source_kind: "REVIEWED_CATALOG",
+        }
+        const response = packageMatches(reviewedCandidate)
+        response.open_food_facts = {
+            status: "UNAVAILABLE",
+            dataset_version: null,
+            error_code: "DATASET_UNAVAILABLE",
+        }
+        const lookup = vi.fn<PackageMatchLookup>().mockResolvedValue(response)
+        renderJourney(lookup)
+
+        await user.type(
+            screen.getByRole("textbox", { name: "Barcode number" }),
+            "4006381333931",
+        )
+        await user.click(screen.getByRole("button", { name: "Check barcode" }))
+
+        expect(
+            await screen.findByRole("heading", {
+                name: "Could not check right now",
+            }),
+        ).toHaveFocus()
     })
 
     test("announces temporary failure and recovery in Khmer", async () => {

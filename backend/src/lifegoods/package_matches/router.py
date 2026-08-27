@@ -3,16 +3,21 @@ from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Query
 
-from lifegoods.api.contracts import (
-    ErrorEnvelope,
+from lifegoods.core.errors import ErrorEnvelope
+from lifegoods.package_matches.contracts import (
+    ExternalDatasetVersionResponse,
+    OpenFoodFactsLookupResponse,
     PackageMatchCandidateResponse,
     PackageMatchesResponse,
     PackageMatchEvidenceResponse,
     PackageMatchReferenceImageResponse,
     PackageMatchSourceResponse,
 )
-from lifegoods.application.package_matches import FindPackageMatches
-from lifegoods.matching.repository import PackageMatchCandidate, PackageMatchSourceKind
+from lifegoods.package_matches.models import (
+    PackageMatchCandidate,
+    PackageMatchSourceKind,
+)
+from lifegoods.package_matches.service import FindPackageMatches
 
 router = APIRouter(prefix="/api/v1", tags=["Package Matches"])
 
@@ -36,15 +41,32 @@ def get_package_matches(
         normalized_identifier=result.identifier.value,
         scheme=result.identifier.scheme,
         candidates=[_candidate_response(candidate) for candidate in result.candidates],
+        open_food_facts=OpenFoodFactsLookupResponse(
+            status=result.open_food_facts.status,
+            dataset_version=(
+                ExternalDatasetVersionResponse(
+                    id=result.open_food_facts.dataset_version.id,
+                    source_url=result.open_food_facts.dataset_version.source_url,
+                    retrieved_at=result.open_food_facts.dataset_version.retrieved_at,
+                    activated_at=result.open_food_facts.dataset_version.activated_at,
+                    sha256=result.open_food_facts.dataset_version.sha256,
+                )
+                if result.open_food_facts.dataset_version is not None
+                else None
+            ),
+            error_code=result.open_food_facts.error_code,
+        ),
     )
 
 
-def _candidate_response(candidate: PackageMatchCandidate) -> PackageMatchCandidateResponse:
+def _candidate_response(
+    candidate: PackageMatchCandidate,
+) -> PackageMatchCandidateResponse:
+    if candidate.dataset_version is None:
+        raise RuntimeError("OFF candidates require dataset version metadata")
     source = candidate.source
     return PackageMatchCandidateResponse(
         source_kind=candidate.source_kind,
-        package_variant_id=candidate.package_variant_id,
-        product_id=candidate.product_id,
         external_record_id=candidate.external_record_id,
         source=(
             PackageMatchSourceResponse(
@@ -71,6 +93,8 @@ def _candidate_response(candidate: PackageMatchCandidate) -> PackageMatchCandida
                 language=evidence.language,
                 observed_at=evidence.observed_at,
                 retrieved_at=evidence.retrieved_at,
+                source_revision=evidence.source_revision,
+                dataset_version_id=evidence.dataset_version_id,
             )
             for evidence in candidate.identity_evidence
         ],
@@ -84,6 +108,8 @@ def _candidate_response(candidate: PackageMatchCandidate) -> PackageMatchCandida
                 language=evidence.language,
                 observed_at=evidence.observed_at,
                 retrieved_at=evidence.retrieved_at,
+                source_revision=evidence.source_revision,
+                dataset_version_id=evidence.dataset_version_id,
             )
             for evidence in candidate.label_evidence
         ],
@@ -95,6 +121,7 @@ def _candidate_response(candidate: PackageMatchCandidate) -> PackageMatchCandida
                     if candidate.source_kind is PackageMatchSourceKind.OPEN_FOOD_FACTS
                     else image.url
                 ),
+                original_url=image.original_url or image.url,
                 source_field=image.source_field,
                 source_name=image.source_name,
                 source_url=image.source_url,
@@ -102,10 +129,19 @@ def _candidate_response(candidate: PackageMatchCandidate) -> PackageMatchCandida
                 license_name=image.license_name,
                 language=image.language,
                 retrieved_at=image.retrieved_at,
+                source_revision=image.source_revision,
+                image_revision=image.image_revision,
+                dataset_version_id=image.dataset_version_id,
             )
             for image in candidate.reference_images
         ],
         retrieved_at=candidate.retrieved_at,
-        is_current=candidate.is_current,
         source_revision=candidate.source_revision,
+        dataset_version=ExternalDatasetVersionResponse(
+            id=candidate.dataset_version.id,
+            source_url=candidate.dataset_version.source_url,
+            retrieved_at=candidate.dataset_version.retrieved_at,
+            activated_at=candidate.dataset_version.activated_at,
+            sha256=candidate.dataset_version.sha256,
+        ),
     )

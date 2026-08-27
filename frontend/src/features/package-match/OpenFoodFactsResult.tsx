@@ -295,6 +295,18 @@ function ReferenceImageProvenance({
                     label={t("retrievedLabel")}
                     value={formatRetrievedAt(image.retrieved_at, language)}
                 />
+                <SourceFact
+                    label={t("sourceRevisionLabel")}
+                    value={image.source_revision ?? undefined}
+                />
+                <SourceFact
+                    label={t("imageRevisionLabel")}
+                    value={image.image_revision ?? undefined}
+                />
+                <SourceFact
+                    label={t("datasetVersionLabel")}
+                    value={image.dataset_version_id ?? undefined}
+                />
             </dl>
             <a
                 className="text-primary inline-flex min-h-11 items-center gap-2 font-semibold"
@@ -304,6 +316,15 @@ function ReferenceImageProvenance({
             >
                 <LinkSimpleIcon aria-hidden="true" size={18} />
                 <span>{t("openReferenceImageSource")}</span>
+            </a>
+            <a
+                className="text-primary ml-4 inline-flex min-h-11 items-center gap-2 font-semibold"
+                href={image.original_url}
+                target="_blank"
+                rel="noreferrer"
+            >
+                <LinkSimpleIcon aria-hidden="true" size={18} />
+                <span>{t("openOriginalReferenceImage")}</span>
             </a>
         </details>
     )
@@ -473,6 +494,18 @@ function EvidenceProvenance({
                         </time>
                     </dd>
                 </div>
+                <div>
+                    <dt>{t("sourceRevisionLabel")}</dt>
+                    <dd className="wrap-anywhere">
+                        {evidence.source_revision ?? t("notSpecified")}
+                    </dd>
+                </div>
+                <div>
+                    <dt>{t("datasetVersionLabel")}</dt>
+                    <dd className="wrap-anywhere">
+                        {evidence.dataset_version_id ?? t("notSpecified")}
+                    </dd>
+                </div>
                 {exposesOriginalSourceValue(evidence) ? (
                     <div>
                         <dt>{t("sourceValueLabel")}</dt>
@@ -579,6 +612,7 @@ function SourceDetails({ candidate }: { candidate: OpenFoodFactsCandidate }) {
     const { i18n, t } = useTranslation()
     const language = i18n.resolvedLanguage === "en" ? "en" : "km"
     const source = candidate.source
+    const datasetVersion = candidate.dataset_version
 
     return (
         <section
@@ -608,18 +642,40 @@ function SourceDetails({ candidate }: { candidate: OpenFoodFactsCandidate }) {
                     }
                 />
                 <SourceFact
-                    label={t("freshnessLabel")}
+                    label={t("datasetVersionLabel")}
+                    value={datasetVersion.id}
+                />
+                <SourceFact
+                    label={t("datasetAsOfLabel")}
                     value={
-                        candidate.is_current === true
-                            ? t("currentEvidence")
-                            : candidate.is_current === false
-                              ? t("notCurrentEvidence")
-                              : undefined
+                        datasetVersion.retrieved_at
+                            ? t("datasetAsOf", {
+                                  date: formatRetrievedAt(
+                                      datasetVersion.retrieved_at,
+                                      language,
+                                  ),
+                              })
+                            : undefined
+                    }
+                />
+                <SourceFact
+                    label={t("datasetActivatedLabel")}
+                    value={
+                        datasetVersion.activated_at
+                            ? formatRetrievedAt(
+                                  datasetVersion.activated_at,
+                                  language,
+                              )
+                            : undefined
                     }
                 />
                 <SourceFact
                     label={t("sourceRevisionLabel")}
                     value={candidate.source_revision ?? undefined}
+                />
+                <SourceFact
+                    label={t("datasetIntegrityHashLabel")}
+                    value={datasetVersion.sha256}
                 />
                 <SourceFact
                     label={t("attributionLabel")}
@@ -647,6 +703,17 @@ function SourceDetails({ candidate }: { candidate: OpenFoodFactsCandidate }) {
                 >
                     <LinkSimpleIcon aria-hidden="true" size={19} />
                     <span>{t("sourceLink")}</span>
+                </a>
+            ) : null}
+            {datasetVersion.source_url ? (
+                <a
+                    className="text-primary mt-2 inline-flex min-h-11 items-center gap-2 font-semibold"
+                    href={datasetVersion.source_url}
+                    target="_blank"
+                    rel="noreferrer"
+                >
+                    <LinkSimpleIcon aria-hidden="true" size={19} />
+                    <span>{t("datasetSourceLink")}</span>
                 </a>
             ) : null}
         </section>

@@ -3,9 +3,10 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Literal, Protocol
 
-from lifegoods.matching.identifier import NormalizedIdentifier
+from lifegoods.identifiers.models import NormalizedIdentifier
 
 type JsonValue = None | bool | int | float | str | list[JsonValue] | dict[str, JsonValue]
+
 
 @dataclass(frozen=True, slots=True)
 class SourcedValue[T]:
@@ -20,6 +21,7 @@ class ExternalSelectedImage:
     url: str
     source_field: str
     language: str | None = None
+    image_revision: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,6 +37,15 @@ class ExternalSourceMetadata:
 
 
 @dataclass(frozen=True, slots=True)
+class ExternalDatasetVersion:
+    id: str
+    source_url: str
+    retrieved_at: datetime
+    activated_at: datetime
+    sha256: str
+
+
+@dataclass(frozen=True, slots=True)
 class ExternalPackageRecord:
     identifier: str
     source_record_id: str
@@ -42,8 +53,8 @@ class ExternalPackageRecord:
     source_url: str
     retrieved_at: datetime
     source_revision: str | None
-    raw_response: bytes
     source: ExternalSourceMetadata
+    dataset_version: ExternalDatasetVersion
     names: tuple[SourcedValue[str], ...]
     brands: SourcedValue[tuple[str, ...]] | None
     quantity: SourcedValue[str] | None
@@ -67,20 +78,13 @@ class ExternalPackageFound:
 @dataclass(frozen=True, slots=True)
 class ExternalPackageNotFound:
     identifier: str
-    request_url: str
-    retrieved_at: datetime
-    raw_response: bytes
     source: ExternalSourceMetadata
+    dataset_version: ExternalDatasetVersion
     kind: Literal["NOT_FOUND"] = field(init=False, default="NOT_FOUND")
 
 
 class ExternalSourceUnavailableReason(StrEnum):
-    TIMEOUT = "TIMEOUT"
-    NETWORK = "NETWORK"
-    RATE_LIMITED = "RATE_LIMITED"
-    UPSTREAM_ERROR = "UPSTREAM_ERROR"
-    UNEXPECTED_STATUS = "UNEXPECTED_STATUS"
-    INVALID_RESPONSE = "INVALID_RESPONSE"
+    DATASET_UNAVAILABLE = "DATASET_UNAVAILABLE"
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,3 +105,25 @@ class ExternalPackageSource(Protocol):
     def metadata(self) -> ExternalSourceMetadata: ...
 
     def fetch(self, identifier: NormalizedIdentifier) -> ExternalLookupResult: ...
+
+
+class ExternalImageUrlInvalidError(ValueError):
+    pass
+
+
+class ExternalImageUnavailableError(RuntimeError):
+    pass
+
+
+class ExternalImageNotFoundError(RuntimeError):
+    pass
+
+
+@dataclass(frozen=True, slots=True)
+class ExternalImage:
+    content: bytes
+    media_type: str
+
+
+class ExternalImageSource(Protocol):
+    def fetch(self, url: str) -> ExternalImage: ...

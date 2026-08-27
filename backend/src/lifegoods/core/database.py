@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-from lifegoods.settings import Settings
+from lifegoods.core.settings import Settings
 
 
 class Base(DeclarativeBase):

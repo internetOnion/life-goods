@@ -1,5 +1,5 @@
 from collections import deque
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from threading import Lock
@@ -44,7 +44,7 @@ class ExternalLookupLocks:
         self._entries: dict[str, _LockEntry] = {}
 
     @contextmanager
-    def hold(self, key: str) -> Iterator[None]:
+    def hold(self, key: str) -> Generator[None]:
         with self._guard:
             entry = self._entries.setdefault(key, _LockEntry(lock=Lock()))
             entry.users += 1

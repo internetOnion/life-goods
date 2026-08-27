@@ -1,34 +1,35 @@
-from collections.abc import Callable, Iterator
-from datetime import datetime
+from collections.abc import Iterator
+from typing import Any
 
 import httpx
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
+from pymongo import MongoClient
+from scalar_fastapi import get_scalar_api_reference
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
-from lifegoods.adapters.database import create_session_factory
-from lifegoods.adapters.external_snapshot_repository import (
-    SqlAlchemyExternalSnapshotRepository,
+from lifegoods.core.errors import ErrorCode, ErrorDetail, ErrorEnvelope
+from lifegoods.core.settings import Settings
+from lifegoods.identifiers import InvalidIdentifierError
+from lifegoods.open_food_facts import (
+    ExternalImageSource,
+    ExternalPackageSource,
+    OpenFoodFactsDatasetSource,
+    OpenFoodFactsImageSource,
+    get_image_source,
+    open_food_facts_image_router,
 )
-from lifegoods.adapters.open_food_facts import OpenFoodFactsPackageSource
-from lifegoods.adapters.open_food_facts_images import OpenFoodFactsImageSource
-from lifegoods.adapters.package_match_repository import SqlAlchemyPackageMatchRepository
-from lifegoods.api.contracts import ErrorCode, ErrorDetail, ErrorEnvelope
-from lifegoods.api.open_food_facts_images import get_image_source
-from lifegoods.api.open_food_facts_images import router as open_food_facts_images_router
-from lifegoods.api.package_matches import get_finder, router
-from lifegoods.application.package_matches import (
+from lifegoods.package_matches import (
     FindPackageMatches,
     PackageMatchSourceUnavailableError,
+    get_finder,
 )
-from lifegoods.matching.external_images import ExternalImageSource
-from lifegoods.matching.external_requests import ExternalLookupLocks, SlidingWindowRequestBudget
-from lifegoods.matching.external_source import ExternalPackageSource
-from lifegoods.matching.identifier import InvalidIdentifierError
-from lifegoods.settings import Settings
+from lifegoods.package_matches import (
+    router as package_matches_router,
+)
 
 ERROR_MESSAGES: dict[ErrorCode, str] = {
     ErrorCode.IDENTIFIER_REQUIRED: "An identifier is required.",
@@ -48,22 +49,20 @@ def create_app(
     session_factory: sessionmaker[Session] | None = None,
     external_source: ExternalPackageSource | None = None,
     image_source: ExternalImageSource | None = None,
-    request_budget: SlidingWindowRequestBudget | None = None,
-    lookup_locks: ExternalLookupLocks | None = None,
-    utc_now: Callable[[], datetime] | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings()
-    resolved_factory = session_factory or create_session_factory(resolved_settings)
+    _ = session_factory
     owned_http_clients: list[httpx.Client] = []
+    owned_mongo_clients: list[MongoClient[dict[str, Any]]] = []
     if external_source is None:
-        package_http_client = httpx.Client()
-        owned_http_clients.append(package_http_client)
-        resolved_source: ExternalPackageSource = OpenFoodFactsPackageSource(
-            package_http_client,
-            base_url=resolved_settings.open_food_facts_base_url,
-            user_agent=resolved_settings.open_food_facts_user_agent,
-            timeout_seconds=resolved_settings.open_food_facts_timeout_seconds,
-            utc_now=utc_now,
+        mongo_client: MongoClient[dict[str, Any]] = MongoClient(
+            resolved_settings.off_mongodb_uri,
+            serverSelectionTimeoutMS=resolved_settings.off_mongodb_timeout_ms,
+        )
+        owned_mongo_clients.append(mongo_client)
+        resolved_source: ExternalPackageSource = OpenFoodFactsDatasetSource(
+            mongo_client[resolved_settings.off_mongodb_database],
+            image_base_url=resolved_settings.open_food_facts_image_base_url,
         )
     else:
         resolved_source = external_source
@@ -74,15 +73,11 @@ def create_app(
             image_http_client,
             image_base_url=resolved_settings.open_food_facts_image_base_url,
             user_agent=resolved_settings.open_food_facts_user_agent,
-            timeout_seconds=resolved_settings.open_food_facts_timeout_seconds,
+            timeout_seconds=resolved_settings.open_food_facts_image_timeout_seconds,
             requests_per_minute=resolved_settings.open_food_facts_image_requests_per_minute,
         )
     else:
         resolved_image_source = image_source
-    resolved_budget = request_budget or SlidingWindowRequestBudget(
-        resolved_settings.open_food_facts_requests_per_minute
-    )
-    resolved_locks = lookup_locks or ExternalLookupLocks()
     app = FastAPI(title="LifeGoods API", version="0.1.0")
     app.add_middleware(
         CORSMiddleware,
@@ -90,21 +85,23 @@ def create_app(
         allow_methods=["GET"],
         allow_headers=["*"],
     )
-    app.include_router(router)
-    app.include_router(open_food_facts_images_router)
+    app.include_router(package_matches_router)
+    app.include_router(open_food_facts_image_router)
+
+    @app.get("/scalar", include_in_schema=False)
+    async def scalar_html() -> HTMLResponse:
+        return get_scalar_api_reference(
+            openapi_url=app.openapi_url or "/openapi.json",
+            title=f"{app.title} - Scalar Reference",
+        )
+
     for owned_http_client in owned_http_clients:
         app.router.add_event_handler("shutdown", owned_http_client.close)
+    for owned_mongo_client in owned_mongo_clients:
+        app.router.add_event_handler("shutdown", owned_mongo_client.close)
 
     def provide_finder() -> Iterator[FindPackageMatches]:
-        with resolved_factory() as session:
-            yield FindPackageMatches(
-                SqlAlchemyPackageMatchRepository(session),
-                SqlAlchemyExternalSnapshotRepository(session),
-                resolved_source,
-                resolved_budget,
-                resolved_locks,
-                utc_now=utc_now,
-            )
+        yield FindPackageMatches(resolved_source)
 
     app.dependency_overrides[get_finder] = provide_finder
     app.dependency_overrides[get_image_source] = lambda: resolved_image_source

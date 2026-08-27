@@ -3,8 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse, Response
 
-from lifegoods.api.contracts import ErrorCode, ErrorDetail, ErrorEnvelope
-from lifegoods.matching.external_images import (
+from lifegoods.core.errors import ErrorCode, ErrorDetail, ErrorEnvelope
+from lifegoods.open_food_facts.models import (
     ExternalImageNotFoundError,
     ExternalImageSource,
     ExternalImageUnavailableError,

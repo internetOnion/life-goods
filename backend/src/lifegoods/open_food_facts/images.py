@@ -7,13 +7,13 @@ from urllib.parse import urlsplit
 
 import httpx
 
-from lifegoods.matching.external_images import (
+from lifegoods.core.concurrency import ExternalLookupLocks, SlidingWindowRequestBudget
+from lifegoods.open_food_facts.models import (
     ExternalImage,
     ExternalImageNotFoundError,
     ExternalImageUnavailableError,
     ExternalImageUrlInvalidError,
 )
-from lifegoods.matching.external_requests import ExternalLookupLocks, SlidingWindowRequestBudget
 
 DEFAULT_MAX_IMAGE_BYTES = 10 * 1024 * 1024
 DEFAULT_MAX_CACHE_BYTES = 32 * 1024 * 1024
@@ -78,7 +78,9 @@ class OpenFoodFactsImageSource:
             if not self._request_budget.try_acquire():
                 raise ExternalImageUnavailableError("OFF image request budget is exhausted")
             if not self._request_slots.acquire(blocking=False):
-                raise ExternalImageUnavailableError("OFF image request concurrency is exhausted")
+                raise ExternalImageUnavailableError(
+                    "OFF image request concurrency is exhausted"
+                )
             try:
                 image = self._fetch(url)
             finally:
@@ -87,7 +89,6 @@ class OpenFoodFactsImageSource:
             return image
 
     def _fetch(self, url: str) -> ExternalImage:
-
         try:
             with self._client.stream(
                 "GET",
@@ -99,16 +100,24 @@ class OpenFoodFactsImageSource:
                 if response.status_code in {404, 410}:
                     raise ExternalImageNotFoundError("OFF image no longer exists")
                 if response.status_code != 200:
-                    raise ExternalImageUnavailableError("OFF image request did not succeed")
-                media_type = response.headers.get("content-type", "").split(";", 1)[0].lower()
+                    raise ExternalImageUnavailableError(
+                        "OFF image request did not succeed"
+                    )
+                media_type = (
+                    response.headers.get("content-type", "").split(";", 1)[0].lower()
+                )
                 if media_type not in ALLOWED_IMAGE_MEDIA_TYPES:
-                    raise ExternalImageUnavailableError("OFF image response type is not supported")
+                    raise ExternalImageUnavailableError(
+                        "OFF image response type is not supported"
+                    )
 
                 content_length = response.headers.get("content-length")
                 if content_length is not None:
                     try:
                         if int(content_length) > self._max_image_bytes:
-                            raise ExternalImageUnavailableError("OFF image response is too large")
+                            raise ExternalImageUnavailableError(
+                                "OFF image response is too large"
+                            )
                     except ValueError as error:
                         raise ExternalImageUnavailableError(
                             "OFF image response has an invalid content length"
@@ -119,7 +128,9 @@ class OpenFoodFactsImageSource:
                 for chunk in response.iter_bytes():
                     total_bytes += len(chunk)
                     if total_bytes > self._max_image_bytes:
-                        raise ExternalImageUnavailableError("OFF image response is too large")
+                        raise ExternalImageUnavailableError(
+                            "OFF image response is too large"
+                        )
                     chunks.append(chunk)
         except (ExternalImageNotFoundError, ExternalImageUnavailableError):
             raise
@@ -128,7 +139,9 @@ class OpenFoodFactsImageSource:
 
         content = b"".join(chunks)
         if not _matches_media_type(content, media_type):
-            raise ExternalImageUnavailableError("OFF image content does not match its media type")
+            raise ExternalImageUnavailableError(
+                "OFF image content does not match its media type"
+            )
         return ExternalImage(content=content, media_type=media_type)
 
     def _cached(self, url: str) -> ExternalImage | None:
@@ -162,8 +175,15 @@ class OpenFoodFactsImageSource:
 
 def _origin(url: str) -> tuple[str, str, int]:
     parsed = urlsplit(url)
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
-        raise ExternalImageUrlInvalidError("OFF image URL must use HTTPS without credentials")
+    if (
+        parsed.scheme != "https"
+        or not parsed.hostname
+        or parsed.username
+        or parsed.password
+    ):
+        raise ExternalImageUrlInvalidError(
+            "OFF image URL must use HTTPS without credentials"
+        )
     try:
         port = parsed.port or 443
     except ValueError as error:
@@ -174,11 +194,15 @@ def _origin(url: str) -> tuple[str, str, int]:
 def _validate_image_url(url: str, expected_origin: tuple[str, str, int]) -> None:
     parsed = urlsplit(url)
     if _origin(url) != expected_origin:
-        raise ExternalImageUrlInvalidError("Image URL is outside the configured OFF origin")
+        raise ExternalImageUrlInvalidError(
+            "Image URL is outside the configured OFF origin"
+        )
     if parsed.query or parsed.fragment or not parsed.path.startswith("/images/products/"):
         raise ExternalImageUrlInvalidError("Image URL is not an OFF product image path")
     if not parsed.path.lower().endswith((".gif", ".jpeg", ".jpg", ".png", ".webp")):
-        raise ExternalImageUrlInvalidError("Image URL does not have a supported image extension")
+        raise ExternalImageUrlInvalidError(
+            "Image URL does not have a supported image extension"
+        )
 
 
 def _matches_media_type(content: bytes, media_type: str) -> bool:

@@ -1,7 +1,6 @@
 from datetime import date, datetime
 
 from sqlalchemy import (
-    JSON,
     CheckConstraint,
     Date,
     DateTime,
@@ -9,14 +8,11 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     String,
-    Text,
-    UniqueConstraint,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from lifegoods.adapters.database import Base
+from lifegoods.core.database import Base
 
 
 class ProductRecord(Base):
@@ -32,7 +28,9 @@ class PackageVariantRecord(Base):
     __tablename__ = "package_variants"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    product_id: Mapped[str] = mapped_column(ForeignKey("products.id", ondelete="RESTRICT"))
+    product_id: Mapped[str] = mapped_column(
+        ForeignKey("products.id", ondelete="RESTRICT")
+    )
     product: Mapped[ProductRecord] = relationship(back_populates="package_variants")
     external_identifiers: Mapped[list["ExternalIdentifierRecord"]] = relationship(
         back_populates="package_variant", cascade="all, delete-orphan"
@@ -104,7 +102,9 @@ class ExternalIdentifierRecord(Base):
     package_variant_id: Mapped[str] = mapped_column(
         ForeignKey("package_variants.id", ondelete="RESTRICT"), index=True
     )
-    primary_evidence_id: Mapped[str] = mapped_column(ForeignKey("evidence.id", ondelete="RESTRICT"))
+    primary_evidence_id: Mapped[str] = mapped_column(
+        ForeignKey("evidence.id", ondelete="RESTRICT")
+    )
     scheme: Mapped[str] = mapped_column(String(16))
     normalized_value: Mapped[str] = mapped_column(String(14), index=True)
     validation_state: Mapped[str] = mapped_column(String(16))
@@ -151,92 +151,3 @@ class IdentifierEvidenceLinkRecord(Base):
         back_populates="evidence_links"
     )
     evidence: Mapped[EvidenceRecord] = relationship(back_populates="identifier_links")
-
-
-class ExternalSourceRecord(Base):
-    __tablename__ = "external_sources"
-    __table_args__ = (
-        UniqueConstraint("name", "base_url", name="uq_external_source_name_base_url"),
-    )
-
-    id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    name: Mapped[str] = mapped_column(String(255))
-    source_type: Mapped[str] = mapped_column(String(64))
-    base_url: Mapped[str] = mapped_column(String(2048))
-    attribution: Mapped[str] = mapped_column(String(2048))
-    database_license: Mapped[str] = mapped_column(String(255))
-    contents_license: Mapped[str] = mapped_column(String(255))
-    image_license: Mapped[str] = mapped_column(String(255))
-    terms_version: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    snapshots: Mapped[list["ExternalSnapshotRecord"]] = relationship(
-        back_populates="source", cascade="all, delete-orphan"
-    )
-
-
-class ExternalSnapshotRecord(Base):
-    __tablename__ = "external_snapshots"
-    __table_args__ = (
-        CheckConstraint(
-            "outcome IN ('FOUND', 'NOT_FOUND')",
-            name="ck_external_snapshot_outcome",
-        ),
-        UniqueConstraint(
-            "external_source_id",
-            "source_record_id",
-            "retrieved_at",
-            name="uq_external_snapshot_version",
-        ),
-        Index(
-            "ix_external_snapshot_latest_lookup",
-            "external_source_id",
-            "lookup_identifier",
-            "retrieved_at",
-        ),
-    )
-
-    id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    external_source_id: Mapped[str] = mapped_column(
-        ForeignKey("external_sources.id", ondelete="RESTRICT")
-    )
-    source_record_id: Mapped[str] = mapped_column(String(255))
-    lookup_identifier: Mapped[str] = mapped_column(String(14))
-    request_url: Mapped[str] = mapped_column(String(4096))
-    source_url: Mapped[str | None] = mapped_column(String(4096), nullable=True)
-    retrieved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    fresh_until: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    source_revision: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    outcome: Mapped[str] = mapped_column(String(16))
-    raw_response: Mapped[dict[str, object]] = mapped_column(
-        JSON().with_variant(JSONB(), "postgresql")
-    )
-    raw_response_hash: Mapped[str] = mapped_column(String(64))
-    source: Mapped[ExternalSourceRecord] = relationship(back_populates="snapshots")
-    field_evidence: Mapped[list["ExternalFieldEvidenceRecord"]] = relationship(
-        back_populates="snapshot", cascade="all, delete-orphan"
-    )
-
-
-class ExternalFieldEvidenceRecord(Base):
-    __tablename__ = "external_field_evidence"
-    __table_args__ = (
-        CheckConstraint(
-            "category IN ('IDENTITY', 'LABEL', 'IMAGE')",
-            name="ck_external_field_evidence_category",
-        ),
-    )
-
-    id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    snapshot_id: Mapped[str] = mapped_column(
-        ForeignKey("external_snapshots.id", ondelete="CASCADE"), index=True
-    )
-    category: Mapped[str] = mapped_column(String(16))
-    mapped_field: Mapped[str] = mapped_column(String(64))
-    source_field: Mapped[str] = mapped_column(String(255))
-    value_json: Mapped[object] = mapped_column(JSON().with_variant(JSONB(), "postgresql"))
-    language: Mapped[str | None] = mapped_column(String(35), nullable=True)
-    observed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    retrieved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    source_uri: Mapped[str] = mapped_column(String(4096))
-    attribution: Mapped[str] = mapped_column(Text)
-    license_name: Mapped[str] = mapped_column(String(255))
-    snapshot: Mapped[ExternalSnapshotRecord] = relationship(back_populates="field_evidence")
