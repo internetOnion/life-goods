@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from lifegoods.catalog.models import ExternalIdentifierRecord, PackageVariantRecord
 from lifegoods.identifiers.models import NormalizedIdentifier
-from lifegoods.package_matches.models import PackageMatchCandidate
+from lifegoods.package_matches.models import PackageMatchCandidate, PackageMatchSourceKind
 
 
 class SqlAlchemyPackageMatchRepository:
@@ -36,6 +36,10 @@ class SqlAlchemyPackageMatchRepository:
             .order_by(PackageVariantRecord.id)
         )
         return [
-            PackageMatchCandidate(package_variant_id=variant_id, product_id=product_id)
+            PackageMatchCandidate(
+                source_kind=PackageMatchSourceKind.REVIEWED_CATALOG,
+                package_variant_id=variant_id,
+                product_id=product_id,
+            )
             for variant_id, product_id in self._session.execute(statement)
         ]
