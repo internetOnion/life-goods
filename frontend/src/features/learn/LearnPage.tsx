@@ -346,7 +346,7 @@ type ExternalSourceLinkProps = {
 function ExternalSourceLink({ href, children }: ExternalSourceLinkProps) {
     return (
         <a
-            className="learn-source-link hover:bg-accent focus-visible:ring-ring -mx-2 inline-flex min-h-11 items-center rounded-lg px-2 font-bold underline decoration-1 underline-offset-4 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            className="learn-source-link text-foreground hover:bg-accent focus-visible:ring-ring -mx-2 inline-flex min-h-11 items-center rounded-lg px-2 font-bold underline decoration-1 underline-offset-4 transition-colors focus-visible:ring-2 focus-visible:outline-none"
             href={href}
             target="_blank"
             rel="noopener noreferrer"
