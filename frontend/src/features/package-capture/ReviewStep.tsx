@@ -70,10 +70,10 @@ export function ReviewStep({
         <div className="mt-6 space-y-4 sm:mt-7">
             <section className="border-border bg-coconut-brown-soft relative overflow-hidden rounded-2xl border">
                 <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex items-start justify-between gap-3 sm:inset-x-5 sm:top-5">
-                    <span className="bg-background/90 text-foreground max-w-[70%] rounded-full px-3 py-1.5 text-xs font-bold shadow-[0_4px_18px_oklch(0.2_0.02_160/0.12)] backdrop-blur-sm">
+                    <span className="bg-background/90 text-foreground max-w-[70%] rounded-full px-3 py-1.5 text-xs font-bold backdrop-blur-sm">
                         {selectedPhoto.label}
                     </span>
-                    <span className="bg-background/90 text-muted-foreground rounded-full px-3 py-1.5 text-xs font-semibold tabular-nums shadow-[0_4px_18px_oklch(0.2_0.02_160/0.12)] backdrop-blur-sm">
+                    <span className="bg-background/90 text-muted-foreground rounded-full px-3 py-1.5 text-xs font-semibold tabular-nums backdrop-blur-sm">
                         {photos.findIndex(({ step }) => step === selectedStep) +
                             1}{" "}
                         / {photos.length}
@@ -110,7 +110,7 @@ export function ReviewStep({
 
                 <div className="bg-background/95 flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
                     <div className="min-w-0">
-                        <p className="truncate text-sm font-bold">
+                        <p className="text-sm font-bold wrap-anywhere">
                             {selectedPhoto.label}
                         </p>
                         <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
@@ -146,7 +146,7 @@ export function ReviewStep({
                             <Button
                                 key={step}
                                 className={
-                                    "group h-auto min-w-0 flex-col rounded-xl p-1 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 " +
+                                    "h-auto min-w-0 flex-col rounded-xl p-1 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 " +
                                     (isSelected
                                         ? "bg-brand-soft"
                                         : "hover:bg-muted")
@@ -159,7 +159,7 @@ export function ReviewStep({
                                 {photo ? (
                                     <ReviewImage
                                         className={
-                                            "border-border aspect-[4/5] w-full rounded-lg border object-cover transition-transform group-hover:scale-[1.02] " +
+                                            "border-border aspect-[4/5] w-full rounded-lg border object-cover " +
                                             (isSelected
                                                 ? "ring-primary ring-2 ring-offset-2"
                                                 : "")
