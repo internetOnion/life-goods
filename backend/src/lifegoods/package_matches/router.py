@@ -62,11 +62,11 @@ def get_package_matches(
 def _candidate_response(
     candidate: PackageMatchCandidate,
 ) -> PackageMatchCandidateResponse:
+    if candidate.dataset_version is None:
+        raise RuntimeError("OFF candidates require dataset version metadata")
     source = candidate.source
     return PackageMatchCandidateResponse(
         source_kind=candidate.source_kind,
-        package_variant_id=candidate.package_variant_id,
-        product_id=candidate.product_id,
         external_record_id=candidate.external_record_id,
         source=(
             PackageMatchSourceResponse(
@@ -94,6 +94,7 @@ def _candidate_response(
                 observed_at=evidence.observed_at,
                 retrieved_at=evidence.retrieved_at,
                 source_revision=evidence.source_revision,
+                dataset_version_id=evidence.dataset_version_id,
             )
             for evidence in candidate.identity_evidence
         ],
@@ -108,6 +109,7 @@ def _candidate_response(
                 observed_at=evidence.observed_at,
                 retrieved_at=evidence.retrieved_at,
                 source_revision=evidence.source_revision,
+                dataset_version_id=evidence.dataset_version_id,
             )
             for evidence in candidate.label_evidence
         ],
@@ -119,6 +121,7 @@ def _candidate_response(
                     if candidate.source_kind is PackageMatchSourceKind.OPEN_FOOD_FACTS
                     else image.url
                 ),
+                original_url=image.original_url or image.url,
                 source_field=image.source_field,
                 source_name=image.source_name,
                 source_url=image.source_url,
@@ -127,35 +130,18 @@ def _candidate_response(
                 language=image.language,
                 retrieved_at=image.retrieved_at,
                 source_revision=image.source_revision,
+                image_revision=image.image_revision,
+                dataset_version_id=image.dataset_version_id,
             )
             for image in candidate.reference_images
         ],
         retrieved_at=candidate.retrieved_at,
-        is_current=candidate.is_current,
         source_revision=candidate.source_revision,
-        dataset_version_id=(
-            candidate.dataset_version.id
-            if candidate.dataset_version is not None
-            else None
-        ),
-        dataset_retrieved_at=(
-            candidate.dataset_version.retrieved_at
-            if candidate.dataset_version is not None
-            else None
-        ),
-        dataset_activated_at=(
-            candidate.dataset_version.activated_at
-            if candidate.dataset_version is not None
-            else None
-        ),
-        dataset_source_url=(
-            candidate.dataset_version.source_url
-            if candidate.dataset_version is not None
-            else None
-        ),
-        dataset_sha256=(
-            candidate.dataset_version.sha256
-            if candidate.dataset_version is not None
-            else None
+        dataset_version=ExternalDatasetVersionResponse(
+            id=candidate.dataset_version.id,
+            source_url=candidate.dataset_version.source_url,
+            retrieved_at=candidate.dataset_version.retrieved_at,
+            activated_at=candidate.dataset_version.activated_at,
+            sha256=candidate.dataset_version.sha256,
         ),
     )

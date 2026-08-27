@@ -16,7 +16,6 @@ from lifegoods.package_matches.models import (
     PackageMatchCandidate,
     PackageMatchEvidence,
     PackageMatchReferenceImage,
-    PackageMatchRepository,
     PackageMatchResult,
     PackageMatchSourceKind,
     PackageMatchSourceMetadata,
@@ -27,18 +26,16 @@ from lifegoods.package_matches.models import (
 class FindPackageMatches:
     def __init__(
         self,
-        repository: PackageMatchRepository,
         external_source: ExternalPackageSource,
     ) -> None:
-        self._repository = repository
         self._external_source = external_source
 
     def execute(self, entered_identifier: str) -> PackageMatchResult:
         identifier = normalize_identifier(entered_identifier)
-        candidates = self._repository.find_candidates(identifier)
         result = self._external_source.fetch(identifier)
+        candidates: list[PackageMatchCandidate] = []
         if isinstance(result, ExternalPackageFound):
-            candidates.append(_candidate_from_record(result.record))
+            candidates = [_candidate_from_record(result.record)]
             lookup = OpenFoodFactsLookup(
                 status=OpenFoodFactsLookupStatus.AVAILABLE,
                 dataset_version=result.record.dataset_version,
@@ -49,13 +46,7 @@ class FindPackageMatches:
                 dataset_version=result.dataset_version,
             )
         elif isinstance(result, ExternalPackageUnavailable):
-            if not candidates:
-                raise PackageMatchSourceUnavailableError(result.reason)
-            lookup = OpenFoodFactsLookup(
-                status=OpenFoodFactsLookupStatus.UNAVAILABLE,
-                dataset_version=None,
-                error_code=result.reason,
-            )
+            raise PackageMatchSourceUnavailableError(result.reason)
         else:
             raise AssertionError(
                 f"Unexpected external lookup result: {type(result).__name__}"
@@ -123,6 +114,9 @@ def _candidate_from_record(record: ExternalPackageRecord) -> PackageMatchCandida
             language=image.language,
             retrieved_at=record.retrieved_at,
             source_revision=record.source_revision,
+            original_url=image.url,
+            image_revision=image.image_revision,
+            dataset_version_id=record.dataset_version.id,
         )
         for image in record.selected_images
     )
@@ -134,7 +128,6 @@ def _candidate_from_record(record: ExternalPackageRecord) -> PackageMatchCandida
         label_evidence=tuple(label),
         reference_images=images,
         retrieved_at=record.retrieved_at,
-        is_current=None,
         source_revision=record.source_revision,
         dataset_version=record.dataset_version,
     )
@@ -155,6 +148,7 @@ def _evidence(
         observed_at=None,
         retrieved_at=record.retrieved_at,
         source_revision=record.source_revision,
+        dataset_version_id=record.dataset_version.id,
     )
 
 

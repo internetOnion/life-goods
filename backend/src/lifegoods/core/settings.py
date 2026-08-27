@@ -29,4 +29,5 @@ class Settings(BaseSettings):
     off_mongodb_uri: str = DEFAULT_OFF_MONGODB_URI
     off_mongodb_database: str = DEFAULT_OFF_MONGODB_DATABASE
     off_mongodb_timeout_ms: int = DEFAULT_OFF_MONGODB_TIMEOUT_MS
+    # Retained only for configuration compatibility; MVP-1 never consults it.
     project_catalog_enabled: bool = False

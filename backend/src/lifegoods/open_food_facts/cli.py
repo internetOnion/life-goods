@@ -5,14 +5,15 @@ import sys
 import time
 import uuid
 import zlib
-from collections.abc import Callable, Iterable
-from datetime import UTC, datetime
+from collections.abc import Callable, Generator, Iterable
+from contextlib import contextmanager
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
-from pymongo import ASCENDING, MongoClient, ReturnDocument
+from pymongo import ASCENDING, MongoClient
 from pymongo.database import Database
-from pymongo.errors import BulkWriteError, PyMongoError
+from pymongo.errors import BulkWriteError, DuplicateKeyError, PyMongoError
 
 from lifegoods.open_food_facts.dataset import (
     ACTIVE_POINTER_ID,
@@ -27,10 +28,53 @@ DEFAULT_EXPORT_URL = (
 DEFAULT_PROBE_CODES = ("4006381333931",)
 DEFAULT_BATCH_SIZE = 1_000
 DEFAULT_PROGRESS_INTERVAL_SECONDS = 5.0
+LIFECYCLE_LOCK_ID = "dataset-lifecycle-lock"
+LIFECYCLE_LOCK_TTL_SECONDS = 120
 
 
 class DatasetImportError(Exception):
     pass
+
+
+@contextmanager
+def lifecycle_lock(
+    database: Database[dict[str, Any]],
+    *,
+    ttl_seconds: int = LIFECYCLE_LOCK_TTL_SECONDS,
+) -> Generator[None]:
+    owner = uuid.uuid4().hex
+    now = datetime.now(UTC)
+    lock_collection = database[CONTROL_COLLECTION]
+    acquired = False
+    try:
+        lock_collection.insert_one(
+            {
+                "_id": LIFECYCLE_LOCK_ID,
+                "owner_id": owner,
+                "expires_at": now + timedelta(seconds=ttl_seconds),
+            }
+        )
+        acquired = True
+    except DuplicateKeyError:
+        existing = lock_collection.find_one({"_id": LIFECYCLE_LOCK_ID})
+        expires_at = existing.get("expires_at") if isinstance(existing, dict) else None
+        if isinstance(expires_at, datetime) and expires_at <= now:
+            replaced = lock_collection.find_one_and_update(
+                {"_id": LIFECYCLE_LOCK_ID, "expires_at": expires_at},
+                {
+                    "$set": {
+                        "owner_id": owner,
+                        "expires_at": now + timedelta(seconds=ttl_seconds),
+                    }
+                },
+            )
+            acquired = replaced is not None
+    if not acquired:
+        raise DatasetImportError("Another dataset lifecycle operation is in progress")
+    try:
+        yield
+    finally:
+        lock_collection.delete_one({"_id": LIFECYCLE_LOCK_ID, "owner_id": owner})
 
 
 def import_url(
@@ -64,6 +108,7 @@ def import_url(
         "malformed_count": 0,
         "duplicate_count": 0,
         "schema_versions": [],
+        "schema_missing_count": 0,
         "probe_codes": list(probe_codes),
         "validation_errors": [],
     }
@@ -81,28 +126,29 @@ def import_url(
             progress=progress,
             progress_interval_seconds=progress_interval_seconds,
         )
-        completed_at = utc_now()
-        validation_errors = _validate_import(
-            database,
-            collection_name,
-            report,
-            probe_codes,
-        )
-        status = "READY" if not validation_errors else "FAILED"
-        update = {
-            **report,
-            "retrieval_completed_at": completed_at,
-            "status": status,
-            "probe_codes": list(probe_codes),
-            "validation_errors": validation_errors,
-        }
-        versions.update_one({"_id": version_id}, {"$set": update})
-        result = versions.find_one({"_id": version_id})
-        if result is None:
-            raise DatasetImportError("Imported manifest disappeared")
-        if validation_errors:
-            raise DatasetImportError("; ".join(validation_errors))
-        return result
+        with lifecycle_lock(database):
+            completed_at = utc_now()
+            validation_errors = _validate_import(
+                database,
+                collection_name,
+                report,
+                probe_codes,
+            )
+            status = "READY" if not validation_errors else "FAILED"
+            update = {
+                **report,
+                "retrieval_completed_at": completed_at,
+                "status": status,
+                "probe_codes": list(probe_codes),
+                "validation_errors": validation_errors,
+            }
+            versions.update_one({"_id": version_id}, {"$set": update})
+            result = versions.find_one({"_id": version_id})
+            if result is None:
+                raise DatasetImportError("Imported manifest disappeared")
+            if validation_errors:
+                raise DatasetImportError("; ".join(validation_errors))
+            return result
     except Exception as error:
         versions.update_one(
             {"_id": version_id},
@@ -128,43 +174,45 @@ def activate_version(
 ) -> dict[str, Any]:
     utc_now = now or (lambda: datetime.now(UTC))
     versions = database[VERSIONS_COLLECTION]
-    manifest = versions.find_one({"_id": version_id})
-    if manifest is None or manifest.get("status") not in {"READY", "ACTIVE"}:
-        raise ValueError("Only a validated READY dataset version can be activated")
-    collection_name = manifest.get("collection_name")
-    if (
-        not isinstance(collection_name, str)
-        or collection_name not in database.list_collection_names()
-    ):
-        raise ValueError("Dataset product collection is unavailable")
+    with lifecycle_lock(database):
+        manifest = versions.find_one({"_id": version_id})
+        if (
+            manifest is None
+            or manifest.get("status") not in {"READY", "ACTIVE"}
+            or manifest.get("validation_errors")
+        ):
+            raise ValueError("Only a validated READY dataset version can be activated")
+        collection_name = manifest.get("collection_name")
+        if (
+            not isinstance(collection_name, str)
+            or collection_name not in database.list_collection_names()
+        ):
+            raise ValueError("Dataset product collection is unavailable")
+        database[collection_name].create_index(
+            [("code", ASCENDING)], unique=True, name="uq_off_code"
+        )
 
-    activated_at = utc_now()
-    versions.update_one(
-        {"_id": version_id},
-        {"$set": {"status": "ACTIVE", "activated_at": activated_at}},
-    )
-    previous_pointer = database[CONTROL_COLLECTION].find_one_and_update(
-        {"_id": ACTIVE_POINTER_ID},
-        [
+        pointer = database[CONTROL_COLLECTION].find_one({"_id": ACTIVE_POINTER_ID}) or {}
+        previous_id = pointer.get("active_version_id")
+        activated_at = utc_now()
+        database[CONTROL_COLLECTION].update_one(
+            {"_id": ACTIVE_POINTER_ID},
             {
                 "$set": {
-                    "previous_version_id": {"$ifNull": ["$active_version_id", None]},
+                    "previous_version_id": previous_id,
                     "active_version_id": version_id,
                     "activated_at": activated_at,
                 }
-            }
-        ],
-        upsert=True,
-        return_document=ReturnDocument.BEFORE,
-    )
-    previous_id = (
-        previous_pointer.get("active_version_id")
-        if isinstance(previous_pointer, dict)
-        else None
-    )
-    if isinstance(previous_id, str) and previous_id != version_id:
-        versions.update_one({"_id": previous_id}, {"$set": {"status": "READY"}})
-    return _required_manifest(versions.find_one({"_id": version_id}))
+            },
+            upsert=True,
+        )
+        versions.update_one(
+            {"_id": version_id},
+            {"$set": {"status": "ACTIVE", "activated_at": activated_at}},
+        )
+        if isinstance(previous_id, str) and previous_id != version_id:
+            versions.update_one({"_id": previous_id}, {"$set": {"status": "READY"}})
+        return _required_manifest(versions.find_one({"_id": version_id}))
 
 
 def rollback_version(
@@ -172,78 +220,90 @@ def rollback_version(
     *,
     now: Callable[[], datetime] | None = None,
 ) -> dict[str, Any]:
-    pointer = database[CONTROL_COLLECTION].find_one({"_id": ACTIVE_POINTER_ID})
-    if pointer is None or not isinstance(pointer.get("previous_version_id"), str):
-        raise ValueError("No previous dataset version is available for rollback")
-    previous_id = pointer["previous_version_id"]
-    current_id = pointer.get("active_version_id")
-    manifest = database[VERSIONS_COLLECTION].find_one({"_id": previous_id})
-    if manifest is None or manifest.get("status") != "READY":
-        raise ValueError("The previous dataset version is not ready")
-    activated_at = (now or (lambda: datetime.now(UTC)))()
-    database[CONTROL_COLLECTION].update_one(
-        {"_id": ACTIVE_POINTER_ID, "active_version_id": current_id},
-        {
-            "$set": {
-                "active_version_id": previous_id,
-                "previous_version_id": current_id,
-                "activated_at": activated_at,
-            }
-        },
-    )
-    if isinstance(current_id, str):
-        database[VERSIONS_COLLECTION].update_one(
-            {"_id": current_id}, {"$set": {"status": "READY"}}
+    with lifecycle_lock(database):
+        pointer = database[CONTROL_COLLECTION].find_one({"_id": ACTIVE_POINTER_ID})
+        if pointer is None or not isinstance(pointer.get("previous_version_id"), str):
+            raise ValueError("No previous dataset version is available for rollback")
+        previous_id = pointer["previous_version_id"]
+        current_id = pointer.get("active_version_id")
+        manifest = database[VERSIONS_COLLECTION].find_one({"_id": previous_id})
+        if manifest is None or manifest.get("status") not in {"READY", "ACTIVE"}:
+            raise ValueError("The previous dataset version is not ready")
+        activated_at = (now or (lambda: datetime.now(UTC)))()
+        result = database[CONTROL_COLLECTION].update_one(
+            {"_id": ACTIVE_POINTER_ID, "active_version_id": current_id},
+            {
+                "$set": {
+                    "active_version_id": previous_id,
+                    "previous_version_id": current_id,
+                    "activated_at": activated_at,
+                }
+            },
         )
-    database[VERSIONS_COLLECTION].update_one(
-        {"_id": previous_id},
-        {"$set": {"status": "ACTIVE", "activated_at": activated_at}},
-    )
-    return _required_manifest(
-        database[VERSIONS_COLLECTION].find_one({"_id": previous_id})
-    )
+        if result.modified_count != 1:
+            raise DatasetImportError("Dataset pointer changed during rollback")
+        if isinstance(current_id, str):
+            database[VERSIONS_COLLECTION].update_one(
+                {"_id": current_id}, {"$set": {"status": "READY"}}
+            )
+        database[VERSIONS_COLLECTION].update_one(
+            {"_id": previous_id},
+            {"$set": {"status": "ACTIVE", "activated_at": activated_at}},
+        )
+        return _required_manifest(
+            database[VERSIONS_COLLECTION].find_one({"_id": previous_id})
+        )
 
 
 def prune_versions(database: Database[dict[str, Any]]) -> list[str]:
-    pointer = database[CONTROL_COLLECTION].find_one({"_id": ACTIVE_POINTER_ID}) or {}
-    retained = {
-        value
-        for value in (pointer.get("active_version_id"), pointer.get("previous_version_id"))
-        if isinstance(value, str)
-    }
-    removed: list[str] = []
-    for manifest in database[VERSIONS_COLLECTION].find({}):
-        version_id = manifest.get("_id")
-        if not isinstance(version_id, str) or version_id in retained:
-            continue
-        collection_name = manifest.get("collection_name")
-        if isinstance(collection_name, str):
-            database.drop_collection(collection_name)
-        database[VERSIONS_COLLECTION].delete_one({"_id": version_id})
-        removed.append(version_id)
-    return removed
+    with lifecycle_lock(database):
+        pointer = database[CONTROL_COLLECTION].find_one({"_id": ACTIVE_POINTER_ID}) or {}
+        retained = {
+            value
+            for value in (pointer.get("active_version_id"), pointer.get("previous_version_id"))
+            if isinstance(value, str)
+        }
+        removed: list[str] = []
+        for manifest in database[VERSIONS_COLLECTION].find({}):
+            version_id = manifest.get("_id")
+            if (
+                not isinstance(version_id, str)
+                or version_id in retained
+                or manifest.get("status") == "IMPORTING"
+                or manifest.get("status") not in {"READY", "FAILED"}
+            ):
+                continue
+            collection_name = manifest.get("collection_name")
+            if isinstance(collection_name, str):
+                database.drop_collection(collection_name)
+            database[VERSIONS_COLLECTION].delete_one({"_id": version_id})
+            removed.append(version_id)
+        return removed
 
 
 def delete_version(
     database: Database[dict[str, Any]],
     version_id: str,
 ) -> dict[str, Any]:
-    pointer = database[CONTROL_COLLECTION].find_one({"_id": ACTIVE_POINTER_ID}) or {}
-    if pointer.get("active_version_id") == version_id:
-        raise ValueError("Cannot delete the active dataset version")
-    manifest = database[VERSIONS_COLLECTION].find_one({"_id": version_id})
-    if manifest is None:
-        raise ValueError(f"Dataset version {version_id} does not exist")
-    collection_name = manifest.get("collection_name")
-    if isinstance(collection_name, str):
-        database.drop_collection(collection_name)
-    database[VERSIONS_COLLECTION].delete_one({"_id": version_id})
-    if pointer.get("previous_version_id") == version_id:
-        database[CONTROL_COLLECTION].update_one(
-            {"_id": ACTIVE_POINTER_ID},
-            {"$unset": {"previous_version_id": ""}},
-        )
-    return {"deleted_version_id": version_id}
+    with lifecycle_lock(database):
+        pointer = database[CONTROL_COLLECTION].find_one({"_id": ACTIVE_POINTER_ID}) or {}
+        if version_id in {
+            pointer.get("active_version_id"),
+            pointer.get("previous_version_id"),
+        } or database[VERSIONS_COLLECTION].find_one(
+            {"_id": version_id, "status": "ACTIVE"}
+        ):
+            raise ValueError("Cannot delete an active or previous dataset version")
+        manifest = database[VERSIONS_COLLECTION].find_one({"_id": version_id})
+        if manifest is None:
+            raise ValueError(f"Dataset version {version_id} does not exist")
+        if manifest.get("status") == "IMPORTING":
+            raise ValueError("Cannot delete a dataset import in progress")
+        collection_name = manifest.get("collection_name")
+        if isinstance(collection_name, str):
+            database.drop_collection(collection_name)
+        database[VERSIONS_COLLECTION].delete_one({"_id": version_id})
+        return {"deleted_version_id": version_id}
 
 
 def revalidate_version(
@@ -255,38 +315,50 @@ def revalidate_version(
 ) -> dict[str, Any]:
     utc_now = now or (lambda: datetime.now(UTC))
     versions = database[VERSIONS_COLLECTION]
-    manifest = versions.find_one({"_id": version_id})
-    if manifest is None:
-        raise ValueError(f"Dataset version {version_id} does not exist")
-    collection_name = manifest.get("collection_name")
-    if (
-        not isinstance(collection_name, str)
-        or collection_name not in database.list_collection_names()
-    ):
-        raise ValueError("Dataset product collection is unavailable")
+    with lifecycle_lock(database):
+        manifest = versions.find_one({"_id": version_id})
+        if manifest is None:
+            raise ValueError(f"Dataset version {version_id} does not exist")
+        collection_name = manifest.get("collection_name")
+        if (
+            not isinstance(collection_name, str)
+            or collection_name not in database.list_collection_names()
+        ):
+            raise ValueError("Dataset product collection is unavailable")
 
-    validation_errors = _validate_import(
-        database,
-        collection_name,
-        manifest,
-        probe_codes,
-    )
-    status = "READY" if not validation_errors else "FAILED"
-    update: dict[str, Any] = {
-        "status": status,
-        "probe_codes": list(probe_codes),
-        "validation_errors": validation_errors,
-        "revalidated_at": utc_now(),
-    }
-    if validation_errors:
-        update["failure"] = "; ".join(validation_errors)
-    else:
-        update["failure"] = None
-    versions.update_one({"_id": version_id}, {"$set": update})
-    result = _required_manifest(versions.find_one({"_id": version_id}))
-    if validation_errors:
-        raise DatasetImportError("; ".join(validation_errors))
-    return result
+        stored_probes = tuple(
+            code for code in manifest.get("probe_codes", []) if isinstance(code, str)
+        )
+        effective_probes = tuple(dict.fromkeys((*stored_probes, *probe_codes)))
+        validation_errors = _validate_import(
+            database,
+            collection_name,
+            manifest,
+            effective_probes,
+        )
+        validation_record = {
+            "validated_at": utc_now(),
+            "probe_codes": list(effective_probes),
+            "validation_errors": validation_errors,
+        }
+        status = manifest.get("status") if manifest.get("status") == "ACTIVE" else "READY"
+        update: dict[str, Any] = {
+            "$push": {"validation_history": validation_record},
+            "$set": {
+                "status": status if not validation_errors else manifest.get("status"),
+                "probe_codes": list(effective_probes),
+            },
+        }
+        if not validation_errors:
+            update["$unset"] = {"failure": ""}
+        versions.update_one(
+            {"_id": version_id},
+            update,
+        )
+        result = _required_manifest(versions.find_one({"_id": version_id}))
+        if validation_errors:
+            raise DatasetImportError("; ".join(validation_errors))
+        return result
 
 
 def list_versions(database: Database[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -313,6 +385,7 @@ def _stream_import(
     malformed_count = 0
     duplicate_count = 0
     schema_versions: set[int] = set()
+    schema_missing_count = 0
     started_monotonic = time.monotonic()
     last_progress = started_monotonic
     collection = database[collection_name]
@@ -320,6 +393,7 @@ def _stream_import(
 
     def consume(lines: Iterable[bytes]) -> None:
         nonlocal document_count, inserted_count, malformed_count, duplicate_count
+        nonlocal schema_missing_count
         for line in lines:
             if not line.strip():
                 continue
@@ -329,12 +403,18 @@ def _stream_import(
             except (json.JSONDecodeError, UnicodeDecodeError):
                 malformed_count += 1
                 continue
-            if not isinstance(product, dict) or not isinstance(product.get("code"), str):
+            if (
+                not isinstance(product, dict)
+                or not isinstance(product.get("code"), str)
+                or not product["code"].strip()
+            ):
                 malformed_count += 1
                 continue
             schema_version = product.get("schema_version")
             if isinstance(schema_version, int):
                 schema_versions.add(schema_version)
+            else:
+                schema_missing_count += 1
             documents.append(product)
             if len(documents) >= batch_size:
                 inserted, duplicates = _insert_batch(collection, documents)
@@ -390,6 +470,7 @@ def _stream_import(
         "malformed_count": malformed_count,
         "duplicate_count": duplicate_count,
         "schema_versions": sorted(schema_versions),
+        "schema_missing_count": schema_missing_count,
     }
 
 
@@ -420,6 +501,14 @@ def _validate_import(
         errors.append("The export contained no product data")
     if report.get("malformed_count", 0):
         errors.append(f"Malformed documents: {report['malformed_count']}")
+    if report.get("duplicate_count", 0):
+        errors.append(f"Duplicate product codes: {report['duplicate_count']}")
+    if not report.get("schema_versions"):
+        errors.append("No schema versions were observed")
+    if report.get("schema_missing_count", 0):
+        errors.append(
+            f"Missing schema observations: {report['schema_missing_count']}"
+        )
     if (
         report.get("inserted_count", 0)
         + report.get("duplicate_count", 0)

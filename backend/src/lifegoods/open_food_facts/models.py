@@ -21,6 +21,7 @@ class ExternalSelectedImage:
     url: str
     source_field: str
     language: str | None = None
+    image_revision: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

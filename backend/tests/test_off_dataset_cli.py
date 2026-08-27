@@ -95,7 +95,7 @@ def test_import_streams_hashes_validates_and_preserves_full_documents() -> None:
     assert progress[-1]["inserted_count"] == 2
 
 
-def test_import_permits_and_records_duplicate_barcodes() -> None:
+def test_import_rejects_and_records_duplicate_barcodes() -> None:
     database = mongomock.MongoClient().lifegoods_off
     content = export_bytes(
         [
@@ -104,25 +104,24 @@ def test_import_permits_and_records_duplicate_barcodes() -> None:
         ]
     )
 
-    manifest = import_url(
-        database,
-        SOURCE_URL,
-        probe_codes=(PROBE_CODE,),
-        client=http_client(content),
-        now=clock(datetime(2026, 8, 27, tzinfo=UTC)),
-    )
+    with pytest.raises(DatasetImportError, match="Duplicate product codes"):
+        import_url(
+            database,
+            SOURCE_URL,
+            probe_codes=(PROBE_CODE,),
+            client=http_client(content),
+            now=clock(datetime(2026, 8, 27, tzinfo=UTC)),
+        )
 
-    assert manifest["status"] == "READY"
+    manifest = database[VERSIONS_COLLECTION].find_one({})
+    assert manifest is not None
+    assert manifest["status"] == "FAILED"
     assert manifest["document_count"] == 2
     assert manifest["inserted_count"] == 1
     assert manifest["duplicate_count"] == 1
-    assert manifest["malformed_count"] == 0
-    stored = database[manifest["collection_name"]].find_one({"code": PROBE_CODE})
-    assert stored is not None
-    assert stored["product_name"] == "Original product"
 
 
-def test_revalidate_version_updates_failed_dataset_to_ready() -> None:
+def test_revalidate_version_preserves_failed_dataset_and_history() -> None:
     database = mongomock.MongoClient().lifegoods_off
     collection_name = "off_products_test_version"
     database[collection_name].insert_one(product(PROBE_CODE, name="Probe item"))
@@ -147,13 +146,14 @@ def test_revalidate_version_updates_failed_dataset_to_ready() -> None:
         }
     )
 
-    result = revalidate_version(database, "test_version", probe_codes=(PROBE_CODE,))
+    with pytest.raises(DatasetImportError, match="Duplicate product codes"):
+        revalidate_version(database, "test_version", probe_codes=(PROBE_CODE,))
 
-    assert result["status"] == "READY"
-    assert result["validation_errors"] == []
-    assert result["failure"] is None
-    activated = activate_version(database, "test_version")
-    assert activated["status"] == "ACTIVE"
+    result = database[VERSIONS_COLLECTION].find_one({"_id": "test_version"})
+    assert result is not None
+    assert result["status"] == "FAILED"
+    assert result["validation_errors"]
+    assert len(result["validation_history"]) == 1
 
 
 def test_delete_version_removes_collection_and_manifest() -> None:
@@ -164,7 +164,7 @@ def test_delete_version_removes_collection_and_manifest() -> None:
         {
             "_id": "version_to_delete",
             "collection_name": collection_name,
-            "status": "IMPORTING",
+            "status": "FAILED",
         }
     )
 
@@ -187,7 +187,7 @@ def test_delete_version_rejects_active_version() -> None:
         }
     )
 
-    with pytest.raises(ValueError, match="Cannot delete the active dataset version"):
+    with pytest.raises(ValueError, match="Cannot delete an active or previous"):
         delete_version(database, "active_ver")
 
 

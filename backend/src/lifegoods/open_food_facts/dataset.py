@@ -90,14 +90,17 @@ class OpenFoodFactsDatasetSource:
             if pointer is None or not isinstance(pointer.get("active_version_id"), str):
                 return _unavailable(identifier)
             version_id = pointer["active_version_id"]
-            manifest = self._database[VERSIONS_COLLECTION].find_one(
-                {"_id": version_id, "status": "ACTIVE"}
-            )
-            if manifest is None:
+            # The control pointer is authoritative.  Manifest status is updated
+            # for operational visibility and must not make a correctly pointed
+            # dataset temporarily unreadable during an atomic cutover/rollback.
+            manifest = self._database[VERSIONS_COLLECTION].find_one({"_id": version_id})
+            if manifest is None or manifest.get("status") not in {"READY", "ACTIVE"}:
                 return _unavailable(identifier)
             dataset_version = _dataset_version(manifest)
             collection_name = manifest.get("collection_name")
             if not isinstance(collection_name, str):
+                return _unavailable(identifier)
+            if collection_name not in self._database.list_collection_names():
                 return _unavailable(identifier)
             product = self._database[collection_name].find_one(
                 {"code": identifier.value}
@@ -285,6 +288,7 @@ def _selected_images(
                                 url=url,
                                 source_field=f"images.selected.{role}.{language}",
                                 language=language,
+                                image_revision=rev_str,
                             )
                         )
 
@@ -307,6 +311,7 @@ def _selected_images(
                             url=url,
                             source_field=f"selected_images.{role}.display.{language}",
                             language=language,
+                            image_revision=_image_revision_from_url(url),
                         )
                     )
 
@@ -329,6 +334,7 @@ def _selected_images(
                     url=raw_url,
                     source_field=field_name,
                     language=primary_language,
+                    image_revision=_image_revision_from_url(raw_url),
                 )
             )
 
@@ -364,6 +370,11 @@ def _source_revision(value: object) -> str | None:
     if isinstance(value, (int, str)) and str(value):
         return str(value)
     return None
+
+
+def _image_revision_from_url(url: str) -> str | None:
+    match = re.search(r"\.(\d+)\.(?:400\.)?(?:jpe?g|png|gif|webp)$", url, re.IGNORECASE)
+    return match.group(1) if match else None
 
 
 def _non_empty_string(value: object) -> str | None:

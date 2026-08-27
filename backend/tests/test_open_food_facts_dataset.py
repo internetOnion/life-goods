@@ -81,7 +81,9 @@ def test_dataset_lookup_preserves_missing_fields_without_negative_evidence() -> 
 
 
 def test_dataset_no_match_identifies_the_version_that_was_checked() -> None:
-    result = OpenFoodFactsDatasetSource(dataset_database()).fetch(
+    database = dataset_database()
+    database[COLLECTION_NAME].create_index("code")
+    result = OpenFoodFactsDatasetSource(database).fetch(
         normalize_identifier("4006381333931")
     )
 

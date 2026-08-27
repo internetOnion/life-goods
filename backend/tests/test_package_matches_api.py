@@ -179,7 +179,7 @@ def test_missing_reference_image_url_uses_the_image_error_envelope(
     }
 
 
-def test_candidate_is_returned_through_the_persistence_boundary(
+def test_reviewed_catalog_rows_are_not_read_by_package_match(
     client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     with session_factory.begin() as session:
@@ -203,26 +203,7 @@ def test_candidate_is_returned_through_the_persistence_boundary(
     response = client.get("/api/v1/package-matches", params={"identifier": "4006381333931"})
 
     assert response.status_code == 200
-    assert response.json()["candidates"] == [
-        {
-            "source_kind": "REVIEWED_CATALOG",
-            "package_variant_id": "variant-1",
-            "product_id": "product-1",
-            "external_record_id": None,
-            "source": None,
-            "identity_evidence": [],
-            "label_evidence": [],
-            "reference_images": [],
-            "retrieved_at": None,
-            "is_current": None,
-            "source_revision": None,
-            "dataset_version_id": None,
-            "dataset_retrieved_at": None,
-            "dataset_activated_at": None,
-            "dataset_source_url": None,
-            "dataset_sha256": None,
-        }
-    ]
+    assert response.json()["candidates"] == []
 
 
 def test_project_catalog_is_disabled_by_default(
@@ -301,16 +282,20 @@ def test_off_candidate_exposes_active_dataset_version(
     body = response.json()
     assert body["open_food_facts"]["status"] == "AVAILABLE"
     assert body["open_food_facts"]["dataset_version"]["id"] == DATASET_VERSION.id
-    assert body["candidates"][0]["dataset_version_id"] == DATASET_VERSION.id
-    assert body["candidates"][0]["dataset_source_url"] == DATASET_VERSION.source_url
-    assert body["candidates"][0]["dataset_sha256"] == DATASET_VERSION.sha256
+    assert body["candidates"][0]["dataset_version"] == {
+        "id": DATASET_VERSION.id,
+        "source_url": DATASET_VERSION.source_url,
+        "retrieved_at": "2026-08-27T08:00:00Z",
+        "activated_at": "2026-08-27T09:00:00Z",
+        "sha256": DATASET_VERSION.sha256,
+    }
     assert body["candidates"][0]["source_revision"] == "1787462400"
 
     identifier_evidence = body["candidates"][0]["identity_evidence"][0]
     assert identifier_evidence["source_revision"] == "1787462400"
 
 
-def test_dataset_unavailability_returns_reviewed_candidates_with_source_status(
+def test_dataset_unavailability_does_not_return_reviewed_candidates(
     session_factory: sessionmaker[Session],
 ) -> None:
     with session_factory.begin() as session:
@@ -345,13 +330,8 @@ def test_dataset_unavailability_returns_reviewed_candidates_with_source_status(
             "/api/v1/package-matches", params={"identifier": "4006381333931"}
         )
 
-    assert response.status_code == 200
-    assert response.json()["open_food_facts"] == {
-        "status": "UNAVAILABLE",
-        "dataset_version": None,
-        "error_code": "DATASET_UNAVAILABLE",
-    }
-    assert response.json()["candidates"][0]["source_kind"] == "REVIEWED_CATALOG"
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "PACKAGE_MATCH_SOURCE_UNAVAILABLE"
 
 
 def test_dataset_unavailability_without_reviewed_candidate_returns_503(
@@ -396,10 +376,7 @@ def test_disputed_identifier_associations_remain_representable(
     response = client.get("/api/v1/package-matches", params={"identifier": "4006381333931"})
 
     assert response.status_code == 200
-    assert [candidate["package_variant_id"] for candidate in response.json()["candidates"]] == [
-        "variant-1",
-        "variant-2",
-    ]
+    assert response.json()["candidates"] == []
 
 
 def test_rejected_or_not_yet_effective_identifiers_are_not_candidates(

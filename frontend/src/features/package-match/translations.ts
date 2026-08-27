@@ -39,6 +39,8 @@ export const packageMatchTranslations = {
         imageUnavailable: "មិនមានរូបភាពកញ្ចប់យោង",
         referenceImageDetails: "ព័ត៌មានប្រភពរូបភាពយោង",
         openReferenceImageSource: "បើកទំព័រប្រភពសម្រាប់រូបភាពយោងនេះ",
+        openOriginalReferenceImage: "បើករូបភាពយោងដើម",
+        imageRevisionLabel: "កំណែរូបភាព",
         brandLabel: "ម៉ាក",
         nameLabel: "ឈ្មោះកញ្ចប់",
         quantityLabel: "បរិមាណ",
@@ -151,6 +153,8 @@ export const packageMatchTranslations = {
         referenceImageDetails: "Reference image source details",
         openReferenceImageSource:
             "Open the source page for this reference image",
+        openOriginalReferenceImage: "Open the original reference image",
+        imageRevisionLabel: "Image revision",
         brandLabel: "Brand",
         nameLabel: "Package name",
         quantityLabel: "Quantity",

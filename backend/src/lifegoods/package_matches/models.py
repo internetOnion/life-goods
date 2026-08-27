@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import Protocol
 
 from lifegoods.identifiers.models import NormalizedIdentifier
 from lifegoods.open_food_facts.models import ExternalDatasetVersion, JsonValue
@@ -46,6 +45,7 @@ class PackageMatchEvidence:
     observed_at: datetime | None
     retrieved_at: datetime
     source_revision: str | None = None
+    dataset_version_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,11 +60,14 @@ class PackageMatchReferenceImage:
     language: str | None
     retrieved_at: datetime
     source_revision: str | None = None
+    original_url: str | None = None
+    image_revision: str | None = None
+    dataset_version_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
 class PackageMatchCandidate:
-    source_kind: PackageMatchSourceKind = PackageMatchSourceKind.REVIEWED_CATALOG
+    source_kind: PackageMatchSourceKind = PackageMatchSourceKind.OPEN_FOOD_FACTS
     package_variant_id: str | None = None
     product_id: str | None = None
     external_record_id: str | None = None
@@ -90,9 +93,3 @@ class PackageMatchResult:
     identifier: NormalizedIdentifier
     candidates: list[PackageMatchCandidate]
     open_food_facts: OpenFoodFactsLookup
-
-
-class PackageMatchRepository(Protocol):
-    def find_candidates(
-        self, identifier: NormalizedIdentifier
-    ) -> list[PackageMatchCandidate]: ...

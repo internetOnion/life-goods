@@ -11,7 +11,6 @@ from scalar_fastapi import get_scalar_api_reference
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
-from lifegoods.core.database import create_session_factory
 from lifegoods.core.errors import ErrorCode, ErrorDetail, ErrorEnvelope
 from lifegoods.core.settings import Settings
 from lifegoods.identifiers import InvalidIdentifierError
@@ -26,7 +25,6 @@ from lifegoods.open_food_facts import (
 from lifegoods.package_matches import (
     FindPackageMatches,
     PackageMatchSourceUnavailableError,
-    SqlAlchemyPackageMatchRepository,
     get_finder,
 )
 from lifegoods.package_matches import (
@@ -53,7 +51,7 @@ def create_app(
     image_source: ExternalImageSource | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings()
-    resolved_factory = session_factory or create_session_factory(resolved_settings)
+    _ = session_factory
     owned_http_clients: list[httpx.Client] = []
     owned_mongo_clients: list[MongoClient[dict[str, Any]]] = []
     if external_source is None:
@@ -103,13 +101,7 @@ def create_app(
         app.router.add_event_handler("shutdown", owned_mongo_client.close)
 
     def provide_finder() -> Iterator[FindPackageMatches]:
-        with resolved_factory() as session:
-            yield FindPackageMatches(
-                SqlAlchemyPackageMatchRepository(
-                    session, enabled=resolved_settings.project_catalog_enabled
-                ),
-                resolved_source,
-            )
+        yield FindPackageMatches(resolved_source)
 
     app.dependency_overrides[get_finder] = provide_finder
     app.dependency_overrides[get_image_source] = lambda: resolved_image_source

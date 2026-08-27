@@ -79,26 +79,7 @@ export type OpenFoodFactsLookupStatus = 'AVAILABLE' | 'NOT_FOUND' | 'UNAVAILABLE
  * PackageMatchCandidateResponse
  */
 export type PackageMatchCandidateResponse = {
-    /**
-     * Dataset Activated At
-     */
-    dataset_activated_at?: string | null;
-    /**
-     * Dataset Retrieved At
-     */
-    dataset_retrieved_at?: string | null;
-    /**
-     * Dataset Sha256
-     */
-    dataset_sha256?: string | null;
-    /**
-     * Dataset Source Url
-     */
-    dataset_source_url?: string | null;
-    /**
-     * Dataset Version Id
-     */
-    dataset_version_id?: string | null;
+    dataset_version: ExternalDatasetVersionResponse;
     /**
      * External Record Id
      */
@@ -108,21 +89,9 @@ export type PackageMatchCandidateResponse = {
      */
     identity_evidence: Array<PackageMatchEvidenceResponse>;
     /**
-     * Is Current
-     */
-    is_current: boolean | null;
-    /**
      * Label Evidence
      */
     label_evidence: Array<PackageMatchEvidenceResponse>;
-    /**
-     * Package Variant Id
-     */
-    package_variant_id: string | null;
-    /**
-     * Product Id
-     */
-    product_id: string | null;
     /**
      * Reference Images
      */
@@ -143,6 +112,10 @@ export type PackageMatchCandidateResponse = {
  * PackageMatchEvidenceResponse
  */
 export type PackageMatchEvidenceResponse = {
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id?: string | null;
     /**
      * Field
      */
@@ -190,6 +163,14 @@ export type PackageMatchReferenceImageResponse = {
      */
     attribution: string;
     /**
+     * Dataset Version Id
+     */
+    dataset_version_id?: string | null;
+    /**
+     * Image Revision
+     */
+    image_revision?: string | null;
+    /**
      * Language
      */
     language: string | null;
@@ -197,6 +178,10 @@ export type PackageMatchReferenceImageResponse = {
      * License Name
      */
     license_name: string;
+    /**
+     * Original Url
+     */
+    original_url: string;
     /**
      * Retrieved At
      */

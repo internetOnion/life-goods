@@ -19,8 +19,7 @@ type PackageMatchResultPageProps = {
     onIdentifierChange: (identifier: string) => void
 }
 
-type ResultState =
-    "loading" | "failure" | "noMatch" | "offMatch" | "partial" | "unsupported"
+type ResultState = "loading" | "failure" | "noMatch" | "offMatch"
 
 export function PackageMatchResultPage({
     lookup,
@@ -52,12 +51,9 @@ export function PackageMatchResultPage({
               ? "failure"
               : offCandidate
                 ? "offMatch"
-                : query.data?.candidates.length &&
-                    query.data.open_food_facts.status === "UNAVAILABLE"
-                  ? "partial"
-                  : query.data?.candidates.length === 0
-                    ? "noMatch"
-                    : "unsupported"
+                : query.data?.candidates.length === 0
+                  ? "noMatch"
+                  : "failure"
 
     useEffect(() => {
         if (validation.valid) onIdentifierChange(validation.value)
@@ -89,11 +85,7 @@ export function PackageMatchResultPage({
               ? t("failureTitle")
               : state === "noMatch"
                 ? t("noMatchTitle")
-                : state === "unsupported"
-                  ? t("unsupportedTitle")
-                  : state === "partial"
-                    ? t("partialTitle")
-                    : t("matchTitle")
+                : t("matchTitle")
 
     const returnHome = () => {
         void navigate("/")
@@ -167,30 +159,6 @@ export function PackageMatchResultPage({
                     icon="info"
                     title={t("noMatchTitle")}
                     body={t("noMatchBody")}
-                    identifier={normalizedIdentifier}
-                    primaryLabel={t("tryAnother")}
-                    onPrimary={returnHome}
-                />
-            ) : null}
-
-            {state === "unsupported" ? (
-                <ResultStateMessage
-                    ref={outcomeTitleRef}
-                    icon="info"
-                    title={t("unsupportedTitle")}
-                    body={t("unsupportedBody")}
-                    identifier={normalizedIdentifier}
-                    primaryLabel={t("tryAnother")}
-                    onPrimary={returnHome}
-                />
-            ) : null}
-
-            {state === "partial" ? (
-                <ResultStateMessage
-                    ref={outcomeTitleRef}
-                    icon="warning"
-                    title={t("partialTitle")}
-                    body={t("partialBody")}
                     identifier={normalizedIdentifier}
                     primaryLabel={t("tryAnother")}
                     onPrimary={returnHome}

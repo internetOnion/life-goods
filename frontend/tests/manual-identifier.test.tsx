@@ -278,7 +278,7 @@ describe("manual identifier journey", () => {
 
         expect(
             await screen.findByRole("heading", {
-                name: "A different Package Match is available",
+                name: "Could not check right now",
             }),
         ).toHaveFocus()
         expect(
@@ -288,7 +288,7 @@ describe("manual identifier journey", () => {
         ).not.toBeInTheDocument()
     })
 
-    test("discloses OFF unavailability when reviewed candidates remain", async () => {
+    test("does not fall back to reviewed candidates when OFF is unavailable", async () => {
         await i18n.changeLanguage("en")
         const user = userEvent.setup()
         const reviewedCandidate: PackageMatchCandidateResponse = {
@@ -312,12 +312,9 @@ describe("manual identifier journey", () => {
 
         expect(
             await screen.findByRole("heading", {
-                name: "Project catalog package information is available",
+                name: "Could not check right now",
             }),
         ).toHaveFocus()
-        expect(
-            screen.getByText(/Open Food Facts data cannot be checked/),
-        ).toBeVisible()
     })
 
     test("announces temporary failure and recovery in Khmer", async () => {

@@ -1,6 +1,6 @@
 # Open Food Facts Dataset Operations
 
-LifeGoods serves barcode lookups from one Active OFF Dataset Version in MongoDB. This is a dated, unreviewed External Evidence Source, not a synchronized mirror or reviewed catalog. Project catalog lookup is disabled by default until a separate review system is approved; setting `LIFEGOODS_PROJECT_CATALOG_ENABLED=true` is reserved for controlled development and tests.
+LifeGoods serves barcode lookups exclusively from one Active OFF Dataset Version in MongoDB. This is a dated, unreviewed External Evidence Source, not a synchronized mirror or reviewed catalog. The Package Match path never falls back to reviewed data.
 
 ## Local services
 
@@ -36,6 +36,8 @@ Remove versions other than the active and immediately previous versions only thr
 pnpm off:dataset -- prune
 ```
 
+Lifecycle commands (`activate`, `rollback`, `prune`, `delete`, and `revalidate`) are serialized by a MongoDB lease. `delete` refuses active, previous, or importing versions. `revalidate` appends validation history, preserves the stored probe set, and must succeed before a failed version can be activated.
+
 ## Cutover gate
 
 Alembic migration `0003` permanently deletes the legacy PostgreSQL `external_sources`, `external_snapshots`, and `external_field_evidence` tables. Before applying it to any environment containing evidence that must be retained:
@@ -43,7 +45,7 @@ Alembic migration `0003` permanently deletes the legacy PostgreSQL `external_sou
 1. Export and verify the required rows and raw JSON.
 2. Complete and validate a MongoDB import.
 3. Activate the selected OFF Dataset Version.
-4. Smoke-test a known match, a dated no-match, and partial reviewed results during a simulated MongoDB outage.
+4. Smoke-test a known match, a dated no-match, and an unavailable result (HTTP 503) during a simulated MongoDB outage. Reviewed-catalog fallback is not expected in MVP-1.
 5. Apply the PostgreSQL migration.
 
 Migration `0003` has no automatic downgrade. Recovery requires the pre-cutover backup.
