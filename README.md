@@ -26,22 +26,22 @@ docker compose -f infra/compose.yaml up -d postgres
 pnpm db:migrate
 ```
 
-Start the API and Web Client in separate terminals. Use HTTP for ordinary local development:
+Start the API and Web Client in separate terminals. The normal Web Client command uses HTTPS so camera access works when testing from a phone:
 
 ```bash
 pnpm backend:dev
 pnpm dev
 ```
 
-Open `http://localhost:5173`. The Web Client proxies `/api` requests to `http://localhost:8000` during development.
+Open the `https://localhost:5173` URL. The Web Client proxies `/api` requests to `http://localhost:8000` during development.
 
-To run the Web Client over HTTPS instead, use the explicit HTTPS command:
+For development without camera access, use the explicit HTTP command:
 
 ```bash
-pnpm dev:https
+pnpm dev:http
 ```
 
-Open `https://localhost:5173` and accept the local self-signed certificate warning. The HTTPS command requires `openssl`; it generates an ignored certificate under `frontend/certs/` and still proxies `/api` to the HTTP API at `http://localhost:8000`.
+For a phone, connect the phone and computer to the same Wi-Fi, then open the `Network: https://<computer-LAN-IP>:<port>/` URL printed by Vite. Do not use `localhost` on the phone; it refers to the phone itself. Accept the local self-signed certificate warning on the phone before selecting “Start camera”. If the browser does not allow the exception, install a trusted local development certificate or use a secure HTTPS tunnel. The HTTPS dev command requires `openssl`; it regenerates an ignored certificate under `frontend/certs/` on each start so the current LAN IP is included, and still proxies `/api` to the HTTP API at `http://localhost:8000`.
 
 ## Verify
 

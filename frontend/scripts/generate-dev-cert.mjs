@@ -23,9 +23,45 @@ const subjectAlternativeNames = [
     ...addresses.map((address) => `IP:${address}`),
 ].join(",")
 
+function findOpenSSL() {
+    try {
+        const command = process.platform === "win32" ? "where.exe" : "which"
+        const result = execFileSync(command, ["openssl"], {
+            encoding: "utf8",
+            stdio: ["ignore", "pipe", "ignore"],
+        })
+            .trim()
+            .split(/\r?\n/)[0]
+        if (result) return result
+    } catch {
+        // Try common Windows Git installation locations below.
+    }
+
+    if (process.platform === "win32") {
+        const candidates = [
+            path.join(
+                process.env.ProgramFiles ?? "",
+                "Git/usr/bin/openssl.exe",
+            ),
+            path.join(
+                process.env.ProgramFiles ?? "",
+                "Git/mingw64/bin/openssl.exe",
+            ),
+        ]
+        const installedPath = candidates.find((candidate) =>
+            existsSync(candidate),
+        )
+        if (installedPath) return installedPath
+    }
+
+    throw new Error(
+        "OpenSSL was not found. Install OpenSSL or Git for Windows, then run pnpm dev:https again.",
+    )
+}
+
 mkdirSync(certificateDirectory, { recursive: true })
 execFileSync(
-    "openssl",
+    findOpenSSL(),
     [
         "req",
         "-x509",

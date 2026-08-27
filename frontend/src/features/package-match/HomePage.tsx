@@ -1,8 +1,12 @@
 import {
+    ArrowClockwiseIcon,
     BarcodeIcon,
-    CameraSlashIcon,
+    CameraIcon,
+    CircleNotchIcon,
     InfoIcon,
     MagnifyingGlassIcon,
+    StopCircleIcon,
+    WarningCircleIcon,
 } from "@phosphor-icons/react"
 import {
     type FormEvent,
@@ -18,9 +22,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { barcodeScanner, type BarcodeScannerSession } from "./barcodeScanner"
 import { validateIdentifier, type IdentifierValidation } from "./identifier"
 
 type HomePageProps = {
+    focusIdentifier?: boolean
     initialIdentifier: string
     onIdentifierChange: (identifier: string) => void
 }
@@ -29,7 +35,48 @@ type HomeLocationState = {
     invalidIdentifier?: string
 }
 
+type CameraState = "idle" | "starting" | "scanning" | "error"
+
+function cameraErrorKey(error: unknown) {
+    const name =
+        typeof error === "object" && error !== null && "name" in error
+            ? error.name
+            : undefined
+
+    if (typeof window !== "undefined" && window.isSecureContext === false)
+        return "cameraErrorInsecure"
+    if (name === "NotAllowedError" || name === "SecurityError")
+        return "cameraErrorPermission"
+    if (name === "NotFoundError" || name === "DevicesNotFoundError")
+        return "cameraErrorNoDevice"
+    if (name === "NotReadableError" || name === "TrackStartError")
+        return "cameraErrorBusy"
+    if (name === "CameraPreviewError") return "cameraErrorPreview"
+    if (
+        name === "OverconstrainedError" ||
+        name === "ConstraintNotSatisfiedError"
+    )
+        return "cameraErrorUnsupported"
+    if (name === "AbortError" || name === "InvalidStateError")
+        return "cameraErrorInterrupted"
+    if (name === "TypeError" || name === "NotSupportedError")
+        return "cameraErrorUnsupported"
+    return "cameraErrorGeneric"
+}
+
+function stopCameraStream(stream: MediaProvider | null) {
+    if (
+        stream &&
+        typeof stream === "object" &&
+        "getTracks" in stream &&
+        typeof stream.getTracks === "function"
+    ) {
+        stream.getTracks().forEach((track) => track.stop())
+    }
+}
+
 export function HomePage({
+    focusIdentifier = false,
     initialIdentifier,
     onIdentifierChange,
 }: HomePageProps) {
@@ -53,7 +100,14 @@ export function HomePage({
             : null,
     )
     const [showIdentifierHint, setShowIdentifierHint] = useState(false)
+    const [cameraState, setCameraState] = useState<CameraState>("idle")
+    const [cameraMessage, setCameraMessage] = useState<string | null>(null)
     const inputRef = useRef<HTMLInputElement>(null)
+    const videoRef = useRef<HTMLVideoElement>(null)
+    const cameraSessionRef = useRef<BarcodeScannerSession | null>(null)
+    const cameraTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const scanHandledRef = useRef(false)
+    const cameraRunRef = useRef(0)
 
     useEffect(() => {
         if (!enteredIdentifier && initialIdentifier) {
@@ -61,7 +115,111 @@ export function HomePage({
         }
     }, [enteredIdentifier, initialIdentifier])
 
+    useEffect(() => {
+        if (focusIdentifier) inputRef.current?.focus()
+    }, [focusIdentifier])
+
+    const stopCamera = () => {
+        cameraRunRef.current += 1
+        if (cameraTimerRef.current) {
+            clearTimeout(cameraTimerRef.current)
+            cameraTimerRef.current = null
+        }
+        cameraSessionRef.current?.stop()
+        cameraSessionRef.current = null
+        stopCameraStream(videoRef.current?.srcObject ?? null)
+        if (videoRef.current) videoRef.current.srcObject = null
+        setCameraState("idle")
+    }
+
+    useEffect(() => {
+        return () => stopCamera()
+    }, [])
+
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === "hidden") stopCamera()
+        }
+        document.addEventListener("visibilitychange", handleVisibilityChange)
+        return () =>
+            document.removeEventListener(
+                "visibilitychange",
+                handleVisibilityChange,
+            )
+    }, [])
+
+    const canUseCamera = () =>
+        typeof navigator !== "undefined" &&
+        (typeof window === "undefined" || window.isSecureContext !== false) &&
+        !!navigator.mediaDevices?.getUserMedia &&
+        !!videoRef.current
+
+    const handleCameraResult = (rawValue: string) => {
+        if (scanHandledRef.current) return
+        const validation = validateIdentifier(rawValue)
+        if (!validation.valid) {
+            setCameraMessage(t("cameraInvalid"))
+            return
+        }
+
+        scanHandledRef.current = true
+        stopCamera()
+        setEnteredIdentifier(validation.value)
+        onIdentifierChange(validation.value)
+        void navigate(`/results/${validation.value}`, {
+            state: { fromBarcode: true },
+        })
+    }
+
+    const startCamera = async () => {
+        if (typeof window !== "undefined" && window.isSecureContext === false) {
+            setCameraState("error")
+            setCameraMessage(t("cameraErrorInsecure"))
+            return
+        }
+
+        if (!canUseCamera()) {
+            setCameraState("error")
+            setCameraMessage(t("cameraErrorUnsupported"))
+            return
+        }
+
+        scanHandledRef.current = false
+        // A retry must never inherit a stream or decoder from a previous run.
+        stopCamera()
+        const cameraRun = ++cameraRunRef.current
+        setCameraMessage(null)
+        setCameraState("starting")
+
+        try {
+            const session = await barcodeScanner.start(
+                videoRef.current!,
+                handleCameraResult,
+                (error) => {
+                    stopCamera()
+                    setCameraState("error")
+                    setCameraMessage(t(cameraErrorKey(error)))
+                },
+            )
+            if (cameraRun !== cameraRunRef.current || scanHandledRef.current) {
+                session.stop()
+                return
+            }
+            cameraSessionRef.current = session
+            setCameraState("scanning")
+            cameraTimerRef.current = setTimeout(() => {
+                setCameraMessage(t("cameraDelayed"))
+            }, 5000)
+        } catch (error) {
+            if (cameraRun !== cameraRunRef.current) return
+            setCameraState("error")
+            setCameraMessage(t(cameraErrorKey(error)))
+            cameraSessionRef.current = null
+        }
+    }
+
     const submitIdentifier = (value: string) => {
+        stopCamera()
         const validation = validateIdentifier(value)
         if (!validation.valid) {
             setValidationReason(validation.reason)
@@ -72,7 +230,9 @@ export function HomePage({
         setValidationReason(null)
         setEnteredIdentifier(validation.value)
         onIdentifierChange(validation.value)
-        void navigate(`/results/${validation.value}`)
+        void navigate(`/results/${validation.value}`, {
+            state: { fromBarcode: true },
+        })
     }
 
     const onSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -97,34 +257,117 @@ export function HomePage({
     return (
         <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] space-y-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)] sm:pt-[calc(1.75rem_+_env(safe-area-inset-top))]">
             <section
-                className="border-border bg-muted/60 before:border-primary/25 relative grid h-[clamp(16rem,44svh,26rem)] place-items-center overflow-hidden rounded-3xl border before:absolute before:size-[min(78%,22rem)] before:rotate-[-12deg] before:rounded-[42%_58%_48%_52%/54%_44%_56%_46%] before:border before:content-[''] max-[650px]:h-52"
+                className="border-border bg-muted/60 before:border-primary/25 relative grid h-[clamp(18rem,48svh,30rem)] place-items-center overflow-hidden rounded-3xl border before:absolute before:size-[min(78%,22rem)] before:rotate-[-12deg] before:rounded-[42%_58%_48%_52%/54%_44%_56%_46%] before:border before:content-['']"
                 aria-label={t("cameraTitle")}
             >
-                <span className="border-primary/90 absolute top-4 left-4 h-8 w-8 rounded-tl-lg border-t-2 border-l-2" />
-                <span className="border-primary/90 absolute top-4 right-4 h-8 w-8 rounded-tr-lg border-t-2 border-r-2" />
-                <span className="border-primary/90 absolute bottom-4 left-4 h-8 w-8 rounded-bl-lg border-b-2 border-l-2" />
-                <span className="border-primary/90 absolute right-4 bottom-4 h-8 w-8 rounded-br-lg border-r-2 border-b-2" />
-                <div className="relative z-10 grid max-w-md justify-items-center gap-3 px-8 py-8 text-center">
-                    <span
-                        className="border-primary/15 bg-background text-primary grid size-[4.6rem] place-items-center rounded-[44%_56%_50%_50%/52%_45%_55%_48%] border"
-                        aria-hidden="true"
-                    >
-                        <CameraSlashIcon size={52} weight="light" />
-                    </span>
-                    <div>
-                        <h1 className="text-xl leading-[1.7] font-bold tracking-tight text-balance">
-                            {t("cameraTitle")}
-                        </h1>
-                        <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-                            {t("cameraComingSoon")}
+                <video
+                    ref={videoRef}
+                    className={cn(
+                        "absolute inset-0 size-full object-cover transition-opacity motion-reduce:transition-none",
+                        cameraState === "starting" || cameraState === "scanning"
+                            ? "opacity-100"
+                            : "pointer-events-none opacity-0",
+                    )}
+                    aria-hidden="true"
+                    autoPlay
+                    muted
+                    playsInline
+                />
+                <span className="border-primary/90 absolute top-4 left-4 h-8 w-8 rounded-tl-lg border-t border-l" />
+                <span className="border-primary/90 absolute top-4 right-4 h-8 w-8 rounded-tr-lg border-t border-r" />
+                <span className="border-primary/90 absolute bottom-4 left-4 h-8 w-8 rounded-bl-lg border-b border-l" />
+                <span className="border-primary/90 absolute right-4 bottom-4 h-8 w-8 rounded-br-lg border-r border-b" />
+                {cameraState === "scanning" ? (
+                    <div className="relative z-10 grid w-full max-w-md justify-items-center gap-4 px-8 py-8 text-center">
+                        <div
+                            className="border-background/90 h-24 w-[min(18rem,80vw)] rounded-xl border-2 shadow-[0_0_0_999px_oklch(0.12_0.02_160_/_0.18)]"
+                            aria-hidden="true"
+                        />
+                        <p className="bg-background/90 text-foreground rounded-full px-4 py-2 text-sm font-semibold shadow-sm">
+                            {cameraMessage ?? t("cameraScanning")}
                         </p>
+                        <Button
+                            className="bg-background text-foreground hover:bg-background/90"
+                            type="button"
+                            variant="outline"
+                            onClick={stopCamera}
+                        >
+                            <StopCircleIcon aria-hidden="true" size={21} />
+                            {t("cameraStop")}
+                        </Button>
                     </div>
+                ) : (
+                    <div className="relative z-10 grid max-w-md justify-items-center gap-3 px-8 py-8 text-center">
+                        <span
+                            className="border-primary/15 bg-background text-primary grid size-[4.6rem] place-items-center rounded-[44%_56%_50%_50%/52%_45%_55%_48%] border"
+                            aria-hidden="true"
+                        >
+                            {cameraState === "starting" ? (
+                                <CircleNotchIcon
+                                    className="animate-spin motion-reduce:animate-none"
+                                    size={44}
+                                    weight="bold"
+                                />
+                            ) : cameraState === "error" ? (
+                                <WarningCircleIcon size={48} weight="light" />
+                            ) : (
+                                <CameraIcon size={48} weight="light" />
+                            )}
+                        </span>
+                        <div>
+                            <h1 className="text-xl leading-[1.7] font-bold tracking-tight text-balance">
+                                {cameraState === "starting"
+                                    ? t("cameraStarting")
+                                    : cameraState === "error"
+                                      ? t("cameraUnavailable")
+                                      : t("cameraTitle")}
+                            </h1>
+                            <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+                                {cameraMessage ?? t("cameraIdle")}
+                            </p>
+                        </div>
+                        {cameraState === "starting" ? null : (
+                            <Button
+                                type="button"
+                                onClick={() => void startCamera()}
+                                disabled={
+                                    cameraState === "error" && !canUseCamera()
+                                }
+                            >
+                                {cameraState === "error" ? (
+                                    <ArrowClockwiseIcon
+                                        aria-hidden="true"
+                                        size={21}
+                                    />
+                                ) : (
+                                    <CameraIcon aria-hidden="true" size={21} />
+                                )}
+                                {cameraState === "error"
+                                    ? t("cameraTryAgain")
+                                    : t("cameraStart")}
+                            </Button>
+                        )}
+                    </div>
+                )}
+                <div
+                    className="sr-only"
+                    role={cameraState === "error" ? "alert" : "status"}
+                    aria-live="polite"
+                    aria-atomic="true"
+                >
+                    {cameraState === "scanning"
+                        ? t("cameraScanning")
+                        : cameraMessage}
                 </div>
             </section>
 
-            <div className="grid grid-cols-[minmax(0,1fr)_3.5rem] px-4 sm:grid-cols-[minmax(0,1fr)_4rem] sm:px-5">
+            <form
+                className="border-border bg-background grid grid-cols-[minmax(0,1fr)_3.5rem] gap-x-1 gap-y-2 rounded-2xl border p-4 sm:grid-cols-[minmax(0,1fr)_4rem] sm:gap-x-2 sm:p-5"
+                noValidate
+                onSubmit={onSubmit}
+            >
                 <Button
-                    className="border-primary/45 bg-background text-foreground hover:bg-primary/10 hover:text-foreground col-start-2 size-11 justify-self-center rounded-full p-0"
+                    className="text-primary hover:text-primary col-start-2 row-start-1 size-11 justify-self-center rounded-full border-0 bg-transparent p-0 hover:bg-transparent"
                     variant="outline"
                     type="button"
                     aria-label={t(
@@ -134,16 +377,11 @@ export function HomePage({
                     )}
                     onClick={() => void i18n.changeLanguage(targetLanguage)}
                 >
-                    <LanguageFlag language={currentLanguage} />
+                    <span className="border-primary/45 bg-background grid size-9 place-items-center overflow-hidden rounded-full border">
+                        <LanguageFlag language={currentLanguage} />
+                    </span>
                 </Button>
-            </div>
-
-            <form
-                className="border-border bg-background rounded-2xl border p-4 sm:p-5"
-                noValidate
-                onSubmit={onSubmit}
-            >
-                <div className="relative mb-2.5 flex items-center gap-1">
+                <div className="relative flex items-center gap-1">
                     <Label className="text-primary" htmlFor="identifier">
                         {t("fieldLabel")}
                     </Label>
@@ -175,7 +413,7 @@ export function HomePage({
                 </div>
                 <div
                     className={cn(
-                        "border-input bg-background focus-within:border-ring focus-within:ring-ring/40 flex min-h-14 overflow-hidden rounded-xl border transition-colors focus-within:ring-2",
+                        "border-input bg-background focus-within:border-ring focus-within:ring-ring/40 col-span-2 row-start-2 flex min-h-14 overflow-hidden rounded-xl border transition-colors focus-within:ring-2",
                         validationMessage &&
                             "border-destructive focus-within:border-destructive focus-within:ring-destructive/30",
                     )}
@@ -227,7 +465,7 @@ export function HomePage({
                 </div>
                 {validationMessage ? (
                     <p
-                        className="text-destructive mt-2 text-sm leading-relaxed font-semibold"
+                        className="text-destructive col-span-2 row-start-3 mt-0 text-sm leading-relaxed font-semibold"
                         id="identifier-error"
                         role="alert"
                     >
@@ -244,7 +482,7 @@ function LanguageFlag({ language }: { language: "en" | "km" }) {
         return (
             <svg
                 aria-hidden="true"
-                className="size-7 overflow-hidden rounded-full"
+                className="size-full overflow-hidden rounded-full"
                 data-language-flag="km"
                 preserveAspectRatio="xMidYMid slice"
                 viewBox="0 0 30 20"
@@ -262,7 +500,7 @@ function LanguageFlag({ language }: { language: "en" | "km" }) {
     return (
         <svg
             aria-hidden="true"
-            className="size-7 overflow-hidden rounded-full"
+            className="size-full overflow-hidden rounded-full"
             data-language-flag="en"
             preserveAspectRatio="xMidYMid slice"
             viewBox="0 0 30 20"

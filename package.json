@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --dir frontend dev",
+    "dev:http": "pnpm --dir frontend dev:http",
     "dev:https": "pnpm --dir frontend dev:https",
     "build": "pnpm --dir frontend build",
     "test": "pnpm --dir frontend test && pnpm backend:test",

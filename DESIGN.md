@@ -67,11 +67,13 @@ Safe-area insets are applied to fixed navigation and result bottoms. The primary
 - The flag occupies its own utility row between the camera placeholder and barcode form, centered over the form’s submit column without overlay positioning.
 - Bottom: Home, Learn, History, and Allergies with Phosphor icons, text, and non-color active treatment.
 
-### Camera placeholder
+### Camera scanner
 
-- Looks like a viewfinder but has no interactive affordance.
-- Uses `CameraSlashIcon` and explicit “coming soon” copy.
-- Never requests permission, animates like a live feed, or implies an active preview.
+- The viewfinder is idle until the shopper explicitly selects “Start camera”; permission is never requested on page load.
+- Starting shows a pending state, then an environment-facing live video preview with a clear scan frame, concise guidance, and a visible stop action.
+- Valid camera results use the same identifier normalization and Package Match route as manual entry. The stream stops before navigation and duplicate detections are ignored.
+- Permission, missing-device, busy-device, unsupported-browser, invalid-code, and delayed-detection states remain explicit and keep manual barcode entry available.
+- Camera frames are decoded locally and are not uploaded or retained. Streams stop on success, manual submission, route changes, visibility loss, and unmount.
 
 ### Barcode control
 

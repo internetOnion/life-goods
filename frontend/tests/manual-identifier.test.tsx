@@ -111,9 +111,24 @@ describe("manual identifier journey", () => {
         const languageSwitch = screen.getByRole("button", {
             name: "ប្តូរទៅភាសាអង់គ្លេស",
         })
+        const flag = languageSwitch.querySelector('[data-language-flag="km"]')
+        const input = screen.getByRole("textbox", { name: "លេខបាកូដ" })
+        const submit = screen.getByRole("button", { name: "ពិនិត្យបាកូដ" })
+        expect(languageSwitch.closest("form")).toBe(input.closest("form"))
+        expect(languageSwitch.closest("form")).toContainElement(submit)
         expect(
-            languageSwitch.querySelector('[data-language-flag="km"]'),
-        ).toBeInTheDocument()
+            languageSwitch.compareDocumentPosition(submit) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy()
+        expect(languageSwitch).toHaveClass("size-11", "border-0", "p-0")
+        expect(flag).toBeInTheDocument()
+        expect(flag).toHaveClass("size-full")
+        expect(flag?.parentElement).toHaveClass(
+            "size-9",
+            "overflow-hidden",
+            "rounded-full",
+            "border",
+        )
 
         expect(screen.getByRole("link", { name: "ទំព័រដើម" })).toHaveAttribute(
             "aria-current",
@@ -164,16 +179,24 @@ describe("manual identifier journey", () => {
         expect(screen.getAllByText("4006381333931").length).toBeGreaterThan(0)
         expect(screen.queryByRole("navigation")).not.toBeInTheDocument()
         expect(screen.queryByRole("banner")).not.toBeInTheDocument()
+        expect(screen.getByRole("dialog")).toHaveAccessibleName(
+            "លទ្ធផលពិនិត្យបាកូដ",
+        )
+        expect(document.querySelector("[inert]")).toBeInTheDocument()
+        expect(document.body).toHaveClass("overflow-hidden")
         expect(
             screen.queryByRole("button", { name: "ប្តូរទៅភាសាអង់គ្លេស" }),
         ).not.toBeInTheDocument()
 
         await user.click(
-            screen.getByRole("button", { name: "ត្រឡប់ទៅទំព័រដើម" }),
+            screen.getByRole("button", { name: "សាកល្បងបាកូដផ្សេង" }),
         )
-        expect(screen.getByRole("textbox", { name: "លេខបាកូដ" })).toHaveValue(
-            "4006381333931",
-        )
+        const restoredInput = screen.getByRole("textbox", {
+            name: "លេខបាកូដ",
+        })
+        expect(restoredInput).toHaveValue("4006381333931")
+        expect(restoredInput).toHaveFocus()
+        expect(document.body).not.toHaveClass("overflow-hidden")
     })
 
     test("renders a complete OFF match through the English journey", async () => {
@@ -219,6 +242,41 @@ describe("manual identifier journey", () => {
         ).toBeVisible()
     })
 
+    test("traps modal focus, closes with Escape, and restores barcode focus", async () => {
+        await i18n.changeLanguage("en")
+        const user = userEvent.setup()
+        const lookup = vi.fn<PackageMatchLookup>().mockResolvedValue({
+            normalized_identifier: "4006381333931",
+            scheme: "EAN_13",
+            candidates: [],
+        })
+        renderJourney(lookup)
+
+        const input = screen.getByRole("textbox", { name: "Barcode number" })
+        await user.type(input, "4006381333931")
+        await user.click(screen.getByRole("button", { name: "Check barcode" }))
+        await screen.findByRole("heading", {
+            name: "No package information found",
+        })
+
+        const lastAction = screen.getByRole("button", {
+            name: "Try another barcode",
+        })
+        lastAction.focus()
+        await user.tab()
+        expect(
+            screen.getByRole("button", { name: "Close result" }),
+        ).toHaveFocus()
+
+        await user.keyboard("{Escape}")
+        const restoredInput = screen.getByRole("textbox", {
+            name: "Barcode number",
+        })
+        expect(restoredInput).toHaveValue("4006381333931")
+        expect(restoredInput).toHaveFocus()
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    })
+
     test("keeps a sparse OFF match explicit while changing interface language", async () => {
         const user = userEvent.setup()
         const sparseCandidate = sparseOffCandidate({
@@ -253,12 +311,14 @@ describe("manual identifier journey", () => {
         expect(lookup).toHaveBeenCalledTimes(1)
     })
 
-    test("keeps non-OFF candidates out of the OFF result module", async () => {
+    test("presents the available identifiers for a reviewed catalog candidate", async () => {
         await i18n.changeLanguage("en")
         const user = userEvent.setup()
         const reviewedCandidate: PackageMatchCandidateResponse = {
             ...completeOffCandidate(),
             source_kind: "REVIEWED_CATALOG",
+            product_id: "product-1",
+            package_variant_id: "variant-1",
         }
         const lookup = vi
             .fn<PackageMatchLookup>()
@@ -273,14 +333,73 @@ describe("manual identifier journey", () => {
 
         expect(
             await screen.findByRole("heading", {
-                name: "A different Package Match is available",
+                name: "A LifeGoods catalog record is available",
             }),
         ).toHaveFocus()
+        expect(screen.getByText("product-1")).toBeVisible()
+        expect(screen.getByText("variant-1")).toBeVisible()
+        expect(
+            screen.getByText(
+                "This record does not yet contain a display name, image, quantity, or label evidence. Missing information does not mean the package makes no declaration.",
+            ),
+        ).toBeVisible()
         expect(
             screen.queryByText(
                 "Community data from Open Food Facts—not yet reviewed by this project.",
             ),
         ).not.toBeInTheDocument()
+    })
+
+    test("asks the shopper to choose when several Package Matches are available", async () => {
+        await i18n.changeLanguage("en")
+        const user = userEvent.setup()
+        const reviewedCandidate: PackageMatchCandidateResponse = {
+            ...completeOffCandidate(),
+            source_kind: "REVIEWED_CATALOG",
+            product_id: "product-1",
+            package_variant_id: "variant-1",
+            identity_evidence: [],
+            label_evidence: [],
+            reference_images: [],
+        }
+        const lookup = vi.fn<PackageMatchLookup>().mockResolvedValue({
+            normalized_identifier: "4006381333931",
+            scheme: "EAN_13",
+            candidates: [reviewedCandidate, completeOffCandidate()],
+        })
+        renderJourney(lookup)
+
+        await user.type(
+            screen.getByRole("textbox", { name: "Barcode number" }),
+            "4006381333931",
+        )
+        await user.click(screen.getByRole("button", { name: "Check barcode" }))
+
+        expect(
+            await screen.findByRole("heading", {
+                name: "Several Package Matches were found",
+            }),
+        ).toHaveFocus()
+        expect(screen.getByText("LifeGoods reviewed catalog")).toBeVisible()
+        expect(screen.getByText("Open Food Facts community data")).toBeVisible()
+
+        await user.click(
+            screen.getByRole("button", {
+                name: /Dark chocolate Open Food Facts community data/,
+            }),
+        )
+        expect(
+            await screen.findByRole("heading", { name: "Dark chocolate" }),
+        ).toHaveFocus()
+        await user.click(
+            screen.getByRole("button", { name: "Back to all candidates" }),
+        )
+        expect(
+            screen.getByRole("heading", {
+                name: "Several Package Matches were found",
+            }),
+        ).toHaveFocus()
+        expect(lookup).toHaveBeenCalledTimes(1)
     })
 
     test("announces temporary failure and recovery in Khmer", async () => {

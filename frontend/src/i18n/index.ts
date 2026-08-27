@@ -18,7 +18,32 @@ export const resources = {
             title: "ពិនិត្យបាកូដលើកញ្ចប់",
             homeIntro: "បញ្ចូលលេខបាកូដ ដើម្បីរកព័ត៌មានកញ្ចប់ពីប្រភព។",
             cameraTitle: "ស្កេនដោយកាមេរ៉ា",
-            cameraComingSoon: "កាមេរ៉ានឹងមកឆាប់ៗ។ សូមប្រើលេខបាកូដឥឡូវនេះ។",
+            cameraIdle: "ចុចចាប់ផ្តើម ដើម្បីស្កេនលេខបាកូដលើកញ្ចប់។",
+            cameraStart: "ចាប់ផ្តើមកាមេរ៉ា",
+            cameraStarting: "កំពុងបើកកាមេរ៉ា…",
+            cameraScanning: "ដាក់លេខបាកូដក្នុងប្រអប់ស្កេន។",
+            cameraStop: "បិទកាមេរ៉ា",
+            cameraTryAgain: "ព្យាយាមបើកម្ដងទៀត",
+            cameraUnavailable: "មិនអាចប្រើកាមេរ៉ា",
+            cameraDelayed: "មិនទាន់រកឃើញលេខបាកូដទេ។ អ្នកអាចបញ្ចូលលេខខាងក្រោម។",
+            cameraInvalid:
+                "លេខដែលបានរកឃើញមិនមែនជាបាកូដដែល LifeGoods គាំទ្រទេ។ សូមសាកល្បងម្ដងទៀត។",
+            cameraErrorPermission:
+                "កាមេរ៉ាត្រូវបានបដិសេធ។ អនុញ្ញាតកាមេរ៉ាក្នុងការកំណត់កម្មវិធី ឬបញ្ចូលលេខបាកូដខាងក្រោម។",
+            cameraErrorNoDevice:
+                "រកមិនឃើញកាមេរ៉ាទេ។ សូមបញ្ចូលលេខបាកូដខាងក្រោម។",
+            cameraErrorBusy:
+                "កាមេរ៉ាកំពុងប្រើដោយកម្មវិធីផ្សេង។ សូមបិទកម្មវិធីនោះ ហើយព្យាយាមម្ដងទៀត។",
+            cameraErrorPreview:
+                "កាមេរ៉ាបានបើក ប៉ុន្តែរូបភាពមើលជាមុនមិនបានចាប់ផ្តើមទេ។ សូមបើកទំព័រឡើងវិញ ហើយព្យាយាមម្ដងទៀត ឬបញ្ចូលលេខបាកូដខាងក្រោម។",
+            cameraErrorGeneric:
+                "មិនអាចបើកកាមេរ៉ាបាន ទោះបីបានអនុញ្ញាតក៏ដោយ។ សូមបិទកម្មវិធីផ្សេងដែលកំពុងប្រើកាមេរ៉ា បើកទំព័រឡើងវិញ ហើយសាកល្បងម្ដងទៀត ឬបញ្ចូលលេខបាកូដខាងក្រោម។",
+            cameraErrorInsecure:
+                "កាមេរ៉ាត្រូវការ HTTPS។ សូមបើក Network URL ដែល Vite បង្ហាញ ហើយទទួលយកវិញ្ញាបនបត្រនៅលើទូរស័ព្ទ។",
+            cameraErrorUnsupported:
+                "កម្មវិធីរុករកនេះមិនអាចប្រើការកំណត់កាមេរ៉ានេះបានទេ។ សូមបើកទំព័រតាម HTTPS ក្នុង Safari ឬបញ្ចូលលេខបាកូដខាងក្រោម។",
+            cameraErrorInterrupted:
+                "ការបើកកាមេរ៉ាត្រូវបានរំខាន។ សូមត្រឡប់មកទំព័រនេះ បើកទំព័រឡើងវិញ ហើយសាកល្បងម្ដងទៀត ឬបញ្ចូលលេខបាកូដខាងក្រោម។",
             fieldLabel: "លេខបាកូដ",
             fieldPlaceholder: "លេខបាកូដ",
             fieldHint:
@@ -31,7 +56,7 @@ export const resources = {
                 "LifeGoods កំពុងស្វែងរក Package Match តាមសេវាផ្នែកខាងក្រោយ។",
             noMatchTitle: "រកមិនឃើញព័ត៌មានកញ្ចប់",
             noMatchBody:
-                "មិនមាន Package Match សម្រាប់បាកូដនេះទេ។ នេះមិនបញ្ជាក់អំពីផលិតផលនៅក្នុងដៃអ្នកឡើយ។",
+                "ឥឡូវនេះ LifeGoods និង Open Food Facts មិនមាន Package Match សម្រាប់បាកូដនេះទេ។ នេះមិនបញ្ជាក់អ្វីអំពីផលិតផលនៅក្នុងដៃអ្នកឡើយ។",
             matchTitle: "មានព័ត៌មានកញ្ចប់ពី Open Food Facts",
             failureTitle: "មិនអាចពិនិត្យបានឥឡូវនេះ",
             failureBody:
@@ -42,7 +67,24 @@ export const resources = {
             retry: "ព្យាយាមម្ដងទៀត",
             tryAnother: "សាកល្បងបាកូដផ្សេង",
             backHome: "ត្រឡប់ទៅទំព័រដើម",
+            resultDialogLabel: "លទ្ធផលពិនិត្យបាកូដ",
+            closeResult: "បិទលទ្ធផល",
             identifierLabel: "បាកូដដែលបានពិនិត្យ",
+            candidateChooserTitle: "រកឃើញ Package Match ច្រើន",
+            candidateChooserBody:
+                "ជ្រើសរើសបេក្ខភាពមួយដើម្បីមើលព័ត៌មានប្រភព។ បេក្ខភាពទាំងនេះមិនបញ្ជាក់ថាជា Package Revision ដូចគ្នានឹងកញ្ចប់នៅក្នុងដៃអ្នកទេ។",
+            reviewedCatalogSourceLabel: "កាតាឡុកដែល LifeGoods បានពិនិត្យ",
+            openFoodFactsSourceLabel: "ទិន្នន័យសហគមន៍ Open Food Facts",
+            candidateNameUnavailable: "មិនមានឈ្មោះកញ្ចប់",
+            backToCandidates: "ត្រឡប់ទៅបេក្ខភាពទាំងអស់",
+            reviewedCatalogTitle: "មានកំណត់ត្រាក្នុងកាតាឡុក LifeGoods",
+            reviewedCatalogBody:
+                "បាកូដនេះភ្ជាប់ទៅនឹង Product និង Package Variant ក្នុងកាតាឡុកដែលបានពិនិត្យ។ Package Match នេះមិនមែនជាភស្តុតាងថាកញ្ចប់នៅក្នុងដៃអ្នកជាកំណែដូចគ្នាទេ។",
+            productIdLabel: "លេខសម្គាល់ Product",
+            packageVariantIdLabel: "លេខសម្គាល់ Package Variant",
+            reviewedCatalogDetailsUnavailable:
+                "កំណត់ត្រានេះមិនទាន់មានឈ្មោះ រូបភាព បរិមាណ ឬព័ត៌មានស្លាកសម្រាប់បង្ហាញទេ។ ព័ត៌មានដែលខ្វះមិនមានន័យថាគ្មានការប្រកាសលើកញ្ចប់ទេ។",
+            catalogValueUnavailable: "មិនមានក្នុងកំណត់ត្រាកាតាឡុកនេះ",
             placeholder: {
                 learn: {
                     title: "ស្វែងយល់",
@@ -146,8 +188,32 @@ export const resources = {
             homeIntro:
                 "Enter the digits below a barcode to find source-scoped package information.",
             cameraTitle: "Scan with the camera",
-            cameraComingSoon:
-                "Camera scanning is coming soon. Use the barcode number for now.",
+            cameraIdle: "Tap start to scan the barcode on the package.",
+            cameraStart: "Start camera",
+            cameraStarting: "Starting camera…",
+            cameraScanning: "Place the barcode inside the scan frame.",
+            cameraStop: "Stop camera",
+            cameraTryAgain: "Try camera again",
+            cameraUnavailable: "Camera unavailable",
+            cameraDelayed: "No barcode yet. You can enter the number below.",
+            cameraInvalid:
+                "That code is not a barcode format LifeGoods supports. Try again.",
+            cameraErrorPermission:
+                "Camera access was denied. Allow camera access in your browser settings or enter the barcode below.",
+            cameraErrorNoDevice:
+                "No camera was found. Enter the barcode number below.",
+            cameraErrorBusy:
+                "The camera is being used by another app. Close it and try again.",
+            cameraErrorPreview:
+                "The camera opened, but the video preview did not start. Reload this page and try again—or enter the barcode number below.",
+            cameraErrorGeneric:
+                "The camera could not start even though access is allowed. Close other apps using the camera, reload this page, and try again—or enter the barcode number below.",
+            cameraErrorInsecure:
+                "Camera access requires HTTPS. Open the Network URL printed by Vite and accept the certificate on your phone.",
+            cameraErrorUnsupported:
+                "This browser cannot use the requested camera mode. Open this page in Safari over HTTPS, or enter the barcode number below.",
+            cameraErrorInterrupted:
+                "Camera startup was interrupted. Return to this page, reload it, and try again—or enter the barcode number below.",
             fieldLabel: "Barcode number",
             fieldPlaceholder: "Barcode number",
             fieldHint:
@@ -160,7 +226,7 @@ export const resources = {
                 "LifeGoods is looking for a Package Match through its backend service.",
             noMatchTitle: "No package information found",
             noMatchBody:
-                "No Package Match is available for this barcode. This says nothing about the Product in your hand.",
+                "LifeGoods and Open Food Facts do not currently have a Package Match for this barcode. This says nothing conclusive about the Product in your hand.",
             matchTitle: "Open Food Facts package information is available",
             failureTitle: "Could not check right now",
             failureBody:
@@ -171,7 +237,24 @@ export const resources = {
             retry: "Retry",
             tryAnother: "Try another barcode",
             backHome: "Back to Home",
+            resultDialogLabel: "Barcode check result",
+            closeResult: "Close result",
             identifierLabel: "Checked barcode",
+            candidateChooserTitle: "Several Package Matches were found",
+            candidateChooserBody:
+                "Choose a candidate to inspect its source information. These candidates do not prove that the package in your hand is the same Package Revision.",
+            reviewedCatalogSourceLabel: "LifeGoods reviewed catalog",
+            openFoodFactsSourceLabel: "Open Food Facts community data",
+            candidateNameUnavailable: "Package name unavailable",
+            backToCandidates: "Back to all candidates",
+            reviewedCatalogTitle: "A LifeGoods catalog record is available",
+            reviewedCatalogBody:
+                "This barcode is linked to a Product and Package Variant in the reviewed catalog. This Package Match does not prove that the package in your hand is the same revision.",
+            productIdLabel: "Product ID",
+            packageVariantIdLabel: "Package Variant ID",
+            reviewedCatalogDetailsUnavailable:
+                "This record does not yet contain a display name, image, quantity, or label evidence. Missing information does not mean the package makes no declaration.",
+            catalogValueUnavailable: "Unavailable in this catalog record",
             placeholder: {
                 learn: {
                     title: "Learn",

@@ -65,8 +65,10 @@ function BottomNavigation() {
                         end={"end" in linkProps ? linkProps.end : undefined}
                         className={({ isActive }) =>
                             cn(
-                                "text-muted-foreground focus-visible:ring-ring hover:bg-accent hover:text-accent-foreground grid min-h-[4.6rem] min-w-0 grid-rows-[2rem_auto] content-center justify-items-center gap-0.5 rounded-lg px-1 py-1 text-center text-xs leading-snug font-semibold transition-colors focus-visible:z-10 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset sm:text-sm",
-                                isActive && "text-primary font-bold",
+                                "text-foreground focus-visible:ring-ring hover:bg-accent grid min-h-[4.6rem] min-w-0 grid-rows-[2rem_auto] content-center justify-items-center gap-0.5 rounded-lg px-1 py-1 text-center text-xs leading-snug font-semibold transition-colors focus-visible:z-10 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset sm:text-sm",
+                                isActive
+                                    ? "text-primary font-bold hover:text-primary"
+                                    : "hover:text-foreground",
                             )
                         }
                         aria-label={t(`nav.${key}`)}
@@ -75,18 +77,27 @@ function BottomNavigation() {
                             <>
                                 <span
                                     className={cn(
-                                        "grid h-8 w-11 place-items-center rounded-xl border border-transparent transition-colors",
-                                        isActive &&
-                                            "border-border bg-primary/10",
+                                        "grid h-8 w-11 place-items-center transition-colors",
+                                        isActive
+                                            ? "text-primary"
+                                            : "text-foreground",
                                     )}
                                     aria-hidden="true"
                                 >
                                     <Icon
-                                        size={25}
+                                        size={24}
                                         weight={isActive ? "fill" : "regular"}
                                     />
                                 </span>
-                                <span>{t(`nav.${key}`)}</span>
+                                <span
+                                    className={cn(
+                                        isActive
+                                            ? "text-primary underline decoration-2 underline-offset-4"
+                                            : "text-foreground",
+                                    )}
+                                >
+                                    {t(`nav.${key}`)}
+                                </span>
                             </>
                         )}
                     </NavLink>
