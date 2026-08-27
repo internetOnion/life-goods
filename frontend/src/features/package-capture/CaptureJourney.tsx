@@ -110,6 +110,9 @@ export function CaptureJourney() {
                         onOpen={() => void actions.openCamera()}
                         onCapture={() => void actions.takePhoto()}
                     />
+                    <div className="mt-3 flex justify-end">
+                        <LanguageSwitchButton />
+                    </div>
                     {showReloadRecovery && step === "front" ? (
                         <p
                             className="border-border bg-brand-soft mt-5 rounded-xl border px-4 py-3 text-sm leading-relaxed"
@@ -118,32 +121,26 @@ export function CaptureJourney() {
                             {t("capture.reloadRecovery")}
                         </p>
                     ) : null}
-                    <div className="mt-4 flex items-stretch gap-2">
-                        <div
-                            className="border-border bg-muted grid min-w-0 flex-1 grid-cols-2 gap-1 rounded-xl border p-1"
-                            aria-label={t("capture.method.label")}
+                    <div className="border-border bg-muted mt-4 grid grid-cols-2 gap-1 rounded-xl border p-1">
+                        <Button
+                            variant="ghost"
+                            className="h-auto min-h-11 min-w-0 justify-center gap-2 rounded-lg px-2 leading-snug whitespace-normal"
+                            type="button"
+                            disabled
                         >
-                            <Button
-                                variant="ghost"
-                                className="h-auto min-h-11 min-w-0 justify-center gap-2 rounded-lg px-2 leading-snug whitespace-normal"
-                                type="button"
-                                disabled
-                            >
-                                <span>{t("capture.method.barcode")}</span>
-                                <span className="border-border text-muted-foreground rounded-md border px-1.5 py-0.5 text-xs font-semibold">
-                                    {t("capture.method.soon")}
-                                </span>
-                            </Button>
-                            <div className="bg-background text-foreground flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 py-2 text-center text-sm font-bold">
-                                <CameraIcon
-                                    aria-hidden="true"
-                                    size={19}
-                                    weight="bold"
-                                />
-                                <span>{t("capture.method.capture")}</span>
-                            </div>
+                            <span>{t("capture.method.barcode")}</span>
+                            <span className="border-border text-muted-foreground rounded-md border px-1.5 py-0.5 text-xs font-semibold">
+                                {t("capture.method.soon")}
+                            </span>
+                        </Button>
+                        <div className="bg-background text-foreground flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 py-2 text-center text-sm font-bold">
+                            <CameraIcon
+                                aria-hidden="true"
+                                size={19}
+                                weight="bold"
+                            />
+                            <span>{t("capture.method.capture")}</span>
                         </div>
-                        <LanguageSwitchButton />
                     </div>
                     {isCloseUp ? (
                         <div className="border-border bg-brand-soft mt-5 flex items-start gap-3 rounded-xl border p-4 text-sm leading-relaxed">

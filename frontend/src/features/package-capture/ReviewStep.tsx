@@ -68,7 +68,7 @@ export function ReviewStep({
 
     return (
         <div className="mt-6 space-y-4 sm:mt-7">
-            <section className="border-border bg-coconut-brown-soft relative overflow-hidden rounded-[1.75rem] border shadow-[0_18px_44px_oklch(0.2_0.02_160/0.1)]">
+            <section className="border-border bg-coconut-brown-soft relative overflow-hidden rounded-2xl border">
                 <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex items-start justify-between gap-3 sm:inset-x-5 sm:top-5">
                     <span className="bg-background/90 text-foreground max-w-[70%] rounded-full px-3 py-1.5 text-xs font-bold shadow-[0_4px_18px_oklch(0.2_0.02_160/0.12)] backdrop-blur-sm">
                         {selectedPhoto.label}
@@ -83,14 +83,14 @@ export function ReviewStep({
                 <div className="relative h-[clamp(20rem,58svh,38rem)] p-4 sm:h-[clamp(24rem,62svh,42rem)] sm:p-6">
                     {selectedPhoto.photo && !mainImageFailed ? (
                         <img
-                            className="h-full w-full rounded-[1.25rem] object-contain shadow-[0_12px_28px_oklch(0.2_0.02_160/0.16)]"
+                            className="h-full w-full rounded-xl object-contain"
                             src={selectedPhoto.photo.previewUrl}
                             alt=""
                             aria-hidden="true"
                             onError={() => setMainImageFailed(true)}
                         />
                     ) : (
-                        <div className="border-border bg-background/70 text-muted-foreground grid h-full place-items-center rounded-[1.25rem] border border-dashed px-8 text-center text-sm leading-relaxed">
+                        <div className="border-border bg-background/70 text-muted-foreground grid h-full place-items-center rounded-xl border border-dashed px-8 text-center text-sm leading-relaxed">
                             <div>
                                 <SelectionIcon
                                     className="text-primary mx-auto mb-3"
@@ -133,7 +133,7 @@ export function ReviewStep({
                 </div>
             </section>
 
-            <section className="border-border bg-background relative z-10 -mt-7 mx-3 rounded-[1.5rem] border p-3 shadow-[0_12px_28px_oklch(0.2_0.02_160/0.1)] sm:p-4">
+            <section className="border-border bg-background relative z-10 -mt-7 mx-3 rounded-xl border p-3 sm:p-4">
                 <div className="mb-3 px-1">
                     <p className="text-sm font-bold">
                         {t("capture.review.title")}
@@ -175,7 +175,7 @@ export function ReviewStep({
                                         {status}
                                     </span>
                                 )}
-                                <span className="mt-2 block truncate px-1 text-center text-xs font-bold sm:text-sm">
+                                <span className="mt-2 block px-1 text-center text-xs font-bold wrap-anywhere sm:text-sm">
                                     {label}
                                 </span>
                             </Button>
