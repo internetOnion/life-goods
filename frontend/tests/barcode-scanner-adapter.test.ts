@@ -1,32 +1,17 @@
 import { beforeEach, describe, expect, test, vi } from "vitest"
 
-const { controlsMock, getUserMediaMock, scanMock } = vi.hoisted(() => ({
-    controlsMock: { stop: vi.fn() },
+const { decodeFromCanvasMock, getUserMediaMock } = vi.hoisted(() => ({
+    decodeFromCanvasMock: vi.fn(),
     getUserMediaMock: vi.fn(),
-    scanMock: vi.fn(),
 }))
 
 vi.mock("@zxing/browser", () => ({
     BrowserMultiFormatOneDReader: vi.fn(() => ({
-        scan: scanMock,
+        decodeFromCanvas: decodeFromCanvasMock,
     })),
 }))
 
 import { barcodeScanner } from "../src/features/package-match/barcodeScanner"
-
-type ScanCallback = (
-    result: { getText: () => string } | undefined,
-    error?: unknown,
-) => void
-
-function getScanCallback(): ScanCallback {
-    const call = scanMock.mock.calls[0] as unknown[] | undefined
-    const callback = call?.[1]
-    if (typeof callback !== "function") {
-        throw new Error("ZXing scan callback was not registered")
-    }
-    return callback as ScanCallback
-}
 
 function createVideoFrame(drawable = true) {
     const state = {
@@ -49,21 +34,31 @@ function createVideoFrame(drawable = true) {
 }
 
 function createStream() {
-    const track = { stop: vi.fn() }
-    return { getTracks: () => [track], track }
+    const track = {
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        stop: vi.fn(),
+    }
+    return {
+        getTracks: () => [track],
+        getVideoTracks: () => [track],
+        track,
+    }
 }
 
 describe("barcode scanner adapter", () => {
     beforeEach(() => {
         getUserMediaMock.mockReset().mockResolvedValue(createStream())
-        scanMock.mockReset().mockReturnValue(controlsMock)
-        controlsMock.stop.mockReset()
+        decodeFromCanvasMock.mockReset()
         vi.stubGlobal("navigator", {
             mediaDevices: { getUserMedia: getUserMediaMock },
         })
+        vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+            drawImage: vi.fn(),
+        } as unknown as RenderingContext)
     })
 
-    test("starts playback but waits for a drawable frame before decoding", async () => {
+    test("starts playback and begins scanning when a drawable frame is ready", async () => {
         const stream = createStream()
         getUserMediaMock.mockResolvedValue(stream)
         const { play, state, video } = createVideoFrame(false)
@@ -71,15 +66,15 @@ describe("barcode scanner adapter", () => {
         const startPromise = barcodeScanner.start(video, vi.fn(), vi.fn())
 
         await vi.waitFor(() => expect(play).toHaveBeenCalledTimes(1))
-        expect(scanMock).not.toHaveBeenCalled()
 
         state.readyState = HTMLMediaElement.HAVE_CURRENT_DATA
         state.width = 1280
         state.height = 720
         video.dispatchEvent(new Event("loadeddata"))
-        await startPromise
+        const session = await startPromise
 
-        expect(scanMock).toHaveBeenCalledWith(video, expect.any(Function))
+        await vi.waitFor(() => expect(decodeFromCanvasMock).toHaveBeenCalled())
+        session.stop()
     })
 
     test("requests the environment-facing camera and configures inline playback", async () => {
@@ -87,34 +82,51 @@ describe("barcode scanner adapter", () => {
         getUserMediaMock.mockResolvedValue(stream)
         const { video } = createVideoFrame()
 
-        await barcodeScanner.start(video, vi.fn(), vi.fn())
+        const session = await barcodeScanner.start(video, vi.fn(), vi.fn())
 
         expect(getUserMediaMock).toHaveBeenCalledWith({
-            video: { facingMode: { ideal: "environment" } },
+            audio: false,
+            video: {
+                facingMode: { ideal: "environment" },
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+            },
         })
         expect(video.muted).toBe(true)
         expect(video.playsInline).toBe(true)
         expect(video.autoplay).toBe(true)
         expect(video.srcObject).toBe(stream)
-        expect(scanMock).toHaveBeenCalledWith(video, expect.any(Function))
+        session.stop()
     })
 
-    test("falls back to a generic camera when facing mode is unsupported", async () => {
+    test("falls back progressively when high resolution or ideal facing mode is rejected", async () => {
         const stream = createStream()
         getUserMediaMock
             .mockRejectedValueOnce(
-                new DOMException("unsupported", "OverconstrainedError"),
+                new DOMException("overconstrained", "OverconstrainedError"),
             )
             .mockResolvedValueOnce(stream)
         const { video } = createVideoFrame()
 
-        await barcodeScanner.start(video, vi.fn(), vi.fn())
+        const session = await barcodeScanner.start(video, vi.fn(), vi.fn())
 
-        expect(getUserMediaMock).toHaveBeenNthCalledWith(2, { video: true })
+        expect(getUserMediaMock).toHaveBeenNthCalledWith(1, {
+            audio: false,
+            video: {
+                facingMode: { ideal: "environment" },
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+            },
+        })
+        expect(getUserMediaMock).toHaveBeenNthCalledWith(2, {
+            audio: false,
+            video: { facingMode: { ideal: "environment" } },
+        })
         expect(video.srcObject).toBe(stream)
+        session.stop()
     })
 
-    test("stops the scanner and stream exactly once", async () => {
+    test("stops the scanner loop and stream tracks on session stop", async () => {
         const stream = createStream()
         getUserMediaMock.mockResolvedValue(stream)
         const { video } = createVideoFrame()
@@ -123,34 +135,67 @@ describe("barcode scanner adapter", () => {
         session.stop()
         session.stop()
 
-        expect(controlsMock.stop).toHaveBeenCalledTimes(1)
         expect(stream.track.stop).toHaveBeenCalledTimes(1)
         expect(video.srcObject).toBeNull()
     })
 
-    test("forwards a decoded barcode result", async () => {
+    test("forwards a decoded barcode result from canvas scanning", async () => {
         const onResult = vi.fn()
+        decodeFromCanvasMock.mockReturnValue({ getText: () => "4006381333931" })
         const { video } = createVideoFrame()
-        await barcodeScanner.start(video, onResult, vi.fn())
 
-        getScanCallback()({ getText: () => "4006381333931" })
+        const session = await barcodeScanner.start(video, onResult, vi.fn())
 
-        expect(onResult).toHaveBeenCalledWith("4006381333931")
+        await vi.waitFor(() =>
+            expect(onResult).toHaveBeenCalledWith("4006381333931"),
+        )
+        session.stop()
     })
 
-    test("forwards unexpected decoder errors while ignoring normal decode misses", async () => {
+    test("uses native BarcodeDetector when supported in browser", async () => {
+        const detectMock = vi
+            .fn()
+            .mockResolvedValue([{ rawValue: "4006381333931" }])
+        const BarcodeDetectorMock = vi.fn().mockImplementation(() => ({
+            detect: detectMock,
+        }))
+        Object.assign(BarcodeDetectorMock, {
+            getSupportedFormats: vi
+                .fn()
+                .mockResolvedValue(["ean_13", "qr_code"]),
+        })
+        vi.stubGlobal("BarcodeDetector", BarcodeDetectorMock)
+
+        try {
+            const onResult = vi.fn()
+            const { video } = createVideoFrame()
+
+            const session = await barcodeScanner.start(video, onResult, vi.fn())
+
+            await vi.waitFor(() =>
+                expect(onResult).toHaveBeenCalledWith("4006381333931"),
+            )
+            expect(detectMock).toHaveBeenCalledWith(video)
+            session.stop()
+        } finally {
+            vi.unstubAllGlobals()
+        }
+    })
+
+    test("ignores normal frame decode misses without stopping the session", async () => {
+        decodeFromCanvasMock.mockImplementation(() => {
+            throw new Error("NotFoundException")
+        })
+        const onResult = vi.fn()
         const onError = vi.fn()
         const { video } = createVideoFrame()
-        await barcodeScanner.start(video, vi.fn(), onError)
-        const callback = getScanCallback()
 
-        callback(undefined, { name: "NotFoundException" })
-        callback(undefined, { name: "ChecksumException" })
+        const session = await barcodeScanner.start(video, onResult, onError)
+
+        await vi.waitFor(() => expect(decodeFromCanvasMock).toHaveBeenCalled())
         expect(onError).not.toHaveBeenCalled()
-
-        const decoderError = { name: "ReaderException" }
-        callback(undefined, decoderError)
-        expect(onError).toHaveBeenCalledWith(decoderError)
+        expect(onResult).not.toHaveBeenCalled()
+        session.stop()
     })
 
     test("cleans up when the preview never produces a drawable frame", async () => {
@@ -169,7 +214,6 @@ describe("barcode scanner adapter", () => {
 
             await vi.advanceTimersByTimeAsync(5000)
             await rejection
-            expect(scanMock).not.toHaveBeenCalled()
             expect(stream.track.stop).toHaveBeenCalledTimes(1)
             expect(video.srcObject).toBeNull()
         } finally {
@@ -189,7 +233,6 @@ describe("barcode scanner adapter", () => {
             barcodeScanner.start(video, vi.fn(), vi.fn()),
         ).rejects.toMatchObject({ name: "CameraPreviewError" })
 
-        expect(scanMock).not.toHaveBeenCalled()
         expect(stream.track.stop).toHaveBeenCalledTimes(1)
         expect(video.srcObject).toBeNull()
     })

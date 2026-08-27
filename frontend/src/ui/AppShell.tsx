@@ -67,7 +67,7 @@ function BottomNavigation() {
                             cn(
                                 "text-foreground focus-visible:ring-ring hover:bg-accent grid min-h-[4.6rem] min-w-0 grid-rows-[2rem_auto] content-center justify-items-center gap-0.5 rounded-lg px-1 py-1 text-center text-xs leading-snug font-semibold transition-colors focus-visible:z-10 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset sm:text-sm",
                                 isActive
-                                    ? "text-primary font-bold hover:text-primary"
+                                    ? "text-primary hover:text-primary font-bold"
                                     : "hover:text-foreground",
                             )
                         }

@@ -69,10 +69,10 @@ Safe-area insets are applied to fixed navigation and result bottoms. The primary
 
 ### Camera scanner
 
-- The viewfinder is idle until the shopper explicitly selects “Start camera”; permission is never requested on page load.
-- Starting shows a pending state, then an environment-facing live video preview with a clear scan frame, concise guidance, and a visible stop action.
+- The viewfinder automatically requests camera access and starts scanning on page load; once granted, the camera remains continuously active on the home screen.
+- Starting shows a pending state, then an environment-facing live video preview with a clear scan frame and concise guidance.
 - Valid camera results use the same identifier normalization and Package Match route as manual entry. The stream stops before navigation and duplicate detections are ignored.
-- Permission, missing-device, busy-device, unsupported-browser, invalid-code, and delayed-detection states remain explicit and keep manual barcode entry available.
+- Permission, missing-device, busy-device, unsupported-browser, invalid-code, and delayed-detection states remain explicit and keep manual barcode entry available with retry actions.
 - Camera frames are decoded locally and are not uploaded or retained. Streams stop on success, manual submission, route changes, visibility loss, and unmount.
 
 ### Barcode control

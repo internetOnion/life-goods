@@ -29,6 +29,7 @@ export function App({ lookup }: AppProps) {
         <HomePage
             focusIdentifier={focusIdentifier && !isModalBackground}
             initialIdentifier={lastIdentifier}
+            isModalBackground={isModalBackground}
             onIdentifierChange={setLastIdentifier}
         />
     )

@@ -1,16 +1,14 @@
 import {
     ArrowClockwiseIcon,
     BarcodeIcon,
-    CameraIcon,
-    CircleNotchIcon,
     InfoIcon,
     MagnifyingGlassIcon,
-    StopCircleIcon,
     WarningCircleIcon,
 } from "@phosphor-icons/react"
 import {
     type FormEvent,
     type KeyboardEvent,
+    useCallback,
     useEffect,
     useRef,
     useState,
@@ -28,6 +26,7 @@ import { validateIdentifier, type IdentifierValidation } from "./identifier"
 type HomePageProps = {
     focusIdentifier?: boolean
     initialIdentifier: string
+    isModalBackground?: boolean
     onIdentifierChange: (identifier: string) => void
 }
 
@@ -78,6 +77,7 @@ function stopCameraStream(stream: MediaProvider | null) {
 export function HomePage({
     focusIdentifier = false,
     initialIdentifier,
+    isModalBackground = false,
     onIdentifierChange,
 }: HomePageProps) {
     const { i18n, t } = useTranslation()
@@ -100,7 +100,7 @@ export function HomePage({
             : null,
     )
     const [showIdentifierHint, setShowIdentifierHint] = useState(false)
-    const [cameraState, setCameraState] = useState<CameraState>("idle")
+    const [cameraState, setCameraState] = useState<CameraState>("starting")
     const [cameraMessage, setCameraMessage] = useState<string | null>(null)
     const inputRef = useRef<HTMLInputElement>(null)
     const videoRef = useRef<HTMLVideoElement>(null)
@@ -115,11 +115,7 @@ export function HomePage({
         }
     }, [enteredIdentifier, initialIdentifier])
 
-    useEffect(() => {
-        if (focusIdentifier) inputRef.current?.focus()
-    }, [focusIdentifier])
-
-    const stopCamera = () => {
+    const stopCamera = useCallback(() => {
         cameraRunRef.current += 1
         if (cameraTimerRef.current) {
             clearTimeout(cameraTimerRef.current)
@@ -130,23 +126,11 @@ export function HomePage({
         stopCameraStream(videoRef.current?.srcObject ?? null)
         if (videoRef.current) videoRef.current.srcObject = null
         setCameraState("idle")
-    }
+    }, [])
 
     useEffect(() => {
         return () => stopCamera()
-    }, [])
-
-    useEffect(() => {
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === "hidden") stopCamera()
-        }
-        document.addEventListener("visibilitychange", handleVisibilityChange)
-        return () =>
-            document.removeEventListener(
-                "visibilitychange",
-                handleVisibilityChange,
-            )
-    }, [])
+    }, [stopCamera])
 
     const canUseCamera = () =>
         typeof navigator !== "undefined" &&
@@ -154,24 +138,27 @@ export function HomePage({
         !!navigator.mediaDevices?.getUserMedia &&
         !!videoRef.current
 
-    const handleCameraResult = (rawValue: string) => {
-        if (scanHandledRef.current) return
-        const validation = validateIdentifier(rawValue)
-        if (!validation.valid) {
-            setCameraMessage(t("cameraInvalid"))
-            return
-        }
+    const handleCameraResult = useCallback(
+        (rawValue: string) => {
+            if (scanHandledRef.current) return
+            const validation = validateIdentifier(rawValue)
+            if (!validation.valid) {
+                setCameraMessage(t("cameraInvalid"))
+                return
+            }
 
-        scanHandledRef.current = true
-        stopCamera()
-        setEnteredIdentifier(validation.value)
-        onIdentifierChange(validation.value)
-        void navigate(`/results/${validation.value}`, {
-            state: { fromBarcode: true },
-        })
-    }
+            scanHandledRef.current = true
+            stopCamera()
+            setEnteredIdentifier(validation.value)
+            onIdentifierChange(validation.value)
+            void navigate(`/results/${validation.value}`, {
+                state: { fromBarcode: true },
+            })
+        },
+        [navigate, onIdentifierChange, stopCamera, t],
+    )
 
-    const startCamera = async () => {
+    const startCamera = useCallback(async () => {
         if (typeof window !== "undefined" && window.isSecureContext === false) {
             setCameraState("error")
             setCameraMessage(t("cameraErrorInsecure"))
@@ -216,7 +203,40 @@ export function HomePage({
             setCameraMessage(t(cameraErrorKey(error)))
             cameraSessionRef.current = null
         }
-    }
+    }, [handleCameraResult, stopCamera, t])
+
+    useEffect(() => {
+        if (!isModalBackground) {
+            void startCamera()
+        } else {
+            stopCamera()
+        }
+    }, [isModalBackground, startCamera, stopCamera])
+
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === "hidden" || isModalBackground) {
+                stopCamera()
+            } else if (
+                document.visibilityState === "visible" &&
+                !isModalBackground
+            ) {
+                void startCamera()
+            }
+        }
+        document.addEventListener("visibilitychange", handleVisibilityChange)
+        return () =>
+            document.removeEventListener(
+                "visibilitychange",
+                handleVisibilityChange,
+            )
+    }, [isModalBackground, startCamera, stopCamera])
+
+    useEffect(() => {
+        if (focusIdentifier) {
+            inputRef.current?.focus()
+        }
+    }, [focusIdentifier])
 
     const submitIdentifier = (value: string) => {
         stopCamera()
@@ -255,16 +275,21 @@ export function HomePage({
     }
 
     return (
-        <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] space-y-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)] sm:pt-[calc(1.75rem_+_env(safe-area-inset-top))]">
+        <main className="mx-auto w-full space-y-3 pt-0 pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] sm:w-[min(calc(100%_-_3rem),48rem)]">
             <section
-                className="border-border bg-muted/60 before:border-primary/25 relative grid h-[clamp(18rem,48svh,30rem)] place-items-center overflow-hidden rounded-3xl border before:absolute before:size-[min(78%,22rem)] before:rotate-[-12deg] before:rounded-[42%_58%_48%_52%/54%_44%_56%_46%] before:border before:content-['']"
+                className={cn(
+                    "border-border relative aspect-square w-full overflow-hidden rounded-none border-x-0 border-y sm:aspect-auto sm:h-[clamp(18rem,48svh,30rem)] sm:rounded-3xl sm:border",
+                    cameraState === "starting"
+                        ? "bg-background"
+                        : "bg-muted/60",
+                )}
                 aria-label={t("cameraTitle")}
             >
                 <video
                     ref={videoRef}
                     className={cn(
-                        "absolute inset-0 size-full object-cover transition-opacity motion-reduce:transition-none",
-                        cameraState === "starting" || cameraState === "scanning"
+                        "absolute inset-0 block h-full min-h-full w-full max-w-none min-w-full object-cover object-center",
+                        cameraState === "scanning"
                             ? "opacity-100"
                             : "pointer-events-none opacity-0",
                     )}
@@ -277,78 +302,45 @@ export function HomePage({
                 <span className="border-primary/90 absolute top-4 right-4 h-8 w-8 rounded-tr-lg border-t border-r" />
                 <span className="border-primary/90 absolute bottom-4 left-4 h-8 w-8 rounded-bl-lg border-b border-l" />
                 <span className="border-primary/90 absolute right-4 bottom-4 h-8 w-8 rounded-br-lg border-r border-b" />
-                {cameraState === "scanning" ? (
-                    <div className="relative z-10 grid w-full max-w-md justify-items-center gap-4 px-8 py-8 text-center">
-                        <div
-                            className="border-background/90 h-24 w-[min(18rem,80vw)] rounded-xl border-2 shadow-[0_0_0_999px_oklch(0.12_0.02_160_/_0.18)]"
-                            aria-hidden="true"
-                        />
-                        <p className="bg-background/90 text-foreground rounded-full px-4 py-2 text-sm font-semibold shadow-sm">
-                            {cameraMessage ?? t("cameraScanning")}
-                        </p>
-                        <Button
-                            className="bg-background text-foreground hover:bg-background/90"
-                            type="button"
-                            variant="outline"
-                            onClick={stopCamera}
-                        >
-                            <StopCircleIcon aria-hidden="true" size={21} />
-                            {t("cameraStop")}
-                        </Button>
-                    </div>
-                ) : (
-                    <div className="relative z-10 grid max-w-md justify-items-center gap-3 px-8 py-8 text-center">
-                        <span
-                            className="border-primary/15 bg-background text-primary grid size-[4.6rem] place-items-center rounded-[44%_56%_50%_50%/52%_45%_55%_48%] border"
-                            aria-hidden="true"
-                        >
-                            {cameraState === "starting" ? (
-                                <CircleNotchIcon
-                                    className="animate-spin motion-reduce:animate-none"
-                                    size={44}
-                                    weight="bold"
-                                />
-                            ) : cameraState === "error" ? (
-                                <WarningCircleIcon size={48} weight="light" />
-                            ) : (
-                                <CameraIcon size={48} weight="light" />
-                            )}
-                        </span>
-                        <div>
-                            <h1 className="text-xl leading-[1.7] font-bold tracking-tight text-balance">
-                                {cameraState === "starting"
-                                    ? t("cameraStarting")
-                                    : cameraState === "error"
-                                      ? t("cameraUnavailable")
-                                      : t("cameraTitle")}
-                            </h1>
-                            <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-                                {cameraMessage ?? t("cameraIdle")}
-                            </p>
+                <div className="pointer-events-none absolute inset-0 grid place-items-center">
+                    {cameraState === "scanning" ? (
+                        <div className="relative z-10 grid w-full max-w-md justify-items-center px-8 py-8 text-center">
+                            <div
+                                className="border-background/90 h-24 w-[min(18rem,80vw)] rounded-xl border-2 shadow-[0_0_0_999px_oklch(0.12_0.02_160_/_0.18)]"
+                                aria-hidden="true"
+                            />
                         </div>
-                        {cameraState === "starting" ? null : (
+                    ) : cameraState === "error" ? (
+                        <div className="relative z-10 grid max-w-md justify-items-center gap-3 px-8 py-8 text-center">
+                            <span
+                                className="border-primary/15 bg-background text-primary grid size-[4.6rem] place-items-center rounded-[44%_56%_50%_50%/52%_45%_55%_48%] border"
+                                aria-hidden="true"
+                            >
+                                <WarningCircleIcon size={48} weight="light" />
+                            </span>
+                            <div>
+                                <h1 className="text-xl leading-[1.7] font-bold tracking-tight text-balance">
+                                    {t("cameraUnavailable")}
+                                </h1>
+                                <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+                                    {cameraMessage}
+                                </p>
+                            </div>
                             <Button
+                                className="pointer-events-auto"
                                 type="button"
                                 onClick={() => void startCamera()}
-                                disabled={
-                                    cameraState === "error" && !canUseCamera()
-                                }
+                                disabled={!canUseCamera()}
                             >
-                                {cameraState === "error" ? (
-                                    <ArrowClockwiseIcon
-                                        aria-hidden="true"
-                                        size={21}
-                                    />
-                                ) : (
-                                    <CameraIcon aria-hidden="true" size={21} />
-                                )}
-                                {cameraState === "error"
-                                    ? t("cameraTryAgain")
-                                    : t("cameraStart")}
+                                <ArrowClockwiseIcon
+                                    aria-hidden="true"
+                                    size={21}
+                                />
+                                {t("cameraTryAgain")}
                             </Button>
-                        )}
-                    </div>
-                )}
+                        </div>
+                    ) : null}
+                </div>
                 <div
                     className="sr-only"
                     role={cameraState === "error" ? "alert" : "status"}
@@ -357,12 +349,14 @@ export function HomePage({
                 >
                     {cameraState === "scanning"
                         ? t("cameraScanning")
-                        : cameraMessage}
+                        : cameraState === "starting"
+                          ? t("cameraStarting")
+                          : cameraMessage}
                 </div>
             </section>
 
             <form
-                className="border-border bg-background grid grid-cols-[minmax(0,1fr)_3.5rem] gap-x-1 gap-y-2 rounded-2xl border p-4 sm:grid-cols-[minmax(0,1fr)_4rem] sm:gap-x-2 sm:p-5"
+                className="border-border bg-background mx-4 grid grid-cols-[minmax(0,1fr)_3.5rem] gap-x-1 gap-y-2 rounded-2xl border p-4 max-[23.5rem]:mx-[0.625rem] sm:mx-0 sm:grid-cols-[minmax(0,1fr)_4rem] sm:gap-x-2 sm:p-5"
                 noValidate
                 onSubmit={onSubmit}
             >
