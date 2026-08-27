@@ -24,6 +24,8 @@ pnpm off:dataset -- activate VERSION_ID
 
 `import-url` streams the official compressed JSONL response without retaining the archive. It hashes the received compressed bytes, keeps full Product documents, creates a unique `code` index, and refuses READY status for malformed records, duplicate codes, count mismatches, missing probes, an incomplete gzip stream, or index failure.
 
+After validation, the Product collection is sealed as an immutable dataset version. The running API has only the MongoDB reader credential; all lifecycle mutations use the separate writer command.
+
 Activation changes one metadata pointer atomically. An interrupted or failed import cannot replace the active collection. The immediately previous active version remains available:
 
 ```bash
