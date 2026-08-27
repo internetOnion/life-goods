@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { LanguageSwitchButton } from "@/ui/LanguageSwitchButton"
 import { validateIdentifier, type IdentifierValidation } from "./identifier"
 
 type HomePageProps = {
@@ -33,11 +34,9 @@ export function HomePage({
     initialIdentifier,
     onIdentifierChange,
 }: HomePageProps) {
-    const { i18n, t } = useTranslation()
+    const { t } = useTranslation()
     const location = useLocation()
     const navigate = useNavigate()
-    const currentLanguage = i18n.resolvedLanguage === "en" ? "en" : "km"
-    const targetLanguage = currentLanguage === "km" ? "en" : "km"
     const locationState = location.state as HomeLocationState | null
     const seededIdentifier =
         locationState?.invalidIdentifier ?? initialIdentifier
@@ -100,10 +99,10 @@ export function HomePage({
                 className="border-border bg-muted/60 before:border-primary/25 relative grid h-[clamp(16rem,44svh,26rem)] place-items-center overflow-hidden rounded-3xl border before:absolute before:size-[min(78%,22rem)] before:rotate-[-12deg] before:rounded-[42%_58%_48%_52%/54%_44%_56%_46%] before:border before:content-[''] max-[650px]:h-52"
                 aria-label={t("cameraTitle")}
             >
-                <span className="border-primary/90 absolute top-4 left-4 h-8 w-8 rounded-tl-lg border-t-2 border-l-2" />
-                <span className="border-primary/90 absolute top-4 right-4 h-8 w-8 rounded-tr-lg border-t-2 border-r-2" />
-                <span className="border-primary/90 absolute bottom-4 left-4 h-8 w-8 rounded-bl-lg border-b-2 border-l-2" />
-                <span className="border-primary/90 absolute right-4 bottom-4 h-8 w-8 rounded-br-lg border-r-2 border-b-2" />
+                <span className="border-primary/70 absolute top-4 left-4 h-8 w-8 rounded-tl-lg border-t border-l" />
+                <span className="border-primary/70 absolute top-4 right-4 h-8 w-8 rounded-tr-lg border-t border-r" />
+                <span className="border-primary/70 absolute bottom-4 left-4 h-8 w-8 rounded-bl-lg border-b border-l" />
+                <span className="border-primary/70 absolute right-4 bottom-4 h-8 w-8 rounded-br-lg border-r border-b" />
                 <div className="relative z-10 grid max-w-md justify-items-center gap-3 px-8 py-8 text-center">
                     <span
                         className="border-primary/15 bg-background text-primary grid size-[4.6rem] place-items-center rounded-[44%_56%_50%_50%/52%_45%_55%_48%] border"
@@ -123,19 +122,9 @@ export function HomePage({
             </section>
 
             <div className="grid grid-cols-[minmax(0,1fr)_3.5rem] px-4 sm:grid-cols-[minmax(0,1fr)_4rem] sm:px-5">
-                <Button
-                    className="border-primary/45 bg-background text-foreground hover:bg-primary/10 hover:text-foreground col-start-2 size-11 justify-self-center rounded-full p-0"
-                    variant="outline"
-                    type="button"
-                    aria-label={t(
-                        targetLanguage === "en"
-                            ? "switchToEnglish"
-                            : "switchToKhmer",
-                    )}
-                    onClick={() => void i18n.changeLanguage(targetLanguage)}
-                >
-                    <LanguageFlag language={currentLanguage} />
-                </Button>
+                <div className="col-start-2 justify-self-center">
+                    <LanguageSwitchButton />
+                </div>
             </div>
 
             <form
@@ -236,42 +225,5 @@ export function HomePage({
                 ) : null}
             </form>
         </main>
-    )
-}
-
-function LanguageFlag({ language }: { language: "en" | "km" }) {
-    if (language === "km") {
-        return (
-            <svg
-                aria-hidden="true"
-                className="size-7 overflow-hidden rounded-full"
-                data-language-flag="km"
-                preserveAspectRatio="xMidYMid slice"
-                viewBox="0 0 30 20"
-            >
-                <rect width="30" height="20" fill="#032ea1" />
-                <rect width="30" height="10" y="5" fill="#e00025" />
-                <path
-                    d="M7 14h16v-1H21v-1.3h-1V9.6l-1.6-1.4-1.5 1.4v1.1h-1V7.8L15 6.4l-.9 1.4v2.9h-1V9.6l-1.5-1.4L10 9.6v2.1H9V13H7v1Z"
-                    fill="#fff"
-                />
-            </svg>
-        )
-    }
-
-    return (
-        <svg
-            aria-hidden="true"
-            className="size-7 overflow-hidden rounded-full"
-            data-language-flag="en"
-            preserveAspectRatio="xMidYMid slice"
-            viewBox="0 0 30 20"
-        >
-            <rect width="30" height="20" fill="#012169" />
-            <path d="M0 0 30 20M30 0 0 20" stroke="#fff" strokeWidth="5" />
-            <path d="M0 0 30 20M30 0 0 20" stroke="#c8102e" strokeWidth="2.2" />
-            <path d="M15 0v20M0 10h30" stroke="#fff" strokeWidth="6" />
-            <path d="M15 0v20M0 10h30" stroke="#c8102e" strokeWidth="3.4" />
-        </svg>
     )
 }

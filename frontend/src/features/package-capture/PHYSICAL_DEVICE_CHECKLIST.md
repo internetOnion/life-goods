@@ -19,16 +19,23 @@ Automated browser tests cannot fully reproduce camera permission, stream interru
 - Camera permission appears only after **Open camera** is pressed.
 - Denying permission shows recovery and never opens a file picker.
 - The rear camera is preferred and the preview is correctly oriented.
-- Front-package and ingredient-panel photos can each be captured, previewed, and retaken.
+- Front-package and back-package photos can each be captured, previewed, and retaken.
+- Continuing from Front opens the Back camera without an extra Open-camera tap.
+- Ingredients can be skipped in one tap; review marks them Not provided and offers Add/Retake.
 - Leaving a camera step turns off the device camera indicator.
 - Backgrounding the browser or interrupting the stream shows a recoverable stopped-camera state.
 - Reloading clears photos and returns to the first missing step.
-- Browser Back moves through review, ingredients, and front steps predictably.
+- Browser Back moves through review, ingredients, back, and front steps predictably.
 - Exit clears previews and returns Home; returning to Package Capture shows no old photos.
 - The 320×568 viewport keeps the main action usable without horizontal scrolling.
 - Khmer labels wrap without clipping or overlapping controls.
+- The flag language control is available on every capture and result state and preserves the current step.
+- The disabled Scan barcode option shows its localized Soon badge and cannot be activated.
 - The review screen says that photos are not sent, saved, or analyzed.
 - Continuing from review destroys local previews before the queued demo state appears.
 - Every result state shows the localized demo notice and no state advances on a timer.
+- The completed result shows Product name and Brand plus Information, Ingredients, and Nutrition tabs; every value is a dash with the no-extraction explanation.
+- Capture next product clears the previous identifier; retry and close-up recovery keep same-product context.
+- A partial result requests only a targeted ingredient close-up, preserves safe entry context, and discards the close-up before the next simulated result.
 
 Record the device, operating-system version, browser or Telegram version, locale, result, and any defect in the issue review notes.

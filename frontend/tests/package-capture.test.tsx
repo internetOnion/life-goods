@@ -77,7 +77,11 @@ function installCamera({ error }: { error?: DOMException } = {}) {
 }
 
 async function openAndCapture(user: ReturnType<typeof userEvent.setup>) {
-    await user.click(screen.getByRole("button", { name: "Open camera" }))
+    const openButton = screen.queryByRole("button", { name: "Open camera" })
+    if (openButton) {
+        await user.click(openButton)
+    }
+    await waitFor(() => expect(screen.getByText("Camera active")).toBeVisible())
     const video = screen.getByLabelText("Live camera preview")
     Object.defineProperties(video, {
         videoWidth: { configurable: true, value: 1280 },
@@ -116,7 +120,7 @@ describe("Package Capture journey", () => {
 
         expect(screen.getByText("Capture package")).toBeVisible()
         expect(
-            screen.getByRole("button", { name: "Scan barcode — Coming later" }),
+            screen.getByRole("button", { name: "Scan barcode Soon" }),
         ).toBeDisabled()
         expect(getUserMedia).not.toHaveBeenCalled()
 
@@ -184,7 +188,7 @@ describe("Package Capture journey", () => {
         ).toBeVisible()
     })
 
-    test("requires both photos and clears them before demo processing", async () => {
+    test("requires front and back while allowing ingredients to be skipped", async () => {
         const user = userEvent.setup()
         const { revokeObjectURL } = installCamera()
         const storageWrite = vi.spyOn(Storage.prototype, "setItem")
@@ -197,19 +201,26 @@ describe("Package Capture journey", () => {
         await openAndCapture(user)
         await user.click(screen.getByRole("button", { name: "Continue" }))
         expect(
-            screen.getByRole("heading", { name: "Photograph the ingredients" }),
+            screen.getByRole("heading", { name: "Photograph the back" }),
         ).toHaveFocus()
         expect(screen.getByTestId("location")).toHaveTextContent(
-            "/capture/new?step=ingredients&identifier=123&reason=different-package",
+            "/capture/new?step=back&identifier=123&reason=different-package",
         )
 
         await openAndCapture(user)
-        await user.click(screen.getByRole("button", { name: "Review photos" }))
+        await user.click(screen.getByRole("button", { name: "Continue" }))
+        expect(
+            screen.getByRole("heading", { name: "Photograph the ingredients" }),
+        ).toHaveFocus()
+        await user.click(
+            screen.getByRole("button", { name: "Skip ingredients" }),
+        )
 
         expect(
             screen.getByRole("heading", { name: "Review your photos" }),
         ).toBeVisible()
         expect(screen.getAllByRole("img")).toHaveLength(2)
+        expect(screen.getByText("Not provided")).toBeVisible()
         expect(
             screen.getByText(
                 "These photos stay on this device. This demo will not send, save, or analyze them.",
@@ -221,7 +232,7 @@ describe("Package Capture journey", () => {
         )
 
         expect(screen.getByTestId("location")).toHaveTextContent(
-            "/captures/demo-capture?scenario=queued",
+            "/captures/demo-capture?scenario=queued&identifier=123&reason=different-package",
         )
         expect(revokeObjectURL).toHaveBeenCalledWith("blob:package-photo-1")
         expect(revokeObjectURL).toHaveBeenCalledWith("blob:package-photo-2")
@@ -388,6 +399,60 @@ describe("Package Capture journey", () => {
         expect(screen.getByTestId("location")).toHaveTextContent("step=front")
     })
 
+    test("visible Back does not add a duplicate capture step to history", async () => {
+        const user = userEvent.setup()
+        installCamera()
+        renderRoute("/capture/new")
+
+        await openAndCapture(user)
+        await user.click(screen.getByRole("button", { name: "Continue" }))
+        await user.click(
+            screen.getByRole("button", { name: "Back to Package Capture" }),
+        )
+        await user.click(screen.getByRole("button", { name: "Browser back" }))
+
+        expect(
+            screen.getByRole("heading", { name: "Photograph the front" }),
+        ).toBeVisible()
+        expect(
+            screen.queryByRole("heading", {
+                name: "Photograph the back",
+            }),
+        ).not.toBeInTheDocument()
+    })
+
+    test("discards a targeted close-up before returning to simulated results", async () => {
+        const user = userEvent.setup()
+        const camera = installCamera()
+        const storageWrite = vi.spyOn(Storage.prototype, "setItem")
+        const fetch = vi.fn()
+        vi.stubGlobal("fetch", fetch)
+        renderRoute("/capture/new?step=close-up&identifier=123&reason=no-match")
+
+        await openAndCapture(user)
+
+        expect(screen.getByAltText("Ingredient close-up preview")).toBeVisible()
+        expect(
+            screen.getByText(
+                "This close-up stays on this device. It is discarded before the next simulated result and is not sent, saved, or analyzed.",
+            ),
+        ).toBeVisible()
+        await user.click(
+            screen.getByRole("button", {
+                name: "Discard photo and show demo result",
+            }),
+        )
+
+        expect(screen.getByTestId("location").textContent).toBe(
+            "/captures/demo-capture?scenario=completed&identifier=123&reason=no-match",
+        )
+        expect(camera.revokeObjectURL).toHaveBeenCalledWith(
+            "blob:package-photo-1",
+        )
+        expect(storageWrite).not.toHaveBeenCalled()
+        expect(fetch).not.toHaveBeenCalled()
+    })
+
     test("shows the complete camera step in Khmer", async () => {
         await i18n.changeLanguage("km")
         installCamera()
@@ -439,8 +504,95 @@ describe("simulated Package Capture results", () => {
         ).toBeVisible()
     })
 
+    test("shows a structure-only result grouped into information, ingredients, and nutrition tabs", async () => {
+        const user = userEvent.setup()
+        renderRoute("/captures/demo-capture?scenario=completed")
+
+        expect(screen.getByText(/Demo structure only/)).toBeVisible()
+        expect(
+            screen.getByRole("tab", { name: "Information" }),
+        ).toHaveAttribute("aria-selected", "true")
+        expect(screen.getByText("Product name")).toBeVisible()
+        expect(screen.getByText("Brand")).toBeVisible()
+        expect(screen.getAllByText("—").length).toBe(4)
+
+        await user.click(screen.getByRole("tab", { name: "Ingredients" }))
+        expect(screen.getByText("Declared allergens")).toBeVisible()
+        expect(screen.getByText("Additives")).toBeVisible()
+        expect(
+            screen.getByRole("tab", { name: "Ingredients" }),
+        ).toHaveAttribute("aria-selected", "true")
+
+        await user.click(screen.getByRole("tab", { name: "Nutrition" }))
+        expect(screen.getByText("Calories")).toBeVisible()
+        expect(screen.getByText("Sodium")).toBeVisible()
+    })
+
+    test("switches language on the result without leaving the active tab", async () => {
+        const user = userEvent.setup()
+        renderRoute("/captures/demo-capture?scenario=completed")
+
+        await user.click(screen.getByRole("tab", { name: "Nutrition" }))
+        await user.click(
+            screen.getByRole("button", { name: "Switch to Khmer" }),
+        )
+
+        expect(
+            screen.getByRole("tab", { name: "អាហារូបត្ថម្ភ" }),
+        ).toHaveAttribute("aria-selected", "true")
+        expect(
+            screen.getByRole("heading", { name: "ការថតសាកល្បងបានបញ្ចប់" }),
+        ).toBeVisible()
+    })
+
+    test("supports keyboard navigation across result tabs", async () => {
+        const user = userEvent.setup()
+        renderRoute("/captures/demo-capture?scenario=completed")
+
+        const informationTab = screen.getByRole("tab", { name: "Information" })
+        informationTab.focus()
+        await user.keyboard("{ArrowRight}")
+        expect(screen.getByRole("tab", { name: "Ingredients" })).toHaveFocus()
+        expect(
+            screen.getByRole("tab", { name: "Ingredients" }),
+        ).toHaveAttribute("aria-selected", "true")
+
+        await user.keyboard("{End}")
+        expect(screen.getByRole("tab", { name: "Nutrition" })).toHaveFocus()
+    })
+
+    test("preserves safe entry context through demo transitions and recovery", async () => {
+        const user = userEvent.setup()
+        renderRoute(
+            "/captures/demo-capture?scenario=queued&identifier=123&reason=no-match&unsafe=photo",
+        )
+
+        await waitFor(() => {
+            expect(screen.getByTestId("location").textContent).toBe(
+                "/captures/demo-capture?scenario=queued&identifier=123&reason=no-match",
+            )
+        })
+
+        await user.click(
+            screen.getByRole("button", { name: "Start demo processing" }),
+        )
+        expect(screen.getByTestId("location")).toHaveTextContent(
+            "/captures/demo-capture?scenario=processing&identifier=123&reason=no-match",
+        )
+
+        await user.click(
+            screen.getByRole("button", { name: "Show demo result" }),
+        )
+        await user.click(
+            screen.getByRole("button", { name: "Capture next product" }),
+        )
+
+        expect(screen.getByTestId("location")).toHaveTextContent(
+            "/capture/new?step=front",
+        )
+    })
+
     test.each([
-        ["partial", "Some evidence could not be read"],
         ["failed", "Demo processing could not finish"],
         ["timed-out", "Demo processing took too long"],
         ["expired", "This demo capture has expired"],
@@ -450,8 +602,31 @@ describe("simulated Package Capture results", () => {
         expect(screen.getByRole("heading", { name: heading })).toBeVisible()
         expect(screen.getByText("Evidence uncertainty")).toBeVisible()
         expect(
-            screen.getByRole("button", { name: "Start a new Package Capture" }),
+            screen.getByRole("button", { name: "Try Package Capture again" }),
         ).toBeVisible()
+    })
+
+    test("requests a targeted ingredient close-up for a partial result", async () => {
+        const user = userEvent.setup()
+        renderRoute(
+            "/captures/demo-capture?scenario=partial&identifier=123&reason=no-match",
+        )
+
+        expect(screen.getByText("Evidence uncertainty")).toBeVisible()
+        await user.click(
+            screen.getByRole("button", {
+                name: "Take a closer ingredient photo",
+            }),
+        )
+
+        expect(screen.getByTestId("location").textContent).toBe(
+            "/capture/new?step=close-up&identifier=123&reason=no-match",
+        )
+        expect(
+            screen.getByRole("heading", {
+                name: "Photograph the unreadable ingredients",
+            }),
+        ).toHaveFocus()
     })
 
     test("localizes a simulated result and its demo notice in Khmer", async () => {

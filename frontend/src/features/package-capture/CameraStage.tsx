@@ -20,7 +20,6 @@ type CameraStageProps = {
     onCameraInterrupted: () => void
     onOpen: () => void
     onCapture: () => void
-    onRetake: () => void
 }
 
 export function CameraStage({
@@ -34,7 +33,6 @@ export function CameraStage({
     onCameraInterrupted,
     onOpen,
     onCapture,
-    onRetake,
 }: CameraStageProps) {
     const { t } = useTranslation()
     const cameraVisible = cameraState === "opening" || cameraState === "live"
@@ -114,7 +112,11 @@ export function CameraStage({
                             aria-label={t(
                                 step === "front"
                                     ? "capture.camera.takeFront"
-                                    : "capture.camera.takeIngredients",
+                                    : step === "back"
+                                      ? "capture.camera.takeBack"
+                                      : step === "close-up"
+                                        ? "capture.camera.takeCloseUp"
+                                        : "capture.camera.takeIngredients",
                             )}
                             disabled={!cameraReady}
                             onClick={onCapture}
@@ -153,19 +155,10 @@ export function CameraStage({
                 </Alert>
             ) : null}
 
-            {photo ? (
-                <Button
-                    className="mt-4 w-full"
-                    variant="outline"
-                    type="button"
-                    onClick={onRetake}
-                >
-                    <CameraIcon aria-hidden="true" weight="bold" />
-                    {t(`capture.${step}.retake`)}
-                </Button>
-            ) : cameraError &&
-              cameraState !== "live" &&
-              cameraState !== "opening" ? (
+            {!photo &&
+            cameraError &&
+            cameraState !== "live" &&
+            cameraState !== "opening" ? (
                 <Button className="mt-4 w-full" type="button" onClick={onOpen}>
                     <CameraIcon aria-hidden="true" weight="bold" />
                     {t(

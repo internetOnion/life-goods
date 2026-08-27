@@ -1,19 +1,28 @@
 export const packageCaptureTranslations = {
     km: {
         capture: {
-            back: "ត្រឡប់ទៅការថតកញ្ចប់",
+            backAction: "ត្រឡប់ទៅការថតកញ្ចប់",
             exit: "ចាកចេញពីការថតកញ្ចប់",
             method: {
                 label: "វិធីសម្គាល់កញ្ចប់",
                 capture: "ថតរូបកញ្ចប់",
-                barcode: "ស្កេនបាកូដ — នឹងមានពេលក្រោយ",
+                barcode: "ស្កេនបាកូដ",
+                soon: "ឆាប់ៗនេះ",
             },
-            step: "ជំហានទី {{current}} ក្នុងចំណោម 3",
+            step: "ជំហានទី {{current}} ក្នុងចំណោម 4",
+            progress: { label: "វឌ្ឍនភាពការថតកញ្ចប់" },
+            followUpStep: "រូបបន្ថែមដែលបានស្នើ",
             front: {
                 title: "ថតរូបផ្នែកខាងមុខ",
                 body: "ដាក់ឈ្មោះ និងផ្នែកខាងមុខទាំងមូលឱ្យនៅក្នុងស៊ុម។",
                 previewAlt: "រូបមើលជាមុននៃផ្នែកខាងមុខកញ្ចប់",
                 retake: "ថតផ្នែកខាងមុខម្តងទៀត",
+            },
+            back: {
+                title: "ថតរូបផ្នែកខាងក្រោយ",
+                body: "ដាក់ផ្នែកខាងក្រោយទាំងមូលរបស់កញ្ចប់ឱ្យនៅក្នុងស៊ុម។",
+                previewAlt: "រូបមើលជាមុននៃផ្នែកខាងក្រោយកញ្ចប់",
+                retake: "ថតផ្នែកខាងក្រោយម្តងទៀត",
             },
             ingredients: {
                 title: "ថតរូបគ្រឿងផ្សំ",
@@ -21,6 +30,17 @@ export const packageCaptureTranslations = {
                 extra: "អ្នកមិនចាំបាច់ថតគ្រប់ជ្រុងទេ។ សេវានាពេលអនាគតអាចស្នើរូបជិតបន្ថែម ប្រសិនបើអក្សរមិនអាចអានបាន។",
                 previewAlt: "រូបមើលជាមុននៃផ្ទាំងគ្រឿងផ្សំ",
                 retake: "ថតគ្រឿងផ្សំម្តងទៀត",
+                optional: "ជាជម្រើស",
+                skip: "រំលងគ្រឿងផ្សំ",
+            },
+            "close-up": {
+                title: "ថតគ្រឿងផ្សំដែលមើលមិនច្បាស់",
+                body: "ថតតែផ្នែកគ្រឿងផ្សំដែលមើលមិនច្បាស់ឱ្យជិត និងងាយអាន។ អ្នកមិនចាំបាច់ថតគ្រប់ជ្រុងទេ។",
+                previewAlt: "រូបមើលជាមុននៃគ្រឿងផ្សំថតជិត",
+                retake: "ថតរូបជិតម្តងទៀត",
+                privacy:
+                    "រូបថតជិតនេះនៅលើឧបករណ៍នេះប៉ុណ្ណោះ។ វានឹងត្រូវលុបមុនបង្ហាញលទ្ធផលសាកល្បងបន្ទាប់ ហើយមិនត្រូវបានផ្ញើ រក្សាទុក ឬវិភាគទេ។",
+                continue: "លុបរូប ហើយបង្ហាញលទ្ធផលសាកល្បង",
             },
             camera: {
                 open: "បើកកាមេរ៉ា",
@@ -31,7 +51,9 @@ export const packageCaptureTranslations = {
                 ready: "រក្សាទូរសព្ទឱ្យនឹង ហើយចុចប៊ូតុងថត។",
                 waiting: "សូមរង់ចាំឱ្យកាមេរ៉ារួចរាល់។",
                 takeFront: "ថតរូបផ្នែកខាងមុខ",
+                takeBack: "ថតរូបផ្នែកខាងក្រោយ",
                 takeIngredients: "ថតរូបគ្រឿងផ្សំ",
+                takeCloseUp: "ថតរូបគ្រឿងផ្សំជិត",
                 tryAgain: "សាកល្បងកាមេរ៉ាម្តងទៀត",
                 errors: {
                     deniedTitle: "ការចូលប្រើកាមេរ៉ាត្រូវបានរារាំង",
@@ -51,9 +73,16 @@ export const packageCaptureTranslations = {
             reviewAction: "ពិនិត្យរូបថត",
             review: {
                 title: "ពិនិត្យរូបថតរបស់អ្នក",
-                body: "ពិនិត្យថាផ្នែកខាងមុខ និងគ្រឿងផ្សំច្បាស់ មុនបន្តទៅការបង្ហាញសាកល្បង។",
+                body: "ពិនិត្យថាផ្នែកខាងមុខ និងខាងក្រោយច្បាស់។ គ្រឿងផ្សំជាជម្រើស មុនបន្តទៅការបង្ហាញសាកល្បង។",
                 frontLabel: "ផ្នែកខាងមុខកញ្ចប់",
+                backLabel: "ផ្នែកខាងក្រោយកញ្ចប់",
                 ingredientsLabel: "ផ្ទាំងគ្រឿងផ្សំ",
+                notProvided: "មិនបានផ្តល់",
+                ingredientsReady: "បានថតរួច",
+                add: "បន្ថែម",
+                edit: "កែប្រែ",
+                editLabel: "កែប្រែ {{label}}",
+                imageUnavailable: "មិនអាចបង្ហាញរូបបាន",
                 privacy:
                     "រូបទាំងនេះនៅលើឧបករណ៍នេះប៉ុណ្ណោះ។ ការបង្ហាញសាកល្បងនេះមិនផ្ញើ រក្សាទុក ឬវិភាគរូបទេ។",
                 future: "សេវាពិតនាពេលអនាគតនឹងមានតែសម្រាប់វគ្គឯកជន ហើយរក្សាទុកមិនលើសពី 24 ម៉ោង។ វាមិនទាន់ត្រូវបានប្រើនៅទីនេះទេ។",
@@ -77,10 +106,30 @@ export const packageCaptureTranslations = {
                     body: "នេះជាស្ថានភាពគំរូប៉ុណ្ណោះ មិនមែនជាលទ្ធផលកញ្ចប់ពិតទេ។",
                     uncertainty:
                         "គ្មានស្លាកកញ្ចប់ណាមួយត្រូវបានបកស្រាយទេ។ នេះមិនមែនជា Shopper Guidance ទេ។",
+                    structureNotice:
+                        "នេះជាគ្រោងលទ្ធផលសាកល្បងប៉ុណ្ណោះ។ គ្មានទិន្នន័យកញ្ចប់ត្រូវបានស្រង់ចេញទេ។ សញ្ញា — មានន័យថាមិនមានទិន្នន័យ មិនមែនថាគ្មានទេ។",
+                    information: "ព័ត៌មាន",
+                    ingredients: "គ្រឿងផ្សំ",
+                    nutrition: "អាហារូបត្ថម្ភ",
+                    tabsLabel: "ក្រុមទិន្នន័យលទ្ធផល",
+                    unavailableValue: "មិនមានទិន្នន័យក្នុងការបង្ហាញនេះ",
+                    productName: "ឈ្មោះផលិតផល",
+                    brand: "ម៉ាក",
+                    country: "ប្រទេសផលិត",
+                    storage: "ការរក្សាទុក",
+                    ingredientText: "បញ្ជីគ្រឿងផ្សំ",
+                    allergens: "អាឡែហ្ស៊ីដែលបានប្រកាស",
+                    additives: "សារធាតុបន្ថែម",
+                    calories: "កាឡូរី",
+                    sugar: "ស្ករ",
+                    fat: "ខ្លាញ់",
+                    protein: "ប្រូតេអ៊ីន",
+                    sodium: "សូដ្យូម",
                 },
                 partial: {
                     title: "Evidence ខ្លះមិនអាចអានបាន",
                     body: "ការបង្ហាញនេះបង្ហាញពីរបៀបដែលលទ្ធផលមិនពេញលេញនឹងរក្សាភាពមិនប្រាកដប្រជាឱ្យមើលឃើញ។",
+                    action: "ថតគ្រឿងផ្សំឱ្យជិតជាងមុន",
                 },
                 failed: {
                     title: "ដំណើរការសាកល្បងមិនអាចបញ្ចប់បាន",
@@ -97,7 +146,8 @@ export const packageCaptureTranslations = {
                 uncertaintyLabel: "Evidence Uncertainty",
                 uncertaintyBody:
                     "មិនមាន Evidence ដែលអាចអានបានសម្រាប់ផ្តល់ការណែនាំទេ។ កុំសន្និដ្ឋានពីស្ថានភាពសាកល្បងនេះ។",
-                newCapture: "ចាប់ផ្តើម Package Capture ថ្មី",
+                newCapture: "ថតផលិតផលបន្ទាប់",
+                retryCapture: "សាកល្បង Package Capture ម្តងទៀត",
                 exit: "ចាកចេញទៅទំព័រដើម",
             },
         },
@@ -114,19 +164,28 @@ export const packageCaptureTranslations = {
     },
     en: {
         capture: {
-            back: "Back to Package Capture",
+            backAction: "Back to Package Capture",
             exit: "Exit Package Capture",
             method: {
                 label: "Package identification method",
                 capture: "Capture package",
-                barcode: "Scan barcode — Coming later",
+                barcode: "Scan barcode",
+                soon: "Soon",
             },
-            step: "Step {{current}} of 3",
+            step: "Step {{current}} of 4",
+            progress: { label: "Package capture progress" },
+            followUpStep: "Requested follow-up photo",
             front: {
                 title: "Photograph the front",
                 body: "Fit the product name and the full front of the package inside the frame.",
                 previewAlt: "Front package preview",
                 retake: "Retake front photo",
+            },
+            back: {
+                title: "Photograph the back",
+                body: "Fit the full back of the package inside the frame.",
+                previewAlt: "Back package preview",
+                retake: "Retake back photo",
             },
             ingredients: {
                 title: "Photograph the ingredients",
@@ -134,6 +193,17 @@ export const packageCaptureTranslations = {
                 extra: "You do not need every side. A future service may ask for a closer photo only when text cannot be read.",
                 previewAlt: "Ingredient panel preview",
                 retake: "Retake ingredient photo",
+                optional: "Optional",
+                skip: "Skip ingredients",
+            },
+            "close-up": {
+                title: "Photograph the unreadable ingredients",
+                body: "Photograph only the unreadable ingredient area, close enough to read. You do not need every side of the package.",
+                previewAlt: "Ingredient close-up preview",
+                retake: "Retake ingredient close-up",
+                privacy:
+                    "This close-up stays on this device. It is discarded before the next simulated result and is not sent, saved, or analyzed.",
+                continue: "Discard photo and show demo result",
             },
             camera: {
                 open: "Open camera",
@@ -144,7 +214,9 @@ export const packageCaptureTranslations = {
                 ready: "Hold steady, then use the shutter button.",
                 waiting: "Wait for the camera to become ready.",
                 takeFront: "Take front photo",
+                takeBack: "Take back photo",
                 takeIngredients: "Take ingredient photo",
+                takeCloseUp: "Take ingredient close-up photo",
                 tryAgain: "Try camera again",
                 errors: {
                     deniedTitle: "Camera access is blocked",
@@ -165,9 +237,16 @@ export const packageCaptureTranslations = {
             reviewAction: "Review photos",
             review: {
                 title: "Review your photos",
-                body: "Check that the front and ingredient panel are clear before entering the demo journey.",
+                body: "Check that the front and back are clear. Ingredients are optional before entering the demo journey.",
                 frontLabel: "Front package",
+                backLabel: "Back package",
                 ingredientsLabel: "Ingredient panel",
+                notProvided: "Not provided",
+                ingredientsReady: "Photo captured",
+                add: "Add",
+                edit: "Edit",
+                editLabel: "Edit {{label}}",
+                imageUnavailable: "Image unavailable",
                 privacy:
                     "These photos stay on this device. This demo will not send, save, or analyze them.",
                 future: "A future real service will be private to the session and retain media for at most 24 hours. That service is not used here.",
@@ -191,10 +270,30 @@ export const packageCaptureTranslations = {
                     body: "This is a sample interface state, not a real package result.",
                     uncertainty:
                         "No package label was interpreted. This is not Shopper Guidance.",
+                    structureNotice:
+                        "Demo structure only. No package data was extracted. A dash (—) means unavailable, not absent.",
+                    information: "Information",
+                    ingredients: "Ingredients",
+                    nutrition: "Nutrition",
+                    tabsLabel: "Demo result groups",
+                    unavailableValue: "Unavailable in this demo",
+                    productName: "Product name",
+                    brand: "Brand",
+                    country: "Country of origin",
+                    storage: "Storage instructions",
+                    ingredientText: "Ingredients",
+                    allergens: "Declared allergens",
+                    additives: "Additives",
+                    calories: "Calories",
+                    sugar: "Sugar",
+                    fat: "Fat",
+                    protein: "Protein",
+                    sodium: "Sodium",
                 },
                 partial: {
                     title: "Some evidence could not be read",
                     body: "This demo shows how an incomplete result would keep uncertainty visible.",
+                    action: "Take a closer ingredient photo",
                 },
                 failed: {
                     title: "Demo processing could not finish",
@@ -211,7 +310,8 @@ export const packageCaptureTranslations = {
                 uncertaintyLabel: "Evidence uncertainty",
                 uncertaintyBody:
                     "There is no readable Evidence for guidance. Do not draw a package conclusion from this demo state.",
-                newCapture: "Start a new Package Capture",
+                newCapture: "Capture next product",
+                retryCapture: "Try Package Capture again",
                 exit: "Exit to Home",
             },
         },

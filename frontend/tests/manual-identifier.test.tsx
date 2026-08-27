@@ -99,7 +99,7 @@ describe("manual identifier journey", () => {
         expect(lookup).not.toHaveBeenCalled()
     })
 
-    test("uses an active-language flag on home and keeps other routes headerless", async () => {
+    test("uses an active-language flag on home and focused routes", async () => {
         const user = userEvent.setup()
         const lookup = vi.fn<PackageMatchLookup>()
         renderJourney(lookup)
@@ -165,8 +165,8 @@ describe("manual identifier journey", () => {
         expect(screen.queryByRole("navigation")).not.toBeInTheDocument()
         expect(screen.queryByRole("banner")).not.toBeInTheDocument()
         expect(
-            screen.queryByRole("button", { name: "ប្តូរទៅភាសាអង់គ្លេស" }),
-        ).not.toBeInTheDocument()
+            screen.getByRole("button", { name: "ប្តូរទៅភាសាអង់គ្លេស" }),
+        ).toBeVisible()
 
         await user.click(
             screen.getByRole("button", { name: "ត្រឡប់ទៅទំព័រដើម" }),

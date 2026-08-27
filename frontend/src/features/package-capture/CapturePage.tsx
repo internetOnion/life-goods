@@ -1,6 +1,7 @@
 import {
     ArrowClockwiseIcon,
     ArrowLeftIcon,
+    CameraIcon,
     ClockIcon,
     FileTextIcon,
     HourglassMediumIcon,
@@ -18,15 +19,14 @@ import { useMvpDemoMode } from "@/config/MvpDemoModeContext"
 import { getMvpDemoScenario } from "@/config/mvpDemoMode"
 import { DemoNotice } from "@/ui/DemoNotice"
 import { FocusedPlaceholderPage } from "@/ui/FocusedPlaceholderPage"
+import { LanguageSwitchButton } from "@/ui/LanguageSwitchButton"
 
-type CaptureScenario =
-    | "queued"
-    | "processing"
-    | "partial"
-    | "completed"
-    | "failed"
-    | "timed-out"
-    | "expired"
+import {
+    buildCaptureResultUrl,
+    buildCaptureUrl,
+    type CaptureScenario,
+} from "./captureRoute"
+import { DemoResultStructure } from "./DemoResultStructure"
 
 const knownScenarios = new Set<CaptureScenario>([
     "queued",
@@ -54,7 +54,7 @@ export function CapturePage() {
             <FocusedPlaceholderPage
                 title={t("placeholder.captureDetail.title")}
                 body={t("placeholder.captureDetail.body")}
-                actionLabel={t("capture.back")}
+                actionLabel={t("capture.backAction")}
                 actionIcon="back"
                 actionTo={appRoutes.captureNew}
             />
@@ -78,28 +78,48 @@ function SimulatedCaptureResult() {
         headingRef.current?.focus()
     }, [scenario])
 
+    useEffect(() => {
+        const normalizedUrl = buildCaptureResultUrl(
+            location.pathname,
+            scenario,
+            location.search,
+        )
+        if (`${location.pathname}${location.search}` !== normalizedUrl) {
+            void navigate(normalizedUrl, { replace: true })
+        }
+    }, [location.pathname, location.search, navigate, scenario])
+
     const showNextState = () => {
         const next = scenario === "queued" ? "processing" : "completed"
-        void navigate(`${location.pathname}?scenario=${next}`)
+        void navigate(
+            buildCaptureResultUrl(location.pathname, next, location.search),
+        )
     }
 
     return (
         <>
             <DemoNotice active />
             <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pt-5 pb-[calc(2rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
-                <div className="flex items-center justify-between gap-3">
+                <div className="grid grid-cols-3 items-start gap-2">
                     <Button
                         variant="ghost"
-                        className="px-2 sm:-ml-3 sm:px-3"
+                        className="h-auto min-w-0 justify-self-start px-2 leading-relaxed whitespace-normal sm:-ml-3 sm:px-3"
                         type="button"
-                        onClick={() => void navigate(appRoutes.captureNew)}
+                        onClick={() =>
+                            void navigate(
+                                buildCaptureUrl("front", location.search),
+                            )
+                        }
                     >
                         <ArrowLeftIcon aria-hidden="true" weight="bold" />
-                        {t("capture.back")}
+                        {t("capture.backAction")}
                     </Button>
+                    <div className="justify-self-center">
+                        <LanguageSwitchButton />
+                    </div>
                     <Button
                         variant="ghost"
-                        className="px-2 sm:-mr-3 sm:px-3"
+                        className="h-auto min-w-0 justify-self-end px-2 text-end leading-relaxed whitespace-normal sm:-mr-3 sm:px-3"
                         type="button"
                         onClick={() => void navigate(appRoutes.home)}
                     >
@@ -113,7 +133,7 @@ function SimulatedCaptureResult() {
                     <h1
                         ref={headingRef}
                         tabIndex={-1}
-                        className="mt-6 max-w-[18ch] text-[clamp(2rem,7vw,3.2rem)] leading-[1.55] font-bold tracking-[-0.025em] text-balance"
+                        className="mt-6 max-w-[18ch] text-[clamp(2rem,7vw,3.2rem)] leading-[1.7] font-bold tracking-[-0.025em] text-balance"
                     >
                         {t(`capture.result.${stateKey}.title`)}
                     </h1>
@@ -160,6 +180,8 @@ function SimulatedCaptureResult() {
                             {t(`capture.result.${stateKey}.action`)}
                         </Button>
                     </div>
+                ) : isCompleted ? (
+                    <DemoResultStructure />
                 ) : (
                     <div className="border-border bg-muted mt-8 rounded-xl border p-4">
                         <div className="flex items-start gap-3">
@@ -174,11 +196,7 @@ function SimulatedCaptureResult() {
                                     {t("capture.result.uncertaintyLabel")}
                                 </h2>
                                 <p className="mt-1 text-sm leading-relaxed">
-                                    {isCompleted
-                                        ? t(
-                                              "capture.result.completed.uncertainty",
-                                          )
-                                        : t("capture.result.uncertaintyBody")}
+                                    {t("capture.result.uncertaintyBody")}
                                 </p>
                             </div>
                         </div>
@@ -189,10 +207,34 @@ function SimulatedCaptureResult() {
                     <Button
                         className="mt-6 w-full"
                         type="button"
-                        onClick={() => void navigate(appRoutes.captureNew)}
+                        onClick={() =>
+                            void navigate(
+                                buildCaptureUrl(
+                                    scenario === "partial"
+                                        ? "close-up"
+                                        : "front",
+                                    scenario === "completed"
+                                        ? ""
+                                        : location.search,
+                                ),
+                            )
+                        }
                     >
-                        <ArrowClockwiseIcon aria-hidden="true" weight="bold" />
-                        {t("capture.result.newCapture")}
+                        {scenario === "partial" ? (
+                            <CameraIcon aria-hidden="true" weight="bold" />
+                        ) : (
+                            <ArrowClockwiseIcon
+                                aria-hidden="true"
+                                weight="bold"
+                            />
+                        )}
+                        {t(
+                            scenario === "partial"
+                                ? "capture.result.partial.action"
+                                : scenario === "completed"
+                                  ? "capture.result.newCapture"
+                                  : "capture.result.retryCapture",
+                        )}
                     </Button>
                 ) : null}
 

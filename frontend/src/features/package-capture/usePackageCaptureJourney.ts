@@ -8,6 +8,7 @@ import {
     type CapturedPackagePhoto,
 } from "./browserPackageCamera"
 import {
+    buildCaptureResultUrl,
     buildCaptureUrl,
     getRequestedCaptureStep,
     resolveCaptureStep,
@@ -21,9 +22,11 @@ type PackageCaptureJourney = {
     step: CaptureStep
     photos: {
         front: CapturedPackagePhoto | null
+        back: CapturedPackagePhoto | null
         ingredients: CapturedPackagePhoto | null
         current: CapturedPackagePhoto | null
     }
+    ingredientDecision: "pending" | "captured" | "skipped"
     camera: {
         state: CameraState
         ready: boolean
@@ -40,6 +43,8 @@ type PackageCaptureJourney = {
         retake: () => void
         goBack: () => void
         continueJourney: () => void
+        skipIngredients: () => void
+        editStep: (step: "front" | "back" | "ingredients") => void
         exitCapture: () => void
         startDemo: () => void
     }
@@ -71,24 +76,53 @@ export function usePackageCaptureJourney(): PackageCaptureJourney {
     const [camera] = useState(createBrowserPackageCamera)
     const videoRef = useRef<HTMLVideoElement>(null)
     const headingRef = useRef<HTMLHeadingElement>(null)
-    const endingRef = useRef(false)
+    const isLeavingCaptureRef = useRef(false)
+    const autoOpenStepRef = useRef<CaptureStep | null>(null)
+    const returnToReviewRef = useRef(false)
     const mountedRef = useRef(true)
     const [frontPhoto, setFrontPhoto] = useState<CapturedPackagePhoto | null>(
         null,
     )
+    const [backPhoto, setBackPhoto] = useState<CapturedPackagePhoto | null>(
+        null,
+    )
     const [ingredientPhoto, setIngredientPhoto] =
         useState<CapturedPackagePhoto | null>(null)
+    const [ingredientDecision, setIngredientDecision] = useState<
+        "pending" | "captured" | "skipped"
+    >("pending")
     const [cameraState, setCameraState] = useState<CameraState>("idle")
     const [cameraReady, setCameraReady] = useState(false)
     const [cameraError, setCameraError] = useState<CameraError | null>(null)
     const [showReloadRecovery] = useState(requestedStep !== "front")
 
+    const discardCapturedMedia = useCallback(() => {
+        camera.dispose()
+        setFrontPhoto(null)
+        setBackPhoto(null)
+        setIngredientPhoto(null)
+        setIngredientDecision("pending")
+    }, [camera])
+
+    const resetCameraStatus = useCallback(() => {
+        setCameraState("idle")
+        setCameraReady(false)
+        setCameraError(null)
+    }, [])
+
     const step = resolveCaptureStep(
         requestedStep,
         frontPhoto !== null,
+        backPhoto !== null,
         ingredientPhoto !== null,
+        ingredientDecision,
     )
-    const currentPhoto = step === "front" ? frontPhoto : ingredientPhoto
+    const currentPhoto =
+        step === "front"
+            ? frontPhoto
+            : step === "back"
+              ? backPhoto
+              : ingredientPhoto
 
     const handleCameraInterruption = useCallback(() => {
         camera.stop()
@@ -101,7 +135,7 @@ export function usePackageCaptureJourney(): PackageCaptureJourney {
     useEffect(() => {
         const normalizedUrl = buildCaptureUrl(step, location.search)
         if (
-            !endingRef.current &&
+            !isLeavingCaptureRef.current &&
             `${location.pathname}${location.search}` !== normalizedUrl
         ) {
             void navigate(normalizedUrl, { replace: true })
@@ -134,24 +168,16 @@ export function usePackageCaptureJourney(): PackageCaptureJourney {
             }
         }
         const clearLeavingPage = () => {
-            camera.dispose()
-            setFrontPhoto(null)
-            setIngredientPhoto(null)
+            discardCapturedMedia()
             if (mountedRef.current) {
-                setCameraState("idle")
-                setCameraReady(false)
-                setCameraError(null)
+                resetCameraStatus()
             }
         }
         const restartRestoredPage = (event: PageTransitionEvent) => {
             if (!event.persisted) return
-            endingRef.current = false
-            camera.dispose()
-            setFrontPhoto(null)
-            setIngredientPhoto(null)
-            setCameraState("idle")
-            setCameraReady(false)
-            setCameraError(null)
+            isLeavingCaptureRef.current = false
+            discardCapturedMedia()
+            resetCameraStatus()
             void navigate(buildCaptureUrl("front", location.search), {
                 replace: true,
             })
@@ -170,32 +196,85 @@ export function usePackageCaptureJourney(): PackageCaptureJourney {
     }, [
         camera,
         cameraState,
+        discardCapturedMedia,
         handleCameraInterruption,
         location.search,
         navigate,
+        resetCameraStatus,
     ])
 
     const goToStep = (nextStep: CaptureStep) => {
         camera.stop()
+        if (nextStep !== "review" && nextStep !== "close-up") {
+            autoOpenStepRef.current = nextStep
+        }
         void navigate(buildCaptureUrl(nextStep, location.search))
     }
 
     const goBack = () => {
-        goToStep(step === "review" ? "ingredients" : "front")
+        camera.stop()
+        void navigate(-1)
     }
 
     const continueJourney = () => {
-        goToStep(step === "front" ? "ingredients" : "review")
+        if (step === "close-up") {
+            if (!ingredientPhoto) return
+            isLeavingCaptureRef.current = true
+            discardCapturedMedia()
+            void navigate(
+                buildCaptureResultUrl(
+                    "/captures/demo-capture",
+                    "completed",
+                    location.search,
+                ),
+            )
+            return
+        }
+        if (returnToReviewRef.current) {
+            returnToReviewRef.current = false
+            camera.stop()
+            void navigate(buildCaptureUrl("review", location.search))
+            return
+        }
+        goToStep(
+            step === "front"
+                ? "back"
+                : step === "back"
+                  ? "ingredients"
+                  : "review",
+        )
+    }
+
+    const skipIngredients = () => {
+        if (step !== "ingredients") return
+        camera.stop()
+        if (ingredientPhoto) camera.discard(ingredientPhoto)
+        setIngredientPhoto(null)
+        setIngredientDecision("skipped")
+        if (returnToReviewRef.current) {
+            returnToReviewRef.current = false
+            void navigate(buildCaptureUrl("review", location.search))
+            return
+        }
+        void navigate(buildCaptureUrl("review", location.search))
+    }
+
+    const editStep = (nextStep: "front" | "back" | "ingredients") => {
+        returnToReviewRef.current = true
+        if (nextStep === "ingredients" && !ingredientPhoto) {
+            setIngredientDecision("pending")
+        }
+        camera.stop()
+        autoOpenStepRef.current = nextStep
+        void navigate(buildCaptureUrl(nextStep, location.search))
     }
 
     const exitCapture = () => {
-        camera.dispose()
-        setFrontPhoto(null)
-        setIngredientPhoto(null)
+        discardCapturedMedia()
         void navigate(appRoutes.home)
     }
 
-    const openCamera = async () => {
+    const openCamera = useCallback(async () => {
         const video = videoRef.current
         if (!video) return
         setCameraState("opening")
@@ -211,7 +290,13 @@ export function usePackageCaptureJourney(): PackageCaptureJourney {
             setCameraState("error")
             setCameraError(cameraErrorFrom(error))
         }
-    }
+    }, [camera, handleCameraInterruption])
+
+    useEffect(() => {
+        if (autoOpenStepRef.current !== step || step === "review") return
+        autoOpenStepRef.current = null
+        void openCamera()
+    }, [openCamera, step])
 
     const takePhoto = async () => {
         const video = videoRef.current
@@ -220,7 +305,11 @@ export function usePackageCaptureJourney(): PackageCaptureJourney {
         try {
             const photo = await camera.capture(video)
             if (step === "front") setFrontPhoto(photo)
-            else setIngredientPhoto(photo)
+            else if (step === "back") setBackPhoto(photo)
+            else {
+                setIngredientPhoto(photo)
+                setIngredientDecision("captured")
+            }
             camera.stop()
             setCameraState("idle")
             setCameraReady(false)
@@ -233,29 +322,42 @@ export function usePackageCaptureJourney(): PackageCaptureJourney {
 
     const retake = () => {
         if (!currentPhoto) return
+        camera.stop()
         camera.discard(currentPhoto)
         if (step === "front") setFrontPhoto(null)
-        else setIngredientPhoto(null)
+        else if (step === "back") setBackPhoto(null)
+        else {
+            setIngredientPhoto(null)
+            setIngredientDecision("pending")
+        }
+        setCameraReady(false)
         setCameraState("idle")
         setCameraError(null)
     }
 
     const startDemo = () => {
-        if (!frontPhoto || !ingredientPhoto) return
-        endingRef.current = true
-        camera.dispose()
-        setFrontPhoto(null)
-        setIngredientPhoto(null)
-        void navigate("/captures/demo-capture?scenario=queued")
+        if (!frontPhoto || !backPhoto || ingredientDecision === "pending")
+            return
+        isLeavingCaptureRef.current = true
+        discardCapturedMedia()
+        void navigate(
+            buildCaptureResultUrl(
+                "/captures/demo-capture",
+                "queued",
+                location.search,
+            ),
+        )
     }
 
     return {
         step,
         photos: {
             front: frontPhoto,
+            back: backPhoto,
             ingredients: ingredientPhoto,
             current: currentPhoto,
         },
+        ingredientDecision,
         camera: {
             state: cameraState,
             ready: cameraReady,
@@ -272,6 +374,8 @@ export function usePackageCaptureJourney(): PackageCaptureJourney {
             retake,
             goBack,
             continueJourney,
+            skipIngredients,
+            editStep,
             exitCapture,
             startDemo,
         },

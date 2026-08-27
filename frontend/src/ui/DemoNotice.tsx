@@ -12,7 +12,7 @@ export function DemoNotice({ active }: DemoNoticeProps) {
 
     return (
         <aside
-            className="border-coconut-brown bg-coconut-brown-soft text-foreground mx-auto w-[min(calc(100%_-_2rem),48rem)] rounded-b-xl border-x border-b px-4 py-3 max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]"
+            className="border-coconut-brown bg-coconut-brown-soft text-foreground mx-auto w-[min(calc(100%_-_2rem),48rem)] rounded-b-xl border-x border-b px-4 pt-[calc(0.75rem_+_env(safe-area-inset-top))] pb-3 max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]"
             aria-label={t("demoNotice.title")}
             role="status"
         >

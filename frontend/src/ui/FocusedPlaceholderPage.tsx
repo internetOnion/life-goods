@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react"
 import { useNavigate } from "react-router"
 
 import { Button } from "@/components/ui/button"
+import { LanguageSwitchButton } from "@/ui/LanguageSwitchButton"
 
 type FocusedPlaceholderPageProps = {
     title: string
@@ -29,15 +30,18 @@ export function FocusedPlaceholderPage({
 
     return (
         <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pt-[calc(1rem_+_env(safe-area-inset-top))] pb-[calc(2.5rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
-            <Button
-                className="border-primary text-primary hover:bg-primary/10 hover:text-primary px-3"
-                variant="outline"
-                type="button"
-                onClick={() => void navigate(actionTo)}
-            >
-                <Icon aria-hidden="true" size={21} weight="bold" />
-                <span>{actionLabel}</span>
-            </Button>
+            <div className="grid grid-cols-[1fr_auto] items-start gap-2">
+                <Button
+                    className="border-primary text-primary hover:bg-primary/10 hover:text-primary min-w-0 px-3"
+                    variant="outline"
+                    type="button"
+                    onClick={() => void navigate(actionTo)}
+                >
+                    <Icon aria-hidden="true" size={21} weight="bold" />
+                    <span>{actionLabel}</span>
+                </Button>
+                <LanguageSwitchButton />
+            </div>
 
             <section className="pt-[clamp(3rem,12vh,7rem)]">
                 <h1
