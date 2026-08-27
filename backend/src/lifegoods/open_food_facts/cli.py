@@ -139,6 +139,7 @@ def import_url(
                 **report,
                 "retrieval_completed_at": completed_at,
                 "status": status,
+                "immutable": status == "READY",
                 "probe_codes": list(probe_codes),
                 "validation_errors": validation_errors,
             }
@@ -347,6 +348,11 @@ def revalidate_version(
             "$set": {
                 "status": status if not validation_errors else manifest.get("status"),
                 "probe_codes": list(effective_probes),
+                "immutable": (
+                    True
+                    if not validation_errors
+                    else manifest.get("immutable", True)
+                ),
             },
         }
         if not validation_errors:
