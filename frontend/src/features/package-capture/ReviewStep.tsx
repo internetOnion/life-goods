@@ -1,10 +1,12 @@
 import {
+    CaretLeftIcon,
+    CaretRightIcon,
     CheckIcon,
     LockKeyIcon,
     PencilSimpleIcon,
     SelectionIcon,
 } from "@phosphor-icons/react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
@@ -58,54 +60,123 @@ export function ReviewStep({
     const [selectedStep, setSelectedStep] = useState<
         "front" | "back" | "ingredients"
     >("front")
-    const [mainImageFailed, setMainImageFailed] = useState(false)
+    const viewerRef = useRef<HTMLDivElement | null>(null)
     const selectedPhoto =
         photos.find(({ step }) => step === selectedStep) ?? photos[0]!
+    const selectedIndex = photos.findIndex(({ step }) => step === selectedStep)
 
-    useEffect(() => {
-        setMainImageFailed(false)
-    }, [selectedPhoto.photo?.previewUrl])
+    function selectPhoto(step: (typeof photos)[number]["step"], index: number) {
+        setSelectedStep(step)
+        const viewer = viewerRef.current
+        if (viewer && typeof viewer.scrollTo === "function") {
+            viewer.scrollTo({
+                left: index * viewer.clientWidth,
+                behavior: "smooth",
+            })
+        }
+    }
+
+    function handleViewerScroll() {
+        const viewer = viewerRef.current
+        if (!viewer || viewer.clientWidth === 0) return
+
+        const index = Math.min(
+            photos.length - 1,
+            Math.max(0, Math.round(viewer.scrollLeft / viewer.clientWidth)),
+        )
+        const nextStep = photos[index]?.step
+        if (nextStep && nextStep !== selectedStep) {
+            setSelectedStep(nextStep)
+        }
+    }
+
+    function movePhoto(direction: -1 | 1) {
+        const nextIndex = selectedIndex + direction
+        const nextPhoto = photos[nextIndex]
+        if (nextPhoto) {
+            selectPhoto(nextPhoto.step, nextIndex)
+        }
+    }
 
     return (
         <div className="mt-6 space-y-4 sm:mt-7">
-            <section className="border-border bg-coconut-brown-soft relative overflow-hidden rounded-2xl border">
+            <section className="border-border bg-background relative overflow-hidden rounded-2xl border">
                 <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex items-start justify-between gap-3 sm:inset-x-5 sm:top-5">
-                    <span className="bg-background/90 text-foreground max-w-[70%] rounded-full px-3 py-1.5 text-xs font-bold backdrop-blur-sm">
+                    <span className="bg-primary text-primary-foreground max-w-[70%] rounded-full px-3 py-1.5 text-xs font-bold shadow-sm">
                         {selectedPhoto.label}
                     </span>
-                    <span className="bg-background/90 text-muted-foreground rounded-full px-3 py-1.5 text-xs font-semibold tabular-nums backdrop-blur-sm">
-                        {photos.findIndex(({ step }) => step === selectedStep) +
-                            1}{" "}
-                        / {photos.length}
+                    <span className="bg-primary text-primary-foreground rounded-full px-3 py-1.5 text-xs font-semibold tabular-nums shadow-sm">
+                        {selectedIndex + 1} / {photos.length}
                     </span>
                 </div>
 
-                <div className="relative h-[clamp(20rem,58svh,38rem)] p-4 sm:h-[clamp(24rem,62svh,42rem)] sm:p-6">
-                    {selectedPhoto.photo && !mainImageFailed ? (
-                        <img
-                            className="h-full w-full rounded-xl object-contain"
-                            src={selectedPhoto.photo.previewUrl}
-                            alt=""
-                            aria-hidden="true"
-                            onError={() => setMainImageFailed(true)}
-                        />
-                    ) : (
-                        <div className="border-border bg-background/70 text-muted-foreground grid h-full place-items-center rounded-xl border border-dashed px-8 text-center text-sm leading-relaxed">
-                            <div>
-                                <SelectionIcon
-                                    className="text-primary mx-auto mb-3"
-                                    aria-hidden="true"
-                                    size={30}
-                                    weight="light"
-                                />
-                                <p className="font-semibold">
-                                    {selectedPhoto.photo
-                                        ? t("capture.review.imageUnavailable")
-                                        : selectedPhoto.status}
-                                </p>
+                <div className="relative">
+                    <div
+                        ref={viewerRef}
+                        className="bg-background relative flex h-[clamp(20rem,58svh,38rem)] snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-smooth sm:h-[clamp(24rem,62svh,42rem)]"
+                        onScroll={handleViewerScroll}
+                        role="region"
+                        aria-label={t("capture.review.title")}
+                    >
+                        {photos.map(({ step, photo, label, alt, status }) => (
+                            <div
+                                key={step}
+                                id={`capture-review-slide-${step}`}
+                                className="relative min-w-full snap-center p-4 sm:p-6"
+                                role="group"
+                                aria-label={label}
+                                aria-hidden={step !== selectedStep}
+                            >
+                                {photo ? (
+                                    <ReviewImage
+                                        className="h-full w-full rounded-xl object-contain"
+                                        src={photo.previewUrl}
+                                        alt={step === selectedStep ? alt : ""}
+                                        fallbackLabel={t(
+                                            "capture.review.imageUnavailable",
+                                        )}
+                                    />
+                                ) : (
+                                    <div className="border-border bg-muted text-muted-foreground grid h-full place-items-center rounded-xl border border-dashed px-8 text-center text-sm leading-relaxed">
+                                        <div>
+                                            <SelectionIcon
+                                                className="text-primary mx-auto mb-3"
+                                                aria-hidden="true"
+                                                size={30}
+                                                weight="light"
+                                            />
+                                            <p className="font-semibold">
+                                                {status}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    )}
+                        ))}
+                    </div>
+
+                    <Button
+                        className="text-muted-foreground hover:text-muted-foreground focus-visible:ring-ring absolute top-1/2 left-3 z-10 -translate-y-1/2 bg-transparent hover:bg-transparent sm:left-4"
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        aria-label={t("capture.review.previousPhoto")}
+                        disabled={selectedIndex <= 0}
+                        onClick={() => movePhoto(-1)}
+                    >
+                        <CaretLeftIcon aria-hidden="true" weight="bold" />
+                    </Button>
+                    <Button
+                        className="text-muted-foreground hover:text-muted-foreground focus-visible:ring-ring absolute top-1/2 right-3 z-10 -translate-y-1/2 bg-transparent hover:bg-transparent sm:right-4"
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        aria-label={t("capture.review.nextPhoto")}
+                        disabled={selectedIndex >= photos.length - 1}
+                        onClick={() => movePhoto(1)}
+                    >
+                        <CaretRightIcon aria-hidden="true" weight="bold" />
+                    </Button>
                 </div>
 
                 <div className="bg-background/95 flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
@@ -131,53 +202,30 @@ export function ReviewStep({
                             : t("capture.review.add")}
                     </Button>
                 </div>
-            </section>
-
-            <section className="border-border bg-background relative z-10 -mt-7 mx-3 rounded-xl border p-3 sm:p-4">
-                <div className="mb-3 px-1">
-                    <p className="text-sm font-bold">
-                        {t("capture.review.title")}
-                    </p>
-                </div>
-                <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                    {photos.map(({ step, photo, label, alt, status }) => {
+                <div
+                    className="border-border flex gap-1.5 overflow-x-auto border-t px-4 py-2 sm:px-5"
+                    role="tablist"
+                    aria-label={t("capture.review.title")}
+                >
+                    {photos.map(({ step, label }, index) => {
                         const isSelected = step === selectedStep
                         return (
                             <Button
                                 key={step}
                                 className={
-                                    "h-auto min-w-0 flex-col rounded-xl p-1 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 " +
+                                    "focus-visible:ring-ring min-h-11 shrink-0 rounded-lg px-3 text-xs font-bold focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none " +
                                     (isSelected
                                         ? "bg-brand-soft"
                                         : "hover:bg-muted")
                                 }
                                 variant="ghost"
                                 type="button"
-                                aria-pressed={isSelected}
-                                onClick={() => setSelectedStep(step)}
+                                role="tab"
+                                aria-selected={isSelected}
+                                aria-controls={`capture-review-slide-${step}`}
+                                onClick={() => selectPhoto(step, index)}
                             >
-                                {photo ? (
-                                    <ReviewImage
-                                        className={
-                                            "border-border aspect-[4/5] w-full rounded-lg border object-cover " +
-                                            (isSelected
-                                                ? "ring-primary ring-2 ring-offset-2"
-                                                : "")
-                                        }
-                                        src={photo.previewUrl}
-                                        alt={alt}
-                                        fallbackLabel={t(
-                                            "capture.review.imageUnavailable",
-                                        )}
-                                    />
-                                ) : (
-                                    <span className="border-border bg-muted text-muted-foreground grid aspect-[4/5] place-items-center rounded-lg border border-dashed p-2 text-center text-xs leading-snug">
-                                        {status}
-                                    </span>
-                                )}
-                                <span className="mt-2 block px-1 text-center text-xs font-bold wrap-anywhere sm:text-sm">
-                                    {label}
-                                </span>
+                                {label}
                             </Button>
                         )
                     })}
