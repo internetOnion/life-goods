@@ -32,6 +32,8 @@ export const resources = {
         translation: {
             ...appTranslations.km,
             ...packageMatchTranslations.km,
+            learn: learnTranslations.km.learn,
+            allergies: allergiesTranslations.km.allergies,
             capture: packageCaptureTranslations.km.capture,
             ...notFoundTranslations.km,
             placeholder: placeholderTranslations.km,
@@ -41,6 +43,8 @@ export const resources = {
         translation: {
             ...appTranslations.en,
             ...packageMatchTranslations.en,
+            learn: learnTranslations.en.learn,
+            allergies: allergiesTranslations.en.allergies,
             capture: packageCaptureTranslations.en.capture,
             ...notFoundTranslations.en,
             placeholder: placeholderTranslations.en,
