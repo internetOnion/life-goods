@@ -3,7 +3,6 @@ import {
     CameraIcon,
     CheckIcon,
     LockKeyIcon,
-    TreePalmIcon,
     XIcon,
 } from "@phosphor-icons/react"
 import { useTranslation } from "react-i18next"
@@ -35,52 +34,48 @@ export function CaptureJourney() {
 
     return (
         <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pt-[calc(1rem_+_env(safe-area-inset-top))] pb-[calc(1rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
-            <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2">
-                {step === "front" ? (
-                    <span />
-                ) : (
-                    <Button
-                        variant="ghost"
-                        className="h-auto min-w-0 justify-self-start px-2 leading-relaxed whitespace-normal sm:-ml-3 sm:px-3"
-                        type="button"
-                        onClick={actions.goBack}
-                    >
-                        <ArrowLeftIcon aria-hidden="true" weight="bold" />
-                        {t("capture.backAction")}
-                    </Button>
-                )}
-                <LanguageSwitchButton />
+            <div className="flex items-start justify-between gap-2">
                 <Button
                     variant="ghost"
-                    className="h-auto min-w-0 justify-self-end px-2 text-end leading-relaxed whitespace-normal sm:-mr-3 sm:px-3"
+                    className="h-auto min-w-0 justify-self-start px-2 leading-relaxed whitespace-normal sm:-ml-3 sm:px-3"
                     type="button"
                     onClick={actions.exitCapture}
                 >
                     <XIcon aria-hidden="true" weight="bold" />
                     {t("capture.exit")}
                 </Button>
+                <div className="flex items-start gap-2">
+                    {step === "review" ? <LanguageSwitchButton /> : null}
+                    {step === "front" ? null : (
+                        <Button
+                            variant="ghost"
+                            className="h-auto min-w-0 justify-self-end px-2 text-end leading-relaxed whitespace-normal sm:-mr-3 sm:px-3"
+                            type="button"
+                            onClick={actions.goBack}
+                        >
+                            <ArrowLeftIcon
+                                aria-hidden="true"
+                                weight="bold"
+                            />
+                            {t("capture.backAction")}
+                        </Button>
+                    )}
+                </div>
             </div>
 
             {isReview ? (
                 <>
-                    <section className="relative pt-6 sm:pt-7">
-                        <TreePalmIcon
-                            className="text-primary/15 pointer-events-none absolute top-5 right-0 size-16 -rotate-12 sm:size-20"
-                            aria-hidden="true"
-                            weight="thin"
-                        />
-                        <div className="relative z-10">
-                            <h1
-                                ref={headingRef}
-                                tabIndex={-1}
-                                className="max-w-[18ch] text-[clamp(1.75rem,7vw,2.75rem)] leading-[1.7] font-bold tracking-[-0.025em] text-balance"
-                            >
-                                {title}
-                            </h1>
-                            <p className="text-muted-foreground mt-2 max-w-[65ch] leading-relaxed">
-                                {t("capture.review.body")}
-                            </p>
-                        </div>
+                    <section className="pt-4 text-center sm:pt-5">
+                        <h1
+                            ref={headingRef}
+                            tabIndex={-1}
+                            className="text-[clamp(1.5rem,6vw,2.25rem)] leading-[1.55] font-bold tracking-[-0.02em] text-balance !outline-none"
+                        >
+                            {title}
+                        </h1>
+                        <p className="text-muted-foreground mx-auto mt-2 max-w-[52ch] leading-relaxed">
+                            {t("capture.review.body")}
+                        </p>
                     </section>
                     <ReviewStep
                         frontPhoto={photos.front}
@@ -123,29 +118,32 @@ export function CaptureJourney() {
                             {t("capture.reloadRecovery")}
                         </p>
                     ) : null}
-                    <div
-                        className="border-border bg-muted mt-4 grid grid-cols-2 gap-1 rounded-xl border p-1"
-                        aria-label={t("capture.method.label")}
-                    >
-                        <Button
-                            variant="ghost"
-                            className="h-auto min-h-11 min-w-0 justify-center gap-2 rounded-lg px-2 leading-snug whitespace-normal"
-                            type="button"
-                            disabled
+                    <div className="mt-4 flex items-stretch gap-2">
+                        <div
+                            className="border-border bg-muted grid min-w-0 flex-1 grid-cols-2 gap-1 rounded-xl border p-1"
+                            aria-label={t("capture.method.label")}
                         >
-                            <span>{t("capture.method.barcode")}</span>
-                            <span className="border-border text-muted-foreground rounded-md border px-1.5 py-0.5 text-xs font-semibold">
-                                {t("capture.method.soon")}
-                            </span>
-                        </Button>
-                        <div className="bg-background text-foreground flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 py-2 text-center text-sm font-bold">
-                            <CameraIcon
-                                aria-hidden="true"
-                                size={19}
-                                weight="bold"
-                            />
-                            <span>{t("capture.method.capture")}</span>
+                            <Button
+                                variant="ghost"
+                                className="h-auto min-h-11 min-w-0 justify-center gap-2 rounded-lg px-2 leading-snug whitespace-normal"
+                                type="button"
+                                disabled
+                            >
+                                <span>{t("capture.method.barcode")}</span>
+                                <span className="border-border text-muted-foreground rounded-md border px-1.5 py-0.5 text-xs font-semibold">
+                                    {t("capture.method.soon")}
+                                </span>
+                            </Button>
+                            <div className="bg-background text-foreground flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 py-2 text-center text-sm font-bold">
+                                <CameraIcon
+                                    aria-hidden="true"
+                                    size={19}
+                                    weight="bold"
+                                />
+                                <span>{t("capture.method.capture")}</span>
+                            </div>
                         </div>
+                        <LanguageSwitchButton />
                     </div>
                     {isCloseUp ? (
                         <div className="border-border bg-brand-soft mt-5 flex items-start gap-3 rounded-xl border p-4 text-sm leading-relaxed">

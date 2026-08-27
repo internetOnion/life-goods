@@ -1,4 +1,9 @@
-import { CheckIcon, LockKeyIcon, PencilSimpleIcon } from "@phosphor-icons/react"
+import {
+    CheckIcon,
+    LockKeyIcon,
+    PencilSimpleIcon,
+    SelectionIcon,
+} from "@phosphor-icons/react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -24,71 +29,165 @@ export function ReviewStep({
     onStart,
 }: ReviewStepProps) {
     const { t } = useTranslation()
-    const requiredPhotos = [
+    const photos = [
         {
             step: "front" as const,
             photo: frontPhoto,
             label: t("capture.review.frontLabel"),
             alt: t("capture.front.previewAlt"),
+            status: t("capture.review.ingredientsReady"),
         },
         {
             step: "back" as const,
             photo: backPhoto,
             label: t("capture.review.backLabel"),
             alt: t("capture.back.previewAlt"),
+            status: t("capture.review.ingredientsReady"),
+        },
+        {
+            step: "ingredients" as const,
+            photo: ingredientPhoto,
+            label: t("capture.review.ingredientsLabel"),
+            alt: t("capture.ingredients.previewAlt"),
+            status:
+                ingredientDecision === "skipped"
+                    ? t("capture.review.notProvided")
+                    : t("capture.review.ingredientsReady"),
         },
     ]
+    const [selectedStep, setSelectedStep] = useState<
+        "front" | "back" | "ingredients"
+    >("front")
+    const [mainImageFailed, setMainImageFailed] = useState(false)
+    const selectedPhoto =
+        photos.find(({ step }) => step === selectedStep) ?? photos[0]!
+
+    useEffect(() => {
+        setMainImageFailed(false)
+    }, [selectedPhoto.photo?.previewUrl])
 
     return (
-        <div className="mt-6">
-            <div className="grid grid-cols-2 gap-3">
-                {requiredPhotos.map(({ step, photo, label, alt }) => (
-                    <ReviewPhoto
-                        key={step}
-                        photo={photo}
-                        label={label}
-                        alt={alt}
-                        onEdit={() => onEdit(step)}
-                    />
-                ))}
-            </div>
-
-            <div className="border-border bg-muted mt-3 flex items-center gap-3 rounded-xl border p-3">
-                {ingredientPhoto ? (
-                    <ReviewImage
-                        className="border-border size-20 rounded-lg border object-cover"
-                        src={ingredientPhoto.previewUrl}
-                        alt={t("capture.ingredients.previewAlt")}
-                        fallbackLabel={t("capture.review.imageUnavailable")}
-                    />
-                ) : (
-                    <span className="bg-brand-soft text-primary grid size-20 shrink-0 place-items-center rounded-lg">
-                        <PencilSimpleIcon aria-hidden="true" size={25} />
+        <div className="mt-6 space-y-4 sm:mt-7">
+            <section className="border-border bg-coconut-brown-soft relative overflow-hidden rounded-[1.75rem] border shadow-[0_18px_44px_oklch(0.2_0.02_160/0.1)]">
+                <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex items-start justify-between gap-3 sm:inset-x-5 sm:top-5">
+                    <span className="bg-background/90 text-foreground max-w-[70%] rounded-full px-3 py-1.5 text-xs font-bold shadow-[0_4px_18px_oklch(0.2_0.02_160/0.12)] backdrop-blur-sm">
+                        {selectedPhoto.label}
                     </span>
-                )}
-                <div className="min-w-0 flex-1">
-                    <p className="font-bold">
-                        {t("capture.review.ingredientsLabel")}
-                    </p>
-                    <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-                        {ingredientDecision === "skipped"
-                            ? t("capture.review.notProvided")
-                            : t("capture.review.ingredientsReady")}
+                    <span className="bg-background/90 text-muted-foreground rounded-full px-3 py-1.5 text-xs font-semibold tabular-nums shadow-[0_4px_18px_oklch(0.2_0.02_160/0.12)] backdrop-blur-sm">
+                        {photos.findIndex(({ step }) => step === selectedStep) +
+                            1}{" "}
+                        / {photos.length}
+                    </span>
+                </div>
+
+                <div className="relative h-[clamp(20rem,58svh,38rem)] p-4 sm:h-[clamp(24rem,62svh,42rem)] sm:p-6">
+                    {selectedPhoto.photo && !mainImageFailed ? (
+                        <img
+                            className="h-full w-full rounded-[1.25rem] object-contain shadow-[0_12px_28px_oklch(0.2_0.02_160/0.16)]"
+                            src={selectedPhoto.photo.previewUrl}
+                            alt=""
+                            aria-hidden="true"
+                            onError={() => setMainImageFailed(true)}
+                        />
+                    ) : (
+                        <div className="border-border bg-background/70 text-muted-foreground grid h-full place-items-center rounded-[1.25rem] border border-dashed px-8 text-center text-sm leading-relaxed">
+                            <div>
+                                <SelectionIcon
+                                    className="text-primary mx-auto mb-3"
+                                    aria-hidden="true"
+                                    size={30}
+                                    weight="light"
+                                />
+                                <p className="font-semibold">
+                                    {selectedPhoto.photo
+                                        ? t("capture.review.imageUnavailable")
+                                        : selectedPhoto.status}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="bg-background/95 flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
+                    <div className="min-w-0">
+                        <p className="truncate text-sm font-bold">
+                            {selectedPhoto.label}
+                        </p>
+                        <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
+                            {selectedPhoto.photo
+                                ? t("capture.review.ingredientsReady")
+                                : selectedPhoto.status}
+                        </p>
+                    </div>
+                    <Button
+                        className="shrink-0 px-3"
+                        variant="outline"
+                        type="button"
+                        onClick={() => onEdit(selectedPhoto.step)}
+                    >
+                        <PencilSimpleIcon aria-hidden="true" />
+                        {selectedPhoto.photo
+                            ? t("capture.review.edit")
+                            : t("capture.review.add")}
+                    </Button>
+                </div>
+            </section>
+
+            <section className="border-border bg-background relative z-10 -mt-7 mx-3 rounded-[1.5rem] border p-3 shadow-[0_12px_28px_oklch(0.2_0.02_160/0.1)] sm:p-4">
+                <div className="mb-3 px-1">
+                    <p className="text-sm font-bold">
+                        {t("capture.review.title")}
                     </p>
                 </div>
-                <Button
-                    className="min-h-11 shrink-0 px-3"
-                    variant="outline"
-                    type="button"
-                    onClick={() => onEdit("ingredients")}
-                >
-                    {ingredientPhoto
-                        ? t("capture.review.edit")
-                        : t("capture.review.add")}
-                </Button>
-            </div>
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                    {photos.map(({ step, photo, label, alt, status }) => {
+                        const isSelected = step === selectedStep
+                        return (
+                            <Button
+                                key={step}
+                                className={
+                                    "group h-auto min-w-0 flex-col rounded-xl p-1 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 " +
+                                    (isSelected
+                                        ? "bg-brand-soft"
+                                        : "hover:bg-muted")
+                                }
+                                variant="ghost"
+                                type="button"
+                                aria-pressed={isSelected}
+                                onClick={() => setSelectedStep(step)}
+                            >
+                                {photo ? (
+                                    <ReviewImage
+                                        className={
+                                            "border-border aspect-[4/5] w-full rounded-lg border object-cover transition-transform group-hover:scale-[1.02] " +
+                                            (isSelected
+                                                ? "ring-primary ring-2 ring-offset-2"
+                                                : "")
+                                        }
+                                        src={photo.previewUrl}
+                                        alt={alt}
+                                        fallbackLabel={t(
+                                            "capture.review.imageUnavailable",
+                                        )}
+                                    />
+                                ) : (
+                                    <span className="border-border bg-muted text-muted-foreground grid aspect-[4/5] place-items-center rounded-lg border border-dashed p-2 text-center text-xs leading-snug">
+                                        {status}
+                                    </span>
+                                )}
+                                <span className="mt-2 block truncate px-1 text-center text-xs font-bold sm:text-sm">
+                                    {label}
+                                </span>
+                            </Button>
+                        )
+                    })}
+                </div>
+                <p className="sr-only" aria-live="polite">
+                    {selectedPhoto.label}
+                </p>
+            </section>
 
-            <div className="border-border bg-brand-soft mt-6 rounded-xl border p-4">
+            <div className="border-border bg-brand-soft rounded-xl border p-4">
                 <div className="flex items-start gap-3">
                     <LockKeyIcon
                         className="text-primary mt-0.5 shrink-0"
@@ -110,53 +209,6 @@ export function ReviewStep({
                 {t("capture.review.start")}
             </Button>
         </div>
-    )
-}
-
-function ReviewPhoto({
-    photo,
-    label,
-    alt,
-    onEdit,
-}: {
-    photo: CapturedPackagePhoto | null
-    label: string
-    alt: string
-    onEdit: () => void
-}) {
-    const { t } = useTranslation()
-
-    return (
-        <figure className="min-w-0">
-            {photo ? (
-                <ReviewImage
-                    className="border-border aspect-[4/5] w-full rounded-xl border object-cover"
-                    src={photo.previewUrl}
-                    alt={alt}
-                    fallbackLabel={t("capture.review.imageUnavailable")}
-                />
-            ) : (
-                <div className="border-border bg-muted text-muted-foreground grid aspect-[4/5] place-items-center rounded-xl border p-3 text-center text-sm">
-                    —
-                </div>
-            )}
-            <div className="mt-2 flex items-center justify-between gap-2">
-                <figcaption className="min-w-0 text-sm font-bold wrap-anywhere">
-                    {label}
-                </figcaption>
-                <Button
-                    className="size-11 shrink-0 p-0"
-                    variant="ghost"
-                    type="button"
-                    onClick={onEdit}
-                >
-                    <PencilSimpleIcon aria-hidden="true" />
-                    <span className="sr-only">
-                        {t("capture.review.editLabel", { label })}
-                    </span>
-                </Button>
-            </div>
-        </figure>
     )
 }
 

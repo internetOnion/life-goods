@@ -48,9 +48,9 @@ export function CameraStage({
 
     return (
         <div className="mt-5 sm:mt-6">
-            <div className="border-border bg-muted relative h-[clamp(22rem,68svh,42rem)] overflow-hidden rounded-[1.75rem] border shadow-[0_18px_44px_oklch(0.2_0.02_160/0.12)]">
+            <div className="border-border bg-muted relative h-[clamp(22rem,68svh,42rem)] overflow-hidden rounded-[1.75rem] border">
                 <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex items-start justify-between gap-2 sm:inset-x-4 sm:top-4">
-                    <div className="bg-background/90 text-foreground max-w-[75%] rounded-2xl px-3 py-2 shadow-[0_4px_18px_oklch(0.2_0.02_160/0.12)] backdrop-blur-sm">
+                    <div className="bg-background/90 text-foreground max-w-[75%] rounded-2xl px-3 py-2 backdrop-blur-sm">
                         <h1
                             ref={headingRef}
                             tabIndex={-1}
@@ -62,7 +62,7 @@ export function CameraStage({
                             {instruction}
                         </p>
                     </div>
-                    <span className="bg-background/90 text-muted-foreground shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold shadow-[0_4px_18px_oklch(0.2_0.02_160/0.12)] backdrop-blur-sm">
+                    <span className="bg-background/90 text-muted-foreground shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-sm">
                         {stepLabel}
                     </span>
                 </div>
@@ -139,7 +139,7 @@ export function CameraStage({
                         <Button
                             type="button"
                             size="icon"
-                            className="border-background size-16 rounded-full border-4 shadow-[0_8px_22px_oklch(0.2_0.02_160/0.24)] [&_svg]:size-6"
+                            className="border-background size-16 rounded-full border-4 [&_svg]:size-6"
                             aria-label={t(
                                 step === "front"
                                     ? "capture.camera.takeFront"
