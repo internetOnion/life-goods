@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from lifegoods.matching.identifier import InvalidIdentifierError, normalize_identifier
+from lifegoods.identifiers import InvalidIdentifierError, normalize_identifier
 
 CASES = json.loads(
     (Path(__file__).parents[2] / "evaluation/datasets/identifier_cases.json").read_text()

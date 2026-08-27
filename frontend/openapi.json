@@ -44,6 +44,41 @@
         "title": "ErrorEnvelope",
         "type": "object"
       },
+      "ExternalDatasetVersionResponse": {
+        "properties": {
+          "activated_at": {
+            "format": "date-time",
+            "title": "Activated At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "retrieved_at": {
+            "format": "date-time",
+            "title": "Retrieved At",
+            "type": "string"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "source_url",
+          "retrieved_at",
+          "activated_at",
+          "sha256"
+        ],
+        "title": "ExternalDatasetVersionResponse",
+        "type": "object"
+      },
       "IdentifierScheme": {
         "enum": [
           "GTIN_8",
@@ -54,8 +89,109 @@
         "title": "IdentifierScheme",
         "type": "string"
       },
+      "OpenFoodFactsLookupResponse": {
+        "properties": {
+          "dataset_version": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExternalDatasetVersionResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OpenFoodFactsLookupStatus"
+          }
+        },
+        "required": [
+          "status",
+          "dataset_version",
+          "error_code"
+        ],
+        "title": "OpenFoodFactsLookupResponse",
+        "type": "object"
+      },
+      "OpenFoodFactsLookupStatus": {
+        "enum": [
+          "AVAILABLE",
+          "NOT_FOUND",
+          "UNAVAILABLE"
+        ],
+        "title": "OpenFoodFactsLookupStatus",
+        "type": "string"
+      },
       "PackageMatchCandidateResponse": {
         "properties": {
+          "dataset_activated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Activated At"
+          },
+          "dataset_retrieved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Retrieved At"
+          },
+          "dataset_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Sha256"
+          },
+          "dataset_source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Source Url"
+          },
+          "dataset_version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Version Id"
+          },
           "external_record_id": {
             "anyOf": [
               {
@@ -216,6 +352,17 @@
             "title": "Source Name",
             "type": "string"
           },
+          "source_revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Revision"
+          },
           "source_url": {
             "title": "Source Url",
             "type": "string"
@@ -274,6 +421,17 @@
           "source_name": {
             "title": "Source Name",
             "type": "string"
+          },
+          "source_revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Revision"
           },
           "source_url": {
             "title": "Source Url",
@@ -379,6 +537,9 @@
             "title": "Normalized Identifier",
             "type": "string"
           },
+          "open_food_facts": {
+            "$ref": "#/components/schemas/OpenFoodFactsLookupResponse"
+          },
           "scheme": {
             "$ref": "#/components/schemas/IdentifierScheme"
           }
@@ -386,7 +547,8 @@
         "required": [
           "normalized_identifier",
           "scheme",
-          "candidates"
+          "candidates",
+          "open_food_facts"
         ],
         "title": "PackageMatchesResponse",
         "type": "object"

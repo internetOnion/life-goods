@@ -20,7 +20,7 @@ type PackageMatchResultPageProps = {
 }
 
 type ResultState =
-    "loading" | "failure" | "noMatch" | "offMatch" | "unsupported"
+    "loading" | "failure" | "noMatch" | "offMatch" | "partial" | "unsupported"
 
 export function PackageMatchResultPage({
     lookup,
@@ -52,9 +52,12 @@ export function PackageMatchResultPage({
               ? "failure"
               : offCandidate
                 ? "offMatch"
-                : query.data?.candidates.length === 0
-                  ? "noMatch"
-                  : "unsupported"
+                : query.data?.candidates.length &&
+                    query.data.open_food_facts.status === "UNAVAILABLE"
+                  ? "partial"
+                  : query.data?.candidates.length === 0
+                    ? "noMatch"
+                    : "unsupported"
 
     useEffect(() => {
         if (validation.valid) onIdentifierChange(validation.value)
@@ -88,7 +91,9 @@ export function PackageMatchResultPage({
                 ? t("noMatchTitle")
                 : state === "unsupported"
                   ? t("unsupportedTitle")
-                  : t("matchTitle")
+                  : state === "partial"
+                    ? t("partialTitle")
+                    : t("matchTitle")
 
     const returnHome = () => {
         void navigate("/")
@@ -174,6 +179,18 @@ export function PackageMatchResultPage({
                     icon="info"
                     title={t("unsupportedTitle")}
                     body={t("unsupportedBody")}
+                    identifier={normalizedIdentifier}
+                    primaryLabel={t("tryAnother")}
+                    onPrimary={returnHome}
+                />
+            ) : null}
+
+            {state === "partial" ? (
+                <ResultStateMessage
+                    ref={outcomeTitleRef}
+                    icon="warning"
+                    title={t("partialTitle")}
+                    body={t("partialBody")}
                     identifier={normalizedIdentifier}
                     primaryLabel={t("tryAnother")}
                     onPrimary={returnHome}

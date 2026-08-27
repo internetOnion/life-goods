@@ -1,16 +1,21 @@
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from lifegoods.adapters.catalog_models import ExternalIdentifierRecord, PackageVariantRecord
-from lifegoods.matching.identifier import NormalizedIdentifier
-from lifegoods.matching.repository import PackageMatchCandidate
+from lifegoods.catalog.models import ExternalIdentifierRecord, PackageVariantRecord
+from lifegoods.identifiers.models import NormalizedIdentifier
+from lifegoods.package_matches.models import PackageMatchCandidate
 
 
 class SqlAlchemyPackageMatchRepository:
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, *, enabled: bool = False) -> None:
         self._session = session
+        self._enabled = enabled
 
-    def find_candidates(self, identifier: NormalizedIdentifier) -> list[PackageMatchCandidate]:
+    def find_candidates(
+        self, identifier: NormalizedIdentifier
+    ) -> list[PackageMatchCandidate]:
+        if not self._enabled:
+            return []
         statement = (
             select(PackageVariantRecord.id, PackageVariantRecord.product_id)
             .join(ExternalIdentifierRecord)

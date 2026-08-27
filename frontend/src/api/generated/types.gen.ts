@@ -28,14 +28,77 @@ export type ErrorEnvelope = {
 };
 
 /**
+ * ExternalDatasetVersionResponse
+ */
+export type ExternalDatasetVersionResponse = {
+    /**
+     * Activated At
+     */
+    activated_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Retrieved At
+     */
+    retrieved_at: string;
+    /**
+     * Sha256
+     */
+    sha256: string;
+    /**
+     * Source Url
+     */
+    source_url: string;
+};
+
+/**
  * IdentifierScheme
  */
 export type IdentifierScheme = 'GTIN_8' | 'UPC_A' | 'EAN_13' | 'GTIN_14';
 
 /**
+ * OpenFoodFactsLookupResponse
+ */
+export type OpenFoodFactsLookupResponse = {
+    dataset_version: ExternalDatasetVersionResponse | null;
+    /**
+     * Error Code
+     */
+    error_code: string | null;
+    status: OpenFoodFactsLookupStatus;
+};
+
+/**
+ * OpenFoodFactsLookupStatus
+ */
+export type OpenFoodFactsLookupStatus = 'AVAILABLE' | 'NOT_FOUND' | 'UNAVAILABLE';
+
+/**
  * PackageMatchCandidateResponse
  */
 export type PackageMatchCandidateResponse = {
+    /**
+     * Dataset Activated At
+     */
+    dataset_activated_at?: string | null;
+    /**
+     * Dataset Retrieved At
+     */
+    dataset_retrieved_at?: string | null;
+    /**
+     * Dataset Sha256
+     */
+    dataset_sha256?: string | null;
+    /**
+     * Dataset Source Url
+     */
+    dataset_source_url?: string | null;
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id?: string | null;
     /**
      * External Record Id
      */
@@ -105,6 +168,10 @@ export type PackageMatchEvidenceResponse = {
      */
     source_name: string;
     /**
+     * Source Revision
+     */
+    source_revision?: string | null;
+    /**
      * Source Url
      */
     source_url: string;
@@ -146,6 +213,10 @@ export type PackageMatchReferenceImageResponse = {
      * Source Name
      */
     source_name: string;
+    /**
+     * Source Revision
+     */
+    source_revision?: string | null;
     /**
      * Source Url
      */
@@ -215,6 +286,7 @@ export type PackageMatchesResponse = {
      * Normalized Identifier
      */
     normalized_identifier: string;
+    open_food_facts: OpenFoodFactsLookupResponse;
     scheme: IdentifierScheme;
 };
 
