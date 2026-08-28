@@ -460,6 +460,34 @@ def test_seed_bundle_file_is_valid_and_can_be_imported(db_session: Session) -> N
     assert len(record.rules) == 1
 
 
+def test_direct_names_release_imports_parent_hierarchy_and_regional_rules(
+    db_session: Session,
+) -> None:
+    bundles_path = (
+        Path(__file__).parent.parent
+        / "src"
+        / "lifegoods"
+        / "reference_datasets"
+        / "bundles"
+    )
+    minimal_bundle = ReferenceBundle.from_json_file(
+        bundles_path / "codex_2026_food_allergen_minimal.json"
+    )
+    bundle = ReferenceBundle.from_json_file(
+        bundles_path / "codex_2026_food_allergen_direct_names_v1.json"
+    )
+
+    import_reference_bundle(db_session, minimal_bundle)
+    record = import_reference_bundle(db_session, bundle)
+
+    assert record.id == "codex-food-allergen-2026-direct-names-v1"
+    assert len(record.concepts) == 29
+    assert len(record.mappings) == 26
+    assert len(record.rules) == 27
+    assert sum(rule.rule_kind == "REGIONAL_OR_NATIONAL_DECLARATION" for rule in record.rules) == 8
+    assert db_session.query(ReferenceDatasetVersionRecord).count() == 2
+
+
 def test_activate_valid_version(db_session: Session) -> None:
     bundle = create_valid_bundle()
     record = import_reference_bundle(db_session, bundle)
@@ -683,4 +711,3 @@ def test_activate_idempotent_on_active_version(db_session: Session) -> None:
     assert pointer is not None
     assert pointer.active_version_id == record.id
     assert pointer.previous_version_id is None
-

@@ -72,6 +72,8 @@ class AllergenConceptOutcome:
     outcome: AllergenAssessmentOutcome
     reason: AllergenAssessmentReason | str | None = None
     finding_ids: tuple[str, ...] = ()
+    parent_ids: tuple[str, ...] = ()
+    rule_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -323,8 +325,29 @@ class StandardAllergenAssessmentEvaluator:
         for finding in findings:
             findings_by_concept.setdefault(finding.concept_id, []).append(finding)
 
+        concepts_by_id = {concept.id: concept for concept in active_data.concepts}
+        rule_ids_by_concept: dict[str, list[str]] = {}
+        for rule in sorted(active_data.rules, key=lambda item: item.id):
+            rule_ids_by_concept.setdefault(rule.concept_id, []).append(rule.id)
+
         concept_outcomes: list[AllergenConceptOutcome] = []
-        for concept in active_data.concepts:
+        for concept in sorted(active_data.concepts, key=lambda item: item.id):
+            if not concept.is_leaf:
+                continue
+
+            parent_ids: list[str] = []
+            current_parent_id = concept.parent_id
+            while current_parent_id is not None:
+                parent_ids.append(current_parent_id)
+                parent = concepts_by_id.get(current_parent_id)
+                current_parent_id = parent.parent_id if parent is not None else None
+
+            applicable_concept_ids = (concept.id, *parent_ids)
+            applicable_rule_ids = tuple(
+                rule_id
+                for applicable_concept_id in applicable_concept_ids
+                for rule_id in rule_ids_by_concept.get(applicable_concept_id, ())
+            )
             concept_findings = findings_by_concept.get(concept.id, [])
             if concept_findings:
                 outcome = AllergenAssessmentOutcome.DERIVED_FROM_INGREDIENT
@@ -339,6 +362,8 @@ class StandardAllergenAssessmentEvaluator:
                     outcome=outcome,
                     reason=None,
                     finding_ids=finding_ids,
+                    parent_ids=tuple(parent_ids),
+                    rule_ids=applicable_rule_ids,
                 )
             )
 
@@ -358,4 +383,3 @@ class StandardAllergenAssessmentEvaluator:
             findings=findings,
             source_signals=source_signals,
         )
-

@@ -185,7 +185,7 @@ class AllergenRuleRecord(Base):
         ),
         CheckConstraint(
             "rule_kind IN ('MANDATORY_DECLARATION', 'EXEMPTION', 'DERIVATIVE_MATCH', "
-            "'PRECAUTIONARY')",
+            "'PRECAUTIONARY', 'REGIONAL_OR_NATIONAL_DECLARATION')",
             name="ck_allergen_rule_kind",
         ),
         CheckConstraint(
@@ -252,4 +252,3 @@ class ReferenceDatasetPointerRecord(Base):
     previous_version: Mapped[ReferenceDatasetVersionRecord | None] = relationship(
         foreign_keys=[previous_version_id]
     )
-

@@ -60,9 +60,17 @@ export type AllergenConceptOutcomeResponse = {
      */
     outcome: string;
     /**
+     * Parent Ids
+     */
+    parent_ids?: Array<string>;
+    /**
      * Reason
      */
     reason?: string | null;
+    /**
+     * Rule Ids
+     */
+    rule_ids?: Array<string>;
 };
 
 /**

@@ -24,6 +24,7 @@ Locally observed Product seed data, reviewed-local precedence, Product Claim mod
 - [Personas and user stories](docs/USER_STORIES.md)
 - [Conceptual and logical data model](docs/DATA_MODEL.md)
 - [Repository structure and branching](docs/REPOSITORY.md)
+- [Reference dataset operations](docs/REFERENCE_DATASETS.md)
 - [Pilot-ready MVP team execution plan](docs/plan/TEAM_EXECUTION_PLAN.md)
 - [Domain glossary](CONTEXT.md)
 - [Food-data availability audit](docs/research/mvp-food-data-availability.md)

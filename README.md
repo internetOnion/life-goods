@@ -15,7 +15,11 @@ The identifier is a lookup key for a `Package Variant`; it is not a `Product` id
 ```bash
 pnpm install
 pnpm backend:install
+cp backend/.env.example backend/.env
 ```
+
+The checked-in backend environment example keeps allergen assessments disabled until an
+operator imports and activates a reviewed `FOOD_ALLERGEN` Reference Dataset Version.
 
 ## Run locally
 
@@ -28,14 +32,22 @@ pnpm db:migrate
 
 ### Reference Datasets (Allergen Rules & Lexical Mappings)
 
-Allergen assessment requires an active `FOOD_ALLERGEN` Reference Dataset Version in PostgreSQL. Import and activate the minimal bundle:
+Allergen assessment requires an active `FOOD_ALLERGEN` Reference Dataset Version in PostgreSQL.
+Import and activate the complete reviewed Codex-2026 direct-name release:
 
 ```bash
-pnpm reference:dataset import backend/src/lifegoods/reference_datasets/bundles/codex_2026_food_allergen_minimal.json
-pnpm reference:dataset list
-pnpm reference:dataset activate codex-food-allergen-2026-minimal --review-kind FOOD_DOMAIN_REVIEW
-pnpm reference:dataset status
+pnpm reference:dataset -- validate backend/src/lifegoods/reference_datasets/bundles/codex_2026_food_allergen_direct_names_v1.json
+pnpm reference:dataset -- import backend/src/lifegoods/reference_datasets/bundles/codex_2026_food_allergen_direct_names_v1.json
+pnpm reference:dataset -- list
+pnpm reference:dataset -- activate codex-food-allergen-2026-direct-names-v1
+pnpm reference:dataset -- status
 ```
+
+The older `codex-food-allergen-2026-minimal` release remains available only as the milk/whey
+tracer and rollback fixture; do not activate it for complete coverage. Import and activation
+are deliberate per-environment operator actions and are never performed by migrations or
+application startup. See [`docs/REFERENCE_DATASETS.md`](docs/REFERENCE_DATASETS.md) for release
+scope, lifecycle commands, and rollback guidance.
 
 ### Open Food Facts (OFF) Dataset
 
@@ -56,13 +68,13 @@ Additional lifecycle commands are documented in `docs/OFF_DATASET.md`.
 
 ### Start the Application
 
-Start the API and Web Client in separate terminals. Set `LIFEGOODS_ALLERGEN_ASSESSMENTS_ENABLED=true` to enable allergen evaluations:
+Set `LIFEGOODS_ALLERGEN_ASSESSMENTS_ENABLED=true` in `backend/.env`, then start the API and Web
+Client in separate terminals:
 
 ```bash
-LIFEGOODS_ALLERGEN_ASSESSMENTS_ENABLED=true pnpm backend:dev
+pnpm backend:dev
 pnpm dev
 ```
-
 
 Open the `https://localhost:5173` URL. The Web Client proxies `/api` requests to `http://localhost:8000` during development.
 

@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine, exc, inspect, text
 
 
 def test_reference_dataset_migration_upgrades_and_downgrades(
@@ -93,6 +93,27 @@ def test_reference_dataset_migration_upgrades_and_downgrades(
             )
         ).scalar()
         assert row == 1
+
+        connection.execute(
+            text(
+                "INSERT INTO allergen_rules "
+                "(dataset_version_id, id, concept_id, source_id, rule_kind, condition_family) "
+                "VALUES ('ver-1', 'rule-regional-1', 'concept-milk', 'source-codex-2026', "
+                "'REGIONAL_OR_NATIONAL_DECLARATION', 'FOOD_ALLERGEN')"
+            )
+        )
+        connection.execute(text("DELETE FROM allergen_rules WHERE id = 'rule-regional-1'"))
+
+    command.downgrade(config, "0005")
+    with engine.begin() as connection, pytest.raises(exc.IntegrityError):
+        connection.execute(
+            text(
+                "INSERT INTO allergen_rules "
+                "(dataset_version_id, id, concept_id, source_id, rule_kind, condition_family) "
+                "VALUES ('ver-1', 'rule-regional-2', 'concept-milk', 'source-codex-2026', "
+                "'REGIONAL_OR_NATIONAL_DECLARATION', 'FOOD_ALLERGEN')"
+            )
+        )
 
     # Downgrade back to 0003
     command.downgrade(config, "0003")

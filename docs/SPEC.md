@@ -132,6 +132,14 @@ Rules:
 - Host concise project-authored English ingredient descriptions linked to stable identifiers and cited sources; defer Khmer translation.
 - Use manual import, validation, activation, and rollback. Do not synchronize reference data automatically in MVP-1.
 
+The current complete `FOOD_ALLERGEN` release is
+`codex-food-allergen-2026-direct-names-v1`. It contains 26 active leaf concepts and three
+non-emitting parent groups. Only its reviewed English `EXACT_NAME` mappings drive findings;
+the release contains no derivative, synonym, non-English, or Open Food Facts taxonomy
+mappings. Wheat, rye, barley, oats, sulphite, lactose, and non-`FOOD_ALLERGEN` condition
+families are outside this release. The earlier one-concept milk release remains immutable for
+tracer and rollback coverage but is not the complete release.
+
 ### Reviewed Product catalog
 
 Locally observed Product seed data, reviewed Package Revisions, Product Claims, Preferred Claims, Unresolved Conflicts, moderator workflow, and reviewed-local precedence are post-MVP. The future reviewed catalog remains separate from OFF and from the reference datasets used for interpretation.
@@ -186,6 +194,11 @@ Supported outcomes:
 “No declaration detected” must state that it is not an allergen-free guarantee.
 
 The Dietary Preference Profile may prioritize matching outcomes but does not change assessment logic or hide other concerns or Evidence Uncertainty.
+
+Package Match returns one outcome for each active leaf concept in stable concept-ID order.
+Each outcome includes its parent concept IDs in direct-parent-to-root order and the rule IDs
+applicable to that leaf. Parent groups remain available for grouping and never appear as
+separate outcomes.
 
 ### Halal-related ingredient evidence
 

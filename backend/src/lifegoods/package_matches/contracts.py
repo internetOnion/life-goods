@@ -94,6 +94,8 @@ class AllergenConceptOutcomeResponse(BaseModel):
     outcome: str
     reason: str | None = None
     finding_ids: list[str] = []
+    parent_ids: list[str] = []
+    rule_ids: list[str] = []
 
 
 class AllergenAssessmentResponse(BaseModel):

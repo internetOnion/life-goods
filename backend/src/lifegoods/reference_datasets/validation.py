@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from lifegoods.reference_datasets.bundle import (
+    AllergenRelationshipType,
+    AllergenRuleKind,
     ConditionFamily,
     ReferenceBundle,
 )
@@ -64,6 +66,7 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
 
     # 3. Concept validation: duplicate IDs, typed condition family, parent hierarchy
     concept_map: dict[str, str | None] = {}
+    concepts_by_id = {concept.id: concept for concept in bundle.concepts}
     concept_ids: set[str] = set()
     for concept in bundle.concepts:
         if concept.id in concept_ids:
@@ -91,6 +94,15 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
             elif concept.parent_id == concept.id:
                 errors.append(f"Concept '{concept.id}' cannot be its own parent")
 
+    parent_ids = {
+        concept.parent_id for concept in bundle.concepts if concept.parent_id is not None
+    }
+    for concept in bundle.concepts:
+        if concept.id in parent_ids and concept.is_leaf:
+            errors.append(f"Concept '{concept.id}' has children but is marked as a leaf")
+        if concept.id not in parent_ids and not concept.is_leaf:
+            errors.append(f"Concept '{concept.id}' has no children but is marked as a parent")
+
     # Cyclic parent check
     for cid in concept_ids:
         visited: set[str] = set()
@@ -107,6 +119,7 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
     # (lang, text) -> (mapping_id, concept_id)
     mapping_keys: dict[tuple[str, str], tuple[str, str]] = {}
     supported_lower = {lang.lower() for lang in SUPPORTED_LANGUAGES}
+    direct_english_mappings_by_concept: dict[str, int] = {}
     for mapping in bundle.mappings:
         if mapping.id in mapping_ids:
             errors.append(f"Duplicate lexical mapping ID '{mapping.id}'")
@@ -116,6 +129,18 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
             errors.append(
                 f"Lexical mapping '{mapping.id}' references non-existent concept "
                 f"'{mapping.concept_id}'"
+            )
+        elif not concepts_by_id[mapping.concept_id].is_leaf:
+            errors.append(
+                f"Lexical mapping '{mapping.id}' targets non-leaf concept "
+                f"'{mapping.concept_id}'"
+            )
+
+        valid_relationship_types = {kind.value for kind in AllergenRelationshipType}
+        if mapping.relationship_type not in valid_relationship_types:
+            errors.append(
+                f"Lexical mapping '{mapping.id}' has invalid relationship type "
+                f"'{mapping.relationship_type}'"
             )
 
         lang_normalized = mapping.language.strip().lower()
@@ -144,8 +169,22 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
                     )
             mapping_keys[mapping_key] = (mapping.id, mapping.concept_id)
 
+        if (
+            lang_normalized == "en"
+            and mapping.relationship_type == AllergenRelationshipType.EXACT_NAME
+        ):
+            direct_english_mappings_by_concept[mapping.concept_id] = (
+                direct_english_mappings_by_concept.get(mapping.concept_id, 0) + 1
+            )
+
     # 5. Rule validation: concept & source references, typed condition family
     rule_ids: set[str] = set()
+    declaration_rules_by_concept: dict[str, int] = {}
+    valid_rule_kinds = {kind.value for kind in AllergenRuleKind}
+    declaration_rule_kinds = {
+        AllergenRuleKind.MANDATORY_DECLARATION,
+        AllergenRuleKind.REGIONAL_OR_NATIONAL_DECLARATION,
+    }
     for rule in bundle.rules:
         if rule.id in rule_ids:
             errors.append(f"Duplicate rule ID '{rule.id}'")
@@ -154,6 +193,13 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
         if rule.concept_id not in concept_ids:
             errors.append(
                 f"Rule '{rule.id}' references non-existent concept '{rule.concept_id}'"
+            )
+
+        if rule.rule_kind not in valid_rule_kinds:
+            errors.append(f"Rule '{rule.id}' has invalid rule kind '{rule.rule_kind}'")
+        elif rule.rule_kind in declaration_rule_kinds:
+            declaration_rules_by_concept[rule.concept_id] = (
+                declaration_rules_by_concept.get(rule.concept_id, 0) + 1
             )
 
         if rule.source_id not in source_ids:
@@ -171,6 +217,20 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
                 valid_condition_families,
             )
         )
+
+    for concept in bundle.concepts:
+        if not concept.is_leaf:
+            continue
+        if direct_english_mappings_by_concept.get(concept.id, 0) != 1:
+            errors.append(
+                f"Active leaf concept '{concept.id}' does not have exactly one reviewed "
+                "English EXACT_NAME mapping"
+            )
+        if declaration_rules_by_concept.get(concept.id, 0) < 1:
+            errors.append(
+                f"Active leaf concept '{concept.id}' does not have an applicable "
+                "declaration rule"
+            )
 
     # 6. Integrity hash calculation
     computed_sha256 = bundle.compute_sha256()

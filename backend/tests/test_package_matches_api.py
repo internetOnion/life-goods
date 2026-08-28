@@ -49,6 +49,14 @@ CODEX_MINIMAL_BUNDLE_PATH = (
     / "bundles"
     / "codex_2026_food_allergen_minimal.json"
 )
+CODEX_DIRECT_NAMES_BUNDLE_PATH = (
+    Path(__file__).parents[1]
+    / "src"
+    / "lifegoods"
+    / "reference_datasets"
+    / "bundles"
+    / "codex_2026_food_allergen_direct_names_v1.json"
+)
 DATASET_VERSION = ExternalDatasetVersion(
     id="dataset-2026-08-27",
     source_url="https://static.openfoodfacts.org/data/export.jsonl.gz",
@@ -283,6 +291,7 @@ def test_off_candidate_exposes_active_dataset_version(
 
     with TestClient(
         create_app(
+            settings=Settings(allergen_assessments_enabled=False),
             session_factory=session_factory,
             external_source=OpenFoodFactsDatasetSource(database),
         )
@@ -597,6 +606,171 @@ def test_package_matches_with_active_allergen_dataset_evaluates_milk_end_to_end(
     assert "allergen_tags" in signal_fields
 
 
+def test_package_match_returns_each_active_leaf_with_ancestry_and_rules(
+    session_factory: sessionmaker[Session],
+) -> None:
+    bundle = ReferenceBundle.from_json_file(CODEX_DIRECT_NAMES_BUNDLE_PATH)
+    with session_factory() as session:
+        imported = import_reference_bundle(
+            session,
+            bundle,
+            now=lambda: datetime(2026, 8, 29, 8, 0, tzinfo=UTC),
+        )
+        activate_reference_dataset_version(
+            session,
+            imported.id,
+            now=lambda: datetime(2026, 8, 29, 9, 0, tzinfo=UTC),
+        )
+
+    database = mongomock.MongoClient().lifegoods_off
+    collection_name = "off_products_dataset_2026_08_27"
+    database[VERSIONS_COLLECTION].insert_one(
+        {
+            "_id": DATASET_VERSION.id,
+            "collection_name": collection_name,
+            "source_url": DATASET_VERSION.source_url,
+            "retrieval_completed_at": DATASET_VERSION.retrieved_at,
+            "activated_at": DATASET_VERSION.activated_at,
+            "sha256": DATASET_VERSION.sha256,
+            "status": "ACTIVE",
+        }
+    )
+    database[CONTROL_COLLECTION].insert_one(
+        {"_id": ACTIVE_POINTER_ID, "active_version_id": DATASET_VERSION.id}
+    )
+    database[collection_name].insert_one(
+        {
+            "code": "4006381333931",
+            "product_name_en": "Mixed meal",
+            "ingredients_text_en": "rice, almond, cod, salt",
+            "last_modified_t": 1787462400,
+        }
+    )
+
+    with TestClient(
+        create_app(
+            settings=Settings(allergen_assessments_enabled=True),
+            session_factory=session_factory,
+            external_source=OpenFoodFactsDatasetSource(database),
+        )
+    ) as test_client:
+        response = test_client.get(
+            "/api/v1/package-matches", params={"identifier": "4006381333931"}
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["normalized_identifier"] == "4006381333931"
+    assert body["scheme"] == "EAN_13"
+    assert len(body["candidates"]) == 1
+    assert body["candidates"][0]["source_kind"] == "OPEN_FOOD_FACTS"
+    assert body["candidates"][0]["external_record_id"] == "4006381333931"
+
+    assessment = body["candidates"][0]["allergen_assessment"]
+    assert assessment["reference_dataset_version"] == {
+        "id": "codex-food-allergen-2026-direct-names-v1",
+        "source_url": bundle.manifest.source_url,
+        "retrieved_at": "2026-08-29T08:00:00Z",
+        "activated_at": "2026-08-29T09:00:00Z",
+        "sha256": bundle.manifest.sha256,
+        "review_kind": "FOOD_DOMAIN_REVIEW",
+        "dataset_kind": "FOOD_ALLERGEN",
+    }
+    assert len(assessment["concepts"]) == 26
+    assert [concept["concept_id"] for concept in assessment["concepts"]] == sorted(
+        concept["concept_id"] for concept in assessment["concepts"]
+    )
+
+    concepts = {concept["concept_id"]: concept for concept in assessment["concepts"]}
+    assert concepts["concept-food-allergen-almond"]["parent_ids"] == [
+        "concept-food-allergen-specific-tree-nuts",
+        "concept-food-allergen-root",
+    ]
+    assert concepts["concept-food-allergen-almond"]["rule_ids"] == [
+        "rule-codex-2026-almond",
+        "rule-codex-2026-derivative-exemption",
+    ]
+    assert concepts["concept-food-allergen-cod"]["parent_ids"] == [
+        "concept-food-allergen-fish-group",
+        "concept-food-allergen-root",
+    ]
+    assert concepts["concept-food-allergen-cod"]["rule_ids"] == [
+        "rule-codex-2026-cod",
+        "rule-codex-2026-derivative-exemption",
+    ]
+    assert concepts["concept-food-allergen-almond"]["name"] == "Almond"
+    assert concepts["concept-food-allergen-cod"]["name"] == "Cod"
+    assert {
+        concept_id
+        for concept_id, concept in concepts.items()
+        if concept["outcome"] == "DERIVED_FROM_INGREDIENT"
+    } == {"concept-food-allergen-almond", "concept-food-allergen-cod"}
+    assert all(
+        concept["outcome"] == "LABEL_INCOMPLETE_OR_UNREADABLE"
+        for concept_id, concept in concepts.items()
+        if concept_id
+        not in {"concept-food-allergen-almond", "concept-food-allergen-cod"}
+    )
+    assert [
+        {
+            key: finding[key]
+            for key in (
+                "id",
+                "concept_id",
+                "mapping_id",
+                "rule_id",
+                "relationship_type",
+                "matched_text",
+                "start_index",
+                "end_index",
+                "language",
+                "source_field",
+                "source_url",
+                "source_revision",
+                "off_dataset_version_id",
+                "reference_dataset_version_id",
+                "engine_version",
+            )
+        }
+        for finding in assessment["findings"]
+    ] == [
+        {
+            "id": "finding-codex-food-allergen-2026-direct-names-v1-map-en-almond-exact-6-12",
+            "concept_id": "concept-food-allergen-almond",
+            "mapping_id": "map-en-almond-exact",
+            "rule_id": "rule-codex-2026-almond",
+            "relationship_type": "EXACT_NAME",
+            "matched_text": "almond",
+            "start_index": 6,
+            "end_index": 12,
+            "language": "en",
+            "source_field": "ingredients_text_en",
+            "source_url": "https://world.openfoodfacts.org/product/4006381333931",
+            "source_revision": "1787462400",
+            "off_dataset_version_id": "dataset-2026-08-27",
+            "reference_dataset_version_id": "codex-food-allergen-2026-direct-names-v1",
+            "engine_version": "0.1.0",
+        },
+        {
+            "id": "finding-codex-food-allergen-2026-direct-names-v1-map-en-cod-exact-14-17",
+            "concept_id": "concept-food-allergen-cod",
+            "mapping_id": "map-en-cod-exact",
+            "rule_id": "rule-codex-2026-cod",
+            "relationship_type": "EXACT_NAME",
+            "matched_text": "cod",
+            "start_index": 14,
+            "end_index": 17,
+            "language": "en",
+            "source_field": "ingredients_text_en",
+            "source_url": "https://world.openfoodfacts.org/product/4006381333931",
+            "source_revision": "1787462400",
+            "off_dataset_version_id": "dataset-2026-08-27",
+            "reference_dataset_version_id": "codex-food-allergen-2026-direct-names-v1",
+            "engine_version": "0.1.0",
+        },
+    ]
+
+
 def test_package_matches_with_active_allergen_dataset_evaluates_whey_derivative_end_to_end(
     session_factory: sessionmaker[Session],
 ) -> None:
@@ -761,5 +935,3 @@ def test_package_matches_with_active_allergen_dataset_missing_english_text(
     assert assessment["reference_dataset_version"]["id"] == "codex-food-allergen-2026-minimal"
     assert assessment["concepts"] == []
     assert assessment["findings"] == []
-
-

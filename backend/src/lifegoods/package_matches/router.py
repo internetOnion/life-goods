@@ -128,6 +128,8 @@ def _allergen_assessment_response(
                 outcome=str(concept.outcome),
                 reason=str(concept.reason) if concept.reason is not None else None,
                 finding_ids=list(concept.finding_ids),
+                parent_ids=list(concept.parent_ids),
+                rule_ids=list(concept.rule_ids),
             )
             for concept in assessment.concepts
         ],

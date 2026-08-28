@@ -168,6 +168,7 @@ _Avoid_: Latest OFF data, live mirror, source of truth
 
 **Reference Dataset Version**:
 An immutable, human-reviewed release of sourced concepts, mappings, rules, descriptions, or Knowledge Entries used to interpret Evidence. Its approval applies to that reference release and never reviews or verifies a Product record.
+For a `FOOD_ALLERGEN` release, active leaf concepts may appear once as Allergen Assessment outcomes; non-leaf parent concepts organize ancestry only and never emit duplicate outcomes.
 _Avoid_: Verified Product data, universal truth list, mutable lookup table
 
 **Active Reference Dataset Version**:

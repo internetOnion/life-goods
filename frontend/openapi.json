@@ -97,6 +97,14 @@
             "title": "Outcome",
             "type": "string"
           },
+          "parent_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Parent Ids",
+            "type": "array"
+          },
           "reason": {
             "anyOf": [
               {
@@ -107,6 +115,14 @@
               }
             ],
             "title": "Reason"
+          },
+          "rule_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Rule Ids",
+            "type": "array"
           }
         },
         "required": [

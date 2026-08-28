@@ -212,7 +212,7 @@ Reference data is relational and separately versioned in PostgreSQL:
 | `ReferenceDatasetVersion` | Immutable import with retrieval time, integrity hash, validation results, reviewer, review date, activation time, and supersession |
 | `ReferenceConcept`        | Stable allergen, ingredient, additive, chemical, rule, or educational concept identifier                                           |
 | `LexicalMapping`          | Language-tagged exact term, synonym, precautionary phrase, or reviewed derivative mapping to a Reference Concept                   |
-| `AllergenRule`            | Codex baseline or separately scoped jurisdiction-specific declaration/derivative rule                                              |
+| `AllergenRule`            | Codex mandatory, regional-or-national, exemption, derivative, or precautionary rule with typed scope                               |
 | `HalalIngredientMapping`  | Project-authored explicit-prohibited or source-ambiguous mapping with cited rule basis                                             |
 | `AdditiveRule`            | Cambodian or separately labeled international-reference rule with food category, effective period, limit, and unit                 |
 | `IngredientDescription`   | Project-authored language-tagged neutral explanation linked to stable concepts and citations                                       |
@@ -226,6 +226,8 @@ Invariants:
 - Every Assessment Evaluation derives from specified reference versions, rules, mappings, and original OFF Evidence, without writing durable run records to the database.
 - A reference-data record cannot create a Product, reviewed Package Revision, accepted Product Claim, Preferred Claim, or Product verification state.
 - Missing, ambiguous, inapplicable, or unavailable reference data produces Evidence Uncertainty or `NOT_ASSESSED`.
+- An active allergen leaf has exactly one reviewed English direct-name mapping and an applicable declaration rule; mappings never target parent concepts.
+- Allergen Assessment outcomes contain leaf ancestry in direct-parent-to-root order and applicable rule IDs. Parent concepts group leaves but do not emit outcomes.
 
 ## 8. Ephemeral shopper boundary
 

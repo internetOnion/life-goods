@@ -1,5 +1,8 @@
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import UTC, datetime
+from pathlib import Path
+
+import pytest
 
 from lifegoods.open_food_facts.models import (
     ExternalDatasetVersion,
@@ -360,6 +363,246 @@ def sample_reference_data() -> ActiveAllergenReferenceData:
         mappings=mappings,
         rules=rules,
     )
+
+
+DIRECT_NAMES_BUNDLE_PATH = (
+    Path(__file__).parents[1]
+    / "src"
+    / "lifegoods"
+    / "reference_datasets"
+    / "bundles"
+    / "codex_2026_food_allergen_direct_names_v1.json"
+)
+
+
+def direct_names_reference_data() -> ActiveAllergenReferenceData:
+    bundle = ReferenceBundle.from_json_file(DIRECT_NAMES_BUNDLE_PATH)
+    return ActiveAllergenReferenceData(
+        version=AllergenAssessmentReferenceVersion(
+            id=bundle.manifest.id,
+            source_url=bundle.manifest.source_url,
+            retrieved_at=datetime(2026, 8, 29, 8, 0, tzinfo=UTC),
+            activated_at=datetime(2026, 8, 29, 9, 0, tzinfo=UTC),
+            sha256=bundle.manifest.sha256,
+            review_kind=bundle.manifest.review_kind,
+            dataset_kind=bundle.manifest.dataset_kind,
+        ),
+        concepts=tuple(
+            AllergenReferenceConcept(**concept.to_dict()) for concept in bundle.concepts
+        ),
+        mappings=tuple(
+            AllergenReferenceMapping(**mapping.to_dict()) for mapping in bundle.mappings
+        ),
+        rules=tuple(AllergenReferenceRule(**rule.to_dict()) for rule in bundle.rules),
+    )
+
+
+@pytest.mark.parametrize(
+    ("direct_name", "concept_id"),
+    [
+        ("almond", "concept-food-allergen-almond"),
+        ("anchovy", "concept-food-allergen-anchovy"),
+        ("Brazil nut", "concept-food-allergen-brazil-nut"),
+        ("buckwheat", "concept-food-allergen-buckwheat"),
+        ("cashew", "concept-food-allergen-cashew"),
+        ("celery", "concept-food-allergen-celery"),
+        ("cod", "concept-food-allergen-cod"),
+        ("crustacea", "concept-food-allergen-crustacea"),
+        ("egg", "concept-food-allergen-egg"),
+        ("fish", "concept-food-allergen-fish"),
+        ("hazelnut", "concept-food-allergen-hazelnut"),
+        ("lupin", "concept-food-allergen-lupin"),
+        ("macadamia", "concept-food-allergen-macadamia"),
+        ("mackerel", "concept-food-allergen-mackerel"),
+        ("milk", "concept-food-allergen-milk"),
+        ("mustard", "concept-food-allergen-mustard"),
+        ("peanut", "concept-food-allergen-peanut"),
+        ("pecan", "concept-food-allergen-pecan"),
+        ("pine nut", "concept-food-allergen-pine-nut"),
+        ("pistachio", "concept-food-allergen-pistachio"),
+        ("salmon", "concept-food-allergen-salmon"),
+        ("sardine", "concept-food-allergen-sardine"),
+        ("sesame", "concept-food-allergen-sesame"),
+        ("soy", "concept-food-allergen-soy"),
+        ("tuna", "concept-food-allergen-tuna"),
+        ("walnut", "concept-food-allergen-walnut"),
+    ],
+)
+def test_direct_names_release_matches_each_reviewed_english_name(
+    direct_name: str, concept_id: str
+) -> None:
+    record = sample_record()
+    findings = DefaultAllergenDeterministicMatcher().match(
+        ingredient_text=SourcedValue(
+            value=f"water, {direct_name}, salt",
+            source_field="ingredients_text_en",
+            language="en",
+        ),
+        record=record,
+        reference_data=direct_names_reference_data(),
+        engine_version="0.1.0",
+    )
+
+    assert [(finding.concept_id, finding.matched_text.casefold()) for finding in findings] == [
+        (concept_id, direct_name.casefold())
+    ]
+    concept_slug = concept_id.removeprefix("concept-food-allergen-")
+    assert findings[0].mapping_id == f"map-en-{concept_slug}-exact"
+    assert findings[0].rule_id == f"rule-codex-2026-{concept_slug}"
+
+
+@pytest.mark.parametrize(
+    "ingredient_text",
+    [
+        "lactose",
+        "wheat, rye, barley, oats",
+        "sulphite, sulfite",
+        "whey, casein, groundnuts",
+        "ទឹកដោះគោ",
+    ],
+)
+def test_direct_names_release_does_not_match_excluded_or_unreviewed_terms(
+    ingredient_text: str,
+) -> None:
+    findings = DefaultAllergenDeterministicMatcher().match(
+        ingredient_text=SourcedValue(
+            value=ingredient_text,
+            source_field="ingredients_text_en",
+            language="en",
+        ),
+        record=sample_record(),
+        reference_data=direct_names_reference_data(),
+        engine_version="0.1.0",
+    )
+
+    assert findings == ()
+
+
+def test_release_evaluator_emits_only_leaves_with_ancestry_and_applicable_rules() -> None:
+    reference_data = direct_names_reference_data()
+    evaluator = StandardAllergenAssessmentEvaluator(
+        enabled=True,
+        reference_data=StubAllergenReferenceDataAccess(reference_data),
+    )
+    source_record = sample_record()
+    record = replace(
+        source_record,
+        ingredient_texts=(
+            SourcedValue(
+                value="almond, cashew, walnut, cod, salmon",
+                source_field="ingredients_text_en",
+                language="en",
+            ),
+        ),
+    )
+
+    evaluation = evaluator.evaluate(record)
+
+    assert len(evaluation.concepts) == 26
+    assert [concept.concept_id for concept in evaluation.concepts] == sorted(
+        concept.id for concept in reference_data.concepts if concept.is_leaf
+    )
+    assert not {
+        "concept-food-allergen-root",
+        "concept-food-allergen-fish-group",
+        "concept-food-allergen-specific-tree-nuts",
+    }.intersection(concept.concept_id for concept in evaluation.concepts)
+
+    outcomes = {concept.concept_id: concept for concept in evaluation.concepts}
+    assert outcomes["concept-food-allergen-almond"].parent_ids == (
+        "concept-food-allergen-specific-tree-nuts",
+        "concept-food-allergen-root",
+    )
+    assert outcomes["concept-food-allergen-almond"].rule_ids == (
+        "rule-codex-2026-almond",
+        "rule-codex-2026-derivative-exemption",
+    )
+    assert outcomes["concept-food-allergen-cod"].parent_ids == (
+        "concept-food-allergen-fish-group",
+        "concept-food-allergen-root",
+    )
+    assert outcomes["concept-food-allergen-cod"].rule_ids == (
+        "rule-codex-2026-cod",
+        "rule-codex-2026-derivative-exemption",
+    )
+    assert outcomes["concept-food-allergen-milk"].parent_ids == (
+        "concept-food-allergen-root",
+    )
+    assert outcomes["concept-food-allergen-milk"].rule_ids == (
+        "rule-codex-2026-milk",
+        "rule-codex-2026-derivative-exemption",
+    )
+    assert {
+        concept_id
+        for concept_id, outcome in outcomes.items()
+        if outcome.outcome == AllergenAssessmentOutcome.DERIVED_FROM_INGREDIENT
+    } == {
+        "concept-food-allergen-almond",
+        "concept-food-allergen-cashew",
+        "concept-food-allergen-walnut",
+        "concept-food-allergen-cod",
+        "concept-food-allergen-salmon",
+    }
+    assert all(
+        outcome.outcome == AllergenAssessmentOutcome.LABEL_INCOMPLETE_OR_UNREADABLE
+        for concept_id, outcome in outcomes.items()
+        if concept_id
+        not in {
+            "concept-food-allergen-almond",
+            "concept-food-allergen-cashew",
+            "concept-food-allergen-walnut",
+            "concept-food-allergen-cod",
+            "concept-food-allergen-salmon",
+        }
+    )
+    assert {
+        concept_id: outcomes[concept_id].name
+        for concept_id in (
+            "concept-food-allergen-almond",
+            "concept-food-allergen-cashew",
+            "concept-food-allergen-walnut",
+            "concept-food-allergen-cod",
+            "concept-food-allergen-salmon",
+        )
+    } == {
+        "concept-food-allergen-almond": "Almond",
+        "concept-food-allergen-cashew": "Cashew",
+        "concept-food-allergen-walnut": "Walnut",
+        "concept-food-allergen-cod": "Cod",
+        "concept-food-allergen-salmon": "Salmon",
+    }
+
+    expected_findings = [
+        ("almond", "concept-food-allergen-almond", 0, 6),
+        ("cashew", "concept-food-allergen-cashew", 8, 14),
+        ("walnut", "concept-food-allergen-walnut", 16, 22),
+        ("cod", "concept-food-allergen-cod", 24, 27),
+        ("salmon", "concept-food-allergen-salmon", 29, 35),
+    ]
+    assert [
+        (finding.matched_text, finding.concept_id, finding.start_index, finding.end_index)
+        for finding in evaluation.findings
+    ] == expected_findings
+    for finding, (term, concept_id, start_index, end_index) in zip(
+        evaluation.findings, expected_findings, strict=True
+    ):
+        slug = concept_id.removeprefix("concept-food-allergen-")
+        assert finding.id == (
+            "finding-codex-food-allergen-2026-direct-names-v1-"
+            f"map-en-{slug}-exact-{start_index}-{end_index}"
+        )
+        assert finding.mapping_id == f"map-en-{slug}-exact"
+        assert finding.rule_id == f"rule-codex-2026-{slug}"
+        assert finding.relationship_type == "EXACT_NAME"
+        assert finding.source_text == "almond, cashew, walnut, cod, salmon"
+        assert finding.source_text[start_index:end_index] == term
+        assert finding.language == "en"
+        assert finding.source_field == "ingredients_text_en"
+        assert finding.source_url == record.source_url
+        assert finding.source_revision == record.source_revision
+        assert finding.off_dataset_version_id == record.dataset_version.id
+        assert finding.reference_dataset_version_id == reference_data.version.id
+        assert finding.engine_version == "0.1.0"
 
 
 def test_matcher_matches_exact_milk_with_full_provenance() -> None:
@@ -853,7 +1096,4 @@ def test_evaluator_with_multiple_concepts_unmatched_concept_yields_incomplete() 
     assert evaluation.status not in prohibited_outcomes
     for c in evaluation.concepts:
         assert c.outcome not in prohibited_outcomes
-
-
-
 
