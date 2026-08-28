@@ -155,7 +155,7 @@ MVP-1 activates an immutable Reference Dataset Version after one-time qualified 
 - maximum concentration and unit when applicable;
 - review status.
 
-`AssessmentRun` records the exact Claims, Vocabulary Version, Rule Set Version, and processing version used. `DerivedAssessment` stores assessment type, outcome, evidence-coverage state, explanation key, and supersession time.
+`AssessmentEvaluation` is a stateless, request-time evaluation derived from readable Evidence and an Active Reference Dataset Version, with optional non-durable caching. Persistent `AssessmentRun` and `DerivedAssessment` database tables are deferred until post-MVP or when catalog moderation requires them.
 
 Required outcome families:
 
@@ -223,7 +223,7 @@ Invariants:
 - Only an Active Reference Dataset Version may drive an automated assessment.
 - Cambodian rules, Codex international references, jurisdiction-specific allergen rules, external lexical taxonomies, ontologies, and project-authored wording remain separate source sets.
 - Activation is manual and atomic; corrections create a new immutable version and the previous valid version remains available for rollback.
-- Every Assessment Run records the exact reference versions, rules, mappings, and original OFF Evidence used.
+- Every Assessment Evaluation derives from specified reference versions, rules, mappings, and original OFF Evidence, without writing durable run records to the database.
 - A reference-data record cannot create a Product, reviewed Package Revision, accepted Product Claim, Preferred Claim, or Product verification state.
 - Missing, ambiguous, inapplicable, or unavailable reference data produces Evidence Uncertainty or `NOT_ASSESSED`.
 
@@ -264,7 +264,7 @@ Moderator acceptance is not authoritative-source confirmation. Store authoritati
 1. A Product has no barcode, expiry date, ingredient list, or verification-status column.
 2. Every active Package Revision belongs to exactly one Package Variant.
 3. Every concrete Date Marking belongs to an Observed Package and optionally a Batch.
-4. Every Derived Assessment belongs to one Assessment Run.
+4. Every Derived Assessment in post-MVP catalog history belongs to one Assessment Run; MVP-1 uses stateless Assessment Evaluations.
 5. Every safety-critical match points to original transcription evidence and an approved vocabulary version.
 6. Only one active Preferred Claim exists per Package Revision and predicate.
 7. Claims and assessments are superseded, not destructively overwritten.

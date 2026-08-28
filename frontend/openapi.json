@@ -1,6 +1,303 @@
 {
   "components": {
     "schemas": {
+      "AllergenAssessmentResponse": {
+        "properties": {
+          "concepts": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AllergenConceptOutcomeResponse"
+            },
+            "title": "Concepts",
+            "type": "array"
+          },
+          "engine_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine Version"
+          },
+          "evidence_coverage": {
+            "title": "Evidence Coverage",
+            "type": "string"
+          },
+          "findings": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AllergenFindingResponse"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "reference_dataset_version": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentReferenceDatasetVersionResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_signals": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PackageMatchEvidenceResponse"
+            },
+            "title": "Source Signals",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "evidence_coverage"
+        ],
+        "title": "AllergenAssessmentResponse",
+        "type": "object"
+      },
+      "AllergenConceptOutcomeResponse": {
+        "properties": {
+          "concept_id": {
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "finding_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Finding Ids",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "outcome": {
+            "title": "Outcome",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "concept_id",
+          "name",
+          "outcome"
+        ],
+        "title": "AllergenConceptOutcomeResponse",
+        "type": "object"
+      },
+      "AllergenFindingResponse": {
+        "properties": {
+          "concept_id": {
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "end_index": {
+            "title": "End Index",
+            "type": "integer"
+          },
+          "engine_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine Version"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "mapping_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mapping Id"
+          },
+          "matched_text": {
+            "title": "Matched Text",
+            "type": "string"
+          },
+          "off_dataset_version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Off Dataset Version Id"
+          },
+          "reference_dataset_version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Dataset Version Id"
+          },
+          "relationship_type": {
+            "title": "Relationship Type",
+            "type": "string"
+          },
+          "rule_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Id"
+          },
+          "source_field": {
+            "title": "Source Field",
+            "type": "string"
+          },
+          "source_revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Revision"
+          },
+          "source_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Text"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          },
+          "start_index": {
+            "title": "Start Index",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "concept_id",
+          "relationship_type",
+          "matched_text",
+          "start_index",
+          "end_index",
+          "source_field",
+          "source_url"
+        ],
+        "title": "AllergenFindingResponse",
+        "type": "object"
+      },
+      "AssessmentReferenceDatasetVersionResponse": {
+        "properties": {
+          "activated_at": {
+            "format": "date-time",
+            "title": "Activated At",
+            "type": "string"
+          },
+          "dataset_kind": {
+            "default": "FOOD_ALLERGEN",
+            "title": "Dataset Kind",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "retrieved_at": {
+            "format": "date-time",
+            "title": "Retrieved At",
+            "type": "string"
+          },
+          "review_kind": {
+            "title": "Review Kind",
+            "type": "string"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "source_url",
+          "retrieved_at",
+          "activated_at",
+          "sha256",
+          "review_kind"
+        ],
+        "title": "AssessmentReferenceDatasetVersionResponse",
+        "type": "object"
+      },
       "ErrorCode": {
         "enum": [
           "IDENTIFIER_REQUIRED",
@@ -136,6 +433,9 @@
       },
       "PackageMatchCandidateResponse": {
         "properties": {
+          "allergen_assessment": {
+            "$ref": "#/components/schemas/AllergenAssessmentResponse"
+          },
           "dataset_version": {
             "anyOf": [
               {
@@ -241,7 +541,8 @@
           }
         },
         "required": [
-          "source_kind"
+          "source_kind",
+          "allergen_assessment"
         ],
         "title": "PackageMatchCandidateResponse",
         "type": "object"

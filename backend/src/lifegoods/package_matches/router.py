@@ -6,7 +6,12 @@ from fastapi.responses import JSONResponse
 
 from lifegoods.core.concurrency import KeyedSlidingWindowLimiter
 from lifegoods.core.errors import ErrorCode, ErrorDetail, ErrorEnvelope
+from lifegoods.package_matches.assessments import AllergenAssessmentEvaluation
 from lifegoods.package_matches.contracts import (
+    AllergenAssessmentResponse,
+    AllergenConceptOutcomeResponse,
+    AllergenFindingResponse,
+    AssessmentReferenceDatasetVersionResponse,
     ExternalDatasetVersionResponse,
     OpenFoodFactsLookupResponse,
     PackageMatchCandidateResponse,
@@ -94,6 +99,77 @@ def get_package_matches(
     )
 
 
+def _allergen_assessment_response(
+    assessment: AllergenAssessmentEvaluation,
+) -> AllergenAssessmentResponse:
+    ref_version = (
+        AssessmentReferenceDatasetVersionResponse(
+            id=assessment.reference_dataset_version.id,
+            source_url=assessment.reference_dataset_version.source_url,
+            retrieved_at=assessment.reference_dataset_version.retrieved_at,
+            activated_at=assessment.reference_dataset_version.activated_at,
+            sha256=assessment.reference_dataset_version.sha256,
+            review_kind=assessment.reference_dataset_version.review_kind,
+            dataset_kind=assessment.reference_dataset_version.dataset_kind,
+        )
+        if assessment.reference_dataset_version is not None
+        else None
+    )
+    return AllergenAssessmentResponse(
+        status=str(assessment.status),
+        reason=str(assessment.reason) if assessment.reason is not None else None,
+        evidence_coverage=str(assessment.evidence_coverage),
+        engine_version=assessment.engine_version,
+        reference_dataset_version=ref_version,
+        concepts=[
+            AllergenConceptOutcomeResponse(
+                concept_id=concept.concept_id,
+                name=concept.name,
+                outcome=str(concept.outcome),
+                reason=str(concept.reason) if concept.reason is not None else None,
+                finding_ids=list(concept.finding_ids),
+            )
+            for concept in assessment.concepts
+        ],
+        findings=[
+            AllergenFindingResponse(
+                id=finding.id,
+                concept_id=finding.concept_id,
+                mapping_id=finding.mapping_id,
+                rule_id=finding.rule_id,
+                relationship_type=str(finding.relationship_type),
+                matched_text=finding.matched_text,
+                source_text=finding.source_text,
+                start_index=finding.start_index,
+                end_index=finding.end_index,
+                language=finding.language,
+                source_field=finding.source_field,
+                source_url=finding.source_url,
+                source_revision=finding.source_revision,
+                off_dataset_version_id=finding.off_dataset_version_id,
+                reference_dataset_version_id=finding.reference_dataset_version_id,
+                engine_version=finding.engine_version,
+            )
+            for finding in assessment.findings
+        ],
+        source_signals=[
+            PackageMatchEvidenceResponse(
+                field=signal.field,
+                value=signal.value,
+                source_field=signal.source_field,
+                source_name=signal.source_name,
+                source_url=signal.source_url,
+                language=signal.language,
+                observed_at=signal.observed_at,
+                retrieved_at=signal.retrieved_at,
+                source_revision=signal.source_revision,
+                dataset_version_id=signal.dataset_version_id,
+            )
+            for signal in assessment.source_signals
+        ],
+    )
+
+
 def _candidate_response(
     candidate: PackageMatchCandidate,
 ) -> PackageMatchCandidateResponse:
@@ -116,6 +192,9 @@ def _candidate_response(
     )
     return PackageMatchCandidateResponse(
         source_kind=candidate.source_kind,
+        allergen_assessment=_allergen_assessment_response(
+            candidate.allergen_assessment
+        ),
         package_variant_id=candidate.package_variant_id,
         product_id=candidate.product_id,
         external_record_id=candidate.external_record_id,

@@ -24,8 +24,10 @@ from lifegoods.open_food_facts import (
     open_food_facts_image_router,
 )
 from lifegoods.package_matches import (
+    AllergenAssessmentEvaluator,
     FindPackageMatches,
     PackageMatchSourceUnavailableError,
+    StandardAllergenAssessmentEvaluator,
     get_finder,
     get_rate_limiter,
 )
@@ -52,6 +54,7 @@ def create_app(
     external_source: ExternalPackageSource | None = None,
     image_source: ExternalImageSource | None = None,
     package_match_limiter: KeyedSlidingWindowLimiter | None = None,
+    allergen_evaluator: AllergenAssessmentEvaluator | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings()
     _ = session_factory
@@ -60,6 +63,13 @@ def create_app(
     resolved_package_match_limiter = (
         package_match_limiter
         or KeyedSlidingWindowLimiter(resolved_settings.package_match_requests_per_minute)
+    )
+    resolved_allergen_evaluator = (
+        allergen_evaluator
+        or StandardAllergenAssessmentEvaluator(
+            enabled=resolved_settings.allergen_assessments_enabled,
+            engine_version=resolved_settings.assessment_engine_version,
+        )
     )
     if external_source is None:
         mongo_client: MongoClient[dict[str, Any]] = MongoClient(
@@ -108,7 +118,9 @@ def create_app(
         app.router.add_event_handler("shutdown", owned_mongo_client.close)
 
     def provide_finder() -> Iterator[FindPackageMatches]:
-        yield FindPackageMatches(resolved_source)
+        yield FindPackageMatches(
+            resolved_source, allergen_evaluator=resolved_allergen_evaluator
+        )
 
     app.dependency_overrides[get_finder] = provide_finder
     app.dependency_overrides[get_rate_limiter] = lambda: resolved_package_match_limiter

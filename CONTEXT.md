@@ -147,8 +147,12 @@ A reproducible record of an AI processing attempt, including model, prompt and s
 _Avoid_: AI verification, Product extraction status
 
 **Assessment Run**:
-A reproducible application of specified vocabulary and rule versions to source Claims and evidence. Recalculation supersedes earlier assessments without erasing them.
-_Avoid_: Mutable warning calculation
+A deferred, reproducible post-MVP persistent record of an assessment application linking specified vocabulary and rule versions to source Claims and evidence.
+_Avoid_: Mutable warning calculation, request-time cache
+
+**Assessment Evaluation**:
+A stateless, request-time derivation of safety or nutritional guidance for a specific candidate from readable Evidence and an Active Reference Dataset Version, with optional non-durable caching. It does not persist durable run records or declare a Product safe.
+_Avoid_: Assessment Run, safety verdict, permanent product score
 
 **External Evidence Source**:
 A third-party source such as Open Food Facts whose fields and images remain individually attributed, dated, and distinguishable from project-reviewed Claims.

@@ -1,6 +1,25 @@
 """OFF-only Package Match use case, contracts, and API router."""
 
+from lifegoods.package_matches.assessments import (
+    AllergenAssessmentEvaluation,
+    AllergenAssessmentEvaluator,
+    AllergenAssessmentOutcome,
+    AllergenAssessmentReason,
+    AllergenConceptOutcome,
+    AllergenDeterministicMatcher,
+    AllergenFinding,
+    AllergenReferenceDataAccess,
+    DefaultOffAllergenEvidenceExtractor,
+    DisabledAllergenAssessmentEvaluator,
+    EvidenceCoverageState,
+    OffAllergenEvidenceExtractor,
+    StandardAllergenAssessmentEvaluator,
+)
 from lifegoods.package_matches.contracts import (
+    AllergenAssessmentResponse,
+    AllergenConceptOutcomeResponse,
+    AllergenFindingResponse,
+    AssessmentReferenceDatasetVersionResponse,
     ExternalDatasetVersionResponse,
     OpenFoodFactsLookupResponse,
     PackageMatchCandidateResponse,
@@ -24,8 +43,24 @@ from lifegoods.package_matches.router import get_finder, get_rate_limiter, route
 from lifegoods.package_matches.service import FindPackageMatches
 
 __all__ = [
+    "AllergenAssessmentEvaluation",
+    "AllergenAssessmentEvaluator",
+    "AllergenAssessmentOutcome",
+    "AllergenAssessmentReason",
+    "AllergenAssessmentResponse",
+    "AllergenConceptOutcome",
+    "AllergenConceptOutcomeResponse",
+    "AllergenDeterministicMatcher",
+    "AllergenFinding",
+    "AllergenFindingResponse",
+    "AllergenReferenceDataAccess",
+    "AssessmentReferenceDatasetVersionResponse",
+    "DefaultOffAllergenEvidenceExtractor",
+    "DisabledAllergenAssessmentEvaluator",
+    "EvidenceCoverageState",
     "ExternalDatasetVersionResponse",
     "FindPackageMatches",
+    "OffAllergenEvidenceExtractor",
     "OpenFoodFactsLookup",
     "OpenFoodFactsLookupResponse",
     "OpenFoodFactsLookupStatus",
@@ -41,6 +76,7 @@ __all__ = [
     "PackageMatchSourceResponse",
     "PackageMatchSourceUnavailableError",
     "PackageMatchesResponse",
+    "StandardAllergenAssessmentEvaluator",
     "get_finder",
     "get_rate_limiter",
     "router",

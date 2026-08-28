@@ -291,6 +291,16 @@ def test_off_candidate_exposes_active_dataset_version(
         "sha256": DATASET_VERSION.sha256,
     }
     assert body["candidates"][0]["source_revision"] == "1787462400"
+    assert body["candidates"][0]["allergen_assessment"] == {
+        "status": "NOT_ASSESSED",
+        "reason": "FEATURE_DISABLED",
+        "evidence_coverage": "NOT_ASSESSED",
+        "engine_version": None,
+        "reference_dataset_version": None,
+        "concepts": [],
+        "findings": [],
+        "source_signals": [],
+    }
 
     identifier_evidence = body["candidates"][0]["identity_evidence"][0]
     assert identifier_evidence["source_revision"] == "1787462400"

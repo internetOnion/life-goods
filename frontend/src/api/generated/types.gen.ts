@@ -5,6 +5,171 @@ export type ClientOptions = {
 };
 
 /**
+ * AllergenAssessmentResponse
+ */
+export type AllergenAssessmentResponse = {
+    /**
+     * Concepts
+     */
+    concepts?: Array<AllergenConceptOutcomeResponse>;
+    /**
+     * Engine Version
+     */
+    engine_version?: string | null;
+    /**
+     * Evidence Coverage
+     */
+    evidence_coverage: string;
+    /**
+     * Findings
+     */
+    findings?: Array<AllergenFindingResponse>;
+    /**
+     * Reason
+     */
+    reason?: string | null;
+    reference_dataset_version?: AssessmentReferenceDatasetVersionResponse | null;
+    /**
+     * Source Signals
+     */
+    source_signals?: Array<PackageMatchEvidenceResponse>;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
+ * AllergenConceptOutcomeResponse
+ */
+export type AllergenConceptOutcomeResponse = {
+    /**
+     * Concept Id
+     */
+    concept_id: string;
+    /**
+     * Finding Ids
+     */
+    finding_ids?: Array<string>;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Outcome
+     */
+    outcome: string;
+    /**
+     * Reason
+     */
+    reason?: string | null;
+};
+
+/**
+ * AllergenFindingResponse
+ */
+export type AllergenFindingResponse = {
+    /**
+     * Concept Id
+     */
+    concept_id: string;
+    /**
+     * End Index
+     */
+    end_index: number;
+    /**
+     * Engine Version
+     */
+    engine_version?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Language
+     */
+    language?: string | null;
+    /**
+     * Mapping Id
+     */
+    mapping_id?: string | null;
+    /**
+     * Matched Text
+     */
+    matched_text: string;
+    /**
+     * Off Dataset Version Id
+     */
+    off_dataset_version_id?: string | null;
+    /**
+     * Reference Dataset Version Id
+     */
+    reference_dataset_version_id?: string | null;
+    /**
+     * Relationship Type
+     */
+    relationship_type: string;
+    /**
+     * Rule Id
+     */
+    rule_id?: string | null;
+    /**
+     * Source Field
+     */
+    source_field: string;
+    /**
+     * Source Revision
+     */
+    source_revision?: string | null;
+    /**
+     * Source Text
+     */
+    source_text?: string | null;
+    /**
+     * Source Url
+     */
+    source_url: string;
+    /**
+     * Start Index
+     */
+    start_index: number;
+};
+
+/**
+ * AssessmentReferenceDatasetVersionResponse
+ */
+export type AssessmentReferenceDatasetVersionResponse = {
+    /**
+     * Activated At
+     */
+    activated_at: string;
+    /**
+     * Dataset Kind
+     */
+    dataset_kind?: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Retrieved At
+     */
+    retrieved_at: string;
+    /**
+     * Review Kind
+     */
+    review_kind: string;
+    /**
+     * Sha256
+     */
+    sha256: string;
+    /**
+     * Source Url
+     */
+    source_url: string;
+};
+
+/**
  * ErrorCode
  */
 export type ErrorCode = 'IDENTIFIER_REQUIRED' | 'IDENTIFIER_CHARACTERS_INVALID' | 'IDENTIFIER_LENGTH_UNSUPPORTED' | 'IDENTIFIER_CHECK_DIGIT_INVALID' | 'PACKAGE_MATCH_SOURCE_UNAVAILABLE' | 'REFERENCE_IMAGE_URL_INVALID' | 'REFERENCE_IMAGE_NOT_FOUND' | 'REFERENCE_IMAGE_SOURCE_UNAVAILABLE' | 'RATE_LIMIT_EXCEEDED';
@@ -79,6 +244,7 @@ export type OpenFoodFactsLookupStatus = 'AVAILABLE' | 'NOT_FOUND' | 'UNAVAILABLE
  * PackageMatchCandidateResponse
  */
 export type PackageMatchCandidateResponse = {
+    allergen_assessment: AllergenAssessmentResponse;
     dataset_version?: ExternalDatasetVersionResponse | null;
     /**
      * External Record Id
