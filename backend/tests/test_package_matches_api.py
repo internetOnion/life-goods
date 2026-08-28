@@ -34,15 +34,27 @@ from lifegoods.open_food_facts import (
     OpenFoodFactsDatasetSource,
 )
 from lifegoods.package_matches import PackageMatchCandidateResponse
+from lifegoods.reference_datasets.bundle import ReferenceBundle
+from lifegoods.reference_datasets.importer import import_reference_bundle
+from lifegoods.reference_datasets.lifecycle import activate_reference_dataset_version
 
 PACKAGE_MATCH_FIXTURES = (
     Path(__file__).parents[2] / "evaluation" / "fixtures" / "package_matches"
+)
+CODEX_MINIMAL_BUNDLE_PATH = (
+    Path(__file__).parents[1]
+    / "src"
+    / "lifegoods"
+    / "reference_datasets"
+    / "bundles"
+    / "codex_2026_food_allergen_minimal.json"
 )
 DATASET_VERSION = ExternalDatasetVersion(
     id="dataset-2026-08-27",
     source_url="https://static.openfoodfacts.org/data/export.jsonl.gz",
     retrieved_at=datetime(2026, 8, 27, 8, 0, tzinfo=UTC),
     activated_at=datetime(2026, 8, 27, 9, 0, tzinfo=UTC),
+
     sha256="a" * 64,
 )
 
@@ -481,4 +493,273 @@ def test_package_matches_rate_limit_isolates_by_client_ip() -> None:
             headers={"x-forwarded-for": "10.0.0.2"},
         )
         assert res2.status_code == 200
+
+
+def test_package_matches_with_active_allergen_dataset_evaluates_milk_end_to_end(
+    session_factory: sessionmaker[Session],
+) -> None:
+    # 1. Import and activate minimal Codex food allergen dataset in PostgreSQL/SQLite
+    bundle = ReferenceBundle.from_json_file(CODEX_MINIMAL_BUNDLE_PATH)
+    with session_factory() as session:
+        import_reference_bundle(session, bundle)
+        activate_reference_dataset_version(session, bundle.manifest.id)
+
+    # 2. Setup OFF MongoDB with chocolate containing milk powder
+    database = mongomock.MongoClient().lifegoods_off
+    collection_name = "off_products_dataset_2026_08_27"
+    database[VERSIONS_COLLECTION].insert_one(
+        {
+            "_id": DATASET_VERSION.id,
+            "collection_name": collection_name,
+            "source_url": DATASET_VERSION.source_url,
+            "retrieval_completed_at": DATASET_VERSION.retrieved_at,
+            "activated_at": DATASET_VERSION.activated_at,
+            "sha256": DATASET_VERSION.sha256,
+            "status": "ACTIVE",
+        }
+    )
+    database[CONTROL_COLLECTION].insert_one(
+        {"_id": ACTIVE_POINTER_ID, "active_version_id": DATASET_VERSION.id}
+    )
+    database[collection_name].insert_one(
+        {
+            "code": "4006381333931",
+            "product_name_en": "Dark chocolate",
+            "ingredients_text_en": "Cocoa mass, sugar, cocoa butter, milk powder",
+            "allergens": "Contains milk",
+            "allergens_tags": ["en:milk"],
+            "traces": "May contain nuts",
+            "traces_tags": ["en:nuts"],
+            "last_modified_t": 1787462400,
+        }
+    )
+
+    # 3. Create app with allergen assessments enabled
+    with TestClient(
+        create_app(
+            settings=Settings(allergen_assessments_enabled=True),
+            session_factory=session_factory,
+            external_source=OpenFoodFactsDatasetSource(database),
+        )
+    ) as test_client:
+        response = test_client.get(
+            "/api/v1/package-matches", params={"identifier": "4006381333931"}
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["candidates"]) == 1
+    candidate = body["candidates"][0]
+
+    # Verify identity & label evidence remain unchanged
+    assert candidate["source_kind"] == "OPEN_FOOD_FACTS"
+    assert candidate["external_record_id"] == "4006381333931"
+
+    # Verify allergen assessment
+    assessment = candidate["allergen_assessment"]
+    assert assessment["status"] == "DERIVED_FROM_INGREDIENT"
+    assert assessment["reason"] is None
+    assert assessment["evidence_coverage"] == "PARTIAL"
+    assert assessment["engine_version"] == "0.1.0"
+    assert assessment["reference_dataset_version"]["id"] == "codex-food-allergen-2026-minimal"
+    assert assessment["reference_dataset_version"]["review_kind"] == "FOOD_DOMAIN_REVIEW"
+
+    # Verify concepts
+    assert len(assessment["concepts"]) == 1
+    concept = assessment["concepts"][0]
+    assert concept["concept_id"] == "concept-food-allergen-milk"
+    assert concept["name"] == "Milk and milk products"
+    assert concept["outcome"] == "DERIVED_FROM_INGREDIENT"
+    assert concept["reason"] is None
+    assert len(concept["finding_ids"]) == 1
+
+    # Verify findings
+    assert len(assessment["findings"]) == 1
+    finding = assessment["findings"][0]
+    assert finding["id"] == concept["finding_ids"][0]
+    assert finding["concept_id"] == "concept-food-allergen-milk"
+    assert finding["mapping_id"] == "map-en-milk-exact"
+    assert finding["rule_id"] == "rule-codex-2026-milk"
+    assert finding["relationship_type"] == "EXACT_NAME"
+    assert finding["matched_text"] == "milk"
+    assert finding["start_index"] == 33
+    assert finding["end_index"] == 37
+    assert finding["source_field"] == "ingredients_text_en"
+    assert finding["source_url"] == "https://world.openfoodfacts.org/product/4006381333931"
+    assert finding["source_revision"] == "1787462400"
+    assert finding["off_dataset_version_id"] == "dataset-2026-08-27"
+    assert finding["reference_dataset_version_id"] == "codex-food-allergen-2026-minimal"
+    assert finding["engine_version"] == "0.1.0"
+
+    # Verify source signals
+    signal_fields = [s["field"] for s in assessment["source_signals"]]
+    assert "allergen_declaration" in signal_fields
+    assert "allergen_tags" in signal_fields
+
+
+def test_package_matches_with_active_allergen_dataset_evaluates_whey_derivative_end_to_end(
+    session_factory: sessionmaker[Session],
+) -> None:
+    bundle = ReferenceBundle.from_json_file(CODEX_MINIMAL_BUNDLE_PATH)
+    with session_factory() as session:
+        import_reference_bundle(session, bundle)
+        activate_reference_dataset_version(session, bundle.manifest.id)
+
+    database = mongomock.MongoClient().lifegoods_off
+    collection_name = "off_products_dataset_2026_08_27"
+    database[VERSIONS_COLLECTION].insert_one(
+        {
+            "_id": DATASET_VERSION.id,
+            "collection_name": collection_name,
+            "source_url": DATASET_VERSION.source_url,
+            "retrieval_completed_at": DATASET_VERSION.retrieved_at,
+            "activated_at": DATASET_VERSION.activated_at,
+            "sha256": DATASET_VERSION.sha256,
+            "status": "ACTIVE",
+        }
+    )
+    database[CONTROL_COLLECTION].insert_one(
+        {"_id": ACTIVE_POINTER_ID, "active_version_id": DATASET_VERSION.id}
+    )
+    database[collection_name].insert_one(
+        {
+            "code": "4006381333931",
+            "product_name_en": "Protein bar",
+            "ingredients_text_en": "Wheat flour, sugar, whey powder, salt",
+            "last_modified_t": 1787462400,
+        }
+    )
+
+    with TestClient(
+        create_app(
+            settings=Settings(allergen_assessments_enabled=True),
+            session_factory=session_factory,
+            external_source=OpenFoodFactsDatasetSource(database),
+        )
+    ) as test_client:
+        response = test_client.get(
+            "/api/v1/package-matches", params={"identifier": "4006381333931"}
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assessment = body["candidates"][0]["allergen_assessment"]
+    assert assessment["status"] == "DERIVED_FROM_INGREDIENT"
+    assert assessment["concepts"][0]["outcome"] == "DERIVED_FROM_INGREDIENT"
+    assert len(assessment["findings"]) == 1
+    assert assessment["findings"][0]["mapping_id"] == "map-en-whey-derived"
+    assert assessment["findings"][0]["relationship_type"] == "DERIVED_FROM"
+    assert assessment["findings"][0]["matched_text"] == "whey"
+
+
+def test_package_matches_with_active_allergen_dataset_and_no_match_returns_incomplete_label(
+    session_factory: sessionmaker[Session],
+) -> None:
+    bundle = ReferenceBundle.from_json_file(CODEX_MINIMAL_BUNDLE_PATH)
+    with session_factory() as session:
+        import_reference_bundle(session, bundle)
+        activate_reference_dataset_version(session, bundle.manifest.id)
+
+    database = mongomock.MongoClient().lifegoods_off
+    collection_name = "off_products_dataset_2026_08_27"
+    database[VERSIONS_COLLECTION].insert_one(
+        {
+            "_id": DATASET_VERSION.id,
+            "collection_name": collection_name,
+            "source_url": DATASET_VERSION.source_url,
+            "retrieval_completed_at": DATASET_VERSION.retrieved_at,
+            "activated_at": DATASET_VERSION.activated_at,
+            "sha256": DATASET_VERSION.sha256,
+            "status": "ACTIVE",
+        }
+    )
+    database[CONTROL_COLLECTION].insert_one(
+        {"_id": ACTIVE_POINTER_ID, "active_version_id": DATASET_VERSION.id}
+    )
+    database[collection_name].insert_one(
+        {
+            "code": "4006381333931",
+            "product_name_en": "Pure Dark chocolate",
+            "ingredients_text_en": "Cocoa mass, sugar, cocoa butter, vanilla extract",
+            "last_modified_t": 1787462400,
+        }
+    )
+
+    with TestClient(
+        create_app(
+            settings=Settings(allergen_assessments_enabled=True),
+            session_factory=session_factory,
+            external_source=OpenFoodFactsDatasetSource(database),
+        )
+    ) as test_client:
+        response = test_client.get(
+            "/api/v1/package-matches", params={"identifier": "4006381333931"}
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assessment = body["candidates"][0]["allergen_assessment"]
+    assert assessment["status"] == "LABEL_INCOMPLETE_OR_UNREADABLE"
+    assert assessment["reason"] is None
+    assert assessment["evidence_coverage"] == "PARTIAL"
+    assert len(assessment["concepts"]) == 1
+    assert assessment["concepts"][0]["outcome"] == "LABEL_INCOMPLETE_OR_UNREADABLE"
+    assert assessment["findings"] == []
+
+
+def test_package_matches_with_active_allergen_dataset_missing_english_text(
+    session_factory: sessionmaker[Session],
+) -> None:
+
+    bundle = ReferenceBundle.from_json_file(CODEX_MINIMAL_BUNDLE_PATH)
+    with session_factory() as session:
+        import_reference_bundle(session, bundle)
+        activate_reference_dataset_version(session, bundle.manifest.id)
+
+    database = mongomock.MongoClient().lifegoods_off
+    collection_name = "off_products_dataset_2026_08_27"
+    database[VERSIONS_COLLECTION].insert_one(
+        {
+            "_id": DATASET_VERSION.id,
+            "collection_name": collection_name,
+            "source_url": DATASET_VERSION.source_url,
+            "retrieval_completed_at": DATASET_VERSION.retrieved_at,
+            "activated_at": DATASET_VERSION.activated_at,
+            "sha256": DATASET_VERSION.sha256,
+            "status": "ACTIVE",
+        }
+    )
+    database[CONTROL_COLLECTION].insert_one(
+        {"_id": ACTIVE_POINTER_ID, "active_version_id": DATASET_VERSION.id}
+    )
+    database[collection_name].insert_one(
+        {
+            "code": "4006381333931",
+            "product_name_km": "សូកូឡាខ្មៅ",
+            "ingredients_text_km": "ម៉ាសកាកាវ ស្ករ ប៊ឺកាកាវ",
+            "last_modified_t": 1787462400,
+        }
+    )
+
+    with TestClient(
+        create_app(
+            settings=Settings(allergen_assessments_enabled=True),
+            session_factory=session_factory,
+            external_source=OpenFoodFactsDatasetSource(database),
+        )
+    ) as test_client:
+        response = test_client.get(
+            "/api/v1/package-matches", params={"identifier": "4006381333931"}
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assessment = body["candidates"][0]["allergen_assessment"]
+    assert assessment["status"] == "NOT_ASSESSED"
+    assert assessment["reason"] == "EVIDENCE_UNAVAILABLE"
+    assert assessment["evidence_coverage"] == "NOT_ASSESSED"
+    assert assessment["reference_dataset_version"]["id"] == "codex-food-allergen-2026-minimal"
+    assert assessment["concepts"] == []
+    assert assessment["findings"] == []
+
 

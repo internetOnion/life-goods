@@ -26,6 +26,19 @@ docker compose -f infra/compose.yaml up -d postgres mongodb
 pnpm db:migrate
 ```
 
+### Reference Datasets (Allergen Rules & Lexical Mappings)
+
+Allergen assessment requires an active `FOOD_ALLERGEN` Reference Dataset Version in PostgreSQL. Import and activate the minimal bundle:
+
+```bash
+pnpm reference:dataset import backend/src/lifegoods/reference_datasets/bundles/codex_2026_food_allergen_minimal.json
+pnpm reference:dataset list
+pnpm reference:dataset activate codex-food-allergen-2026-minimal --review-kind FOOD_DOMAIN_REVIEW
+pnpm reference:dataset status
+```
+
+### Open Food Facts (OFF) Dataset
+
 Package Match requires an Active OFF Dataset Version. Importing the full global export is
 an explicit operator action; see [`docs/OFF_DATASET.md`](docs/OFF_DATASET.md) for the
 sample workflow, production-sized import, validation, activation, rollback, and backup gate.
@@ -41,12 +54,15 @@ pnpm off:dataset -- activate <version_id>
 
 Additional lifecycle commands are documented in `docs/OFF_DATASET.md`.
 
-Start the API and Web Client in separate terminals. The normal Web Client command uses HTTPS so camera access works when testing from a phone:
+### Start the Application
+
+Start the API and Web Client in separate terminals. Set `LIFEGOODS_ALLERGEN_ASSESSMENTS_ENABLED=true` to enable allergen evaluations:
 
 ```bash
-pnpm backend:dev
+LIFEGOODS_ALLERGEN_ASSESSMENTS_ENABLED=true pnpm backend:dev
 pnpm dev
 ```
+
 
 Open the `https://localhost:5173` URL. The Web Client proxies `/api` requests to `http://localhost:8000` during development.
 

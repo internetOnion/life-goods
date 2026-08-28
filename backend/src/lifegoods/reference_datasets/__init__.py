@@ -1,6 +1,12 @@
-"""Reference datasets domain module."""
-
-from lifegoods.reference_datasets.access import DatabaseAllergenReferenceDataAccess
+from lifegoods.reference_datasets.access import (
+    ActiveAllergenReferenceData,
+    AllergenAssessmentReferenceVersion,
+    AllergenReferenceConcept,
+    AllergenReferenceDataAccess,
+    AllergenReferenceMapping,
+    AllergenReferenceRule,
+    DatabaseAllergenReferenceDataAccess,
+)
 from lifegoods.reference_datasets.bundle import (
     AllergenRelationshipType,
     AllergenRuleDefinition,
@@ -39,10 +45,17 @@ from lifegoods.reference_datasets.models import (
 )
 
 __all__ = [
+    "ActiveAllergenReferenceData",
+    "AllergenAssessmentReferenceVersion",
+    "AllergenReferenceConcept",
+    "AllergenReferenceDataAccess",
+    "AllergenReferenceMapping",
+    "AllergenReferenceRule",
     "AllergenRelationshipType",
     "AllergenRuleDefinition",
     "AllergenRuleKind",
     "AllergenRuleRecord",
+
     "ConditionFamily",
     "DatabaseAllergenReferenceDataAccess",
     "LexicalMappingDefinition",

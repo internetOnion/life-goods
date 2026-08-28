@@ -8,7 +8,7 @@ from lifegoods.package_matches.assessments import (
     AllergenConceptOutcome,
     AllergenDeterministicMatcher,
     AllergenFinding,
-    AllergenReferenceDataAccess,
+    DefaultAllergenDeterministicMatcher,
     DefaultOffAllergenEvidenceExtractor,
     DisabledAllergenAssessmentEvaluator,
     EvidenceCoverageState,
@@ -41,6 +41,7 @@ from lifegoods.package_matches.models import (
 )
 from lifegoods.package_matches.router import get_finder, get_rate_limiter, router
 from lifegoods.package_matches.service import FindPackageMatches
+from lifegoods.reference_datasets import AllergenReferenceDataAccess
 
 __all__ = [
     "AllergenAssessmentEvaluation",
@@ -55,9 +56,12 @@ __all__ = [
     "AllergenFindingResponse",
     "AllergenReferenceDataAccess",
     "AssessmentReferenceDatasetVersionResponse",
+    "DefaultAllergenDeterministicMatcher",
     "DefaultOffAllergenEvidenceExtractor",
     "DisabledAllergenAssessmentEvaluator",
     "EvidenceCoverageState",
+
+
     "ExternalDatasetVersionResponse",
     "FindPackageMatches",
     "OffAllergenEvidenceExtractor",

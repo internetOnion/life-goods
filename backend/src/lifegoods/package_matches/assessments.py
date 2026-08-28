@@ -1,13 +1,19 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
-from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Protocol
 
 from lifegoods.open_food_facts.models import (
     ExternalPackageRecord,
     SourcedValue,
+)
+from lifegoods.reference_datasets import (
+    ActiveAllergenReferenceData,
+    AllergenAssessmentReferenceVersion,
+    AllergenReferenceDataAccess,
+    AllergenRelationshipType,
 )
 
 if TYPE_CHECKING:
@@ -37,30 +43,6 @@ class EvidenceCoverageState(StrEnum):
     COMPLETE_READABLE_LABEL = "COMPLETE_READABLE_LABEL"
     PARTIAL = "PARTIAL"
     UNREADABLE = "UNREADABLE"
-
-
-class AllergenRelationshipType(StrEnum):
-    EXACT_NAME = "EXACT_NAME"
-    SPELLING_VARIANT = "SPELLING_VARIANT"
-    DERIVED_FROM = "DERIVED_FROM"
-    CONTAINS_SOURCE = "CONTAINS_SOURCE"
-    PRECAUTIONARY_PHRASE = "PRECAUTIONARY_PHRASE"
-
-
-class ReferenceReviewKind(StrEnum):
-    FOOD_DOMAIN_REVIEW = "FOOD_DOMAIN_REVIEW"
-    PROJECT_MAINTAINER_APPROVAL = "PROJECT_MAINTAINER_APPROVAL"
-
-
-@dataclass(frozen=True, slots=True)
-class AllergenAssessmentReferenceVersion:
-    id: str
-    source_url: str
-    retrieved_at: datetime
-    activated_at: datetime
-    sha256: str
-    review_kind: str
-    dataset_kind: str = "FOOD_ALLERGEN"
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,16 +92,80 @@ class OffAllergenEvidenceExtractor(Protocol):
     ) -> tuple[PackageMatchEvidence, ...]: ...
 
 
-class AllergenReferenceDataAccess(Protocol):
-    def get_active_version(self) -> AllergenAssessmentReferenceVersion | None: ...
-
-
 class AllergenDeterministicMatcher(Protocol):
     def match(
         self,
-        text: str,
-        reference_version: AllergenAssessmentReferenceVersion,
+        *,
+        ingredient_text: SourcedValue[str],
+        record: ExternalPackageRecord,
+        reference_data: ActiveAllergenReferenceData,
+        engine_version: str,
     ) -> tuple[AllergenFinding, ...]: ...
+
+
+class DefaultAllergenDeterministicMatcher:
+    def match(
+        self,
+        *,
+        ingredient_text: SourcedValue[str],
+        record: ExternalPackageRecord,
+        reference_data: ActiveAllergenReferenceData,
+        engine_version: str,
+    ) -> tuple[AllergenFinding, ...]:
+        findings: list[AllergenFinding] = []
+        source_text = ingredient_text.value
+        if not source_text:
+            return ()
+
+        rule_by_concept: dict[str, str] = {}
+        for rule in reference_data.rules:
+            if rule.concept_id not in rule_by_concept:
+                rule_by_concept[rule.concept_id] = rule.id
+
+        for mapping in reference_data.mappings:
+            if (
+                ingredient_text.language
+                and mapping.language
+                and ingredient_text.language.lower() != mapping.language.lower()
+            ):
+                continue
+
+            mapped_text = mapping.mapped_text.strip()
+            if not mapped_text:
+                continue
+
+            pattern = re.compile(rf"\b{re.escape(mapped_text)}\b", re.IGNORECASE)
+            for match in pattern.finditer(source_text):
+                start_index = match.start()
+                end_index = match.end()
+                matched_text = source_text[start_index:end_index]
+                finding_id = (
+                    f"finding-{reference_data.version.id}-{mapping.id}-{start_index}-{end_index}"
+                )
+                findings.append(
+                    AllergenFinding(
+                        id=finding_id,
+                        concept_id=mapping.concept_id,
+                        relationship_type=mapping.relationship_type,
+                        matched_text=matched_text,
+                        start_index=start_index,
+                        end_index=end_index,
+                        mapping_id=mapping.id,
+                        rule_id=rule_by_concept.get(mapping.concept_id),
+                        source_text=source_text,
+                        language=mapping.language,
+                        source_field=ingredient_text.source_field,
+                        source_url=record.source_url,
+                        source_revision=record.source_revision,
+                        off_dataset_version_id=record.dataset_version.id,
+                        reference_dataset_version_id=reference_data.version.id,
+                        engine_version=engine_version,
+                    )
+                )
+
+        findings.sort(key=lambda f: (f.start_index, f.end_index, f.mapping_id or ""))
+        return tuple(findings)
+
 
 
 class AllergenAssessmentCache(Protocol):
@@ -201,7 +247,7 @@ class StandardAllergenAssessmentEvaluator:
         self._engine_version = engine_version
         self._extractor = extractor or DefaultOffAllergenEvidenceExtractor()
         self._reference_data = reference_data
-        self._matcher = matcher
+        self._matcher = matcher or DefaultAllergenDeterministicMatcher()
         self._cache = cache
 
     def evaluate(
@@ -218,7 +264,7 @@ class StandardAllergenAssessmentEvaluator:
                 findings=(),
                 source_signals=(),
             )
-        # Feature-enabled evaluation boundary for upcoming issues (#59, #60, #61)
+        source_signals = self._extractor.extract_signals(record)
         if self._reference_data is None:
             return AllergenAssessmentEvaluation(
                 status=AllergenAssessmentOutcome.NOT_ASSESSED,
@@ -228,10 +274,10 @@ class StandardAllergenAssessmentEvaluator:
                 reference_dataset_version=None,
                 concepts=(),
                 findings=(),
-                source_signals=self._extractor.extract_signals(record),
+                source_signals=source_signals,
             )
-        active_version = self._reference_data.get_active_version()
-        if active_version is None:
+        active_data = self._reference_data.get_active_data()
+        if active_data is None:
             return AllergenAssessmentEvaluation(
                 status=AllergenAssessmentOutcome.NOT_ASSESSED,
                 reason=AllergenAssessmentReason.REFERENCE_VERSION_UNAVAILABLE,
@@ -240,15 +286,76 @@ class StandardAllergenAssessmentEvaluator:
                 reference_dataset_version=None,
                 concepts=(),
                 findings=(),
-                source_signals=self._extractor.extract_signals(record),
+                source_signals=source_signals,
             )
-        return AllergenAssessmentEvaluation(
-            status=AllergenAssessmentOutcome.NOT_ASSESSED,
-            reason=AllergenAssessmentReason.EVIDENCE_UNAVAILABLE,
-            evidence_coverage=EvidenceCoverageState.NOT_ASSESSED,
+
+        english_ingredient_text: SourcedValue[str] | None = None
+        for it in record.ingredient_texts:
+            if (
+                it.language == "en"
+                or (it.source_field and it.source_field == "ingredients_text_en")
+                or (it.source_field and it.source_field.endswith("_en"))
+            ) and (it.value and it.value.strip()):
+                english_ingredient_text = it
+                break
+
+
+        if english_ingredient_text is None:
+            return AllergenAssessmentEvaluation(
+                status=AllergenAssessmentOutcome.NOT_ASSESSED,
+                reason=AllergenAssessmentReason.EVIDENCE_UNAVAILABLE,
+                evidence_coverage=EvidenceCoverageState.NOT_ASSESSED,
+                engine_version=self._engine_version,
+                reference_dataset_version=active_data.version,
+                concepts=(),
+                findings=(),
+                source_signals=source_signals,
+            )
+
+        findings = self._matcher.match(
+            ingredient_text=english_ingredient_text,
+            record=record,
+            reference_data=active_data,
             engine_version=self._engine_version,
-            reference_dataset_version=active_version,
-            concepts=(),
-            findings=(),
-            source_signals=self._extractor.extract_signals(record),
         )
+
+        findings_by_concept: dict[str, list[AllergenFinding]] = {}
+        for finding in findings:
+            findings_by_concept.setdefault(finding.concept_id, []).append(finding)
+
+        concept_outcomes: list[AllergenConceptOutcome] = []
+        for concept in active_data.concepts:
+            concept_findings = findings_by_concept.get(concept.id, [])
+            if concept_findings:
+                outcome = AllergenAssessmentOutcome.DERIVED_FROM_INGREDIENT
+                finding_ids = tuple(f.id for f in concept_findings)
+            else:
+                outcome = AllergenAssessmentOutcome.LABEL_INCOMPLETE_OR_UNREADABLE
+                finding_ids = ()
+            concept_outcomes.append(
+                AllergenConceptOutcome(
+                    concept_id=concept.id,
+                    name=concept.name,
+                    outcome=outcome,
+                    reason=None,
+                    finding_ids=finding_ids,
+                )
+            )
+
+        top_level_status = (
+            AllergenAssessmentOutcome.DERIVED_FROM_INGREDIENT
+            if findings
+            else AllergenAssessmentOutcome.LABEL_INCOMPLETE_OR_UNREADABLE
+        )
+
+        return AllergenAssessmentEvaluation(
+            status=top_level_status,
+            reason=None,
+            evidence_coverage=EvidenceCoverageState.PARTIAL,
+            engine_version=self._engine_version,
+            reference_dataset_version=active_data.version,
+            concepts=tuple(concept_outcomes),
+            findings=findings,
+            source_signals=source_signals,
+        )
+

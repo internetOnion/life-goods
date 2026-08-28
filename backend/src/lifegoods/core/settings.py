@@ -16,9 +16,13 @@ DEFAULT_ASSESSMENT_ENGINE_VERSION = "0.1.0"
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="LIFEGOODS_", env_file=".env")
+    model_config = SettingsConfigDict(
+        env_prefix="LIFEGOODS_",
+        env_file=(".env", "backend/.env"),
+        extra="ignore",
+    )
 
-    database_url: str = "postgresql+psycopg://postgres:Rathanak02@localhost:5432/life-goods"
+    database_url: str = "postgresql+psycopg://lifegoods:lifegoods@localhost:5433/lifegoods"
     allowed_origins: tuple[str, ...] = ("http://localhost:5173",)
     open_food_facts_image_base_url: str = DEFAULT_OPEN_FOOD_FACTS_IMAGE_BASE_URL
     open_food_facts_image_timeout_seconds: float = (
