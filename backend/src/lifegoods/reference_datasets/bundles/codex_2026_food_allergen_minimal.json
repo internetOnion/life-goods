@@ -1,0 +1,64 @@
+{
+  "manifest": {
+    "id": "codex-food-allergen-2026-minimal",
+    "dataset_kind": "FOOD_ALLERGEN",
+    "edition": "CXS 1-1985 (Amended 2026)",
+    "jurisdiction": "INTERNATIONAL",
+    "source_url": "https://www.fao.org/fao-who-codexalimentarius/standards/cxs1-1985",
+    "licensing_decision": "PUBLIC_GOVERNMENT_STANDARD",
+    "project_approver": "food-safety-reviewer@lifegoods.org",
+    "review_kind": "FOOD_DOMAIN_REVIEW",
+    "sha256": "d4151f3ea6433ab276a4a005963a9d7abdaf262d20b808d4a6ad4fdef2a88ce3"
+  },
+  "sources": [
+    {
+      "id": "source-codex-cxs-1-1985-2026",
+      "name": "Codex General Standard for the Labelling of Prepackaged Foods",
+      "source_type": "INTERNATIONAL_STANDARD",
+      "source_url": "https://www.fao.org/fao-who-codexalimentarius/standards/cxs1-1985",
+      "jurisdiction": "INTERNATIONAL",
+      "publisher": "Codex Alimentarius Commission",
+      "edition": "CXS 1-1985 (Amended 2026)",
+      "licensing_decision": "PUBLIC_GOVERNMENT_STANDARD",
+      "terms_version": "2026"
+    }
+  ],
+  "concepts": [
+    {
+      "id": "concept-food-allergen-milk",
+      "name": "Milk and milk products",
+      "condition_family": "FOOD_ALLERGEN",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Milk from cows or other mammals and ingredients derived from milk, including lactose."
+    }
+  ],
+  "mappings": [
+    {
+      "id": "map-en-milk-exact",
+      "concept_id": "concept-food-allergen-milk",
+      "language": "en",
+      "mapped_text": "milk",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for milk allergen"
+    },
+    {
+      "id": "map-en-whey-derived",
+      "concept_id": "concept-food-allergen-milk",
+      "language": "en",
+      "mapped_text": "whey",
+      "relationship_type": "DERIVED_FROM",
+      "notes": "Clear dairy derivative mapped to milk allergen"
+    }
+  ],
+  "rules": [
+    {
+      "id": "rule-codex-2026-milk",
+      "concept_id": "concept-food-allergen-milk",
+      "source_id": "source-codex-cxs-1-1985-2026",
+      "rule_kind": "MANDATORY_DECLARATION",
+      "condition_family": "FOOD_ALLERGEN",
+      "description": "Codex CXS 1-1985 Section 4.2.1.4 mandatory declaration for milk and milk products"
+    }
+  ]
+}
