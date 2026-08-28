@@ -199,6 +199,15 @@ class ReferenceBundle:
     mappings: list[LexicalMappingDefinition]
     rules: list[AllergenRuleDefinition]
 
+    def compute_sha256(self) -> str:
+        return compute_bundle_sha256(
+            manifest=self.manifest,
+            sources=self.sources,
+            concepts=self.concepts,
+            mappings=self.mappings,
+            rules=self.rules,
+        )
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "manifest": self.manifest.to_dict(include_sha256=True),

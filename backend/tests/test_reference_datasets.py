@@ -246,6 +246,33 @@ def test_validation_detects_integrity_hash_mismatch() -> None:
     assert any("Integrity hash mismatch" in err for err in report.errors)
 
 
+def test_validation_detects_ambiguous_derivatives_across_concepts() -> None:
+    bundle = create_valid_bundle()
+    bundle_dict = bundle.to_dict()
+    bundle_dict["concepts"].append(
+        {
+            "id": "concept-food-allergen-soy",
+            "name": "Soybeans and products thereof",
+            "condition_family": "FOOD_ALLERGEN",
+            "parent_id": None,
+            "is_leaf": True,
+        }
+    )
+    bundle_dict["mappings"].append(
+        {
+            "id": "map-en-whey-soy-conflict",
+            "concept_id": "concept-food-allergen-soy",
+            "language": "en",
+            "mapped_text": "whey",
+            "relationship_type": "DERIVED_FROM",
+        }
+    )
+    reconstructed = ReferenceBundle.from_dict(bundle_dict)
+    report = validate_bundle(reconstructed)
+    assert not report.is_valid
+    assert any("Ambiguous derivative or conflicting mapping" in err for err in report.errors)
+
+
 def test_condition_families_are_strictly_typed() -> None:
     bundle = create_valid_bundle()
     bundle_dict = bundle.to_dict()
@@ -378,6 +405,27 @@ def test_import_invalid_bundle_fails(db_session: Session) -> None:
     # Ensure no partial rows were committed
     assert db_session.query(ReferenceDatasetVersionRecord).count() == 0
     assert db_session.query(ReferenceConceptRecord).count() == 0
+
+
+def test_import_rejects_conflicting_source_definition(db_session: Session) -> None:
+    bundle1 = create_valid_bundle()
+    import_reference_bundle(db_session, bundle1)
+
+    # Create bundle2 with different version_id but conflicting source metadata under same source_id
+    bundle2_dict = create_valid_bundle().to_dict()
+    bundle2_dict["manifest"]["id"] = "codex-food-allergen-2026-v2"
+    bundle2_dict["sources"][0]["source_url"] = "https://conflicting-source-url.org"
+    bundle2_dict["manifest"]["sha256"] = compute_bundle_sha256(
+        manifest=ReferenceDatasetManifest.from_dict(bundle2_dict["manifest"]),
+        sources=[ReferenceSourceDefinition.from_dict(s) for s in bundle2_dict["sources"]],
+        concepts=[ReferenceConceptDefinition.from_dict(c) for c in bundle2_dict["concepts"]],
+        mappings=[LexicalMappingDefinition.from_dict(m) for m in bundle2_dict["mappings"]],
+        rules=[AllergenRuleDefinition.from_dict(r) for r in bundle2_dict["rules"]],
+    )
+    bundle2 = ReferenceBundle.from_dict(bundle2_dict)
+
+    with pytest.raises(ReferenceDatasetConflictError, match="conflicts with existing source"):
+        import_reference_bundle(db_session, bundle2)
 
 
 def test_seed_bundle_file_is_valid_and_can_be_imported(db_session: Session) -> None:

@@ -10,7 +10,7 @@
 
 - `frontend/` is the only pnpm workspace package; `backend/` is a separate Python 3.13 uv project.
 - `frontend/src/main.tsx` is the React entrypoint; `frontend/src/app/App.tsx` composes routes and feature behavior lives under `frontend/src/features/`.
-- `backend/src/lifegoods/main.py` is the FastAPI app factory. Backend code is structured into domain modules: `core/` for shared infrastructure and base errors, `identifiers/` for identifier validation and algorithms, `catalog/` for durable catalog persistence, `open_food_facts/` for external OFF dataset querying, image caching, and CLI, and `package_matches/` for package matching use cases and API routing.
+- `backend/src/lifegoods/main.py` is the FastAPI app factory. Backend code is structured into domain modules: `core/` for shared infrastructure and base errors, `identifiers/` for identifier validation and algorithms, `catalog/` for durable catalog persistence, `open_food_facts/` for external OFF dataset querying, image caching, and CLI, `reference_datasets/` for reference dataset bundle validation, immutable import, and operator CLI, and `package_matches/` for package matching use cases and API routing.
 - The frontend calls the backend through the generated client; FastAPI owns the contract. `frontend/openapi.json` and `frontend/src/api/generated/` are generated files.
 
 ## Commands

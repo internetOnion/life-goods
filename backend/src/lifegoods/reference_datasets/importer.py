@@ -71,6 +71,17 @@ def import_reference_bundle(
                 created_at=utc_now,
             )
             session.add(source_record)
+        else:
+            if (
+                existing_source.name != src.name
+                or existing_source.source_url != src.source_url
+                or existing_source.jurisdiction != src.jurisdiction
+                or existing_source.licensing_decision != src.licensing_decision
+            ):
+                raise ReferenceDatasetConflictError(
+                    f"Reference source '{src.id}' conflicts with existing source definition "
+                    f"in database."
+                )
 
     # Flush sources before rules reference them
     session.flush()
