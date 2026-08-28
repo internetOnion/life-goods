@@ -217,3 +217,39 @@ class AllergenRuleRecord(Base):
         overlaps="dataset_version,rules",
     )
     source: Mapped[ReferenceSourceRecord] = relationship()
+
+
+class ReferenceDatasetPointerRecord(Base):
+    __tablename__ = "reference_dataset_pointers"
+    __table_args__ = (
+        CheckConstraint(
+            "dataset_kind IN ('FOOD_ALLERGEN', 'COELIAC_GLUTEN', "
+            "'SULPHITE_SENSITIVITY', 'INTOLERANCE')",
+            name="ck_ref_dataset_pointer_kind",
+        ),
+        CheckConstraint(
+            "review_kind IN ('FOOD_DOMAIN_REVIEW', 'PROJECT_MAINTAINER_APPROVAL')",
+            name="ck_ref_dataset_pointer_review_kind",
+        ),
+    )
+
+    dataset_kind: Mapped[str] = mapped_column(String(32), primary_key=True)
+    active_version_id: Mapped[str] = mapped_column(
+        ForeignKey("reference_dataset_versions.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    previous_version_id: Mapped[str | None] = mapped_column(
+        ForeignKey("reference_dataset_versions.id", ondelete="RESTRICT"),
+        nullable=True,
+    )
+    activated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    activated_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    review_kind: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    active_version: Mapped[ReferenceDatasetVersionRecord] = relationship(
+        foreign_keys=[active_version_id]
+    )
+    previous_version: Mapped[ReferenceDatasetVersionRecord | None] = relationship(
+        foreign_keys=[previous_version_id]
+    )
+

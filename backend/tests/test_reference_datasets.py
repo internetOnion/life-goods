@@ -25,6 +25,14 @@ from lifegoods.reference_datasets.importer import (
     ReferenceDatasetValidationError,
     import_reference_bundle,
 )
+from lifegoods.reference_datasets.lifecycle import (
+    ReferenceDatasetApprovalError,
+    ReferenceDatasetNotFoundError,
+    ReferenceDatasetRollbackError,
+    activate_reference_dataset_version,
+    get_active_reference_dataset_pointer,
+    rollback_reference_dataset_version,
+)
 from lifegoods.reference_datasets.models import (
     AllergenRuleRecord,
     LexicalMappingRecord,
@@ -450,3 +458,220 @@ def test_seed_bundle_file_is_valid_and_can_be_imported(db_session: Session) -> N
     assert len(record.concepts) == 1
     assert len(record.mappings) == 2
     assert len(record.rules) == 1
+
+
+def test_activate_valid_version(db_session: Session) -> None:
+    bundle = create_valid_bundle()
+    record = import_reference_bundle(db_session, bundle)
+    assert record.status == "READY"
+
+    fixed_now = datetime(2026, 8, 28, 14, 0, tzinfo=UTC)
+    activated = activate_reference_dataset_version(
+        db_session, record.id, now=lambda: fixed_now
+    )
+
+    assert activated.status == "ACTIVE"
+    assert (
+        activated.activated_at.replace(tzinfo=UTC) == fixed_now
+        if activated.activated_at and activated.activated_at.tzinfo is None
+        else activated.activated_at == fixed_now
+    )
+    assert activated.project_approver == "food-reviewer@lifegoods.org"
+    assert activated.review_kind == ReferenceReviewKind.FOOD_DOMAIN_REVIEW
+
+    pointer = get_active_reference_dataset_pointer(db_session, ConditionFamily.FOOD_ALLERGEN)
+    assert pointer is not None
+    assert pointer.active_version_id == record.id
+    assert pointer.previous_version_id is None
+    assert pointer.activated_by == "food-reviewer@lifegoods.org"
+    assert pointer.review_kind == ReferenceReviewKind.FOOD_DOMAIN_REVIEW
+    assert (
+        pointer.activated_at.replace(tzinfo=UTC) == fixed_now
+        if pointer.activated_at.tzinfo is None
+        else pointer.activated_at == fixed_now
+    )
+
+    # Release contents (concepts, mappings, rules, sha256) are preserved
+    assert len(activated.concepts) == 1
+    assert len(activated.mappings) == 2
+    assert len(activated.rules) == 1
+    assert activated.sha256 == bundle.manifest.sha256
+
+
+def test_activate_second_version_supersedes_previous(db_session: Session) -> None:
+    bundle1 = create_valid_bundle()
+    record1 = import_reference_bundle(db_session, bundle1)
+
+    t1 = datetime(2026, 8, 28, 14, 0, tzinfo=UTC)
+    activate_reference_dataset_version(db_session, record1.id, now=lambda: t1)
+
+    # Create bundle2
+    bundle2_dict = create_valid_bundle().to_dict()
+    bundle2_dict["manifest"]["id"] = "codex-food-allergen-2026-v2"
+    bundle2_dict["manifest"]["edition"] = "CXS 1-1985 (Amended 2026 Edition 2)"
+    bundle2_dict["manifest"]["sha256"] = compute_bundle_sha256(
+        manifest=ReferenceDatasetManifest.from_dict(bundle2_dict["manifest"]),
+        sources=[ReferenceSourceDefinition.from_dict(s) for s in bundle2_dict["sources"]],
+        concepts=[ReferenceConceptDefinition.from_dict(c) for c in bundle2_dict["concepts"]],
+        mappings=[LexicalMappingDefinition.from_dict(m) for m in bundle2_dict["mappings"]],
+        rules=[AllergenRuleDefinition.from_dict(r) for r in bundle2_dict["rules"]],
+    )
+    bundle2 = ReferenceBundle.from_dict(bundle2_dict)
+    record2 = import_reference_bundle(db_session, bundle2)
+
+    t2 = datetime(2026, 8, 28, 15, 0, tzinfo=UTC)
+    activated2 = activate_reference_dataset_version(db_session, record2.id, now=lambda: t2)
+
+    db_session.refresh(record1)
+    assert record1.status == "SUPERSEDED"
+    assert activated2.status == "ACTIVE"
+
+    pointer = get_active_reference_dataset_pointer(db_session, ConditionFamily.FOOD_ALLERGEN)
+    assert pointer is not None
+    assert pointer.active_version_id == record2.id
+    assert pointer.previous_version_id == record1.id
+
+
+def test_rollback_version_restores_previous_active_version(db_session: Session) -> None:
+    bundle1 = create_valid_bundle()
+    record1 = import_reference_bundle(db_session, bundle1)
+    activate_reference_dataset_version(db_session, record1.id)
+
+    bundle2_dict = create_valid_bundle().to_dict()
+    bundle2_dict["manifest"]["id"] = "codex-food-allergen-2026-v2"
+    bundle2_dict["manifest"]["sha256"] = compute_bundle_sha256(
+        manifest=ReferenceDatasetManifest.from_dict(bundle2_dict["manifest"]),
+        sources=[ReferenceSourceDefinition.from_dict(s) for s in bundle2_dict["sources"]],
+        concepts=[ReferenceConceptDefinition.from_dict(c) for c in bundle2_dict["concepts"]],
+        mappings=[LexicalMappingDefinition.from_dict(m) for m in bundle2_dict["mappings"]],
+        rules=[AllergenRuleDefinition.from_dict(r) for r in bundle2_dict["rules"]],
+    )
+    bundle2 = ReferenceBundle.from_dict(bundle2_dict)
+    record2 = import_reference_bundle(db_session, bundle2)
+    activate_reference_dataset_version(db_session, record2.id)
+
+    rollback_time = datetime(2026, 8, 28, 16, 0, tzinfo=UTC)
+    rolled_back = rollback_reference_dataset_version(
+        db_session,
+        dataset_kind=ConditionFamily.FOOD_ALLERGEN,
+        now=lambda: rollback_time,
+    )
+
+    assert rolled_back.id == record1.id
+    assert rolled_back.status == "ACTIVE"
+
+    db_session.refresh(record2)
+    assert record2.status == "SUPERSEDED"
+
+    pointer = get_active_reference_dataset_pointer(db_session, ConditionFamily.FOOD_ALLERGEN)
+    assert pointer is not None
+    assert pointer.active_version_id == record1.id
+    assert pointer.previous_version_id == record2.id
+
+
+def test_rollback_without_previous_version_fails(db_session: Session) -> None:
+    bundle = create_valid_bundle()
+    record = import_reference_bundle(db_session, bundle)
+    activate_reference_dataset_version(db_session, record.id)
+
+    with pytest.raises(
+        ReferenceDatasetRollbackError, match="No previous reference dataset version"
+    ):
+        rollback_reference_dataset_version(
+            db_session, dataset_kind=ConditionFamily.FOOD_ALLERGEN
+        )
+
+    pointer = get_active_reference_dataset_pointer(db_session, ConditionFamily.FOOD_ALLERGEN)
+    assert pointer is not None
+    assert pointer.active_version_id == record.id
+    assert pointer.previous_version_id is None
+
+
+def test_activate_non_existent_version_fails(db_session: Session) -> None:
+    with pytest.raises(
+        ReferenceDatasetNotFoundError,
+        match="Reference dataset version 'non-existent' does not exist",
+    ):
+        activate_reference_dataset_version(db_session, "non-existent")
+
+    pointer = get_active_reference_dataset_pointer(db_session, ConditionFamily.FOOD_ALLERGEN)
+    assert pointer is None
+
+
+def test_activate_failed_or_invalid_version_fails(db_session: Session) -> None:
+    bundle = create_valid_bundle()
+    record = import_reference_bundle(db_session, bundle)
+    record.status = "FAILED"
+    record.validation_errors = ["Critical schema failure"]
+    db_session.commit()
+
+    with pytest.raises(
+        ReferenceDatasetValidationError, match="has status 'FAILED'"
+    ):
+        activate_reference_dataset_version(db_session, record.id)
+
+    pointer = get_active_reference_dataset_pointer(db_session, ConditionFamily.FOOD_ALLERGEN)
+    assert pointer is None
+
+
+def test_activate_without_approver_fails(db_session: Session) -> None:
+    bundle_dict = create_valid_bundle().to_dict()
+    bundle_dict["manifest"]["project_approver"] = None
+    bundle_dict["manifest"]["sha256"] = compute_bundle_sha256(
+        manifest=ReferenceDatasetManifest.from_dict(bundle_dict["manifest"]),
+        sources=[ReferenceSourceDefinition.from_dict(s) for s in bundle_dict["sources"]],
+        concepts=[ReferenceConceptDefinition.from_dict(c) for c in bundle_dict["concepts"]],
+        mappings=[LexicalMappingDefinition.from_dict(m) for m in bundle_dict["mappings"]],
+        rules=[AllergenRuleDefinition.from_dict(r) for r in bundle_dict["rules"]],
+    )
+    bundle = ReferenceBundle.from_dict(bundle_dict)
+    record = import_reference_bundle(db_session, bundle)
+
+    with pytest.raises(
+        ReferenceDatasetApprovalError,
+        match="Activation requires recorded project-maintainer approval",
+    ):
+        activate_reference_dataset_version(db_session, record.id)
+
+
+def test_activate_with_explicit_approver_and_review_kind(db_session: Session) -> None:
+    bundle_dict = create_valid_bundle().to_dict()
+    bundle_dict["manifest"]["project_approver"] = None
+    bundle_dict["manifest"]["sha256"] = compute_bundle_sha256(
+        manifest=ReferenceDatasetManifest.from_dict(bundle_dict["manifest"]),
+        sources=[ReferenceSourceDefinition.from_dict(s) for s in bundle_dict["sources"]],
+        concepts=[ReferenceConceptDefinition.from_dict(c) for c in bundle_dict["concepts"]],
+        mappings=[LexicalMappingDefinition.from_dict(m) for m in bundle_dict["mappings"]],
+        rules=[AllergenRuleDefinition.from_dict(r) for r in bundle_dict["rules"]],
+    )
+    bundle = ReferenceBundle.from_dict(bundle_dict)
+    record = import_reference_bundle(db_session, bundle)
+
+    activated = activate_reference_dataset_version(
+        db_session,
+        record.id,
+        approver="lead-maintainer@lifegoods.org",
+        review_kind=ReferenceReviewKind.PROJECT_MAINTAINER_APPROVAL,
+    )
+
+    assert activated.status == "ACTIVE"
+    assert activated.project_approver == "lead-maintainer@lifegoods.org"
+    assert activated.review_kind == ReferenceReviewKind.PROJECT_MAINTAINER_APPROVAL
+
+    pointer = get_active_reference_dataset_pointer(db_session, ConditionFamily.FOOD_ALLERGEN)
+    assert pointer is not None
+    assert pointer.activated_by == "lead-maintainer@lifegoods.org"
+    assert pointer.review_kind == ReferenceReviewKind.PROJECT_MAINTAINER_APPROVAL
+
+
+def test_activate_idempotent_on_active_version(db_session: Session) -> None:
+    bundle = create_valid_bundle()
+    record = import_reference_bundle(db_session, bundle)
+    activate_reference_dataset_version(db_session, record.id)
+    activate_reference_dataset_version(db_session, record.id)
+
+    pointer = get_active_reference_dataset_pointer(db_session, ConditionFamily.FOOD_ALLERGEN)
+    assert pointer is not None
+    assert pointer.active_version_id == record.id
+    assert pointer.previous_version_id is None
+

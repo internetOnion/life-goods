@@ -18,6 +18,11 @@ from lifegoods.reference_datasets.importer import (
     ReferenceDatasetValidationError,
     import_reference_bundle,
 )
+from lifegoods.reference_datasets.lifecycle import (
+    activate_reference_dataset_version,
+    get_active_reference_dataset_pointer,
+    rollback_reference_dataset_version,
+)
 from lifegoods.reference_datasets.models import ReferenceDatasetVersionRecord
 from lifegoods.reference_datasets.validation import validate_bundle
 
@@ -67,6 +72,101 @@ def import_file(session: Session, bundle_path: str | Path) -> dict[str, Any]:
         "concept_count": len(record.concepts),
         "mapping_count": len(record.mappings),
         "rule_count": len(record.rules),
+    }
+
+
+def activate_version(
+    session: Session,
+    version_id: str,
+    *,
+    approver: str | None = None,
+    review_kind: str | None = None,
+) -> dict[str, Any]:
+    record = activate_reference_dataset_version(
+        session,
+        version_id,
+        approver=approver,
+        review_kind=review_kind,
+    )
+    pointer = get_active_reference_dataset_pointer(session, record.dataset_kind)
+    return {
+        "status": record.status,
+        "id": record.id,
+        "dataset_kind": record.dataset_kind,
+        "edition": record.edition,
+        "jurisdiction": record.jurisdiction,
+        "source_url": record.source_url,
+        "sha256": record.sha256,
+        "review_kind": record.review_kind,
+        "project_approver": record.project_approver,
+        "retrieved_at": record.retrieved_at,
+        "reviewed_at": record.reviewed_at,
+        "activated_at": record.activated_at,
+        "previous_version_id": pointer.previous_version_id if pointer else None,
+        "immutable": record.immutable,
+        "concept_count": len(record.concepts),
+        "mapping_count": len(record.mappings),
+        "rule_count": len(record.rules),
+    }
+
+
+def rollback_version(
+    session: Session,
+    *,
+    dataset_kind: str = "FOOD_ALLERGEN",
+    approver: str | None = None,
+) -> dict[str, Any]:
+    record = rollback_reference_dataset_version(
+        session,
+        dataset_kind=dataset_kind,
+        approver=approver,
+    )
+    pointer = get_active_reference_dataset_pointer(session, record.dataset_kind)
+    return {
+        "status": record.status,
+        "id": record.id,
+        "dataset_kind": record.dataset_kind,
+        "edition": record.edition,
+        "jurisdiction": record.jurisdiction,
+        "source_url": record.source_url,
+        "sha256": record.sha256,
+        "review_kind": record.review_kind,
+        "project_approver": record.project_approver,
+        "retrieved_at": record.retrieved_at,
+        "reviewed_at": record.reviewed_at,
+        "activated_at": record.activated_at,
+        "previous_version_id": pointer.previous_version_id if pointer else None,
+        "immutable": record.immutable,
+        "concept_count": len(record.concepts),
+        "mapping_count": len(record.mappings),
+        "rule_count": len(record.rules),
+    }
+
+
+def status_version(
+    session: Session,
+    *,
+    dataset_kind: str = "FOOD_ALLERGEN",
+) -> dict[str, Any] | None:
+    pointer = get_active_reference_dataset_pointer(session, dataset_kind)
+    if pointer is None:
+        return None
+    record = (
+        session.query(ReferenceDatasetVersionRecord)
+        .filter_by(id=pointer.active_version_id)
+        .first()
+    )
+    if record is None:
+        return None
+    return {
+        "dataset_kind": pointer.dataset_kind,
+        "active_version_id": pointer.active_version_id,
+        "previous_version_id": pointer.previous_version_id,
+        "activated_at": pointer.activated_at,
+        "activated_by": pointer.activated_by,
+        "review_kind": pointer.review_kind,
+        "status": record.status,
+        "sha256": record.sha256,
     }
 
 
@@ -174,6 +274,44 @@ def main(argv: list[str] | None = None) -> int:
     )
     import_parser.add_argument("bundle_path", help="Path to JSON bundle file")
 
+    activate_parser = subparsers.add_parser(
+        "activate", help="Activate an imported reference dataset version"
+    )
+    activate_parser.add_argument("version_id", help="Reference dataset version ID")
+    activate_parser.add_argument(
+        "--approver",
+        default=None,
+        help="Recorded project maintainer approver",
+    )
+    activate_parser.add_argument(
+        "--review-kind",
+        default=None,
+        help="Review kind (FOOD_DOMAIN_REVIEW or PROJECT_MAINTAINER_APPROVAL)",
+    )
+
+    rollback_parser = subparsers.add_parser(
+        "rollback", help="Roll back to immediately previous valid reference dataset version"
+    )
+    rollback_parser.add_argument(
+        "--dataset-kind",
+        default="FOOD_ALLERGEN",
+        help="Dataset kind (default: FOOD_ALLERGEN)",
+    )
+    rollback_parser.add_argument(
+        "--approver",
+        default=None,
+        help="Recorded operator requesting rollback",
+    )
+
+    status_parser = subparsers.add_parser(
+        "status", help="Show active reference dataset pointer status"
+    )
+    status_parser.add_argument(
+        "--dataset-kind",
+        default="FOOD_ALLERGEN",
+        help="Dataset kind (default: FOOD_ALLERGEN)",
+    )
+
     subparsers.add_parser("list", help="List all imported reference dataset versions")
 
     inspect_parser = subparsers.add_parser(
@@ -196,6 +334,24 @@ def main(argv: list[str] | None = None) -> int:
         with factory() as session:
             if args.command == "import":
                 output: object = import_file(session, args.bundle_path)
+            elif args.command == "activate":
+                output = activate_version(
+                    session,
+                    args.version_id,
+                    approver=args.approver,
+                    review_kind=args.review_kind,
+                )
+            elif args.command == "rollback":
+                output = rollback_version(
+                    session,
+                    dataset_kind=args.dataset_kind,
+                    approver=args.approver,
+                )
+            elif args.command == "status":
+                output = status_version(
+                    session,
+                    dataset_kind=args.dataset_kind,
+                )
             elif args.command == "list":
                 output = list_versions(session)
             elif args.command == "inspect":
@@ -213,3 +369,4 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

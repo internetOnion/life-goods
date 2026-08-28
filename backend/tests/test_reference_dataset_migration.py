@@ -14,7 +14,7 @@ def test_reference_dataset_migration_upgrades_and_downgrades(
     monkeypatch.setenv("LIFEGOODS_DATABASE_URL", database_url)
     config = Config("backend/alembic.ini")
 
-    # Upgrade to head (which includes 0004)
+    # Upgrade to head (which includes 0005)
     command.upgrade(config, "head")
 
     engine = create_engine(database_url)
@@ -24,8 +24,9 @@ def test_reference_dataset_migration_upgrades_and_downgrades(
     assert "reference_concepts" in table_names
     assert "lexical_mappings" in table_names
     assert "allergen_rules" in table_names
+    assert "reference_dataset_pointers" in table_names
 
-    # Verify inserting records across all 5 tables
+    # Verify inserting records across all tables
     with engine.begin() as connection:
         connection.execute(
             text(
@@ -44,8 +45,8 @@ def test_reference_dataset_migration_upgrades_and_downgrades(
                 "sha256, retrieved_at, status, review_kind, project_approver, reviewed_at, "
                 "activated_at, immutable, validation_errors, validation_history) "
                 "VALUES ('ver-1', 'FOOD_ALLERGEN', '2026', 'INTERNATIONAL', 'https://fao.org', "
-                "'PUBLIC', 'sha-hash-1', '2026-08-28 12:00:00', 'READY', 'FOOD_DOMAIN_REVIEW', "
-                "'approver@test.org', '2026-08-28 12:00:00', NULL, 1, '[]', '[]')"
+                "'PUBLIC', 'sha-hash-1', '2026-08-28 12:00:00', 'ACTIVE', 'FOOD_DOMAIN_REVIEW', "
+                "'approver@test.org', '2026-08-28 12:00:00', '2026-08-28 12:00:00', 1, '[]', '[]')"
             )
         )
         connection.execute(
@@ -75,9 +76,21 @@ def test_reference_dataset_migration_upgrades_and_downgrades(
                 "'MANDATORY_DECLARATION', 'FOOD_ALLERGEN', 'Codex rule')"
             )
         )
+        connection.execute(
+            text(
+                "INSERT INTO reference_dataset_pointers "
+                "(dataset_kind, active_version_id, previous_version_id, activated_at, "
+                "activated_by, review_kind) "
+                "VALUES ('FOOD_ALLERGEN', 'ver-1', NULL, '2026-08-28 12:00:00', "
+                "'approver@test.org', 'FOOD_DOMAIN_REVIEW')"
+            )
+        )
 
         row = connection.execute(
-            text("SELECT COUNT(*) FROM lexical_mappings WHERE dataset_version_id = 'ver-1'")
+            text(
+                "SELECT COUNT(*) FROM reference_dataset_pointers "
+                "WHERE dataset_kind = 'FOOD_ALLERGEN'"
+            )
         ).scalar()
         assert row == 1
 
@@ -89,3 +102,4 @@ def test_reference_dataset_migration_upgrades_and_downgrades(
     assert "reference_concepts" not in table_names_downgraded
     assert "lexical_mappings" not in table_names_downgraded
     assert "allergen_rules" not in table_names_downgraded
+    assert "reference_dataset_pointers" not in table_names_downgraded

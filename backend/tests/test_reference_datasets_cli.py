@@ -200,3 +200,197 @@ def test_cli_list_versions(
     versions = json.loads(captured.out)
     assert len(versions) == 1
     assert versions[0]["id"] == "codex-food-allergen-2026-minimal"
+
+
+def test_cli_activate_version(
+    valid_bundle_file: Path, test_db_url: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    main(["--database-url", test_db_url, "import", str(valid_bundle_file)])
+    capsys.readouterr()
+
+    exit_code = main(
+        ["--database-url", test_db_url, "activate", "codex-food-allergen-2026-minimal"]
+    )
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+    assert result["status"] == "ACTIVE"
+    assert result["id"] == "codex-food-allergen-2026-minimal"
+    assert result["project_approver"] == "food-reviewer@lifegoods.org"
+    assert result["review_kind"] == "FOOD_DOMAIN_REVIEW"
+    assert result["activated_at"] is not None
+
+
+def test_cli_activate_with_custom_approver(
+    valid_bundle_file: Path, test_db_url: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    main(["--database-url", test_db_url, "import", str(valid_bundle_file)])
+    capsys.readouterr()
+
+    exit_code = main(
+        [
+            "--database-url",
+            test_db_url,
+            "activate",
+            "codex-food-allergen-2026-minimal",
+            "--approver",
+            "operator@lifegoods.org",
+            "--review-kind",
+            "PROJECT_MAINTAINER_APPROVAL",
+        ]
+    )
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+    assert result["status"] == "ACTIVE"
+    assert result["project_approver"] == "operator@lifegoods.org"
+    assert result["review_kind"] == "PROJECT_MAINTAINER_APPROVAL"
+
+
+def test_cli_activate_unknown_version_fails(
+    test_db_url: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    exit_code = main(
+        ["--database-url", test_db_url, "activate", "non-existent-version"]
+    )
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    result = json.loads(captured.err)
+    assert "error" in result
+
+
+def test_cli_rollback_version(
+    tmp_path: Path, test_db_url: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Bundle 1
+    b1 = ReferenceBundle(
+        manifest=ReferenceDatasetManifest(
+            id="ver-1",
+            dataset_kind=ConditionFamily.FOOD_ALLERGEN,
+            edition="2026",
+            jurisdiction="INTERNATIONAL",
+            source_url="https://fao.org/1",
+            licensing_decision="PUBLIC",
+            project_approver="maintainer@lifegoods.org",
+            review_kind=ReferenceReviewKind.FOOD_DOMAIN_REVIEW,
+            sha256="",
+        ),
+        sources=[
+            ReferenceSourceDefinition(
+                id="src-1",
+                name="Standard 1",
+                source_type="STANDARD",
+                source_url="https://fao.org/1",
+                jurisdiction="INTERNATIONAL",
+                publisher="FAO",
+                edition="2026",
+                licensing_decision="PUBLIC",
+            )
+        ],
+        concepts=[
+            ReferenceConceptDefinition(
+                id="c-1",
+                name="Milk",
+                condition_family=ConditionFamily.FOOD_ALLERGEN,
+                parent_id=None,
+                is_leaf=True,
+            )
+        ],
+        mappings=[
+            LexicalMappingDefinition(
+                id="m-1",
+                concept_id="c-1",
+                language="en",
+                mapped_text="milk",
+                relationship_type="EXACT_NAME",
+            )
+        ],
+        rules=[
+            AllergenRuleDefinition(
+                id="r-1",
+                concept_id="c-1",
+                source_id="src-1",
+                rule_kind="MANDATORY_DECLARATION",
+                condition_family=ConditionFamily.FOOD_ALLERGEN,
+            )
+        ],
+    )
+    sha1 = compute_bundle_sha256(
+        manifest=b1.manifest,
+        sources=b1.sources,
+        concepts=b1.concepts,
+        mappings=b1.mappings,
+        rules=b1.rules,
+    )
+    b1_dict = b1.to_dict()
+    b1_dict["manifest"]["sha256"] = sha1
+    f1 = tmp_path / "b1.json"
+    ReferenceBundle.from_dict(b1_dict).to_json_file(f1)
+
+    # Bundle 2
+    b2_dict = b1.to_dict()
+    b2_dict["manifest"]["id"] = "ver-2"
+    b2_dict["manifest"]["source_url"] = "https://fao.org/2"
+    b2 = ReferenceBundle.from_dict(b2_dict)
+    sha2 = compute_bundle_sha256(
+        manifest=b2.manifest,
+        sources=b2.sources,
+        concepts=b2.concepts,
+        mappings=b2.mappings,
+        rules=b2.rules,
+    )
+    b2_dict["manifest"]["sha256"] = sha2
+    f2 = tmp_path / "b2.json"
+    ReferenceBundle.from_dict(b2_dict).to_json_file(f2)
+
+    main(["--database-url", test_db_url, "import", str(f1)])
+    main(["--database-url", test_db_url, "activate", "ver-1"])
+    main(["--database-url", test_db_url, "import", str(f2)])
+    main(["--database-url", test_db_url, "activate", "ver-2"])
+    capsys.readouterr()
+
+    exit_code = main(
+        ["--database-url", test_db_url, "rollback", "--dataset-kind", "FOOD_ALLERGEN"]
+    )
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+    assert result["status"] == "ACTIVE"
+    assert result["id"] == "ver-1"
+    assert result["previous_version_id"] == "ver-2"
+
+
+def test_cli_rollback_without_previous_fails(
+    valid_bundle_file: Path, test_db_url: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    main(["--database-url", test_db_url, "import", str(valid_bundle_file)])
+    main(["--database-url", test_db_url, "activate", "codex-food-allergen-2026-minimal"])
+    capsys.readouterr()
+
+    exit_code = main(
+        ["--database-url", test_db_url, "rollback", "--dataset-kind", "FOOD_ALLERGEN"]
+    )
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    result = json.loads(captured.err)
+    assert "error" in result
+
+
+def test_cli_inspect_version(
+    valid_bundle_file: Path, test_db_url: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    main(["--database-url", test_db_url, "import", str(valid_bundle_file)])
+    capsys.readouterr()
+
+    exit_code = main(
+        ["--database-url", test_db_url, "inspect", "codex-food-allergen-2026-minimal"]
+    )
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+    assert result["id"] == "codex-food-allergen-2026-minimal"
+    assert result["status"] == "READY"
+    assert len(result["concepts"]) == 1
+    assert len(result["mappings"]) == 2
+    assert len(result["rules"]) == 1
+

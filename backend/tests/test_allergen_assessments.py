@@ -20,6 +20,20 @@ from lifegoods.package_matches.contracts import AllergenAssessmentResponse
 from lifegoods.package_matches.models import PackageMatchSourceKind
 from lifegoods.package_matches.router import _candidate_response
 from lifegoods.package_matches.service import _candidate_from_record
+from lifegoods.reference_datasets.access import DatabaseAllergenReferenceDataAccess
+from lifegoods.reference_datasets.bundle import (
+    AllergenRuleDefinition,
+    ConditionFamily,
+    LexicalMappingDefinition,
+    ReferenceBundle,
+    ReferenceConceptDefinition,
+    ReferenceDatasetManifest,
+    ReferenceReviewKind,
+    ReferenceSourceDefinition,
+    compute_bundle_sha256,
+)
+from lifegoods.reference_datasets.importer import import_reference_bundle
+from lifegoods.reference_datasets.lifecycle import activate_reference_dataset_version
 
 OFF_SOURCE = ExternalSourceMetadata(
     name="Open Food Facts",
@@ -149,3 +163,125 @@ def test_evaluation_contains_no_run_id_or_fingerprint() -> None:
     assert "shopper_id" not in dumped
     assert "user_id" not in dumped
     assert "preferences" not in dumped
+
+
+def test_database_allergen_reference_data_access(tmp_path, monkeypatch) -> None:
+    from alembic import command
+    from alembic.config import Config
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    db_path = tmp_path / "test_access.db"
+    db_url = f"sqlite+pysqlite:///{db_path}"
+    monkeypatch.setenv("LIFEGOODS_DATABASE_URL", db_url)
+    config = Config("backend/alembic.ini")
+    command.upgrade(config, "head")
+
+    engine = create_engine(db_url)
+    factory = sessionmaker(engine, expire_on_commit=False)
+
+    access = DatabaseAllergenReferenceDataAccess(factory)
+    assert access.get_active_version() is None
+
+    # Import and activate a bundle
+    manifest = ReferenceDatasetManifest(
+        id="codex-food-allergen-2026-minimal",
+        dataset_kind=ConditionFamily.FOOD_ALLERGEN,
+        edition="CXS 1-1985 (Amended 2026)",
+        jurisdiction="INTERNATIONAL",
+        source_url="https://www.fao.org/fao-who-codexalimentarius/standards/cxs1-1985",
+        licensing_decision="PUBLIC_GOVERNMENT_STANDARD",
+        project_approver="food-reviewer@lifegoods.org",
+        review_kind=ReferenceReviewKind.FOOD_DOMAIN_REVIEW,
+        sha256="",
+    )
+    sources = [
+        ReferenceSourceDefinition(
+            id="source-codex-cxs-1-1985-2026",
+            name="Codex General Standard for the Labelling of Prepackaged Foods",
+            source_type="INTERNATIONAL_STANDARD",
+            source_url="https://www.fao.org/fao-who-codexalimentarius/standards/cxs1-1985",
+            jurisdiction="INTERNATIONAL",
+            publisher="Codex Alimentarius Commission",
+            edition="CXS 1-1985 (Amended 2026)",
+            licensing_decision="PUBLIC_GOVERNMENT_STANDARD",
+            terms_version="2026",
+        )
+    ]
+    concepts = [
+        ReferenceConceptDefinition(
+            id="concept-food-allergen-milk",
+            name="Milk and milk products",
+            condition_family=ConditionFamily.FOOD_ALLERGEN,
+            parent_id=None,
+            is_leaf=True,
+            description="Milk and ingredients derived from milk",
+        )
+    ]
+    mappings = [
+        LexicalMappingDefinition(
+            id="map-en-milk-exact",
+            concept_id="concept-food-allergen-milk",
+            language="en",
+            mapped_text="milk",
+            relationship_type="EXACT_NAME",
+            notes="Direct milk declaration",
+        )
+    ]
+    rules = [
+        AllergenRuleDefinition(
+            id="rule-codex-2026-milk",
+            concept_id="concept-food-allergen-milk",
+            source_id="source-codex-cxs-1-1985-2026",
+            rule_kind="MANDATORY_DECLARATION",
+            condition_family=ConditionFamily.FOOD_ALLERGEN,
+            description="Codex CXS 1-1985 mandatory allergen declaration for milk",
+        )
+    ]
+    sha256 = compute_bundle_sha256(
+        manifest=manifest,
+        sources=sources,
+        concepts=concepts,
+        mappings=mappings,
+        rules=rules,
+    )
+    manifest_with_hash = ReferenceDatasetManifest(
+        id=manifest.id,
+        dataset_kind=manifest.dataset_kind,
+        edition=manifest.edition,
+        jurisdiction=manifest.jurisdiction,
+        source_url=manifest.source_url,
+        licensing_decision=manifest.licensing_decision,
+        project_approver=manifest.project_approver,
+        review_kind=manifest.review_kind,
+        sha256=sha256,
+    )
+    bundle = ReferenceBundle(
+        manifest=manifest_with_hash,
+        sources=sources,
+        concepts=concepts,
+        mappings=mappings,
+        rules=rules,
+    )
+
+    with factory() as session:
+        import_reference_bundle(session, bundle)
+        activate_reference_dataset_version(session, bundle.manifest.id)
+
+    active = access.get_active_version()
+    assert active is not None
+    assert active.id == "codex-food-allergen-2026-minimal"
+    assert active.source_url == bundle.manifest.source_url
+    assert active.dataset_kind == "FOOD_ALLERGEN"
+    assert active.review_kind == ReferenceReviewKind.FOOD_DOMAIN_REVIEW
+    assert active.sha256 == sha256
+
+    # Test StandardAllergenAssessmentEvaluator with active reference data
+    evaluator = StandardAllergenAssessmentEvaluator(enabled=True, reference_data=access)
+    record = sample_record()
+    evaluation = evaluator.evaluate(record)
+
+    assert evaluation.status == AllergenAssessmentOutcome.NOT_ASSESSED
+    assert evaluation.reason == AllergenAssessmentReason.EVIDENCE_UNAVAILABLE
+    assert evaluation.reference_dataset_version == active
+

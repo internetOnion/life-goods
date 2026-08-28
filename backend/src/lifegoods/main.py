@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from pymongo import MongoClient
 from scalar_fastapi import get_scalar_api_reference
+from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -34,6 +35,7 @@ from lifegoods.package_matches import (
 from lifegoods.package_matches import (
     router as package_matches_router,
 )
+from lifegoods.reference_datasets import DatabaseAllergenReferenceDataAccess
 
 ERROR_MESSAGES: dict[ErrorCode, str] = {
     ErrorCode.IDENTIFIER_REQUIRED: "An identifier is required.",
@@ -57,18 +59,25 @@ def create_app(
     allergen_evaluator: AllergenAssessmentEvaluator | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings()
-    _ = session_factory
+    if session_factory is None:
+        db_engine = create_engine(resolved_settings.database_url)
+        resolved_session_factory = sessionmaker(db_engine, expire_on_commit=False)
+    else:
+        resolved_session_factory = session_factory
+
     owned_http_clients: list[httpx.Client] = []
     owned_mongo_clients: list[MongoClient[dict[str, Any]]] = []
     resolved_package_match_limiter = (
         package_match_limiter
         or KeyedSlidingWindowLimiter(resolved_settings.package_match_requests_per_minute)
     )
+    resolved_reference_data = DatabaseAllergenReferenceDataAccess(resolved_session_factory)
     resolved_allergen_evaluator = (
         allergen_evaluator
         or StandardAllergenAssessmentEvaluator(
             enabled=resolved_settings.allergen_assessments_enabled,
             engine_version=resolved_settings.assessment_engine_version,
+            reference_data=resolved_reference_data,
         )
     )
     if external_source is None:
