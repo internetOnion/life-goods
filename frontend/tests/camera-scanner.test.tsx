@@ -8,6 +8,7 @@ import { App } from "../src/app/App"
 import { HomePage } from "../src/features/package-match/HomePage"
 import type { PackageMatchLookup } from "../src/features/package-match/types"
 import i18n from "../src/i18n"
+import { packageMatchesResponse } from "./package-match-fixtures"
 
 const { startMock } = vi.hoisted(() => ({ startMock: vi.fn() }))
 
@@ -170,11 +171,9 @@ describe("camera barcode scanner", () => {
     })
 
     test("stops the camera and opens the existing result journey once a valid code is found", async () => {
-        const lookup = vi.fn<PackageMatchLookup>().mockResolvedValue({
-            normalized_identifier: "4006381333931",
-            scheme: "EAN_13",
-            candidates: [],
-        })
+        const lookup = vi
+            .fn<PackageMatchLookup>()
+            .mockResolvedValue(packageMatchesResponse())
         const stop = vi.fn()
         startMock.mockResolvedValue({ stop })
         renderJourney(lookup)
@@ -282,11 +281,9 @@ describe("camera barcode scanner", () => {
 
     test("stops an active camera before manual submission", async () => {
         const user = userEvent.setup()
-        const lookup = vi.fn<PackageMatchLookup>().mockResolvedValue({
-            normalized_identifier: "4006381333931",
-            scheme: "EAN_13",
-            candidates: [],
-        })
+        const lookup = vi
+            .fn<PackageMatchLookup>()
+            .mockResolvedValue(packageMatchesResponse())
         const stop = vi.fn()
         startMock.mockResolvedValue({ stop })
         renderJourney(lookup)
@@ -328,11 +325,9 @@ describe("camera barcode scanner", () => {
 
     test("resumes camera automatically when returning to the home screen", async () => {
         const user = userEvent.setup()
-        const lookup = vi.fn<PackageMatchLookup>().mockResolvedValue({
-            normalized_identifier: "4006381333931",
-            scheme: "EAN_13",
-            candidates: [],
-        })
+        const lookup = vi
+            .fn<PackageMatchLookup>()
+            .mockResolvedValue(packageMatchesResponse())
         const stop = vi.fn()
         startMock.mockResolvedValue({ stop })
         renderJourney(lookup)

@@ -1,19 +1,16 @@
 import { useEffect, useRef } from "react"
-import { useTranslation } from "react-i18next"
-
-type PlaceholderKind = "learn" | "history" | "allergies"
 
 type PlaceholderPageProps = {
-    kind: PlaceholderKind
+    title: string
+    body: string
 }
 
-export function PlaceholderPage({ kind }: PlaceholderPageProps) {
-    const { t } = useTranslation()
+export function PlaceholderPage({ title, body }: PlaceholderPageProps) {
     const headingRef = useRef<HTMLHeadingElement>(null)
 
     useEffect(() => {
         headingRef.current?.focus()
-    }, [kind])
+    }, [title])
 
     return (
         <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pt-[calc(clamp(3rem,12vh,7rem)_+_env(safe-area-inset-top))] pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
@@ -22,10 +19,10 @@ export function PlaceholderPage({ kind }: PlaceholderPageProps) {
                 ref={headingRef}
                 tabIndex={-1}
             >
-                {t(`placeholder.${kind}.title`)}
+                {title}
             </h1>
             <p className="text-muted-foreground mt-3 max-w-[62ch] text-[1.05rem] leading-loose">
-                {t(`placeholder.${kind}.body`)}
+                {body}
             </p>
         </main>
     )

@@ -7,6 +7,7 @@ import type { OpenFoodFactsCandidate } from "../src/features/package-match/types
 import i18n from "../src/i18n"
 import {
     completeOffCandidate,
+    datasetVersion,
     sparseOffCandidate,
 } from "./package-match-fixtures"
 
@@ -45,7 +46,13 @@ describe("OpenFoodFactsResult", () => {
     })
 
     test("prioritizes identity, uncertainty, concerns, and nutrition without a verdict", () => {
-        render(renderResult(completeOffCandidate()))
+        render(
+            renderResult(
+                completeOffCandidate({
+                    dataset_version: datasetVersion,
+                }),
+            ),
+        )
         expect(
             screen.getByRole("heading", { name: "Dark chocolate" }),
         ).toHaveFocus()
@@ -53,6 +60,18 @@ describe("OpenFoodFactsResult", () => {
         expect(screen.getAllByText("May contain nuts").length).toBeGreaterThan(
             0,
         )
+        expect(
+            screen.getAllByText("dataset-2026-08-27").length,
+        ).toBeGreaterThan(0)
+        expect(screen.getByText(/Open Food Facts data as of/)).toBeVisible()
+        expect(screen.getByText("Dataset activated")).toBeVisible()
+        expect(
+            screen.getByText("Dataset integrity hash (SHA-256)"),
+        ).toBeVisible()
+        expect(screen.getByText("a".repeat(64))).toBeVisible()
+        expect(
+            screen.getByRole("link", { name: "Open the dataset source" }),
+        ).toHaveAttribute("href", datasetVersion.source_url)
         expect(screen.getByText("Example Foods")).toBeVisible()
         expect(screen.getByText("100 g")).toBeVisible()
         expect(
@@ -104,14 +123,14 @@ describe("OpenFoodFactsResult", () => {
         ).toBeVisible()
         expect(
             within(sourceSection).getByRole("link", {
-                name: "View source",
+                name: "View source record",
             }),
         ).toHaveAttribute("href", sourceUrl)
         expect(
-            within(sourceSection).queryByText(
+            within(sourceSection).getByText(
                 "ODbL · Database Contents License · CC BY-SA",
             ),
-        ).not.toBeInTheDocument()
+        ).toBeVisible()
         expect(screen.getAllByText("Open Food Facts")).toHaveLength(1)
         expect(screen.queryByText(/^Source: /)).not.toBeInTheDocument()
         expect(screen.queryByText("Listed by source")).not.toBeInTheDocument()

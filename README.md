@@ -8,23 +8,38 @@ The identifier is a lookup key for a `Package Variant`; it is not a `Product` id
 
 - Node.js 24 LTS and pnpm
 - Python 3.13 and uv
-- Docker with Compose for local PostgreSQL
+- Docker with Compose for local PostgreSQL and MongoDB
 
 ## Install
 
 ```bash
 pnpm install
-pnpm backend:sync
+pnpm backend:install
 ```
 
 ## Run locally
 
-Start PostgreSQL and apply the migration:
+Start PostgreSQL and MongoDB, then apply the relational migration:
 
 ```bash
-docker compose -f infra/compose.yaml up -d postgres
+docker compose -f infra/compose.yaml up -d postgres mongodb
 pnpm db:migrate
 ```
+
+Package Match requires an Active OFF Dataset Version. Importing the full global export is
+an explicit operator action; see [`docs/OFF_DATASET.md`](docs/OFF_DATASET.md) for the
+sample workflow, production-sized import, validation, activation, rollback, and backup gate.
+
+The FastAPI backend uses MongoDB with a read-only application credential. Dataset commands
+use the separate operator credential:
+
+```bash
+pnpm off:dataset -- import-url
+pnpm off:dataset -- list
+pnpm off:dataset -- activate <version_id>
+```
+
+Additional lifecycle commands are documented in `docs/OFF_DATASET.md`.
 
 Start the API and Web Client in separate terminals. The normal Web Client command uses HTTPS so camera access works when testing from a phone:
 
@@ -69,8 +84,8 @@ pnpm api:generate
 ## Layout
 
 - `frontend/`: React, Vite, TypeScript, generated API client, localization, and focused Vitest tests
-- `backend/`: FastAPI, application service, Package Match domain behavior, SQLAlchemy adapter, Alembic migration, and pytest coverage
-- `infra/`: local PostgreSQL Compose configuration
+- `backend/`: FastAPI, application service, Package Match domain behavior, SQLAlchemy adapter, Open Food Facts dataset/image adapters, Alembic migrations, dataset CLI, and pytest coverage
+- `infra/`: local PostgreSQL and MongoDB Compose configuration and MongoDB initialization script
 
 See [`docs/REPOSITORY.md`](docs/REPOSITORY.md) for the planned monorepo structure and branch workflow.
 

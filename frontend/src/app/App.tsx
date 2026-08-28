@@ -1,17 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router"
+import { Route, Routes, useLocation, useNavigate } from "react-router"
 
+import { appRoutes } from "./routes"
+
+import { AllergiesPage } from "../features/allergies/AllergiesPage"
+import { HistoryPage } from "../features/history/HistoryPage"
+import { LearnArticlePage, LearnPage } from "../features/learn/LearnPage"
+import { NotFoundPage } from "../features/not-found/NotFoundPage"
+import { CapturePage } from "../features/package-capture/CapturePage"
+import { NewCapturePage } from "../features/package-capture/NewCapturePage"
 import { HomePage } from "../features/package-match/HomePage"
 import { PackageMatchResultPage } from "../features/package-match/PackageMatchResultPage"
 import type { PackageMatchLookup } from "../features/package-match/types"
+import { SearchPage } from "../features/search/SearchPage"
 import { AppShell } from "../ui/AppShell"
-import { PlaceholderPage } from "../ui/PlaceholderPage"
 
 type AppProps = {
     lookup: PackageMatchLookup
+    demoMode?: boolean
 }
 
-export function App({ lookup }: AppProps) {
+export function App({ lookup, demoMode }: AppProps) {
     const [lastIdentifier, setLastIdentifier] = useState("")
     const [focusIdentifier, setFocusIdentifier] = useState(false)
     const location = useLocation()
@@ -40,15 +49,16 @@ export function App({ lookup }: AppProps) {
             void navigate(-1)
             return
         }
-        void navigate("/", { replace: true })
+        void navigate(appRoutes.home, { replace: true })
     }, [location.state, navigate])
 
     return (
-        <AppShell>
+        <AppShell demoMode={demoMode}>
             <Routes>
-                <Route path="/" element={home()} />
+                <Route path={appRoutes.home} element={home()} />
+                <Route path={appRoutes.search} element={<SearchPage />} />
                 <Route
-                    path="/results/:identifier"
+                    path={appRoutes.result}
                     element={
                         <>
                             <div aria-hidden="true" inert>
@@ -63,18 +73,21 @@ export function App({ lookup }: AppProps) {
                     }
                 />
                 <Route
-                    path="/learn"
-                    element={<PlaceholderPage kind="learn" />}
+                    path={appRoutes.captureNew}
+                    element={<NewCapturePage />}
                 />
                 <Route
-                    path="/history"
-                    element={<PlaceholderPage kind="history" />}
+                    path={appRoutes.captureDetail}
+                    element={<CapturePage />}
                 />
+                <Route path={appRoutes.learn} element={<LearnPage />} />
                 <Route
-                    path="/allergies"
-                    element={<PlaceholderPage kind="allergies" />}
+                    path={appRoutes.learnDetail}
+                    element={<LearnArticlePage />}
                 />
-                <Route path="*" element={<Navigate replace to="/" />} />
+                <Route path={appRoutes.history} element={<HistoryPage />} />
+                <Route path={appRoutes.allergies} element={<AllergiesPage />} />
+                <Route path="*" element={<NotFoundPage />} />
             </Routes>
         </AppShell>
     )

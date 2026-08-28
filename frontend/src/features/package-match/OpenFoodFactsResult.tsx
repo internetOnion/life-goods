@@ -6,7 +6,10 @@ import {
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 
-import type { PackageMatchEvidenceResponse } from "../../api/generated"
+import type {
+    PackageMatchEvidenceResponse,
+    PackageMatchReferenceImageResponse,
+} from "../../api/generated"
 import type { OpenFoodFactsCandidate } from "./types"
 
 export type OpenFoodFactsResultProps = {
@@ -67,49 +70,46 @@ export function OpenFoodFactsResult({
     const language = currentLocale(i18n.resolvedLanguage)
     const headingRef = useRef<HTMLHeadingElement>(null)
     const [referenceImageFailed, setReferenceImageFailed] = useState(false)
-    const names = fieldEvidence(candidate.identity_evidence, "name")
+    const identityEvidence = candidate.identity_evidence ?? []
+    const labelEvidence = candidate.label_evidence ?? []
+    const referenceImages = candidate.reference_images ?? []
+    const names = fieldEvidence(identityEvidence, "name")
     const selectedName = preferredEvidence(names, language)
     const alternateNames = names.filter((item) => item !== selectedName)
-    const brands = fieldEvidence(candidate.identity_evidence, "brands")
-    const quantities = fieldEvidence(candidate.identity_evidence, "quantity")
-    const ingredients = fieldEvidence(
-        candidate.label_evidence,
-        "ingredient_text",
-    )
-    const allergens = candidate.label_evidence.filter(
+    const brands = fieldEvidence(identityEvidence, "brands")
+    const quantities = fieldEvidence(identityEvidence, "quantity")
+    const ingredients = fieldEvidence(labelEvidence, "ingredient_text")
+    const allergens = labelEvidence.filter(
         (item) =>
             ["allergen_declaration", "allergen_tags"].includes(item.field) &&
             isRenderableEvidence(item),
     )
-    const traces = candidate.label_evidence.filter(
+    const traces = labelEvidence.filter(
         (item) =>
             ["trace_declaration", "trace_tags"].includes(item.field) &&
             isRenderableEvidence(item),
     )
-    const halal = fieldEvidence(candidate.label_evidence, "halal_label_claim")
-    const additives = fieldEvidence(candidate.label_evidence, "additive_tags")
-    const nutrition = fieldEvidence(candidate.label_evidence, "nutrition")
+    const halal = fieldEvidence(labelEvidence, "halal_label_claim")
+    const additives = fieldEvidence(labelEvidence, "additive_tags")
+    const nutrition = fieldEvidence(labelEvidence, "nutrition")
     const packagingLanguages = fieldEvidence(
-        candidate.label_evidence,
+        labelEvidence,
         "packaging_languages",
     )
-    const countriesSold = fieldEvidence(
-        candidate.label_evidence,
-        "countries_sold",
-    )
+    const countriesSold = fieldEvidence(labelEvidence, "countries_sold")
     const manufacturingPlaces = fieldEvidence(
-        candidate.label_evidence,
+        labelEvidence,
         "manufacturing_places",
     )
     const storageInstructions = uniqueEvidence(
-        fieldEvidence(candidate.label_evidence, "storage_instructions"),
+        fieldEvidence(labelEvidence, "storage_instructions"),
     )
     const referenceImage =
-        candidate.reference_images.find(
+        referenceImages.find(
             (image) => image.role === "front" && image.language === language,
         ) ??
-        candidate.reference_images.find((image) => image.role === "front") ??
-        candidate.reference_images[0]
+        referenceImages.find((image) => image.role === "front") ??
+        referenceImages[0]
     const packageName = printableText(selectedName?.value)
     const missingFields = missingImportantFields({
         additives,
@@ -183,10 +183,7 @@ export function OpenFoodFactsResult({
                         <IdentityFact
                             label={t("identifierLabel")}
                             evidence={
-                                fieldEvidence(
-                                    candidate.identity_evidence,
-                                    "identifier",
-                                )[0]
+                                fieldEvidence(identityEvidence, "identifier")[0]
                             }
                             fallback={normalizedIdentifier}
                         />
@@ -336,7 +333,7 @@ function ReferenceImage({
     packageName,
     onError,
 }: {
-    image: OpenFoodFactsCandidate["reference_images"][number]
+    image: PackageMatchReferenceImageResponse
     packageName: string | undefined
     onError: () => void
 }) {
@@ -667,8 +664,10 @@ function SupportingFact({
 }
 
 function SourceDetails({ candidate }: { candidate: OpenFoodFactsCandidate }) {
-    const { t } = useTranslation()
+    const { i18n, t } = useTranslation()
+    const language = currentLocale(i18n.resolvedLanguage)
     const source = candidate.source
+    const datasetVersion = candidate.dataset_version
     const sourceUrl = source?.record_url || source?.base_url
     return (
         <CategoryCard
@@ -676,24 +675,102 @@ function SourceDetails({ candidate }: { candidate: OpenFoodFactsCandidate }) {
             id="source-details-title"
             className="bg-muted/50"
         >
-            <dl className="mt-4 grid gap-3 min-[30rem]:grid-cols-2">
+            <dl className="mt-4 grid gap-3 sm:grid-cols-2">
                 <SourceFact label={t("sourceLabel")} value={source?.name} />
+                <SourceFact
+                    label={t("retrievedLabel")}
+                    value={
+                        candidate.retrieved_at
+                            ? formatRetrievedAt(
+                                  candidate.retrieved_at,
+                                  language,
+                              )
+                            : undefined
+                    }
+                />
+                {datasetVersion ? (
+                    <>
+                        <SourceFact
+                            label={t("datasetVersionLabel")}
+                            value={datasetVersion.id}
+                        />
+                        <SourceFact
+                            label={t("datasetAsOfLabel")}
+                            value={
+                                datasetVersion.retrieved_at
+                                    ? t("datasetAsOf", {
+                                          date: formatRetrievedAt(
+                                              datasetVersion.retrieved_at,
+                                              language,
+                                          ),
+                                      })
+                                    : undefined
+                            }
+                        />
+                        <SourceFact
+                            label={t("datasetActivatedLabel")}
+                            value={
+                                datasetVersion.activated_at
+                                    ? formatRetrievedAt(
+                                          datasetVersion.activated_at,
+                                          language,
+                                      )
+                                    : undefined
+                            }
+                        />
+                        <SourceFact
+                            label={t("datasetIntegrityHashLabel")}
+                            value={datasetVersion.sha256}
+                        />
+                    </>
+                ) : null}
+                <SourceFact
+                    label={t("sourceRevisionLabel")}
+                    value={candidate.source_revision ?? undefined}
+                />
                 <SourceFact
                     label={t("attributionLabel")}
                     value={source?.attribution}
                 />
+                <SourceFact
+                    label={t("licenseLabel")}
+                    value={
+                        source
+                            ? [
+                                  source.database_license,
+                                  source.contents_license,
+                                  source.image_license,
+                              ]
+                                  .filter(Boolean)
+                                  .join(" · ")
+                            : undefined
+                    }
+                />
             </dl>
-            {sourceUrl ? (
-                <a
-                    className="text-primary mt-3 inline-flex min-h-11 items-center gap-2 font-semibold"
-                    href={sourceUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                >
-                    <LinkSimpleIcon aria-hidden="true" size={18} />
-                    <span>{t("sourceLink")}</span>
-                </a>
-            ) : null}
+            <div className="mt-3 flex flex-wrap gap-4">
+                {sourceUrl ? (
+                    <a
+                        className="text-primary inline-flex min-h-11 items-center gap-2 font-semibold"
+                        href={sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                    >
+                        <LinkSimpleIcon aria-hidden="true" size={18} />
+                        <span>{t("sourceLink")}</span>
+                    </a>
+                ) : null}
+                {datasetVersion?.source_url ? (
+                    <a
+                        className="text-primary inline-flex min-h-11 items-center gap-2 font-semibold"
+                        href={datasetVersion.source_url}
+                        target="_blank"
+                        rel="noreferrer"
+                    >
+                        <LinkSimpleIcon aria-hidden="true" size={18} />
+                        <span>{t("datasetSourceLink")}</span>
+                    </a>
+                ) : null}
+            </div>
         </CategoryCard>
     )
 }
@@ -1110,4 +1187,13 @@ function displayLanguage(value: string, locale: string) {
     } catch {
         return value
     }
+}
+
+function formatRetrievedAt(value: string, language: string): string {
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return value
+    return new Intl.DateTimeFormat(language === "km" ? "km-KH" : "en", {
+        dateStyle: "medium",
+        timeStyle: "short",
+    }).format(date)
 }

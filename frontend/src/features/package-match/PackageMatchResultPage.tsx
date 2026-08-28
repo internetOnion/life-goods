@@ -549,7 +549,7 @@ function CatalogFact({
 function candidateDisplayName(
     candidate: PackageMatchCandidateResponse,
 ): string | undefined {
-    const evidence = candidate.identity_evidence.find(
+    const evidence = candidate.identity_evidence?.find(
         (item) => item.field === "name",
     )
     return typeof evidence?.value === "string" && evidence.value.trim()

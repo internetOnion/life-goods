@@ -1,17 +1,21 @@
 from collections.abc import Callable
+from typing import Any
 
-import httpx
+import httpx2 as httpx
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from lifegoods.adapters.open_food_facts_images import OpenFoodFactsImageSource
-from lifegoods.api.open_food_facts_images import get_image_source, router
-from lifegoods.matching.external_images import (
+from lifegoods.open_food_facts import (
     ExternalImage,
     ExternalImageNotFoundError,
     ExternalImageUnavailableError,
     ExternalImageUrlInvalidError,
+    OpenFoodFactsImageSource,
+    get_image_source,
+)
+from lifegoods.open_food_facts import (
+    open_food_facts_image_router as router,
 )
 
 IMAGE_URL = "https://images.openfoodfacts.org/images/products/400/front_en.jpg"
@@ -26,15 +30,19 @@ def image_source(
     cache_ttl_seconds: float = 24 * 60 * 60,
     monotonic: Callable[[], float] | None = None,
 ) -> OpenFoodFactsImageSource:
+    kwargs: dict[str, Any] = {
+        "image_base_url": "https://images.openfoodfacts.org",
+        "user_agent": "LifeGoods tests",
+        "timeout_seconds": 2,
+        "requests_per_minute": requests_per_minute,
+        "max_image_bytes": max_image_bytes,
+        "cache_ttl_seconds": cache_ttl_seconds,
+    }
+    if monotonic is not None:
+        kwargs["monotonic"] = monotonic
     return OpenFoodFactsImageSource(
         httpx.Client(transport=respond),
-        image_base_url="https://images.openfoodfacts.org",
-        user_agent="LifeGoods tests",
-        timeout_seconds=2,
-        requests_per_minute=requests_per_minute,
-        max_image_bytes=max_image_bytes,
-        cache_ttl_seconds=cache_ttl_seconds,
-        **({"monotonic": monotonic} if monotonic is not None else {}),
+        **kwargs,
     )
 
 

@@ -16,6 +16,7 @@ import i18n from "../src/i18n"
 import {
     completeOffCandidate,
     packageMatches,
+    packageMatchesResponse,
     sparseOffCandidate,
 } from "./package-match-fixtures"
 
@@ -180,6 +181,11 @@ describe("manual identifier journey", () => {
             normalized_identifier: "4006381333931",
             scheme: "EAN_13",
             candidates: [],
+            open_food_facts: {
+                status: "NOT_FOUND",
+                dataset_version: null,
+                error_code: null,
+            },
         })
         renderJourney(lookup)
 
@@ -248,7 +254,7 @@ describe("manual identifier journey", () => {
             await screen.findByRole("heading", { name: "Dark chocolate" }),
         ).toHaveFocus()
         expect(screen.getByRole("status")).toHaveTextContent(
-            "Community package information is available",
+            "Open Food Facts package information is available",
         )
         const request = fetchMock.mock.calls[0]?.[0]
         expect(request).toBeInstanceOf(Request)
@@ -263,11 +269,9 @@ describe("manual identifier journey", () => {
     test("traps modal focus, closes with Escape, and restores barcode focus", async () => {
         await i18n.changeLanguage("en")
         const user = userEvent.setup()
-        const lookup = vi.fn<PackageMatchLookup>().mockResolvedValue({
-            normalized_identifier: "4006381333931",
-            scheme: "EAN_13",
-            candidates: [],
-        })
+        const lookup = vi
+            .fn<PackageMatchLookup>()
+            .mockResolvedValue(packageMatchesResponse())
         renderJourney(lookup)
 
         const input = screen.getByRole("textbox", { name: "Barcode number" })
@@ -380,11 +384,14 @@ describe("manual identifier journey", () => {
             label_evidence: [],
             reference_images: [],
         }
-        const lookup = vi.fn<PackageMatchLookup>().mockResolvedValue({
-            normalized_identifier: "4006381333931",
-            scheme: "EAN_13",
-            candidates: [reviewedCandidate, completeOffCandidate()],
-        })
+        const lookup = vi
+            .fn<PackageMatchLookup>()
+            .mockResolvedValue(
+                packageMatchesResponse([
+                    reviewedCandidate,
+                    completeOffCandidate(),
+                ]),
+            )
         renderJourney(lookup)
 
         await user.type(

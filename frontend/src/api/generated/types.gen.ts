@@ -7,7 +7,7 @@ export type ClientOptions = {
 /**
  * ErrorCode
  */
-export type ErrorCode = 'IDENTIFIER_REQUIRED' | 'IDENTIFIER_CHARACTERS_INVALID' | 'IDENTIFIER_LENGTH_UNSUPPORTED' | 'IDENTIFIER_CHECK_DIGIT_INVALID' | 'PACKAGE_MATCH_SOURCE_UNAVAILABLE' | 'REFERENCE_IMAGE_URL_INVALID' | 'REFERENCE_IMAGE_NOT_FOUND' | 'REFERENCE_IMAGE_SOURCE_UNAVAILABLE';
+export type ErrorCode = 'IDENTIFIER_REQUIRED' | 'IDENTIFIER_CHARACTERS_INVALID' | 'IDENTIFIER_LENGTH_UNSUPPORTED' | 'IDENTIFIER_CHECK_DIGIT_INVALID' | 'PACKAGE_MATCH_SOURCE_UNAVAILABLE' | 'REFERENCE_IMAGE_URL_INVALID' | 'REFERENCE_IMAGE_NOT_FOUND' | 'REFERENCE_IMAGE_SOURCE_UNAVAILABLE' | 'RATE_LIMIT_EXCEEDED';
 
 /**
  * ErrorDetail
@@ -28,58 +28,102 @@ export type ErrorEnvelope = {
 };
 
 /**
+ * ExternalDatasetVersionResponse
+ */
+export type ExternalDatasetVersionResponse = {
+    /**
+     * Activated At
+     */
+    activated_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Retrieved At
+     */
+    retrieved_at: string;
+    /**
+     * Sha256
+     */
+    sha256: string;
+    /**
+     * Source Url
+     */
+    source_url: string;
+};
+
+/**
  * IdentifierScheme
  */
 export type IdentifierScheme = 'GTIN_8' | 'UPC_A' | 'EAN_13' | 'GTIN_14';
 
 /**
+ * OpenFoodFactsLookupResponse
+ */
+export type OpenFoodFactsLookupResponse = {
+    dataset_version: ExternalDatasetVersionResponse | null;
+    /**
+     * Error Code
+     */
+    error_code: string | null;
+    status: OpenFoodFactsLookupStatus;
+};
+
+/**
+ * OpenFoodFactsLookupStatus
+ */
+export type OpenFoodFactsLookupStatus = 'AVAILABLE' | 'NOT_FOUND' | 'UNAVAILABLE';
+
+/**
  * PackageMatchCandidateResponse
  */
 export type PackageMatchCandidateResponse = {
+    dataset_version?: ExternalDatasetVersionResponse | null;
     /**
      * External Record Id
      */
-    external_record_id: string | null;
+    external_record_id?: string | null;
     /**
      * Identity Evidence
      */
-    identity_evidence: Array<PackageMatchEvidenceResponse>;
-    /**
-     * Is Current
-     */
-    is_current: boolean | null;
+    identity_evidence?: Array<PackageMatchEvidenceResponse>;
     /**
      * Label Evidence
      */
-    label_evidence: Array<PackageMatchEvidenceResponse>;
+    label_evidence?: Array<PackageMatchEvidenceResponse>;
     /**
      * Package Variant Id
      */
-    package_variant_id: string | null;
+    package_variant_id?: string | null;
     /**
      * Product Id
      */
-    product_id: string | null;
+    product_id?: string | null;
     /**
      * Reference Images
      */
-    reference_images: Array<PackageMatchReferenceImageResponse>;
+    reference_images?: Array<PackageMatchReferenceImageResponse>;
     /**
      * Retrieved At
      */
-    retrieved_at: string | null;
-    source: PackageMatchSourceResponse | null;
+    retrieved_at?: string | null;
+    source?: PackageMatchSourceResponse | null;
     source_kind: PackageMatchSourceKind;
     /**
      * Source Revision
      */
-    source_revision: string | null;
+    source_revision?: string | null;
 };
 
 /**
  * PackageMatchEvidenceResponse
  */
 export type PackageMatchEvidenceResponse = {
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id?: string | null;
     /**
      * Field
      */
@@ -105,6 +149,10 @@ export type PackageMatchEvidenceResponse = {
      */
     source_name: string;
     /**
+     * Source Revision
+     */
+    source_revision?: string | null;
+    /**
      * Source Url
      */
     source_url: string;
@@ -123,6 +171,14 @@ export type PackageMatchReferenceImageResponse = {
      */
     attribution: string;
     /**
+     * Dataset Version Id
+     */
+    dataset_version_id?: string | null;
+    /**
+     * Image Revision
+     */
+    image_revision?: string | null;
+    /**
      * Language
      */
     language: string | null;
@@ -130,6 +186,10 @@ export type PackageMatchReferenceImageResponse = {
      * License Name
      */
     license_name: string;
+    /**
+     * Original Url
+     */
+    original_url: string;
     /**
      * Retrieved At
      */
@@ -146,6 +206,10 @@ export type PackageMatchReferenceImageResponse = {
      * Source Name
      */
     source_name: string;
+    /**
+     * Source Revision
+     */
+    source_revision?: string | null;
     /**
      * Source Url
      */
@@ -215,6 +279,7 @@ export type PackageMatchesResponse = {
      * Normalized Identifier
      */
     normalized_identifier: string;
+    open_food_facts: OpenFoodFactsLookupResponse;
     scheme: IdentifierScheme;
 };
 
@@ -277,6 +342,10 @@ export type GetPackageMatchesErrors = {
      * Unprocessable Content
      */
     422: ErrorEnvelope;
+    /**
+     * Too Many Requests
+     */
+    429: ErrorEnvelope;
     /**
      * Service Unavailable
      */
