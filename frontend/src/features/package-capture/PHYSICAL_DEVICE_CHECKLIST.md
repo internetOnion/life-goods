@@ -16,7 +16,7 @@ Automated browser tests cannot fully reproduce camera permission, stream interru
 
 ## Checks
 
-- Camera permission appears only after **Open camera** is pressed.
+- Camera permission is requested automatically when the first capture step opens; once granted, the live preview stays camera-first on later capture steps and retakes.
 - Denying permission shows recovery and never opens a file picker.
 - The rear camera is preferred and the preview is correctly oriented.
 - Front-package and back-package photos can each be captured, previewed, and retaken.
@@ -26,11 +26,10 @@ Automated browser tests cannot fully reproduce camera permission, stream interru
 - Backgrounding the browser or interrupting the stream shows a recoverable stopped-camera state.
 - Reloading clears photos and returns to the first missing step.
 - Browser Back moves through review, ingredients, back, and front steps predictably.
-- Exit clears previews and returns Home; returning to Package Capture shows no old photos.
+- Navigating away from capture clears previews; returning to Package Capture shows no old photos.
 - The 320×568 viewport keeps the main action usable without horizontal scrolling.
 - Khmer labels wrap without clipping or overlapping controls.
-- The flag language control is available on every capture and result state and preserves the current step.
-- The disabled Scan barcode option shows its localized Soon badge and cannot be activated.
+- The capture journey has no bottom navigation, exit control, language control, or barcode/capture toggle.
 - The review screen says that photos are not sent, saved, or analyzed.
 - Continuing from review destroys local previews before the queued demo state appears.
 - Every result state shows the localized demo notice and no state advances on a timer.

@@ -11,16 +11,6 @@ export type CaptureScenario =
     | "timed-out"
     | "expired"
 
-export const captureStepNumbers: Record<
-    Exclude<CaptureStep, "close-up">,
-    number
-> = {
-    front: 1,
-    back: 2,
-    ingredients: 3,
-    review: 4,
-}
-
 function addCaptureEntryContext(
     current: URLSearchParams,
     next: URLSearchParams,

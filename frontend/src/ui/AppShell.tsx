@@ -7,7 +7,7 @@ import {
 } from "@phosphor-icons/react"
 import { type ReactNode, useEffect } from "react"
 import { useTranslation } from "react-i18next"
-import { NavLink, useNavigate } from "react-router"
+import { NavLink, useLocation, useNavigate } from "react-router"
 
 import { appRoutes } from "@/app/routes"
 import { Button } from "@/components/ui/button"
@@ -36,7 +36,9 @@ const navigation = [
 
 export function AppShell({ children, demoMode }: AppShellProps) {
     const { i18n } = useTranslation()
+    const location = useLocation()
     const currentLanguage = i18n.resolvedLanguage === "en" ? "en" : "km"
+    const isCaptureJourney = location.pathname === appRoutes.captureNew
 
     useEffect(() => {
         document.documentElement.lang = currentLanguage
@@ -46,7 +48,7 @@ export function AppShell({ children, demoMode }: AppShellProps) {
         <MvpDemoModeProvider enabled={demoMode}>
             <div className="bg-background text-foreground min-h-svh">
                 {children}
-                <BottomNavigation />
+                {isCaptureJourney ? null : <BottomNavigation />}
             </div>
         </MvpDemoModeProvider>
     )

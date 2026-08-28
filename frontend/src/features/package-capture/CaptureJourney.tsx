@@ -1,16 +1,10 @@
-import {
-    CameraIcon,
-    CheckIcon,
-    LockKeyIcon,
-    XIcon,
-} from "@phosphor-icons/react"
+import { CameraIcon, CheckIcon, LockKeyIcon } from "@phosphor-icons/react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
-import { LanguageSwitchButton } from "@/ui/LanguageSwitchButton"
 
 import { CameraStage } from "./CameraStage"
-import { captureStepNumbers } from "./captureRoute"
+import { CaptureProgress } from "./CaptureProgress"
 import { ReviewStep } from "./ReviewStep"
 import { usePackageCaptureJourney } from "./usePackageCaptureJourney"
 
@@ -27,27 +21,10 @@ export function CaptureJourney() {
     } = usePackageCaptureJourney()
     const isReview = step === "review"
     const isCloseUp = step === "close-up"
-    const title = isReview
-        ? t("capture.review.title")
-        : t(`capture.${step}.title`)
+    const title = t("capture.review.title")
 
     return (
-        <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pt-[calc(1rem_+_env(safe-area-inset-top))] pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
-            <div className="flex items-start justify-between gap-2">
-                <Button
-                    variant="ghost"
-                    className="h-auto min-w-0 justify-self-start px-2 leading-relaxed whitespace-normal sm:-ml-3 sm:px-3"
-                    type="button"
-                    onClick={actions.exitCapture}
-                >
-                    <XIcon aria-hidden="true" weight="bold" />
-                    {t("capture.exit")}
-                </Button>
-                <div className="flex items-start gap-2">
-                    <LanguageSwitchButton shape="rectangle" />
-                </div>
-            </div>
-
+        <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pt-[env(safe-area-inset-top)] pb-[calc(1.5rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
             {isReview ? (
                 <>
                     <section className="pt-4 text-start sm:pt-5">
@@ -73,14 +50,6 @@ export function CaptureJourney() {
                     <CameraStage
                         step={step}
                         headingRef={headingRef}
-                        title={title}
-                        stepLabel={
-                            isCloseUp
-                                ? t("capture.followUpStep")
-                                : t("capture.step", {
-                                      current: captureStepNumbers[step],
-                                  })
-                        }
                         photo={photos.current}
                         cameraState={camera.state}
                         cameraReady={camera.ready}
@@ -91,6 +60,14 @@ export function CaptureJourney() {
                         onOpen={() => void actions.openCamera()}
                         onCapture={() => void actions.takePhoto()}
                     />
+                    {!isCloseUp ? (
+                        <CaptureProgress
+                            step={step}
+                            hasFrontPhoto={photos.front !== null}
+                            hasBackPhoto={photos.back !== null}
+                            ingredientDecision={ingredientDecision}
+                        />
+                    ) : null}
                     {showReloadRecovery && step === "front" ? (
                         <p
                             className="border-border bg-brand-soft mt-5 rounded-xl border px-4 py-3 text-sm leading-relaxed"
@@ -99,27 +76,6 @@ export function CaptureJourney() {
                             {t("capture.reloadRecovery")}
                         </p>
                     ) : null}
-                    <div className="border-border bg-muted mt-4 grid grid-cols-2 gap-1 rounded-xl border p-1">
-                        <Button
-                            variant="ghost"
-                            className="h-auto min-h-11 min-w-0 justify-center gap-2 rounded-lg px-2 leading-snug whitespace-normal"
-                            type="button"
-                            disabled
-                        >
-                            <span>{t("capture.method.barcode")}</span>
-                            <span className="border-border text-muted-foreground rounded-md border px-1.5 py-0.5 text-xs font-semibold">
-                                {t("capture.method.soon")}
-                            </span>
-                        </Button>
-                        <div className="bg-background text-foreground flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 py-2 text-center text-sm font-bold">
-                            <CameraIcon
-                                aria-hidden="true"
-                                size={19}
-                                weight="bold"
-                            />
-                            <span>{t("capture.method.capture")}</span>
-                        </div>
-                    </div>
                     {isCloseUp ? (
                         <div className="border-border bg-brand-soft mt-5 flex items-start gap-3 rounded-xl border p-4 text-sm leading-relaxed">
                             <LockKeyIcon
@@ -137,7 +93,7 @@ export function CaptureJourney() {
                         </p>
                     ) : null}
                     {photos.current || step === "ingredients" ? (
-                        <div className="border-border bg-background sticky bottom-[calc(5rem_+_env(safe-area-inset-bottom))] z-10 mt-5 flex flex-wrap gap-3 border-t py-3">
+                        <div className="border-border bg-background sticky bottom-[env(safe-area-inset-bottom)] z-10 mt-5 flex flex-wrap gap-3 border-t py-3">
                             {step === "ingredients" && !photos.current ? (
                                 <Button
                                     className="min-w-0 flex-1"

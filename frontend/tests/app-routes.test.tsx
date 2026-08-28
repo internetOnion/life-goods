@@ -49,28 +49,31 @@ describe("app routes and shell", () => {
         ).toBeVisible()
     })
 
-    test("keeps the rectangular language switch above the capture camera", () => {
+    test("keeps capture focused without shell chrome", () => {
         const captureRender = renderRoute(
             "/capture/new?step=front",
             vi.fn<PackageMatchLookup>(),
             true,
         )
 
-        const languageSwitch = screen.getByRole("button", {
-            name: "Switch to Khmer",
-        })
-        expect(languageSwitch).toBeInTheDocument()
-        expect(languageSwitch).toHaveClass("h-11", "w-14", "rounded-lg")
-        const captureNavigation = screen.getByRole("navigation", {
-            name: "Primary navigation",
-        })
-        expect(captureNavigation).toBeVisible()
+        expect(
+            screen.queryByRole("button", { name: "Switch to Khmer" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("navigation", { name: "Primary navigation" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("button", { name: "Exit Package Capture" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("button", { name: "Scan barcode Soon" }),
+        ).not.toBeInTheDocument()
 
         captureRender.unmount()
         const placeholderRender = renderRoute("/capture/new")
         expect(
-            screen.getByRole("button", { name: "Switch to Khmer" }),
-        ).toHaveClass("h-11", "w-14", "rounded-lg")
+            screen.queryByRole("navigation", { name: "Primary navigation" }),
+        ).not.toBeInTheDocument()
 
         placeholderRender.unmount()
         const ordinaryRender = renderRoute("/learn")
@@ -116,23 +119,18 @@ describe("app routes and shell", () => {
         ).toBeVisible()
     })
 
-    test("keeps bottom navigation and provides localized exit on new capture", async () => {
-        const user = userEvent.setup()
+    test("hides bottom navigation and exit controls on new capture", () => {
         renderRoute("/capture/new")
 
         expect(
             screen.getByRole("heading", { name: "New Package Capture" }),
         ).toHaveFocus()
         expect(
-            screen.getByRole("navigation", { name: "Primary navigation" }),
-        ).toBeVisible()
-
-        await user.click(
-            screen.getByRole("button", { name: "Exit Package Capture" }),
-        )
+            screen.queryByRole("navigation", { name: "Primary navigation" }),
+        ).not.toBeInTheDocument()
         expect(
-            screen.getByRole("heading", { name: "Scan with the camera" }),
-        ).toBeVisible()
+            screen.queryByRole("button", { name: "Exit Package Capture" }),
+        ).not.toBeInTheDocument()
     })
 
     test("keeps bottom navigation and exits capture results from the left", async () => {

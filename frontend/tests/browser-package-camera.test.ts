@@ -35,6 +35,24 @@ describe("browser Package Capture camera", () => {
         expect(video.srcObject).toBeNull()
     })
 
+    test("starts video playback after attaching the stream", async () => {
+        const stream = {
+            getTracks: () => [],
+        } as unknown as MediaStream
+        const getUserMedia = vi.fn().mockResolvedValue(stream)
+        vi.stubGlobal("navigator", {
+            mediaDevices: { getUserMedia },
+        })
+        const video = document.createElement("video")
+        const play = vi.fn().mockResolvedValue(undefined)
+        video.play = play
+        const camera = createBrowserPackageCamera()
+
+        await camera.open(video)
+
+        expect(play).toHaveBeenCalledOnce()
+    })
+
     test("reports a stream that ends unexpectedly", async () => {
         const track = new EventTarget() as MediaStreamTrack
         track.stop = vi.fn()

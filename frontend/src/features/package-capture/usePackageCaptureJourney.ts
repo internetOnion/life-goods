@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react"
 import { useLocation, useNavigate } from "react-router"
 
-import { appRoutes } from "@/app/routes"
-
 import {
     createBrowserPackageCamera,
     type CapturedPackagePhoto,
@@ -44,7 +42,6 @@ type PackageCaptureJourney = {
         continueJourney: () => void
         skipIngredients: () => void
         editStep: (step: "front" | "back" | "ingredients") => void
-        exitCapture: () => void
         startDemo: () => void
     }
 }
@@ -68,6 +65,10 @@ function cameraErrorFrom(error: unknown): CameraError {
     return "capture"
 }
 
+function isCameraRequestCancelled(error: unknown): boolean {
+    return error instanceof DOMException && error.name === "AbortError"
+}
+
 export function usePackageCaptureJourney(): PackageCaptureJourney {
     const location = useLocation()
     const navigate = useNavigate()
@@ -76,7 +77,9 @@ export function usePackageCaptureJourney(): PackageCaptureJourney {
     const videoRef = useRef<HTMLVideoElement>(null)
     const headingRef = useRef<HTMLHeadingElement>(null)
     const isLeavingCaptureRef = useRef(false)
+    const cameraResetStepRef = useRef<CaptureStep | null>(null)
     const autoOpenStepRef = useRef<CaptureStep | null>(null)
+    const autoOpenedStepRef = useRef<CaptureStep | null>(null)
     const returnToReviewRef = useRef(false)
     const mountedRef = useRef(true)
     const [frontPhoto, setFrontPhoto] = useState<CapturedPackagePhoto | null>(
@@ -93,6 +96,8 @@ export function usePackageCaptureJourney(): PackageCaptureJourney {
     const [cameraState, setCameraState] = useState<CameraState>("idle")
     const [cameraReady, setCameraReady] = useState(false)
     const [cameraError, setCameraError] = useState<CameraError | null>(null)
+    const [cameraPermissionGranted, setCameraPermissionGranted] =
+        useState(false)
     const [showReloadRecovery] = useState(requestedStep !== "front")
 
     const discardCapturedMedia = useCallback(() => {
@@ -143,6 +148,8 @@ export function usePackageCaptureJourney(): PackageCaptureJourney {
 
     useEffect(() => {
         headingRef.current?.focus()
+        if (cameraResetStepRef.current === step) return
+        cameraResetStepRef.current = step
         camera.stop()
         setCameraState("idle")
         setCameraReady(false)
@@ -153,15 +160,45 @@ export function usePackageCaptureJourney(): PackageCaptureJourney {
         mountedRef.current = true
         return () => {
             mountedRef.current = false
-            camera.dispose()
+            queueMicrotask(() => {
+                if (!mountedRef.current) camera.dispose()
+            })
         }
     }, [camera])
+
+    useEffect(() => {
+        if (step === "review") return
+        if (!navigator.permissions?.query) return
+
+        let cancelled = false
+        let permissionStatus: PermissionStatus | null = null
+        const syncPermission = () => {
+            if (cancelled || !permissionStatus) return
+            const granted = permissionStatus.state === "granted"
+            setCameraPermissionGranted(granted)
+        }
+
+        void navigator.permissions
+            .query({ name: "camera" })
+            .then((status) => {
+                if (cancelled) return
+                permissionStatus = status
+                syncPermission()
+                status.addEventListener("change", syncPermission)
+            })
+            .catch(() => undefined)
+
+        return () => {
+            cancelled = true
+            permissionStatus?.removeEventListener("change", syncPermission)
+        }
+    }, [step])
 
     useEffect(() => {
         const interruptHiddenCamera = () => {
             if (
                 document.visibilityState !== "visible" &&
-                (cameraState === "live" || cameraState === "opening")
+                cameraState === "live"
             ) {
                 handleCameraInterruption()
             }
@@ -263,11 +300,6 @@ export function usePackageCaptureJourney(): PackageCaptureJourney {
         void navigate(buildCaptureUrl(nextStep, location.search))
     }
 
-    const exitCapture = () => {
-        discardCapturedMedia()
-        void navigate(appRoutes.home)
-    }
-
     const openCamera = useCallback(async () => {
         const video = videoRef.current
         if (!video) return
@@ -277,18 +309,29 @@ export function usePackageCaptureJourney(): PackageCaptureJourney {
         try {
             await camera.open(video, handleCameraInterruption)
             if (!mountedRef.current) return
+            setCameraPermissionGranted(true)
             setCameraState("live")
         } catch (error) {
             if (!mountedRef.current) return
             camera.stop()
+            if (isCameraRequestCancelled(error)) {
+                resetCameraStatus()
+                return
+            }
             setCameraState("error")
             setCameraError(cameraErrorFrom(error))
         }
-    }, [camera, handleCameraInterruption])
+    }, [camera, handleCameraInterruption, resetCameraStatus])
 
     useEffect(() => {
-        if (autoOpenStepRef.current !== step || step === "review") return
+        if (step === "review") return
+        if (autoOpenStepRef.current === null) {
+            if (autoOpenedStepRef.current === step) return
+            autoOpenStepRef.current = step
+        }
+        if (autoOpenStepRef.current !== step) return
         autoOpenStepRef.current = null
+        autoOpenedStepRef.current = step
         void openCamera()
     }, [openCamera, step])
 
@@ -327,6 +370,7 @@ export function usePackageCaptureJourney(): PackageCaptureJourney {
         setCameraReady(false)
         setCameraState("idle")
         setCameraError(null)
+        if (cameraPermissionGranted) void openCamera()
     }
 
     const startDemo = () => {
@@ -369,7 +413,6 @@ export function usePackageCaptureJourney(): PackageCaptureJourney {
             continueJourney,
             skipIngredients,
             editStep,
-            exitCapture,
             startDemo,
         },
     }

@@ -59,7 +59,18 @@ export function createBrowserPackageCamera(): PackageCamera {
             }
             activeStream = stream
             activeVideo = video
+            video.autoplay = true
+            video.muted = true
+            video.playsInline = true
             video.srcObject = stream
+            if (typeof video.play === "function") {
+                try {
+                    await video.play()
+                } catch (error) {
+                    stop()
+                    throw error
+                }
+            }
             if (onInterrupted) {
                 const tracks = stream.getTracks()
                 tracks.forEach((track) =>

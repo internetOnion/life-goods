@@ -12,8 +12,6 @@ import type { CameraError, CameraState } from "./usePackageCaptureJourney"
 type CameraStageProps = {
     step: Exclude<CaptureStep, "review">
     headingRef: RefObject<HTMLHeadingElement | null>
-    title: string
-    stepLabel: string
     photo: CapturedPackagePhoto | null
     cameraState: CameraState
     cameraReady: boolean
@@ -28,8 +26,6 @@ type CameraStageProps = {
 export function CameraStage({
     step,
     headingRef,
-    title,
-    stepLabel,
     photo,
     cameraState,
     cameraReady,
@@ -43,25 +39,14 @@ export function CameraStage({
     const { t } = useTranslation()
     const cameraVisible = cameraState === "opening" || cameraState === "live"
     const errorKey = cameraError ?? "capture"
+    const showStartingState = !photo && !cameraError && cameraState === "idle"
 
     return (
-        <div className="mt-5 sm:mt-6">
-            <div className="border-border bg-muted relative h-[clamp(22rem,68svh,42rem)] overflow-hidden rounded-[1.75rem] border">
-                <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex items-start justify-between gap-2 sm:inset-x-4 sm:top-4">
-                    <div className="bg-background/60 text-foreground max-w-[75%] rounded-2xl px-3 py-2 backdrop-blur-sm">
-                        <h1
-                            ref={headingRef}
-                            tabIndex={-1}
-                            className="text-sm leading-snug font-bold text-balance !outline-none"
-                        >
-                            {title}
-                        </h1>
-                    </div>
-                    <span className="bg-background/60 text-foreground shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-sm">
-                        {stepLabel}
-                    </span>
-                </div>
-
+        <div className="sm:mt-1">
+            <div
+                className="border-border relative left-1/2 h-[clamp(22rem,68svh,42rem)] w-screen -translate-x-1/2 overflow-hidden rounded-[1.75rem] border bg-black"
+                data-testid="camera-stage"
+            >
                 <video
                     ref={videoRef}
                     className={
@@ -78,40 +63,18 @@ export function CameraStage({
                     onError={onCameraInterrupted}
                 />
 
+                {!photo ? (
+                    <h1 ref={headingRef} tabIndex={-1} className="sr-only">
+                        {t(`capture.${step}.title`)}
+                    </h1>
+                ) : null}
+
                 {photo ? (
                     <img
                         className="h-full w-full object-cover"
                         src={photo.previewUrl}
                         alt={t(`capture.${step}.previewAlt`)}
                     />
-                ) : !cameraVisible ? (
-                    <div className="grid h-full place-items-center px-7 text-center">
-                        <div>
-                            <span className="bg-brand-soft text-primary mx-auto grid size-16 place-items-center rounded-full">
-                                <CameraIcon
-                                    aria-hidden="true"
-                                    size={30}
-                                    weight="regular"
-                                />
-                            </span>
-                            <p className="text-muted-foreground mt-4 font-semibold">
-                                {t("capture.camera.off")}
-                            </p>
-                            {!cameraError ? (
-                                <Button
-                                    className="mt-5 min-w-48"
-                                    type="button"
-                                    onClick={onOpen}
-                                >
-                                    <CameraIcon
-                                        aria-hidden="true"
-                                        weight="bold"
-                                    />
-                                    {t("capture.camera.open")}
-                                </Button>
-                            ) : null}
-                        </div>
-                    </div>
                 ) : null}
 
                 <div
@@ -149,7 +112,7 @@ export function CameraStage({
                     </div>
                 ) : null}
 
-                {cameraState === "opening" ? (
+                {cameraState === "opening" || showStartingState ? (
                     <p
                         className="bg-background/70 absolute top-1/2 left-1/2 w-fit max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 rounded-xl px-3 py-2 text-center font-semibold backdrop-blur-sm"
                         role="status"
@@ -177,11 +140,7 @@ export function CameraStage({
             cameraState !== "opening" ? (
                 <Button className="mt-4 w-full" type="button" onClick={onOpen}>
                     <CameraIcon aria-hidden="true" weight="bold" />
-                    {t(
-                        cameraError
-                            ? "capture.camera.tryAgain"
-                            : "capture.camera.open",
-                    )}
+                    {t("capture.camera.tryAgain")}
                 </Button>
             ) : null}
         </div>

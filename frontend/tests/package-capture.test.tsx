@@ -44,15 +44,27 @@ function renderRoute(path: string, demoMode = true, strictMode = false) {
     return render(strictMode ? <StrictMode>{route}</StrictMode> : route)
 }
 
-function installCamera({ error }: { error?: DOMException } = {}) {
+function installCamera({
+    error,
+    pending = false,
+}: { error?: DOMException; pending?: boolean } = {}) {
     const track = new EventTarget() as MediaStreamTrack
     const stop = vi.fn()
+    const stream = {
+        getTracks: () => [track],
+    } as unknown as MediaStream
+    let resolveRequest: (() => void) | undefined
     track.stop = stop
     const getUserMedia = error
         ? vi.fn().mockRejectedValue(error)
-        : vi.fn().mockResolvedValue({
-              getTracks: () => [track],
-          })
+        : pending
+          ? vi.fn(
+                () =>
+                    new Promise<MediaStream>((resolve) => {
+                        resolveRequest = () => resolve(stream)
+                    }),
+            )
+          : vi.fn().mockResolvedValue(stream)
     Object.defineProperty(navigator, "mediaDevices", {
         configurable: true,
         value: { getUserMedia },
@@ -73,7 +85,14 @@ function installCamera({ error }: { error?: DOMException } = {}) {
         revokeObjectURL: { configurable: true, value: revokeObjectURL },
     })
 
-    return { getUserMedia, revokeObjectURL, stop, toBlob, track }
+    return {
+        getUserMedia,
+        resolveRequest: () => resolveRequest?.(),
+        revokeObjectURL,
+        stop,
+        toBlob,
+        track,
+    }
 }
 
 async function openAndCapture(user: ReturnType<typeof userEvent.setup>) {
@@ -113,26 +132,72 @@ describe("Package Capture journey", () => {
         ).not.toBeInTheDocument()
     })
 
-    test("waits for an explicit action before requesting camera permission", async () => {
-        const user = userEvent.setup()
+    test("requests camera permission when the first capture step opens", async () => {
         const { getUserMedia } = installCamera()
         renderRoute("/capture/new?identifier=123&reason=no-match")
 
-        expect(screen.getByText("Capture package")).toBeVisible()
         expect(
             screen.queryByText(
                 "Fit the product name and the full front of the package inside the frame.",
             ),
         ).not.toBeInTheDocument()
         expect(
-            screen.getByRole("button", { name: "Scan barcode Soon" }),
-        ).toBeDisabled()
-        expect(getUserMedia).not.toHaveBeenCalled()
+            screen.queryByRole("button", { name: "Scan barcode Soon" }),
+        ).not.toBeInTheDocument()
+        await waitFor(() => expect(getUserMedia).toHaveBeenCalledOnce())
+        expect(
+            screen.queryByRole("button", { name: "Open camera" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByText(
+                "Allow camera access to see the live preview. Your browser will ask once.",
+            ),
+        ).not.toBeInTheDocument()
+    })
 
-        await user.click(screen.getByRole("button", { name: "Open camera" }))
+    test("does not interrupt a pending permission prompt when visibility changes", async () => {
+        const camera = installCamera({ pending: true })
+        renderRoute("/capture/new")
 
-        expect(getUserMedia).toHaveBeenCalledOnce()
-        expect(screen.queryByText("Camera active")).not.toBeInTheDocument()
+        await waitFor(() => expect(camera.getUserMedia).toHaveBeenCalledOnce())
+        const stopCountBeforeVisibilityChange = camera.stop.mock.calls.length
+        Object.defineProperty(document, "visibilityState", {
+            configurable: true,
+            value: "hidden",
+        })
+        document.dispatchEvent(new Event("visibilitychange"))
+
+        expect(camera.stop).toHaveBeenCalledTimes(
+            stopCountBeforeVisibilityChange,
+        )
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+
+        camera.resolveRequest()
+        await waitFor(() =>
+            expect(screen.getByLabelText("Live camera preview")).toBeVisible(),
+        )
+        Object.defineProperty(document, "visibilityState", {
+            configurable: true,
+            value: "visible",
+        })
+    })
+
+    test("shows the three-stage progress rail below the camera", () => {
+        installCamera()
+        renderRoute("/capture/new")
+
+        screen.getByTestId("camera-stage")
+        expect(screen.getByRole("progressbar")).toHaveAttribute(
+            "aria-valuenow",
+            "1",
+        )
+        expect(screen.getByText("Front package")).toBeVisible()
+        expect(screen.getByText("Back package")).toBeVisible()
+        expect(screen.getByText("Ingredient")).toBeVisible()
+        expect(
+            screen.getByRole("heading", { name: "Photograph the front" }),
+        ).toHaveClass("sr-only")
+        expect(screen.queryByText("Step 1 of 4")).not.toBeInTheDocument()
     })
 
     test("normalizes the first step and removes unsupported query data", async () => {
@@ -146,33 +211,32 @@ describe("Package Capture journey", () => {
         })
     })
 
-    test("opens the camera from the keyboard", async () => {
-        const user = userEvent.setup()
+    test("opens the camera without an in-page launch control", async () => {
         const { getUserMedia } = installCamera()
         renderRoute("/capture/new")
 
-        await user.tab()
+        await waitFor(() => expect(getUserMedia).toHaveBeenCalledOnce())
         expect(
-            screen.getByRole("button", { name: "Open camera" }),
-        ).toHaveFocus()
-        await user.keyboard("[Enter]")
-
-        expect(getUserMedia).toHaveBeenCalledOnce()
+            screen.queryByRole("button", { name: "Open camera" }),
+        ).not.toBeInTheDocument()
     })
 
     test("keeps camera lifecycle working under Strict Mode", async () => {
-        const user = userEvent.setup()
-        installCamera()
+        const camera = installCamera({ pending: true })
         renderRoute("/capture/new", true, true)
 
-        await user.click(screen.getByRole("button", { name: "Open camera" }))
-
+        await waitFor(() => expect(camera.getUserMedia).toHaveBeenCalledOnce())
+        camera.resolveRequest()
+        expect(
+            await screen.findByLabelText("Live camera preview"),
+        ).toBeVisible()
+        expect(camera.stop).not.toHaveBeenCalled()
         expect(screen.queryByText("Camera active")).not.toBeInTheDocument()
     })
 
     test("captures, previews, and retakes the front photo", async () => {
         const user = userEvent.setup()
-        const { revokeObjectURL, stop } = installCamera()
+        const { getUserMedia, revokeObjectURL, stop } = installCamera()
         renderRoute("/capture/new")
 
         await openAndCapture(user)
@@ -188,9 +252,8 @@ describe("Package Capture journey", () => {
         )
 
         expect(revokeObjectURL).toHaveBeenCalledWith("blob:package-photo-1")
-        expect(
-            screen.getByRole("button", { name: "Open camera" }),
-        ).toBeVisible()
+        expect(getUserMedia).toHaveBeenCalledTimes(2)
+        expect(screen.getByLabelText("Live camera preview")).toBeVisible()
     })
 
     test("requires front and back while allowing ingredients to be skipped", async () => {
@@ -205,18 +268,20 @@ describe("Package Capture journey", () => {
 
         await openAndCapture(user)
         await user.click(screen.getByRole("button", { name: "Continue" }))
-        expect(
-            screen.getByRole("heading", { name: "Photograph the back" }),
-        ).toHaveFocus()
+        expect(screen.getByRole("progressbar")).toHaveAttribute(
+            "aria-valuenow",
+            "2",
+        )
         expect(screen.getByTestId("location")).toHaveTextContent(
             "/capture/new?step=back&identifier=123&reason=different-package",
         )
 
         await openAndCapture(user)
         await user.click(screen.getByRole("button", { name: "Continue" }))
-        expect(
-            screen.getByRole("heading", { name: "Photograph the ingredients" }),
-        ).toHaveFocus()
+        expect(screen.getByRole("progressbar")).toHaveAttribute(
+            "aria-valuenow",
+            "3",
+        )
         await user.click(
             screen.getByRole("button", { name: "Skip ingredients" }),
         )
@@ -280,39 +345,45 @@ describe("Package Capture journey", () => {
     })
 
     test("recovers from denied permission without stranding the shopper", async () => {
-        const user = userEvent.setup()
-        installCamera({ error: new DOMException("Denied", "NotAllowedError") })
+        const { getUserMedia } = installCamera({
+            error: new DOMException("Denied", "NotAllowedError"),
+        })
         renderRoute("/capture/new")
 
-        await user.click(screen.getByRole("button", { name: "Open camera" }))
+        await waitFor(() => expect(getUserMedia).toHaveBeenCalledOnce())
 
-        expect(screen.getByRole("alert")).toHaveTextContent(
-            "Camera access is blocked",
+        await waitFor(() =>
+            expect(screen.getByRole("alert")).toHaveTextContent(
+                "Camera access is blocked",
+            ),
         )
         expect(
             screen.getByRole("button", { name: "Try camera again" }),
         ).toBeVisible()
         expect(
-            screen.getByRole("button", { name: "Exit Package Capture" }),
-        ).toBeVisible()
+            screen.queryByRole("button", { name: "Exit Package Capture" }),
+        ).not.toBeInTheDocument()
     })
 
     test("recovers when the camera is unavailable or interrupted", async () => {
-        const user = userEvent.setup()
-        installCamera({
+        const firstCamera = installCamera({
             error: new DOMException("No camera", "NotFoundError"),
         })
         const firstRender = renderRoute("/capture/new")
 
-        await user.click(screen.getByRole("button", { name: "Open camera" }))
-        expect(screen.getByRole("alert")).toHaveTextContent(
-            "The camera is unavailable",
+        await waitFor(() =>
+            expect(firstCamera.getUserMedia).toHaveBeenCalledOnce(),
+        )
+        await waitFor(() =>
+            expect(screen.getByRole("alert")).toHaveTextContent(
+                "The camera is unavailable",
+            ),
         )
 
         firstRender.unmount()
         const camera = installCamera()
         renderRoute("/capture/new")
-        await user.click(screen.getByRole("button", { name: "Open camera" }))
+        await waitFor(() => expect(camera.getUserMedia).toHaveBeenCalledOnce())
         camera.track.dispatchEvent(new Event("ended"))
 
         expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -321,10 +392,12 @@ describe("Package Capture journey", () => {
     })
 
     test("stops an active camera when the page becomes hidden", async () => {
-        const user = userEvent.setup()
         const camera = installCamera()
         renderRoute("/capture/new")
-        await user.click(screen.getByRole("button", { name: "Open camera" }))
+        await waitFor(() => expect(camera.getUserMedia).toHaveBeenCalledOnce())
+        await waitFor(() =>
+            expect(screen.getByLabelText("Live camera preview")).toBeVisible(),
+        )
 
         Object.defineProperty(document, "visibilityState", {
             configurable: true,
@@ -359,23 +432,20 @@ describe("Package Capture journey", () => {
         ).toBeVisible()
     })
 
-    test("revokes a preview and stops the camera when the shopper exits", async () => {
+    test("revokes a preview and stops the camera when capture unmounts", async () => {
         const user = userEvent.setup()
         const camera = installCamera()
-        renderRoute("/capture/new")
+        const captureRender = renderRoute("/capture/new")
 
         await openAndCapture(user)
-        await user.click(
-            screen.getByRole("button", { name: "Exit Package Capture" }),
-        )
+        captureRender.unmount()
 
-        expect(camera.revokeObjectURL).toHaveBeenCalledWith(
-            "blob:package-photo-1",
+        await waitFor(() =>
+            expect(camera.revokeObjectURL).toHaveBeenCalledWith(
+                "blob:package-photo-1",
+            ),
         )
-        expect(camera.stop).toHaveBeenCalled()
-        expect(
-            screen.getByRole("heading", { name: "Scan with the camera" }),
-        ).toBeVisible()
+        await waitFor(() => expect(camera.stop).toHaveBeenCalled())
     })
 
     test("clears previews before a back-forward cache restore", async () => {
@@ -430,9 +500,10 @@ describe("Package Capture journey", () => {
         await user.click(screen.getByRole("button", { name: "Continue" }))
         await user.click(screen.getByRole("button", { name: "Browser back" }))
 
-        expect(
-            screen.getByRole("heading", { name: "Photograph the front" }),
-        ).toHaveFocus()
+        expect(screen.getByRole("progressbar")).toHaveAttribute(
+            "aria-valuenow",
+            "1",
+        )
         expect(screen.getByAltText("Front package preview")).toBeVisible()
         expect(screen.getByTestId("location")).toHaveTextContent("step=front")
     })
@@ -445,9 +516,10 @@ describe("Package Capture journey", () => {
         await openAndCapture(user)
         await user.click(screen.getByRole("button", { name: "Continue" }))
 
-        expect(
-            screen.queryByRole("heading", { name: "Photograph the front" }),
-        ).not.toBeInTheDocument()
+        expect(screen.getByRole("progressbar")).toHaveAttribute(
+            "aria-valuenow",
+            "2",
+        )
         expect(
             screen.getByRole("heading", { name: "Photograph the back" }),
         ).toBeVisible()
@@ -463,6 +535,8 @@ describe("Package Capture journey", () => {
         const fetch = vi.fn()
         vi.stubGlobal("fetch", fetch)
         renderRoute("/capture/new?step=close-up&identifier=123&reason=no-match")
+
+        expect(screen.queryByRole("progressbar")).not.toBeInTheDocument()
 
         await openAndCapture(user)
 
@@ -495,8 +569,12 @@ describe("Package Capture journey", () => {
 
         expect(
             screen.getByRole("heading", { name: "ថតរូបផ្នែកខាងមុខ" }),
-        ).toHaveFocus()
-        expect(screen.getByRole("button", { name: "បើកកាមេរ៉ា" })).toBeVisible()
+        ).toHaveClass("sr-only")
+        expect(
+            screen.queryByText(
+                "អនុញ្ញាតឱ្យប្រើកាមេរ៉ា ដើម្បីមើលទិដ្ឋភាពផ្ទាល់។ កម្មវិធីរុករកនឹងសួរម្តង។",
+            ),
+        ).not.toBeInTheDocument()
     })
 })
 
@@ -572,7 +650,7 @@ describe("simulated Package Capture results", () => {
         )
         expect(screen.getByText("Product name")).toBeVisible()
         expect(screen.getByText("Brand")).toBeVisible()
-        expect(screen.getAllByText("Unavailable in this demo").length).toBe(4)
+        expect(screen.getAllByText("Unavailable").length).toBe(4)
 
         await user.click(screen.getByRole("tab", { name: "Ingredients" }))
         expect(screen.getByText("Declared allergens")).toBeVisible()
@@ -686,11 +764,12 @@ describe("simulated Package Capture results", () => {
         expect(screen.getByTestId("location").textContent).toBe(
             "/capture/new?step=close-up&identifier=123&reason=no-match",
         )
+        expect(screen.getByTestId("camera-stage")).toBeVisible()
         expect(
             screen.getByRole("heading", {
                 name: "Photograph the unreadable ingredients",
             }),
-        ).toHaveFocus()
+        ).toBeVisible()
     })
 
     test("localizes a simulated result and its demo notice in Khmer", async () => {

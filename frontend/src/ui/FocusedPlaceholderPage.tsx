@@ -11,6 +11,7 @@ type FocusedPlaceholderPageProps = {
     actionLabel: string
     actionIcon: "back" | "exit"
     actionTo: string
+    showAction?: boolean
     showLanguageSwitch?: boolean
     languageSwitchShape?: "circle" | "rectangle"
 }
@@ -21,6 +22,7 @@ export function FocusedPlaceholderPage({
     actionLabel,
     actionIcon,
     actionTo,
+    showAction = true,
     showLanguageSwitch = true,
     languageSwitchShape = "circle",
 }: FocusedPlaceholderPageProps) {
@@ -34,15 +36,23 @@ export function FocusedPlaceholderPage({
 
     return (
         <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pt-[calc(1rem_+_env(safe-area-inset-top))] pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
-            <div className="grid grid-cols-[1fr_auto] items-start gap-2">
-                <Button
-                    className="bg-background text-foreground hover:bg-muted hover:text-foreground min-w-0 px-3"
-                    type="button"
-                    onClick={() => void navigate(actionTo)}
-                >
-                    <Icon aria-hidden="true" size={21} weight="bold" />
-                    <span>{actionLabel}</span>
-                </Button>
+            <div
+                className={
+                    showAction
+                        ? "grid grid-cols-[1fr_auto] items-start gap-2"
+                        : "flex items-start justify-end gap-2"
+                }
+            >
+                {showAction ? (
+                    <Button
+                        className="bg-background text-foreground hover:bg-muted hover:text-foreground min-w-0 px-3"
+                        type="button"
+                        onClick={() => void navigate(actionTo)}
+                    >
+                        <Icon aria-hidden="true" size={21} weight="bold" />
+                        <span>{actionLabel}</span>
+                    </Button>
+                ) : null}
                 {showLanguageSwitch ? (
                     <LanguageSwitchButton shape={languageSwitchShape} />
                 ) : null}
