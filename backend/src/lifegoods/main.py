@@ -1,7 +1,7 @@
 from collections.abc import Iterator
 from typing import Any
 
-import httpx
+import httpx2 as httpx
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +11,7 @@ from scalar_fastapi import get_scalar_api_reference
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
+from lifegoods.core.concurrency import KeyedSlidingWindowLimiter
 from lifegoods.core.errors import ErrorCode, ErrorDetail, ErrorEnvelope
 from lifegoods.core.settings import Settings
 from lifegoods.identifiers import InvalidIdentifierError
@@ -26,6 +27,7 @@ from lifegoods.package_matches import (
     FindPackageMatches,
     PackageMatchSourceUnavailableError,
     get_finder,
+    get_rate_limiter,
 )
 from lifegoods.package_matches import (
     router as package_matches_router,
@@ -49,11 +51,16 @@ def create_app(
     session_factory: sessionmaker[Session] | None = None,
     external_source: ExternalPackageSource | None = None,
     image_source: ExternalImageSource | None = None,
+    package_match_limiter: KeyedSlidingWindowLimiter | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings()
     _ = session_factory
     owned_http_clients: list[httpx.Client] = []
     owned_mongo_clients: list[MongoClient[dict[str, Any]]] = []
+    resolved_package_match_limiter = (
+        package_match_limiter
+        or KeyedSlidingWindowLimiter(resolved_settings.package_match_requests_per_minute)
+    )
     if external_source is None:
         mongo_client: MongoClient[dict[str, Any]] = MongoClient(
             resolved_settings.off_mongodb_uri,
@@ -104,6 +111,7 @@ def create_app(
         yield FindPackageMatches(resolved_source)
 
     app.dependency_overrides[get_finder] = provide_finder
+    app.dependency_overrides[get_rate_limiter] = lambda: resolved_package_match_limiter
     app.dependency_overrides[get_image_source] = lambda: resolved_image_source
 
     @app.exception_handler(RequestValidationError)

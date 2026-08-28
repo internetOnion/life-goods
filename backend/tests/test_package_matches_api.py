@@ -16,6 +16,7 @@ from lifegoods.catalog import (
     PackageVariantRecord,
     ProductRecord,
 )
+from lifegoods.core.concurrency import KeyedSlidingWindowLimiter
 from lifegoods.core.database import Base
 from lifegoods.core.settings import Settings
 from lifegoods.identifiers import NormalizedIdentifier
@@ -406,3 +407,68 @@ def test_rejected_or_not_yet_effective_identifiers_are_not_candidates(
 
     assert response.status_code == 200
     assert response.json()["candidates"] == []
+
+
+def test_package_matches_returns_429_when_rate_limit_is_exceeded() -> None:
+    clock = 100.0
+    limiter = KeyedSlidingWindowLimiter(requests_per_minute=2, monotonic=lambda: clock)
+    with TestClient(
+        create_app(
+            external_source=ConfirmedNoMatchSource(),
+            package_match_limiter=limiter,
+        )
+    ) as client:
+        # First 2 requests within limit succeed
+        res1 = client.get("/api/v1/package-matches", params={"identifier": "4006381333931"})
+        assert res1.status_code == 200
+
+        clock = 120.0
+        res2 = client.get("/api/v1/package-matches", params={"identifier": "4006381333931"})
+        assert res2.status_code == 200
+
+        # 3rd request exceeds limit
+        clock = 130.0
+        res3 = client.get("/api/v1/package-matches", params={"identifier": "4006381333931"})
+        assert res3.status_code == 429
+        assert res3.headers.get("retry-after") == "30"
+        assert res3.json() == {
+            "error": {
+                "code": "RATE_LIMIT_EXCEEDED",
+                "message": "Too many requests. Please try again later.",
+            }
+        }
+
+
+def test_package_matches_rate_limit_isolates_by_client_ip() -> None:
+    clock = 100.0
+    limiter = KeyedSlidingWindowLimiter(requests_per_minute=1, monotonic=lambda: clock)
+    with TestClient(
+        create_app(
+            external_source=ConfirmedNoMatchSource(),
+            package_match_limiter=limiter,
+        )
+    ) as client:
+        # Request from client 1
+        res1 = client.get(
+            "/api/v1/package-matches",
+            params={"identifier": "4006381333931"},
+            headers={"x-forwarded-for": "10.0.0.1"},
+        )
+        assert res1.status_code == 200
+
+        # Subsequent request from client 1 is rate limited
+        res1_blocked = client.get(
+            "/api/v1/package-matches",
+            params={"identifier": "4006381333931"},
+            headers={"x-forwarded-for": "10.0.0.1"},
+        )
+        assert res1_blocked.status_code == 429
+
+        # Request from client 2 still succeeds
+        res2 = client.get(
+            "/api/v1/package-matches",
+            params={"identifier": "4006381333931"},
+            headers={"x-forwarded-for": "10.0.0.2"},
+        )
+        assert res2.status_code == 200
+

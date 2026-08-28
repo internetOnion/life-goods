@@ -5,7 +5,7 @@ from threading import BoundedSemaphore, Lock
 from time import monotonic as system_monotonic
 from urllib.parse import urlsplit
 
-import httpx
+import httpx2 as httpx
 
 from lifegoods.core.concurrency import ExternalLookupLocks, SlidingWindowRequestBudget
 from lifegoods.open_food_facts.models import (

@@ -1,9 +1,11 @@
 from typing import Annotated
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
+from fastapi.responses import JSONResponse
 
-from lifegoods.core.errors import ErrorEnvelope
+from lifegoods.core.concurrency import KeyedSlidingWindowLimiter
+from lifegoods.core.errors import ErrorCode, ErrorDetail, ErrorEnvelope
 from lifegoods.package_matches.contracts import (
     ExternalDatasetVersionResponse,
     OpenFoodFactsLookupResponse,
@@ -26,16 +28,49 @@ def get_finder() -> FindPackageMatches:
     raise RuntimeError("Package Match application dependency is not configured")
 
 
+def get_rate_limiter() -> KeyedSlidingWindowLimiter:
+    raise RuntimeError("Package Match rate limiter dependency is not configured")
+
+
+def _client_identifier(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    if request.client:
+        return request.client.host
+    return "unknown"
+
+
 @router.get(
     "/package-matches",
     operation_id="getPackageMatches",
     response_model=PackageMatchesResponse,
-    responses={422: {"model": ErrorEnvelope}, 503: {"model": ErrorEnvelope}},
+    responses={
+        422: {"model": ErrorEnvelope},
+        429: {"model": ErrorEnvelope},
+        503: {"model": ErrorEnvelope},
+    },
 )
 def get_package_matches(
+    request: Request,
     identifier: Annotated[str, Query(min_length=1)],
     finder: Annotated[FindPackageMatches, Depends(get_finder)],
-) -> PackageMatchesResponse:
+    limiter: Annotated[KeyedSlidingWindowLimiter, Depends(get_rate_limiter)],
+) -> PackageMatchesResponse | JSONResponse:
+    client_ip = _client_identifier(request)
+    allowed, retry_after = limiter.try_acquire(client_ip)
+    if not allowed:
+        envelope = ErrorEnvelope(
+            error=ErrorDetail(
+                code=ErrorCode.RATE_LIMIT_EXCEEDED,
+                message="Too many requests. Please try again later.",
+            )
+        )
+        return JSONResponse(
+            status_code=429,
+            content=envelope.model_dump(),
+            headers={"Retry-After": str(retry_after)},
+        )
     result = finder.execute(identifier)
     return PackageMatchesResponse(
         normalized_identifier=result.identifier.value,

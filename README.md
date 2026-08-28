@@ -14,7 +14,7 @@ The identifier is a lookup key for a `Package Variant`; it is not a `Product` id
 
 ```bash
 pnpm install
-pnpm backend:sync
+pnpm backend:install
 ```
 
 ## Run locally

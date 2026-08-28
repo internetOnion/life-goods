@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-import httpx
+import httpx2 as httpx
 from pymongo import ASCENDING, MongoClient
 from pymongo.database import Database
 from pymongo.errors import BulkWriteError, DuplicateKeyError, PyMongoError

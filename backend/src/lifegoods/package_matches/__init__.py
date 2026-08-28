@@ -20,7 +20,7 @@ from lifegoods.package_matches.models import (
     PackageMatchSourceMetadata,
     PackageMatchSourceUnavailableError,
 )
-from lifegoods.package_matches.router import get_finder, router
+from lifegoods.package_matches.router import get_finder, get_rate_limiter, router
 from lifegoods.package_matches.service import FindPackageMatches
 
 __all__ = [
@@ -42,5 +42,6 @@ __all__ = [
     "PackageMatchSourceUnavailableError",
     "PackageMatchesResponse",
     "get_finder",
+    "get_rate_limiter",
     "router",
 ]
