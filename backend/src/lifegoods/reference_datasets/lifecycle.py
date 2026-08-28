@@ -48,6 +48,18 @@ def get_active_reference_dataset_pointer(
     )
 
 
+def _get_locked_pointer(
+    session: Session, dataset_kind: str
+) -> ReferenceDatasetPointerRecord | None:
+    pointer_query = session.query(ReferenceDatasetPointerRecord).filter_by(
+        dataset_kind=dataset_kind
+    )
+    try:
+        return pointer_query.with_for_update().first()
+    except Exception:
+        return pointer_query.first()
+
+
 def activate_reference_dataset_version(
     session: Session,
     version_id: str,
@@ -64,6 +76,11 @@ def activate_reference_dataset_version(
     if version is None:
         raise ReferenceDatasetNotFoundError(
             f"Reference dataset version '{version_id}' does not exist"
+        )
+
+    if not version.immutable:
+        raise ReferenceDatasetValidationError(
+            f"Reference dataset version '{version_id}' is not immutable"
         )
 
     if version.status in {"FAILED", "IMPORTING"}:
@@ -125,13 +142,7 @@ def activate_reference_dataset_version(
     utc_now = (now or (lambda: datetime.now(UTC)))()
 
     def _apply_activation(target_version: ReferenceDatasetVersionRecord) -> None:
-        pointer_query = session.query(ReferenceDatasetPointerRecord).filter_by(
-            dataset_kind=target_version.dataset_kind
-        )
-        try:
-            pointer = pointer_query.with_for_update().first()
-        except Exception:
-            pointer = pointer_query.first()
+        pointer = _get_locked_pointer(session, target_version.dataset_kind)
 
         if pointer is not None:
             current_active_id = pointer.active_version_id
@@ -200,13 +211,7 @@ def rollback_reference_dataset_version(
     )
     utc_now = (now or (lambda: datetime.now(UTC)))()
 
-    pointer_query = session.query(ReferenceDatasetPointerRecord).filter_by(
-        dataset_kind=resolved_kind
-    )
-    try:
-        pointer = pointer_query.with_for_update().first()
-    except Exception:
-        pointer = pointer_query.first()
+    pointer = _get_locked_pointer(session, resolved_kind)
 
     if pointer is None or pointer.previous_version_id is None:
         raise ReferenceDatasetRollbackError(
@@ -226,6 +231,11 @@ def rollback_reference_dataset_version(
             f"Previous reference dataset version '{previous_id}' does not exist"
         )
 
+    if not previous_version.immutable:
+        raise ReferenceDatasetRollbackError(
+            f"Previous reference dataset version '{previous_id}' is not immutable"
+        )
+
     if previous_version.status in {"FAILED", "IMPORTING"} or previous_version.validation_errors:
         raise ReferenceDatasetRollbackError(
             f"Previous reference dataset version '{previous_id}' is invalid or failed"
@@ -243,10 +253,10 @@ def rollback_reference_dataset_version(
     previous_version.activated_at = utc_now
 
     pointer.active_version_id = previous_id
-    pointer.previous_version_id = current_id
+    pointer.previous_version_id = None
     pointer.activated_at = utc_now
-    if approver:
-        pointer.activated_by = approver
+    pointer.review_kind = previous_version.review_kind
+    pointer.activated_by = approver or previous_version.project_approver or pointer.activated_by
 
     session.commit()
     session.refresh(previous_version)

@@ -75,6 +75,31 @@ def import_file(session: Session, bundle_path: str | Path) -> dict[str, Any]:
     }
 
 
+def _format_version_output(
+    record: ReferenceDatasetVersionRecord,
+    pointer: Any | None = None,
+) -> dict[str, Any]:
+    return {
+        "status": record.status,
+        "id": record.id,
+        "dataset_kind": record.dataset_kind,
+        "edition": record.edition,
+        "jurisdiction": record.jurisdiction,
+        "source_url": record.source_url,
+        "sha256": record.sha256,
+        "review_kind": record.review_kind,
+        "project_approver": record.project_approver,
+        "retrieved_at": record.retrieved_at,
+        "reviewed_at": record.reviewed_at,
+        "activated_at": record.activated_at,
+        "previous_version_id": pointer.previous_version_id if pointer else None,
+        "immutable": record.immutable,
+        "concept_count": len(record.concepts),
+        "mapping_count": len(record.mappings),
+        "rule_count": len(record.rules),
+    }
+
+
 def activate_version(
     session: Session,
     version_id: str,
@@ -89,25 +114,7 @@ def activate_version(
         review_kind=review_kind,
     )
     pointer = get_active_reference_dataset_pointer(session, record.dataset_kind)
-    return {
-        "status": record.status,
-        "id": record.id,
-        "dataset_kind": record.dataset_kind,
-        "edition": record.edition,
-        "jurisdiction": record.jurisdiction,
-        "source_url": record.source_url,
-        "sha256": record.sha256,
-        "review_kind": record.review_kind,
-        "project_approver": record.project_approver,
-        "retrieved_at": record.retrieved_at,
-        "reviewed_at": record.reviewed_at,
-        "activated_at": record.activated_at,
-        "previous_version_id": pointer.previous_version_id if pointer else None,
-        "immutable": record.immutable,
-        "concept_count": len(record.concepts),
-        "mapping_count": len(record.mappings),
-        "rule_count": len(record.rules),
-    }
+    return _format_version_output(record, pointer)
 
 
 def rollback_version(
@@ -122,25 +129,7 @@ def rollback_version(
         approver=approver,
     )
     pointer = get_active_reference_dataset_pointer(session, record.dataset_kind)
-    return {
-        "status": record.status,
-        "id": record.id,
-        "dataset_kind": record.dataset_kind,
-        "edition": record.edition,
-        "jurisdiction": record.jurisdiction,
-        "source_url": record.source_url,
-        "sha256": record.sha256,
-        "review_kind": record.review_kind,
-        "project_approver": record.project_approver,
-        "retrieved_at": record.retrieved_at,
-        "reviewed_at": record.reviewed_at,
-        "activated_at": record.activated_at,
-        "previous_version_id": pointer.previous_version_id if pointer else None,
-        "immutable": record.immutable,
-        "concept_count": len(record.concepts),
-        "mapping_count": len(record.mappings),
-        "rule_count": len(record.rules),
-    }
+    return _format_version_output(record, pointer)
 
 
 def status_version(

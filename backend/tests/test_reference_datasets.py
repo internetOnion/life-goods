@@ -566,7 +566,16 @@ def test_rollback_version_restores_previous_active_version(db_session: Session) 
     pointer = get_active_reference_dataset_pointer(db_session, ConditionFamily.FOOD_ALLERGEN)
     assert pointer is not None
     assert pointer.active_version_id == record1.id
-    assert pointer.previous_version_id == record2.id
+    assert pointer.previous_version_id is None
+    assert pointer.review_kind == ReferenceReviewKind.FOOD_DOMAIN_REVIEW
+
+    # Consecutive rollback fails because there is no older previous version
+    with pytest.raises(
+        ReferenceDatasetRollbackError, match="No previous reference dataset version"
+    ):
+        rollback_reference_dataset_version(
+            db_session, dataset_kind=ConditionFamily.FOOD_ALLERGEN
+        )
 
 
 def test_rollback_without_previous_version_fails(db_session: Session) -> None:

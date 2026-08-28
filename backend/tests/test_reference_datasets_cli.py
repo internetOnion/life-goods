@@ -357,7 +357,7 @@ def test_cli_rollback_version(
     result = json.loads(captured.out)
     assert result["status"] == "ACTIVE"
     assert result["id"] == "ver-1"
-    assert result["previous_version_id"] == "ver-2"
+    assert result["previous_version_id"] is None
 
 
 def test_cli_rollback_without_previous_fails(
