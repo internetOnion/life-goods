@@ -13,7 +13,7 @@ LifeGoods is a calm, camera-first shopping utility. It uses the familiar structu
 
 The visual world is white, charcoal, pale botanical neutrals, and restrained coconut green. Crisp one-pixel rules and open space create structure without decorative card stacks. The experience is Khmer-first, with generous Khmer line height and original package languages kept visible.
 
-The coconut is the product’s identity motif. The current shell intentionally renders no temporary logo or wordmark; final coconut artwork remains future brand work rather than a placeholder in the shopping task. The supplied Open Food Facts screens and the approved `.impeccable/mocks/home-camera-b-approved.png` comp are structural references, not sources for scoring, verdict language, or branding.
+The coconut is the product’s identity motif. Home uses a compact horizontal coconut-and-wordmark lockup between the camera surface and barcode form; it is brand identity, not evidence or a favorable Product signal. The supplied Open Food Facts screens and the approved `.impeccable/mocks/home-camera-b-approved.png` comp are structural references, not sources for scoring, verdict language, or branding.
 
 ## 2. Color tokens
 
@@ -52,7 +52,7 @@ Components expand for real Khmer copy. Consequential labels, source state, and e
 
 ## 4. Layout and elevation
 
-The shell is mobile-first and bounded to a 48rem content column on desktop. It is headerless: no logo, wordmark, or replacement top bar competes with the shopping task. Home uses one dominant pale viewfinder, a compact active-language flag aligned directly above the barcode submit column, an attached barcode form, and a fixed four-item bottom navigation. Result routes hide both the language switch and bottom navigation and expose a visible localized back action.
+The shell is mobile-first and bounded to a 48rem content column on desktop. It is headerless: no logo, wordmark, or replacement top bar competes with the shopping task. Home uses one dominant pale viewfinder, an inline LifeGoods lockup, a compact active-language flag aligned directly above the barcode submit column, an attached barcode form, and a fixed four-item bottom navigation. Result routes hide both the language switch and bottom navigation and expose a visible localized back action.
 
 LifeGoods is flat by default. Depth comes from tonal layers, one-pixel rules, and spacing. Rounded corners are restrained and functional; shadows are reserved for temporary overlays. Do not nest evidence in repetitive cards.
 
@@ -63,6 +63,7 @@ Safe-area insets are applied to fixed navigation and result bottoms. The primary
 ### App shell
 
 - Top: no branded header, logo, wordmark, or persistent language control.
+- Home identity: the centered horizontal coconut-and-LifeGoods lockup sits between the viewfinder and barcode form without becoming a header or link.
 - Home only: one circular flag button shows the active interface language—Cambodia in Khmer mode and the United Kingdom in English mode—and its accessible name states the destination language action.
 - The flag occupies its own utility row between the camera placeholder and barcode form, centered over the form’s submit column without overlay positioning.
 - Bottom: Home, Learn, History, and Allergies with Phosphor icons, text, and non-color active treatment.
@@ -72,6 +73,7 @@ Safe-area insets are applied to fixed navigation and result bottoms. The primary
 - The viewfinder automatically requests camera access and starts scanning on page load; once granted, the camera remains continuously active on the home screen.
 - Starting shows a pending state, then an environment-facing live video preview with a clear scan frame and concise guidance.
 - Valid camera results use the same identifier normalization and Package Match route as manual entry. The stream stops before navigation and duplicate detections are ignored.
+- A single localized “Switch to camera” control sits inside the lower-right scanner area during starting and scanning states. It is intentionally inert and excluded from sequential keyboard focus in this version, and is omitted from camera-error states so it cannot compete with retry.
 - Permission, missing-device, busy-device, unsupported-browser, invalid-code, and delayed-detection states remain explicit and keep manual barcode entry available with retry actions.
 - Camera frames are decoded locally and are not uploaded or retained. Streams stop on success, manual submission, route changes, visibility loss, and unmount.
 

@@ -279,7 +279,7 @@ export function HomePage({
         <main className="mx-auto w-full space-y-3 pt-0 pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] sm:w-[min(calc(100%_-_3rem),48rem)]">
             <section
                 className={cn(
-                    "border-border relative aspect-square w-full overflow-hidden rounded-none border-x-0 border-y sm:aspect-auto sm:h-[clamp(18rem,48svh,30rem)] sm:rounded-3xl sm:border",
+                    "border-border relative aspect-square w-full overflow-hidden rounded-none border-x-0 border-y max-[23.5rem]:aspect-auto max-[23.5rem]:h-[16.875rem] sm:aspect-auto sm:h-[clamp(18rem,48svh,30rem)] sm:rounded-3xl sm:border",
                     cameraState === "starting"
                         ? "bg-background"
                         : "bg-muted/60",
@@ -305,7 +305,7 @@ export function HomePage({
                 <span className="border-primary/90 absolute right-4 bottom-4 h-8 w-8 rounded-br-lg border-r border-b" />
                 <div className="pointer-events-none absolute inset-0 grid place-items-center">
                     {cameraState === "scanning" ? (
-                        <div className="relative z-10 grid w-full max-w-md justify-items-center px-8 py-8 text-center">
+                        <div className="relative z-10 grid w-full max-w-md justify-items-center px-8 py-8 text-center max-[23.5rem]:-translate-y-5">
                             <div
                                 className="border-background/90 h-24 w-[min(18rem,80vw)] rounded-xl border-2 shadow-[0_0_0_999px_oklch(0.12_0.02_160_/_0.18)]"
                                 aria-hidden="true"
@@ -354,36 +354,30 @@ export function HomePage({
                           ? t("cameraStarting")
                           : cameraMessage}
                 </div>
+                {cameraState === "starting" || cameraState === "scanning" ? (
+                    <Button
+                        aria-disabled="true"
+                        className="border-background/70 bg-background/95 text-primary hover:bg-background hover:text-primary absolute right-4 bottom-16 z-20 min-h-11 rounded-lg px-3 shadow-sm"
+                        tabIndex={-1}
+                        type="button"
+                        variant="outline"
+                    >
+                        <CameraIcon aria-hidden="true" size={20} />
+                        <span className="text-sm leading-[1.65]">
+                            {t("switchToCamera")}
+                        </span>
+                    </Button>
+                ) : null}
             </section>
 
-            <div
-                className="border-border bg-muted mx-4 grid grid-cols-2 gap-1 rounded-xl border p-1 max-[23.5rem]:mx-[0.625rem] sm:mx-0"
-                role="group"
-                aria-label={t("scanModeLabel")}
-            >
-                <Button
-                    className="border-border bg-background text-foreground hover:bg-background min-h-11 min-w-0 rounded-lg border px-3 py-2 shadow-none"
-                    type="button"
-                    variant="ghost"
-                    aria-pressed="true"
-                >
-                    <BarcodeIcon aria-hidden="true" size={20} />
-                    <span className="min-w-0 text-sm leading-[1.65]">
-                        {t("scanModeBarcode")}
-                    </span>
-                </Button>
-                <Button
-                    className="bg-secondary text-muted-foreground min-h-11 min-w-0 rounded-lg px-3 py-2 opacity-70 shadow-none disabled:opacity-70"
-                    type="button"
-                    variant="ghost"
-                    aria-pressed="false"
-                    disabled
-                >
-                    <CameraIcon aria-hidden="true" size={20} />
-                    <span className="min-w-0 text-sm leading-[1.65]">
-                        {t("scanModeCamera")}
-                    </span>
-                </Button>
+            <div className="mx-4 flex min-h-14 items-center justify-center py-2 max-[23.5rem]:mx-[0.625rem] max-[23.5rem]:min-h-10 max-[23.5rem]:py-1 sm:mx-0">
+                <img
+                    alt="LifeGoods"
+                    className="h-auto w-[10rem] max-[23.5rem]:w-36 sm:w-[11rem]"
+                    height="360"
+                    src="/branding/lifegoods-logo.png"
+                    width="1600"
+                />
             </div>
 
             <form

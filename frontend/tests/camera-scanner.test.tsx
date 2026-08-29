@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { MemoryRouter } from "react-router"
+import { MemoryRouter, useLocation } from "react-router"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import { App } from "../src/app/App"
@@ -27,8 +27,19 @@ function renderJourney(lookup: PackageMatchLookup) {
         <QueryClientProvider client={queryClient}>
             <MemoryRouter>
                 <App lookup={lookup} />
+                <CurrentPath />
             </MemoryRouter>
         </QueryClientProvider>,
+    )
+}
+
+function CurrentPath() {
+    const location = useLocation()
+
+    return (
+        <span data-testid="current-path" hidden>
+            {location.pathname}
+        </span>
     )
 }
 
@@ -117,34 +128,48 @@ describe("camera barcode scanner", () => {
         ).not.toBeInTheDocument()
     })
 
-    test("shows Barcode as the selected mode and keeps Camera disabled", async () => {
+    test("shows the LifeGoods logo and an inert camera-switch control", async () => {
         const user = userEvent.setup()
         const stop = vi.fn()
         startMock.mockResolvedValue({ stop })
         const lookup = vi.fn<PackageMatchLookup>()
-        renderJourney(lookup)
+        const { container } = renderJourney(lookup)
 
         await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
 
-        const modeGroup = screen.getByRole("group", { name: "Scan method" })
-        const modeButtons = within(modeGroup).getAllByRole("button")
-
-        expect(modeButtons).toHaveLength(2)
-        expect(modeButtons[0]).toHaveAccessibleName("Barcode")
-        expect(modeButtons[0]).toHaveAttribute("aria-pressed", "true")
-        expect(modeButtons[0]).toBeEnabled()
-        expect(modeButtons[1]).toHaveAccessibleName("Camera")
-        expect(modeButtons[1]).toHaveAttribute("aria-pressed", "false")
-        expect(modeButtons[1]).toBeDisabled()
-
-        await user.click(modeButtons[1]!)
-
-        expect(modeButtons[0]).toHaveAttribute("aria-pressed", "true")
-        expect(modeButtons[1]).toHaveAttribute("aria-pressed", "false")
-        expect(startMock).toHaveBeenCalledTimes(1)
+        expect(screen.getByRole("img", { name: "LifeGoods" })).toBeVisible()
         expect(
-            screen.getByRole("textbox", { name: "Barcode number" }),
-        ).toBeVisible()
+            screen.queryByRole("group", { name: "Scan method" }),
+        ).not.toBeInTheDocument()
+
+        const cameraSurface = container.querySelector("main > section")
+        expect(cameraSurface).toBeInTheDocument()
+        const switchToCamera = within(cameraSurface as HTMLElement).getByRole(
+            "button",
+            { name: "Switch to camera" },
+        )
+        expect(switchToCamera).toBeVisible()
+        expect(switchToCamera).toBeEnabled()
+        expect(switchToCamera).toHaveAttribute("aria-disabled", "true")
+        expect(switchToCamera).toHaveAttribute("tabindex", "-1")
+
+        const input = screen.getByRole("textbox", { name: "Barcode number" })
+        const scannerStatus = screen.getByRole("status")
+        expect(input).toHaveValue("")
+        expect(scannerStatus).toHaveTextContent(
+            "Place the barcode inside the scan frame.",
+        )
+        expect(screen.getByTestId("current-path")).toHaveTextContent("/")
+
+        await user.click(switchToCamera)
+
+        expect(startMock).toHaveBeenCalledTimes(1)
+        expect(input).toBeVisible()
+        expect(input).toHaveValue("")
+        expect(scannerStatus).toHaveTextContent(
+            "Place the barcode inside the scan frame.",
+        )
+        expect(screen.getByTestId("current-path")).toHaveTextContent("/")
     })
 
     test("shows a plain camera surface while scanner startup is still pending", async () => {
@@ -163,7 +188,12 @@ describe("camera barcode scanner", () => {
         const cameraSurface = container.querySelector("main > section")
         expect(cameraSurface).toHaveClass("bg-background")
         expect(cameraSurface?.querySelector("p")).not.toBeInTheDocument()
-        expect(cameraSurface?.querySelector("svg")).not.toBeInTheDocument()
+        expect(cameraSurface?.querySelectorAll("svg")).toHaveLength(1)
+        expect(
+            within(cameraSurface as HTMLElement).getByRole("button", {
+                name: "Switch to camera",
+            }),
+        ).toBeVisible()
         expect(await screen.findByRole("status")).toHaveTextContent(
             "Starting camera…",
         )
@@ -209,6 +239,9 @@ describe("camera barcode scanner", () => {
         expect(
             screen.getByRole("button", { name: "Try camera again" }),
         ).toBeEnabled()
+        expect(
+            screen.queryByRole("button", { name: "Switch to camera" }),
+        ).not.toBeInTheDocument()
     })
 
     test("retries camera startup after a recoverable failure", async () => {

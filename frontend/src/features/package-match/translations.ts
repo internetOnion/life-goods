@@ -29,9 +29,7 @@ export const packageMatchTranslations = {
             "កម្មវិធីរុករកនេះមិនអាចប្រើការកំណត់កាមេរ៉ានេះបានទេ។ សូមបើកទំព័រតាម HTTPS ក្នុង Safari ឬបញ្ចូលលេខបាកូដខាងក្រោម។",
         cameraErrorInterrupted:
             "ការបើកកាមេរ៉ាត្រូវបានរំខាន។ សូមត្រឡប់មកទំព័រនេះ បើកទំព័រឡើងវិញ ហើយសាកល្បងម្ដងទៀត ឬបញ្ចូលលេខបាកូដខាងក្រោម។",
-        scanModeLabel: "របៀបស្កេន",
-        scanModeBarcode: "បាកូដ",
-        scanModeCamera: "កាមេរ៉ា",
+        switchToCamera: "ប្តូរទៅកាមេរ៉ា",
         fieldLabel: "លេខបាកូដ",
         fieldPlaceholder: "លេខបាកូដ",
         fieldHint:
@@ -229,9 +227,7 @@ export const packageMatchTranslations = {
             "This browser cannot use the requested camera mode. Open this page in Safari over HTTPS, or enter the barcode number below.",
         cameraErrorInterrupted:
             "Camera startup was interrupted. Return to this page, reload it, and try again—or enter the barcode number below.",
-        scanModeLabel: "Scan method",
-        scanModeBarcode: "Barcode",
-        scanModeCamera: "Camera",
+        switchToCamera: "Switch to camera",
         fieldLabel: "Barcode number",
         fieldPlaceholder: "Barcode number",
         fieldHint:
