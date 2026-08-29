@@ -189,6 +189,14 @@ _Avoid_: AI confidence, translated
 A traceable mapping from original Label Transcription to an approved canonical allergen, additive, or critical ingredient term. Safety assessments use this match and its evidence, never a Khmer translation alone.
 _Avoid_: Translation match, AI safety guess
 
+**Lexical Exclusion**:
+A versioned, language-tagged phrase attached to a specific leaf Reference Concept that suppresses contained lexical matches for only that concept (for example, suppressing the milk match within `coconut milk`) without affecting other concepts or returning matcher exclusions to the shopper.
+_Avoid_: Global stopword, negative ingredient, allergen removal
+
+**Mapping-Linked Derivative Rule**:
+A rule explicitly linked to a specific lexical mapping (such as a `DERIVED_FROM` mapping from `whey` to milk or `tahini` to sesame) that provides the rule basis for findings derived through that mapping.
+_Avoid_: Universal derivative rule, hardcoded alias rule
+
 **Knowledge Entry**:
 A reusable, versioned, language-tagged explanation linked to a canonical ingredient, allergen, additive, date, or certification concept, with sources, review state, and jurisdiction where relevant.
 _Avoid_: Scraped article, Product description, uncited AI content

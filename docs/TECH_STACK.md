@@ -40,11 +40,12 @@ The first implementation milestone is a known-barcode-to-evidence-backed-package
 
 ## Backend and data
 
-- Build a modular FastAPI application using Pydantic contracts, SQLAlchemy 2, Alembic, and psycopg.
+- Build a modular FastAPI application using Pydantic contracts, SQLAlchemy 2, Alembic, psycopg, and httpx2.
 - Use Neon-managed PostgreSQL in Singapore.
-- Keep all catalog and durable data access behind FastAPI; the browser must never connect directly to PostgreSQL.
+- Keep all catalog, reference dataset, and durable data access behind FastAPI; the browser must never connect directly to PostgreSQL.
 - Keep repositories and application services separate from HTTP route handlers.
 - Begin with Product, Package Variant, External Identifier, Claim, Evidence, and field-level provenance.
+- Host immutable Reference Dataset Versions (concepts, lexical mappings, exclusions, and rules) in PostgreSQL with atomic activation and rollback.
 - Serve a manually activated OFF Dataset Version from a separate read-only MongoDB database. Preserve full external documents and an immutable manifest with source URL, retrieval and activation times, integrity hash, counts, schema versions, attribution, and license metadata.
 - Enforce domain invariants through PostgreSQL constraints and reviewed Alembic SQL migrations.
 

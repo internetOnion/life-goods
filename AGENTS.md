@@ -2,7 +2,7 @@
 
 ## Before Changing
 
-- For domain, schema, provenance, or privacy work, read `CONTEXT.md`, `docs/SPEC.md`, `docs/DATA_MODEL.md`, and the applicable accepted ADRs.
+- For domain, schema, provenance, or privacy work, read `CONTEXT.md`, `docs/SPEC.md`, `docs/DATA_MODEL.md`, `docs/CLI.md`, and the applicable accepted ADRs.
 - For shopper-facing UI, read `PRODUCT.md` and then `DESIGN.md`.
 - Use the exact glossary terms and capitalization: `Product`, `Package Variant`, `Package Revision`, `Claim`, `Evidence`, `Package Match`, and `Shopper Guidance`.
 
@@ -17,7 +17,8 @@
 
 - Requirements are Node.js 24, pnpm, Python 3.13, uv, and Docker Compose.
 - Install with `pnpm install` and `pnpm backend:install`.
-- Start PostgreSQL and MongoDB with `docker compose -f infra/compose.yaml up -d`, then apply migrations with `pnpm db:migrate`; PostgreSQL is exposed on host port `5433` and MongoDB on port `27018`. Populate Open Food Facts data with `pnpm off:dataset -- import-url` and activate it with `pnpm off:dataset -- activate <version_id>`.
+- Start PostgreSQL and MongoDB with `docker compose -f infra/compose.yaml up -d`, then apply migrations with `pnpm db:migrate`; PostgreSQL is exposed on host port `5433` and MongoDB on port `27018`.
+- Populate Reference Datasets with `pnpm reference:dataset -- import <bundle_path>` and activate with `pnpm reference:dataset -- activate <version_id>`. Populate Open Food Facts data with `pnpm off:dataset -- import-url` and activate it with `pnpm off:dataset -- activate <version_id>`. See [`docs/CLI.md`](docs/CLI.md) for full CLI manual.
 - Run `pnpm backend:dev` and `pnpm dev` in separate terminals for HTTP at `http://localhost:5173`.
 - Use `pnpm dev:https` for frontend HTTPS at `https://localhost:5173`; it requires `openssl`, generates an ignored self-signed certificate under `frontend/certs/`, and still proxies `/api` to the HTTP API.
 - The normal verification set is `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`, and `pnpm api:check`.
