@@ -124,7 +124,7 @@ Include the issue number when it improves traceability, for example `feat/42-pac
 
 - Keep branches open for hours or a few days rather than weeks.
 - Prefer small vertical slices that include the schema, backend behavior, generated client, Web Client state, and tests needed for one observable behavior.
-- Require linting, formatting, type checks, tests, OpenAPI drift detection, build checks, and migration validation as applicable.
+- Require linting, formatting, type checks, tests, OpenAPI drift detection, build checks, migration validation, and cross-platform (Windows, macOS, Linux) CLI/script compatibility.
 - Use the repository's lowercase Conventional-style prefixes for commits and pull-request titles.
 - Squash-merge pull requests and delete their branches after merge.
 - Deploy previews, staging, and production from commits on `main`; configuration does not live in environment branches.

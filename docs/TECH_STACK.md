@@ -22,6 +22,7 @@ The first implementation milestone is a known-barcode-to-evidence-backed-package
 - Use Docker Compose locally for PostgreSQL, Redis, and an S3-compatible object-storage emulator.
 - Use a CI pipeline for linting, type checking, tests, OpenAPI drift detection, builds, and migration validation.
 - Maintain preview, staging, and production configurations with separate databases, buckets, Redis instances, secrets, and allowed origins.
+- Ensure all CLI scripts, package scripts, build configurations, and path operations maintain cross-platform compatibility across Windows, macOS, and Linux without relying on POSIX-only shell assumptions.
 
 ## Frontend
 

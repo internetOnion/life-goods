@@ -36,6 +36,7 @@
 ## Project Conventions
 
 - TypeScript is strict; unused locals and parameters fail typecheck. Frontend formatting uses the root Prettier config and Tailwind plugin; use `pnpm frontend:lint:format` or `pnpm --dir frontend lint:format`.
+- All CLI scripts, package scripts, tools, and path operations must be cross-platform compatible across Windows (cmd.exe and PowerShell), macOS, and Linux. Do not use POSIX-only inline shell environment variable assignments (e.g., `VAR=val command`); configure build backends and packages properly, use `pathlib.Path` in Python and `node:path` in Node.js, and avoid hardcoded shell-specific path separators in scripts.
 - Add schema changes as Alembic revisions under `backend/migrations/`; normal development uses the PostgreSQL migration path and tests use disposable database fixtures where appropriate.
 - If documentation changes, put research in `docs/research/` and Mermaid source plus rendered output in `docs/diagrams/`.
 - Use lowercase Conventional-style commit prefixes (`feat:`, `fix:`, `docs:`, `test:`, `chore:`) only when a commit is explicitly requested.
