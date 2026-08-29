@@ -133,12 +133,14 @@ Rules:
 - Use manual import, validation, activation, and rollback. Do not synchronize reference data automatically in MVP-1.
 
 The current complete `FOOD_ALLERGEN` release is
-`codex-food-allergen-2026-direct-names-v1`. It contains 26 active leaf concepts and three
-non-emitting parent groups. Only its reviewed English `EXACT_NAME` mappings drive findings;
-the release contains no derivative, synonym, non-English, or Open Food Facts taxonomy
-mappings. Wheat, rye, barley, oats, sulphite, lactose, and non-`FOOD_ALLERGEN` condition
-families are outside this release. The earlier one-concept milk release remains immutable for
-tracer and rollback coverage but is not the complete release.
+`codex-food-allergen-2026-reviewed-english-v1`. It contains 26 active leaf concepts and three
+non-emitting parent groups. Its reviewed English mappings comprise the 26 direct names plus
+the project-reviewed derivatives `whey` and `tahini`; the typed `coconut milk` exclusion
+suppresses only the contained milk match. The release contains no other derivative, synonym,
+non-English, or Open Food Facts taxonomy mappings. Wheat, rye, barley, oats, sulphite,
+lactose, and non-`FOOD_ALLERGEN` condition families are outside this release. The earlier
+one-concept milk release remains immutable for tracer and rollback coverage but is not the
+complete release.
 
 ### Reviewed Product catalog
 

@@ -10,6 +10,7 @@ from alembic.config import Config
 from lifegoods.reference_datasets.bundle import (
     AllergenRuleDefinition,
     ConditionFamily,
+    LexicalExclusionDefinition,
     LexicalMappingDefinition,
     ReferenceBundle,
     ReferenceConceptDefinition,
@@ -55,7 +56,17 @@ def valid_bundle_file(tmp_path: Path) -> Path:
             edition="CXS 1-1985 (Amended 2026)",
             licensing_decision="PUBLIC_GOVERNMENT_STANDARD",
             terms_version="2026",
-        )
+        ),
+        ReferenceSourceDefinition(
+            id="source-lifegoods-reviewed-allergen-mappings-issue-63",
+            name="LifeGoods reviewed English allergen mappings for issue 63",
+            source_type="PROJECT_REVIEWED_VOCABULARY",
+            source_url="https://github.com/internetOnion/life-goods/issues/63",
+            jurisdiction="PROJECT_SCOPE",
+            publisher="LifeGoods",
+            edition="Issue 63",
+            licensing_decision="PROJECT_AUTHORED",
+        ),
     ]
     concepts = [
         ReferenceConceptDefinition(
@@ -85,6 +96,15 @@ def valid_bundle_file(tmp_path: Path) -> Path:
             notes="Reviewed dairy derivative",
         ),
     ]
+    exclusions = [
+        LexicalExclusionDefinition(
+            id="exclude-en-coconut-milk-for-milk",
+            concept_id="concept-food-allergen-milk",
+            language="en",
+            excluded_text="coconut milk",
+            notes="Coconut milk is not mammalian milk.",
+        )
+    ]
     rules = [
         AllergenRuleDefinition(
             id="rule-codex-2026-milk",
@@ -93,7 +113,16 @@ def valid_bundle_file(tmp_path: Path) -> Path:
             rule_kind="MANDATORY_DECLARATION",
             condition_family=ConditionFamily.FOOD_ALLERGEN,
             description="Codex CXS 1-1985 mandatory allergen declaration for milk",
-        )
+        ),
+        AllergenRuleDefinition(
+            id="rule-lifegoods-whey-milk-derivative",
+            concept_id="concept-food-allergen-milk",
+            source_id="source-lifegoods-reviewed-allergen-mappings-issue-63",
+            rule_kind="DERIVATIVE_MATCH",
+            condition_family=ConditionFamily.FOOD_ALLERGEN,
+            mapping_id="map-en-whey-derived",
+            description="Reviewed whey-to-milk derivative mapping",
+        ),
     ]
     sha256 = compute_bundle_sha256(
         manifest=manifest,
@@ -101,6 +130,7 @@ def valid_bundle_file(tmp_path: Path) -> Path:
         concepts=concepts,
         mappings=mappings,
         rules=rules,
+        exclusions=exclusions,
     )
     manifest_with_hash = ReferenceDatasetManifest(
         id=manifest.id,
@@ -119,6 +149,7 @@ def valid_bundle_file(tmp_path: Path) -> Path:
         concepts=concepts,
         mappings=mappings,
         rules=rules,
+        exclusions=exclusions,
     )
     file_path = tmp_path / "valid_bundle.json"
     bundle.to_json_file(file_path)
@@ -136,7 +167,8 @@ def test_cli_validate_valid_bundle(
     assert result["id"] == "codex-food-allergen-2026-minimal"
     assert result["concept_count"] == 1
     assert result["mapping_count"] == 2
-    assert result["rule_count"] == 1
+    assert result["exclusion_count"] == 1
+    assert result["rule_count"] == 2
 
 
 def test_cli_validate_invalid_bundle(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -392,5 +424,10 @@ def test_cli_inspect_version(
     assert result["status"] == "READY"
     assert len(result["concepts"]) == 1
     assert len(result["mappings"]) == 2
-    assert len(result["rules"]) == 1
-
+    assert len(result["exclusions"]) == 1
+    assert result["exclusions"][0]["id"] == "exclude-en-coconut-milk-for-milk"
+    assert len(result["rules"]) == 2
+    derivative_rule = next(
+        rule for rule in result["rules"] if rule["rule_kind"] == "DERIVATIVE_MATCH"
+    )
+    assert derivative_rule["mapping_id"] == "map-en-whey-derived"

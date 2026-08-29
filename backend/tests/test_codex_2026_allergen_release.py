@@ -11,7 +11,7 @@ BUNDLE_PATH = (
     / "lifegoods"
     / "reference_datasets"
     / "bundles"
-    / "codex_2026_food_allergen_direct_names_v1.json"
+    / "codex_2026_food_allergen_reviewed_english_v1.json"
 )
 
 EXPECTED_DIRECT_NAMES = {
@@ -53,16 +53,17 @@ def unhashed_bundle(data: dict) -> ReferenceBundle:
     return ReferenceBundle.from_dict(data)
 
 
-def test_reviewed_release_has_exactly_26_leaf_direct_names_and_three_parents() -> None:
+def test_reviewed_release_has_direct_names_derivatives_and_phrase_exclusions() -> None:
     bundle = load_bundle()
     report = validate_bundle(bundle)
 
     assert report.is_valid, report.errors
-    assert bundle.manifest.id == "codex-food-allergen-2026-direct-names-v1"
+    assert bundle.manifest.id == "codex-food-allergen-2026-reviewed-english-v1"
     assert report.sha256 == bundle.manifest.sha256
     assert len(bundle.concepts) == 29
-    assert len(bundle.mappings) == 26
-    assert len(bundle.rules) == 27
+    assert len(bundle.mappings) == 28
+    assert len(bundle.exclusions) == 1
+    assert len(bundle.rules) == 29
 
     leaves = {concept.id: concept for concept in bundle.concepts if concept.is_leaf}
     parents = {concept.id: concept for concept in bundle.concepts if not concept.is_leaf}
@@ -73,14 +74,37 @@ def test_reviewed_release_has_exactly_26_leaf_direct_names_and_three_parents() -
         "concept-food-allergen-specific-tree-nuts",
     }
 
-    mappings = {mapping.concept_id: mapping for mapping in bundle.mappings}
+    mappings = {
+        mapping.concept_id: mapping
+        for mapping in bundle.mappings
+        if mapping.relationship_type == "EXACT_NAME"
+    }
     assert {concept_id: mapping.mapped_text for concept_id, mapping in mappings.items()} == (
         EXPECTED_DIRECT_NAMES
     )
     assert all(mapping.language == "en" for mapping in mappings.values())
     assert all(mapping.relationship_type == "EXACT_NAME" for mapping in mappings.values())
 
-    declaration_rules = [rule for rule in bundle.rules if rule.rule_kind != "EXEMPTION"]
+    derivative_mappings = {
+        mapping.id: (mapping.concept_id, mapping.mapped_text)
+        for mapping in bundle.mappings
+        if mapping.relationship_type == "DERIVED_FROM"
+    }
+    assert derivative_mappings == {
+        "map-en-whey-derived": ("concept-food-allergen-milk", "whey"),
+        "map-en-tahini-derived": ("concept-food-allergen-sesame", "tahini"),
+    }
+    assert bundle.exclusions[0].id == "exclude-en-coconut-milk-for-milk"
+
+    declaration_rules = [
+        rule
+        for rule in bundle.rules
+        if rule.rule_kind
+        in {
+            AllergenRuleKind.MANDATORY_DECLARATION,
+            AllergenRuleKind.REGIONAL_OR_NATIONAL_DECLARATION,
+        }
+    ]
     assert len(declaration_rules) == 26
     assert {rule.concept_id for rule in declaration_rules} == set(leaves)
     assert sum(
@@ -109,7 +133,13 @@ def test_reviewed_release_has_exactly_26_leaf_direct_names_and_three_parents() -
             "targets non-leaf concept 'concept-food-allergen-root'",
         ),
         (
-            lambda data: data["mappings"].pop(),
+            lambda data: data.update(
+                mappings=[
+                    mapping
+                    for mapping in data["mappings"]
+                    if mapping["id"] != "map-en-walnut-exact"
+                ]
+            ),
             "does not have exactly one reviewed English EXACT_NAME mapping",
         ),
         (
@@ -134,7 +164,7 @@ def test_new_release_excludes_unreviewed_or_out_of_scope_terms() -> None:
     serialized = str(bundle.to_dict()).casefold()
 
     assert mapped_terms.isdisjoint(
-        {"whey", "lactose", "wheat", "rye", "barley", "oats", "sulphite", "sulfite"}
+        {"lactose", "wheat", "rye", "barley", "oats", "sulphite", "sulfite"}
     )
     assert "coeliac_gluten" not in serialized
     assert "sulphite_sensitivity" not in serialized

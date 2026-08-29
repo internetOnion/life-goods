@@ -6,6 +6,135 @@ from alembic.config import Config
 from sqlalchemy import create_engine, exc, inspect, text
 
 
+def test_matching_hardening_migration_enforces_exclusions_and_derivative_links(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    database_path = tmp_path / "matching-hardening.db"
+    database_url = f"sqlite+pysqlite:///{database_path}"
+    monkeypatch.setenv("LIFEGOODS_DATABASE_URL", database_url)
+    config = Config("backend/alembic.ini")
+    command.upgrade(config, "head")
+
+    engine = create_engine(database_url)
+    assert "lexical_exclusions" in inspect(engine).get_table_names()
+    assert "mapping_id" in {
+        column["name"] for column in inspect(engine).get_columns("allergen_rules")
+    }
+
+    with engine.begin() as connection:
+        connection.execute(text("PRAGMA foreign_keys=ON"))
+        connection.execute(
+            text(
+                "INSERT INTO reference_sources "
+                "(id, name, source_type, source_url, jurisdiction, publisher, "
+                "licensing_decision) VALUES "
+                "('source-review', 'Reviewed mappings', 'PROJECT_REVIEWED_VOCABULARY', "
+                "'https://github.com/internetOnion/life-goods/issues/63', 'PROJECT_SCOPE', "
+                "'LifeGoods', 'PROJECT_AUTHORED')"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO reference_dataset_versions "
+                "(id, dataset_kind, jurisdiction, source_url, licensing_decision, sha256, "
+                "retrieved_at, status, review_kind, immutable, validation_errors, "
+                "validation_history) VALUES "
+                "('ver-1', 'FOOD_ALLERGEN', 'PROJECT_SCOPE', 'https://example.test', "
+                "'PROJECT_AUTHORED', 'hash', '2026-08-29', 'READY', "
+                "'FOOD_DOMAIN_REVIEW', 1, '[]', '[]')"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO reference_concepts "
+                "(dataset_version_id, id, name, condition_family, is_leaf) VALUES "
+                "('ver-1', 'concept-milk', 'Milk', 'FOOD_ALLERGEN', 1)"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO lexical_mappings "
+                "(dataset_version_id, id, concept_id, language, mapped_text, "
+                "relationship_type) VALUES "
+                "('ver-1', 'map-whey', 'concept-milk', 'en', 'whey', 'DERIVED_FROM')"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO lexical_exclusions "
+                "(dataset_version_id, id, concept_id, language, excluded_text) VALUES "
+                "('ver-1', 'exclude-coconut-milk', 'concept-milk', 'en', 'coconut milk')"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO allergen_rules "
+                "(dataset_version_id, id, concept_id, source_id, rule_kind, "
+                "condition_family, mapping_id) VALUES "
+                "('ver-1', 'rule-whey', 'concept-milk', 'source-review', "
+                "'DERIVATIVE_MATCH', 'FOOD_ALLERGEN', 'map-whey')"
+            )
+        )
+        assert connection.execute(
+            text(
+                "SELECT excluded_text FROM lexical_exclusions "
+                "WHERE dataset_version_id = 'ver-1' AND id = 'exclude-coconut-milk'"
+            )
+        ).scalar_one() == "coconut milk"
+
+    with engine.begin() as connection, pytest.raises(exc.IntegrityError):
+        connection.execute(text("PRAGMA foreign_keys=ON"))
+        connection.execute(
+            text(
+                "INSERT INTO allergen_rules "
+                "(dataset_version_id, id, concept_id, source_id, rule_kind, "
+                "condition_family, mapping_id) VALUES "
+                "('ver-1', 'rule-invalid', 'concept-milk', 'source-review', "
+                "'MANDATORY_DECLARATION', 'FOOD_ALLERGEN', 'map-whey')"
+            )
+        )
+
+    with engine.begin() as connection, pytest.raises(exc.IntegrityError):
+        connection.execute(text("PRAGMA foreign_keys=ON"))
+        connection.execute(
+            text(
+                "INSERT INTO allergen_rules "
+                "(dataset_version_id, id, concept_id, source_id, rule_kind, "
+                "condition_family, mapping_id) VALUES "
+                "('ver-1', 'rule-null-mapping', 'concept-milk', 'source-review', "
+                "'DERIVATIVE_MATCH', 'FOOD_ALLERGEN', NULL)"
+            )
+        )
+
+    with engine.begin() as connection, pytest.raises(exc.IntegrityError):
+        connection.execute(text("PRAGMA foreign_keys=ON"))
+        connection.execute(
+            text(
+                "INSERT INTO allergen_rules "
+                "(dataset_version_id, id, concept_id, source_id, rule_kind, "
+                "condition_family, mapping_id) VALUES "
+                "('ver-1', 'rule-missing-mapping', 'concept-milk', 'source-review', "
+                "'DERIVATIVE_MATCH', 'FOOD_ALLERGEN', 'map-missing')"
+            )
+        )
+
+    with engine.begin() as connection, pytest.raises(exc.IntegrityError):
+        connection.execute(text("PRAGMA foreign_keys=ON"))
+        connection.execute(
+            text(
+                "INSERT INTO lexical_exclusions "
+                "(dataset_version_id, id, concept_id, language, excluded_text) VALUES "
+                "('ver-1', 'exclude-missing-concept', 'missing-concept', 'en', 'milk tea')"
+            )
+        )
+
+    command.downgrade(config, "0006")
+    assert "lexical_exclusions" not in inspect(engine).get_table_names()
+    assert "mapping_id" not in {
+        column["name"] for column in inspect(engine).get_columns("allergen_rules")
+    }
+
+
 def test_reference_dataset_migration_upgrades_and_downgrades(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

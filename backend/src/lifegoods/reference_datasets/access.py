@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from lifegoods.reference_datasets.models import (
     AllergenRuleRecord,
+    LexicalExclusionRecord,
     LexicalMappingRecord,
     ReferenceConceptRecord,
     ReferenceDatasetPointerRecord,
@@ -47,12 +48,22 @@ class AllergenReferenceMapping:
 
 
 @dataclass(frozen=True, slots=True)
+class AllergenReferenceExclusion:
+    id: str
+    concept_id: str
+    language: str
+    excluded_text: str
+    notes: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class AllergenReferenceRule:
     id: str
     concept_id: str
     source_id: str
     rule_kind: str
     condition_family: str
+    mapping_id: str | None = None
     description: str | None = None
 
 
@@ -61,6 +72,7 @@ class ActiveAllergenReferenceData:
     version: AllergenAssessmentReferenceVersion
     concepts: tuple[AllergenReferenceConcept, ...] = ()
     mappings: tuple[AllergenReferenceMapping, ...] = ()
+    exclusions: tuple[AllergenReferenceExclusion, ...] = ()
     rules: tuple[AllergenReferenceRule, ...] = ()
 
 
@@ -155,6 +167,22 @@ class DatabaseAllergenReferenceDataAccess:
                     )
                 )
 
+                exclusions = tuple(
+                    AllergenReferenceExclusion(
+                        id=e.id,
+                        concept_id=e.concept_id,
+                        language=e.language,
+                        excluded_text=e.excluded_text,
+                        notes=e.notes,
+                    )
+                    for e in (
+                        session.query(LexicalExclusionRecord)
+                        .filter_by(dataset_version_id=version.id)
+                        .order_by(LexicalExclusionRecord.id)
+                        .all()
+                    )
+                )
+
                 rules = tuple(
                     AllergenReferenceRule(
                         id=r.id,
@@ -162,6 +190,7 @@ class DatabaseAllergenReferenceDataAccess:
                         source_id=r.source_id,
                         rule_kind=r.rule_kind,
                         condition_family=r.condition_family,
+                        mapping_id=r.mapping_id,
                         description=r.description,
                     )
                     for r in (
@@ -176,8 +205,8 @@ class DatabaseAllergenReferenceDataAccess:
                     version=ref_version,
                     concepts=concepts,
                     mappings=mappings,
+                    exclusions=exclusions,
                     rules=rules,
                 )
         except Exception:
             return None
-

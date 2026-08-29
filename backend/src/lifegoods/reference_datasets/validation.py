@@ -8,6 +8,10 @@ from lifegoods.reference_datasets.bundle import (
     ConditionFamily,
     ReferenceBundle,
 )
+from lifegoods.reference_datasets.text_normalization import (
+    find_normalized_phrase,
+    normalized_phrase,
+)
 
 SUPPORTED_LANGUAGES = {"en", "km", "vi", "zh", "zh-CN", "zh-TW", "th"}
 
@@ -149,7 +153,11 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
                 f"Unsupported language code '{mapping.language}' in lexical mapping '{mapping.id}'"
             )
 
-        norm_text = mapping.mapped_text.strip().lower()
+        norm_text = (
+            normalized_phrase(mapping.mapped_text)
+            if lang_normalized == "en"
+            else mapping.mapped_text.strip().casefold()
+        )
         if not norm_text:
             errors.append(f"Lexical mapping '{mapping.id}' has empty mapped text")
         else:
@@ -177,9 +185,64 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
                 direct_english_mappings_by_concept.get(mapping.concept_id, 0) + 1
             )
 
-    # 5. Rule validation: concept & source references, typed condition family
+    # 5. Lexical exclusions: stable IDs, leaf concepts, English text, and useful scope
+    exclusion_ids: set[str] = set()
+    exclusion_keys: set[tuple[str, str, str]] = set()
+    for exclusion in bundle.exclusions:
+        if exclusion.id in exclusion_ids:
+            errors.append(f"Duplicate lexical exclusion ID '{exclusion.id}'")
+        exclusion_ids.add(exclusion.id)
+
+        concept = concepts_by_id.get(exclusion.concept_id)
+        if concept is None:
+            errors.append(
+                f"Lexical exclusion '{exclusion.id}' references non-existent concept "
+                f"'{exclusion.concept_id}'"
+            )
+        elif not concept.is_leaf:
+            errors.append(
+                f"Lexical exclusion '{exclusion.id}' targets non-leaf concept "
+                f"'{exclusion.concept_id}'"
+            )
+
+        language = exclusion.language.strip().lower()
+        if language != "en":
+            errors.append(
+                f"Lexical exclusion '{exclusion.id}' must use supported English language 'en'"
+            )
+
+        normalized_exclusion = normalized_phrase(exclusion.excluded_text)
+        if not normalized_exclusion:
+            errors.append(f"Lexical exclusion '{exclusion.id}' has empty excluded text")
+            continue
+
+        exclusion_key = (language, exclusion.concept_id, normalized_exclusion)
+        if exclusion_key in exclusion_keys:
+            errors.append(
+                f"Duplicate normalized lexical exclusion '{exclusion.excluded_text}' "
+                f"for concept '{exclusion.concept_id}'"
+            )
+        exclusion_keys.add(exclusion_key)
+
+        suppressible = any(
+            mapping.concept_id == exclusion.concept_id
+            and mapping.language.strip().lower() == language
+            and find_normalized_phrase(
+                normalized_exclusion, normalized_phrase(mapping.mapped_text)
+            )
+            for mapping in bundle.mappings
+        )
+        if not suppressible:
+            errors.append(
+                f"Lexical exclusion '{exclusion.id}' does not contain a suppressible mapping "
+                f"for concept '{exclusion.concept_id}'"
+            )
+
+    # 6. Rule validation: concept & source references, typed condition family
     rule_ids: set[str] = set()
     declaration_rules_by_concept: dict[str, int] = {}
+    derivative_rules_by_mapping: dict[str, int] = {}
+    mappings_by_id = {mapping.id: mapping for mapping in bundle.mappings}
     valid_rule_kinds = {kind.value for kind in AllergenRuleKind}
     declaration_rule_kinds = {
         AllergenRuleKind.MANDATORY_DECLARATION,
@@ -201,6 +264,33 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
             declaration_rules_by_concept[rule.concept_id] = (
                 declaration_rules_by_concept.get(rule.concept_id, 0) + 1
             )
+        elif rule.rule_kind == AllergenRuleKind.DERIVATIVE_MATCH:
+            mapping = mappings_by_id.get(rule.mapping_id or "")
+            if mapping is None:
+                errors.append(
+                    f"Derivative rule '{rule.id}' references missing mapping "
+                    f"'{rule.mapping_id}'"
+                )
+            elif (
+                mapping.relationship_type != AllergenRelationshipType.DERIVED_FROM
+                or mapping.concept_id != rule.concept_id
+            ):
+                errors.append(
+                    f"Derivative rule '{rule.id}' must reference a DERIVED_FROM mapping "
+                    "for the same concept"
+                )
+            else:
+                derivative_rules_by_mapping[mapping.id] = (
+                    derivative_rules_by_mapping.get(mapping.id, 0) + 1
+                )
+        if (
+            rule.rule_kind != AllergenRuleKind.DERIVATIVE_MATCH
+            and rule.mapping_id is not None
+        ):
+            errors.append(
+                f"Non-derivative rule '{rule.id}' must not reference mapping "
+                f"'{rule.mapping_id}'"
+            )
 
         if rule.source_id not in source_ids:
             errors.append(
@@ -218,6 +308,15 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
             )
         )
 
+    for mapping in bundle.mappings:
+        if mapping.relationship_type != AllergenRelationshipType.DERIVED_FROM:
+            continue
+        if derivative_rules_by_mapping.get(mapping.id, 0) != 1:
+            errors.append(
+                f"Derivative mapping '{mapping.id}' does not have exactly one linked "
+                "DERIVATIVE_MATCH rule"
+            )
+
     for concept in bundle.concepts:
         if not concept.is_leaf:
             continue
@@ -232,7 +331,7 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
                 "declaration rule"
             )
 
-    # 6. Integrity hash calculation
+    # 7. Integrity hash calculation
     computed_sha256 = bundle.compute_sha256()
 
     if bundle.manifest.sha256 and bundle.manifest.sha256 != computed_sha256:

@@ -49,13 +49,13 @@ CODEX_MINIMAL_BUNDLE_PATH = (
     / "bundles"
     / "codex_2026_food_allergen_minimal.json"
 )
-CODEX_DIRECT_NAMES_BUNDLE_PATH = (
+CODEX_REVIEWED_ENGLISH_BUNDLE_PATH = (
     Path(__file__).parents[1]
     / "src"
     / "lifegoods"
     / "reference_datasets"
     / "bundles"
-    / "codex_2026_food_allergen_direct_names_v1.json"
+    / "codex_2026_food_allergen_reviewed_english_v1.json"
 )
 DATASET_VERSION = ExternalDatasetVersion(
     id="dataset-2026-08-27",
@@ -609,7 +609,7 @@ def test_package_matches_with_active_allergen_dataset_evaluates_milk_end_to_end(
 def test_package_match_returns_each_active_leaf_with_ancestry_and_rules(
     session_factory: sessionmaker[Session],
 ) -> None:
-    bundle = ReferenceBundle.from_json_file(CODEX_DIRECT_NAMES_BUNDLE_PATH)
+    bundle = ReferenceBundle.from_json_file(CODEX_REVIEWED_ENGLISH_BUNDLE_PATH)
     with session_factory() as session:
         imported = import_reference_bundle(
             session,
@@ -668,7 +668,7 @@ def test_package_match_returns_each_active_leaf_with_ancestry_and_rules(
 
     assessment = body["candidates"][0]["allergen_assessment"]
     assert assessment["reference_dataset_version"] == {
-        "id": "codex-food-allergen-2026-direct-names-v1",
+        "id": "codex-food-allergen-2026-reviewed-english-v1",
         "source_url": bundle.manifest.source_url,
         "retrieved_at": "2026-08-29T08:00:00Z",
         "activated_at": "2026-08-29T09:00:00Z",
@@ -735,7 +735,7 @@ def test_package_match_returns_each_active_leaf_with_ancestry_and_rules(
         for finding in assessment["findings"]
     ] == [
         {
-            "id": "finding-codex-food-allergen-2026-direct-names-v1-map-en-almond-exact-6-12",
+            "id": "finding-codex-food-allergen-2026-reviewed-english-v1-map-en-almond-exact-6-12",
             "concept_id": "concept-food-allergen-almond",
             "mapping_id": "map-en-almond-exact",
             "rule_id": "rule-codex-2026-almond",
@@ -748,11 +748,11 @@ def test_package_match_returns_each_active_leaf_with_ancestry_and_rules(
             "source_url": "https://world.openfoodfacts.org/product/4006381333931",
             "source_revision": "1787462400",
             "off_dataset_version_id": "dataset-2026-08-27",
-            "reference_dataset_version_id": "codex-food-allergen-2026-direct-names-v1",
+            "reference_dataset_version_id": "codex-food-allergen-2026-reviewed-english-v1",
             "engine_version": "0.1.0",
         },
         {
-            "id": "finding-codex-food-allergen-2026-direct-names-v1-map-en-cod-exact-14-17",
+            "id": "finding-codex-food-allergen-2026-reviewed-english-v1-map-en-cod-exact-14-17",
             "concept_id": "concept-food-allergen-cod",
             "mapping_id": "map-en-cod-exact",
             "rule_id": "rule-codex-2026-cod",
@@ -765,16 +765,16 @@ def test_package_match_returns_each_active_leaf_with_ancestry_and_rules(
             "source_url": "https://world.openfoodfacts.org/product/4006381333931",
             "source_revision": "1787462400",
             "off_dataset_version_id": "dataset-2026-08-27",
-            "reference_dataset_version_id": "codex-food-allergen-2026-direct-names-v1",
+            "reference_dataset_version_id": "codex-food-allergen-2026-reviewed-english-v1",
             "engine_version": "0.1.0",
         },
     ]
 
 
-def test_package_matches_with_active_allergen_dataset_evaluates_whey_derivative_end_to_end(
+def test_reviewed_english_matcher_preserves_derivatives_exclusions_and_repetitions_over_http(
     session_factory: sessionmaker[Session],
 ) -> None:
-    bundle = ReferenceBundle.from_json_file(CODEX_MINIMAL_BUNDLE_PATH)
+    bundle = ReferenceBundle.from_json_file(CODEX_REVIEWED_ENGLISH_BUNDLE_PATH)
     with session_factory() as session:
         import_reference_bundle(session, bundle)
         activate_reference_dataset_version(session, bundle.manifest.id)
@@ -798,8 +798,8 @@ def test_package_matches_with_active_allergen_dataset_evaluates_whey_derivative_
     database[collection_name].insert_one(
         {
             "code": "4006381333931",
-            "product_name_en": "Protein bar",
-            "ingredients_text_en": "Wheat flour, sugar, whey powder, salt",
+            "product_name_en": "Mixed protein drink",
+            "ingredients_text_en": "coconut-milk, whey, tahini, whey",
             "last_modified_t": 1787462400,
         }
     )
@@ -819,11 +819,60 @@ def test_package_matches_with_active_allergen_dataset_evaluates_whey_derivative_
     body = response.json()
     assessment = body["candidates"][0]["allergen_assessment"]
     assert assessment["status"] == "DERIVED_FROM_INGREDIENT"
-    assert assessment["concepts"][0]["outcome"] == "DERIVED_FROM_INGREDIENT"
-    assert len(assessment["findings"]) == 1
-    assert assessment["findings"][0]["mapping_id"] == "map-en-whey-derived"
-    assert assessment["findings"][0]["relationship_type"] == "DERIVED_FROM"
-    assert assessment["findings"][0]["matched_text"] == "whey"
+    concepts = {concept["concept_id"]: concept for concept in assessment["concepts"]}
+    assert concepts["concept-food-allergen-milk"]["outcome"] == (
+        "DERIVED_FROM_INGREDIENT"
+    )
+    assert concepts["concept-food-allergen-sesame"]["outcome"] == (
+        "DERIVED_FROM_INGREDIENT"
+    )
+    assert [
+        {
+            key: finding[key]
+            for key in (
+                "concept_id",
+                "mapping_id",
+                "rule_id",
+                "relationship_type",
+                "matched_text",
+                "start_index",
+                "end_index",
+            )
+        }
+        for finding in assessment["findings"]
+    ] == [
+        {
+            "concept_id": "concept-food-allergen-milk",
+            "mapping_id": "map-en-whey-derived",
+            "rule_id": "rule-lifegoods-whey-milk-derivative",
+            "relationship_type": "DERIVED_FROM",
+            "matched_text": "whey",
+            "start_index": 14,
+            "end_index": 18,
+        },
+        {
+            "concept_id": "concept-food-allergen-sesame",
+            "mapping_id": "map-en-tahini-derived",
+            "rule_id": "rule-lifegoods-tahini-sesame-derivative",
+            "relationship_type": "DERIVED_FROM",
+            "matched_text": "tahini",
+            "start_index": 20,
+            "end_index": 26,
+        },
+        {
+            "concept_id": "concept-food-allergen-milk",
+            "mapping_id": "map-en-whey-derived",
+            "rule_id": "rule-lifegoods-whey-milk-derivative",
+            "relationship_type": "DERIVED_FROM",
+            "matched_text": "whey",
+            "start_index": 28,
+            "end_index": 32,
+        },
+    ]
+    assert all(
+        finding["mapping_id"] != "map-en-milk-exact"
+        for finding in assessment["findings"]
+    )
 
 
 def test_package_matches_with_active_allergen_dataset_and_no_match_returns_incomplete_label(

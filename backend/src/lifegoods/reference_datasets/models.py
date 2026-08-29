@@ -89,6 +89,11 @@ class ReferenceDatasetVersionRecord(Base):
     mappings: Mapped[list[LexicalMappingRecord]] = relationship(
         back_populates="dataset_version", cascade="all, delete-orphan", overlaps="concept,mappings"
     )
+    exclusions: Mapped[list[LexicalExclusionRecord]] = relationship(
+        back_populates="dataset_version",
+        cascade="all, delete-orphan",
+        overlaps="concept,exclusions",
+    )
     rules: Mapped[list[AllergenRuleRecord]] = relationship(
         back_populates="dataset_version", cascade="all, delete-orphan", overlaps="concept,rules"
     )
@@ -127,6 +132,15 @@ class ReferenceConceptRecord(Base):
         cascade="all, delete-orphan",
         foreign_keys="[LexicalMappingRecord.dataset_version_id, LexicalMappingRecord.concept_id]",
         overlaps="dataset_version,mappings",
+    )
+    exclusions: Mapped[list[LexicalExclusionRecord]] = relationship(
+        back_populates="concept",
+        cascade="all, delete-orphan",
+        foreign_keys=(
+            "[LexicalExclusionRecord.dataset_version_id, "
+            "LexicalExclusionRecord.concept_id]"
+        ),
+        overlaps="dataset_version,exclusions",
     )
     rules: Mapped[list[AllergenRuleRecord]] = relationship(
         back_populates="concept",
@@ -175,6 +189,43 @@ class LexicalMappingRecord(Base):
     )
 
 
+class LexicalExclusionRecord(Base):
+    __tablename__ = "lexical_exclusions"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["dataset_version_id", "concept_id"],
+            ["reference_concepts.dataset_version_id", "reference_concepts.id"],
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint(
+            "dataset_version_id",
+            "language",
+            "concept_id",
+            "excluded_text",
+            name="uq_lexical_exclusion_text",
+        ),
+    )
+
+    dataset_version_id: Mapped[str] = mapped_column(
+        ForeignKey("reference_dataset_versions.id", ondelete="CASCADE"), primary_key=True
+    )
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    concept_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    language: Mapped[str] = mapped_column(String(35), nullable=False)
+    excluded_text: Mapped[str] = mapped_column(String(255), nullable=False)
+    notes: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+
+    dataset_version: Mapped[ReferenceDatasetVersionRecord] = relationship(
+        back_populates="exclusions",
+        overlaps="concept,exclusions",
+    )
+    concept: Mapped[ReferenceConceptRecord] = relationship(
+        back_populates="exclusions",
+        foreign_keys=[dataset_version_id, concept_id],
+        overlaps="dataset_version,exclusions",
+    )
+
+
 class AllergenRuleRecord(Base):
     __tablename__ = "allergen_rules"
     __table_args__ = (
@@ -182,6 +233,12 @@ class AllergenRuleRecord(Base):
             ["dataset_version_id", "concept_id"],
             ["reference_concepts.dataset_version_id", "reference_concepts.id"],
             ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["dataset_version_id", "mapping_id"],
+            ["lexical_mappings.dataset_version_id", "lexical_mappings.id"],
+            ondelete="RESTRICT",
+            name="fk_allergen_rule_mapping",
         ),
         CheckConstraint(
             "rule_kind IN ('MANDATORY_DECLARATION', 'EXEMPTION', 'DERIVATIVE_MATCH', "
@@ -192,6 +249,11 @@ class AllergenRuleRecord(Base):
             "condition_family IN ('FOOD_ALLERGEN', 'COELIAC_GLUTEN', "
             "'SULPHITE_SENSITIVITY', 'INTOLERANCE')",
             name="ck_allergen_rule_condition_family",
+        ),
+        CheckConstraint(
+            "(rule_kind = 'DERIVATIVE_MATCH' AND mapping_id IS NOT NULL) OR "
+            "(rule_kind != 'DERIVATIVE_MATCH' AND mapping_id IS NULL)",
+            name="ck_allergen_rule_mapping_kind",
         ),
     )
 
@@ -205,6 +267,7 @@ class AllergenRuleRecord(Base):
     )
     rule_kind: Mapped[str] = mapped_column(String(32), nullable=False)
     condition_family: Mapped[str] = mapped_column(String(32), nullable=False)
+    mapping_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     description: Mapped[str | None] = mapped_column(String(2048), nullable=True)
 
     dataset_version: Mapped[ReferenceDatasetVersionRecord] = relationship(

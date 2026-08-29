@@ -1,6 +1,6 @@
 {
   "manifest": {
-    "id": "codex-food-allergen-2026-direct-names-v1",
+    "id": "codex-food-allergen-2026-reviewed-english-v1",
     "dataset_kind": "FOOD_ALLERGEN",
     "edition": "CXS 1-1985 (Amended 2026)",
     "jurisdiction": "INTERNATIONAL_WITH_REGIONAL_OR_NATIONAL_EXTENSIONS",
@@ -8,7 +8,7 @@
     "licensing_decision": "PUBLIC_GOVERNMENT_STANDARD",
     "project_approver": "food-safety-reviewer@lifegoods.org",
     "review_kind": "FOOD_DOMAIN_REVIEW",
-    "sha256": "80d851f685fbcb8ee3c84fac55ebb9b9b297f0bc2de9a032cf544ed806ffb533"
+    "sha256": "faa4f24d111684e29f8352696594cea60e3fa98a65e7a17db3000118c5783292"
   },
   "sources": [
     {
@@ -21,6 +21,17 @@
       "edition": "CXS 1-1985 (Amended 2026)",
       "licensing_decision": "PUBLIC_GOVERNMENT_STANDARD",
       "terms_version": "2026"
+    },
+    {
+      "id": "source-lifegoods-reviewed-allergen-mappings-issue-63",
+      "name": "LifeGoods reviewed English allergen mappings for issue 63",
+      "source_type": "PROJECT_REVIEWED_VOCABULARY",
+      "source_url": "https://github.com/internetOnion/life-goods/issues/63",
+      "jurisdiction": "PROJECT_SCOPE",
+      "publisher": "LifeGoods",
+      "edition": "Issue 63",
+      "licensing_decision": "PROJECT_AUTHORED",
+      "terms_version": "2026-08-29"
     }
   ],
   "concepts": [
@@ -80,7 +91,12 @@
     {"id": "map-en-sesame-exact", "concept_id": "concept-food-allergen-sesame", "language": "en", "mapped_text": "sesame", "relationship_type": "EXACT_NAME"},
     {"id": "map-en-soy-exact", "concept_id": "concept-food-allergen-soy", "language": "en", "mapped_text": "soy", "relationship_type": "EXACT_NAME"},
     {"id": "map-en-tuna-exact", "concept_id": "concept-food-allergen-tuna", "language": "en", "mapped_text": "tuna", "relationship_type": "EXACT_NAME"},
-    {"id": "map-en-walnut-exact", "concept_id": "concept-food-allergen-walnut", "language": "en", "mapped_text": "walnut", "relationship_type": "EXACT_NAME"}
+    {"id": "map-en-walnut-exact", "concept_id": "concept-food-allergen-walnut", "language": "en", "mapped_text": "walnut", "relationship_type": "EXACT_NAME"},
+    {"id": "map-en-whey-derived", "concept_id": "concept-food-allergen-milk", "language": "en", "mapped_text": "whey", "relationship_type": "DERIVED_FROM", "notes": "Food-domain-reviewed dairy derivative mapped to milk."},
+    {"id": "map-en-tahini-derived", "concept_id": "concept-food-allergen-sesame", "language": "en", "mapped_text": "tahini", "relationship_type": "DERIVED_FROM", "notes": "Food-domain-reviewed sesame derivative."}
+  ],
+  "exclusions": [
+    {"id": "exclude-en-coconut-milk-for-milk", "concept_id": "concept-food-allergen-milk", "language": "en", "excluded_text": "coconut milk", "notes": "Suppress the overlapping milk direct-name mapping because coconut milk is not mammalian milk."}
   ],
   "rules": [
     {"id": "rule-codex-2026-almond", "concept_id": "concept-food-allergen-almond", "source_id": "source-codex-cxs-1-1985-2026", "rule_kind": "MANDATORY_DECLARATION", "condition_family": "FOOD_ALLERGEN", "description": "CXS 1-1985 Section 4.2.1.4 declaration using the specified name almond."},
@@ -109,6 +125,8 @@
     {"id": "rule-codex-2026-soy", "concept_id": "concept-food-allergen-soy", "source_id": "source-codex-cxs-1-1985-2026", "rule_kind": "REGIONAL_OR_NATIONAL_DECLARATION", "condition_family": "FOOD_ALLERGEN", "description": "CXS 1-1985 Section 4.2.1.5 regional or national declaration using the specified name soy."},
     {"id": "rule-codex-2026-tuna", "concept_id": "concept-food-allergen-tuna", "source_id": "source-codex-cxs-1-1985-2026", "rule_kind": "MANDATORY_DECLARATION", "condition_family": "FOOD_ALLERGEN", "description": "Reviewed direct fish name governed by CXS 1-1985 Section 4.2.1.4 fish declaration."},
     {"id": "rule-codex-2026-walnut", "concept_id": "concept-food-allergen-walnut", "source_id": "source-codex-cxs-1-1985-2026", "rule_kind": "MANDATORY_DECLARATION", "condition_family": "FOOD_ALLERGEN", "description": "CXS 1-1985 Section 4.2.1.4 declaration using the specified name walnut."},
-    {"id": "rule-codex-2026-derivative-exemption", "concept_id": "concept-food-allergen-root", "source_id": "source-codex-cxs-1-1985-2026", "rule_kind": "EXEMPTION", "condition_family": "FOOD_ALLERGEN", "description": "CXS 1-1985 Section 4.2.1.6 permits regional or national competent authorities to exempt derivatives only after risk assessment."}
+    {"id": "rule-codex-2026-derivative-exemption", "concept_id": "concept-food-allergen-root", "source_id": "source-codex-cxs-1-1985-2026", "rule_kind": "EXEMPTION", "condition_family": "FOOD_ALLERGEN", "description": "CXS 1-1985 Section 4.2.1.6 permits regional or national competent authorities to exempt derivatives only after risk assessment."},
+    {"id": "rule-lifegoods-whey-milk-derivative", "concept_id": "concept-food-allergen-milk", "source_id": "source-lifegoods-reviewed-allergen-mappings-issue-63", "rule_kind": "DERIVATIVE_MATCH", "condition_family": "FOOD_ALLERGEN", "mapping_id": "map-en-whey-derived", "description": "Food-domain-reviewed lexical relationship from whey to milk for deterministic LifeGoods matching."},
+    {"id": "rule-lifegoods-tahini-sesame-derivative", "concept_id": "concept-food-allergen-sesame", "source_id": "source-lifegoods-reviewed-allergen-mappings-issue-63", "rule_kind": "DERIVATIVE_MATCH", "condition_family": "FOOD_ALLERGEN", "mapping_id": "map-en-tahini-derived", "description": "Food-domain-reviewed lexical relationship from tahini to sesame for deterministic LifeGoods matching."}
   ]
 }

@@ -1,0 +1,65 @@
+erDiagram
+  REFERENCE_DATASET_VERSION ||--|{ REFERENCE_CONCEPT : contains
+  REFERENCE_DATASET_VERSION ||--o{ LEXICAL_MAPPING : contains
+  REFERENCE_DATASET_VERSION ||--o{ LEXICAL_EXCLUSION : contains
+  REFERENCE_DATASET_VERSION ||--o{ ALLERGEN_RULE : contains
+  REFERENCE_DATASET_POINTER }o--|| REFERENCE_DATASET_VERSION : activates
+
+  REFERENCE_CONCEPT o|--o{ REFERENCE_CONCEPT : parent_of
+  REFERENCE_CONCEPT ||--o{ LEXICAL_MAPPING : recognizes
+  REFERENCE_CONCEPT ||--o{ LEXICAL_EXCLUSION : suppresses_for
+  REFERENCE_CONCEPT ||--o{ ALLERGEN_RULE : governed_by
+  REFERENCE_SOURCE ||--o{ ALLERGEN_RULE : supports
+  LEXICAL_MAPPING o|--o| ALLERGEN_RULE : derivative_binding
+
+  REFERENCE_DATASET_VERSION {
+    string id PK
+    string dataset_kind
+    string sha256
+    string status
+    string review_kind
+    datetime reviewed_at
+    datetime activated_at
+  }
+  REFERENCE_DATASET_POINTER {
+    string dataset_kind PK
+    string active_version_id FK
+    string previous_version_id FK
+  }
+  REFERENCE_SOURCE {
+    string id PK
+    string source_type
+    string source_url
+    string jurisdiction
+    string licensing_decision
+  }
+  REFERENCE_CONCEPT {
+    string dataset_version_id PK,FK
+    string id PK
+    string parent_id FK
+    string condition_family
+    boolean is_leaf
+  }
+  LEXICAL_MAPPING {
+    string dataset_version_id PK,FK
+    string id PK
+    string concept_id FK
+    string language
+    string mapped_text
+    string relationship_type
+  }
+  LEXICAL_EXCLUSION {
+    string dataset_version_id PK,FK
+    string id PK
+    string concept_id FK
+    string language
+    string excluded_text
+  }
+  ALLERGEN_RULE {
+    string dataset_version_id PK,FK
+    string id PK
+    string concept_id FK
+    string source_id FK
+    string mapping_id FK
+    string rule_kind
+  }

@@ -212,7 +212,8 @@ Reference data is relational and separately versioned in PostgreSQL:
 | `ReferenceDatasetVersion` | Immutable import with retrieval time, integrity hash, validation results, reviewer, review date, activation time, and supersession |
 | `ReferenceConcept`        | Stable allergen, ingredient, additive, chemical, rule, or educational concept identifier                                           |
 | `LexicalMapping`          | Language-tagged exact term, synonym, precautionary phrase, or reviewed derivative mapping to a Reference Concept                   |
-| `AllergenRule`            | Codex mandatory, regional-or-national, exemption, derivative, or precautionary rule with typed scope                               |
+| `LexicalExclusion`        | Versioned, language-tagged phrase that suppresses contained mappings for one leaf Reference Concept                                |
+| `AllergenRule`            | Codex mandatory, regional-or-national, exemption, derivative, or precautionary rule; derivative rules link to one Lexical Mapping  |
 | `HalalIngredientMapping`  | Project-authored explicit-prohibited or source-ambiguous mapping with cited rule basis                                             |
 | `AdditiveRule`            | Cambodian or separately labeled international-reference rule with food category, effective period, limit, and unit                 |
 | `IngredientDescription`   | Project-authored language-tagged neutral explanation linked to stable concepts and citations                                       |
@@ -227,7 +228,13 @@ Invariants:
 - A reference-data record cannot create a Product, reviewed Package Revision, accepted Product Claim, Preferred Claim, or Product verification state.
 - Missing, ambiguous, inapplicable, or unavailable reference data produces Evidence Uncertainty or `NOT_ASSESSED`.
 - An active allergen leaf has exactly one reviewed English direct-name mapping and an applicable declaration rule; mappings never target parent concepts.
+- Every reviewed derivative mapping has exactly one mapping-linked derivative rule for the same leaf concept; other allergen rule kinds do not link to mappings.
+- A lexical exclusion targets an active leaf, is unique after production normalization, and suppresses at least one approved mapping for only that concept.
 - Allergen Assessment outcomes contain leaf ancestry in direct-parent-to-root order and applicable rule IDs. Parent concepts group leaves but do not emit outcomes.
+
+The persisted Reference Dataset relationships are shown in
+[`reference-dataset-data-model.svg`](diagrams/reference-dataset-data-model.svg); the editable
+Mermaid source is [`reference-dataset-data-model.mmd`](diagrams/reference-dataset-data-model.mmd).
 
 ## 8. Ephemeral shopper boundary
 

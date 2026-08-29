@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Protocol
@@ -13,7 +12,13 @@ from lifegoods.reference_datasets import (
     ActiveAllergenReferenceData,
     AllergenAssessmentReferenceVersion,
     AllergenReferenceDataAccess,
+    AllergenReferenceMapping,
     AllergenRelationshipType,
+)
+from lifegoods.reference_datasets.text_normalization import (
+    find_normalized_phrase,
+    normalize_english_text,
+    normalized_phrase,
 )
 
 if TYPE_CHECKING:
@@ -105,6 +110,13 @@ class AllergenDeterministicMatcher(Protocol):
     ) -> tuple[AllergenFinding, ...]: ...
 
 
+@dataclass(frozen=True, slots=True)
+class _MatchCandidate:
+    mapping: AllergenReferenceMapping
+    normalized_start: int
+    normalized_end: int
+
+
 class DefaultAllergenDeterministicMatcher:
     def match(
         self,
@@ -114,56 +126,122 @@ class DefaultAllergenDeterministicMatcher:
         reference_data: ActiveAllergenReferenceData,
         engine_version: str,
     ) -> tuple[AllergenFinding, ...]:
-        findings: list[AllergenFinding] = []
         source_text = ingredient_text.value
-        if not source_text:
+        language = (ingredient_text.language or "").lower()
+        source_field = ingredient_text.source_field or ""
+        is_english_evidence = (
+            language == "en"
+            or language.startswith("en-")
+            or source_field == "ingredients_text_en"
+            or source_field.endswith("_en")
+        )
+        if not source_text or not is_english_evidence:
             return ()
 
-        rule_by_concept: dict[str, str] = {}
-        for rule in reference_data.rules:
-            if rule.concept_id not in rule_by_concept:
-                rule_by_concept[rule.concept_id] = rule.id
+        normalized_source = normalize_english_text(source_text)
+        declaration_rule_by_concept: dict[str, str] = {}
+        derivative_rule_by_mapping: dict[str, str] = {}
+        for rule in sorted(reference_data.rules, key=lambda item: item.id):
+            if rule.rule_kind == "DERIVATIVE_MATCH" and rule.mapping_id:
+                derivative_rule_by_mapping[rule.mapping_id] = rule.id
+            elif rule.rule_kind in {
+                "MANDATORY_DECLARATION",
+                "REGIONAL_OR_NATIONAL_DECLARATION",
+            }:
+                declaration_rule_by_concept.setdefault(rule.concept_id, rule.id)
+
+        exclusion_intervals: list[tuple[str, int, int]] = []
+        for exclusion in reference_data.exclusions:
+            if exclusion.language.strip().lower() != "en":
+                continue
+            phrase = normalized_phrase(exclusion.excluded_text)
+            exclusion_intervals.extend(
+                (exclusion.concept_id, start, end)
+                for start, end in find_normalized_phrase(normalized_source.text, phrase)
+            )
+
+        candidates: list[_MatchCandidate] = []
 
         for mapping in reference_data.mappings:
-            if (
-                ingredient_text.language
-                and mapping.language
-                and ingredient_text.language.lower() != mapping.language.lower()
-            ):
+            if mapping.language.strip().lower() != "en":
                 continue
 
-            mapped_text = mapping.mapped_text.strip()
+            mapped_text = normalized_phrase(mapping.mapped_text)
             if not mapped_text:
                 continue
 
-            pattern = re.compile(rf"\b{re.escape(mapped_text)}\b", re.IGNORECASE)
-            for match in pattern.finditer(source_text):
-                start_index = match.start()
-                end_index = match.end()
-                matched_text = source_text[start_index:end_index]
-                finding_id = (
-                    f"finding-{reference_data.version.id}-{mapping.id}-{start_index}-{end_index}"
+            for normalized_start, normalized_end in find_normalized_phrase(
+                normalized_source.text, mapped_text
+            ):
+                if any(
+                    exclusion_concept_id == mapping.concept_id
+                    and normalized_start >= exclusion_start
+                    and normalized_end <= exclusion_end
+                    for exclusion_concept_id, exclusion_start, exclusion_end in exclusion_intervals
+                ):
+                    continue
+                candidates.append(
+                    _MatchCandidate(mapping, normalized_start, normalized_end)
                 )
-                findings.append(
-                    AllergenFinding(
-                        id=finding_id,
-                        concept_id=mapping.concept_id,
-                        relationship_type=mapping.relationship_type,
-                        matched_text=matched_text,
-                        start_index=start_index,
-                        end_index=end_index,
-                        mapping_id=mapping.id,
-                        rule_id=rule_by_concept.get(mapping.concept_id),
-                        source_text=source_text,
-                        language=mapping.language,
-                        source_field=ingredient_text.source_field,
-                        source_url=record.source_url,
-                        source_revision=record.source_revision,
-                        off_dataset_version_id=record.dataset_version.id,
-                        reference_dataset_version_id=reference_data.version.id,
-                        engine_version=engine_version,
-                    )
+
+        candidates.sort(
+            key=lambda candidate: (
+                -sum(
+                    character != " "
+                    for character in normalized_source.text[
+                        candidate.normalized_start : candidate.normalized_end
+                    ]
+                ),
+                -(candidate.normalized_end - candidate.normalized_start),
+                candidate.normalized_start,
+                candidate.mapping.id,
+            )
+        )
+        accepted_candidates: list[_MatchCandidate] = []
+        for candidate in candidates:
+            if any(
+                candidate.normalized_start < accepted.normalized_end
+                and accepted.normalized_start < candidate.normalized_end
+                for accepted in accepted_candidates
+            ):
+                continue
+            accepted_candidates.append(candidate)
+
+        findings: list[AllergenFinding] = []
+        for candidate in accepted_candidates:
+            mapping = candidate.mapping
+            start_index, end_index = normalized_source.source_span(
+                candidate.normalized_start, candidate.normalized_end
+            )
+            matched_text = source_text[start_index:end_index]
+            finding_id = (
+                f"finding-{reference_data.version.id}-{mapping.id}-{start_index}-{end_index}"
+            )
+            rule_id = (
+                derivative_rule_by_mapping.get(mapping.id)
+                if mapping.relationship_type == AllergenRelationshipType.DERIVED_FROM
+                else declaration_rule_by_concept.get(mapping.concept_id)
+            )
+            findings.append(
+                AllergenFinding(
+                    id=finding_id,
+                    concept_id=mapping.concept_id,
+                    relationship_type=mapping.relationship_type,
+                    matched_text=matched_text,
+                    start_index=start_index,
+                    end_index=end_index,
+                    mapping_id=mapping.id,
+                    rule_id=rule_id,
+                    source_text=source_text,
+                    language=mapping.language,
+                    source_field=ingredient_text.source_field,
+                    source_url=record.source_url,
+                    source_revision=record.source_revision,
+                    off_dataset_version_id=record.dataset_version.id,
+                    reference_dataset_version_id=reference_data.version.id,
+                    engine_version=engine_version,
                 )
+            )
 
         findings.sort(key=lambda f: (f.start_index, f.end_index, f.mapping_id or ""))
         return tuple(findings)

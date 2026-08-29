@@ -28,6 +28,7 @@ from lifegoods.reference_datasets import (
     ActiveAllergenReferenceData,
     AllergenAssessmentReferenceVersion,
     AllergenReferenceConcept,
+    AllergenReferenceExclusion,
     AllergenReferenceMapping,
     AllergenReferenceRule,
     DatabaseAllergenReferenceDataAccess,
@@ -355,28 +356,47 @@ def sample_reference_data() -> ActiveAllergenReferenceData:
             condition_family="FOOD_ALLERGEN",
             description="Codex CXS 1-1985 Section 4.2.1.4 mandatory declaration for milk",
         ),
+        AllergenReferenceRule(
+            id="rule-lifegoods-whey-milk-derivative",
+            concept_id="concept-food-allergen-milk",
+            source_id="source-lifegoods-reviewed-allergen-mappings-issue-63",
+            rule_kind="DERIVATIVE_MATCH",
+            condition_family="FOOD_ALLERGEN",
+            mapping_id="map-en-whey-derived",
+            description="Reviewed whey-to-milk derivative mapping",
+        ),
+    )
+    exclusions = (
+        AllergenReferenceExclusion(
+            id="exclude-en-coconut-milk-for-milk",
+            concept_id="concept-food-allergen-milk",
+            language="en",
+            excluded_text="coconut milk",
+            notes="Coconut milk is not mammalian milk.",
+        ),
     )
 
     return ActiveAllergenReferenceData(
         version=version,
         concepts=concepts,
         mappings=mappings,
+        exclusions=exclusions,
         rules=rules,
     )
 
 
-DIRECT_NAMES_BUNDLE_PATH = (
+REVIEWED_ENGLISH_BUNDLE_PATH = (
     Path(__file__).parents[1]
     / "src"
     / "lifegoods"
     / "reference_datasets"
     / "bundles"
-    / "codex_2026_food_allergen_direct_names_v1.json"
+    / "codex_2026_food_allergen_reviewed_english_v1.json"
 )
 
 
-def direct_names_reference_data() -> ActiveAllergenReferenceData:
-    bundle = ReferenceBundle.from_json_file(DIRECT_NAMES_BUNDLE_PATH)
+def reviewed_english_reference_data() -> ActiveAllergenReferenceData:
+    bundle = ReferenceBundle.from_json_file(REVIEWED_ENGLISH_BUNDLE_PATH)
     return ActiveAllergenReferenceData(
         version=AllergenAssessmentReferenceVersion(
             id=bundle.manifest.id,
@@ -392,6 +412,10 @@ def direct_names_reference_data() -> ActiveAllergenReferenceData:
         ),
         mappings=tuple(
             AllergenReferenceMapping(**mapping.to_dict()) for mapping in bundle.mappings
+        ),
+        exclusions=tuple(
+            AllergenReferenceExclusion(**exclusion.to_dict())
+            for exclusion in bundle.exclusions
         ),
         rules=tuple(AllergenReferenceRule(**rule.to_dict()) for rule in bundle.rules),
     )
@@ -428,7 +452,7 @@ def direct_names_reference_data() -> ActiveAllergenReferenceData:
         ("walnut", "concept-food-allergen-walnut"),
     ],
 )
-def test_direct_names_release_matches_each_reviewed_english_name(
+def test_reviewed_english_release_matches_each_direct_name(
     direct_name: str, concept_id: str
 ) -> None:
     record = sample_record()
@@ -439,7 +463,7 @@ def test_direct_names_release_matches_each_reviewed_english_name(
             language="en",
         ),
         record=record,
-        reference_data=direct_names_reference_data(),
+        reference_data=reviewed_english_reference_data(),
         engine_version="0.1.0",
     )
 
@@ -457,11 +481,11 @@ def test_direct_names_release_matches_each_reviewed_english_name(
         "lactose",
         "wheat, rye, barley, oats",
         "sulphite, sulfite",
-        "whey, casein, groundnuts",
+        "casein, groundnuts",
         "ទឹកដោះគោ",
     ],
 )
-def test_direct_names_release_does_not_match_excluded_or_unreviewed_terms(
+def test_reviewed_english_release_does_not_match_unreviewed_terms(
     ingredient_text: str,
 ) -> None:
     findings = DefaultAllergenDeterministicMatcher().match(
@@ -471,7 +495,7 @@ def test_direct_names_release_does_not_match_excluded_or_unreviewed_terms(
             language="en",
         ),
         record=sample_record(),
-        reference_data=direct_names_reference_data(),
+        reference_data=reviewed_english_reference_data(),
         engine_version="0.1.0",
     )
 
@@ -479,7 +503,7 @@ def test_direct_names_release_does_not_match_excluded_or_unreviewed_terms(
 
 
 def test_release_evaluator_emits_only_leaves_with_ancestry_and_applicable_rules() -> None:
-    reference_data = direct_names_reference_data()
+    reference_data = reviewed_english_reference_data()
     evaluator = StandardAllergenAssessmentEvaluator(
         enabled=True,
         reference_data=StubAllergenReferenceDataAccess(reference_data),
@@ -530,6 +554,7 @@ def test_release_evaluator_emits_only_leaves_with_ancestry_and_applicable_rules(
     )
     assert outcomes["concept-food-allergen-milk"].rule_ids == (
         "rule-codex-2026-milk",
+        "rule-lifegoods-whey-milk-derivative",
         "rule-codex-2026-derivative-exemption",
     )
     assert {
@@ -588,7 +613,7 @@ def test_release_evaluator_emits_only_leaves_with_ancestry_and_applicable_rules(
     ):
         slug = concept_id.removeprefix("concept-food-allergen-")
         assert finding.id == (
-            "finding-codex-food-allergen-2026-direct-names-v1-"
+            "finding-codex-food-allergen-2026-reviewed-english-v1-"
             f"map-en-{slug}-exact-{start_index}-{end_index}"
         )
         assert finding.mapping_id == f"map-en-{slug}-exact"
@@ -718,6 +743,186 @@ def test_matcher_unicode_code_point_offsets() -> None:
     finding = findings[0]
     assert finding.matched_text == "milk"
     assert ingredient_text.value[finding.start_index : finding.end_index] == "milk"
+
+
+def test_matcher_normalizes_nfkc_case_punctuation_and_whitespace_with_exact_span() -> None:
+    ingredient_text = SourcedValue(
+        value="🍫 ＭＩＬＫ\t—  powder",
+        source_field="ingredients_text_en",
+        language="en-US",
+    )
+
+    findings = DefaultAllergenDeterministicMatcher().match(
+        ingredient_text=ingredient_text,
+        record=sample_record(),
+        reference_data=sample_reference_data(),
+        engine_version="0.1.0",
+    )
+
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding.matched_text == "ＭＩＬＫ"
+    assert (finding.start_index, finding.end_index) == (2, 6)
+    assert ingredient_text.value[finding.start_index : finding.end_index] == "ＭＩＬＫ"
+
+
+@pytest.mark.parametrize("coconut_phrase", ["coconut‑milk", "coconut\u00a0milk", "coconut\t  milk"])
+def test_matcher_excludes_only_milk_inside_normalized_coconut_milk_phrase(
+    coconut_phrase: str,
+) -> None:
+    ingredient_text = SourcedValue(
+        value=f"{coconut_phrase}, MILK powder",
+        source_field="ingredients_text_en",
+        language="en",
+    )
+
+    findings = DefaultAllergenDeterministicMatcher().match(
+        ingredient_text=ingredient_text,
+        record=sample_record(),
+        reference_data=sample_reference_data(),
+        engine_version="0.1.0",
+    )
+
+    expected_start = ingredient_text.value.rindex("MILK")
+    assert [
+        (finding.matched_text, finding.start_index, finding.end_index)
+        for finding in findings
+    ] == [("MILK", expected_start, expected_start + 4)]
+
+
+def test_matcher_word_boundaries_and_generic_flavours_do_not_infer_findings() -> None:
+    ingredient_text = SourcedValue(
+        value="eggplant, milky flavour, natural flavor",
+        source_field="ingredients_text_en",
+        language="en",
+    )
+
+    findings = DefaultAllergenDeterministicMatcher().match(
+        ingredient_text=ingredient_text,
+        record=sample_record(),
+        reference_data=sample_reference_data(),
+        engine_version="0.1.0",
+    )
+
+    assert findings == ()
+
+
+def test_matcher_explicit_approved_term_inside_flavour_text_still_matches() -> None:
+    ingredient_text = SourcedValue(
+        value="natural milk flavour",
+        source_field="ingredients_text_en",
+        language="en",
+    )
+
+    findings = DefaultAllergenDeterministicMatcher().match(
+        ingredient_text=ingredient_text,
+        record=sample_record(),
+        reference_data=sample_reference_data(),
+        engine_version="0.1.0",
+    )
+
+    assert [(finding.mapping_id, finding.matched_text) for finding in findings] == [
+        ("map-en-milk-exact", "milk")
+    ]
+
+
+def test_matcher_unicode_word_boundaries_reject_compound_and_non_ascii_prefixes() -> None:
+    ingredient_text = SourcedValue(
+        value="eggplant, 青egg, egg",
+        source_field="ingredients_text_en",
+        language="en",
+    )
+
+    findings = DefaultAllergenDeterministicMatcher().match(
+        ingredient_text=ingredient_text,
+        record=sample_record(),
+        reference_data=reviewed_english_reference_data(),
+        engine_version="0.1.0",
+    )
+
+    assert [(finding.mapping_id, finding.matched_text) for finding in findings] == [
+        ("map-en-egg-exact", "egg")
+    ]
+
+
+def test_matcher_longest_mapping_wins_while_non_overlapping_findings_survive() -> None:
+    reference_data = sample_reference_data()
+    whole_milk_mapping = AllergenReferenceMapping(
+        id="map-en-whole-milk-variant",
+        concept_id="concept-food-allergen-milk",
+        language="en",
+        mapped_text="whole milk",
+        relationship_type="SPELLING_VARIANT",
+    )
+    reference_data = replace(
+        reference_data,
+        mappings=(*reference_data.mappings, whole_milk_mapping),
+    )
+    ingredient_text = SourcedValue(
+        value="whole-milk, milk",
+        source_field="ingredients_text_en",
+        language="en",
+    )
+
+    findings = DefaultAllergenDeterministicMatcher().match(
+        ingredient_text=ingredient_text,
+        record=sample_record(),
+        reference_data=reference_data,
+        engine_version="0.1.0",
+    )
+
+    assert [(finding.mapping_id, finding.matched_text) for finding in findings] == [
+        ("map-en-whole-milk-variant", "whole-milk"),
+        ("map-en-milk-exact", "milk"),
+    ]
+
+
+def test_matcher_uses_mapping_id_as_the_stable_final_tie_breaker() -> None:
+    reference_data = sample_reference_data()
+    tied_mappings = tuple(
+        AllergenReferenceMapping(
+            id=mapping_id,
+            concept_id="concept-food-allergen-milk",
+            language="en",
+            mapped_text="milk",
+            relationship_type="EXACT_NAME",
+        )
+        for mapping_id in ("map-en-milk-z", "map-en-milk-a")
+    )
+    reference_data = replace(reference_data, mappings=tied_mappings)
+
+    findings = DefaultAllergenDeterministicMatcher().match(
+        ingredient_text=SourcedValue(
+            value="milk",
+            source_field="ingredients_text_en",
+            language="en",
+        ),
+        record=sample_record(),
+        reference_data=reference_data,
+        engine_version="0.1.0",
+    )
+
+    assert [finding.mapping_id for finding in findings] == ["map-en-milk-a"]
+
+
+def test_matcher_preserves_repeated_derivative_findings_and_specific_rules() -> None:
+    ingredient_text = SourcedValue(
+        value="whey, WHEY",
+        source_field="ingredients_text_en",
+        language="en-GB",
+    )
+
+    findings = DefaultAllergenDeterministicMatcher().match(
+        ingredient_text=ingredient_text,
+        record=sample_record(),
+        reference_data=sample_reference_data(),
+        engine_version="0.1.0",
+    )
+
+    assert [finding.matched_text for finding in findings] == ["whey", "WHEY"]
+    assert {finding.rule_id for finding in findings} == {
+        "rule-lifegoods-whey-milk-derivative"
+    }
 
 
 class StubAllergenReferenceDataAccess:
@@ -1096,4 +1301,3 @@ def test_evaluator_with_multiple_concepts_unmatched_concept_yields_incomplete() 
     assert evaluation.status not in prohibited_outcomes
     for c in evaluation.concepts:
         assert c.outcome not in prohibited_outcomes
-

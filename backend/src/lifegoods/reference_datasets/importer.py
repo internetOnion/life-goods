@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from lifegoods.reference_datasets.bundle import ReferenceBundle
 from lifegoods.reference_datasets.models import (
     AllergenRuleRecord,
+    LexicalExclusionRecord,
     LexicalMappingRecord,
     ReferenceConceptRecord,
     ReferenceDatasetVersionRecord,
@@ -144,7 +145,21 @@ def import_reference_bundle(
         )
         session.add(mapping_record)
 
-    # 5. Create allergen rules
+    session.flush()
+
+    # 5. Create lexical exclusions
+    for exclusion in bundle.exclusions:
+        exclusion_record = LexicalExclusionRecord(
+            dataset_version_id=version_record.id,
+            id=exclusion.id,
+            concept_id=exclusion.concept_id,
+            language=exclusion.language,
+            excluded_text=exclusion.excluded_text,
+            notes=exclusion.notes,
+        )
+        session.add(exclusion_record)
+
+    # 6. Create allergen rules
     for rule in bundle.rules:
         rule_record = AllergenRuleRecord(
             dataset_version_id=version_record.id,
@@ -153,6 +168,7 @@ def import_reference_bundle(
             source_id=rule.source_id,
             rule_kind=rule.rule_kind,
             condition_family=rule.condition_family,
+            mapping_id=rule.mapping_id,
             description=rule.description,
         )
         session.add(rule_record)

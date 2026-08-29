@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
@@ -150,12 +150,35 @@ class LexicalMappingDefinition:
 
 
 @dataclass(frozen=True, slots=True)
+class LexicalExclusionDefinition:
+    id: str
+    concept_id: str
+    language: str
+    excluded_text: str
+    notes: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> LexicalExclusionDefinition:
+        return cls(
+            id=str(data["id"]),
+            concept_id=str(data["concept_id"]),
+            language=str(data["language"]),
+            excluded_text=str(data["excluded_text"]),
+            notes=data.get("notes"),
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class AllergenRuleDefinition:
     id: str
     concept_id: str
     source_id: str
     rule_kind: str = AllergenRuleKind.MANDATORY_DECLARATION
     condition_family: str = ConditionFamily.FOOD_ALLERGEN
+    mapping_id: str | None = None
     description: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -169,6 +192,9 @@ class AllergenRuleDefinition:
             source_id=str(data["source_id"]),
             rule_kind=str(data.get("rule_kind", AllergenRuleKind.MANDATORY_DECLARATION)),
             condition_family=str(data.get("condition_family", ConditionFamily.FOOD_ALLERGEN)),
+            mapping_id=(
+                str(data["mapping_id"]) if data.get("mapping_id") is not None else None
+            ),
             description=data.get("description"),
         )
 
@@ -180,12 +206,16 @@ def compute_bundle_sha256(
     concepts: list[ReferenceConceptDefinition],
     mappings: list[LexicalMappingDefinition],
     rules: list[AllergenRuleDefinition],
+    exclusions: list[LexicalExclusionDefinition] | None = None,
 ) -> str:
     canonical_payload = {
         "manifest": manifest.to_dict(include_sha256=False),
         "sources": sorted([s.to_dict() for s in sources], key=lambda x: x["id"]),
         "concepts": sorted([c.to_dict() for c in concepts], key=lambda x: x["id"]),
         "mappings": sorted([m.to_dict() for m in mappings], key=lambda x: x["id"]),
+        "exclusions": sorted(
+            [e.to_dict() for e in exclusions or []], key=lambda x: x["id"]
+        ),
         "rules": sorted([r.to_dict() for r in rules], key=lambda x: x["id"]),
     }
     encoded = json.dumps(canonical_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -199,6 +229,7 @@ class ReferenceBundle:
     concepts: list[ReferenceConceptDefinition]
     mappings: list[LexicalMappingDefinition]
     rules: list[AllergenRuleDefinition]
+    exclusions: list[LexicalExclusionDefinition] = field(default_factory=list)
 
     def compute_sha256(self) -> str:
         return compute_bundle_sha256(
@@ -207,6 +238,7 @@ class ReferenceBundle:
             concepts=self.concepts,
             mappings=self.mappings,
             rules=self.rules,
+            exclusions=self.exclusions,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -215,6 +247,7 @@ class ReferenceBundle:
             "sources": [s.to_dict() for s in self.sources],
             "concepts": [c.to_dict() for c in self.concepts],
             "mappings": [m.to_dict() for m in self.mappings],
+            "exclusions": [e.to_dict() for e in self.exclusions],
             "rules": [r.to_dict() for r in self.rules],
         }
 
@@ -224,6 +257,9 @@ class ReferenceBundle:
         sources = [ReferenceSourceDefinition.from_dict(s) for s in data.get("sources", [])]
         concepts = [ReferenceConceptDefinition.from_dict(c) for c in data.get("concepts", [])]
         mappings = [LexicalMappingDefinition.from_dict(m) for m in data.get("mappings", [])]
+        exclusions = [
+            LexicalExclusionDefinition.from_dict(e) for e in data.get("exclusions", [])
+        ]
         rules = [AllergenRuleDefinition.from_dict(r) for r in data.get("rules", [])]
         return cls(
             manifest=manifest,
@@ -231,6 +267,7 @@ class ReferenceBundle:
             concepts=concepts,
             mappings=mappings,
             rules=rules,
+            exclusions=exclusions,
         )
 
     @classmethod

@@ -48,6 +48,7 @@ def validate_file(bundle_path: str | Path) -> dict[str, Any]:
         "source_count": len(bundle.sources),
         "concept_count": len(bundle.concepts),
         "mapping_count": len(bundle.mappings),
+        "exclusion_count": len(bundle.exclusions),
         "rule_count": len(bundle.rules),
     }
 
@@ -71,6 +72,7 @@ def import_file(session: Session, bundle_path: str | Path) -> dict[str, Any]:
         "immutable": record.immutable,
         "concept_count": len(record.concepts),
         "mapping_count": len(record.mappings),
+        "exclusion_count": len(record.exclusions),
         "rule_count": len(record.rules),
     }
 
@@ -96,6 +98,7 @@ def _format_version_output(
         "immutable": record.immutable,
         "concept_count": len(record.concepts),
         "mapping_count": len(record.mappings),
+        "exclusion_count": len(record.exclusions),
         "rule_count": len(record.rules),
     }
 
@@ -228,6 +231,16 @@ def inspect_version(session: Session, version_id: str) -> dict[str, Any]:
             }
             for m in record.mappings
         ],
+        "exclusions": [
+            {
+                "id": e.id,
+                "concept_id": e.concept_id,
+                "language": e.language,
+                "excluded_text": e.excluded_text,
+                "notes": e.notes,
+            }
+            for e in record.exclusions
+        ],
         "rules": [
             {
                 "id": r.id,
@@ -235,6 +248,7 @@ def inspect_version(session: Session, version_id: str) -> dict[str, Any]:
                 "source_id": r.source_id,
                 "rule_kind": r.rule_kind,
                 "condition_family": r.condition_family,
+                "mapping_id": r.mapping_id,
                 "description": r.description,
             }
             for r in record.rules
@@ -358,4 +372,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
