@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -250,7 +250,7 @@ class DefaultAllergenDeterministicMatcher:
                     mapping_id=mapping.id,
                     rule_id=rule_id,
                     source_text=source_text,
-                    language=mapping.language,
+                    language=ingredient_text.language or mapping.language,
                     source_field=ingredient_text.source_field,
                     source_url=record.source_url,
                     source_revision=record.source_revision,
@@ -316,6 +316,52 @@ def _build_concept_outcomes(
     return tuple(outcomes)
 
 
+def _finding_collision_id(
+    base_id: str,
+    *,
+    source_field: str,
+    occurrence: int,
+) -> str:
+    source_field_slug = "".join(
+        character if character.isalnum() else "-"
+        for character in source_field.casefold()
+    ).strip("-")
+    return (
+        f"{base_id}-source-{source_field_slug or 'unknown'}-occurrence-{occurrence}"
+    )
+
+
+def _combine_field_findings(
+    field_findings: tuple[tuple[AllergenFinding, ...], ...],
+) -> tuple[AllergenFinding, ...]:
+    combined: list[AllergenFinding] = []
+    base_id_occurrences: dict[str, int] = {}
+    used_ids: set[str] = set()
+    for findings in field_findings:
+        for finding in findings:
+            occurrence = base_id_occurrences.get(finding.id, 0) + 1
+            base_id_occurrences[finding.id] = occurrence
+            finding_id = finding.id
+            if occurrence > 1 or finding_id in used_ids:
+                finding_id = _finding_collision_id(
+                    finding.id,
+                    source_field=finding.source_field,
+                    occurrence=occurrence,
+                )
+                while finding_id in used_ids:
+                    occurrence += 1
+                    base_id_occurrences[finding.id] = occurrence
+                    finding_id = _finding_collision_id(
+                        finding.id,
+                        source_field=finding.source_field,
+                        occurrence=occurrence,
+                    )
+                finding = replace(finding, id=finding_id)
+            used_ids.add(finding_id)
+            combined.append(finding)
+    return tuple(combined)
+
+
 def _invalid_cached_evaluation_category(
     evaluation: AllergenAssessmentEvaluation,
     *,
@@ -360,11 +406,28 @@ def _invalid_cached_evaluation_category(
 
     mappings_by_id = {mapping.id: mapping for mapping in reference_data.mappings}
     rules_by_id = {rule.id: rule for rule in reference_data.rules}
+    base_id_occurrences: dict[str, int] = {}
     for finding in evaluation.findings:
         mapping = mappings_by_id.get(finding.mapping_id or "")
         rule = rules_by_id.get(finding.rule_id or "")
+        base_id = (
+            f"finding-{reference_data.version.id}-{finding.mapping_id}-"
+            f"{finding.start_index}-{finding.end_index}"
+        )
+        occurrence = base_id_occurrences.get(base_id, 0) + 1
+        base_id_occurrences[base_id] = occurrence
+        expected_finding_id = (
+            base_id
+            if occurrence == 1
+            else _finding_collision_id(
+                base_id,
+                source_field=finding.source_field,
+                occurrence=occurrence,
+            )
+        )
         if (
             mapping is None
+            or finding.id != expected_finding_id
             or mapping.concept_id != finding.concept_id
             or mapping.relationship_type != finding.relationship_type
             or (finding.rule_id is not None and rule is None)
@@ -534,17 +597,14 @@ class StandardAllergenAssessmentEvaluator:
                         },
                     )
 
-            english_ingredient_text = next(
-                (
-                    ingredient_text
-                    for ingredient_text in record.ingredient_texts
-                    if _is_english_evidence(ingredient_text)
-                    and ingredient_text.value
-                    and ingredient_text.value.strip()
-                ),
-                None,
+            english_ingredient_texts = tuple(
+                ingredient_text
+                for ingredient_text in record.ingredient_texts
+                if _is_english_evidence(ingredient_text)
+                and ingredient_text.value
+                and ingredient_text.value.strip()
             )
-            if english_ingredient_text is None:
+            if not english_ingredient_texts:
                 evaluation = AllergenAssessmentEvaluation(
                     status=AllergenAssessmentStatus.NOT_ASSESSED,
                     reason=AllergenAssessmentReason.EVIDENCE_UNAVAILABLE,
@@ -557,11 +617,16 @@ class StandardAllergenAssessmentEvaluator:
                     self._cache.set(cache_key, evaluation)
                 return evaluation
 
-            findings = self._matcher.match(
-                ingredient_text=english_ingredient_text,
-                record=record,
-                reference_data=active_data,
-                engine_version=self._engine_version,
+            findings = _combine_field_findings(
+                tuple(
+                    self._matcher.match(
+                        ingredient_text=ingredient_text,
+                        record=record,
+                        reference_data=active_data,
+                        engine_version=self._engine_version,
+                    )
+                    for ingredient_text in english_ingredient_texts
+                )
             )
             concept_outcomes = _build_concept_outcomes(active_data, findings)
 

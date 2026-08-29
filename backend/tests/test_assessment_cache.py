@@ -117,11 +117,11 @@ def test_build_assessment_cache_key_formats_all_key_components() -> None:
         record_id="4006381333931",
         source_revision_or_digest="1787462400",
         reference_dataset_context_digest="reference-context-digest",
-        engine_version="0.2.0",
+        engine_version="0.1.0",
     )
     assert key == (
         "assessment:eval:v2:dataset-2026-08-27:4006381333931:1787462400:"
-        "reference-context-digest:0.2.0"
+        "reference-context-digest:0.1.0"
     )
 
 
@@ -145,12 +145,12 @@ def test_assessment_cache_key_for_record_includes_revision_and_evidence_digest()
     key = assessment_cache_key_for_record(
         record,
         reference_dataset_version=REFERENCE_VERSION,
-        engine_version="0.2.0",
+        engine_version="0.1.0",
     )
     context_digest = compute_reference_dataset_context_digest(REFERENCE_VERSION)
     assert key == (
         f"assessment:eval:v2:dataset-2026-08-27:4006381333931:1787462400:{digest}:"
-        f"{context_digest}:0.2.0"
+        f"{context_digest}:0.1.0"
     )
 
 
@@ -160,12 +160,12 @@ def test_assessment_cache_key_for_record_uses_none_revision_when_missing() -> No
     key = assessment_cache_key_for_record(
         record,
         reference_dataset_version=REFERENCE_VERSION,
-        engine_version="0.2.0",
+        engine_version="0.1.0",
     )
     context_digest = compute_reference_dataset_context_digest(REFERENCE_VERSION)
     assert key == (
         f"assessment:eval:v2:dataset-2026-08-27:4006381333931:none:{digest}:"
-        f"{context_digest}:0.2.0"
+        f"{context_digest}:0.1.0"
     )
 
 
@@ -174,7 +174,7 @@ def test_cache_key_changes_for_each_key_component() -> None:
     base_key = assessment_cache_key_for_record(
         base_record,
         reference_dataset_version=REFERENCE_VERSION,
-        engine_version="0.2.0",
+        engine_version="0.1.0",
     )
 
     # 1. OFF dataset version change
@@ -188,7 +188,7 @@ def test_cache_key_changes_for_each_key_component() -> None:
     key_diff_off = assessment_cache_key_for_record(
         sample_record(dataset_version=diff_off_version),
         reference_dataset_version=REFERENCE_VERSION,
-        engine_version="0.2.0",
+        engine_version="0.1.0",
     )
     assert key_diff_off != base_key
 
@@ -196,7 +196,7 @@ def test_cache_key_changes_for_each_key_component() -> None:
     key_diff_record = assessment_cache_key_for_record(
         sample_record(record_id="9999999999999"),
         reference_dataset_version=REFERENCE_VERSION,
-        engine_version="0.2.0",
+        engine_version="0.1.0",
     )
     assert key_diff_record != base_key
 
@@ -204,7 +204,7 @@ def test_cache_key_changes_for_each_key_component() -> None:
     key_diff_rev = assessment_cache_key_for_record(
         sample_record(source_revision="1787469999"),
         reference_dataset_version=REFERENCE_VERSION,
-        engine_version="0.2.0",
+        engine_version="0.1.0",
     )
     assert key_diff_rev != base_key
 
@@ -212,7 +212,7 @@ def test_cache_key_changes_for_each_key_component() -> None:
     key_diff_evidence = assessment_cache_key_for_record(
         sample_record(source_revision=None, ingredient_text="Different ingredients"),
         reference_dataset_version=REFERENCE_VERSION,
-        engine_version="0.2.0",
+        engine_version="0.1.0",
     )
     assert key_diff_evidence != base_key
 
@@ -220,7 +220,7 @@ def test_cache_key_changes_for_each_key_component() -> None:
     key_diff_ref = assessment_cache_key_for_record(
         base_record,
         reference_dataset_version=replace(REFERENCE_VERSION, id="codex-food-allergen-2026-v2"),
-        engine_version="0.2.0",
+        engine_version="0.1.0",
     )
     assert key_diff_ref != base_key
 
@@ -228,7 +228,7 @@ def test_cache_key_changes_for_each_key_component() -> None:
     key_diff_engine = assessment_cache_key_for_record(
         base_record,
         reference_dataset_version=REFERENCE_VERSION,
-        engine_version="0.3.0",
+        engine_version="0.2.0",
     )
     assert key_diff_engine != base_key
 

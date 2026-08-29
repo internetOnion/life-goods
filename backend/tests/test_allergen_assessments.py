@@ -1157,6 +1157,107 @@ def test_evaluator_accepts_case_and_region_varied_english_evidence(language: str
     assert evaluation.findings[0].matched_text == "milk"
 
 
+def test_evaluator_retains_findings_from_all_english_ingredient_fields_in_order() -> None:
+    ref_data = sample_reference_data()
+    evaluator = StandardAllergenAssessmentEvaluator(
+        enabled=True,
+        engine_version="0.1.0",
+        reference_data=StubAllergenReferenceDataAccess(ref_data),
+    )
+    record = replace(
+        sample_record(),
+        ingredient_texts=(
+            SourcedValue(
+                value="milk",
+                source_field="ingredients_text_en",
+                language="en",
+            ),
+            SourcedValue(
+                value="milk",
+                source_field="ingredients_text_km",
+                language="km",
+            ),
+            SourcedValue(
+                value="whey",
+                source_field="ingredients_text_secondary_en",
+                language="en-GB",
+            ),
+        ),
+    )
+
+    evaluation = evaluator.evaluate(record)
+
+    assert [finding.source_field for finding in evaluation.findings] == [
+        "ingredients_text_en",
+        "ingredients_text_secondary_en",
+    ]
+    assert [finding.matched_text for finding in evaluation.findings] == ["milk", "whey"]
+    assert [finding.language for finding in evaluation.findings] == ["en", "en-GB"]
+    assert evaluation.concepts[0].finding_ids == tuple(
+        finding.id for finding in evaluation.findings
+    )
+    assert {signal.field for signal in evaluation.source_signals} == {
+        "allergen_declaration",
+        "allergen_tags",
+        "trace_declaration",
+        "trace_tags",
+    }
+
+
+def test_evaluator_preserves_duplicate_text_field_provenance_with_stable_ids() -> None:
+    ref_data = sample_reference_data()
+    evaluator = StandardAllergenAssessmentEvaluator(
+        enabled=True,
+        engine_version="0.1.0",
+        reference_data=StubAllergenReferenceDataAccess(ref_data),
+    )
+    record = replace(
+        sample_record(),
+        ingredient_texts=(
+            SourcedValue(
+                value="milk",
+                source_field="ingredients_text_en",
+                language="en",
+            ),
+            SourcedValue(
+                value="milk",
+                source_field="ingredients_text_secondary_en",
+                language="en-US",
+            ),
+        ),
+    )
+
+    first = evaluator.evaluate(record)
+    second = evaluator.evaluate(record)
+
+    base_id = (
+        "finding-codex-food-allergen-2026-minimal-map-en-milk-exact-0-4"
+    )
+    assert [finding.id for finding in first.findings] == [
+        base_id,
+        f"{base_id}-source-ingredients-text-secondary-en-occurrence-2",
+    ]
+    assert first == second
+    assert [finding.source_field for finding in first.findings] == [
+        "ingredients_text_en",
+        "ingredients_text_secondary_en",
+    ]
+    assert [finding.source_text for finding in first.findings] == ["milk", "milk"]
+    assert [finding.language for finding in first.findings] == ["en", "en-US"]
+
+
+def test_standard_evaluator_defaults_to_engine_version_0_1_0() -> None:
+    evaluator = StandardAllergenAssessmentEvaluator(
+        enabled=True,
+        reference_data=StubAllergenReferenceDataAccess(sample_reference_data()),
+    )
+
+    evaluation = evaluator.evaluate(sample_record())
+
+    assert evaluation.engine_version == "0.1.0"
+    assert all(finding.engine_version == "0.1.0" for finding in evaluation.findings)
+
+
 def test_evaluator_with_active_reference_data_and_no_matching_allergens() -> None:
     ref_data = sample_reference_data()
     access = StubAllergenReferenceDataAccess(ref_data)
