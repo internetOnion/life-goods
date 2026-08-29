@@ -1,5 +1,9 @@
+import json
+from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Any, cast
+
+import pytest
 
 from lifegoods.open_food_facts.models import (
     ExternalDatasetVersion,
@@ -16,11 +20,13 @@ from lifegoods.package_matches.assessments import (
     EvidenceCoverageState,
 )
 from lifegoods.package_matches.cache import (
+    ASSESSMENT_CACHE_SCHEMA_VERSION,
     DEFAULT_ASSESSMENT_CACHE_TTL_SECONDS,
     RedisAllergenAssessmentCache,
     assessment_cache_key_for_record,
     build_assessment_cache_key,
     compute_evidence_digest,
+    compute_reference_dataset_context_digest,
     deserialize_assessment_evaluation,
     serialize_assessment_evaluation,
 )
@@ -42,6 +48,15 @@ DATASET_VERSION = ExternalDatasetVersion(
     retrieved_at=datetime(2026, 8, 27, 8, 0, tzinfo=UTC),
     activated_at=datetime(2026, 8, 27, 9, 0, tzinfo=UTC),
     sha256="a" * 64,
+)
+REFERENCE_VERSION = AllergenAssessmentReferenceVersion(
+    id="codex-food-allergen-2026-minimal",
+    source_url="https://www.fao.org/fao-who-codexalimentarius/standards/cxs1-1985",
+    retrieved_at=datetime(2026, 8, 27, 8, 0, tzinfo=UTC),
+    activated_at=datetime(2026, 8, 27, 9, 0, tzinfo=UTC),
+    sha256="d" * 64,
+    review_kind="FOOD_DOMAIN_REVIEW",
+    dataset_kind="FOOD_ALLERGEN",
 )
 
 
@@ -101,12 +116,12 @@ def test_build_assessment_cache_key_formats_all_key_components() -> None:
         off_dataset_version_id="dataset-2026-08-27",
         record_id="4006381333931",
         source_revision_or_digest="1787462400",
-        reference_dataset_version_id="codex-food-allergen-2026-minimal",
-        engine_version="0.1.0",
+        reference_dataset_context_digest="reference-context-digest",
+        engine_version="0.2.0",
     )
     assert key == (
-        "assessment:eval:dataset-2026-08-27:4006381333931:1787462400:"
-        "codex-food-allergen-2026-minimal:0.1.0"
+        "assessment:eval:v2:dataset-2026-08-27:4006381333931:1787462400:"
+        "reference-context-digest:0.2.0"
     )
 
 
@@ -129,12 +144,13 @@ def test_assessment_cache_key_for_record_includes_revision_and_evidence_digest()
     digest = compute_evidence_digest(record)
     key = assessment_cache_key_for_record(
         record,
-        reference_dataset_version_id="codex-food-allergen-2026-minimal",
-        engine_version="0.1.0",
+        reference_dataset_version=REFERENCE_VERSION,
+        engine_version="0.2.0",
     )
+    context_digest = compute_reference_dataset_context_digest(REFERENCE_VERSION)
     assert key == (
-        f"assessment:eval:dataset-2026-08-27:4006381333931:1787462400:{digest}:"
-        "codex-food-allergen-2026-minimal:0.1.0"
+        f"assessment:eval:v2:dataset-2026-08-27:4006381333931:1787462400:{digest}:"
+        f"{context_digest}:0.2.0"
     )
 
 
@@ -143,12 +159,13 @@ def test_assessment_cache_key_for_record_uses_none_revision_when_missing() -> No
     digest = compute_evidence_digest(record)
     key = assessment_cache_key_for_record(
         record,
-        reference_dataset_version_id="codex-food-allergen-2026-minimal",
-        engine_version="0.1.0",
+        reference_dataset_version=REFERENCE_VERSION,
+        engine_version="0.2.0",
     )
+    context_digest = compute_reference_dataset_context_digest(REFERENCE_VERSION)
     assert key == (
-        f"assessment:eval:dataset-2026-08-27:4006381333931:none:{digest}:"
-        "codex-food-allergen-2026-minimal:0.1.0"
+        f"assessment:eval:v2:dataset-2026-08-27:4006381333931:none:{digest}:"
+        f"{context_digest}:0.2.0"
     )
 
 
@@ -156,8 +173,8 @@ def test_cache_key_changes_for_each_key_component() -> None:
     base_record = sample_record()
     base_key = assessment_cache_key_for_record(
         base_record,
-        reference_dataset_version_id="codex-food-allergen-2026-minimal",
-        engine_version="0.1.0",
+        reference_dataset_version=REFERENCE_VERSION,
+        engine_version="0.2.0",
     )
 
     # 1. OFF dataset version change
@@ -170,62 +187,73 @@ def test_cache_key_changes_for_each_key_component() -> None:
     )
     key_diff_off = assessment_cache_key_for_record(
         sample_record(dataset_version=diff_off_version),
-        reference_dataset_version_id="codex-food-allergen-2026-minimal",
-        engine_version="0.1.0",
+        reference_dataset_version=REFERENCE_VERSION,
+        engine_version="0.2.0",
     )
     assert key_diff_off != base_key
 
     # 2. Record ID change
     key_diff_record = assessment_cache_key_for_record(
         sample_record(record_id="9999999999999"),
-        reference_dataset_version_id="codex-food-allergen-2026-minimal",
-        engine_version="0.1.0",
+        reference_dataset_version=REFERENCE_VERSION,
+        engine_version="0.2.0",
     )
     assert key_diff_record != base_key
 
     # 3. Source revision change
     key_diff_rev = assessment_cache_key_for_record(
         sample_record(source_revision="1787469999"),
-        reference_dataset_version_id="codex-food-allergen-2026-minimal",
-        engine_version="0.1.0",
+        reference_dataset_version=REFERENCE_VERSION,
+        engine_version="0.2.0",
     )
     assert key_diff_rev != base_key
 
     # 4. Evidence digest change (when revision is None)
     key_diff_evidence = assessment_cache_key_for_record(
         sample_record(source_revision=None, ingredient_text="Different ingredients"),
-        reference_dataset_version_id="codex-food-allergen-2026-minimal",
-        engine_version="0.1.0",
+        reference_dataset_version=REFERENCE_VERSION,
+        engine_version="0.2.0",
     )
     assert key_diff_evidence != base_key
 
     # 5. Reference dataset version change
     key_diff_ref = assessment_cache_key_for_record(
         base_record,
-        reference_dataset_version_id="codex-food-allergen-2026-v2",
-        engine_version="0.1.0",
+        reference_dataset_version=replace(REFERENCE_VERSION, id="codex-food-allergen-2026-v2"),
+        engine_version="0.2.0",
     )
     assert key_diff_ref != base_key
 
     # 6. Engine version change
     key_diff_engine = assessment_cache_key_for_record(
         base_record,
-        reference_dataset_version_id="codex-food-allergen-2026-minimal",
-        engine_version="0.2.0",
+        reference_dataset_version=REFERENCE_VERSION,
+        engine_version="0.3.0",
     )
     assert key_diff_engine != base_key
 
 
-def sample_evaluation() -> AllergenAssessmentEvaluation:
-    ref_version = AllergenAssessmentReferenceVersion(
-        id="codex-food-allergen-2026-minimal",
-        source_url="https://www.fao.org/fao-who-codexalimentarius/standards/cxs1-1985",
-        retrieved_at=datetime(2026, 8, 27, 8, 0, tzinfo=UTC),
-        activated_at=datetime(2026, 8, 27, 9, 0, tzinfo=UTC),
-        sha256="d" * 64,
-        review_kind="FOOD_DOMAIN_REVIEW",
-        dataset_kind="FOOD_ALLERGEN",
+@pytest.mark.parametrize(
+    "changed_version",
+    [
+        replace(
+            REFERENCE_VERSION,
+            activated_at=datetime(2026, 8, 27, 10, 0, tzinfo=UTC),
+        ),
+        replace(REFERENCE_VERSION, review_kind="SECOND_FOOD_DOMAIN_REVIEW"),
+        replace(REFERENCE_VERSION, dataset_kind="OTHER_REVIEWED_DATASET"),
+        replace(REFERENCE_VERSION, sha256="e" * 64),
+    ],
+)
+def test_reference_context_digest_invalidates_same_version_context_changes(
+    changed_version: AllergenAssessmentReferenceVersion,
+) -> None:
+    assert compute_reference_dataset_context_digest(changed_version) != (
+        compute_reference_dataset_context_digest(REFERENCE_VERSION)
     )
+
+
+def sample_evaluation() -> AllergenAssessmentEvaluation:
     concept = AllergenConceptOutcome(
         concept_id="concept-food-allergen-milk",
         name="Milk and milk products",
@@ -270,7 +298,7 @@ def sample_evaluation() -> AllergenAssessmentEvaluation:
         reason=None,
         evidence_coverage=EvidenceCoverageState.PARTIAL,
         engine_version="0.1.0",
-        reference_dataset_version=ref_version,
+        reference_dataset_version=REFERENCE_VERSION,
         concepts=(concept,),
         findings=(finding,),
         source_signals=(signal,),
@@ -289,6 +317,28 @@ def test_serialization_roundtrip_preserves_equality_and_types() -> None:
     assert restored.concepts == original.concepts
     assert restored.findings == original.findings
     assert restored.source_signals == original.source_signals
+
+    payload = json.loads(serialized)
+    assert payload["schema_version"] == ASSESSMENT_CACHE_SCHEMA_VERSION == 2
+
+
+@pytest.mark.parametrize(
+    ("collection_name", "missing_field"),
+    [
+        ("concepts", "finding_ids"),
+        ("findings", "source_field"),
+        ("source_signals", "retrieved_at"),
+    ],
+)
+def test_deserialize_rejects_incomplete_nested_cache_payloads(
+    collection_name: str,
+    missing_field: str,
+) -> None:
+    payload = json.loads(serialize_assessment_evaluation(sample_evaluation()))
+    del payload[collection_name][0][missing_field]
+
+    with pytest.raises(ValueError):
+        deserialize_assessment_evaluation(json.dumps(payload))
 
 
 def test_serialization_contains_no_shopper_session_or_run_identifiers() -> None:
@@ -463,6 +513,113 @@ def test_evaluator_cache_hit_bypasses_matcher() -> None:
     assert eval2 == eval1
 
 
+def test_evaluator_rejects_and_replaces_incomplete_parseable_cache_payload() -> None:
+    import fakeredis
+    from test_allergen_assessments import (
+        StubAllergenReferenceDataAccess,
+        sample_reference_data,
+    )
+
+    from lifegoods.package_matches.assessments import StandardAllergenAssessmentEvaluator
+
+    ref_data = sample_reference_data()
+    spy_matcher = SpyMatcher()
+    redis_client = fakeredis.FakeRedis(decode_responses=True)
+    cache = RedisAllergenAssessmentCache(redis_client)
+    evaluator = StandardAllergenAssessmentEvaluator(
+        enabled=True,
+        engine_version="0.1.0",
+        reference_data=StubAllergenReferenceDataAccess(ref_data),
+        matcher=spy_matcher,
+        cache=cache,
+    )
+    record = sample_record()
+    expected = evaluator.evaluate(record)
+    key = cast(str, next(iter(redis_client.scan_iter("assessment:eval:*"))))
+    payload = json.loads(cast(str, redis_client.get(key)))
+    del payload["concepts"][0]["finding_ids"]
+    redis_client.set(key, json.dumps(payload))
+
+    actual = evaluator.evaluate(record)
+
+    assert spy_matcher.call_count == 2
+    assert actual == expected
+    replaced = json.loads(cast(str, redis_client.get(key)))
+    assert replaced["concepts"][0]["finding_ids"] == []
+
+
+def test_evaluator_rejects_and_replaces_incoherent_cached_concept_outcome() -> None:
+    import fakeredis
+    from test_allergen_assessments import (
+        StubAllergenReferenceDataAccess,
+        sample_reference_data,
+    )
+
+    from lifegoods.package_matches.assessments import StandardAllergenAssessmentEvaluator
+
+    ref_data = sample_reference_data()
+    spy_matcher = SpyMatcher()
+    redis_client = fakeredis.FakeRedis(decode_responses=True)
+    cache = RedisAllergenAssessmentCache(redis_client)
+    evaluator = StandardAllergenAssessmentEvaluator(
+        enabled=True,
+        engine_version="0.1.0",
+        reference_data=StubAllergenReferenceDataAccess(ref_data),
+        matcher=spy_matcher,
+        cache=cache,
+    )
+    record = sample_record()
+    expected = evaluator.evaluate(record)
+    key = cast(str, next(iter(redis_client.scan_iter("assessment:eval:*"))))
+    payload = json.loads(cast(str, redis_client.get(key)))
+    payload["concepts"][0]["name"] = "Stale concept name"
+    redis_client.set(key, json.dumps(payload))
+
+    actual = evaluator.evaluate(record)
+
+    assert spy_matcher.call_count == 2
+    assert actual == expected
+    replaced = json.loads(cast(str, redis_client.get(key)))
+    assert replaced["concepts"][0]["name"] == expected.concepts[0].name
+
+
+def test_evaluator_does_not_accept_cached_assessment_failed_state() -> None:
+    import fakeredis
+    from test_allergen_assessments import (
+        StubAllergenReferenceDataAccess,
+        sample_reference_data,
+    )
+
+    from lifegoods.package_matches.assessments import StandardAllergenAssessmentEvaluator
+
+    spy_matcher = SpyMatcher()
+    redis_client = fakeredis.FakeRedis(decode_responses=True)
+    evaluator = StandardAllergenAssessmentEvaluator(
+        enabled=True,
+        engine_version="0.1.0",
+        reference_data=StubAllergenReferenceDataAccess(sample_reference_data()),
+        matcher=spy_matcher,
+        cache=RedisAllergenAssessmentCache(redis_client),
+    )
+    record = sample_record()
+    expected = evaluator.evaluate(record)
+    key = cast(str, next(iter(redis_client.scan_iter("assessment:eval:*"))))
+    payload = json.loads(cast(str, redis_client.get(key)))
+    payload.update(
+        status="NOT_ASSESSED",
+        reason="ASSESSMENT_FAILED",
+        evidence_coverage="NOT_ASSESSED",
+        concepts=[],
+        findings=[],
+    )
+    redis_client.set(key, json.dumps(payload))
+
+    actual = evaluator.evaluate(record)
+
+    assert spy_matcher.call_count == 2
+    assert actual == expected
+
+
 def test_evaluator_cache_miss_on_changed_reference_version() -> None:
     from dataclasses import replace
 
@@ -603,8 +760,10 @@ def test_package_matches_api_caches_allergen_evaluations_end_to_end() -> None:
         keys = list(cast(list[str], fake_redis.keys("assessment:eval:*")))
         assert len(keys) == 1
         cached_key = keys[0]
-        assert cached_key.startswith("assessment:eval:dataset-2026-08-27:4006381333931:1787462400:")
-        assert cached_key.endswith(":codex-food-allergen-2026-minimal:0.1.0")
+        assert cached_key.startswith(
+            "assessment:eval:v2:dataset-2026-08-27:4006381333931:1787462400:"
+        )
+        assert cached_key.endswith(":0.1.0")
         assert fake_redis.exists(cached_key) == 1
         ttl = int(cast(Any, fake_redis.ttl(cached_key)))
         assert 604700 <= ttl <= DEFAULT_ASSESSMENT_CACHE_TTL_SECONDS
@@ -725,5 +884,3 @@ def test_absence_of_durable_storage_for_assessment_evaluations() -> None:
     assert not any("assessment_run" in t.lower() for t in table_names)
     assert not any("evaluation_run" in t.lower() for t in table_names)
     assert not any("assessment_history" in t.lower() for t in table_names)
-
-

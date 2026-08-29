@@ -264,6 +264,132 @@ class DefaultAllergenDeterministicMatcher:
         return tuple(findings)
 
 
+def _build_concept_outcomes(
+    reference_data: ActiveAllergenReferenceData,
+    findings: tuple[AllergenFinding, ...],
+) -> tuple[AllergenConceptOutcome, ...]:
+    findings_by_concept: dict[str, list[AllergenFinding]] = {}
+    for finding in findings:
+        findings_by_concept.setdefault(finding.concept_id, []).append(finding)
+
+    concepts_by_id = {concept.id: concept for concept in reference_data.concepts}
+    rule_ids_by_concept: dict[str, list[str]] = {}
+    for rule in sorted(reference_data.rules, key=lambda item: item.id):
+        rule_ids_by_concept.setdefault(rule.concept_id, []).append(rule.id)
+
+    outcomes: list[AllergenConceptOutcome] = []
+    for concept in sorted(reference_data.concepts, key=lambda item: item.id):
+        if not concept.is_leaf:
+            continue
+
+        parent_ids: list[str] = []
+        current_parent_id = concept.parent_id
+        while current_parent_id is not None:
+            parent_ids.append(current_parent_id)
+            parent = concepts_by_id.get(current_parent_id)
+            current_parent_id = parent.parent_id if parent is not None else None
+
+        applicable_concept_ids = (concept.id, *parent_ids)
+        applicable_rule_ids = tuple(
+            rule_id
+            for applicable_concept_id in applicable_concept_ids
+            for rule_id in rule_ids_by_concept.get(applicable_concept_id, ())
+        )
+        concept_findings = findings_by_concept.get(concept.id, [])
+        if concept_findings:
+            outcome = AllergenAssessmentOutcome.DERIVED_FROM_INGREDIENT
+            finding_ids = tuple(finding.id for finding in concept_findings)
+        else:
+            outcome = AllergenAssessmentOutcome.LABEL_INCOMPLETE_OR_UNREADABLE
+            finding_ids = ()
+        outcomes.append(
+            AllergenConceptOutcome(
+                concept_id=concept.id,
+                name=concept.name,
+                outcome=outcome,
+                finding_ids=finding_ids,
+                parent_ids=tuple(parent_ids),
+                rule_ids=applicable_rule_ids,
+            )
+        )
+
+    return tuple(outcomes)
+
+
+def _invalid_cached_evaluation_category(
+    evaluation: AllergenAssessmentEvaluation,
+    *,
+    record: ExternalPackageRecord,
+    source_signals: tuple[PackageMatchEvidence, ...],
+    reference_data: ActiveAllergenReferenceData,
+    engine_version: str,
+) -> str | None:
+    if evaluation.engine_version != engine_version:
+        return "engine_context"
+    if evaluation.reference_dataset_version != reference_data.version:
+        return "reference_context"
+    if evaluation.source_signals != source_signals:
+        return "source_signals"
+
+    eligible_evidence = {
+        (value.source_field, value.value)
+        for value in record.ingredient_texts
+        if _is_english_evidence(value) and value.value and value.value.strip()
+    }
+    if evaluation.status is AllergenAssessmentStatus.NOT_ASSESSED:
+        if (
+            evaluation.reason is AllergenAssessmentReason.EVIDENCE_UNAVAILABLE
+            and evaluation.evidence_coverage is EvidenceCoverageState.NOT_ASSESSED
+            and not evaluation.concepts
+            and not evaluation.findings
+            and not eligible_evidence
+        ):
+            return None
+        return "not_assessed_state"
+
+    if (
+        evaluation.status is not AllergenAssessmentStatus.COMPLETED
+        or evaluation.reason is not None
+        or evaluation.evidence_coverage is not EvidenceCoverageState.PARTIAL
+    ):
+        return "completed_state"
+
+    finding_ids = [finding.id for finding in evaluation.findings]
+    if len(finding_ids) != len(set(finding_ids)):
+        return "finding_ids"
+
+    mappings_by_id = {mapping.id: mapping for mapping in reference_data.mappings}
+    rules_by_id = {rule.id: rule for rule in reference_data.rules}
+    for finding in evaluation.findings:
+        mapping = mappings_by_id.get(finding.mapping_id or "")
+        rule = rules_by_id.get(finding.rule_id or "")
+        if (
+            mapping is None
+            or mapping.concept_id != finding.concept_id
+            or mapping.relationship_type != finding.relationship_type
+            or (finding.rule_id is not None and rule is None)
+            or (rule is not None and rule.concept_id != finding.concept_id)
+            or (finding.source_field, finding.source_text) not in eligible_evidence
+            or finding.source_text is None
+            or finding.start_index < 0
+            or finding.end_index <= finding.start_index
+            or finding.source_text[finding.start_index : finding.end_index]
+            != finding.matched_text
+            or finding.source_url != record.source_url
+            or finding.source_revision != record.source_revision
+            or finding.off_dataset_version_id != record.dataset_version.id
+            or finding.reference_dataset_version_id != reference_data.version.id
+            or finding.engine_version != engine_version
+        ):
+            return "finding_provenance"
+
+    if evaluation.concepts != _build_concept_outcomes(
+        reference_data, evaluation.findings
+    ):
+        return "concept_outcomes"
+    return None
+
+
 
 class AllergenAssessmentCache(Protocol):
     def get(self, key: str) -> AllergenAssessmentEvaluation | None: ...
@@ -385,12 +511,28 @@ class StandardAllergenAssessmentEvaluator:
 
                 cache_key = assessment_cache_key_for_record(
                     record,
-                    reference_dataset_version_id=active_data.version.id,
+                    reference_dataset_version=active_data.version,
                     engine_version=self._engine_version,
                 )
                 cached_evaluation = self._cache.get(cache_key)
                 if cached_evaluation is not None:
-                    return cached_evaluation
+                    invalid_category = _invalid_cached_evaluation_category(
+                        cached_evaluation,
+                        record=record,
+                        source_signals=source_signals,
+                        reference_data=active_data,
+                        engine_version=self._engine_version,
+                    )
+                    if invalid_category is None:
+                        return cached_evaluation
+                    logger.warning(
+                        "Assessment Evaluation cache entry rejected",
+                        extra={
+                            "event": "assessment_cache_invalid",
+                            "operation": "validate_assessment_evaluation",
+                            "failure_category": invalid_category,
+                        },
+                    )
 
             english_ingredient_text = next(
                 (
@@ -421,50 +563,7 @@ class StandardAllergenAssessmentEvaluator:
                 reference_data=active_data,
                 engine_version=self._engine_version,
             )
-            findings_by_concept: dict[str, list[AllergenFinding]] = {}
-            for finding in findings:
-                findings_by_concept.setdefault(finding.concept_id, []).append(finding)
-
-            concepts_by_id = {concept.id: concept for concept in active_data.concepts}
-            rule_ids_by_concept: dict[str, list[str]] = {}
-            for rule in sorted(active_data.rules, key=lambda item: item.id):
-                rule_ids_by_concept.setdefault(rule.concept_id, []).append(rule.id)
-
-            concept_outcomes: list[AllergenConceptOutcome] = []
-            for concept in sorted(active_data.concepts, key=lambda item: item.id):
-                if not concept.is_leaf:
-                    continue
-
-                parent_ids: list[str] = []
-                current_parent_id = concept.parent_id
-                while current_parent_id is not None:
-                    parent_ids.append(current_parent_id)
-                    parent = concepts_by_id.get(current_parent_id)
-                    current_parent_id = parent.parent_id if parent is not None else None
-
-                applicable_concept_ids = (concept.id, *parent_ids)
-                applicable_rule_ids = tuple(
-                    rule_id
-                    for applicable_concept_id in applicable_concept_ids
-                    for rule_id in rule_ids_by_concept.get(applicable_concept_id, ())
-                )
-                concept_findings = findings_by_concept.get(concept.id, [])
-                if concept_findings:
-                    outcome = AllergenAssessmentOutcome.DERIVED_FROM_INGREDIENT
-                    finding_ids = tuple(finding.id for finding in concept_findings)
-                else:
-                    outcome = AllergenAssessmentOutcome.LABEL_INCOMPLETE_OR_UNREADABLE
-                    finding_ids = ()
-                concept_outcomes.append(
-                    AllergenConceptOutcome(
-                        concept_id=concept.id,
-                        name=concept.name,
-                        outcome=outcome,
-                        finding_ids=finding_ids,
-                        parent_ids=tuple(parent_ids),
-                        rule_ids=applicable_rule_ids,
-                    )
-                )
+            concept_outcomes = _build_concept_outcomes(active_data, findings)
 
             evaluation = AllergenAssessmentEvaluation(
                 status=AllergenAssessmentStatus.COMPLETED,
@@ -472,7 +571,7 @@ class StandardAllergenAssessmentEvaluator:
                 evidence_coverage=EvidenceCoverageState.PARTIAL,
                 engine_version=self._engine_version,
                 reference_dataset_version=active_data.version,
-                concepts=tuple(concept_outcomes),
+                concepts=concept_outcomes,
                 findings=findings,
                 source_signals=source_signals,
             )
