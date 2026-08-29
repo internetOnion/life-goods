@@ -10,6 +10,7 @@ from lifegoods.package_matches.assessments import (
     AllergenAssessmentEvaluation,
     AllergenAssessmentOutcome,
     AllergenAssessmentReason,
+    AllergenAssessmentStatus,
     AllergenConceptOutcome,
     AllergenFinding,
     EvidenceCoverageState,
@@ -203,7 +204,7 @@ def deserialize_assessment_evaluation(data: str) -> AllergenAssessmentEvaluation
         if not isinstance(raw, dict):
             raise ValueError("Evaluation data is not a JSON object")
 
-        status = AllergenAssessmentOutcome(raw["status"])
+        status = AllergenAssessmentStatus(raw["status"])
         reason = (
             AllergenAssessmentReason(raw["reason"])
             if raw.get("reason") is not None

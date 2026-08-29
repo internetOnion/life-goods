@@ -5,6 +5,11 @@ export type ClientOptions = {
 };
 
 /**
+ * AllergenAssessmentReason
+ */
+export type AllergenAssessmentReason = 'FEATURE_DISABLED' | 'REFERENCE_UNAVAILABLE' | 'EVIDENCE_UNAVAILABLE' | 'ASSESSMENT_FAILED';
+
+/**
  * AllergenAssessmentResponse
  */
 export type AllergenAssessmentResponse = {
@@ -16,28 +21,24 @@ export type AllergenAssessmentResponse = {
      * Engine Version
      */
     engine_version?: string | null;
-    /**
-     * Evidence Coverage
-     */
-    evidence_coverage: string;
+    evidence_coverage: EvidenceCoverageState;
     /**
      * Findings
      */
     findings?: Array<AllergenFindingResponse>;
-    /**
-     * Reason
-     */
-    reason?: string | null;
+    reason: AllergenAssessmentReason | null;
     reference_dataset_version?: AssessmentReferenceDatasetVersionResponse | null;
     /**
      * Source Signals
      */
     source_signals?: Array<PackageMatchEvidenceResponse>;
-    /**
-     * Status
-     */
-    status: string;
+    status: AllergenAssessmentStatus;
 };
+
+/**
+ * AllergenAssessmentStatus
+ */
+export type AllergenAssessmentStatus = 'COMPLETED' | 'NOT_ASSESSED';
 
 /**
  * AllergenConceptOutcomeResponse
@@ -199,6 +200,11 @@ export type ErrorDetail = {
 export type ErrorEnvelope = {
     error: ErrorDetail;
 };
+
+/**
+ * EvidenceCoverageState
+ */
+export type EvidenceCoverageState = 'NOT_ASSESSED' | 'COMPLETE_READABLE_LABEL' | 'PARTIAL' | 'UNREADABLE';
 
 /**
  * ExternalDatasetVersionResponse

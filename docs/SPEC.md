@@ -182,6 +182,14 @@ Each immutable version is imported, validated, reviewed by qualified humans, and
 
 All assessments in MVP-1 are stateless Assessment Evaluations derived dynamically per Package Match request from original readable Evidence through an Active Reference Dataset Version and versioned rules, with optional non-durable caching. A translation or Ingredient Explainer is never the assessment input, and evaluations never write durable Assessment Run records to the database.
 
+Assessment Evaluation availability is separate from per-concept outcomes. A completed
+evaluation reports `COMPLETED` with a null reason, including when partial readable Evidence
+produces only `LABEL_INCOMPLETE_OR_UNREADABLE` concept outcomes. An evaluation that cannot run
+reports `NOT_ASSESSED` with exactly one reason: `FEATURE_DISABLED`, `REFERENCE_UNAVAILABLE`,
+`EVIDENCE_UNAVAILABLE`, or `ASSESSMENT_FAILED`. These assessment states do not change Package
+Match availability; an unavailable Active OFF Dataset Version retains its separate Package
+Match failure behavior.
+
 ### Allergen
 
 Supported outcomes:

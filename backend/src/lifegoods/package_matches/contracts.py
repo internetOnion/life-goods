@@ -4,6 +4,11 @@ from typing import Any
 from pydantic import BaseModel
 
 from lifegoods.identifiers.models import IdentifierScheme
+from lifegoods.package_matches.assessments import (
+    AllergenAssessmentReason,
+    AllergenAssessmentStatus,
+    EvidenceCoverageState,
+)
 from lifegoods.package_matches.models import (
     OpenFoodFactsLookupStatus,
     PackageMatchSourceKind,
@@ -99,9 +104,9 @@ class AllergenConceptOutcomeResponse(BaseModel):
 
 
 class AllergenAssessmentResponse(BaseModel):
-    status: str
-    reason: str | None = None
-    evidence_coverage: str
+    status: AllergenAssessmentStatus
+    reason: AllergenAssessmentReason | None
+    evidence_coverage: EvidenceCoverageState
     engine_version: str | None = None
     reference_dataset_version: AssessmentReferenceDatasetVersionResponse | None = (
         None

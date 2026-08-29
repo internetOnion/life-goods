@@ -14,6 +14,8 @@ from lifegoods.package_matches.assessments import (
     AllergenAssessmentEvaluation,
     AllergenAssessmentOutcome,
     AllergenAssessmentReason,
+    AllergenAssessmentStatus,
+    AllergenFinding,
     DefaultAllergenDeterministicMatcher,
     DefaultOffAllergenEvidenceExtractor,
     DisabledAllergenAssessmentEvaluator,
@@ -115,7 +117,7 @@ def test_disabled_evaluator_returns_not_assessed_with_feature_disabled() -> None
     record = sample_record()
     evaluation = evaluator.evaluate(record)
 
-    assert evaluation.status == AllergenAssessmentOutcome.NOT_ASSESSED
+    assert evaluation.status == AllergenAssessmentStatus.NOT_ASSESSED
     assert evaluation.reason == AllergenAssessmentReason.FEATURE_DISABLED
     assert evaluation.evidence_coverage == EvidenceCoverageState.NOT_ASSESSED
     assert evaluation.engine_version is None
@@ -130,7 +132,7 @@ def test_standard_evaluator_when_disabled_returns_disabled_evaluation() -> None:
     record = sample_record()
     evaluation = evaluator.evaluate(record)
 
-    assert evaluation.status == AllergenAssessmentOutcome.NOT_ASSESSED
+    assert evaluation.status == AllergenAssessmentStatus.NOT_ASSESSED
     assert evaluation.reason == AllergenAssessmentReason.FEATURE_DISABLED
 
 
@@ -175,6 +177,24 @@ def test_evaluation_contains_no_run_id_or_fingerprint() -> None:
     assert "shopper_id" not in dumped
     assert "user_id" not in dumped
     assert "preferences" not in dumped
+
+
+def test_evaluation_enforces_status_reason_combinations() -> None:
+    default_evaluation = AllergenAssessmentEvaluation()
+    assert default_evaluation.status == AllergenAssessmentStatus.NOT_ASSESSED
+    assert default_evaluation.reason == AllergenAssessmentReason.FEATURE_DISABLED
+
+    with pytest.raises(ValueError, match="COMPLETED evaluations require a null reason"):
+        AllergenAssessmentEvaluation(
+            status=AllergenAssessmentStatus.COMPLETED,
+            reason=AllergenAssessmentReason.FEATURE_DISABLED,
+        )
+
+    with pytest.raises(ValueError, match="NOT_ASSESSED evaluations require a reason"):
+        AllergenAssessmentEvaluation(
+            status=AllergenAssessmentStatus.NOT_ASSESSED,
+            reason=None,
+        )
 
 
 def test_database_allergen_reference_data_access(tmp_path, monkeypatch) -> None:
@@ -936,6 +956,54 @@ class StubAllergenReferenceDataAccess:
         return self._data
 
 
+class FailingMatcher:
+    def match(self, **_kwargs: object) -> tuple[AllergenFinding, ...]:
+        raise RuntimeError("matcher failed")
+
+
+def test_evaluator_without_active_reference_data_reports_reference_unavailable() -> None:
+    evaluator = StandardAllergenAssessmentEvaluator(
+        enabled=True,
+        engine_version="0.1.0",
+        reference_data=StubAllergenReferenceDataAccess(),
+    )
+
+    evaluation = evaluator.evaluate(sample_record())
+
+    assert evaluation.status == AllergenAssessmentStatus.NOT_ASSESSED
+    assert evaluation.reason == AllergenAssessmentReason.REFERENCE_UNAVAILABLE
+    assert evaluation.engine_version == "0.1.0"
+    assert evaluation.reference_dataset_version is None
+    assert evaluation.concepts == ()
+    assert evaluation.findings == ()
+
+
+def test_evaluator_isolates_matcher_failure_with_available_provenance() -> None:
+    ref_data = sample_reference_data()
+    evaluator = StandardAllergenAssessmentEvaluator(
+        enabled=True,
+        engine_version="0.1.0",
+        reference_data=StubAllergenReferenceDataAccess(ref_data),
+        matcher=FailingMatcher(),
+    )
+
+    evaluation = evaluator.evaluate(sample_record())
+
+    assert evaluation.status == AllergenAssessmentStatus.NOT_ASSESSED
+    assert evaluation.reason == AllergenAssessmentReason.ASSESSMENT_FAILED
+    assert evaluation.evidence_coverage == EvidenceCoverageState.NOT_ASSESSED
+    assert evaluation.engine_version == "0.1.0"
+    assert evaluation.reference_dataset_version == ref_data.version
+    assert evaluation.concepts == ()
+    assert evaluation.findings == ()
+    assert {signal.field for signal in evaluation.source_signals} == {
+        "allergen_declaration",
+        "allergen_tags",
+        "trace_declaration",
+        "trace_tags",
+    }
+
+
 def test_evaluator_with_active_reference_data_and_milk_ingredient_text() -> None:
     ref_data = sample_reference_data()
     access = StubAllergenReferenceDataAccess(ref_data)
@@ -947,7 +1015,7 @@ def test_evaluator_with_active_reference_data_and_milk_ingredient_text() -> None
     record = sample_record()  # Has "Cocoa mass, sugar, cocoa butter, milk powder"
     evaluation = evaluator.evaluate(record)
 
-    assert evaluation.status == AllergenAssessmentOutcome.DERIVED_FROM_INGREDIENT
+    assert evaluation.status == AllergenAssessmentStatus.COMPLETED
     assert evaluation.reason is None
     assert evaluation.evidence_coverage == EvidenceCoverageState.PARTIAL
     assert evaluation.engine_version == "0.1.0"
@@ -1026,7 +1094,7 @@ def test_evaluator_with_active_reference_data_and_whey_ingredient_text() -> None
     )
     evaluation = evaluator.evaluate(record)
 
-    assert evaluation.status == AllergenAssessmentOutcome.DERIVED_FROM_INGREDIENT
+    assert evaluation.status == AllergenAssessmentStatus.COMPLETED
     assert evaluation.reason is None
     assert evaluation.evidence_coverage == EvidenceCoverageState.PARTIAL
     assert len(evaluation.concepts) == 1
@@ -1079,7 +1147,7 @@ def test_evaluator_with_active_reference_data_and_no_matching_allergens() -> Non
     evaluation = evaluator.evaluate(record)
 
     # Incomplete external evidence without match produces LABEL_INCOMPLETE_OR_UNREADABLE
-    assert evaluation.status == AllergenAssessmentOutcome.LABEL_INCOMPLETE_OR_UNREADABLE
+    assert evaluation.status == AllergenAssessmentStatus.COMPLETED
     assert evaluation.reason is None
     assert evaluation.evidence_coverage == EvidenceCoverageState.PARTIAL
     assert len(evaluation.concepts) == 1
@@ -1134,7 +1202,7 @@ def test_evaluator_with_active_reference_data_and_missing_english_ingredients() 
     )
     evaluation = evaluator.evaluate(record)
 
-    assert evaluation.status == AllergenAssessmentOutcome.NOT_ASSESSED
+    assert evaluation.status == AllergenAssessmentStatus.NOT_ASSESSED
     assert evaluation.reason == AllergenAssessmentReason.EVIDENCE_UNAVAILABLE
     assert evaluation.evidence_coverage == EvidenceCoverageState.NOT_ASSESSED
     assert evaluation.reference_dataset_version == ref_data.version
@@ -1190,7 +1258,7 @@ def test_evaluator_off_signals_do_not_drive_lifegoods_outcome() -> None:
     evaluation = evaluator.evaluate(record)
 
     # Must be LABEL_INCOMPLETE_OR_UNREADABLE, NOT DECLARED_CONTAINS or DERIVED_FROM_INGREDIENT
-    assert evaluation.status == AllergenAssessmentOutcome.LABEL_INCOMPLETE_OR_UNREADABLE
+    assert evaluation.status == AllergenAssessmentStatus.COMPLETED
     assert (
         evaluation.concepts[0].outcome
         == AllergenAssessmentOutcome.LABEL_INCOMPLETE_OR_UNREADABLE
@@ -1275,7 +1343,7 @@ def test_evaluator_with_multiple_concepts_unmatched_concept_yields_incomplete() 
     record = sample_record()  # Contains "milk" but NOT "egg"
     evaluation = evaluator.evaluate(record)
 
-    assert evaluation.status == AllergenAssessmentOutcome.DERIVED_FROM_INGREDIENT
+    assert evaluation.status == AllergenAssessmentStatus.COMPLETED
     assert len(evaluation.concepts) == 2
     # Egg concept has no match -> LABEL_INCOMPLETE_OR_UNREADABLE
     assert evaluation.concepts[0].concept_id == "concept-food-allergen-eggs"

@@ -1,6 +1,16 @@
 {
   "components": {
     "schemas": {
+      "AllergenAssessmentReason": {
+        "enum": [
+          "FEATURE_DISABLED",
+          "REFERENCE_UNAVAILABLE",
+          "EVIDENCE_UNAVAILABLE",
+          "ASSESSMENT_FAILED"
+        ],
+        "title": "AllergenAssessmentReason",
+        "type": "string"
+      },
       "AllergenAssessmentResponse": {
         "properties": {
           "concepts": {
@@ -23,8 +33,7 @@
             "title": "Engine Version"
           },
           "evidence_coverage": {
-            "title": "Evidence Coverage",
-            "type": "string"
+            "$ref": "#/components/schemas/EvidenceCoverageState"
           },
           "findings": {
             "default": [],
@@ -37,13 +46,12 @@
           "reason": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/AllergenAssessmentReason"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Reason"
+            ]
           },
           "reference_dataset_version": {
             "anyOf": [
@@ -64,16 +72,24 @@
             "type": "array"
           },
           "status": {
-            "title": "Status",
-            "type": "string"
+            "$ref": "#/components/schemas/AllergenAssessmentStatus"
           }
         },
         "required": [
           "status",
+          "reason",
           "evidence_coverage"
         ],
         "title": "AllergenAssessmentResponse",
         "type": "object"
+      },
+      "AllergenAssessmentStatus": {
+        "enum": [
+          "COMPLETED",
+          "NOT_ASSESSED"
+        ],
+        "title": "AllergenAssessmentStatus",
+        "type": "string"
       },
       "AllergenConceptOutcomeResponse": {
         "properties": {
@@ -357,6 +373,16 @@
         ],
         "title": "ErrorEnvelope",
         "type": "object"
+      },
+      "EvidenceCoverageState": {
+        "enum": [
+          "NOT_ASSESSED",
+          "COMPLETE_READABLE_LABEL",
+          "PARTIAL",
+          "UNREADABLE"
+        ],
+        "title": "EvidenceCoverageState",
+        "type": "string"
       },
       "ExternalDatasetVersionResponse": {
         "properties": {

@@ -10,6 +10,7 @@ from lifegoods.open_food_facts.models import (
 from lifegoods.package_matches.assessments import (
     AllergenAssessmentEvaluation,
     AllergenAssessmentOutcome,
+    AllergenAssessmentStatus,
     AllergenConceptOutcome,
     AllergenFinding,
     EvidenceCoverageState,
@@ -265,7 +266,7 @@ def sample_evaluation() -> AllergenAssessmentEvaluation:
         dataset_version_id="dataset-2026-08-27",
     )
     return AllergenAssessmentEvaluation(
-        status=AllergenAssessmentOutcome.DERIVED_FROM_INGREDIENT,
+        status=AllergenAssessmentStatus.COMPLETED,
         reason=None,
         evidence_coverage=EvidenceCoverageState.PARTIAL,
         engine_version="0.1.0",
@@ -377,6 +378,21 @@ def test_redis_cache_malformed_value_recomputes_and_replaces_safely() -> None:
     assert cache.get(key) == evaluation
 
 
+def test_redis_cache_obsolete_outcome_status_is_treated_as_a_miss() -> None:
+    import fakeredis
+
+    redis_client = fakeredis.FakeRedis(decode_responses=True)
+    cache = RedisAllergenAssessmentCache(redis_client)
+    key = "test:key:obsolete-status"
+    obsolete_payload = serialize_assessment_evaluation(sample_evaluation()).replace(
+        '"status":"COMPLETED"',
+        '"status":"DERIVED_FROM_INGREDIENT"',
+    )
+    redis_client.set(key, obsolete_payload, ex=604800)
+
+    assert cache.get(key) is None
+
+
 def test_redis_cache_outage_bypass_on_get_returns_none() -> None:
     from unittest.mock import MagicMock
 
@@ -439,7 +455,7 @@ def test_evaluator_cache_hit_bypasses_matcher() -> None:
     # 1. First evaluation: cache miss -> calls matcher, stores in cache
     eval1 = evaluator.evaluate(record)
     assert spy_matcher.call_count == 1
-    assert eval1.status == AllergenAssessmentOutcome.LABEL_INCOMPLETE_OR_UNREADABLE
+    assert eval1.status == AllergenAssessmentStatus.COMPLETED
 
     # 2. Second evaluation on same record & reference version: cache hit -> matcher NOT called
     eval2 = evaluator.evaluate(record)
@@ -580,7 +596,7 @@ def test_package_matches_api_caches_allergen_evaluations_end_to_end() -> None:
         body1 = res1.json()
         assert len(body1["candidates"]) == 1
         assessment1 = body1["candidates"][0]["allergen_assessment"]
-        assert assessment1["status"] == "DERIVED_FROM_INGREDIENT"
+        assert assessment1["status"] == "COMPLETED"
         assert assessment1["concepts"][0]["outcome"] == "DERIVED_FROM_INGREDIENT"
 
         # Verify Redis has the cache key populated with 7-day TTL
@@ -688,7 +704,7 @@ def test_package_matches_api_bypasses_redis_outage_gracefully() -> None:
         assert res.status_code == 200
         body = res.json()
         assessment = body["candidates"][0]["allergen_assessment"]
-        assert assessment["status"] == "DERIVED_FROM_INGREDIENT"
+        assert assessment["status"] == "COMPLETED"
         assert assessment["concepts"][0]["outcome"] == "DERIVED_FROM_INGREDIENT"
 
 
@@ -709,8 +725,5 @@ def test_absence_of_durable_storage_for_assessment_evaluations() -> None:
     assert not any("assessment_run" in t.lower() for t in table_names)
     assert not any("evaluation_run" in t.lower() for t in table_names)
     assert not any("assessment_history" in t.lower() for t in table_names)
-
-
-
 
 

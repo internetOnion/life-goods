@@ -33,10 +33,16 @@ from lifegoods.open_food_facts import (
     ExternalSourceUnavailableReason,
     OpenFoodFactsDatasetSource,
 )
-from lifegoods.package_matches import PackageMatchCandidateResponse
+from lifegoods.package_matches import (
+    AllergenFinding,
+    PackageMatchCandidateResponse,
+    StandardAllergenAssessmentEvaluator,
+)
+from lifegoods.reference_datasets import DatabaseAllergenReferenceDataAccess
 from lifegoods.reference_datasets.bundle import ReferenceBundle
 from lifegoods.reference_datasets.importer import import_reference_bundle
 from lifegoods.reference_datasets.lifecycle import activate_reference_dataset_version
+from lifegoods.reference_datasets.models import ReferenceDatasetVersionRecord
 
 PACKAGE_MATCH_FIXTURES = (
     Path(__file__).parents[2] / "evaluation" / "fixtures" / "package_matches"
@@ -92,6 +98,41 @@ class UnavailableSource(ConfirmedNoMatchSource):
             identifier=identifier.value,
             reason=ExternalSourceUnavailableReason.DATASET_UNAVAILABLE,
         )
+
+
+class FailingMatcher:
+    def match(self, **_kwargs: object) -> tuple[AllergenFinding, ...]:
+        raise RuntimeError("matcher failed")
+
+
+def off_source_with_record(**overrides: object) -> OpenFoodFactsDatasetSource:
+    database = mongomock.MongoClient().lifegoods_off
+    collection_name = "off_products_dataset_2026_08_27"
+    database[VERSIONS_COLLECTION].insert_one(
+        {
+            "_id": DATASET_VERSION.id,
+            "collection_name": collection_name,
+            "source_url": DATASET_VERSION.source_url,
+            "retrieval_completed_at": DATASET_VERSION.retrieved_at,
+            "activated_at": DATASET_VERSION.activated_at,
+            "sha256": DATASET_VERSION.sha256,
+            "status": "ACTIVE",
+        }
+    )
+    database[CONTROL_COLLECTION].insert_one(
+        {"_id": ACTIVE_POINTER_ID, "active_version_id": DATASET_VERSION.id}
+    )
+    record: dict[str, object] = {
+        "code": "4006381333931",
+        "product_name_en": "Dark chocolate",
+        "ingredients_text_en": "Cocoa mass, sugar, cocoa butter, milk powder",
+        "allergens": "Contains milk",
+        "allergens_tags": ["en:milk"],
+        "last_modified_t": 1787462400,
+    }
+    record.update(overrides)
+    database[collection_name].insert_one(record)
+    return OpenFoodFactsDatasetSource(database)
 
 
 @pytest.mark.parametrize("fixture_name", ["off_complete.json", "off_sparse.json"])
@@ -325,6 +366,95 @@ def test_off_candidate_exposes_active_dataset_version(
 
     identifier_evidence = body["candidates"][0]["identity_evidence"][0]
     assert identifier_evidence["source_revision"] == "1787462400"
+
+
+@pytest.mark.parametrize("reference_state", ["MISSING", "INVALID"])
+def test_assessment_reference_unavailability_preserves_package_match_http_200(
+    reference_state: str,
+    session_factory: sessionmaker[Session],
+) -> None:
+    if reference_state == "INVALID":
+        bundle = ReferenceBundle.from_json_file(CODEX_MINIMAL_BUNDLE_PATH)
+        with session_factory() as session:
+            import_reference_bundle(session, bundle)
+            activate_reference_dataset_version(session, bundle.manifest.id)
+            version = session.get(ReferenceDatasetVersionRecord, bundle.manifest.id)
+            assert version is not None
+            version.validation_errors = ["release invalidated for test"]
+            session.commit()
+
+    with TestClient(
+        create_app(
+            settings=Settings(
+                allergen_assessments_enabled=True,
+                assessment_cache_enabled=False,
+            ),
+            session_factory=session_factory,
+            external_source=off_source_with_record(),
+        )
+    ) as test_client:
+        response = test_client.get(
+            "/api/v1/package-matches", params={"identifier": "4006381333931"}
+        )
+
+    assert response.status_code == 200
+    candidate = response.json()["candidates"][0]
+    assert candidate["external_record_id"] == "4006381333931"
+    assert candidate["allergen_assessment"]["status"] == "NOT_ASSESSED"
+    assert candidate["allergen_assessment"]["reason"] == "REFERENCE_UNAVAILABLE"
+    assert candidate["allergen_assessment"]["concepts"] == []
+    assert candidate["allergen_assessment"]["findings"] == []
+
+
+def test_matcher_failure_is_isolated_from_package_match_and_forbidden_verdicts(
+    session_factory: sessionmaker[Session],
+) -> None:
+    bundle = ReferenceBundle.from_json_file(CODEX_MINIMAL_BUNDLE_PATH)
+    with session_factory() as session:
+        import_reference_bundle(session, bundle)
+        activate_reference_dataset_version(session, bundle.manifest.id)
+
+    evaluator = StandardAllergenAssessmentEvaluator(
+        enabled=True,
+        engine_version="0.1.0",
+        reference_data=DatabaseAllergenReferenceDataAccess(session_factory),
+        matcher=FailingMatcher(),
+    )
+    with TestClient(
+        create_app(
+            settings=Settings(assessment_cache_enabled=False),
+            session_factory=session_factory,
+            external_source=off_source_with_record(),
+            allergen_evaluator=evaluator,
+        )
+    ) as test_client:
+        response = test_client.get(
+            "/api/v1/package-matches", params={"identifier": "4006381333931"}
+        )
+
+    assert response.status_code == 200
+    candidate = response.json()["candidates"][0]
+    assert candidate["external_record_id"] == "4006381333931"
+    assessment = candidate["allergen_assessment"]
+    assert assessment["status"] == "NOT_ASSESSED"
+    assert assessment["reason"] == "ASSESSMENT_FAILED"
+    assert assessment["reference_dataset_version"]["id"] == bundle.manifest.id
+    assert assessment["concepts"] == []
+    assert assessment["findings"] == []
+    assert {signal["field"] for signal in assessment["source_signals"]} == {
+        "allergen_declaration",
+        "allergen_tags",
+    }
+    for forbidden_verdict in (
+        "allergen-free",
+        "no-allergen",
+        "compliance",
+        "medical",
+        "personalized-harm",
+        "cross-contact",
+        "purchase verdict",
+    ):
+        assert forbidden_verdict not in response.text.lower()
 
 
 def test_dataset_unavailability_does_not_return_reviewed_candidates(
@@ -566,7 +696,7 @@ def test_package_matches_with_active_allergen_dataset_evaluates_milk_end_to_end(
 
     # Verify allergen assessment
     assessment = candidate["allergen_assessment"]
-    assert assessment["status"] == "DERIVED_FROM_INGREDIENT"
+    assert assessment["status"] == "COMPLETED"
     assert assessment["reason"] is None
     assert assessment["evidence_coverage"] == "PARTIAL"
     assert assessment["engine_version"] == "0.1.0"
@@ -818,7 +948,7 @@ def test_reviewed_english_matcher_preserves_derivatives_exclusions_and_repetitio
     assert response.status_code == 200
     body = response.json()
     assessment = body["candidates"][0]["allergen_assessment"]
-    assert assessment["status"] == "DERIVED_FROM_INGREDIENT"
+    assert assessment["status"] == "COMPLETED"
     concepts = {concept["concept_id"]: concept for concept in assessment["concepts"]}
     assert concepts["concept-food-allergen-milk"]["outcome"] == (
         "DERIVED_FROM_INGREDIENT"
@@ -922,7 +1052,7 @@ def test_package_matches_with_active_allergen_dataset_and_no_match_returns_incom
     assert response.status_code == 200
     body = response.json()
     assessment = body["candidates"][0]["allergen_assessment"]
-    assert assessment["status"] == "LABEL_INCOMPLETE_OR_UNREADABLE"
+    assert assessment["status"] == "COMPLETED"
     assert assessment["reason"] is None
     assert assessment["evidence_coverage"] == "PARTIAL"
     assert len(assessment["concepts"]) == 1

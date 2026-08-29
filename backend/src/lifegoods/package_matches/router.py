@@ -116,9 +116,9 @@ def _allergen_assessment_response(
         else None
     )
     return AllergenAssessmentResponse(
-        status=str(assessment.status),
-        reason=str(assessment.reason) if assessment.reason is not None else None,
-        evidence_coverage=str(assessment.evidence_coverage),
+        status=assessment.status,
+        reason=assessment.reason,
+        evidence_coverage=assessment.evidence_coverage,
         engine_version=assessment.engine_version,
         reference_dataset_version=ref_version,
         concepts=[
