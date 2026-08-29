@@ -15,7 +15,11 @@ DEFAULT_OFF_MONGODB_TIMEOUT_MS = 2_000
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="LIFEGOODS_", env_file=".env")
+    model_config = SettingsConfigDict(
+        env_prefix="LIFEGOODS_",
+        env_file=(".env", "backend/.env"),
+        extra="ignore",
+    )
 
     database_url: str = "postgresql+psycopg://postgres:Rathanak02@localhost:5432/life-goods"
     allowed_origins: tuple[str, ...] = ("http://localhost:5173",)
