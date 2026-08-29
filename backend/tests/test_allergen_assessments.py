@@ -1104,6 +1104,35 @@ def test_evaluator_with_active_reference_data_and_whey_ingredient_text() -> None
     assert evaluation.findings[0].matched_text == "whey"
 
 
+@pytest.mark.parametrize("language", ["en-GB", "EN"])
+def test_evaluator_accepts_case_and_region_varied_english_evidence(language: str) -> None:
+    ref_data = sample_reference_data()
+    evaluator = StandardAllergenAssessmentEvaluator(
+        enabled=True,
+        engine_version="0.1.0",
+        reference_data=StubAllergenReferenceDataAccess(ref_data),
+    )
+    record = replace(
+        sample_record(),
+        ingredient_texts=(
+            SourcedValue(
+                value="Cocoa mass, milk powder",
+                source_field="ingredients_text",
+                language=language,
+            ),
+        ),
+    )
+
+    evaluation = evaluator.evaluate(record)
+
+    assert evaluation.status == AllergenAssessmentStatus.COMPLETED
+    assert evaluation.reason is None
+    assert evaluation.concepts[0].outcome == (
+        AllergenAssessmentOutcome.DERIVED_FROM_INGREDIENT
+    )
+    assert evaluation.findings[0].matched_text == "milk"
+
+
 def test_evaluator_with_active_reference_data_and_no_matching_allergens() -> None:
     ref_data = sample_reference_data()
     access = StubAllergenReferenceDataAccess(ref_data)

@@ -90,7 +90,7 @@ a separate HTTP 503 Package Match source failure.
 
 Redis is optional and never stores shopper identity, preferences, session data, Package
 Capture data, or durable Assessment Runs. Cache keys include the OFF Dataset Version, OFF
-record and source revision/evidence digest, Reference Dataset Version, and engine version.
+record and source revision/Evidence digest, Reference Dataset Version, and engine version.
 Entries expire after seven days by default.
 
 A cache miss, expired entry, malformed payload, or payload from the former status contract is

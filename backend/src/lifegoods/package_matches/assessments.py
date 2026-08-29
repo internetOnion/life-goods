@@ -131,6 +131,17 @@ class _MatchCandidate:
     normalized_end: int
 
 
+def _is_english_evidence(value: SourcedValue[Any]) -> bool:
+    language = (value.language or "").strip().lower()
+    source_field = value.source_field or ""
+    return (
+        language == "en"
+        or language.startswith("en-")
+        or source_field == "ingredients_text_en"
+        or source_field.endswith("_en")
+    )
+
+
 class DefaultAllergenDeterministicMatcher:
     def match(
         self,
@@ -141,15 +152,7 @@ class DefaultAllergenDeterministicMatcher:
         engine_version: str,
     ) -> tuple[AllergenFinding, ...]:
         source_text = ingredient_text.value
-        language = (ingredient_text.language or "").lower()
-        source_field = ingredient_text.source_field or ""
-        is_english_evidence = (
-            language == "en"
-            or language.startswith("en-")
-            or source_field == "ingredients_text_en"
-            or source_field.endswith("_en")
-        )
-        if not source_text or not is_english_evidence:
+        if not source_text or not _is_english_evidence(ingredient_text):
             return ()
 
         normalized_source = normalize_english_text(source_text)
@@ -362,15 +365,11 @@ class StandardAllergenAssessmentEvaluator:
         active_data: ActiveAllergenReferenceData | None = None
         try:
             source_signals = self._extractor.extract_signals(record)
-            if self._reference_data is None:
-                return AllergenAssessmentEvaluation(
-                    status=AllergenAssessmentStatus.NOT_ASSESSED,
-                    reason=AllergenAssessmentReason.REFERENCE_UNAVAILABLE,
-                    evidence_coverage=EvidenceCoverageState.NOT_ASSESSED,
-                    engine_version=self._engine_version,
-                    source_signals=source_signals,
-                )
-            active_data = self._reference_data.get_active_data()
+            active_data = (
+                self._reference_data.get_active_data()
+                if self._reference_data is not None
+                else None
+            )
             if active_data is None:
                 return AllergenAssessmentEvaluation(
                     status=AllergenAssessmentStatus.NOT_ASSESSED,
@@ -397,14 +396,7 @@ class StandardAllergenAssessmentEvaluator:
                 (
                     ingredient_text
                     for ingredient_text in record.ingredient_texts
-                    if (
-                        ingredient_text.language == "en"
-                        or ingredient_text.source_field == "ingredients_text_en"
-                        or (
-                            ingredient_text.source_field
-                            and ingredient_text.source_field.endswith("_en")
-                        )
-                    )
+                    if _is_english_evidence(ingredient_text)
                     and ingredient_text.value
                     and ingredient_text.value.strip()
                 ),
