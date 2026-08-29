@@ -18,7 +18,7 @@
         "backend:test": "uv run --project backend pytest backend/tests",
         "backend:lint": "uv run --project backend ruff check backend/src backend/tests backend/scripts backend/migrations",
         "db:migrate": "uv run --project backend alembic -c backend/alembic.ini upgrade head",
-        "off:dataset": "PYTHONPATH=backend/src uv run --project backend python -m lifegoods.open_food_facts.cli --mongo-uri mongodb://lifegoods_writer:lifegoods_writer@localhost:27018/lifegoods_off",
+        "off:dataset": "uv run --project backend python -m lifegoods.open_food_facts.cli --mongo-uri mongodb://lifegoods_writer:lifegoods_writer@localhost:27018/lifegoods_off",
         "api:generate": "uv run --project backend python backend/scripts/export_openapi.py && pnpm --dir frontend api:generate",
         "api:check": "pnpm api:generate && git diff --exit-code -- frontend/openapi.json frontend/src/api/generated"
     },
