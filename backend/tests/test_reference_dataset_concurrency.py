@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import concurrent.futures
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -25,6 +26,7 @@ from lifegoods.reference_datasets.importer import import_reference_bundle
 from lifegoods.reference_datasets.lifecycle import (
     activate_reference_dataset_version,
     get_active_reference_dataset_pointer,
+    rollback_reference_dataset_version,
 )
 
 
@@ -174,3 +176,55 @@ def test_concurrent_readers_and_activations(
         pointer = get_active_reference_dataset_pointer(session, ConditionFamily.FOOD_ALLERGEN)
         assert pointer is not None
         assert pointer.active_version_id in valid_version_ids
+
+
+def test_reference_data_cache_tracks_activation_and_rollback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    db_path = tmp_path / "cache-cutover.db"
+    db_url = f"sqlite+pysqlite:///{db_path}"
+    monkeypatch.setenv("LIFEGOODS_DATABASE_URL", db_url)
+    config = Config("backend/alembic.ini")
+    command.upgrade(config, "head")
+    engine = create_engine(db_url)
+    factory = sessionmaker(engine, expire_on_commit=False)
+    first_bundle = make_bundle("codex-v1", "milk")
+    second_bundle = make_bundle("codex-v2", "lait")
+
+    with factory() as session:
+        import_reference_bundle(session, first_bundle)
+        import_reference_bundle(session, second_bundle)
+        activate_reference_dataset_version(
+            session,
+            first_bundle.manifest.id,
+            now=lambda: datetime(2026, 8, 29, 8, 0, tzinfo=UTC),
+        )
+
+    access = DatabaseAllergenReferenceDataAccess(factory)
+    first = access.get_active_data()
+    first_again = access.get_active_data()
+    assert first is not None
+    assert first_again is first
+    assert first.mappings[0].mapped_text == "milk"
+
+    with factory() as session:
+        activate_reference_dataset_version(
+            session,
+            second_bundle.manifest.id,
+            now=lambda: datetime(2026, 8, 29, 9, 0, tzinfo=UTC),
+        )
+    second = access.get_active_data()
+    assert second is not None
+    assert second.version.id == "codex-v2"
+    assert second.mappings[0].mapped_text == "lait"
+
+    with factory() as session:
+        rollback_reference_dataset_version(
+            session,
+            now=lambda: datetime(2026, 8, 29, 10, 0, tzinfo=UTC),
+        )
+    rolled_back = access.get_active_data()
+    assert rolled_back is not None
+    assert rolled_back.version.id == "codex-v1"
+    assert rolled_back.mappings[0].mapped_text == "milk"
+    assert rolled_back is not first

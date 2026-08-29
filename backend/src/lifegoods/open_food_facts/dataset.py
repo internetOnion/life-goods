@@ -1,6 +1,10 @@
 import json
+import logging
 import re
+from collections import OrderedDict
+from dataclasses import dataclass
 from datetime import UTC, datetime
+from threading import Lock
 from typing import Any
 
 from pymongo.database import Database
@@ -27,6 +31,9 @@ ACTIVE_POINTER_ID = "active"
 PRODUCT_COLLECTION_PREFIX = "off_products_"
 OPEN_FOOD_FACTS_BASE_URL = "https://world.openfoodfacts.org"
 DEFAULT_OPEN_FOOD_FACTS_IMAGE_BASE_URL = "https://images.openfoodfacts.org"
+MANIFEST_CACHE_MAX_VERSIONS = 8
+
+logger = logging.getLogger(__name__)
 
 LOCALIZED_NAME_FIELDS = (
     ("product_name", None),
@@ -67,6 +74,12 @@ NUTRITION_DECLARATION_FIELDS = (
 )
 
 
+@dataclass(frozen=True, slots=True)
+class _ResolvedDataset:
+    collection_name: str
+    version: ExternalDatasetVersion
+
+
 class OpenFoodFactsDatasetSource:
     def __init__(
         self,
@@ -76,6 +89,8 @@ class OpenFoodFactsDatasetSource:
     ) -> None:
         self._database = database
         self._image_base_url = image_base_url
+        self._manifest_cache: OrderedDict[str, _ResolvedDataset] = OrderedDict()
+        self._manifest_cache_lock = Lock()
         self._source_metadata = ExternalSourceMetadata(
             name="Open Food Facts",
             source_type="COMMUNITY_DATABASE",
@@ -96,43 +111,94 @@ class OpenFoodFactsDatasetSource:
                 {"_id": ACTIVE_POINTER_ID}
             )
             if pointer is None or not isinstance(pointer.get("active_version_id"), str):
+                _log_off_unavailable("read_active_pointer", "metadata_invalid")
                 return _unavailable(identifier)
             version_id = pointer["active_version_id"]
-            # The control pointer is authoritative.  Manifest status is updated
-            # for operational visibility and must not make a correctly pointed
-            # dataset temporarily unreadable during an atomic cutover/rollback.
-            manifest = self._database[VERSIONS_COLLECTION].find_one({"_id": version_id})
-            if manifest is None or manifest.get("status") not in {"READY", "ACTIVE"}:
+            resolved = self._cached_manifest(version_id)
+            if resolved is None:
+                resolved = self._resolve_manifest(version_id)
+            if resolved is None:
                 return _unavailable(identifier)
-            dataset_version = _dataset_version(manifest)
-            collection_name = manifest.get("collection_name")
-            if not isinstance(collection_name, str):
-                return _unavailable(identifier)
-            if collection_name not in self._database.list_collection_names():
-                return _unavailable(identifier)
-            product = self._database[collection_name].find_one(
+            product = self._database[resolved.collection_name].find_one(
                 {"code": identifier.value}
             )
-        except (PyMongoError, KeyError, TypeError, ValueError):
+            if product is None and not self._collection_exists(resolved.collection_name):
+                _log_off_unavailable("verify_product_collection", "collection_missing")
+                return _unavailable(identifier)
+        except (PyMongoError, KeyError, TypeError, ValueError) as error:
+            _log_off_unavailable("fetch_package_match", "dependency_error", error)
             return _unavailable(identifier)
 
         if product is None:
             return ExternalPackageNotFound(
                 identifier=identifier.value,
                 source=self._source_metadata,
-                dataset_version=dataset_version,
+                dataset_version=resolved.version,
             )
         if product.get("code") != identifier.value:
+            _log_off_unavailable("validate_product", "record_invalid")
             return _unavailable(identifier)
         return ExternalPackageFound(
             record=_record_from_product(
                 identifier,
                 product,
                 self._source_metadata,
-                dataset_version,
+                resolved.version,
                 self._image_base_url,
             )
         )
+
+    def _cached_manifest(self, version_id: str) -> _ResolvedDataset | None:
+        with self._manifest_cache_lock:
+            resolved = self._manifest_cache.get(version_id)
+            if resolved is not None:
+                self._manifest_cache.move_to_end(version_id)
+            return resolved
+
+    def _resolve_manifest(self, version_id: str) -> _ResolvedDataset | None:
+        # The pointer is authoritative. Manifest status is operational metadata and
+        # must not make a correctly pointed dataset unreadable during cutover.
+        manifest = self._database[VERSIONS_COLLECTION].find_one({"_id": version_id})
+        if manifest is None or manifest.get("status") not in {"READY", "ACTIVE"}:
+            _log_off_unavailable("resolve_manifest", "metadata_invalid")
+            return None
+        version = _dataset_version(manifest)
+        collection_name = manifest.get("collection_name")
+        if not isinstance(collection_name, str) or not collection_name:
+            _log_off_unavailable("resolve_manifest", "metadata_invalid")
+            return None
+        if not self._collection_exists(collection_name):
+            _log_off_unavailable("resolve_manifest", "collection_missing")
+            return None
+        resolved = _ResolvedDataset(collection_name=collection_name, version=version)
+        with self._manifest_cache_lock:
+            existing = self._manifest_cache.setdefault(version_id, resolved)
+            self._manifest_cache.move_to_end(version_id)
+            while len(self._manifest_cache) > MANIFEST_CACHE_MAX_VERSIONS:
+                self._manifest_cache.popitem(last=False)
+            return existing
+
+    def _collection_exists(self, collection_name: str) -> bool:
+        return bool(
+            self._database.list_collection_names(filter={"name": collection_name})
+        )
+
+
+def _log_off_unavailable(
+    operation: str,
+    failure_category: str,
+    error: Exception | None = None,
+) -> None:
+    logger.warning(
+        "Open Food Facts dataset operation unavailable",
+        extra={
+            "event": "off_dataset_unavailable",
+            "dependency": "mongodb",
+            "operation": operation,
+            "failure_category": failure_category,
+            "error_category": type(error).__name__ if error is not None else None,
+        },
+    )
 
 
 def _dataset_version(manifest: dict[str, Any]) -> ExternalDatasetVersion:

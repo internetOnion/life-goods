@@ -5,6 +5,11 @@ export type ClientOptions = {
 };
 
 /**
+ * AllergenAssessmentOutcome
+ */
+export type AllergenAssessmentOutcome = 'DECLARED_CONTAINS' | 'DECLARED_MAY_CONTAIN' | 'DERIVED_FROM_INGREDIENT' | 'NO_DECLARATION_DETECTED_IN_READABLE_LABEL' | 'LABEL_INCOMPLETE_OR_UNREADABLE' | 'NOT_ASSESSED';
+
+/**
  * AllergenAssessmentReason
  */
 export type AllergenAssessmentReason = 'FEATURE_DISABLED' | 'REFERENCE_UNAVAILABLE' | 'EVIDENCE_UNAVAILABLE' | 'ASSESSMENT_FAILED';
@@ -56,10 +61,7 @@ export type AllergenConceptOutcomeResponse = {
      * Name
      */
     name: string;
-    /**
-     * Outcome
-     */
-    outcome: string;
+    outcome: AllergenAssessmentOutcome;
     /**
      * Parent Ids
      */
@@ -114,10 +116,7 @@ export type AllergenFindingResponse = {
      * Reference Dataset Version Id
      */
     reference_dataset_version_id?: string | null;
-    /**
-     * Relationship Type
-     */
-    relationship_type: string;
+    relationship_type: AllergenRelationshipType;
     /**
      * Rule Id
      */
@@ -143,6 +142,11 @@ export type AllergenFindingResponse = {
      */
     start_index: number;
 };
+
+/**
+ * AllergenRelationshipType
+ */
+export type AllergenRelationshipType = 'EXACT_NAME' | 'SPELLING_VARIANT' | 'DERIVED_FROM' | 'CONTAINS_SOURCE' | 'PRECAUTIONARY_PHRASE';
 
 /**
  * AssessmentReferenceDatasetVersionResponse
@@ -236,6 +240,10 @@ export type ExternalDatasetVersionResponse = {
  * IdentifierScheme
  */
 export type IdentifierScheme = 'GTIN_8' | 'UPC_A' | 'EAN_13' | 'GTIN_14';
+
+export type JsonValue = boolean | number | number | string | Array<JsonValue> | {
+    [key: string]: JsonValue;
+} | null;
 
 /**
  * OpenFoodFactsLookupResponse
@@ -336,10 +344,7 @@ export type PackageMatchEvidenceResponse = {
      * Source Url
      */
     source_url: string;
-    /**
-     * Value
-     */
-    value: unknown;
+    value: JsonValue;
 };
 
 /**
@@ -453,6 +458,7 @@ export type PackageMatchSourceResponse = {
 export type PackageMatchesResponse = {
     /**
      * Candidates
+     * Candidate Package Matches only; a result does not prove identity with the physical package in a shopper's possession.
      */
     candidates: Array<PackageMatchCandidateResponse>;
     /**
@@ -511,6 +517,7 @@ export type GetPackageMatchesData = {
     query: {
         /**
          * Identifier
+         * GTIN, EAN, or UPC identifier used to find Package Match candidates.
          */
         identifier: string;
     };

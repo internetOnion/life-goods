@@ -13,7 +13,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
-from lifegoods.core.concurrency import KeyedSlidingWindowLimiter
 from lifegoods.core.errors import ErrorCode, ErrorDetail, ErrorEnvelope
 from lifegoods.core.settings import Settings
 from lifegoods.identifiers import InvalidIdentifierError
@@ -29,8 +28,10 @@ from lifegoods.package_matches import (
     AllergenAssessmentCache,
     AllergenAssessmentEvaluator,
     FindPackageMatches,
+    PackageMatchRateLimiter,
     PackageMatchSourceUnavailableError,
     RedisAllergenAssessmentCache,
+    RedisPackageMatchRateLimiter,
     StandardAllergenAssessmentEvaluator,
     get_finder,
     get_rate_limiter,
@@ -58,7 +59,7 @@ def create_app(
     session_factory: sessionmaker[Session] | None = None,
     external_source: ExternalPackageSource | None = None,
     image_source: ExternalImageSource | None = None,
-    package_match_limiter: KeyedSlidingWindowLimiter | None = None,
+    package_match_limiter: PackageMatchRateLimiter | None = None,
     allergen_evaluator: AllergenAssessmentEvaluator | None = None,
     assessment_cache: AllergenAssessmentCache | None = None,
 ) -> FastAPI:
@@ -72,23 +73,34 @@ def create_app(
     owned_http_clients: list[httpx.Client] = []
     owned_mongo_clients: list[MongoClient[dict[str, Any]]] = []
     owned_redis_clients: list[redis.Redis] = []
-    resolved_package_match_limiter = (
-        package_match_limiter
-        or KeyedSlidingWindowLimiter(resolved_settings.package_match_requests_per_minute)
-    )
-    resolved_reference_data = DatabaseAllergenReferenceDataAccess(resolved_session_factory)
-    if assessment_cache is not None:
-        resolved_cache: AllergenAssessmentCache | None = assessment_cache
-    elif resolved_settings.assessment_cache_enabled:
-        redis_client: redis.Redis = redis.Redis.from_url(
+    shared_redis_client: redis.Redis | None = None
+    if package_match_limiter is None or (
+        assessment_cache is None and resolved_settings.assessment_cache_enabled
+    ):
+        shared_redis_client = redis.Redis.from_url(
             resolved_settings.redis_url,
             socket_connect_timeout=resolved_settings.redis_timeout_seconds,
             socket_timeout=resolved_settings.redis_timeout_seconds,
             decode_responses=True,
         )
-        owned_redis_clients.append(redis_client)
+        owned_redis_clients.append(shared_redis_client)
+    if package_match_limiter is not None:
+        resolved_package_match_limiter = package_match_limiter
+    else:
+        assert shared_redis_client is not None
+        resolved_package_match_limiter = RedisPackageMatchRateLimiter(
+            shared_redis_client,
+            resolved_settings.package_match_requests_per_minute,
+            fallback_seconds=resolved_settings.package_match_rate_limit_fallback_seconds,
+            local_max_keys=resolved_settings.package_match_rate_limit_local_max_keys,
+        )
+    resolved_reference_data = DatabaseAllergenReferenceDataAccess(resolved_session_factory)
+    if assessment_cache is not None:
+        resolved_cache: AllergenAssessmentCache | None = assessment_cache
+    elif resolved_settings.assessment_cache_enabled:
+        assert shared_redis_client is not None
         resolved_cache = RedisAllergenAssessmentCache(
-            redis_client,
+            shared_redis_client,
             ttl_seconds=resolved_settings.assessment_cache_ttl_seconds,
         )
     else:

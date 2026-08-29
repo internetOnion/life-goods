@@ -86,18 +86,40 @@ Disabled or unavailable assessment states remain HTTP 200 whenever the Active OF
 Version served the Package Match candidate. An unavailable Active OFF Dataset Version remains
 a separate HTTP 503 Package Match source failure.
 
-## Non-durable Redis cache
+## Shared limiting and non-durable Redis cache
 
-Redis is optional and never stores shopper identity, preferences, session data, Package
-Capture data, or durable Assessment Runs. Cache keys include the OFF Dataset Version, OFF
-record and source revision/Evidence digest, Reference Dataset Version, and engine version.
-Entries expire after seven days by default.
+Redis provides the default cross-process sliding-window limit for Package Match requests and
+the optional Assessment Evaluation cache. Rate-limit keys contain only a SHA-256 digest of the
+ASGI client address and expire after the 60-second window. Redis never stores raw client
+addresses, shopper identity, preferences, session data, Package Capture data, or durable
+Assessment Runs. Assessment cache keys include the OFF Dataset Version, OFF record and source
+revision/Evidence digest, Reference Dataset Version, and engine version. Assessment entries
+expire after seven days by default.
+
+If shared limiting is unavailable, each API process uses a bounded local limiter for five
+seconds before probing Redis again. Once the configured local client-key cap is reached, new
+clients share one overflow bucket; active client buckets are not evicted. This preserves API
+availability but cannot guarantee one global budget during the outage. Degradation and
+recovery are logged once per transition.
 
 A cache miss, expired entry, malformed payload, or payload from the former status contract is
 recomputed and safely replaced. Redis connection and request failures are bypassed within the
 configured timeout; they do not introduce an API state or change Assessment Evaluation
 results. Operators may disable caching with `LIFEGOODS_ASSESSMENT_CACHE_ENABLED=false` or flush
 only this non-durable Redis database during troubleshooting.
+
+The API derives rate-limit identity only from `request.client.host`; it does not trust an
+incoming `X-Forwarded-For` header directly. When deploying behind a reverse proxy, configure
+the ASGI server's proxy-header support with an explicit allowlist of proxy addresses. Do not
+trust arbitrary forwarding sources.
+
+The OFF source reads the active pointer on every lookup and caches validated immutable
+manifest metadata by Dataset Version. A known-product steady-state lookup therefore performs
+the pointer read and product lookup; a no-match also verifies that the selected collection
+still exists. Reference Dataset evaluation likewise confirms the joined active pointer and
+version on every evaluation while caching immutable concepts, mappings, exclusions, and rules
+by version and activation. A MongoDB failure produces HTTP 503. A Reference Dataset failure
+does not serve stale rules: the candidate remains HTTP 200 with `REFERENCE_UNAVAILABLE`.
 
 This release is backend-only. It adds no allergy profile or preference parameters, separate
 allergen endpoint, shopper personalization, Package Capture storage, or translation behavior.

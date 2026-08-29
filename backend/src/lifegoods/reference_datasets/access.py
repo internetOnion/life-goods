@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from threading import Lock
 from typing import Protocol
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from lifegoods.reference_datasets.models import (
@@ -14,6 +17,8 @@ from lifegoods.reference_datasets.models import (
     ReferenceDatasetPointerRecord,
     ReferenceDatasetVersionRecord,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -84,6 +89,10 @@ class AllergenReferenceDataAccess(Protocol):
 class DatabaseAllergenReferenceDataAccess:
     def __init__(self, session_factory: sessionmaker[Session]) -> None:
         self._session_factory = session_factory
+        self._cache: dict[
+            tuple[str, datetime, str], ActiveAllergenReferenceData
+        ] = {}
+        self._cache_lock = Lock()
 
     def get_active_version(self) -> AllergenAssessmentReferenceVersion | None:
         active_data = self.get_active_data()
@@ -92,22 +101,26 @@ class DatabaseAllergenReferenceDataAccess:
     def get_active_data(self) -> ActiveAllergenReferenceData | None:
         try:
             with self._session_factory() as session:
-                pointer = (
-                    session.query(ReferenceDatasetPointerRecord)
-                    .filter_by(dataset_kind="FOOD_ALLERGEN")
-                    .first()
+                active_row = session.execute(
+                    select(
+                        ReferenceDatasetPointerRecord,
+                        ReferenceDatasetVersionRecord,
+                    )
+                    .join(
+                        ReferenceDatasetVersionRecord,
+                        ReferenceDatasetVersionRecord.id
+                        == ReferenceDatasetPointerRecord.active_version_id,
+                    )
+                    .where(
+                        ReferenceDatasetPointerRecord.dataset_kind == "FOOD_ALLERGEN"
+                    )
                 )
-                if pointer is None:
+                active = active_row.first()
+                if active is None:
                     return None
-
-                version = (
-                    session.query(ReferenceDatasetVersionRecord)
-                    .filter_by(id=pointer.active_version_id)
-                    .first()
-                )
+                pointer, version = active
                 if (
-                    version is None
-                    or version.status != "ACTIVE"
+                    version.status != "ACTIVE"
                     or version.validation_errors
                 ):
                     return None
@@ -122,6 +135,11 @@ class DatabaseAllergenReferenceDataAccess:
                     if pointer.activated_at.tzinfo is None
                     else pointer.activated_at
                 )
+                cache_key = (version.id, activated_at, pointer.review_kind)
+                with self._cache_lock:
+                    cached = self._cache.get(cache_key)
+                if cached is not None:
+                    return cached
 
                 ref_version = AllergenAssessmentReferenceVersion(
                     id=version.id,
@@ -201,12 +219,28 @@ class DatabaseAllergenReferenceDataAccess:
                     )
                 )
 
-                return ActiveAllergenReferenceData(
+                active_data = ActiveAllergenReferenceData(
                     version=ref_version,
                     concepts=concepts,
                     mappings=mappings,
                     exclusions=exclusions,
                     rules=rules,
                 )
-        except Exception:
+                with self._cache_lock:
+                    self._cache[cache_key] = active_data
+                    if len(self._cache) > 8:
+                        oldest_key = next(iter(self._cache))
+                        del self._cache[oldest_key]
+                return active_data
+        except Exception as error:
+            logger.warning(
+                "Reference Dataset operation unavailable",
+                extra={
+                    "event": "reference_dataset_unavailable",
+                    "dependency": "postgresql",
+                    "operation": "read_active_allergen_reference_data",
+                    "failure_category": "dependency_error",
+                    "error_category": type(error).__name__,
+                },
+            )
             return None

@@ -19,8 +19,8 @@ The first implementation milestone is a known-barcode-to-evidence-backed-package
 - Structure the repository as `frontend`, `backend`, `evaluation`, and `infra`.
 - Pin Node.js 24 LTS and Python 3.13.
 - Use pnpm for frontend dependencies and uv for Python dependencies.
-- Use Docker Compose locally for PostgreSQL, Redis, and an S3-compatible MinIO service.
-- Use GitHub Actions for linting, type checking, tests, OpenAPI drift detection, builds, and migration validation.
+- Use Docker Compose locally for PostgreSQL, Redis, and an S3-compatible object-storage emulator.
+- Use a CI pipeline for linting, type checking, tests, OpenAPI drift detection, builds, and migration validation.
 - Maintain preview, staging, and production configurations with separate databases, buckets, Redis instances, secrets, and allowed origins.
 
 ## Frontend
@@ -41,7 +41,7 @@ The first implementation milestone is a known-barcode-to-evidence-backed-package
 ## Backend and data
 
 - Build a modular FastAPI application using Pydantic contracts, SQLAlchemy 2, Alembic, psycopg, and httpx2.
-- Use Neon-managed PostgreSQL in Singapore.
+- Use PostgreSQL; select its hosting provider, topology, and deployment region before the pilot deployment.
 - Keep all catalog, reference dataset, and durable data access behind FastAPI; the browser must never connect directly to PostgreSQL.
 - Keep repositories and application services separate from HTTP route handlers.
 - Begin with Product, Package Variant, External Identifier, Claim, Evidence, and field-level provenance.
@@ -73,17 +73,23 @@ Missing upstream fields must be omitted or marked unknown. Missing ingredient, a
 
 API failures will use a consistent error envelope with stable machine-readable codes and appropriate HTTP status codes. FastAPI's OpenAPI document is the source of truth for the generated React client.
 
+Package Match rate limiting will use a shared Redis sliding window across API processes. A
+short, cardinality-bounded local fallback preserves availability during Redis outages, with
+degradation and recovery transition logs. Client identity comes from the ASGI connection;
+deployments behind a reverse proxy must configure the ASGI server with an explicit trusted-
+proxy allowlist rather than trusting forwarding headers in application code.
+
 ## Jobs, private media, and AI
 
-- Run FastAPI and Celery as separate Fly.io containers in Singapore.
-- Use managed Upstash Redis in Singapore as the Celery broker.
+- Run FastAPI and Celery as separately deployable application and worker processes or containers.
+- Use a Redis-compatible shared service as the Celery broker; select its hosting and deployment model before the pilot deployment.
 - Store durable Package Capture job state in PostgreSQL rather than relying on Redis result retention.
-- Host the SPA on Cloudflare Pages.
-- Store private Package Capture media in Cloudflare R2 using its Asia-Pacific placement hint.
+- Deploy the SPA through a static frontend hosting service with CDN and preview-deployment support.
+- Store private Package Capture media in private S3-compatible object storage with configurable regional placement and lifecycle controls.
 - Upload media through short-lived presigned URLs into a private, capture-only bucket or prefix.
 - Delete media through retryable Celery cleanup tasks no later than 24 hours after upload. Storage lifecycle rules are a backup, not the primary deletion mechanism.
 - Alert on cleanup failures and media that remains after its expiry deadline.
-- Define a provider-neutral extraction interface and benchmark two or three hosted multimodal models before selecting a production provider.
+- Define a provider-neutral extraction interface and benchmark hosted-API and self-hosted multimodal model options before selecting an AI deployment model or provider.
 - Keep private Package Capture media and output isolated from catalog ingestion, model training, analytics, and moderator review.
 
 ## Testing
@@ -114,27 +120,31 @@ Browser end-to-end automation is outside the MVP scope. Manual identifier, scann
 
 ### Privacy and acceptance
 
-- Verify analytics and Sentry never receive photos, raw label text, dietary preferences, precise location, or persistent shopper identity.
+- Verify analytics, error tracing, and performance monitoring never receive photos, raw label text, dietary preferences, precise location, or persistent shopper identity.
 - Test representative low- and mid-range Android devices, Telegram WebView, and supported iOS Safari devices.
 - Verify known barcodes produce usable candidates within the documented three-second pilot target under pilot conditions.
 - Verify empty, stale, incomplete, or conflicting evidence remains visibly uncertain.
 
 ## Deployment and monitoring
 
-- Cloudflare Pages will provide frontend preview deployments for pull requests.
-- Staging will use isolated Neon, Upstash, and R2 resources.
+- The selected static frontend hosting and CI capabilities must provide preview deployments for pull requests.
+- Staging must use isolated databases, caches, object storage, secrets, and application configuration.
 - Production deployment requires successful MVP unit/component and API/database tests, generated-client drift checks, migration validation, and a staging smoke test.
 - Run Alembic migrations as a separate release step before deploying application processes that require the new schema.
-- Use scrubbed Sentry tracing for the React application, FastAPI, and Celery.
+- Use scrubbed error and performance tracing for the React application, FastAPI, and Celery.
+- Emit structured Package Match logs for latency, candidate count, OFF outcome and Dataset
+  Version, assessment availability, rate-limit state, and sanitized dependency failure
+  categories. Logs must exclude identifiers, client addresses and digests, label text,
+  preferences, credentials, and private Package Capture data.
 - Store only allowlisted anonymous journey and failure events internally with short retention.
 - Alert on API error rate, queue backlog, extraction failures, cleanup failures, and expired private media.
 
 ## Explicit decisions and deferrals
 
 - TypeScript is the browser language; Python is the production backend, worker, assessment, and evaluation language.
-- The MVP uses hosted AI models and has no local-model or GPU infrastructure.
-- The model provider remains undecided until benchmark results exist.
-- Cloudflare R2's Asia-Pacific placement hint is accepted; strict Singapore data residency is not currently required.
+- The AI deployment model remains undecided; hosted APIs and self-hosted options remain candidates until benchmark and operational results exist.
+- The AI model and provider remain undecided until benchmark results exist.
+- Finalize latency, privacy, retention, regional placement, and data-residency requirements before selecting deployment and storage providers.
 - Shopper access remains anonymous.
 - Moderator authentication and moderation UI begin after the identity slice.
 - The frontend uses shadcn/ui source components, Tailwind CSS v4, and Phosphor

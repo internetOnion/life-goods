@@ -324,7 +324,16 @@ class RedisAllergenAssessmentCache:
                 raw = raw.decode("utf-8")
             return deserialize_assessment_evaluation(raw)
         except Exception as exc:
-            logger.warning("Redis assessment cache get failed or payload malformed: %s", exc)
+            logger.warning(
+                "Assessment Evaluation cache read failed",
+                extra={
+                    "event": "assessment_cache_read_failed",
+                    "dependency": "redis",
+                    "operation": "get_assessment_evaluation",
+                    "failure_category": "cache_error",
+                    "error_category": type(exc).__name__,
+                },
+            )
             return None
 
     def set(self, key: str, value: AllergenAssessmentEvaluation) -> None:
@@ -332,4 +341,13 @@ class RedisAllergenAssessmentCache:
             serialized = serialize_assessment_evaluation(value)
             self._client.set(key, serialized, ex=self._ttl_seconds)
         except Exception as exc:
-            logger.warning("Redis assessment cache set failed: %s", exc)
+            logger.warning(
+                "Assessment Evaluation cache write failed",
+                extra={
+                    "event": "assessment_cache_write_failed",
+                    "dependency": "redis",
+                    "operation": "set_assessment_evaluation",
+                    "failure_category": "cache_error",
+                    "error_category": type(exc).__name__,
+                },
+            )

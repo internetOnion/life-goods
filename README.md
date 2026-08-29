@@ -20,7 +20,7 @@ pnpm backend:install
 cp backend/.env.example backend/.env
 ```
 
-To enable allergen assessments, set `LIFEGOODS_ALLERGEN_ASSESSMENTS_ENABLED=true` in `backend/.env`. Redis assessment caching is enabled by default (`LIFEGOODS_ASSESSMENT_CACHE_ENABLED=true`).
+To enable allergen assessments, set `LIFEGOODS_ALLERGEN_ASSESSMENTS_ENABLED=true` in `backend/.env`. Redis provides shared Package Match rate limiting and, by default, the optional Assessment Evaluation cache. See `backend/.env.example` for the local-fallback controls.
 
 ### 2. Start Databases & Apply Migrations
 

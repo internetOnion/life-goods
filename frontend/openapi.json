@@ -1,6 +1,18 @@
 {
   "components": {
     "schemas": {
+      "AllergenAssessmentOutcome": {
+        "enum": [
+          "DECLARED_CONTAINS",
+          "DECLARED_MAY_CONTAIN",
+          "DERIVED_FROM_INGREDIENT",
+          "NO_DECLARATION_DETECTED_IN_READABLE_LABEL",
+          "LABEL_INCOMPLETE_OR_UNREADABLE",
+          "NOT_ASSESSED"
+        ],
+        "title": "AllergenAssessmentOutcome",
+        "type": "string"
+      },
       "AllergenAssessmentReason": {
         "enum": [
           "FEATURE_DISABLED",
@@ -14,7 +26,6 @@
       "AllergenAssessmentResponse": {
         "properties": {
           "concepts": {
-            "default": [],
             "items": {
               "$ref": "#/components/schemas/AllergenConceptOutcomeResponse"
             },
@@ -36,7 +47,6 @@
             "$ref": "#/components/schemas/EvidenceCoverageState"
           },
           "findings": {
-            "default": [],
             "items": {
               "$ref": "#/components/schemas/AllergenFindingResponse"
             },
@@ -64,7 +74,6 @@
             ]
           },
           "source_signals": {
-            "default": [],
             "items": {
               "$ref": "#/components/schemas/PackageMatchEvidenceResponse"
             },
@@ -98,7 +107,6 @@
             "type": "string"
           },
           "finding_ids": {
-            "default": [],
             "items": {
               "type": "string"
             },
@@ -110,11 +118,9 @@
             "type": "string"
           },
           "outcome": {
-            "title": "Outcome",
-            "type": "string"
+            "$ref": "#/components/schemas/AllergenAssessmentOutcome"
           },
           "parent_ids": {
-            "default": [],
             "items": {
               "type": "string"
             },
@@ -133,7 +139,6 @@
             "title": "Reason"
           },
           "rule_ids": {
-            "default": [],
             "items": {
               "type": "string"
             },
@@ -223,8 +228,7 @@
             "title": "Reference Dataset Version Id"
           },
           "relationship_type": {
-            "title": "Relationship Type",
-            "type": "string"
+            "$ref": "#/components/schemas/AllergenRelationshipType"
           },
           "rule_id": {
             "anyOf": [
@@ -284,6 +288,17 @@
         ],
         "title": "AllergenFindingResponse",
         "type": "object"
+      },
+      "AllergenRelationshipType": {
+        "enum": [
+          "EXACT_NAME",
+          "SPELLING_VARIANT",
+          "DERIVED_FROM",
+          "CONTAINS_SOURCE",
+          "PRECAUTIONARY_PHRASE"
+        ],
+        "title": "AllergenRelationshipType",
+        "type": "string"
       },
       "AssessmentReferenceDatasetVersionResponse": {
         "properties": {
@@ -429,6 +444,37 @@
         "title": "IdentifierScheme",
         "type": "string"
       },
+      "JsonValue": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "items": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "type": "array"
+          },
+          {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "OpenFoodFactsLookupResponse": {
         "properties": {
           "dataset_version": {
@@ -500,7 +546,6 @@
             "title": "External Record Id"
           },
           "identity_evidence": {
-            "default": [],
             "items": {
               "$ref": "#/components/schemas/PackageMatchEvidenceResponse"
             },
@@ -508,7 +553,6 @@
             "type": "array"
           },
           "label_evidence": {
-            "default": [],
             "items": {
               "$ref": "#/components/schemas/PackageMatchEvidenceResponse"
             },
@@ -538,7 +582,6 @@
             "title": "Product Id"
           },
           "reference_images": {
-            "default": [],
             "items": {
               "$ref": "#/components/schemas/PackageMatchReferenceImageResponse"
             },
@@ -658,7 +701,7 @@
             "type": "string"
           },
           "value": {
-            "title": "Value"
+            "$ref": "#/components/schemas/JsonValue"
           }
         },
         "required": [
@@ -844,6 +887,7 @@
       "PackageMatchesResponse": {
         "properties": {
           "candidates": {
+            "description": "Candidate Package Matches only; a result does not prove identity with the physical package in a shopper's possession.",
             "items": {
               "$ref": "#/components/schemas/PackageMatchCandidateResponse"
             },
@@ -972,13 +1016,16 @@
     },
     "/api/v1/package-matches": {
       "get": {
+        "description": "Looks up candidate Package Matches using the active Open Food Facts Dataset Version. Open Food Facts fields are external Evidence, and a returned match does not prove identity with the physical package in a shopper's possession.",
         "operationId": "getPackageMatches",
         "parameters": [
           {
+            "description": "GTIN, EAN, or UPC identifier used to find Package Match candidates.",
             "in": "query",
             "name": "identifier",
             "required": true,
             "schema": {
+              "description": "GTIN, EAN, or UPC identifier used to find Package Match candidates.",
               "minLength": 1,
               "title": "Identifier",
               "type": "string"
@@ -1027,7 +1074,7 @@
             "description": "Service Unavailable"
           }
         },
-        "summary": "Get Package Matches",
+        "summary": "Find Package Match candidates",
         "tags": [
           "Package Matches"
         ]

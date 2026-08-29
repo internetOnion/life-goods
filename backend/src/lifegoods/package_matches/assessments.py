@@ -479,10 +479,15 @@ class StandardAllergenAssessmentEvaluator:
             if self._cache is not None and cache_key is not None:
                 self._cache.set(cache_key, evaluation)
             return evaluation
-        except Exception:
-            logger.exception(
-                "Allergen Assessment Evaluation failed for OFF record %s",
-                record.source_record_id,
+        except Exception as error:
+            logger.warning(
+                "Allergen Assessment Evaluation failed",
+                extra={
+                    "event": "allergen_assessment_failed",
+                    "operation": "evaluate_package_match",
+                    "failure_category": "evaluation_error",
+                    "error_category": type(error).__name__,
+                },
             )
             return AllergenAssessmentEvaluation(
                 status=AllergenAssessmentStatus.NOT_ASSESSED,

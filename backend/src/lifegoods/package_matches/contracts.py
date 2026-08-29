@@ -1,10 +1,11 @@
 from datetime import datetime
-from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from lifegoods.identifiers.models import IdentifierScheme
+from lifegoods.open_food_facts.models import JsonValue
 from lifegoods.package_matches.assessments import (
+    AllergenAssessmentOutcome,
     AllergenAssessmentReason,
     AllergenAssessmentStatus,
     EvidenceCoverageState,
@@ -13,6 +14,7 @@ from lifegoods.package_matches.models import (
     OpenFoodFactsLookupStatus,
     PackageMatchSourceKind,
 )
+from lifegoods.reference_datasets import AllergenRelationshipType
 
 
 class PackageMatchSourceResponse(BaseModel):
@@ -29,7 +31,7 @@ class PackageMatchSourceResponse(BaseModel):
 
 class PackageMatchEvidenceResponse(BaseModel):
     field: str
-    value: Any
+    value: JsonValue
     source_field: str
     source_name: str
     source_url: str
@@ -79,7 +81,7 @@ class AllergenFindingResponse(BaseModel):
     concept_id: str
     mapping_id: str | None = None
     rule_id: str | None = None
-    relationship_type: str
+    relationship_type: AllergenRelationshipType
     matched_text: str
     source_text: str | None = None
     start_index: int
@@ -96,11 +98,11 @@ class AllergenFindingResponse(BaseModel):
 class AllergenConceptOutcomeResponse(BaseModel):
     concept_id: str
     name: str
-    outcome: str
+    outcome: AllergenAssessmentOutcome
     reason: str | None = None
-    finding_ids: list[str] = []
-    parent_ids: list[str] = []
-    rule_ids: list[str] = []
+    finding_ids: list[str] = Field(default_factory=list)
+    parent_ids: list[str] = Field(default_factory=list)
+    rule_ids: list[str] = Field(default_factory=list)
 
 
 class AllergenAssessmentResponse(BaseModel):
@@ -111,9 +113,9 @@ class AllergenAssessmentResponse(BaseModel):
     reference_dataset_version: AssessmentReferenceDatasetVersionResponse | None = (
         None
     )
-    concepts: list[AllergenConceptOutcomeResponse] = []
-    findings: list[AllergenFindingResponse] = []
-    source_signals: list[PackageMatchEvidenceResponse] = []
+    concepts: list[AllergenConceptOutcomeResponse] = Field(default_factory=list)
+    findings: list[AllergenFindingResponse] = Field(default_factory=list)
+    source_signals: list[PackageMatchEvidenceResponse] = Field(default_factory=list)
 
 
 class PackageMatchCandidateResponse(BaseModel):
@@ -123,9 +125,9 @@ class PackageMatchCandidateResponse(BaseModel):
     product_id: str | None = None
     external_record_id: str | None = None
     source: PackageMatchSourceResponse | None = None
-    identity_evidence: list[PackageMatchEvidenceResponse] = []
-    label_evidence: list[PackageMatchEvidenceResponse] = []
-    reference_images: list[PackageMatchReferenceImageResponse] = []
+    identity_evidence: list[PackageMatchEvidenceResponse] = Field(default_factory=list)
+    label_evidence: list[PackageMatchEvidenceResponse] = Field(default_factory=list)
+    reference_images: list[PackageMatchReferenceImageResponse] = Field(default_factory=list)
     retrieved_at: datetime | None = None
     source_revision: str | None = None
     dataset_version: ExternalDatasetVersionResponse | None = None
@@ -140,5 +142,10 @@ class OpenFoodFactsLookupResponse(BaseModel):
 class PackageMatchesResponse(BaseModel):
     normalized_identifier: str
     scheme: IdentifierScheme
-    candidates: list[PackageMatchCandidateResponse]
+    candidates: list[PackageMatchCandidateResponse] = Field(
+        description=(
+            "Candidate Package Matches only; a result does not prove identity with the "
+            "physical package in a shopper's possession."
+        )
+    )
     open_food_facts: OpenFoodFactsLookupResponse

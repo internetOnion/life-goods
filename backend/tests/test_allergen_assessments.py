@@ -200,7 +200,7 @@ def test_evaluation_enforces_status_reason_combinations() -> None:
 def test_database_allergen_reference_data_access(tmp_path, monkeypatch) -> None:
     from alembic import command
     from alembic.config import Config
-    from sqlalchemy import create_engine
+    from sqlalchemy import create_engine, event
     from sqlalchemy.orm import sessionmaker
 
     db_path = tmp_path / "test_access.db"
@@ -300,7 +300,14 @@ def test_database_allergen_reference_data_access(tmp_path, monkeypatch) -> None:
         import_reference_bundle(session, bundle)
         activate_reference_dataset_version(session, bundle.manifest.id)
 
+    statements: list[str] = []
+
+    def record_statement(*args) -> None:
+        statements.append(args[2])
+
+    event.listen(engine, "before_cursor_execute", record_statement)
     active = access.get_active_version()
+    cold_query_count = len(statements)
     assert active is not None
     assert active.id == "codex-food-allergen-2026-minimal"
     assert active.source_url == bundle.manifest.source_url
@@ -319,6 +326,23 @@ def test_database_allergen_reference_data_access(tmp_path, monkeypatch) -> None:
     assert active_data.mappings[0].mapped_text == "milk"
     assert len(active_data.rules) == 1
     assert active_data.rules[0].id == "rule-codex-2026-milk"
+    assert cold_query_count == 5
+    assert len(statements) == cold_query_count + 1
+
+    def unavailable_session():
+        raise RuntimeError("database unavailable")
+
+    from unittest.mock import MagicMock
+
+    from lifegoods.reference_datasets import access as access_module
+
+    warning = MagicMock()
+    monkeypatch.setattr(access_module.logger, "warning", warning)
+    monkeypatch.setattr(access, "_session_factory", unavailable_session)
+    assert access.get_active_data() is None
+
+    assert warning.call_args.kwargs["extra"]["event"] == "reference_dataset_unavailable"
+    assert warning.call_args.kwargs["extra"]["error_category"] == "RuntimeError"
 
 
 def sample_reference_data() -> ActiveAllergenReferenceData:

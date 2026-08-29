@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Iterator
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -600,7 +601,7 @@ def test_package_matches_returns_429_when_rate_limit_is_exceeded() -> None:
         }
 
 
-def test_package_matches_rate_limit_isolates_by_client_ip() -> None:
+def test_package_matches_rate_limit_ignores_spoofed_forwarded_for() -> None:
     clock = 100.0
     limiter = KeyedSlidingWindowLimiter(requests_per_minute=1, monotonic=lambda: clock)
     with TestClient(
@@ -609,7 +610,6 @@ def test_package_matches_rate_limit_isolates_by_client_ip() -> None:
             package_match_limiter=limiter,
         )
     ) as client:
-        # Request from client 1
         res1 = client.get(
             "/api/v1/package-matches",
             params={"identifier": "4006381333931"},
@@ -617,21 +617,91 @@ def test_package_matches_rate_limit_isolates_by_client_ip() -> None:
         )
         assert res1.status_code == 200
 
-        # Subsequent request from client 1 is rate limited
         res1_blocked = client.get(
-            "/api/v1/package-matches",
-            params={"identifier": "4006381333931"},
-            headers={"x-forwarded-for": "10.0.0.1"},
-        )
-        assert res1_blocked.status_code == 429
-
-        # Request from client 2 still succeeds
-        res2 = client.get(
             "/api/v1/package-matches",
             params={"identifier": "4006381333931"},
             headers={"x-forwarded-for": "10.0.0.2"},
         )
-        assert res2.status_code == 200
+        assert res1_blocked.status_code == 429
+
+
+def test_package_matches_rate_limit_isolates_asgi_client_addresses() -> None:
+    limiter = KeyedSlidingWindowLimiter(requests_per_minute=1)
+    app = create_app(
+        external_source=ConfirmedNoMatchSource(),
+        package_match_limiter=limiter,
+    )
+
+    with TestClient(app, client=("10.0.0.1", 50000)) as first_client:
+        assert first_client.get(
+            "/api/v1/package-matches", params={"identifier": "4006381333931"}
+        ).status_code == 200
+        assert first_client.get(
+            "/api/v1/package-matches", params={"identifier": "4006381333931"}
+        ).status_code == 429
+
+    with TestClient(app, client=("10.0.0.2", 50000)) as second_client:
+        assert second_client.get(
+            "/api/v1/package-matches", params={"identifier": "4006381333931"}
+        ).status_code == 200
+
+
+def test_package_match_openapi_tightens_types_and_candidate_semantics() -> None:
+    app = create_app(
+        external_source=ConfirmedNoMatchSource(),
+        package_match_limiter=KeyedSlidingWindowLimiter(60),
+    )
+
+    schema = app.openapi()
+    operation = schema["paths"]["/api/v1/package-matches"]["get"]
+    schemas = schema["components"]["schemas"]
+
+    assert "external Evidence" in operation["description"]
+    assert "does not prove identity" in operation["description"]
+    assert schemas["AllergenConceptOutcomeResponse"]["properties"]["outcome"] == {
+        "$ref": "#/components/schemas/AllergenAssessmentOutcome"
+    }
+    assert schemas["AllergenFindingResponse"]["properties"][
+        "relationship_type"
+    ] == {"$ref": "#/components/schemas/AllergenRelationshipType"}
+    assert schemas["PackageMatchEvidenceResponse"]["properties"]["value"] == {
+        "$ref": "#/components/schemas/JsonValue"
+    }
+
+
+def test_package_match_structured_log_excludes_request_and_evidence_values(
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = off_source_with_record(product_name_en="DO-NOT-LOG-LABEL")
+    app = create_app(
+        external_source=source,
+        package_match_limiter=KeyedSlidingWindowLimiter(60),
+    )
+    route_logger = logging.getLogger("lifegoods.package_matches.router")
+    monkeypatch.setattr(route_logger, "disabled", False)
+
+    with (
+        caplog.at_level("INFO", logger=route_logger.name),
+        TestClient(app, client=("203.0.113.42", 50000)) as test_client,
+    ):
+        response = test_client.get(
+            "/api/v1/package-matches", params={"identifier": "4006381333931"}
+        )
+
+    assert response.status_code == 200
+    completed = next(
+        record
+        for record in caplog.records
+        if record.__dict__.get("event") == "package_match_lookup_completed"
+    )
+    assert completed.__dict__["candidate_count"] == 1
+    assert completed.__dict__["off_outcome"] == "AVAILABLE"
+    assert completed.__dict__["off_dataset_version_id"] == DATASET_VERSION.id
+    logged = str(completed.__dict__)
+    assert "4006381333931" not in logged
+    assert "203.0.113.42" not in logged
+    assert "DO-NOT-LOG-LABEL" not in logged
 
 
 def test_package_matches_with_active_allergen_dataset_evaluates_milk_end_to_end(

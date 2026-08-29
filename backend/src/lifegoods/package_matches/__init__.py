@@ -50,6 +50,10 @@ from lifegoods.package_matches.models import (
     PackageMatchSourceMetadata,
     PackageMatchSourceUnavailableError,
 )
+from lifegoods.package_matches.rate_limit import (
+    PackageMatchRateLimiter,
+    RedisPackageMatchRateLimiter,
+)
 from lifegoods.package_matches.router import get_finder, get_rate_limiter, router
 from lifegoods.package_matches.service import FindPackageMatches
 from lifegoods.reference_datasets import AllergenReferenceDataAccess
@@ -86,6 +90,7 @@ __all__ = [
     "PackageMatchEvidenceResponse",
     "PackageMatchReferenceImage",
     "PackageMatchReferenceImageResponse",
+    "PackageMatchRateLimiter",
     "PackageMatchResult",
     "PackageMatchSourceKind",
     "PackageMatchSourceMetadata",
@@ -93,6 +98,7 @@ __all__ = [
     "PackageMatchSourceUnavailableError",
     "PackageMatchesResponse",
     "RedisAllergenAssessmentCache",
+    "RedisPackageMatchRateLimiter",
     "StandardAllergenAssessmentEvaluator",
     "assessment_cache_key_for_record",
     "build_assessment_cache_key",

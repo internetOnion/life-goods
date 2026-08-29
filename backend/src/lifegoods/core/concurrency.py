@@ -8,23 +8,28 @@ from time import monotonic as system_monotonic
 
 
 class KeyedSlidingWindowLimiter:
-    """Thread-safe sliding-window rate limiter partitioned by key (e.g. client IP)."""
+    """Thread-safe, cardinality-bounded sliding-window limiter."""
 
     def __init__(
         self,
         requests_per_minute: int,
         *,
         window_seconds: float = 60.0,
+        max_keys: int = 10_000,
         monotonic: Callable[[], float] = system_monotonic,
     ) -> None:
         if requests_per_minute <= 0:
             raise ValueError("The request budget must be greater than zero")
         if window_seconds <= 0:
             raise ValueError("The window duration must be greater than zero")
+        if max_keys <= 0:
+            raise ValueError("The key limit must be greater than zero")
         self._requests_per_minute = requests_per_minute
         self._window_seconds = window_seconds
+        self._max_keys = max_keys
         self._monotonic = monotonic
         self._buckets: dict[str, deque[float]] = {}
+        self._overflow_bucket: deque[float] = deque()
         self._lock = Lock()
 
     def try_acquire(self, key: str) -> tuple[bool, int]:
@@ -38,14 +43,19 @@ class KeyedSlidingWindowLimiter:
             now = self._monotonic()
             cutoff = now - self._window_seconds
 
-            if len(self._buckets) > 1000:
+            bucket = self._buckets.get(key)
+            if bucket is None and len(self._buckets) >= self._max_keys:
                 expired_keys = [
                     k for k, b in self._buckets.items() if not b or b[-1] <= cutoff
                 ]
                 for k in expired_keys:
                     del self._buckets[k]
 
-            bucket = self._buckets.setdefault(key, deque())
+                if len(self._buckets) >= self._max_keys:
+                    bucket = self._overflow_bucket
+
+            if bucket is None:
+                bucket = self._buckets.setdefault(key, deque())
             while bucket and bucket[0] <= cutoff:
                 bucket.popleft()
 
