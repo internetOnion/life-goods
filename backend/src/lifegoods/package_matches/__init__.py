@@ -1,6 +1,7 @@
 """OFF-only Package Match use case, contracts, and API router."""
 
 from lifegoods.package_matches.assessments import (
+    AllergenAssessmentCache,
     AllergenAssessmentEvaluation,
     AllergenAssessmentEvaluator,
     AllergenAssessmentOutcome,
@@ -14,6 +15,15 @@ from lifegoods.package_matches.assessments import (
     EvidenceCoverageState,
     OffAllergenEvidenceExtractor,
     StandardAllergenAssessmentEvaluator,
+)
+from lifegoods.package_matches.cache import (
+    DEFAULT_ASSESSMENT_CACHE_TTL_SECONDS,
+    RedisAllergenAssessmentCache,
+    assessment_cache_key_for_record,
+    build_assessment_cache_key,
+    compute_evidence_digest,
+    deserialize_assessment_evaluation,
+    serialize_assessment_evaluation,
 )
 from lifegoods.package_matches.contracts import (
     AllergenAssessmentResponse,
@@ -44,6 +54,7 @@ from lifegoods.package_matches.service import FindPackageMatches
 from lifegoods.reference_datasets import AllergenReferenceDataAccess
 
 __all__ = [
+    "AllergenAssessmentCache",
     "AllergenAssessmentEvaluation",
     "AllergenAssessmentEvaluator",
     "AllergenAssessmentOutcome",
@@ -56,12 +67,11 @@ __all__ = [
     "AllergenFindingResponse",
     "AllergenReferenceDataAccess",
     "AssessmentReferenceDatasetVersionResponse",
+    "DEFAULT_ASSESSMENT_CACHE_TTL_SECONDS",
     "DefaultAllergenDeterministicMatcher",
     "DefaultOffAllergenEvidenceExtractor",
     "DisabledAllergenAssessmentEvaluator",
     "EvidenceCoverageState",
-
-
     "ExternalDatasetVersionResponse",
     "FindPackageMatches",
     "OffAllergenEvidenceExtractor",
@@ -80,8 +90,14 @@ __all__ = [
     "PackageMatchSourceResponse",
     "PackageMatchSourceUnavailableError",
     "PackageMatchesResponse",
+    "RedisAllergenAssessmentCache",
     "StandardAllergenAssessmentEvaluator",
+    "assessment_cache_key_for_record",
+    "build_assessment_cache_key",
+    "compute_evidence_digest",
+    "deserialize_assessment_evaluation",
     "get_finder",
     "get_rate_limiter",
     "router",
+    "serialize_assessment_evaluation",
 ]

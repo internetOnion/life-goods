@@ -2,6 +2,7 @@ from collections.abc import Iterator
 from typing import Any
 
 import httpx2 as httpx
+import redis
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,9 +26,11 @@ from lifegoods.open_food_facts import (
     open_food_facts_image_router,
 )
 from lifegoods.package_matches import (
+    AllergenAssessmentCache,
     AllergenAssessmentEvaluator,
     FindPackageMatches,
     PackageMatchSourceUnavailableError,
+    RedisAllergenAssessmentCache,
     StandardAllergenAssessmentEvaluator,
     get_finder,
     get_rate_limiter,
@@ -57,6 +60,7 @@ def create_app(
     image_source: ExternalImageSource | None = None,
     package_match_limiter: KeyedSlidingWindowLimiter | None = None,
     allergen_evaluator: AllergenAssessmentEvaluator | None = None,
+    assessment_cache: AllergenAssessmentCache | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings()
     if session_factory is None:
@@ -67,17 +71,36 @@ def create_app(
 
     owned_http_clients: list[httpx.Client] = []
     owned_mongo_clients: list[MongoClient[dict[str, Any]]] = []
+    owned_redis_clients: list[redis.Redis] = []
     resolved_package_match_limiter = (
         package_match_limiter
         or KeyedSlidingWindowLimiter(resolved_settings.package_match_requests_per_minute)
     )
     resolved_reference_data = DatabaseAllergenReferenceDataAccess(resolved_session_factory)
+    if assessment_cache is not None:
+        resolved_cache: AllergenAssessmentCache | None = assessment_cache
+    elif resolved_settings.assessment_cache_enabled:
+        redis_client: redis.Redis = redis.Redis.from_url(
+            resolved_settings.redis_url,
+            socket_connect_timeout=resolved_settings.redis_timeout_seconds,
+            socket_timeout=resolved_settings.redis_timeout_seconds,
+            decode_responses=True,
+        )
+        owned_redis_clients.append(redis_client)
+        resolved_cache = RedisAllergenAssessmentCache(
+            redis_client,
+            ttl_seconds=resolved_settings.assessment_cache_ttl_seconds,
+        )
+    else:
+        resolved_cache = None
+
     resolved_allergen_evaluator = (
         allergen_evaluator
         or StandardAllergenAssessmentEvaluator(
             enabled=resolved_settings.allergen_assessments_enabled,
             engine_version=resolved_settings.assessment_engine_version,
             reference_data=resolved_reference_data,
+            cache=resolved_cache,
         )
     )
     if external_source is None:
@@ -125,6 +148,8 @@ def create_app(
         app.router.add_event_handler("shutdown", owned_http_client.close)
     for owned_mongo_client in owned_mongo_clients:
         app.router.add_event_handler("shutdown", owned_mongo_client.close)
+    for owned_redis_client in owned_redis_clients:
+        app.router.add_event_handler("shutdown", owned_redis_client.close)
 
     def provide_finder() -> Iterator[FindPackageMatches]:
         yield FindPackageMatches(

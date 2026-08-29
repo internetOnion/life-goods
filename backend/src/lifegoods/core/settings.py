@@ -13,6 +13,10 @@ DEFAULT_OFF_MONGODB_URI = (
 DEFAULT_OFF_MONGODB_DATABASE = "lifegoods_off"
 DEFAULT_OFF_MONGODB_TIMEOUT_MS = 2_000
 DEFAULT_ASSESSMENT_ENGINE_VERSION = "0.1.0"
+DEFAULT_REDIS_URL = "redis://localhost:6380/0"
+DEFAULT_REDIS_TIMEOUT_SECONDS = 0.5
+DEFAULT_ASSESSMENT_CACHE_ENABLED = True
+DEFAULT_ASSESSMENT_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60
 
 
 class Settings(BaseSettings):
@@ -38,5 +42,9 @@ class Settings(BaseSettings):
     off_mongodb_timeout_ms: int = DEFAULT_OFF_MONGODB_TIMEOUT_MS
     allergen_assessments_enabled: bool = False
     assessment_engine_version: str = DEFAULT_ASSESSMENT_ENGINE_VERSION
+    redis_url: str = DEFAULT_REDIS_URL
+    redis_timeout_seconds: float = DEFAULT_REDIS_TIMEOUT_SECONDS
+    assessment_cache_enabled: bool = DEFAULT_ASSESSMENT_CACHE_ENABLED
+    assessment_cache_ttl_seconds: int = DEFAULT_ASSESSMENT_CACHE_TTL_SECONDS
     # Retained only for configuration compatibility; MVP-1 never consults it.
     project_catalog_enabled: bool = False

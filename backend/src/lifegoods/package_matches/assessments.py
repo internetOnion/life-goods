@@ -369,6 +369,19 @@ class StandardAllergenAssessmentEvaluator:
                 source_signals=source_signals,
             )
 
+        cache_key: str | None = None
+        if self._cache is not None:
+            from lifegoods.package_matches.cache import assessment_cache_key_for_record
+
+            cache_key = assessment_cache_key_for_record(
+                record,
+                reference_dataset_version_id=active_data.version.id,
+                engine_version=self._engine_version,
+            )
+            cached_evaluation = self._cache.get(cache_key)
+            if cached_evaluation is not None:
+                return cached_evaluation
+
         english_ingredient_text: SourcedValue[str] | None = None
         for it in record.ingredient_texts:
             if (
@@ -381,7 +394,7 @@ class StandardAllergenAssessmentEvaluator:
 
 
         if english_ingredient_text is None:
-            return AllergenAssessmentEvaluation(
+            evaluation = AllergenAssessmentEvaluation(
                 status=AllergenAssessmentOutcome.NOT_ASSESSED,
                 reason=AllergenAssessmentReason.EVIDENCE_UNAVAILABLE,
                 evidence_coverage=EvidenceCoverageState.NOT_ASSESSED,
@@ -391,6 +404,9 @@ class StandardAllergenAssessmentEvaluator:
                 findings=(),
                 source_signals=source_signals,
             )
+            if self._cache is not None and cache_key is not None:
+                self._cache.set(cache_key, evaluation)
+            return evaluation
 
         findings = self._matcher.match(
             ingredient_text=english_ingredient_text,
@@ -451,7 +467,7 @@ class StandardAllergenAssessmentEvaluator:
             else AllergenAssessmentOutcome.LABEL_INCOMPLETE_OR_UNREADABLE
         )
 
-        return AllergenAssessmentEvaluation(
+        evaluation = AllergenAssessmentEvaluation(
             status=top_level_status,
             reason=None,
             evidence_coverage=EvidenceCoverageState.PARTIAL,
@@ -461,3 +477,6 @@ class StandardAllergenAssessmentEvaluator:
             findings=findings,
             source_signals=source_signals,
         )
+        if self._cache is not None and cache_key is not None:
+            self._cache.set(cache_key, evaluation)
+        return evaluation
