@@ -41,8 +41,9 @@ This document provides a comprehensive reference for all command-line interfaces
 
 The Reference Datasets CLI manages reviewed, immutable domain concepts, lexical mappings, exclusions, and evaluation rules stored in PostgreSQL.
 
-**Wrapper Command:** `pnpm reference:dataset -- <subcommand> [options]`  
-**Direct Invocation:** `PYTHONPATH=backend/src uv run --project backend python -m lifegoods.reference_datasets.cli <subcommand> [options]`
+**Wrapper Command:** `pnpm reference:dataset -- <subcommand> [options]`
+
+**Direct Invocation:** `uv run --project backend python -m lifegoods.reference_datasets.cli <subcommand> [options]`
 
 ### Global Options
 
@@ -135,8 +136,9 @@ pnpm reference:dataset -- rollback [--dataset-kind FOOD_ALLERGEN] [--approver <o
 
 The Open Food Facts CLI handles importing, indexing, validating, and activating snapshot versions of the Open Food Facts product database in MongoDB.
 
-**Wrapper Command:** `pnpm off:dataset -- <subcommand> [options]`  
-**Direct Invocation:** `PYTHONPATH=backend/src uv run --project backend python -m lifegoods.open_food_facts.cli --mongo-uri <URI> <subcommand> [options]`
+**Wrapper Command:** `pnpm off:dataset -- <subcommand> [options]`
+
+**Direct Invocation:** `uv run --project backend python -m lifegoods.open_food_facts.cli --mongo-uri <URI> <subcommand> [options]`
 
 ### Global Options
 
