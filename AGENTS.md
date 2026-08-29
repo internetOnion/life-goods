@@ -17,7 +17,7 @@
 
 - Requirements are Node.js 24, pnpm, Python 3.13, uv, and Docker Compose.
 - Install with `pnpm install` and `pnpm backend:install`.
-- Start PostgreSQL and MongoDB with `docker compose -f infra/compose.yaml up -d`, then apply migrations with `pnpm db:migrate`; PostgreSQL is exposed on host port `5433` and MongoDB on port `27018`.
+- Start PostgreSQL, MongoDB, and Redis with `docker compose -f infra/compose.yaml up -d`, then apply migrations with `pnpm db:migrate`; PostgreSQL is exposed on host port `5433`, MongoDB on port `27018`, and Redis on port `6380`.
 - Populate Reference Datasets with `pnpm reference:dataset -- import <bundle_path>` and activate with `pnpm reference:dataset -- activate <version_id>`. Populate Open Food Facts data with `pnpm off:dataset -- import-url` and activate it with `pnpm off:dataset -- activate <version_id>`. See [`docs/CLI.md`](docs/CLI.md) for full CLI manual.
 - Run `pnpm backend:dev` and `pnpm dev` in separate terminals for HTTP at `http://localhost:5173`.
 - Use `pnpm dev:https` for frontend HTTPS at `https://localhost:5173`; it requires `openssl`, generates an ignored self-signed certificate under `frontend/certs/`, and still proxies `/api` to the HTTP API.

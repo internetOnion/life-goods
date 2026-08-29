@@ -8,7 +8,7 @@ The identifier is a lookup key for a `Package Variant`; it is not a `Product` id
 
 - Node.js 24 LTS and pnpm
 - Python 3.13 and uv
-- Docker with Compose (for local PostgreSQL and MongoDB)
+- Docker with Compose (for local PostgreSQL, MongoDB, and Redis)
 
 ## Quick Start
 
@@ -20,12 +20,12 @@ pnpm backend:install
 cp backend/.env.example backend/.env
 ```
 
-To enable allergen assessments, set `LIFEGOODS_ALLERGEN_ASSESSMENTS_ENABLED=true` in `backend/.env`.
+To enable allergen assessments, set `LIFEGOODS_ALLERGEN_ASSESSMENTS_ENABLED=true` in `backend/.env`. Redis assessment caching is enabled by default (`LIFEGOODS_ASSESSMENT_CACHE_ENABLED=true`).
 
 ### 2. Start Databases & Apply Migrations
 
 ```bash
-docker compose -f infra/compose.yaml up -d postgres mongodb
+docker compose -f infra/compose.yaml up -d
 pnpm db:migrate
 ```
 

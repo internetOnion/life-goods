@@ -2,13 +2,17 @@ services:
   postgres:
     image: postgres:18-alpine
     environment:
-      POSTGRES_DB: lifegoods
-      POSTGRES_USER: lifegoods
-      POSTGRES_PASSWORD: lifegoods
+      POSTGRES_DB: ${LIFEGOODS_POSTGRES_DB:-lifegoods}
+      POSTGRES_USER: ${LIFEGOODS_POSTGRES_USER:-lifegoods}
+      POSTGRES_PASSWORD: ${LIFEGOODS_POSTGRES_PASSWORD:-lifegoods}
     ports:
-      - "5433:5432"
+      - "${LIFEGOODS_POSTGRES_PORT:-5433}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U lifegoods -d lifegoods"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${LIFEGOODS_POSTGRES_USER:-lifegoods} -d ${LIFEGOODS_POSTGRES_DB:-lifegoods}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -18,20 +22,20 @@ services:
   mongodb:
     image: mongo:8.2
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: lifegoods_root
-      LIFEGOODS_OFF_DATABASE: lifegoods_off
-      LIFEGOODS_OFF_READER_USERNAME: lifegoods_reader
-      LIFEGOODS_OFF_READER_PASSWORD: lifegoods_reader
-      LIFEGOODS_OFF_WRITER_USERNAME: lifegoods_writer
-      LIFEGOODS_OFF_WRITER_PASSWORD: lifegoods_writer
+      MONGO_INITDB_ROOT_USERNAME: ${LIFEGOODS_MONGO_ROOT_USER:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${LIFEGOODS_MONGO_ROOT_PASSWORD:-lifegoods_root}
+      LIFEGOODS_OFF_DATABASE: ${LIFEGOODS_OFF_MONGODB_DATABASE:-lifegoods_off}
+      LIFEGOODS_OFF_READER_USERNAME: ${LIFEGOODS_OFF_READER_USER:-lifegoods_reader}
+      LIFEGOODS_OFF_READER_PASSWORD: ${LIFEGOODS_OFF_READER_PASSWORD:-lifegoods_reader}
+      LIFEGOODS_OFF_WRITER_USERNAME: ${LIFEGOODS_OFF_WRITER_USER:-lifegoods_writer}
+      LIFEGOODS_OFF_WRITER_PASSWORD: ${LIFEGOODS_OFF_WRITER_PASSWORD:-lifegoods_writer}
     ports:
-      - "27018:27017"
+      - "${LIFEGOODS_OFF_MONGODB_PORT:-27018}:27017"
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "mongosh --quiet --username root --password lifegoods_root --authenticationDatabase admin --eval 'db.adminCommand({ ping: 1 })'",
+          "mongosh --quiet --username ${LIFEGOODS_MONGO_ROOT_USER:-root} --password ${LIFEGOODS_MONGO_ROOT_PASSWORD:-lifegoods_root} --authenticationDatabase admin --eval 'db.adminCommand({ ping: 1 })'",
         ]
       interval: 5s
       timeout: 5s
@@ -43,7 +47,7 @@ services:
   redis:
     image: redis:8.2-alpine
     ports:
-      - "6380:6379"
+      - "${LIFEGOODS_REDIS_PORT:-6380}:6379"
     healthcheck:
       test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
       interval: 5s

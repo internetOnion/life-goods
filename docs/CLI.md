@@ -8,7 +8,7 @@ This document provides a comprehensive reference for all command-line interfaces
 
 | Task                            | Command                                                           | Description                                                                      |
 | :------------------------------ | :---------------------------------------------------------------- | :------------------------------------------------------------------------------- |
-| **Start Infrastructure**        | `docker compose -f infra/compose.yaml up -d postgres mongodb`     | Launches PostgreSQL (port `5433`) & MongoDB (port `27018`).                      |
+| **Start Infrastructure**        | `docker compose -f infra/compose.yaml up -d`                      | Launches PostgreSQL (port `5433`), MongoDB (port `27018`), & Redis (port `6380`).|
 | **Apply Migrations**            | `pnpm db:migrate`                                                 | Runs Alembic schema migrations against PostgreSQL.                               |
 | **Validate Reference Dataset**  | `pnpm reference:dataset -- validate <bundle_path>`                | Validates a local JSON reference dataset bundle without writing to DB.           |
 | **Import Reference Dataset**    | `pnpm reference:dataset -- import <bundle_path>`                  | Inserts an immutable Reference Dataset Version into PostgreSQL.                  |
@@ -352,20 +352,31 @@ pnpm backend:typecheck
 
 ## 7. Infrastructure Management (Docker Compose)
 
-The repository provides local PostgreSQL and MongoDB instances via `infra/compose.yaml`.
+The repository provides local PostgreSQL, MongoDB, and Redis instances via `infra/compose.yaml`.
+- **PostgreSQL**: host port `5433` (durable volume `lifegoods-postgres`)
+- **MongoDB**: host port `27018` (durable volume `lifegoods-mongodb`)
+- **Redis**: host port `6380` (non-durable assessment evaluation cache, no persistent volume)
 
 ```bash
-# Start all databases in background
+# Start all databases and caches in background
 docker compose -f infra/compose.yaml up -d
 
-# Start only PostgreSQL and MongoDB
+# Start only a specific service
 docker compose -f infra/compose.yaml up -d postgres mongodb
+docker compose -f infra/compose.yaml up -d redis
 
 # View container status and health
 docker compose -f infra/compose.yaml ps
 
 # View container logs
 docker compose -f infra/compose.yaml logs -f
+docker compose -f infra/compose.yaml logs -f redis
+
+# Inspect cached assessment evaluation keys in Redis
+docker compose -f infra/compose.yaml exec redis redis-cli keys "assessment:eval:*"
+
+# Flush Redis assessment evaluation cache
+docker compose -f infra/compose.yaml exec redis redis-cli flushdb
 
 # Stop containers
 docker compose -f infra/compose.yaml stop
