@@ -1,6 +1,36 @@
 """OFF-only Package Match use case, contracts, and API router."""
 
+from lifegoods.package_matches.assessments import (
+    AllergenAssessmentCache,
+    AllergenAssessmentEvaluation,
+    AllergenAssessmentEvaluator,
+    AllergenAssessmentOutcome,
+    AllergenAssessmentReason,
+    AllergenAssessmentStatus,
+    AllergenConceptOutcome,
+    AllergenDeterministicMatcher,
+    AllergenFinding,
+    DefaultAllergenDeterministicMatcher,
+    DefaultOffAllergenEvidenceExtractor,
+    DisabledAllergenAssessmentEvaluator,
+    EvidenceCoverageState,
+    OffAllergenEvidenceExtractor,
+    StandardAllergenAssessmentEvaluator,
+)
+from lifegoods.package_matches.cache import (
+    DEFAULT_ASSESSMENT_CACHE_TTL_SECONDS,
+    RedisAllergenAssessmentCache,
+    assessment_cache_key_for_record,
+    build_assessment_cache_key,
+    compute_evidence_digest,
+    deserialize_assessment_evaluation,
+    serialize_assessment_evaluation,
+)
 from lifegoods.package_matches.contracts import (
+    AllergenAssessmentResponse,
+    AllergenConceptOutcomeResponse,
+    AllergenFindingResponse,
+    AssessmentReferenceDatasetVersionResponse,
     ExternalDatasetVersionResponse,
     OpenFoodFactsLookupResponse,
     PackageMatchCandidateResponse,
@@ -20,12 +50,37 @@ from lifegoods.package_matches.models import (
     PackageMatchSourceMetadata,
     PackageMatchSourceUnavailableError,
 )
+from lifegoods.package_matches.rate_limit import (
+    PackageMatchRateLimiter,
+    RedisPackageMatchRateLimiter,
+)
 from lifegoods.package_matches.router import get_finder, get_rate_limiter, router
 from lifegoods.package_matches.service import FindPackageMatches
+from lifegoods.reference_datasets import AllergenReferenceDataAccess
 
 __all__ = [
+    "AllergenAssessmentCache",
+    "AllergenAssessmentEvaluation",
+    "AllergenAssessmentEvaluator",
+    "AllergenAssessmentOutcome",
+    "AllergenAssessmentReason",
+    "AllergenAssessmentStatus",
+    "AllergenAssessmentResponse",
+    "AllergenConceptOutcome",
+    "AllergenConceptOutcomeResponse",
+    "AllergenDeterministicMatcher",
+    "AllergenFinding",
+    "AllergenFindingResponse",
+    "AllergenReferenceDataAccess",
+    "AssessmentReferenceDatasetVersionResponse",
+    "DEFAULT_ASSESSMENT_CACHE_TTL_SECONDS",
+    "DefaultAllergenDeterministicMatcher",
+    "DefaultOffAllergenEvidenceExtractor",
+    "DisabledAllergenAssessmentEvaluator",
+    "EvidenceCoverageState",
     "ExternalDatasetVersionResponse",
     "FindPackageMatches",
+    "OffAllergenEvidenceExtractor",
     "OpenFoodFactsLookup",
     "OpenFoodFactsLookupResponse",
     "OpenFoodFactsLookupStatus",
@@ -35,13 +90,22 @@ __all__ = [
     "PackageMatchEvidenceResponse",
     "PackageMatchReferenceImage",
     "PackageMatchReferenceImageResponse",
+    "PackageMatchRateLimiter",
     "PackageMatchResult",
     "PackageMatchSourceKind",
     "PackageMatchSourceMetadata",
     "PackageMatchSourceResponse",
     "PackageMatchSourceUnavailableError",
     "PackageMatchesResponse",
+    "RedisAllergenAssessmentCache",
+    "RedisPackageMatchRateLimiter",
+    "StandardAllergenAssessmentEvaluator",
+    "assessment_cache_key_for_record",
+    "build_assessment_cache_key",
+    "compute_evidence_digest",
+    "deserialize_assessment_evaluation",
     "get_finder",
     "get_rate_limiter",
     "router",
+    "serialize_assessment_evaluation",
 ]

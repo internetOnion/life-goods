@@ -18,6 +18,9 @@ def test_keyed_sliding_window_limiter_rejects_invalid_parameters() -> None:
     with pytest.raises(ValueError, match="window duration must be greater than zero"):
         KeyedSlidingWindowLimiter(10, window_seconds=-10)
 
+    with pytest.raises(ValueError, match="key limit must be greater than zero"):
+        KeyedSlidingWindowLimiter(10, max_keys=0)
+
 
 def test_keyed_sliding_window_limiter_allows_requests_up_to_budget() -> None:
     clock = 100.0
@@ -95,19 +98,29 @@ def test_keyed_sliding_window_limiter_isolates_different_keys() -> None:
 def test_keyed_sliding_window_limiter_prunes_stale_buckets() -> None:
     clock = 100.0
 
-    limiter = KeyedSlidingWindowLimiter(1, monotonic=lambda: clock)
+    limiter = KeyedSlidingWindowLimiter(1, max_keys=1000, monotonic=lambda: clock)
 
     for i in range(1005):
         limiter.try_acquire(f"client-{i}")
 
-    assert len(limiter._buckets) == 1005
+    assert len(limiter._buckets) == 1000
 
     # Advance clock past window
     clock = 200.0
 
     # Next acquire triggers cleanup of expired buckets
     limiter.try_acquire("new-client")
-    assert len(limiter._buckets) <= 2
+    assert len(limiter._buckets) == 1
+
+
+def test_keyed_sliding_window_limiter_routes_excess_keys_to_overflow_bucket() -> None:
+    limiter = KeyedSlidingWindowLimiter(1, max_keys=2, monotonic=lambda: 100.0)
+
+    assert limiter.try_acquire("client-1") == (True, 0)
+    assert limiter.try_acquire("client-2") == (True, 0)
+    assert limiter.try_acquire("client-3") == (True, 0)
+    assert limiter.try_acquire("client-4") == (False, 60)
+    assert len(limiter._buckets) == 2
 
 
 def test_keyed_sliding_window_limiter_is_thread_safe() -> None:

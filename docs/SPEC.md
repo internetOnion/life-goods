@@ -132,6 +132,16 @@ Rules:
 - Host concise project-authored English ingredient descriptions linked to stable identifiers and cited sources; defer Khmer translation.
 - Use manual import, validation, activation, and rollback. Do not synchronize reference data automatically in MVP-1.
 
+The current complete `FOOD_ALLERGEN` release is
+`codex-food-allergen-2026-reviewed-english-v1`. It contains 26 active leaf concepts and three
+non-emitting parent groups. Its reviewed English mappings comprise the 26 direct names plus
+the project-reviewed derivatives `whey` and `tahini`; the typed `coconut milk` exclusion
+suppresses only the contained milk match. The release contains no other derivative, synonym,
+non-English, or Open Food Facts taxonomy mappings. Wheat, rye, barley, oats, sulphite,
+lactose, and non-`FOOD_ALLERGEN` condition families are outside this release. The earlier
+one-concept milk release remains immutable for tracer and rollback coverage but is not the
+complete release.
+
 ### Reviewed Product catalog
 
 Locally observed Product seed data, reviewed Package Revisions, Product Claims, Preferred Claims, Unresolved Conflicts, moderator workflow, and reviewed-local precedence are post-MVP. The future reviewed catalog remains separate from OFF and from the reference datasets used for interpretation.
@@ -170,7 +180,15 @@ Each immutable version is imported, validated, reviewed by qualified humans, and
 
 ## 7. Assessment semantics
 
-All assessments are derived from original readable Evidence through an Active Reference Dataset Version and versioned rules. A translation or Ingredient Explainer is never the assessment input.
+All assessments in MVP-1 are stateless Assessment Evaluations derived dynamically per Package Match request from original readable Evidence through an Active Reference Dataset Version and versioned rules, with optional non-durable caching. A translation or Ingredient Explainer is never the assessment input, and evaluations never write durable Assessment Run records to the database.
+
+Assessment Evaluation availability is separate from per-concept outcomes. A completed
+evaluation reports `COMPLETED` with a null reason, including when partial readable Evidence
+produces only `LABEL_INCOMPLETE_OR_UNREADABLE` concept outcomes. An evaluation that cannot run
+reports `NOT_ASSESSED` with exactly one reason: `FEATURE_DISABLED`, `REFERENCE_UNAVAILABLE`,
+`EVIDENCE_UNAVAILABLE`, or `ASSESSMENT_FAILED`. These assessment states do not change Package
+Match availability; an unavailable Active OFF Dataset Version retains its separate Package
+Match failure behavior.
 
 ### Allergen
 
@@ -186,6 +204,11 @@ Supported outcomes:
 “No declaration detected” must state that it is not an allergen-free guarantee.
 
 The Dietary Preference Profile may prioritize matching outcomes but does not change assessment logic or hide other concerns or Evidence Uncertainty.
+
+Package Match returns one outcome for each active leaf concept in stable concept-ID order.
+Each outcome includes its parent concept IDs in direct-parent-to-root order and the rule IDs
+applicable to that leaf. Parent groups remain available for grouping and never appear as
+separate outcomes.
 
 ### Halal-related ingredient evidence
 
@@ -241,16 +264,9 @@ Future project-team Moderators may accept shared Product Claims only under an ap
 
 Model selection is not locked before evaluation. Build a representative 50–100-image benchmark covering regional languages, small print, glare, curved packages, date codes, allergens, and ambiguous ingredients. Compare transcription accuracy, structured extraction, latency, cost, and failures.
 
-Every Extraction Run records:
+Every Extraction Run records provider and model identifier, prompt, schema, processing versions, input evidence references, raw structured output, uncertainty, status, latency, failure reason, and proposed Claims/translations.
 
-- provider and model identifier;
-- prompt, schema, and processing versions;
-- input evidence references;
-- raw structured output and uncertainty;
-- status, latency, and failure reason;
-- proposed Claims and translations.
-
-Every Assessment Run records the Claims, evidence, approved vocabulary, and rule versions used. Recalculation creates new assessments and supersedes rather than overwrites history.
+Durable persistent Assessment Runs are deferred post-MVP; MVP-1 uses stateless Assessment Evaluations whose output is scoped to the candidate response, with optional non-durable cache-aside caching. When persistent Assessment Runs are introduced post-MVP, every run will record the Claims, evidence, approved vocabulary, and rule versions used.
 
 Unsupported accuracy, “zero hallucination,” and “zero false negative” claims are prohibited.
 

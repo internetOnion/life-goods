@@ -4,6 +4,17 @@ from enum import StrEnum
 
 from lifegoods.identifiers.models import NormalizedIdentifier
 from lifegoods.open_food_facts.models import ExternalDatasetVersion, JsonValue
+from lifegoods.package_matches.assessments import AllergenAssessmentEvaluation
+
+
+def json_value(value: object) -> JsonValue:
+    if value is None or isinstance(value, bool | int | float | str):
+        return value
+    if isinstance(value, tuple | list):
+        return [json_value(item) for item in value]
+    if isinstance(value, dict):
+        return {str(key): json_value(item) for key, item in value.items()}
+    raise TypeError(f"Unsupported external evidence value: {type(value).__name__}")
 
 
 class PackageMatchSourceKind(StrEnum):
@@ -75,6 +86,9 @@ class PackageMatchCandidate:
     identity_evidence: tuple[PackageMatchEvidence, ...] = ()
     label_evidence: tuple[PackageMatchEvidence, ...] = ()
     reference_images: tuple[PackageMatchReferenceImage, ...] = ()
+    allergen_assessment: AllergenAssessmentEvaluation = (
+        AllergenAssessmentEvaluation()
+    )
     retrieved_at: datetime | None = None
     is_current: bool | None = None
     source_revision: str | None = None

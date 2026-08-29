@@ -2,7 +2,7 @@
 
 ## Before Changing
 
-- For domain, schema, provenance, or privacy work, read `CONTEXT.md`, `docs/SPEC.md`, `docs/DATA_MODEL.md`, and the applicable accepted ADRs.
+- For domain, schema, provenance, or privacy work, read `CONTEXT.md`, `docs/SPEC.md`, `docs/DATA_MODEL.md`, `docs/CLI.md`, and the applicable accepted ADRs.
 - For shopper-facing UI, read `PRODUCT.md` and then `DESIGN.md`.
 - Use the exact glossary terms and capitalization: `Product`, `Package Variant`, `Package Revision`, `Claim`, `Evidence`, `Package Match`, and `Shopper Guidance`.
 
@@ -10,14 +10,15 @@
 
 - `frontend/` is the only pnpm workspace package; `backend/` is a separate Python 3.13 uv project.
 - `frontend/src/main.tsx` is the React entrypoint; `frontend/src/app/App.tsx` composes routes and feature behavior lives under `frontend/src/features/`.
-- `backend/src/lifegoods/main.py` is the FastAPI app factory. Backend code is structured into domain modules: `core/` for shared infrastructure and base errors, `identifiers/` for identifier validation and algorithms, `catalog/` for durable catalog persistence, `open_food_facts/` for external OFF dataset querying, image caching, and CLI, and `package_matches/` for package matching use cases and API routing.
+- `backend/src/lifegoods/main.py` is the FastAPI app factory. Backend code is structured into domain modules: `core/` for shared infrastructure and base errors, `identifiers/` for identifier validation and algorithms, `catalog/` for durable catalog persistence, `open_food_facts/` for external OFF dataset querying, image caching, and CLI, `reference_datasets/` for reference dataset bundle validation, immutable import, and operator CLI, and `package_matches/` for package matching use cases and API routing.
 - The frontend calls the backend through the generated client; FastAPI owns the contract. `frontend/openapi.json` and `frontend/src/api/generated/` are generated files.
 
 ## Commands
 
 - Requirements are Node.js 24, pnpm, Python 3.13, uv, and Docker Compose.
 - Install with `pnpm install` and `pnpm backend:install`.
-- Start PostgreSQL and MongoDB with `docker compose -f infra/compose.yaml up -d`, then apply migrations with `pnpm db:migrate`; PostgreSQL is exposed on host port `5433` and MongoDB on port `27018`. Populate Open Food Facts data with `pnpm off:dataset -- import-url` and activate it with `pnpm off:dataset -- activate <version_id>`.
+- Start PostgreSQL, MongoDB, and Redis with `docker compose -f infra/compose.yaml up -d`, then apply migrations with `pnpm db:migrate`; PostgreSQL is exposed on host port `5433`, MongoDB on port `27018`, and Redis on port `6380`.
+- Populate Reference Datasets with `pnpm reference:dataset -- import <bundle_path>` and activate with `pnpm reference:dataset -- activate <version_id>`. Populate Open Food Facts data with `pnpm off:dataset -- import-url` and activate it with `pnpm off:dataset -- activate <version_id>`. See [`docs/CLI.md`](docs/CLI.md) for full CLI manual.
 - Run `pnpm backend:dev` and `pnpm dev` in separate terminals for HTTP at `http://localhost:5173`.
 - Use `pnpm dev:https` for frontend HTTPS at `https://localhost:5173`; it requires `openssl`, generates an ignored self-signed certificate under `frontend/certs/`, and still proxies `/api` to the HTTP API.
 - The normal verification set is `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`, and `pnpm api:check`.

@@ -39,6 +39,16 @@
     "reference_images": [],
     "retrieved_at": "2026-08-24T10:00:00Z",
     "source_revision": null,
+    "allergen_assessment": {
+        "status": "NOT_ASSESSED",
+        "reason": "FEATURE_DISABLED",
+        "evidence_coverage": "NOT_ASSESSED",
+        "engine_version": null,
+        "reference_dataset_version": null,
+        "concepts": [],
+        "findings": [],
+        "source_signals": []
+    },
     "dataset_version": {
         "id": "dataset-2026-08-27",
         "source_url": "https://static.openfoodfacts.org/data/export.jsonl.gz",
