@@ -1,8 +1,4 @@
-import {
-    ImageSquareIcon,
-    LinkSimpleIcon,
-    WarningCircleIcon,
-} from "@phosphor-icons/react"
+import { ImageSquareIcon, LinkSimpleIcon } from "@phosphor-icons/react"
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -11,6 +7,7 @@ import type {
     PackageMatchReferenceImageResponse,
 } from "../../api/generated"
 import type { OpenFoodFactsCandidate } from "./types"
+import { EvidenceSnapshot, type EvidenceSnapshotItem } from "./EvidenceSnapshot"
 
 export type OpenFoodFactsResultProps = {
     candidate: OpenFoodFactsCandidate
@@ -20,6 +17,8 @@ export type OpenFoodFactsResultProps = {
 const evidenceFieldLabels: Record<string, string> = {
     allergen_declaration: "allergenDeclarationLabel",
     allergen_tags: "allergenTagsLabel",
+    trace_declaration: "traceDeclarationLabel",
+    trace_tags: "traceTagsLabel",
 }
 
 const nutritionLabelKeys: Record<string, string> = {
@@ -64,8 +63,12 @@ export function OpenFoodFactsResult({
     const ingredients = fieldEvidence(labelEvidence, "ingredient_text")
     const allergens = labelEvidence.filter(
         (item) =>
-            ["allergen_declaration", "allergen_tags"].includes(item.field) &&
-            isRenderableEvidence(item),
+            [
+                "allergen_declaration",
+                "allergen_tags",
+                "trace_declaration",
+                "trace_tags",
+            ].includes(item.field) && isRenderableEvidence(item),
     )
     const nutrition = fieldEvidence(labelEvidence, "nutrition")
     const storageInstructions = fieldEvidence(
@@ -84,6 +87,32 @@ export function OpenFoodFactsResult({
     const staticAllergenAlert = printableText(
         preferredEvidence(allergens, language)?.value,
     )
+    const missingGroups = [
+        ingredients.length === 0 ? t("evidenceIngredientsLabel") : null,
+        allergens.length === 0 ? t("evidenceAllergensLabel") : null,
+        nutrition.length === 0 ? t("evidenceNutritionLabel") : null,
+        storageInstructions.length === 0 ? t("evidenceStorageLabel") : null,
+    ].filter((value): value is string => Boolean(value))
+    const snapshot: EvidenceSnapshotItem[] = [
+        {
+            kind: "declared_concerns",
+            value: staticAllergenAlert ?? t("sourceNotAvailable"),
+        },
+        {
+            kind: "evidence_gaps",
+            value:
+                missingGroups.length > 0
+                    ? t("missingGroups", { fields: missingGroups.join(", ") })
+                    : t("noEvidenceGaps"),
+        },
+        {
+            kind: "source_review",
+            value: t("communitySourceState"),
+            detail: [candidate.source?.name, candidate.retrieved_at]
+                .filter(Boolean)
+                .join(" · "),
+        },
+    ]
 
     useEffect(() => {
         headingRef.current?.focus()
@@ -94,25 +123,20 @@ export function OpenFoodFactsResult({
     }, [referenceImage?.url])
 
     return (
-        <article className="animate-in fade-in slide-in-from-bottom-1 mx-auto grid max-w-3xl min-w-0 gap-4 duration-200">
+        <article className="animate-in fade-in mx-auto grid max-w-6xl min-w-0 gap-9 duration-200">
             <SummarySection
                 headingRef={headingRef}
                 packageName={packageName}
+                brand={preferredEvidence(brands, language)}
                 quantity={preferredEvidence(quantities, language)}
                 madeIn={preferredEvidence(manufacturingPlaces, language)}
                 normalizedIdentifier={normalizedIdentifier}
                 referenceImage={referenceImage}
                 referenceImageFailed={referenceImageFailed}
                 onImageError={() => setReferenceImageFailed(true)}
-                allergenAlert={staticAllergenAlert}
             />
 
-            <EvidenceSection
-                id="result-section-allergens"
-                title={t("allergensTitle")}
-                description={t("allergensBody")}
-                evidence={allergens}
-            />
+            <EvidenceSnapshot items={snapshot} />
 
             <ProductInformationSection
                 name={selectedName}
@@ -120,6 +144,13 @@ export function OpenFoodFactsResult({
                 category={preferredEvidence(categories, language)}
                 identifier={fieldEvidence(identityEvidence, "identifier")[0]}
                 normalizedIdentifier={normalizedIdentifier}
+            />
+
+            <EvidenceSection
+                id="result-section-allergens"
+                title={t("allergensTitle")}
+                description={t("allergensBody")}
+                evidence={allergens}
             />
 
             <IngredientsSection
@@ -143,32 +174,32 @@ export function OpenFoodFactsResult({
 function SummarySection({
     headingRef,
     packageName,
+    brand,
     quantity,
     madeIn,
     normalizedIdentifier,
     referenceImage,
     referenceImageFailed,
     onImageError,
-    allergenAlert,
 }: {
     headingRef: React.RefObject<HTMLHeadingElement | null>
     packageName: string | undefined
+    brand: PackageMatchEvidenceResponse | undefined
     quantity: PackageMatchEvidenceResponse | undefined
     madeIn: PackageMatchEvidenceResponse | undefined
     normalizedIdentifier: string
     referenceImage: PackageMatchReferenceImageResponse | undefined
     referenceImageFailed: boolean
     onImageError: () => void
-    allergenAlert: string | undefined
 }) {
     const { t } = useTranslation()
     const hasReferenceImage = Boolean(referenceImage) && !referenceImageFailed
     return (
         <section
-            className="border-border bg-background grid min-w-0 gap-5 rounded-xl border p-4 sm:p-5"
+            className="border-border grid min-w-0 gap-6 border-b pb-9"
             aria-labelledby="off-result-title"
         >
-            <div className="grid min-w-0 items-start gap-5 min-[22.5rem]:grid-cols-[minmax(6.5rem,8.5rem)_minmax(0,1fr)]">
+            <div className="grid min-w-0 items-start gap-6 min-[22.5rem]:grid-cols-[minmax(7rem,10rem)_minmax(0,1fr)] lg:grid-cols-[minmax(15rem,22rem)_minmax(0,1fr)] lg:gap-12">
                 {hasReferenceImage ? (
                     <ReferenceImage
                         image={referenceImage!}
@@ -187,50 +218,26 @@ function SummarySection({
                     >
                         {packageName ?? t("informationNotMentioned")}
                     </h1>
-                    <dl className="mt-3 grid gap-3">
+                    <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+                        <SummaryFact label={t("brandLabel")} evidence={brand} />
                         <SummaryFact
                             label={t("quantityLabel")}
                             evidence={quantity}
                         />
-                        <div className="border-coconut-brown/50 bg-coconut-brown-soft grid grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-lg border p-3">
-                            <WarningCircleIcon
-                                className="text-coconut-brown mt-0.5 shrink-0"
-                                aria-hidden="true"
-                                size={22}
-                                weight="fill"
-                            />
-                            <div className="min-w-0">
-                                <dt className="font-semibold">
-                                    {t("allergenAlertTitle")}
-                                </dt>
-                                <dd className="mt-0.5 wrap-anywhere">
-                                    {allergenAlert ?? <UnavailableValue />}
-                                </dd>
-                            </div>
-                        </div>
+                        <SummaryFact
+                            label={t("madeInLabel")}
+                            evidence={madeIn}
+                        />
+                        <SummaryFact
+                            label={t("identifierLabel")}
+                            evidence={
+                                {
+                                    value: normalizedIdentifier,
+                                } as PackageMatchEvidenceResponse
+                            }
+                        />
                     </dl>
                 </div>
-            </div>
-            <div className="border-border grid gap-3 border-t pt-4 min-[26rem]:grid-cols-2">
-                <SummaryFact
-                    label={t("nameLabel")}
-                    evidence={
-                        packageName
-                            ? ({
-                                  value: packageName,
-                              } as PackageMatchEvidenceResponse)
-                        : undefined
-                    }
-                />
-                <SummaryFact label={t("madeInLabel")} evidence={madeIn} />
-                <SummaryFact
-                    label={t("identifierLabel")}
-                    evidence={
-                        {
-                            value: normalizedIdentifier,
-                        } as PackageMatchEvidenceResponse
-                    }
-                />
             </div>
         </section>
     )
@@ -249,7 +256,7 @@ function ReferenceImage({
     return (
         <figure className="m-0 min-w-0">
             <img
-                className="border-border bg-muted mx-auto aspect-[4/5] w-full rounded-xl border object-contain"
+                className="bg-muted mx-auto aspect-[4/5] w-full rounded-2xl object-contain"
                 src={image.url}
                 alt={
                     packageName
@@ -267,7 +274,7 @@ function ImagePlaceholder() {
     const { t } = useTranslation()
     return (
         <div
-            className="border-border bg-muted text-muted-foreground grid aspect-[4/5] min-h-32 place-content-center justify-items-center gap-2 rounded-xl border p-3 text-center text-sm leading-relaxed"
+            className="bg-muted text-muted-foreground grid aspect-[4/5] min-h-32 place-content-center justify-items-center gap-2 rounded-2xl p-3 text-center text-sm leading-relaxed"
             role="img"
             aria-label={t("imageUnavailable")}
         >
@@ -511,7 +518,7 @@ function CategorySection({
 }) {
     return (
         <section
-            className={`border-border bg-background min-w-0 rounded-xl border p-4 sm:p-5 ${className}`}
+            className={`border-border min-w-0 border-t pt-6 ${className}`}
             aria-labelledby={id}
         >
             <h2

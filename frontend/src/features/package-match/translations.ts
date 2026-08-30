@@ -3,15 +3,23 @@ export const packageMatchTranslations = {
         title: "ពិនិត្យបាកូដលើកញ្ចប់",
         homeIntro: "បញ្ចូលលេខបាកូដ ដើម្បីរកព័ត៌មានកញ្ចប់ពីប្រភព។",
         cameraTitle: "ស្កេនដោយកាមេរ៉ា",
+        cameraPrivacyTitle: "មុនពេលបើកកាមេរ៉ា",
+        cameraPrivacyBody:
+            "ស៊ុមវីដេអូត្រូវបានដំណើរការនៅក្នុងឧបករណ៍នេះ ដើម្បីរកបាកូដ។ LifeGoods មិនផ្ទុក ឬបញ្ជូនរូបភាពកាមេរ៉ាទេ។",
+        cameraPrivacySession:
+            "ជម្រើសនេះត្រូវបានចងចាំតែក្នុងសម័យកម្មវិធីរុករកនេះ។",
         cameraComingSoon: "កាមេរ៉ានឹងមកឆាប់ៗ។ សូមប្រើលេខបាកូដឥឡូវនេះ។",
         cameraIdle: "ចុចចាប់ផ្តើម ដើម្បីស្កេនលេខបាកូដលើកញ្ចប់។",
         cameraStart: "ចាប់ផ្តើមកាមេរ៉ា",
         cameraStarting: "កំពុងបើកកាមេរ៉ា…",
         cameraScanning: "ដាក់លេខបាកូដក្នុងប្រអប់ស្កេន។",
         cameraStop: "បិទកាមេរ៉ា",
+        cameraPause: "ផ្អាកកាមេរ៉ា",
+        cameraResume: "បន្តកាមេរ៉ា",
+        cameraPaused: "កាមេរ៉ាត្រូវបានផ្អាក។",
+        cameraSwitch: "ប្តូរកាមេរ៉ា",
         cameraTryAgain: "ព្យាយាមបើកម្ដងទៀត",
         cameraUnavailable: "មិនអាចប្រើកាមេរ៉ា",
-        cameraDelayed: "មិនទាន់រកឃើញលេខបាកូដទេ។ អ្នកអាចបញ្ចូលលេខខាងក្រោម។",
         cameraInvalid:
             "លេខដែលបានរកឃើញមិនមែនជាបាកូដដែល LifeGoods គាំទ្រទេ។ សូមសាកល្បងម្ដងទៀត។",
         cameraErrorPermission:
@@ -30,6 +38,8 @@ export const packageMatchTranslations = {
         cameraErrorInterrupted:
             "ការបើកកាមេរ៉ាត្រូវបានរំខាន។ សូមត្រឡប់មកទំព័រនេះ បើកទំព័រឡើងវិញ ហើយសាកល្បងម្ដងទៀត ឬបញ្ចូលលេខបាកូដខាងក្រោម។",
         switchToCamera: "ប្តូរទៅកាមេរ៉ា",
+        searchByNameOrBarcode: "ស្វែងរកតាមឈ្មោះផលិតផល ឬបាកូដ",
+        openProductSearch: "បើកការស្វែងរកផលិតផល",
         fieldLabel: "លេខបាកូដ",
         fieldPlaceholder: "លេខបាកូដ",
         fieldHint:
@@ -58,6 +68,15 @@ export const packageMatchTranslations = {
         backHome: "ត្រឡប់ទៅទំព័រដើម",
         resultDialogLabel: "លទ្ធផលពិនិត្យបាកូដ",
         productDetailsTitle: "ព័ត៌មានផលិតផល",
+        evidenceSnapshotTitle: "ទិដ្ឋភាពសង្ខេបភស្តុតាង",
+        declaredConcernsSnapshot: "កង្វល់ដែលបានប្រកាស",
+        evidenceGapsSnapshot: "ចន្លោះភស្តុតាង",
+        sourceReviewSnapshot: "ប្រភព និងការពិនិត្យ",
+        sourceNotAvailable: "មិនមានពីប្រភពនេះ",
+        missingGroups: "ក្រុមដែលខ្វះ៖ {{fields}}",
+        noEvidenceGaps: "មានក្រុមភស្តុតាងសំខាន់ទាំងអស់នៅក្នុងប្រភពនេះ។",
+        reviewedSourceState: "កំណត់ត្រាកាតាឡុកដែលបានពិនិត្យ",
+        communitySourceState: "ទិន្នន័យសហគមន៍—មិនទាន់ពិនិត្យដោយ LifeGoods",
         closeResult: "បិទលទ្ធផល",
         collapseResultSheet: "បង្រួមព័ត៌មានផលិតផល",
         expandResultSheet: "ពង្រីកព័ត៌មានផលិតផល",
@@ -206,6 +225,11 @@ export const packageMatchTranslations = {
         homeIntro:
             "Enter the digits below a barcode to find source-scoped package information.",
         cameraTitle: "Scan with the camera",
+        cameraPrivacyTitle: "Before the camera starts",
+        cameraPrivacyBody:
+            "Video frames are processed on this device to detect a barcode. LifeGoods does not store or upload camera images.",
+        cameraPrivacySession:
+            "This choice is remembered only for this browser session.",
         cameraComingSoon:
             "Camera scanning is coming soon. Use the barcode number for now.",
         cameraIdle: "Tap start to scan the barcode on the package.",
@@ -213,9 +237,12 @@ export const packageMatchTranslations = {
         cameraStarting: "Starting camera…",
         cameraScanning: "Place the barcode inside the scan frame.",
         cameraStop: "Stop camera",
+        cameraPause: "Pause camera",
+        cameraResume: "Resume camera",
+        cameraPaused: "Camera paused.",
+        cameraSwitch: "Switch camera",
         cameraTryAgain: "Try camera again",
         cameraUnavailable: "Camera unavailable",
-        cameraDelayed: "No barcode yet. You can enter the number below.",
         cameraInvalid:
             "That code is not a barcode format LifeGoods supports. Try again.",
         cameraErrorPermission:
@@ -235,6 +262,8 @@ export const packageMatchTranslations = {
         cameraErrorInterrupted:
             "Camera startup was interrupted. Return to this page, reload it, and try again—or enter the barcode number below.",
         switchToCamera: "Switch to camera",
+        searchByNameOrBarcode: "Search by Product name or barcode",
+        openProductSearch: "Open Product search",
         fieldLabel: "Barcode number",
         fieldPlaceholder: "Barcode number",
         fieldHint:
@@ -263,6 +292,16 @@ export const packageMatchTranslations = {
         backHome: "Back to Home",
         resultDialogLabel: "Barcode check result",
         productDetailsTitle: "Product details",
+        evidenceSnapshotTitle: "Evidence Snapshot",
+        declaredConcernsSnapshot: "Declared concerns",
+        evidenceGapsSnapshot: "Evidence gaps",
+        sourceReviewSnapshot: "Source and review",
+        sourceNotAvailable: "Not available from this source",
+        missingGroups: "Missing groups: {{fields}}",
+        noEvidenceGaps:
+            "All core evidence groups are available from this source.",
+        reviewedSourceState: "Reviewed catalog record",
+        communitySourceState: "Community data—not reviewed by LifeGoods",
         closeResult: "Close result",
         collapseResultSheet: "Collapse product details",
         expandResultSheet: "Expand product details",

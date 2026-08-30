@@ -83,6 +83,7 @@ describe("OpenFoodFactsResult", () => {
             screen.getByRole("heading", { name: "Dark chocolate" }),
         ).toHaveFocus()
         for (const heading of [
+            "Evidence Snapshot",
             "Allergens",
             "Product information",
             "Ingredients",
@@ -104,10 +105,13 @@ describe("OpenFoodFactsResult", () => {
         expect(within(summary).getByText("100 g")).toBeVisible()
         expect(within(summary).getByText("Made in")).toBeVisible()
         expect(within(summary).getByText("Cambodia")).toBeVisible()
-        expect(
-            within(summary).getByText("Allergen alert from source"),
-        ).toBeVisible()
-        expect(within(summary).getByText("Contains milk")).toBeVisible()
+        const snapshot = screen
+            .getByRole("heading", { name: "Evidence Snapshot" })
+            .closest("section")!
+        expect(within(snapshot).getByText("Declared concerns")).toBeVisible()
+        expect(within(snapshot).getByText("Contains milk")).toBeVisible()
+        expect(within(snapshot).getByText("Evidence gaps")).toBeVisible()
+        expect(within(snapshot).getByText("Source and review")).toBeVisible()
 
         const productInformation = screen
             .getByRole("heading", { name: "Product information" })

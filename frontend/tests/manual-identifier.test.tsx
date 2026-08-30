@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
@@ -39,18 +39,6 @@ function renderJourney(lookup: PackageMatchLookup, path = "/search") {
     }
 }
 
-function dispatchPointerEvent(
-    element: HTMLElement,
-    type: string,
-    init: Record<string, number | string>,
-) {
-    const event = new Event(type, { bubbles: true, cancelable: true })
-    for (const [key, value] of Object.entries(init)) {
-        Object.defineProperty(event, key, { configurable: true, value })
-    }
-    element.dispatchEvent(event)
-}
-
 describe("identifier search journey", () => {
     afterEach(() => {
         vi.unstubAllGlobals()
@@ -86,36 +74,26 @@ describe("identifier search journey", () => {
         expect(lookup).not.toHaveBeenCalled()
     })
 
-    test("uses an active-language flag on home and keeps other routes headerless", async () => {
+    test("uses a labeled language control on Scan and keeps other routes focused", async () => {
         const user = userEvent.setup()
         const lookup = vi.fn<PackageMatchLookup>()
         renderJourney(lookup, "/")
 
-        expect(screen.queryByRole("banner")).not.toBeInTheDocument()
+        expect(screen.getByRole("banner")).toBeVisible()
         const languageSwitch = screen.getByRole("button", {
             name: "ប្តូរទៅភាសាអង់គ្លេស",
         })
-        const flag = languageSwitch.querySelector('[data-language-flag="km"]')
         expect(
             screen.getByRole("link", { name: "បើកការស្វែងរកផលិតផល" }),
         ).toHaveAttribute("href", "/search")
-        expect(languageSwitch).toHaveClass(
-            "!min-h-0",
-            "size-10",
-            "border-0",
-            "p-0",
+        const khmerFlag = languageSwitch.querySelector(
+            '[data-language-flag="km"]',
         )
-        expect(flag).toBeInTheDocument()
-        expect(flag).toBeInstanceOf(HTMLImageElement)
-        expect(flag).toHaveAttribute("src", "/flags/cambodia.svg")
-        expect(flag).toHaveAttribute("alt", "")
-        expect(flag).toHaveAttribute("aria-hidden", "true")
-        expect(flag).toHaveAttribute("width", "1000")
-        expect(flag).toHaveAttribute("height", "640")
-        expect(flag).toHaveClass("size-full", "rounded-full", "object-cover")
-        expect(flag?.parentElement).toHaveClass("size-10", "rounded-full")
+        expect(khmerFlag).toBeInTheDocument()
+        expect(khmerFlag).toHaveAttribute("src", "/flags/cambodia.svg")
+        expect(languageSwitch).toHaveClass("min-h-11", "min-w-11")
 
-        expect(screen.getByRole("link", { name: "ទំព័រដើម" })).toHaveAttribute(
+        expect(screen.getByRole("link", { name: "ស្កេន" })).toHaveAttribute(
             "aria-current",
             "page",
         )
@@ -126,22 +104,8 @@ describe("identifier search journey", () => {
         const englishFlag = englishLanguageSwitch.querySelector(
             '[data-language-flag="en"]',
         )
-        expect(englishLanguageSwitch).toHaveClass(
-            "!min-h-0",
-            "size-10",
-            "rounded-full",
-        )
         expect(englishFlag).toBeInTheDocument()
-        expect(englishFlag).toHaveClass(
-            "size-full",
-            "overflow-hidden",
-            "rounded-full",
-            "object-cover",
-        )
-        expect(englishFlag?.parentElement).toHaveClass(
-            "size-10",
-            "rounded-full",
-        )
+        expect(englishFlag).toHaveAttribute("src", "/flags/united-kingdom.svg")
 
         await user.click(screen.getByRole("link", { name: "Learn" }))
 
@@ -186,12 +150,10 @@ describe("identifier search journey", () => {
         expect(lookup).toHaveBeenCalledWith("4006381333931")
         expect(screen.getAllByText("4006381333931").length).toBeGreaterThan(0)
         expect(screen.queryByRole("navigation")).not.toBeInTheDocument()
-        expect(screen.queryByRole("banner")).not.toBeInTheDocument()
-        expect(screen.getByRole("dialog")).toHaveAccessibleName(
-            "លទ្ធផលពិនិត្យបាកូដ",
-        )
-        expect(document.querySelector("[inert]")).toBeInTheDocument()
-        expect(document.body).toHaveClass("overflow-hidden")
+        expect(screen.getByRole("banner")).toBeVisible()
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+        expect(document.querySelector("[inert]")).not.toBeInTheDocument()
+        expect(document.body).not.toHaveClass("overflow-hidden")
         expect(
             screen.queryByRole("button", { name: "ប្តូរទៅភាសាអង់គ្លេស" }),
         ).not.toBeInTheDocument()
@@ -207,7 +169,7 @@ describe("identifier search journey", () => {
         expect(document.body).not.toHaveClass("overflow-hidden")
     })
 
-    test("moves the result sheet between expanded and collapsed positions", async () => {
+    test("renders results as a focused full-screen route", async () => {
         await i18n.changeLanguage("en")
         const user = userEvent.setup()
         const lookup = vi
@@ -223,108 +185,12 @@ describe("identifier search journey", () => {
             name: "No package information found",
         })
 
-        const dialog = screen.getByRole("dialog")
-        const handle = screen.getByRole("button", {
-            name: "Collapse product details",
-        })
-        expect(handle).toHaveClass("sm:hidden")
-        expect(dialog).toHaveAttribute("data-sheet-position", "expanded")
-
-        dispatchPointerEvent(handle, "pointerdown", {
-            button: 0,
-            clientY: 100,
-            pointerId: 1,
-        })
-        dispatchPointerEvent(handle, "pointermove", {
-            clientY: 900,
-            pointerId: 1,
-        })
-        dispatchPointerEvent(handle, "pointerup", {
-            clientY: 900,
-            pointerId: 1,
-        })
-
-        await waitFor(() =>
-            expect(dialog).toHaveAttribute("data-sheet-position", "collapsed"),
-        )
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
         expect(
-            screen.getByRole("heading", { name: "Product details" }),
-        ).toBeVisible()
-        expect(screen.getByRole("dialog")).toBeInTheDocument()
-        expect(
-            screen.getByRole("button", { name: "Expand product details" }),
-        ).toBeInTheDocument()
-
-        const collapsedHandle = screen.getByRole("button", {
-            name: "Expand product details",
-        })
-        dispatchPointerEvent(collapsedHandle, "pointerdown", {
-            button: 0,
-            clientY: 900,
-            pointerId: 2,
-        })
-        dispatchPointerEvent(collapsedHandle, "pointermove", {
-            clientY: 100,
-            pointerId: 2,
-        })
-        dispatchPointerEvent(collapsedHandle, "pointerup", {
-            clientY: 100,
-            pointerId: 2,
-        })
-
-        await waitFor(() =>
-            expect(dialog).toHaveAttribute("data-sheet-position", "expanded"),
-        )
-
-        dispatchPointerEvent(handle, "pointerdown", {
-            button: 0,
-            clientY: 100,
-            pointerId: 3,
-        })
-        dispatchPointerEvent(handle, "pointermove", {
-            clientY: 300,
-            pointerId: 3,
-        })
-        dispatchPointerEvent(handle, "pointercancel", {
-            clientY: 300,
-            pointerId: 3,
-        })
-
-        await waitFor(() =>
-            expect(dialog).toHaveAttribute("data-sheet-position", "expanded"),
-        )
-    })
-
-    test("supports keyboard sheet position controls without dismissing the result", async () => {
-        await i18n.changeLanguage("en")
-        const user = userEvent.setup()
-        const lookup = vi
-            .fn<PackageMatchLookup>()
-            .mockResolvedValue(packageMatchesResponse())
-        renderJourney(lookup)
-
-        await user.type(
-            screen.getByRole("searchbox", { name: "Search Products" }),
-            "4006381333931",
-        )
-        await screen.findByRole("heading", {
-            name: "No package information found",
-        })
-
-        const dialog = screen.getByRole("dialog")
-        const handle = screen.getByRole("button", {
-            name: "Collapse product details",
-        })
-        handle.focus()
-
-        fireEvent.keyDown(handle, { key: "ArrowDown" })
-        expect(dialog).toHaveAttribute("data-sheet-position", "collapsed")
-        fireEvent.keyDown(handle, { key: "Home" })
-        expect(dialog).toHaveAttribute("data-sheet-position", "expanded")
-
-        await user.click(handle)
-        expect(dialog).toHaveAttribute("data-sheet-position", "collapsed")
-        expect(screen.getByRole("dialog")).toBeInTheDocument()
+            screen.queryByText("Collapse product details"),
+        ).not.toBeInTheDocument()
+        expect(screen.getByRole("banner")).toBeVisible()
+        expect(screen.queryByRole("navigation")).not.toBeInTheDocument()
     })
 
     test("renders a complete OFF match through the English journey", async () => {
@@ -368,7 +234,7 @@ describe("identifier search journey", () => {
         ).toBeVisible()
     })
 
-    test("traps modal focus, closes with Escape, and restores barcode focus", async () => {
+    test("closes the focused result with Escape and restores the Search query", async () => {
         await i18n.changeLanguage("en")
         const user = userEvent.setup()
         const lookup = vi
@@ -384,22 +250,13 @@ describe("identifier search journey", () => {
             name: "No package information found",
         })
 
-        const lastAction = screen.getByRole("button", {
-            name: "Try another barcode",
-        })
-        lastAction.focus()
-        await user.tab()
-        expect(screen.getByRole("dialog")).toContainElement(
-            document.activeElement as HTMLElement,
-        )
-
         await user.keyboard("{Escape}")
         const restoredInput = await screen.findByRole("searchbox", {
             name: "Search Products",
         })
         expect(restoredInput).toHaveValue("4006381333931")
         expect(restoredInput).toHaveFocus()
-        expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+        expect(screen.getByRole("navigation")).toBeVisible()
     })
 
     test("keeps a sparse OFF match explicit while changing interface language", async () => {
