@@ -66,13 +66,13 @@ Validate, import, and activate the complete releases:
 # Food Allergens
 pnpm reference:dataset -- validate backend/src/lifegoods/reference_datasets/bundles/codex_2026_food_allergen_reviewed_english_v1.json
 pnpm reference:dataset -- import backend/src/lifegoods/reference_datasets/bundles/codex_2026_food_allergen_reviewed_english_v1.json
-pnpm reference:dataset -- activate codex-food-allergen-2026-reviewed-english-v1
+pnpm reference:dataset -- activate codex-food-allergen-2026-reviewed-english-v1 --approver lifegoods --review-kind FOOD_DOMAIN_REVIEW
 pnpm reference:dataset -- status --dataset-kind FOOD_ALLERGEN
 
 # Halal Ingredients
 pnpm reference:dataset -- validate backend/src/lifegoods/reference_datasets/bundles/halal_ingredient_2026_reviewed_english_v1.json
 pnpm reference:dataset -- import backend/src/lifegoods/reference_datasets/bundles/halal_ingredient_2026_reviewed_english_v1.json
-pnpm reference:dataset -- activate halal-ingredient-2026-reviewed-english-v1 --approver halal-reviewer@lifegoods.org --review-kind HALAL_DOMAIN_REVIEW
+pnpm reference:dataset -- activate halal-ingredient-2026-reviewed-english-v1 --approver lifegoods --review-kind HALAL_DOMAIN_REVIEW
 pnpm reference:dataset -- status --dataset-kind HALAL_INGREDIENT
 ```
 
@@ -172,8 +172,8 @@ Activation retains the immediately previous valid version. If an operational rol
 required, record the responsible operator:
 
 ```bash
-pnpm reference:dataset -- rollback --dataset-kind FOOD_ALLERGEN --approver <operator>
-pnpm reference:dataset -- rollback --dataset-kind HALAL_INGREDIENT --approver <operator>
+pnpm reference:dataset -- rollback --dataset-kind FOOD_ALLERGEN --approver lifegoods
+pnpm reference:dataset -- rollback --dataset-kind HALAL_INGREDIENT --approver lifegoods
 ```
 
 Rollback changes the active pointer; it does not mutate or delete either immutable release.

@@ -10,9 +10,9 @@ The identifier is a lookup key for a `Package Variant`; it is not a `Product` id
 - Python 3.13 and uv
 - Docker with Compose (for local PostgreSQL, MongoDB, and Redis)
 
-## Quick Start
+## Getting Started
 
-### 1. Install Dependencies & Configure
+### 1. Install Dependencies & Configure Environment
 
 ```bash
 pnpm install
@@ -20,25 +20,46 @@ pnpm backend:install
 cp backend/.env.example backend/.env
 ```
 
-To enable allergen assessments, set `LIFEGOODS_ALLERGEN_ASSESSMENTS_ENABLED=true` in `backend/.env`. Redis provides shared Package Match rate limiting and, by default, the optional Assessment Evaluation cache. See `backend/.env.example` for the local-fallback controls.
+> **Note**: To enable stateless assessments in development, set `LIFEGOODS_ALLERGEN_ASSESSMENTS_ENABLED=true` and `LIFEGOODS_HALAL_INGREDIENT_ASSESSMENTS_ENABLED=true` in `backend/.env` after activating the corresponding reference datasets in Step 4.
 
 ### 2. Start Databases & Apply Migrations
+
+Start local PostgreSQL (port `5433`), MongoDB (port `27018`), and Redis (port `6380`), then apply PostgreSQL schema migrations:
 
 ```bash
 docker compose -f infra/compose.yaml up -d
 pnpm db:migrate
 ```
 
-### 3. Initialize Reference Data
+### 3. Ingest & Activate Open Food Facts Product Mirror (MongoDB)
 
-Import and activate the reviewed English Codex-2026 food allergen dataset:
+Stream, index, and activate the Open Food Facts external catalog snapshot:
 
 ```bash
-pnpm reference:dataset -- import backend/src/lifegoods/reference_datasets/bundles/codex_2026_food_allergen_reviewed_english_v1.json
-pnpm reference:dataset -- activate codex-food-allergen-2026-reviewed-english-v1
+pnpm off:dataset -- import-url
+pnpm off:dataset -- list
+pnpm off:dataset -- activate <off_version_id>
 ```
 
-### 4. Start Development Servers
+### 4. Ingest & Activate Reference Datasets (PostgreSQL)
+
+Validate, import, and activate the reviewed English Food Allergen and Halal Ingredient reference datasets:
+
+```bash
+# Food Allergens (Codex 2026)
+pnpm reference:dataset -- validate backend/src/lifegoods/reference_datasets/bundles/codex_2026_food_allergen_reviewed_english_v1.json
+pnpm reference:dataset -- import backend/src/lifegoods/reference_datasets/bundles/codex_2026_food_allergen_reviewed_english_v1.json
+pnpm reference:dataset -- activate codex-food-allergen-2026-reviewed-english-v1 --approver lifegoods --review-kind FOOD_DOMAIN_REVIEW
+pnpm reference:dataset -- status --dataset-kind FOOD_ALLERGEN
+
+# Halal Ingredients (Cambodia Prakas No. 090 & OIC/SMIIC)
+pnpm reference:dataset -- validate backend/src/lifegoods/reference_datasets/bundles/halal_ingredient_2026_reviewed_english_v1.json
+pnpm reference:dataset -- import backend/src/lifegoods/reference_datasets/bundles/halal_ingredient_2026_reviewed_english_v1.json
+pnpm reference:dataset -- activate halal-ingredient-2026-reviewed-english-v1 --approver lifegoods --review-kind HALAL_DOMAIN_REVIEW
+pnpm reference:dataset -- status --dataset-kind HALAL_INGREDIENT
+```
+
+### 5. Start Development Servers
 
 Run the API backend and Web Client in separate terminals:
 
@@ -52,10 +73,15 @@ pnpm dev
 
 Open `https://localhost:5173` in your browser. For plain HTTP without camera access, run `pnpm dev:http` instead.
 
-## Verify
+## Verification
 
 ```bash
+# Run full verification suite (TypeScript, Ruff, ESLint, Vitest, pytest, Vite build, OpenAPI check)
+pnpm typecheck
+pnpm lint
 pnpm test
+pnpm build
+pnpm api:check
 ```
 
 ## Documentation

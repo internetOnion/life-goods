@@ -6,34 +6,63 @@ This document provides a comprehensive reference for all command-line interfaces
 
 ## Quick Reference Table
 
-| Task                            | Command                                                           | Description                                                                      |
-| :------------------------------ | :---------------------------------------------------------------- | :------------------------------------------------------------------------------- |
-| **Start Infrastructure**        | `docker compose -f infra/compose.yaml up -d`                      | Launches PostgreSQL (port `5433`), MongoDB (port `27018`), & Redis (port `6380`).|
-| **Apply Migrations**            | `pnpm db:migrate`                                                 | Runs Alembic schema migrations against PostgreSQL.                               |
-| **Validate Reference Dataset**  | `pnpm reference:dataset -- validate <bundle_path>`                | Validates a local JSON reference dataset bundle without writing to DB.           |
-| **Import Reference Dataset**    | `pnpm reference:dataset -- import <bundle_path>`                  | Inserts an immutable Reference Dataset Version into PostgreSQL.                  |
-| **Activate Reference Dataset**  | `pnpm reference:dataset -- activate <version_id>`                 | Atomically sets the active reference dataset pointer.                            |
-| **Status of Reference Dataset** | `pnpm reference:dataset -- status [--dataset-kind FOOD_ALLERGEN]` | Displays currently active reference dataset version & metadata.                  |
-| **List Reference Datasets**     | `pnpm reference:dataset -- list`                                  | Lists all imported reference dataset versions.                                   |
-| **Inspect Reference Dataset**   | `pnpm reference:dataset -- inspect <version_id>`                  | Shows full concept hierarchy, mappings, exclusions, and rules.                   |
-| **Rollback Reference Dataset**  | `pnpm reference:dataset -- rollback [--approver <name>]`          | Reverts pointer to the immediately previous valid version.                       |
-| **Import OFF Dataset**          | `pnpm off:dataset -- import-url [--url <url>]`                    | Streams and imports compressed Open Food Facts JSONL export into MongoDB.        |
-| **List OFF Datasets**           | `pnpm off:dataset -- list`                                        | Lists all imported OFF dataset versions and statuses.                            |
-| **Activate OFF Dataset**        | `pnpm off:dataset -- activate <version_id>`                       | Sets active OFF dataset version in MongoDB control collection.                   |
-| **Revalidate OFF Dataset**      | `pnpm off:dataset -- revalidate <version_id>`                     | Re-verifies barcodes and collection integrity for a dataset version.             |
-| **Rollback OFF Dataset**        | `pnpm off:dataset -- rollback`                                    | Reverts active OFF pointer to the previous version.                              |
-| **Prune OFF Datasets**          | `pnpm off:dataset -- prune`                                       | Deletes inactive, non-previous dataset collections.                              |
-| **Delete OFF Dataset**          | `pnpm off:dataset -- delete <version_id>`                         | Drops specific inactive dataset collection.                                      |
-| **Start Backend Dev Server**    | `pnpm backend:dev`                                                | Runs FastAPI server with hot-reload at `http://localhost:8000`.                  |
-| **Start Frontend (HTTPS)**      | `pnpm dev` or `pnpm dev:https`                                    | Starts Vite dev server with self-signed certificate at `https://localhost:5173`. |
-| **Start Frontend (HTTP)**       | `pnpm dev:http`                                                   | Starts Vite dev server over HTTP at `http://localhost:5173`.                     |
-| **Build Frontend**              | `pnpm build`                                                      | Compiles TypeScript and runs Vite production build.                              |
-| **Run All Tests**               | `pnpm test`                                                       | Runs frontend Vitest and backend pytest suites.                                  |
-| **Run Lint Checks**             | `pnpm lint`                                                       | Runs Prettier, ESLint, and Ruff checks.                                          |
-| **Format Frontend**             | `pnpm frontend:lint:format`                                       | Auto-formats frontend code using Prettier with Tailwind plugin.                  |
-| **Run Typechecks**              | `pnpm typecheck`                                                  | Runs TypeScript (`tsc`) and Pyright checks across projects.                      |
-| **Generate API Client**         | `pnpm api:generate`                                               | Exports OpenAPI JSON from FastAPI and regenerates TypeScript client.             |
-| **Verify API Contract Drift**   | `pnpm api:check`                                                  | Regenerates OpenAPI spec and fails if committed artifacts differ.                |
+| Task                            | Command                                                                 | Description                                                                      |
+| :------------------------------ | :---------------------------------------------------------------------- | :------------------------------------------------------------------------------- |
+| **Start Infrastructure**        | `docker compose -f infra/compose.yaml up -d`                            | Launches PostgreSQL (port `5433`), MongoDB (port `27018`), & Redis (port `6380`).|
+| **Apply Migrations**            | `pnpm db:migrate`                                                       | Runs Alembic schema migrations against PostgreSQL.                               |
+| **Validate Reference Dataset**  | `pnpm reference:dataset -- validate <bundle_path>`                      | Validates a local JSON reference dataset bundle without writing to DB.           |
+| **Import Reference Dataset**    | `pnpm reference:dataset -- import <bundle_path>`                        | Inserts an immutable Reference Dataset Version into PostgreSQL.                  |
+| **Activate Reference Dataset**  | `pnpm reference:dataset -- activate <version_id>`                       | Atomically sets the active reference dataset pointer.                            |
+| **Status of Reference Dataset** | `pnpm reference:dataset -- status [--dataset-kind FOOD_ALLERGEN\|HALAL_INGREDIENT]` | Displays currently active reference dataset version & metadata.                  |
+| **List Reference Datasets**     | `pnpm reference:dataset -- list`                                        | Lists all imported reference dataset versions.                                   |
+| **Inspect Reference Dataset**   | `pnpm reference:dataset -- inspect <version_id>`                        | Shows full concept hierarchy, mappings, exclusions, and rules.                   |
+| **Rollback Reference Dataset**  | `pnpm reference:dataset -- rollback [--dataset-kind FOOD_ALLERGEN\|HALAL_INGREDIENT] [--approver <name>]` | Reverts pointer to the immediately previous valid version.                       |
+| **Import OFF Dataset**          | `pnpm off:dataset -- import-url [--url <url>]`                          | Streams and imports compressed Open Food Facts JSONL export into MongoDB.        |
+| **List OFF Datasets**           | `pnpm off:dataset -- list`                                              | Lists all imported OFF dataset versions and statuses.                            |
+| **Activate OFF Dataset**        | `pnpm off:dataset -- activate <version_id>`                             | Sets active OFF dataset version in MongoDB control collection.                   |
+| **Revalidate OFF Dataset**      | `pnpm off:dataset -- revalidate <version_id>`                           | Re-verifies barcodes and collection integrity for a dataset version.             |
+| **Rollback OFF Dataset**        | `pnpm off:dataset -- rollback`                                          | Reverts active OFF pointer to the previous version.                              |
+| **Prune OFF Datasets**          | `pnpm off:dataset -- prune`                                             | Deletes inactive, non-previous dataset collections.                              |
+| **Delete OFF Dataset**          | `pnpm off:dataset -- delete <version_id>`                               | Drops specific inactive dataset collection.                                      |
+| **Start Backend Dev Server**    | `pnpm backend:dev`                                                      | Runs FastAPI server with hot-reload at `http://localhost:8000`.                  |
+| **Start Frontend (HTTPS)**      | `pnpm dev` or `pnpm dev:https`                                          | Starts Vite dev server with self-signed certificate at `https://localhost:5173`. |
+| **Start Frontend (HTTP)**       | `pnpm dev:http`                                                         | Starts Vite dev server over HTTP at `http://localhost:5173`.                     |
+| **Build Frontend**              | `pnpm build`                                                            | Compiles TypeScript and runs Vite production build.                              |
+| **Run All Tests**               | `pnpm test`                                                             | Runs frontend Vitest and backend pytest suites.                                  |
+| **Run Lint Checks**             | `pnpm lint`                                                             | Runs Prettier, ESLint, and Ruff checks.                                          |
+| **Format Frontend**             | `pnpm frontend:lint:format`                                             | Auto-formats frontend code using Prettier with Tailwind plugin.                  |
+| **Run Typechecks**              | `pnpm typecheck`                                                        | Runs TypeScript (`tsc`) and Pyright checks across projects.                      |
+| **Generate API Client**         | `pnpm api:generate`                                                     | Exports OpenAPI JSON from FastAPI and regenerates TypeScript client.             |
+| **Verify API Contract Drift**   | `pnpm api:check`                                                        | Regenerates OpenAPI spec and fails if committed artifacts differ.                |
+
+---
+
+## Fresh Setup Data Initialization Sequence
+
+For fresh local setups, staging environments, or testing cutovers, follow this complete workflow to initialize and activate all data layers:
+
+```bash
+# 1. Start Infrastructure and Apply Database Migrations
+docker compose -f infra/compose.yaml up -d
+pnpm db:migrate
+
+# 2. Populate and Activate Open Food Facts MongoDB Product Mirror
+pnpm off:dataset -- import-url
+pnpm off:dataset -- list
+pnpm off:dataset -- activate <off_version_id>
+
+# 3. Populate and Activate Food Allergen Reference Dataset (PostgreSQL)
+pnpm reference:dataset -- validate backend/src/lifegoods/reference_datasets/bundles/codex_2026_food_allergen_reviewed_english_v1.json
+pnpm reference:dataset -- import backend/src/lifegoods/reference_datasets/bundles/codex_2026_food_allergen_reviewed_english_v1.json
+pnpm reference:dataset -- activate codex-food-allergen-2026-reviewed-english-v1 --approver lifegoods --review-kind FOOD_DOMAIN_REVIEW
+pnpm reference:dataset -- status --dataset-kind FOOD_ALLERGEN
+
+# 4. Populate and Activate Halal Ingredient Reference Dataset (PostgreSQL)
+pnpm reference:dataset -- validate backend/src/lifegoods/reference_datasets/bundles/halal_ingredient_2026_reviewed_english_v1.json
+pnpm reference:dataset -- import backend/src/lifegoods/reference_datasets/bundles/halal_ingredient_2026_reviewed_english_v1.json
+pnpm reference:dataset -- activate halal-ingredient-2026-reviewed-english-v1 --approver lifegoods --review-kind HALAL_DOMAIN_REVIEW
+pnpm reference:dataset -- status --dataset-kind HALAL_INGREDIENT
+```
 
 ---
 
@@ -108,7 +137,11 @@ pnpm reference:dataset -- validate backend/src/lifegoods/reference_datasets/bund
 Validates and inserts an immutable reference dataset bundle into PostgreSQL. This operation is idempotent for identical version IDs and payloads; conflicting payloads under an existing ID are rejected.
 
 ```bash
+# Food Allergens
 pnpm reference:dataset -- import backend/src/lifegoods/reference_datasets/bundles/codex_2026_food_allergen_reviewed_english_v1.json
+
+# Halal Ingredients
+pnpm reference:dataset -- import backend/src/lifegoods/reference_datasets/bundles/halal_ingredient_2026_reviewed_english_v1.json
 ```
 
 #### `activate`
@@ -116,10 +149,18 @@ pnpm reference:dataset -- import backend/src/lifegoods/reference_datasets/bundle
 Atomically updates the active reference dataset pointer to the specified version ID for its dataset kind.
 
 ```bash
-pnpm reference:dataset -- activate <version_id> [--approver <name>] [--review-kind <kind>]
+# Food Allergens
+pnpm reference:dataset -- activate codex-food-allergen-2026-reviewed-english-v1 \
+  --approver lifegoods \
+  --review-kind FOOD_DOMAIN_REVIEW
+
+# Halal Ingredients
+pnpm reference:dataset -- activate halal-ingredient-2026-reviewed-english-v1 \
+  --approver lifegoods \
+  --review-kind HALAL_DOMAIN_REVIEW
 ```
 
-- `--approver <string>`: Name or identifier of the project maintainer approving activation.
+- `--approver <string>`: Name or identifier of the project maintainer approving activation (use `lifegoods` in development).
 - `--review-kind <string>`: Classification of review (e.g., `FOOD_DOMAIN_REVIEW`, `HALAL_DOMAIN_REVIEW`, `PROJECT_MAINTAINER_APPROVAL`).
 
 #### `status`
@@ -127,7 +168,11 @@ pnpm reference:dataset -- activate <version_id> [--approver <name>] [--review-ki
 Displays the currently active pointer and version record for a dataset kind.
 
 ```bash
-pnpm reference:dataset -- status [--dataset-kind FOOD_ALLERGEN|HALAL_INGREDIENT]
+# Check Food Allergen status
+pnpm reference:dataset -- status --dataset-kind FOOD_ALLERGEN
+
+# Check Halal Ingredient status
+pnpm reference:dataset -- status --dataset-kind HALAL_INGREDIENT
 ```
 
 - `--dataset-kind <string>`: Dataset category (default: `FOOD_ALLERGEN`, or `HALAL_INGREDIENT`).
@@ -147,7 +192,11 @@ Dumps the common version metadata and the complete typed records for that datase
 `HALAL_INGREDIENT` version includes all concept nodes, mapped lexical tokens, and cited Halal ingredient mappings.
 
 ```bash
-pnpm reference:dataset -- inspect <version_id>
+# Inspect Food Allergen version
+pnpm reference:dataset -- inspect codex-food-allergen-2026-reviewed-english-v1
+
+# Inspect Halal Ingredient version
+pnpm reference:dataset -- inspect halal-ingredient-2026-reviewed-english-v1
 ```
 
 #### `rollback`
@@ -155,7 +204,11 @@ pnpm reference:dataset -- inspect <version_id>
 Atomically reverts the active pointer for a dataset kind to the immediately previous valid version.
 
 ```bash
-pnpm reference:dataset -- rollback [--dataset-kind FOOD_ALLERGEN|HALAL_INGREDIENT] [--approver <operator>]
+# Rollback Food Allergen dataset
+pnpm reference:dataset -- rollback --dataset-kind FOOD_ALLERGEN --approver lifegoods
+
+# Rollback Halal Ingredient dataset
+pnpm reference:dataset -- rollback --dataset-kind HALAL_INGREDIENT --approver lifegoods
 ```
 
 ---

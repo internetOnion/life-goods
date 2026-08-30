@@ -1202,6 +1202,7 @@ def test_package_matches_candidate_includes_disabled_halal_assessment_by_default
         create_app(
             settings=Settings(
                 halal_assessments_enabled=False,
+                halal_ingredient_assessments_enabled=False,
                 package_match_requests_per_minute=10_000,
             ),
             session_factory=session_factory,
