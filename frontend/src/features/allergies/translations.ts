@@ -1,10 +1,10 @@
 export const allergiesTranslations = {
     km: {
         allergies: {
-            title: "អាឡែស៊ី",
+            title: "កង្វល់",
             body: "ចំណូលចិត្តអាឡែស៊ីមិនទាន់មាននៅក្នុងកំណែនេះទេ។ LifeGoods មិនប្រកាសថាផលិតផលណាមួយគ្មានអាលែហ្សែនទេ។",
             intro: "ជ្រើសរើសកង្វល់ដែលអ្នកចង់ឲ្យ Shopper Guidance ផ្តល់អាទិភាពនៅពេលក្រោយ។",
-            selectedHeading: "អាលែហ្សែនរបស់អ្នក",
+            selectedHeading: "កង្វល់ដែលបានជ្រើស",
             removeOption: "ដក {{option}} ចេញ",
             selectedCount: "បានជ្រើស {{count}}",
             reset: "សម្អាតការជ្រើសរើស",
@@ -35,10 +35,10 @@ export const allergiesTranslations = {
     },
     en: {
         allergies: {
-            title: "Allergies",
+            title: "Concerns",
             body: "Allergy preferences are not available in this version yet. LifeGoods never declares a Product allergen-free.",
             intro: "Choose concerns that future Shopper Guidance could prioritize for you.",
-            selectedHeading: "Your allergies",
+            selectedHeading: "Selected concerns",
             removeOption: "Remove {{option}}",
             selectedCount: "{{count}} selected",
             reset: "Reset selections",

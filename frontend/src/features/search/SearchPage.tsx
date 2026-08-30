@@ -1,8 +1,9 @@
 import {
-    ArrowLeftIcon,
+    BarcodeIcon,
     ClockCounterClockwiseIcon,
     ImageSquareIcon,
     MagnifyingGlassIcon,
+    WarningCircleIcon,
     XIcon,
 } from "@phosphor-icons/react"
 import { useInfiniteQuery } from "@tanstack/react-query"
@@ -10,7 +11,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useLocation, useNavigate, useSearchParams } from "react-router"
 
-import { appRoutes } from "@/app/routes"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -30,6 +30,7 @@ type SearchPageProps = {
 
 type SearchLocationState = {
     handledBarcode?: string
+    invalidIdentifier?: string
 }
 
 export function SearchPage({
@@ -66,6 +67,11 @@ export function SearchPage({
             : barcodeLike && barcodeDigits.length > 14
               ? t("error.length")
               : null
+    const recoveryError =
+        locationState?.invalidIdentifier === trimmedQuery
+            ? t("cameraInvalid")
+            : null
+    const visibleBarcodeError = recoveryError ?? barcodeError
     const searchTerm =
         !barcodeLike && trimmedDebouncedQuery.length >= 2
             ? trimmedDebouncedQuery
@@ -155,25 +161,16 @@ export function SearchPage({
         barcodeDigits.length <= 14
 
     return (
-        <main className="mx-auto min-h-svh w-full max-w-3xl px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[calc(6.5rem_+_env(safe-area-inset-bottom))] sm:px-6 sm:pt-6">
-            <header className="grid grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-center pb-5">
-                <Button
-                    aria-label={t("backHome")}
-                    className="text-primary hover:bg-accent size-11 rounded-full p-0"
-                    onClick={() => void navigate(appRoutes.home)}
-                    type="button"
-                    variant="ghost"
-                >
-                    <ArrowLeftIcon aria-hidden="true" size={24} weight="bold" />
-                </Button>
-                <h1 className="text-center text-2xl leading-[1.7] font-bold tracking-[-0.025em]">
+        <main className="mx-auto min-h-svh w-full max-w-6xl px-4 pt-[max(1.5rem,env(safe-area-inset-top))] sm:px-6 sm:pt-10 lg:px-10 lg:pt-14">
+            <header className="pb-6 sm:pb-8">
+                <h1 className="text-4xl leading-[1.7] font-black tracking-tight sm:text-5xl">
                     {t("search.title")}
                 </h1>
             </header>
 
             <form
                 aria-label={t("search.inputLabel")}
-                className="bg-background/95 sticky top-0 z-20 -mx-1 px-1 py-1"
+                className="bg-background/95 sticky top-0 z-20 -mx-1 max-w-3xl px-1 py-1.5 backdrop-blur-md transition-shadow"
                 onSubmit={(event) => event.preventDefault()}
                 role="search"
             >
@@ -182,54 +179,111 @@ export function SearchPage({
                 </label>
                 <div
                     className={cn(
-                        "border-input bg-background focus-within:border-ring focus-within:ring-ring/35 flex min-h-14 items-center rounded-2xl border focus-within:ring-2",
-                        barcodeError &&
-                            "border-destructive focus-within:border-destructive focus-within:ring-destructive/25",
+                        "group border-input bg-background hover:border-primary/40 focus-within:border-primary focus-within:ring-primary/25 relative flex min-h-14 items-center rounded-2xl border transition-all duration-150 focus-within:ring-2",
+                        visibleBarcodeError &&
+                            "border-destructive hover:border-destructive focus-within:border-destructive focus-within:ring-destructive/25",
                     )}
                 >
-                    <MagnifyingGlassIcon
-                        aria-hidden="true"
-                        className="text-muted-foreground ml-4 shrink-0"
-                        size={23}
-                    />
+                    <div className="ml-3.5 flex size-6 shrink-0 items-center justify-center">
+                        {barcodeLike ? (
+                            <BarcodeIcon
+                                aria-hidden="true"
+                                className="text-primary animate-in fade-in zoom-in-95 duration-150"
+                                size={22}
+                                weight="bold"
+                            />
+                        ) : (
+                            <MagnifyingGlassIcon
+                                aria-hidden="true"
+                                className="text-muted-foreground group-focus-within:text-primary transition-colors"
+                                size={22}
+                            />
+                        )}
+                    </div>
                     <Input
                         autoComplete="off"
                         autoFocus={!isModalBackground}
                         aria-describedby={
-                            barcodeError
+                            visibleBarcodeError
                                 ? "search-error"
                                 : showShortHint || showBarcodeHint
                                   ? "search-hint"
                                   : undefined
                         }
-                        aria-invalid={barcodeError ? true : undefined}
-                        className="h-14 min-w-0 flex-1 rounded-none border-0 px-3 text-base shadow-none focus-visible:ring-0 [&::-webkit-search-cancel-button]:appearance-none"
+                        aria-invalid={visibleBarcodeError ? true : undefined}
+                        className="caret-primary selection:bg-brand-soft selection:text-primary text-foreground placeholder:text-muted-foreground/70 h-14 min-w-0 flex-1 rounded-none border-0 bg-transparent px-3 text-base shadow-none focus-visible:ring-0 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
                         id="product-search"
                         inputMode={barcodeLike ? "numeric" : "search"}
                         onChange={(event) => setQuery(event.target.value)}
+                        onKeyDown={(event) => {
+                            if (event.key === "Escape" && query) {
+                                event.preventDefault()
+                                setQuery("")
+                            }
+                        }}
                         placeholder={t("search.inputPlaceholder")}
                         type="search"
                         value={query}
                     />
+                    {barcodeLike && barcodeDigits.length > 0 ? (
+                        <span
+                            className="border-border bg-muted/60 text-muted-foreground mr-1 hidden shrink-0 items-center rounded-md border px-2 py-0.5 font-mono text-xs font-semibold tabular-nums select-none sm:inline-flex"
+                            aria-hidden="true"
+                        >
+                            GTIN ({barcodeDigits.length})
+                        </span>
+                    ) : null}
+                    {search.isFetching && !search.isFetchingNextPage ? (
+                        <span
+                            className="text-primary mr-2 flex size-5 shrink-0 animate-spin items-center justify-center"
+                            aria-hidden="true"
+                        >
+                            <svg
+                                className="size-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                            >
+                                <circle
+                                    className="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    strokeWidth="3"
+                                />
+                                <path
+                                    className="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                />
+                            </svg>
+                        </span>
+                    ) : null}
                     {query ? (
                         <Button
                             aria-label={t("search.clearInput")}
-                            className="text-muted-foreground mr-2 size-11 rounded-full p-0"
+                            className="text-muted-foreground hover:bg-muted hover:text-foreground mr-1.5 size-11 shrink-0 rounded-full p-0 transition-all active:scale-95"
                             onClick={() => setQuery("")}
                             type="button"
                             variant="ghost"
                         >
-                            <XIcon aria-hidden="true" size={21} />
+                            <XIcon aria-hidden="true" size={20} />
                         </Button>
                     ) : null}
                 </div>
-                {barcodeError ? (
+                {visibleBarcodeError ? (
                     <p
-                        className="text-destructive mt-2 text-sm leading-relaxed font-semibold"
+                        className="text-destructive mt-2 flex items-center gap-1.5 text-sm leading-relaxed font-semibold"
                         id="search-error"
                         role="alert"
                     >
-                        {barcodeError}
+                        <WarningCircleIcon
+                            aria-hidden="true"
+                            className="shrink-0"
+                            size={16}
+                            weight="bold"
+                        />
+                        <span>{visibleBarcodeError}</span>
                     </p>
                 ) : showShortHint || showBarcodeHint ? (
                     <p
@@ -279,7 +333,7 @@ export function SearchPage({
                             </p>
                         ) : null}
                     </div>
-                    <p className="border-border bg-muted/55 text-muted-foreground mb-4 rounded-xl border px-3 py-2.5 text-sm leading-relaxed">
+                    <p className="border-mango bg-mango-soft text-muted-foreground mb-5 border-y px-4 py-3 text-sm leading-relaxed">
                         {t("search.externalDisclosure")}
                     </p>
 
@@ -301,13 +355,10 @@ export function SearchPage({
                         </div>
                     ) : (
                         <>
-                            <div className="border-border overflow-hidden rounded-2xl border">
-                                {results.map((result, index) => (
+                            <div className="divide-border border-border divide-y border-y">
+                                {results.map((result) => (
                                     <SearchResultRow
                                         key={result.identifier}
-                                        className={
-                                            index > 0 ? "border-t" : undefined
-                                        }
                                         currentLanguage={currentLanguage}
                                         onOpen={() => openResult(result)}
                                         result={result}
@@ -365,11 +416,11 @@ function RecentSearches({
                     {t("search.clearRecent")}
                 </Button>
             </div>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2.5 flex flex-wrap gap-2">
                 {items.map((term) => (
                     <Button
                         aria-label={t("search.recentAction", { term })}
-                        className="bg-muted text-foreground hover:bg-accent min-h-11 rounded-full border-0 px-3.5 font-normal"
+                        className="border-border bg-muted/60 text-foreground hover:border-primary/40 hover:bg-brand-soft hover:text-primary min-h-11 rounded-full border px-3.5 text-sm font-medium transition-all active:scale-[0.98]"
                         key={term}
                         onClick={() => onSelect(term)}
                         type="button"
@@ -377,9 +428,10 @@ function RecentSearches({
                     >
                         <ClockCounterClockwiseIcon
                             aria-hidden="true"
-                            size={17}
+                            size={16}
+                            weight="bold"
                         />
-                        {term}
+                        <span>{term}</span>
                     </Button>
                 ))}
             </div>
@@ -420,7 +472,7 @@ function SearchResultRow({
         >
             <ProductImage image={result.reference_image} name={name} />
             <span className="min-w-0 self-center">
-                <span className="block text-base leading-[1.55] font-bold text-pretty">
+                <span className="block text-base leading-[1.65] font-bold text-pretty">
                     {name}
                 </span>
                 <span className="text-muted-foreground mt-1 block text-sm leading-relaxed">
@@ -460,7 +512,7 @@ function ProductImage({
                     src={image.url}
                 />
             ) : (
-                <span className="text-muted-foreground grid justify-items-center gap-1 px-1 text-center text-[0.6875rem] leading-tight">
+                <span className="text-muted-foreground grid justify-items-center gap-1 px-1 text-center text-[0.6875rem] leading-normal">
                     <ImageSquareIcon aria-hidden="true" size={24} />
                     {t("search.imageUnavailable")}
                 </span>

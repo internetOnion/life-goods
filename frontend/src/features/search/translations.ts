@@ -36,6 +36,7 @@ export const searchTranslations = {
             madeInLabel: "ផលិតនៅ",
             madeInUnavailable: "មិនមានទីកន្លែងផលិតពីប្រភព",
             resultAction: "បើកព័ត៌មានកញ្ចប់សម្រាប់ {{name}}",
+            backToScan: "ត្រឡប់ទៅស្កេន",
         },
     },
     en: {
@@ -75,6 +76,7 @@ export const searchTranslations = {
             madeInLabel: "Made in",
             madeInUnavailable: "Manufacturing place unavailable from source",
             resultAction: "Open package information for {{name}}",
+            backToScan: "Back to Scan",
         },
     },
 } as const

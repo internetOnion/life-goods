@@ -303,4 +303,48 @@ describe("unified Product search", () => {
             screen.getByText("Manufacturing place unavailable from source"),
         ).toBeVisible()
     })
+
+    test("clears search query with clear button or Escape key and uses primary navigation for scan tab", async () => {
+        const user = userEvent.setup()
+        const searchLookup = vi.fn<PackageSearchLookup>()
+        renderSearch(searchLookup)
+
+        const input = screen.getByRole("searchbox", { name: "Search Products" })
+        expect(input).toHaveValue("")
+        expect(
+            screen.queryByRole("button", { name: "Clear search" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("button", { name: "Back to Scan" }),
+        ).not.toBeInTheDocument()
+
+        // Type query to reveal clear button
+        await user.type(input, "coconut")
+        expect(input).toHaveValue("coconut")
+        const clearButton = screen.getByRole("button", { name: "Clear search" })
+        expect(clearButton).toBeVisible()
+
+        // Clicking clear button clears query
+        await user.click(clearButton)
+        expect(input).toHaveValue("")
+        expect(
+            screen.queryByRole("button", { name: "Clear search" }),
+        ).not.toBeInTheDocument()
+
+        // Pressing Escape on non-empty query clears it
+        await user.type(input, "tea")
+        expect(input).toHaveValue("tea")
+        await user.keyboard("{Escape}")
+        expect(input).toHaveValue("")
+
+        // Navigation back to Scan is handled via primary navigation
+        const scanTab = screen.getByRole("link", { name: "Scan" })
+        expect(scanTab).toBeVisible()
+        await user.click(scanTab)
+        expect(
+            await screen.findByRole("heading", {
+                name: "Before the camera starts",
+            }),
+        ).toBeVisible()
+    })
 })
