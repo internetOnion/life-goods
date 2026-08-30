@@ -530,3 +530,46 @@ def test_cli_halal_dataset_full_operator_workflow_independent_of_food_allergen(
     assert allergen_status["active_version_id"] == "codex-food-allergen-2026-minimal"
     assert allergen_status["dataset_kind"] == "FOOD_ALLERGEN"
 
+
+def test_cli_reviewed_halal_bundle_validation_and_inspection(
+    test_db_url: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    bundle_path = (
+        Path(__file__).parents[1]
+        / "src"
+        / "lifegoods"
+        / "reference_datasets"
+        / "bundles"
+        / "halal_ingredient_2026_reviewed_english_v1.json"
+    )
+
+    # 1. Validate
+    exit_code = main(["validate", str(bundle_path)])
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    validate_result = json.loads(captured.out)
+    assert validate_result["status"] == "VALID"
+    assert validate_result["id"] == "halal-ingredient-2026-reviewed-english-v1"
+    assert validate_result["dataset_kind"] == "HALAL_INGREDIENT"
+    assert validate_result["source_count"] == 4
+    assert validate_result["concept_count"] == 24
+    assert validate_result["halal_ingredient_mapping_count"] == 24
+
+    # 2. Import into database
+    exit_code = main(["--database-url", test_db_url, "import", str(bundle_path)])
+    assert exit_code == 0
+    capsys.readouterr()
+
+    # 3. Inspect version
+    exit_code = main(
+        ["--database-url", test_db_url, "inspect", "halal-ingredient-2026-reviewed-english-v1"]
+    )
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    inspect_result = json.loads(captured.out)
+    assert inspect_result["id"] == "halal-ingredient-2026-reviewed-english-v1"
+    assert inspect_result["status"] == "READY"
+    assert len(inspect_result["concepts"]) == 24
+    assert len(inspect_result["halal_ingredient_mappings"]) == 24
+
+

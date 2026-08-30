@@ -65,6 +65,7 @@ source citations (with edition, jurisdiction, and article or section locator).
 
 ```bash
 pnpm reference:dataset -- validate backend/src/lifegoods/reference_datasets/bundles/codex_2026_food_allergen_reviewed_english_v1.json
+pnpm reference:dataset -- validate backend/src/lifegoods/reference_datasets/bundles/halal_ingredient_2026_reviewed_english_v1.json
 ```
 
 **Output Schema (FOOD_ALLERGEN example):**
@@ -82,6 +83,23 @@ pnpm reference:dataset -- validate backend/src/lifegoods/reference_datasets/bund
     "mapping_count": 28,
     "exclusion_count": 1,
     "rule_count": 29
+}
+```
+
+**Output Schema (HALAL_INGREDIENT example):**
+
+```json
+{
+    "status": "VALID",
+    "id": "halal-ingredient-2026-reviewed-english-v1",
+    "dataset_kind": "HALAL_INGREDIENT",
+    "edition": "2026-reviewed-english-v1",
+    "jurisdiction": "CAMBODIA_AND_INTERNATIONAL",
+    "sha256": "...",
+    "source_count": 4,
+    "concept_count": 24,
+    "mapping_count": 68,
+    "halal_ingredient_mapping_count": 24
 }
 ```
 

@@ -1,0 +1,1357 @@
+{
+  "manifest": {
+    "id": "halal-ingredient-2026-reviewed-english-v1",
+    "dataset_kind": "HALAL_INGREDIENT",
+    "edition": "2026-reviewed-english-v1",
+    "jurisdiction": "CAMBODIA_AND_INTERNATIONAL",
+    "source_url": "https://www.ccfdg.gov.kh/en/laws-regulations/prakas/",
+    "licensing_decision": "PUBLIC_GOVERNMENT_AND_LICENSED_STANDARDS",
+    "project_approver": "cambodia-halal-reviewer@lifegoods.org",
+    "review_kind": "HALAL_DOMAIN_REVIEW",
+    "sha256": "fa2b3088080e4d1e6938610d518880231ea4a4cc0b5ffee3bfbf1ce5ae795a78"
+  },
+  "sources": [
+    {
+      "id": "source-cambodia-prakas-090-2020",
+      "name": "Joint Prakas No. 090 on the Management and Control of Halal Products in Cambodia",
+      "source_type": "NATIONAL_REGULATION",
+      "source_url": "https://www.ccfdg.gov.kh/en/laws-regulations/prakas/",
+      "jurisdiction": "CAMBODIA",
+      "publisher": "Ministry of Commerce & Ministry of Economy and Finance (CCF/CHSC)",
+      "edition": "Prakas No. 090 (2020)",
+      "licensing_decision": "PUBLIC_GOVERNMENT_STANDARD",
+      "terms_version": "2020"
+    },
+    {
+      "id": "source-oic-smiic-1-2019",
+      "name": "General Requirements for Halal Food",
+      "source_type": "INTERNATIONAL_STANDARD",
+      "source_url": "https://www.smiic.org/en/standard/oic-smiic-1-2019",
+      "jurisdiction": "INTERNATIONAL",
+      "publisher": "Standards and Metrology Institute for Islamic Countries (SMIIC)",
+      "edition": "OIC/SMIIC 1:2019",
+      "licensing_decision": "LICENSED_STANDARD",
+      "terms_version": "2019"
+    },
+    {
+      "id": "source-oic-smiic-24-2020",
+      "name": "General Requirements for Halal Food Additives and other Halal Chemicals",
+      "source_type": "INTERNATIONAL_STANDARD",
+      "source_url": "https://www.smiic.org/en/standard/oic-smiic-24-2020",
+      "jurisdiction": "INTERNATIONAL",
+      "publisher": "Standards and Metrology Institute for Islamic Countries (SMIIC)",
+      "edition": "OIC/SMIIC 24:2020",
+      "licensing_decision": "LICENSED_STANDARD",
+      "terms_version": "2020"
+    },
+    {
+      "id": "source-lifegoods-reviewed-halal-mappings-issue-67",
+      "name": "LifeGoods reviewed English Halal ingredient mappings for issue 67",
+      "source_type": "PROJECT_REVIEWED_VOCABULARY",
+      "source_url": "https://github.com/internetOnion/life-goods/issues/67",
+      "jurisdiction": "PROJECT_SCOPE",
+      "publisher": "LifeGoods",
+      "edition": "Issue 67",
+      "licensing_decision": "PROJECT_AUTHORED",
+      "terms_version": "2026-08-30"
+    }
+  ],
+  "concepts": [
+    {
+      "id": "concept-halal-pork",
+      "name": "Pork",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Meat from domestic swine or pigs."
+    },
+    {
+      "id": "concept-halal-bacon",
+      "name": "Bacon",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Cured meat from the side or back of a pig."
+    },
+    {
+      "id": "concept-halal-ham",
+      "name": "Ham",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Cured meat from the leg of a pig."
+    },
+    {
+      "id": "concept-halal-lard",
+      "name": "Lard",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Rendered fat from pigs."
+    },
+    {
+      "id": "concept-halal-porcine-gelatin",
+      "name": "Porcine gelatin",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Gelatin explicitly sourced from porcine tissues or skin."
+    },
+    {
+      "id": "concept-halal-alcohol",
+      "name": "Alcohol",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Ethyl alcohol or intoxicating alcoholic substances."
+    },
+    {
+      "id": "concept-halal-wine",
+      "name": "Wine",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Alcoholic beverage made from fermented grapes or other fruit."
+    },
+    {
+      "id": "concept-halal-beer",
+      "name": "Beer",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Alcoholic beverage brewed from malted cereal grains."
+    },
+    {
+      "id": "concept-halal-rum",
+      "name": "Rum",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Distilled alcoholic beverage made from sugarcane byproducts."
+    },
+    {
+      "id": "concept-halal-liqueur",
+      "name": "Liqueur",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Sweetened spirit or alcoholic beverage flavored with botanicals or fruits."
+    },
+    {
+      "id": "concept-halal-mirin",
+      "name": "Mirin",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Japanese sweet cooking wine containing substantial alcohol."
+    },
+    {
+      "id": "concept-halal-blood",
+      "name": "Blood",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Flowing animal blood or blood plasma."
+    },
+    {
+      "id": "concept-halal-carrion",
+      "name": "Carrion",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Dead animal flesh from animals not slaughtered according to requirements."
+    },
+    {
+      "id": "concept-halal-gelatin",
+      "name": "Gelatin",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Gelatin from unspecified animal sources."
+    },
+    {
+      "id": "concept-halal-collagen",
+      "name": "Collagen",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Protein derived from connective tissues of unspecified animal origin."
+    },
+    {
+      "id": "concept-halal-mono-and-diglycerides",
+      "name": "Mono- and diglycerides of fatty acids",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Food emulsifiers (E471/INS 471) that can be animal-fat or vegetable derived."
+    },
+    {
+      "id": "concept-halal-l-cysteine",
+      "name": "L-cysteine",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Dough conditioner (E920/INS 920) sourced from feathers, hair, or fermentation."
+    },
+    {
+      "id": "concept-halal-rennet",
+      "name": "Rennet",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Curdling enzyme complex from animal stomach or microbial origin."
+    },
+    {
+      "id": "concept-halal-pepsin",
+      "name": "Pepsin",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Digestive enzyme typically extracted from animal stomachs."
+    },
+    {
+      "id": "concept-halal-glycerol",
+      "name": "Glycerol",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Glycerin (E422/INS 422) of animal, vegetable, or synthetic derivation."
+    },
+    {
+      "id": "concept-halal-carmine",
+      "name": "Carmine",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Red color (E120/INS 120) extracted from female cochineal insects."
+    },
+    {
+      "id": "concept-halal-stearic-acid",
+      "name": "Stearic acid",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Fatty acid and stearate salts (E570/INS 570) from animal or plant fats."
+    },
+    {
+      "id": "concept-halal-tallow",
+      "name": "Tallow",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Rendered ruminant animal fat."
+    },
+    {
+      "id": "concept-halal-shellac",
+      "name": "Shellac",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Glazing agent (E904/INS 904) secreted by lac insects."
+    }
+  ],
+  "mappings": [
+    {
+      "id": "map-en-pork-exact",
+      "concept_id": "concept-halal-pork",
+      "language": "en",
+      "mapped_text": "pork",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for pork."
+    },
+    {
+      "id": "map-en-pork-meat",
+      "concept_id": "concept-halal-pork",
+      "language": "en",
+      "mapped_text": "pork meat",
+      "relationship_type": "DERIVED_FROM",
+      "notes": null
+    },
+    {
+      "id": "map-en-swine",
+      "concept_id": "concept-halal-pork",
+      "language": "en",
+      "mapped_text": "swine",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-pig-meat",
+      "concept_id": "concept-halal-pork",
+      "language": "en",
+      "mapped_text": "pig meat",
+      "relationship_type": "DERIVED_FROM",
+      "notes": null
+    },
+    {
+      "id": "map-en-bacon-exact",
+      "concept_id": "concept-halal-bacon",
+      "language": "en",
+      "mapped_text": "bacon",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for bacon."
+    },
+    {
+      "id": "map-en-ham-exact",
+      "concept_id": "concept-halal-ham",
+      "language": "en",
+      "mapped_text": "ham",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for ham."
+    },
+    {
+      "id": "map-en-lard-exact",
+      "concept_id": "concept-halal-lard",
+      "language": "en",
+      "mapped_text": "lard",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for lard."
+    },
+    {
+      "id": "map-en-pork-fat",
+      "concept_id": "concept-halal-lard",
+      "language": "en",
+      "mapped_text": "pork fat",
+      "relationship_type": "DERIVED_FROM",
+      "notes": null
+    },
+    {
+      "id": "map-en-pork-lard",
+      "concept_id": "concept-halal-lard",
+      "language": "en",
+      "mapped_text": "pork lard",
+      "relationship_type": "DERIVED_FROM",
+      "notes": null
+    },
+    {
+      "id": "map-en-porcine-gelatin-exact",
+      "concept_id": "concept-halal-porcine-gelatin",
+      "language": "en",
+      "mapped_text": "porcine gelatin",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for porcine gelatin."
+    },
+    {
+      "id": "map-en-pork-gelatin",
+      "concept_id": "concept-halal-porcine-gelatin",
+      "language": "en",
+      "mapped_text": "pork gelatin",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-alcohol-exact",
+      "concept_id": "concept-halal-alcohol",
+      "language": "en",
+      "mapped_text": "alcohol",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for alcohol."
+    },
+    {
+      "id": "map-en-ethanol",
+      "concept_id": "concept-halal-alcohol",
+      "language": "en",
+      "mapped_text": "ethanol",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-ethyl-alcohol",
+      "concept_id": "concept-halal-alcohol",
+      "language": "en",
+      "mapped_text": "ethyl alcohol",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-wine-exact",
+      "concept_id": "concept-halal-wine",
+      "language": "en",
+      "mapped_text": "wine",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for wine."
+    },
+    {
+      "id": "map-en-red-wine",
+      "concept_id": "concept-halal-wine",
+      "language": "en",
+      "mapped_text": "red wine",
+      "relationship_type": "DERIVED_FROM",
+      "notes": null
+    },
+    {
+      "id": "map-en-white-wine",
+      "concept_id": "concept-halal-wine",
+      "language": "en",
+      "mapped_text": "white wine",
+      "relationship_type": "DERIVED_FROM",
+      "notes": null
+    },
+    {
+      "id": "map-en-cooking-wine",
+      "concept_id": "concept-halal-wine",
+      "language": "en",
+      "mapped_text": "cooking wine",
+      "relationship_type": "DERIVED_FROM",
+      "notes": null
+    },
+    {
+      "id": "map-en-beer-exact",
+      "concept_id": "concept-halal-beer",
+      "language": "en",
+      "mapped_text": "beer",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for beer."
+    },
+    {
+      "id": "map-en-rum-exact",
+      "concept_id": "concept-halal-rum",
+      "language": "en",
+      "mapped_text": "rum",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for rum."
+    },
+    {
+      "id": "map-en-liqueur-exact",
+      "concept_id": "concept-halal-liqueur",
+      "language": "en",
+      "mapped_text": "liqueur",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for liqueur."
+    },
+    {
+      "id": "map-en-mirin-exact",
+      "concept_id": "concept-halal-mirin",
+      "language": "en",
+      "mapped_text": "mirin",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for mirin."
+    },
+    {
+      "id": "map-en-blood-exact",
+      "concept_id": "concept-halal-blood",
+      "language": "en",
+      "mapped_text": "blood",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for blood."
+    },
+    {
+      "id": "map-en-animal-blood",
+      "concept_id": "concept-halal-blood",
+      "language": "en",
+      "mapped_text": "animal blood",
+      "relationship_type": "DERIVED_FROM",
+      "notes": null
+    },
+    {
+      "id": "map-en-blood-plasma",
+      "concept_id": "concept-halal-blood",
+      "language": "en",
+      "mapped_text": "blood plasma",
+      "relationship_type": "DERIVED_FROM",
+      "notes": null
+    },
+    {
+      "id": "map-en-carrion-exact",
+      "concept_id": "concept-halal-carrion",
+      "language": "en",
+      "mapped_text": "carrion",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for carrion."
+    },
+    {
+      "id": "map-en-gelatin-exact",
+      "concept_id": "concept-halal-gelatin",
+      "language": "en",
+      "mapped_text": "gelatin",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for gelatin."
+    },
+    {
+      "id": "map-en-gelatine",
+      "concept_id": "concept-halal-gelatin",
+      "language": "en",
+      "mapped_text": "gelatine",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-collagen-exact",
+      "concept_id": "concept-halal-collagen",
+      "language": "en",
+      "mapped_text": "collagen",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for collagen."
+    },
+    {
+      "id": "map-en-hydrolyzed-collagen",
+      "concept_id": "concept-halal-collagen",
+      "language": "en",
+      "mapped_text": "hydrolyzed collagen",
+      "relationship_type": "DERIVED_FROM",
+      "notes": null
+    },
+    {
+      "id": "map-en-mono-and-diglycerides-exact",
+      "concept_id": "concept-halal-mono-and-diglycerides",
+      "language": "en",
+      "mapped_text": "mono- and diglycerides of fatty acids",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for mono- and diglycerides of fatty acids."
+    },
+    {
+      "id": "map-en-mono-and-diglycerides",
+      "concept_id": "concept-halal-mono-and-diglycerides",
+      "language": "en",
+      "mapped_text": "mono- and diglycerides",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-e471",
+      "concept_id": "concept-halal-mono-and-diglycerides",
+      "language": "en",
+      "mapped_text": "E471",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-ins-471",
+      "concept_id": "concept-halal-mono-and-diglycerides",
+      "language": "en",
+      "mapped_text": "INS 471",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-l-cysteine-exact",
+      "concept_id": "concept-halal-l-cysteine",
+      "language": "en",
+      "mapped_text": "L-cysteine",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for L-cysteine."
+    },
+    {
+      "id": "map-en-cysteine",
+      "concept_id": "concept-halal-l-cysteine",
+      "language": "en",
+      "mapped_text": "cysteine",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-e920",
+      "concept_id": "concept-halal-l-cysteine",
+      "language": "en",
+      "mapped_text": "E920",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-ins-920",
+      "concept_id": "concept-halal-l-cysteine",
+      "language": "en",
+      "mapped_text": "INS 920",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-rennet-exact",
+      "concept_id": "concept-halal-rennet",
+      "language": "en",
+      "mapped_text": "rennet",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for rennet."
+    },
+    {
+      "id": "map-en-animal-rennet",
+      "concept_id": "concept-halal-rennet",
+      "language": "en",
+      "mapped_text": "animal rennet",
+      "relationship_type": "DERIVED_FROM",
+      "notes": null
+    },
+    {
+      "id": "map-en-pepsin-exact",
+      "concept_id": "concept-halal-pepsin",
+      "language": "en",
+      "mapped_text": "pepsin",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for pepsin."
+    },
+    {
+      "id": "map-en-glycerol-exact",
+      "concept_id": "concept-halal-glycerol",
+      "language": "en",
+      "mapped_text": "glycerol",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for glycerol."
+    },
+    {
+      "id": "map-en-glycerin",
+      "concept_id": "concept-halal-glycerol",
+      "language": "en",
+      "mapped_text": "glycerin",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-glycerine",
+      "concept_id": "concept-halal-glycerol",
+      "language": "en",
+      "mapped_text": "glycerine",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-e422",
+      "concept_id": "concept-halal-glycerol",
+      "language": "en",
+      "mapped_text": "E422",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-ins-422",
+      "concept_id": "concept-halal-glycerol",
+      "language": "en",
+      "mapped_text": "INS 422",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-carmine-exact",
+      "concept_id": "concept-halal-carmine",
+      "language": "en",
+      "mapped_text": "carmine",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for carmine."
+    },
+    {
+      "id": "map-en-cochineal",
+      "concept_id": "concept-halal-carmine",
+      "language": "en",
+      "mapped_text": "cochineal",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-cochineal-extract",
+      "concept_id": "concept-halal-carmine",
+      "language": "en",
+      "mapped_text": "cochineal extract",
+      "relationship_type": "DERIVED_FROM",
+      "notes": null
+    },
+    {
+      "id": "map-en-carmines",
+      "concept_id": "concept-halal-carmine",
+      "language": "en",
+      "mapped_text": "carmines",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-e120",
+      "concept_id": "concept-halal-carmine",
+      "language": "en",
+      "mapped_text": "E120",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-ins-120",
+      "concept_id": "concept-halal-carmine",
+      "language": "en",
+      "mapped_text": "INS 120",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-natural-red-4",
+      "concept_id": "concept-halal-carmine",
+      "language": "en",
+      "mapped_text": "Natural Red 4",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-stearic-acid-exact",
+      "concept_id": "concept-halal-stearic-acid",
+      "language": "en",
+      "mapped_text": "stearic acid",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for stearic acid."
+    },
+    {
+      "id": "map-en-magnesium-stearate",
+      "concept_id": "concept-halal-stearic-acid",
+      "language": "en",
+      "mapped_text": "magnesium stearate",
+      "relationship_type": "DERIVED_FROM",
+      "notes": null
+    },
+    {
+      "id": "map-en-calcium-stearate",
+      "concept_id": "concept-halal-stearic-acid",
+      "language": "en",
+      "mapped_text": "calcium stearate",
+      "relationship_type": "DERIVED_FROM",
+      "notes": null
+    },
+    {
+      "id": "map-en-e570",
+      "concept_id": "concept-halal-stearic-acid",
+      "language": "en",
+      "mapped_text": "E570",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-ins-570",
+      "concept_id": "concept-halal-stearic-acid",
+      "language": "en",
+      "mapped_text": "INS 570",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-tallow-exact",
+      "concept_id": "concept-halal-tallow",
+      "language": "en",
+      "mapped_text": "tallow",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for tallow."
+    },
+    {
+      "id": "map-en-animal-fat",
+      "concept_id": "concept-halal-tallow",
+      "language": "en",
+      "mapped_text": "animal fat",
+      "relationship_type": "DERIVED_FROM",
+      "notes": null
+    },
+    {
+      "id": "map-en-beef-tallow",
+      "concept_id": "concept-halal-tallow",
+      "language": "en",
+      "mapped_text": "beef tallow",
+      "relationship_type": "DERIVED_FROM",
+      "notes": null
+    },
+    {
+      "id": "map-en-mutton-tallow",
+      "concept_id": "concept-halal-tallow",
+      "language": "en",
+      "mapped_text": "mutton tallow",
+      "relationship_type": "DERIVED_FROM",
+      "notes": null
+    },
+    {
+      "id": "map-en-suet",
+      "concept_id": "concept-halal-tallow",
+      "language": "en",
+      "mapped_text": "suet",
+      "relationship_type": "DERIVED_FROM",
+      "notes": null
+    },
+    {
+      "id": "map-en-shellac-exact",
+      "concept_id": "concept-halal-shellac",
+      "language": "en",
+      "mapped_text": "shellac",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for shellac."
+    },
+    {
+      "id": "map-en-confectioners-glaze",
+      "concept_id": "concept-halal-shellac",
+      "language": "en",
+      "mapped_text": "confectioner's glaze",
+      "relationship_type": "DERIVED_FROM",
+      "notes": null
+    },
+    {
+      "id": "map-en-resinous-glaze",
+      "concept_id": "concept-halal-shellac",
+      "language": "en",
+      "mapped_text": "resinous glaze",
+      "relationship_type": "DERIVED_FROM",
+      "notes": null
+    },
+    {
+      "id": "map-en-e904",
+      "concept_id": "concept-halal-shellac",
+      "language": "en",
+      "mapped_text": "E904",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    },
+    {
+      "id": "map-en-ins-904",
+      "concept_id": "concept-halal-shellac",
+      "language": "en",
+      "mapped_text": "INS 904",
+      "relationship_type": "SPELLING_VARIANT",
+      "notes": null
+    }
+  ],
+  "halal_ingredient_mappings": [
+    {
+      "id": "halal-map-pork",
+      "concept_id": "concept-halal-pork",
+      "classification": "EXPLICIT_PROHIBITED",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 4.1",
+          "notes": "Cambodian national regulation prohibiting pork and porcine products."
+        },
+        {
+          "source_id": "source-oic-smiic-1-2019",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 1:2019",
+          "locator": "Clause 5.1.1.1(a)",
+          "notes": "Pigs and their derivatives are non-Halal animals."
+        }
+      ],
+      "notes": "Explicitly prohibited porcine meat and direct derivatives."
+    },
+    {
+      "id": "halal-map-bacon",
+      "concept_id": "concept-halal-bacon",
+      "classification": "EXPLICIT_PROHIBITED",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 4.1",
+          "notes": "Cambodian national regulation prohibiting pork products."
+        },
+        {
+          "source_id": "source-oic-smiic-1-2019",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 1:2019",
+          "locator": "Clause 5.1.1.1(a)",
+          "notes": "Porcine meat preparation."
+        }
+      ],
+      "notes": "Cured porcine meat product."
+    },
+    {
+      "id": "halal-map-ham",
+      "concept_id": "concept-halal-ham",
+      "classification": "EXPLICIT_PROHIBITED",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 4.1",
+          "notes": "Cambodian national regulation prohibiting pork products."
+        },
+        {
+          "source_id": "source-oic-smiic-1-2019",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 1:2019",
+          "locator": "Clause 5.1.1.1(a)",
+          "notes": "Porcine leg meat product."
+        }
+      ],
+      "notes": "Porcine leg meat preparation."
+    },
+    {
+      "id": "halal-map-lard",
+      "concept_id": "concept-halal-lard",
+      "classification": "EXPLICIT_PROHIBITED",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 4.1",
+          "notes": "Cambodian national regulation prohibiting porcine fat."
+        },
+        {
+          "source_id": "source-oic-smiic-1-2019",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 1:2019",
+          "locator": "Clause 5.1.1.1(a)",
+          "notes": "Porcine fat derivative."
+        }
+      ],
+      "notes": "Rendered porcine fat."
+    },
+    {
+      "id": "halal-map-porcine-gelatin",
+      "concept_id": "concept-halal-porcine-gelatin",
+      "classification": "EXPLICIT_PROHIBITED",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 4.1",
+          "notes": "Cambodian national regulation prohibiting porcine derivatives."
+        },
+        {
+          "source_id": "source-oic-smiic-1-2019",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 1:2019",
+          "locator": "Clause 5.1.1.1(a)",
+          "notes": "Pigs and their derivatives are non-Halal."
+        },
+        {
+          "source_id": "source-oic-smiic-24-2020",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 24:2020",
+          "locator": "Clause 4.2.1",
+          "notes": "Gelatin of porcine origin is strictly non-Halal."
+        }
+      ],
+      "notes": "Gelatin explicitly declared from porcine tissue."
+    },
+    {
+      "id": "halal-map-alcohol",
+      "concept_id": "concept-halal-alcohol",
+      "classification": "EXPLICIT_PROHIBITED",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 4.2",
+          "notes": "Cambodian national regulation prohibiting alcoholic and intoxicating beverages/ingredients."
+        },
+        {
+          "source_id": "source-oic-smiic-1-2019",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 1:2019",
+          "locator": "Clause 5.1.4.1",
+          "notes": "All kinds of intoxicating and hazardous drinks and ethyl alcohol are non-Halal."
+        }
+      ],
+      "notes": "Intoxicating alcohol and ethyl alcohol."
+    },
+    {
+      "id": "halal-map-wine",
+      "concept_id": "concept-halal-wine",
+      "classification": "EXPLICIT_PROHIBITED",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 4.2",
+          "notes": "Cambodian national regulation prohibiting alcoholic beverages."
+        },
+        {
+          "source_id": "source-oic-smiic-1-2019",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 1:2019",
+          "locator": "Clause 5.1.4.1",
+          "notes": "Fermented alcoholic beverage."
+        }
+      ],
+      "notes": "Fermented grape alcoholic beverage."
+    },
+    {
+      "id": "halal-map-beer",
+      "concept_id": "concept-halal-beer",
+      "classification": "EXPLICIT_PROHIBITED",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 4.2",
+          "notes": "Cambodian national regulation prohibiting alcoholic beverages."
+        },
+        {
+          "source_id": "source-oic-smiic-1-2019",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 1:2019",
+          "locator": "Clause 5.1.4.1",
+          "notes": "Malt alcoholic beverage."
+        }
+      ],
+      "notes": "Fermented malt alcoholic beverage."
+    },
+    {
+      "id": "halal-map-rum",
+      "concept_id": "concept-halal-rum",
+      "classification": "EXPLICIT_PROHIBITED",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 4.2",
+          "notes": "Cambodian national regulation prohibiting distilled spirits."
+        },
+        {
+          "source_id": "source-oic-smiic-1-2019",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 1:2019",
+          "locator": "Clause 5.1.4.1",
+          "notes": "Distilled alcoholic beverage."
+        }
+      ],
+      "notes": "Distilled spirit made from sugarcane products."
+    },
+    {
+      "id": "halal-map-liqueur",
+      "concept_id": "concept-halal-liqueur",
+      "classification": "EXPLICIT_PROHIBITED",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 4.2",
+          "notes": "Cambodian national regulation prohibiting flavored spirits."
+        },
+        {
+          "source_id": "source-oic-smiic-1-2019",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 1:2019",
+          "locator": "Clause 5.1.4.1",
+          "notes": "Sweetened alcoholic liqueur."
+        }
+      ],
+      "notes": "Sweetened spirit or alcoholic beverage flavored with botanicals."
+    },
+    {
+      "id": "halal-map-mirin",
+      "concept_id": "concept-halal-mirin",
+      "classification": "EXPLICIT_PROHIBITED",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 4.2",
+          "notes": "Cambodian national regulation prohibiting intoxicating cooking wine."
+        },
+        {
+          "source_id": "source-oic-smiic-1-2019",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 1:2019",
+          "locator": "Clause 5.1.4.1",
+          "notes": "Alcohol-containing cooking wine."
+        }
+      ],
+      "notes": "Japanese sweet cooking wine containing substantial alcohol."
+    },
+    {
+      "id": "halal-map-blood",
+      "concept_id": "concept-halal-blood",
+      "classification": "EXPLICIT_PROHIBITED",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 4.1",
+          "notes": "Cambodian national regulation prohibiting flowing blood."
+        },
+        {
+          "source_id": "source-oic-smiic-1-2019",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 1:2019",
+          "locator": "Clause 5.1.1.1(g)",
+          "notes": "Blood and products made with blood are prohibited."
+        }
+      ],
+      "notes": "Animal blood and blood plasma fractions."
+    },
+    {
+      "id": "halal-map-carrion",
+      "concept_id": "concept-halal-carrion",
+      "classification": "EXPLICIT_PROHIBITED",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 4.1",
+          "notes": "Cambodian national regulation prohibiting dead unslaughtered animals."
+        },
+        {
+          "source_id": "source-oic-smiic-1-2019",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 1:2019",
+          "locator": "Clause 5.1.1.1(f)",
+          "notes": "Dead animals (carrion) not slaughtered according to requirements."
+        }
+      ],
+      "notes": "Unslaughtered dead animal flesh."
+    },
+    {
+      "id": "halal-map-gelatin",
+      "concept_id": "concept-halal-gelatin",
+      "classification": "SOURCE_AMBIGUOUS",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 5.1",
+          "notes": "Cambodian guidance for source-dependent animal-derived ingredients."
+        },
+        {
+          "source_id": "source-oic-smiic-1-2019",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 1:2019",
+          "locator": "Clause 5.2.5",
+          "notes": "Gelatin must be derived from Halal animals slaughtered according to requirements."
+        },
+        {
+          "source_id": "source-oic-smiic-24-2020",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 24:2020",
+          "locator": "Clause 4.2.1",
+          "notes": "Gelatin requires verification of animal species and Halal slaughter status."
+        }
+      ],
+      "notes": "Source-dependent animal derivative requiring Halal verification."
+    },
+    {
+      "id": "halal-map-collagen",
+      "concept_id": "concept-halal-collagen",
+      "classification": "SOURCE_AMBIGUOUS",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 5.1",
+          "notes": "Cambodian guidance for source-dependent animal protein."
+        },
+        {
+          "source_id": "source-oic-smiic-1-2019",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 1:2019",
+          "locator": "Clause 5.2.5",
+          "notes": "Collagen must originate from Halal animals or certified sources."
+        },
+        {
+          "source_id": "source-oic-smiic-24-2020",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 24:2020",
+          "locator": "Clause 4.2.1",
+          "notes": "Collagen requires verification of origin species and slaughter."
+        }
+      ],
+      "notes": "Animal protein of unspecified species."
+    },
+    {
+      "id": "halal-map-mono-and-diglycerides",
+      "concept_id": "concept-halal-mono-and-diglycerides",
+      "classification": "SOURCE_AMBIGUOUS",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 5.1",
+          "notes": "Cambodian guidance for plant/animal ambiguous emulsifiers."
+        },
+        {
+          "source_id": "source-oic-smiic-24-2020",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 24:2020",
+          "locator": "Clause 4.2.2",
+          "notes": "Mono- and diglycerides of fatty acids must originate from plant oils or Halal-certified animal fats."
+        }
+      ],
+      "notes": "Emulsifier produced from plant oils or animal fat."
+    },
+    {
+      "id": "halal-map-l-cysteine",
+      "concept_id": "concept-halal-l-cysteine",
+      "classification": "SOURCE_AMBIGUOUS",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 5.1",
+          "notes": "Cambodian guidance for source-dependent amino acid additives."
+        },
+        {
+          "source_id": "source-oic-smiic-24-2020",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 24:2020",
+          "locator": "Clause 4.2.5",
+          "notes": "L-cysteine must not be sourced from human hair (haram); feather or microbial sources require verification."
+        }
+      ],
+      "notes": "Dough conditioner from feathers, hair (prohibited), or microbial fermentation."
+    },
+    {
+      "id": "halal-map-rennet",
+      "concept_id": "concept-halal-rennet",
+      "classification": "SOURCE_AMBIGUOUS",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 5.1",
+          "notes": "Cambodian guidance for animal/microbial coagulating enzymes."
+        },
+        {
+          "source_id": "source-oic-smiic-1-2019",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 1:2019",
+          "locator": "Clause 5.2.5",
+          "notes": "Rennet must be sourced from Halal-slaughtered animals or microbial origin."
+        },
+        {
+          "source_id": "source-oic-smiic-24-2020",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 24:2020",
+          "locator": "Clause 4.2.3",
+          "notes": "Enzymes of animal origin require Halal slaughter verification; porcine enzymes are non-Halal."
+        }
+      ],
+      "notes": "Coagulating enzyme of calf, bovine, microbial, or porcine origin."
+    },
+    {
+      "id": "halal-map-pepsin",
+      "concept_id": "concept-halal-pepsin",
+      "classification": "SOURCE_AMBIGUOUS",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 5.1",
+          "notes": "Cambodian guidance for animal digestive enzymes."
+        },
+        {
+          "source_id": "source-oic-smiic-24-2020",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 24:2020",
+          "locator": "Clause 4.2.3",
+          "notes": "Pepsin from porcine stomachs is non-Halal; bovine pepsin requires Halal slaughter."
+        }
+      ],
+      "notes": "Digestive enzyme frequently extracted from porcine or bovine stomach mucosa."
+    },
+    {
+      "id": "halal-map-glycerol",
+      "concept_id": "concept-halal-glycerol",
+      "classification": "SOURCE_AMBIGUOUS",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 5.1",
+          "notes": "Cambodian guidance for source-dependent polyols."
+        },
+        {
+          "source_id": "source-oic-smiic-24-2020",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 24:2020",
+          "locator": "Clause 4.2.2",
+          "notes": "Glycerol/glycerin must be derived from vegetable oils, petrochemical synthesis, or Halal-certified animal tallow."
+        }
+      ],
+      "notes": "Trihydroxy alcohol derived from vegetable oils, synthetic petrochemicals, or animal tallow."
+    },
+    {
+      "id": "halal-map-carmine",
+      "concept_id": "concept-halal-carmine",
+      "classification": "SOURCE_AMBIGUOUS",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 5.1",
+          "notes": "Cambodian guidance for insect-derived coloring agents."
+        },
+        {
+          "source_id": "source-oic-smiic-24-2020",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 24:2020",
+          "locator": "Clause 4.2.6",
+          "notes": "Carmine/cochineal extract from Dactylopius coccus requires certification under applicable Shariah rulings."
+        }
+      ],
+      "notes": "Insect-derived red pigment with divergent Shariah rulings across Halal authorities."
+    },
+    {
+      "id": "halal-map-stearic-acid",
+      "concept_id": "concept-halal-stearic-acid",
+      "classification": "SOURCE_AMBIGUOUS",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 5.1",
+          "notes": "Cambodian guidance for source-dependent fatty acids."
+        },
+        {
+          "source_id": "source-oic-smiic-24-2020",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 24:2020",
+          "locator": "Clause 4.2.2",
+          "notes": "Stearic acid and stearate salts must originate from plant oils or Halal-certified animal fats."
+        }
+      ],
+      "notes": "Saturated fatty acid and salts from vegetable oil or animal tallow."
+    },
+    {
+      "id": "halal-map-tallow",
+      "concept_id": "concept-halal-tallow",
+      "classification": "SOURCE_AMBIGUOUS",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 5.1",
+          "notes": "Cambodian guidance for rendered animal fats."
+        },
+        {
+          "source_id": "source-oic-smiic-1-2019",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 1:2019",
+          "locator": "Clause 5.1.1",
+          "notes": "Tallow and animal fats must be derived from Halal animals slaughtered in accordance with Shariah rules."
+        }
+      ],
+      "notes": "Rendered ruminant fat requiring Halal slaughter verification."
+    },
+    {
+      "id": "halal-map-shellac",
+      "concept_id": "concept-halal-shellac",
+      "classification": "SOURCE_AMBIGUOUS",
+      "citations": [
+        {
+          "source_id": "source-cambodia-prakas-090-2020",
+          "jurisdiction": "CAMBODIA",
+          "edition": "Prakas No. 090 (2020)",
+          "locator": "Article 5.1",
+          "notes": "Cambodian guidance for insect secretion additives."
+        },
+        {
+          "source_id": "source-oic-smiic-24-2020",
+          "jurisdiction": "INTERNATIONAL",
+          "edition": "OIC/SMIIC 24:2020",
+          "locator": "Clause 4.2.6",
+          "notes": "Shellac from Kerria lacca secretion must be purified and free from whole insects or contamination."
+        }
+      ],
+      "notes": "Glazing agent from insect resin secretion."
+    }
+  ]
+}
