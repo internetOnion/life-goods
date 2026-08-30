@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Source: https://commons.wikimedia.org/wiki/File:Flag_of_Cambodia.svg (public domain / CC0) -->
-<svg width="1e3" height="640" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg viewBox="0 0 1000 640" width="1000" height="640" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
  <path d="M0 0h1000v640H0Z" fill="#032ea1"/>
  <path d="M0 160h1000v320H0Z" fill="#e00025"/>
  <g transform="matrix(1.6 0 0 1.6 187.36 -697.78)" fill="#fff" stroke="#000" stroke-width=".9">
