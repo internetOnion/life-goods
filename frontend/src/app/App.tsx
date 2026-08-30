@@ -46,11 +46,10 @@ export function App({ lookup, searchLookup, demoMode }: AppProps) {
         wasResult.current = isResult
     }, [isResult])
 
-    const home = (isModalBackground = false) => (
+    const home = () => (
         <HomePage
-            focusIdentifier={focusIdentifier && !isModalBackground}
+            focusIdentifier={focusIdentifier}
             initialIdentifier={lastIdentifier}
-            isModalBackground={isModalBackground}
             onIdentifierChange={setLastIdentifier}
         />
     )
@@ -86,27 +85,12 @@ export function App({ lookup, searchLookup, demoMode }: AppProps) {
                 <Route
                     path={appRoutes.result}
                     element={
-                        <>
-                            <div aria-hidden="true" inert>
-                                {resultLocationState?.fromSearch ? (
-                                    <SearchPage
-                                        initialQuery={
-                                            resultLocationState.searchQuery
-                                        }
-                                        isModalBackground
-                                        lookup={resolvedSearchLookup}
-                                    />
-                                ) : (
-                                    home(true)
-                                )}
-                            </div>
-                            <PackageMatchResultPage
-                                lookup={lookup}
-                                onDismiss={dismissResult}
-                                onIdentifierChange={setLastIdentifier}
-                                showDemoNotice={demoMode === true}
-                            />
-                        </>
+                        <PackageMatchResultPage
+                            lookup={lookup}
+                            onDismiss={dismissResult}
+                            onIdentifierChange={setLastIdentifier}
+                            showDemoNotice={demoMode === true}
+                        />
                     }
                 />
                 <Route
