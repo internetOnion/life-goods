@@ -11,10 +11,12 @@ from lifegoods.reference_datasets.importer import (
     ReferenceDatasetError,
     ReferenceDatasetValidationError,
 )
+from lifegoods.reference_datasets.kind_adapters import (
+    get_reference_dataset_kind_adapter,
+)
 from lifegoods.reference_datasets.models import (
     ReferenceDatasetPointerRecord,
     ReferenceDatasetVersionRecord,
-    ReferenceSourceRecord,
 )
 
 
@@ -42,9 +44,7 @@ def get_active_reference_dataset_pointer(
         dataset_kind.value if isinstance(dataset_kind, ConditionFamily) else str(dataset_kind)
     )
     return (
-        session.query(ReferenceDatasetPointerRecord)
-        .filter_by(dataset_kind=resolved_kind)
-        .first()
+        session.query(ReferenceDatasetPointerRecord).filter_by(dataset_kind=resolved_kind).first()
     )
 
 
@@ -68,11 +68,7 @@ def activate_reference_dataset_version(
     review_kind: str | ReferenceReviewKind | None = None,
     now: Callable[[], datetime] | None = None,
 ) -> ReferenceDatasetVersionRecord:
-    version = (
-        session.query(ReferenceDatasetVersionRecord)
-        .filter_by(id=version_id)
-        .first()
-    )
+    version = session.query(ReferenceDatasetVersionRecord).filter_by(id=version_id).first()
     if version is None:
         raise ReferenceDatasetNotFoundError(
             f"Reference dataset version '{version_id}' does not exist"
@@ -100,23 +96,10 @@ def activate_reference_dataset_version(
             f"Reference dataset version '{version_id}' is missing required metadata"
         )
 
-    for rule in version.rules:
-        source = (
-            rule.source
-            or session.query(ReferenceSourceRecord).filter_by(id=rule.source_id).first()
-        )
-        if (
-            source is None
-            or not source.source_url
-            or not source.licensing_decision
-            or not source.jurisdiction
-            or not source.name
-            or not source.publisher
-        ):
-            raise ReferenceDatasetValidationError(
-                f"Reference dataset version '{version_id}' references missing or "
-                f"incomplete source '{rule.source_id}'"
-            )
+    adapter = get_reference_dataset_kind_adapter(version.dataset_kind)
+    activation_errors = adapter.activation_errors(session, version)
+    if activation_errors:
+        raise ReferenceDatasetValidationError("; ".join(activation_errors))
 
     final_approver = approver or version.project_approver
     if not final_approver or not str(final_approver).strip():
@@ -135,9 +118,7 @@ def activate_reference_dataset_version(
         "PROJECT_MAINTAINER_APPROVAL",
     }
     if final_review_kind not in valid_review_kinds:
-        raise ReferenceDatasetApprovalError(
-            f"Invalid review kind '{final_review_kind}'"
-        )
+        raise ReferenceDatasetApprovalError(f"Invalid review kind '{final_review_kind}'")
 
     utc_now = (now or (lambda: datetime.now(UTC)))()
 
@@ -184,9 +165,7 @@ def activate_reference_dataset_version(
     except IntegrityError:
         session.rollback()
         reloaded_version = (
-            session.query(ReferenceDatasetVersionRecord)
-            .filter_by(id=version_id)
-            .first()
+            session.query(ReferenceDatasetVersionRecord).filter_by(id=version_id).first()
         )
         if reloaded_version is None:
             raise ReferenceDatasetNotFoundError(
@@ -222,9 +201,7 @@ def rollback_reference_dataset_version(
     current_id = pointer.active_version_id
 
     previous_version = (
-        session.query(ReferenceDatasetVersionRecord)
-        .filter_by(id=previous_id)
-        .first()
+        session.query(ReferenceDatasetVersionRecord).filter_by(id=previous_id).first()
     )
     if previous_version is None:
         raise ReferenceDatasetRollbackError(
@@ -241,11 +218,7 @@ def rollback_reference_dataset_version(
             f"Previous reference dataset version '{previous_id}' is invalid or failed"
         )
 
-    current_version = (
-        session.query(ReferenceDatasetVersionRecord)
-        .filter_by(id=current_id)
-        .first()
-    )
+    current_version = session.query(ReferenceDatasetVersionRecord).filter_by(id=current_id).first()
     if current_version is not None:
         current_version.status = "SUPERSEDED"
 

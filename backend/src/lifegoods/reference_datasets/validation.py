@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
+from types import MappingProxyType
+from typing import cast
 
 from lifegoods.reference_datasets.bundle import (
     AllergenRelationshipType,
     AllergenRuleKind,
     ConditionFamily,
-    ReferenceBundle,
+    FoodAllergenReferenceBundle,
+    ReferenceDatasetBundle,
+    ReferenceDatasetKind,
 )
 from lifegoods.reference_datasets.text_normalization import (
     find_normalized_phrase,
@@ -43,21 +48,19 @@ def _validate_condition_family(
     return errors
 
 
-def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
+def _validate_common_bundle(bundle: ReferenceDatasetBundle) -> list[str]:
     errors: list[str] = []
 
-    # 1. Manifest checks
     if not bundle.manifest.id.strip():
         errors.append("Dataset version ID must not be empty")
 
-    valid_condition_families = {f.value for f in ConditionFamily}
-    if bundle.manifest.dataset_kind not in valid_condition_families:
+    valid_dataset_kinds = {kind.value for kind in ReferenceDatasetKind}
+    if bundle.manifest.dataset_kind not in valid_dataset_kinds:
         errors.append(
             f"Unsupported dataset kind '{bundle.manifest.dataset_kind}'. "
-            f"Must be one of {sorted(valid_condition_families)}"
+            f"Must be one of {sorted(valid_dataset_kinds)}"
         )
 
-    # 2. Source validation & duplicate IDs
     source_ids: set[str] = set()
     for source in bundle.sources:
         if source.id in source_ids:
@@ -68,7 +71,15 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
         if not source.source_url.strip():
             errors.append(f"Source '{source.id}' is missing a source URL")
 
-    # 3. Concept validation: duplicate IDs, typed condition family, parent hierarchy
+    return errors
+
+
+def _validate_food_allergen_records(bundle: FoodAllergenReferenceBundle) -> list[str]:
+    errors: list[str] = []
+    valid_condition_families = {f.value for f in ConditionFamily}
+    source_ids = {source.id for source in bundle.sources}
+
+    # Concept validation: duplicate IDs, typed condition family, parent hierarchy
     concept_map: dict[str, str | None] = {}
     concepts_by_id = {concept.id: concept for concept in bundle.concepts}
     concept_ids: set[str] = set()
@@ -98,9 +109,7 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
             elif concept.parent_id == concept.id:
                 errors.append(f"Concept '{concept.id}' cannot be its own parent")
 
-    parent_ids = {
-        concept.parent_id for concept in bundle.concepts if concept.parent_id is not None
-    }
+    parent_ids = {concept.parent_id for concept in bundle.concepts if concept.parent_id is not None}
     for concept in bundle.concepts:
         if concept.id in parent_ids and concept.is_leaf:
             errors.append(f"Concept '{concept.id}' has children but is marked as a leaf")
@@ -118,7 +127,7 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
             visited.add(current)
             current = concept_map.get(current)
 
-    # 4. Lexical mappings: duplicates, concepts, languages, overlapping text / ambiguous derivatives
+    # Lexical mappings: duplicates, concepts, languages, overlapping text / ambiguous derivatives
     mapping_ids: set[str] = set()
     # (lang, text) -> (mapping_id, concept_id)
     mapping_keys: dict[tuple[str, str], tuple[str, str]] = {}
@@ -136,8 +145,7 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
             )
         elif not concepts_by_id[mapping.concept_id].is_leaf:
             errors.append(
-                f"Lexical mapping '{mapping.id}' targets non-leaf concept "
-                f"'{mapping.concept_id}'"
+                f"Lexical mapping '{mapping.id}' targets non-leaf concept '{mapping.concept_id}'"
             )
 
         valid_relationship_types = {kind.value for kind in AllergenRelationshipType}
@@ -185,7 +193,7 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
                 direct_english_mappings_by_concept.get(mapping.concept_id, 0) + 1
             )
 
-    # 5. Lexical exclusions: stable IDs, leaf concepts, English text, and useful scope
+    # Lexical exclusions: stable IDs, leaf concepts, English text, and useful scope
     exclusion_ids: set[str] = set()
     exclusion_keys: set[tuple[str, str, str]] = set()
     for exclusion in bundle.exclusions:
@@ -227,9 +235,7 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
         suppressible = any(
             mapping.concept_id == exclusion.concept_id
             and mapping.language.strip().lower() == language
-            and find_normalized_phrase(
-                normalized_exclusion, normalized_phrase(mapping.mapped_text)
-            )
+            and find_normalized_phrase(normalized_exclusion, normalized_phrase(mapping.mapped_text))
             for mapping in bundle.mappings
         )
         if not suppressible:
@@ -238,7 +244,7 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
                 f"for concept '{exclusion.concept_id}'"
             )
 
-    # 6. Rule validation: concept & source references, typed condition family
+    # Rule validation: concept & source references, typed condition family
     rule_ids: set[str] = set()
     declaration_rules_by_concept: dict[str, int] = {}
     derivative_rules_by_mapping: dict[str, int] = {}
@@ -254,9 +260,7 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
         rule_ids.add(rule.id)
 
         if rule.concept_id not in concept_ids:
-            errors.append(
-                f"Rule '{rule.id}' references non-existent concept '{rule.concept_id}'"
-            )
+            errors.append(f"Rule '{rule.id}' references non-existent concept '{rule.concept_id}'")
 
         if rule.rule_kind not in valid_rule_kinds:
             errors.append(f"Rule '{rule.id}' has invalid rule kind '{rule.rule_kind}'")
@@ -268,8 +272,7 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
             mapping = mappings_by_id.get(rule.mapping_id or "")
             if mapping is None:
                 errors.append(
-                    f"Derivative rule '{rule.id}' references missing mapping "
-                    f"'{rule.mapping_id}'"
+                    f"Derivative rule '{rule.id}' references missing mapping '{rule.mapping_id}'"
                 )
             elif (
                 mapping.relationship_type != AllergenRelationshipType.DERIVED_FROM
@@ -283,13 +286,9 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
                 derivative_rules_by_mapping[mapping.id] = (
                     derivative_rules_by_mapping.get(mapping.id, 0) + 1
                 )
-        if (
-            rule.rule_kind != AllergenRuleKind.DERIVATIVE_MATCH
-            and rule.mapping_id is not None
-        ):
+        if rule.rule_kind != AllergenRuleKind.DERIVATIVE_MATCH and rule.mapping_id is not None:
             errors.append(
-                f"Non-derivative rule '{rule.id}' must not reference mapping "
-                f"'{rule.mapping_id}'"
+                f"Non-derivative rule '{rule.id}' must not reference mapping '{rule.mapping_id}'"
             )
 
         if rule.source_id not in source_ids:
@@ -327,11 +326,34 @@ def validate_bundle(bundle: ReferenceBundle) -> ValidationReport:
             )
         if declaration_rules_by_concept.get(concept.id, 0) < 1:
             errors.append(
-                f"Active leaf concept '{concept.id}' does not have an applicable "
-                "declaration rule"
+                f"Active leaf concept '{concept.id}' does not have an applicable declaration rule"
             )
 
-    # 7. Integrity hash calculation
+    return errors
+
+
+_BUNDLE_VALIDATORS: MappingProxyType[str, Callable[[FoodAllergenReferenceBundle], list[str]]] = (
+    MappingProxyType(
+        {
+            ReferenceDatasetKind.FOOD_ALLERGEN.value: _validate_food_allergen_records,
+        }
+    )
+)
+
+
+def validate_bundle(bundle: ReferenceDatasetBundle) -> ValidationReport:
+    errors = _validate_common_bundle(bundle)
+
+    validator = _BUNDLE_VALIDATORS.get(bundle.manifest.dataset_kind)
+    if validator is not None:
+        if not isinstance(bundle, FoodAllergenReferenceBundle):
+            errors.append(
+                f"Dataset kind '{bundle.manifest.dataset_kind}' has an incompatible "
+                f"bundle model '{type(bundle).__name__}'"
+            )
+        else:
+            errors.extend(validator(cast(FoodAllergenReferenceBundle, bundle)))
+
     computed_sha256 = bundle.compute_sha256()
 
     if bundle.manifest.sha256 and bundle.manifest.sha256 != computed_sha256:

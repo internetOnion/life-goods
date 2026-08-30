@@ -5,7 +5,12 @@ import json
 from dataclasses import asdict, dataclass, field
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from types import MappingProxyType
+from typing import Any, Protocol, cast
+
+
+class ReferenceDatasetKind(StrEnum):
+    FOOD_ALLERGEN = "FOOD_ALLERGEN"
 
 
 class ConditionFamily(StrEnum):
@@ -56,6 +61,18 @@ class ReferenceDatasetManifest:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> ReferenceDatasetManifest:
+        required_fields = {
+            "id",
+            "dataset_kind",
+            "jurisdiction",
+            "source_url",
+            "licensing_decision",
+            "review_kind",
+        }
+        missing_fields = sorted(required_fields - data.keys())
+        if missing_fields:
+            missing = "', '".join(missing_fields)
+            raise ValueError(f"Reference dataset manifest is missing required field(s) '{missing}'")
         return cls(
             id=str(data["id"]),
             dataset_kind=str(data["dataset_kind"]),
@@ -192,9 +209,7 @@ class AllergenRuleDefinition:
             source_id=str(data["source_id"]),
             rule_kind=str(data.get("rule_kind", AllergenRuleKind.MANDATORY_DECLARATION)),
             condition_family=str(data.get("condition_family", ConditionFamily.FOOD_ALLERGEN)),
-            mapping_id=(
-                str(data["mapping_id"]) if data.get("mapping_id") is not None else None
-            ),
+            mapping_id=(str(data["mapping_id"]) if data.get("mapping_id") is not None else None),
             description=data.get("description"),
         )
 
@@ -213,17 +228,26 @@ def compute_bundle_sha256(
         "sources": sorted([s.to_dict() for s in sources], key=lambda x: x["id"]),
         "concepts": sorted([c.to_dict() for c in concepts], key=lambda x: x["id"]),
         "mappings": sorted([m.to_dict() for m in mappings], key=lambda x: x["id"]),
-        "exclusions": sorted(
-            [e.to_dict() for e in exclusions or []], key=lambda x: x["id"]
-        ),
+        "exclusions": sorted([e.to_dict() for e in exclusions or []], key=lambda x: x["id"]),
         "rules": sorted([r.to_dict() for r in rules], key=lambda x: x["id"]),
     }
     encoded = json.dumps(canonical_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
 
 
+class ReferenceDatasetBundle(Protocol):
+    @property
+    def manifest(self) -> ReferenceDatasetManifest: ...
+
+    @property
+    def sources(self) -> list[ReferenceSourceDefinition]: ...
+
+    def compute_sha256(self) -> str: ...
+    def to_dict(self) -> dict[str, Any]: ...
+
+
 @dataclass(frozen=True, slots=True)
-class ReferenceBundle:
+class FoodAllergenReferenceBundle:
     manifest: ReferenceDatasetManifest
     sources: list[ReferenceSourceDefinition]
     concepts: list[ReferenceConceptDefinition]
@@ -252,14 +276,17 @@ class ReferenceBundle:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> ReferenceBundle:
+    def from_dict(cls, data: dict[str, Any]) -> FoodAllergenReferenceBundle:
+        _validate_top_level_sections(data, ReferenceDatasetKind.FOOD_ALLERGEN)
         manifest = ReferenceDatasetManifest.from_dict(data["manifest"])
+        if manifest.dataset_kind != ReferenceDatasetKind.FOOD_ALLERGEN:
+            raise ValueError(
+                f"Dataset kind '{manifest.dataset_kind}' cannot be parsed as a FOOD_ALLERGEN bundle"
+            )
         sources = [ReferenceSourceDefinition.from_dict(s) for s in data.get("sources", [])]
         concepts = [ReferenceConceptDefinition.from_dict(c) for c in data.get("concepts", [])]
         mappings = [LexicalMappingDefinition.from_dict(m) for m in data.get("mappings", [])]
-        exclusions = [
-            LexicalExclusionDefinition.from_dict(e) for e in data.get("exclusions", [])
-        ]
+        exclusions = [LexicalExclusionDefinition.from_dict(e) for e in data.get("exclusions", [])]
         rules = [AllergenRuleDefinition.from_dict(r) for r in data.get("rules", [])]
         return cls(
             manifest=manifest,
@@ -271,7 +298,7 @@ class ReferenceBundle:
         )
 
     @classmethod
-    def from_json_file(cls, path: Path | str) -> ReferenceBundle:
+    def from_json_file(cls, path: Path | str) -> FoodAllergenReferenceBundle:
         raw = Path(path).read_text(encoding="utf-8")
         return cls.from_dict(json.loads(raw))
 
@@ -280,3 +307,79 @@ class ReferenceBundle:
             json.dumps(self.to_dict(), indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
         )
+
+
+_COMMON_TOP_LEVEL_SECTIONS = frozenset({"manifest", "sources"})
+_DATASET_SECTIONS = MappingProxyType(
+    {
+        ReferenceDatasetKind.FOOD_ALLERGEN.value: frozenset(
+            {"concepts", "mappings", "exclusions", "rules"}
+        ),
+    }
+)
+
+
+def _validate_top_level_sections(
+    data: dict[str, Any], dataset_kind: str | ReferenceDatasetKind
+) -> None:
+    resolved_kind = str(dataset_kind)
+    supported_sections = _DATASET_SECTIONS.get(resolved_kind)
+    if supported_sections is None:
+        supported_kinds = sorted(_DATASET_SECTIONS)
+        raise ValueError(
+            f"Unsupported dataset kind '{resolved_kind}'. Registered kinds are {supported_kinds}"
+        )
+
+    unexpected_sections = sorted(data.keys() - _COMMON_TOP_LEVEL_SECTIONS - supported_sections)
+    if unexpected_sections:
+        sections = "', '".join(unexpected_sections)
+        raise ValueError(
+            f"Dataset kind '{resolved_kind}' does not support top-level section(s) '{sections}'"
+        )
+
+
+def _parse_food_allergen_bundle(data: dict[str, Any]) -> ReferenceDatasetBundle:
+    return FoodAllergenReferenceBundle.from_dict(data)
+
+
+_BUNDLE_PARSERS = MappingProxyType(
+    {
+        ReferenceDatasetKind.FOOD_ALLERGEN.value: _parse_food_allergen_bundle,
+    }
+)
+
+
+def parse_reference_bundle(data: dict[str, Any]) -> ReferenceDatasetBundle:
+    if not isinstance(data, dict):
+        raise ValueError("Reference dataset bundle must be a JSON object")
+
+    manifest_data = data.get("manifest")
+    if not isinstance(manifest_data, dict):
+        raise ValueError("Reference dataset bundle must contain a manifest object")
+
+    dataset_kind = manifest_data.get("dataset_kind")
+    if not isinstance(dataset_kind, str) or not dataset_kind.strip():
+        raise ValueError("Reference dataset manifest is missing required field 'dataset_kind'")
+
+    parser = _BUNDLE_PARSERS.get(dataset_kind)
+    if parser is None:
+        supported_kinds = sorted(_BUNDLE_PARSERS)
+        raise ValueError(
+            f"Unsupported dataset kind '{dataset_kind}'. Registered kinds are {supported_kinds}"
+        )
+
+    _validate_top_level_sections(data, dataset_kind)
+    return parser(data)
+
+
+def load_reference_bundle(path: Path | str) -> ReferenceDatasetBundle:
+    raw = Path(path).read_text(encoding="utf-8")
+    parsed = json.loads(raw)
+    if not isinstance(parsed, dict):
+        raise ValueError("Reference dataset bundle must be a JSON object")
+    return parse_reference_bundle(cast(dict[str, Any], parsed))
+
+
+# Compatibility name for existing FOOD_ALLERGEN callers. New generic callers should use
+# ReferenceDatasetBundle with parse_reference_bundle/load_reference_bundle.
+ReferenceBundle = FoodAllergenReferenceBundle

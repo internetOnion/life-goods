@@ -39,7 +39,10 @@ This document provides a comprehensive reference for all command-line interfaces
 
 ## 1. Reference Datasets CLI
 
-The Reference Datasets CLI manages reviewed, immutable domain concepts, lexical mappings, exclusions, and evaluation rules stored in PostgreSQL.
+The Reference Datasets CLI manages reviewed, immutable, typed domain records stored in
+PostgreSQL. Each bundle manifest selects the dataset-specific record schema, validation rules,
+canonical hash, persistence adapter, and inspection output. The current `FOOD_ALLERGEN` output
+continues to expose concepts, lexical mappings, exclusions, and allergen rules.
 
 **Wrapper Command:** `pnpm reference:dataset -- <subcommand> [options]`
 
@@ -53,7 +56,9 @@ The Reference Datasets CLI manages reviewed, immutable domain concepts, lexical 
 
 #### `validate`
 
-Validates the structural integrity, SHA-256 hash, concept hierarchies, mapping links, and rule references of a JSON dataset bundle without inserting into PostgreSQL.
+Validates the common bundle manifest, sources, and SHA-256 hash plus the structural invariants
+for the manifest's dataset kind, without inserting into PostgreSQL. For `FOOD_ALLERGEN`, this
+includes concept hierarchies, mapping links, exclusions, and allergen rule references.
 
 ```bash
 pnpm reference:dataset -- validate backend/src/lifegoods/reference_datasets/bundles/codex_2026_food_allergen_reviewed_english_v1.json
@@ -116,7 +121,8 @@ pnpm reference:dataset -- list
 
 #### `inspect`
 
-Dumps the complete detail of an imported version, including all concept nodes, mapped lexical tokens, exclusions, and rules.
+Dumps the common version metadata and the complete typed records for that dataset kind. A
+`FOOD_ALLERGEN` version includes all concept nodes, mapped lexical tokens, exclusions, and rules.
 
 ```bash
 pnpm reference:dataset -- inspect <version_id>

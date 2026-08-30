@@ -219,6 +219,13 @@ Reference data is relational and separately versioned in PostgreSQL:
 | `IngredientDescription`   | Project-authored language-tagged neutral explanation linked to stable concepts and citations                                       |
 | `KnowledgeEntry`          | Locally hosted contextual explanation released through the same versioned source/review boundary                                   |
 
+Every imported bundle has a common immutable envelope containing its
+`ReferenceDatasetVersion` manifest and `ReferenceSource` definitions. The manifest's
+`dataset_kind` selects a typed record set, canonical serializer, validation policy, persistence
+adapter, and inspection format. Domain records remain in separate relational tables such as
+`AllergenRule`, with later Halal ingredient and additive records using their own typed tables;
+they are not flattened into a universal mutable reference table or an opaque JSON payload.
+
 Invariants:
 
 - Only an Active Reference Dataset Version may drive an automated assessment.

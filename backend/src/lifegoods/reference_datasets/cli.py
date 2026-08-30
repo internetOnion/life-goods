@@ -12,11 +12,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from lifegoods.core.settings import Settings
-from lifegoods.reference_datasets.bundle import ReferenceBundle
+from lifegoods.reference_datasets.bundle import load_reference_bundle
 from lifegoods.reference_datasets.importer import (
     ReferenceDatasetError,
     ReferenceDatasetValidationError,
     import_reference_bundle,
+)
+from lifegoods.reference_datasets.kind_adapters import (
+    get_reference_dataset_kind_adapter,
 )
 from lifegoods.reference_datasets.lifecycle import (
     activate_reference_dataset_version,
@@ -34,10 +37,11 @@ def _json_default(value: object) -> str:
 
 
 def validate_file(bundle_path: str | Path) -> dict[str, Any]:
-    bundle = ReferenceBundle.from_json_file(bundle_path)
+    bundle = load_reference_bundle(bundle_path)
     report = validate_bundle(bundle)
     if not report.is_valid:
         raise ReferenceDatasetValidationError("; ".join(report.errors))
+    adapter = get_reference_dataset_kind_adapter(bundle.manifest.dataset_kind)
     return {
         "status": "VALID",
         "id": bundle.manifest.id,
@@ -46,16 +50,14 @@ def validate_file(bundle_path: str | Path) -> dict[str, Any]:
         "jurisdiction": bundle.manifest.jurisdiction,
         "sha256": report.sha256,
         "source_count": len(bundle.sources),
-        "concept_count": len(bundle.concepts),
-        "mapping_count": len(bundle.mappings),
-        "exclusion_count": len(bundle.exclusions),
-        "rule_count": len(bundle.rules),
+        **adapter.bundle_counts(bundle),
     }
 
 
 def import_file(session: Session, bundle_path: str | Path) -> dict[str, Any]:
-    bundle = ReferenceBundle.from_json_file(bundle_path)
+    bundle = load_reference_bundle(bundle_path)
     record = import_reference_bundle(session, bundle)
+    adapter = get_reference_dataset_kind_adapter(record.dataset_kind)
     return {
         "status": record.status,
         "id": record.id,
@@ -70,10 +72,7 @@ def import_file(session: Session, bundle_path: str | Path) -> dict[str, Any]:
         "reviewed_at": record.reviewed_at,
         "activated_at": record.activated_at,
         "immutable": record.immutable,
-        "concept_count": len(record.concepts),
-        "mapping_count": len(record.mappings),
-        "exclusion_count": len(record.exclusions),
-        "rule_count": len(record.rules),
+        **adapter.version_counts(record),
     }
 
 
@@ -81,6 +80,7 @@ def _format_version_output(
     record: ReferenceDatasetVersionRecord,
     pointer: Any | None = None,
 ) -> dict[str, Any]:
+    adapter = get_reference_dataset_kind_adapter(record.dataset_kind)
     return {
         "status": record.status,
         "id": record.id,
@@ -96,10 +96,7 @@ def _format_version_output(
         "activated_at": record.activated_at,
         "previous_version_id": pointer.previous_version_id if pointer else None,
         "immutable": record.immutable,
-        "concept_count": len(record.concepts),
-        "mapping_count": len(record.mappings),
-        "exclusion_count": len(record.exclusions),
-        "rule_count": len(record.rules),
+        **adapter.version_counts(record),
     }
 
 
@@ -144,9 +141,7 @@ def status_version(
     if pointer is None:
         return None
     record = (
-        session.query(ReferenceDatasetVersionRecord)
-        .filter_by(id=pointer.active_version_id)
-        .first()
+        session.query(ReferenceDatasetVersionRecord).filter_by(id=pointer.active_version_id).first()
     )
     if record is None:
         return None
@@ -187,13 +182,10 @@ def list_versions(session: Session) -> list[dict[str, Any]]:
 
 
 def inspect_version(session: Session, version_id: str) -> dict[str, Any]:
-    record = (
-        session.query(ReferenceDatasetVersionRecord)
-        .filter_by(id=version_id)
-        .first()
-    )
+    record = session.query(ReferenceDatasetVersionRecord).filter_by(id=version_id).first()
     if record is None:
         raise ValueError(f"Reference dataset version '{version_id}' does not exist")
+    adapter = get_reference_dataset_kind_adapter(record.dataset_kind)
     return {
         "id": record.id,
         "dataset_kind": record.dataset_kind,
@@ -209,50 +201,7 @@ def inspect_version(session: Session, version_id: str) -> dict[str, Any]:
         "immutable": record.immutable,
         "validation_errors": record.validation_errors,
         "validation_history": record.validation_history,
-        "concepts": [
-            {
-                "id": c.id,
-                "name": c.name,
-                "condition_family": c.condition_family,
-                "parent_id": c.parent_id,
-                "is_leaf": c.is_leaf,
-                "description": c.description,
-            }
-            for c in record.concepts
-        ],
-        "mappings": [
-            {
-                "id": m.id,
-                "concept_id": m.concept_id,
-                "language": m.language,
-                "mapped_text": m.mapped_text,
-                "relationship_type": m.relationship_type,
-                "notes": m.notes,
-            }
-            for m in record.mappings
-        ],
-        "exclusions": [
-            {
-                "id": e.id,
-                "concept_id": e.concept_id,
-                "language": e.language,
-                "excluded_text": e.excluded_text,
-                "notes": e.notes,
-            }
-            for e in record.exclusions
-        ],
-        "rules": [
-            {
-                "id": r.id,
-                "concept_id": r.concept_id,
-                "source_id": r.source_id,
-                "rule_kind": r.rule_kind,
-                "condition_family": r.condition_family,
-                "mapping_id": r.mapping_id,
-                "description": r.description,
-            }
-            for r in record.rules
-        ],
+        **adapter.inspect_records(record),
     }
 
 
@@ -267,9 +216,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    validate_parser = subparsers.add_parser(
-        "validate", help="Validate a reference dataset bundle"
-    )
+    validate_parser = subparsers.add_parser("validate", help="Validate a reference dataset bundle")
     validate_parser.add_argument("bundle_path", help="Path to JSON bundle file")
 
     import_parser = subparsers.add_parser(

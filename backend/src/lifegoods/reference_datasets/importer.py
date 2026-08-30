@@ -5,12 +5,11 @@ from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
-from lifegoods.reference_datasets.bundle import ReferenceBundle
+from lifegoods.reference_datasets.bundle import ReferenceDatasetBundle
+from lifegoods.reference_datasets.kind_adapters import (
+    get_reference_dataset_kind_adapter,
+)
 from lifegoods.reference_datasets.models import (
-    AllergenRuleRecord,
-    LexicalExclusionRecord,
-    LexicalMappingRecord,
-    ReferenceConceptRecord,
     ReferenceDatasetVersionRecord,
     ReferenceSourceRecord,
 )
@@ -31,7 +30,7 @@ class ReferenceDatasetConflictError(ReferenceDatasetError):
 
 def import_reference_bundle(
     session: Session,
-    bundle: ReferenceBundle,
+    bundle: ReferenceDatasetBundle,
     *,
     now: Callable[[], datetime] | None = None,
 ) -> ReferenceDatasetVersionRecord:
@@ -41,11 +40,7 @@ def import_reference_bundle(
 
     utc_now = (now or (lambda: datetime.now(UTC)))()
 
-    existing = (
-        session.query(ReferenceDatasetVersionRecord)
-        .filter_by(id=bundle.manifest.id)
-        .first()
-    )
+    existing = session.query(ReferenceDatasetVersionRecord).filter_by(id=bundle.manifest.id).first()
     if existing is not None:
         if existing.sha256 == report.sha256:
             return existing
@@ -114,64 +109,8 @@ def import_reference_bundle(
     session.add(version_record)
     session.flush()
 
-    # 3. Create concepts (insert roots first, then children to satisfy FKs)
-    roots = [c for c in bundle.concepts if c.parent_id is None]
-    children = [c for c in bundle.concepts if c.parent_id is not None]
-
-    for concept in (*roots, *children):
-        concept_record = ReferenceConceptRecord(
-            dataset_version_id=version_record.id,
-            id=concept.id,
-            name=concept.name,
-            condition_family=concept.condition_family,
-            parent_id=concept.parent_id,
-            is_leaf=concept.is_leaf,
-            description=concept.description,
-        )
-        session.add(concept_record)
-
-    session.flush()
-
-    # 4. Create lexical mappings
-    for mapping in bundle.mappings:
-        mapping_record = LexicalMappingRecord(
-            dataset_version_id=version_record.id,
-            id=mapping.id,
-            concept_id=mapping.concept_id,
-            language=mapping.language,
-            mapped_text=mapping.mapped_text,
-            relationship_type=mapping.relationship_type,
-            notes=mapping.notes,
-        )
-        session.add(mapping_record)
-
-    session.flush()
-
-    # 5. Create lexical exclusions
-    for exclusion in bundle.exclusions:
-        exclusion_record = LexicalExclusionRecord(
-            dataset_version_id=version_record.id,
-            id=exclusion.id,
-            concept_id=exclusion.concept_id,
-            language=exclusion.language,
-            excluded_text=exclusion.excluded_text,
-            notes=exclusion.notes,
-        )
-        session.add(exclusion_record)
-
-    # 6. Create allergen rules
-    for rule in bundle.rules:
-        rule_record = AllergenRuleRecord(
-            dataset_version_id=version_record.id,
-            id=rule.id,
-            concept_id=rule.concept_id,
-            source_id=rule.source_id,
-            rule_kind=rule.rule_kind,
-            condition_family=rule.condition_family,
-            mapping_id=rule.mapping_id,
-            description=rule.description,
-        )
-        session.add(rule_record)
+    adapter = get_reference_dataset_kind_adapter(bundle.manifest.dataset_kind)
+    adapter.persist_records(session, version_record, bundle)
 
     session.commit()
     session.refresh(version_record)
