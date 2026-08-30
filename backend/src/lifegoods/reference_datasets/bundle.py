@@ -11,6 +11,7 @@ from typing import Any, Protocol, cast
 
 class ReferenceDatasetKind(StrEnum):
     FOOD_ALLERGEN = "FOOD_ALLERGEN"
+    HALAL_INGREDIENT = "HALAL_INGREDIENT"
 
 
 class ConditionFamily(StrEnum):
@@ -18,11 +19,25 @@ class ConditionFamily(StrEnum):
     COELIAC_GLUTEN = "COELIAC_GLUTEN"
     SULPHITE_SENSITIVITY = "SULPHITE_SENSITIVITY"
     INTOLERANCE = "INTOLERANCE"
+    HALAL_INGREDIENT = "HALAL_INGREDIENT"
 
 
 class ReferenceReviewKind(StrEnum):
     FOOD_DOMAIN_REVIEW = "FOOD_DOMAIN_REVIEW"
     PROJECT_MAINTAINER_APPROVAL = "PROJECT_MAINTAINER_APPROVAL"
+    HALAL_DOMAIN_REVIEW = "HALAL_DOMAIN_REVIEW"
+
+
+class HalalClassification(StrEnum):
+    EXPLICIT_PROHIBITED = "EXPLICIT_PROHIBITED"
+    SOURCE_AMBIGUOUS = "SOURCE_AMBIGUOUS"
+
+
+class HalalRelationshipType(StrEnum):
+    EXACT_NAME = "EXACT_NAME"
+    SPELLING_VARIANT = "SPELLING_VARIANT"
+    DERIVED_FROM = "DERIVED_FROM"
+    CONTAINS_SOURCE = "CONTAINS_SOURCE"
 
 
 class AllergenRelationshipType(StrEnum):
@@ -214,6 +229,66 @@ class AllergenRuleDefinition:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class HalalSourceCitationDefinition:
+    source_id: str
+    jurisdiction: str
+    edition: str
+    locator: str
+    notes: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        data = asdict(self)
+        if self.notes is None:
+            data.pop("notes", None)
+        return data
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> HalalSourceCitationDefinition:
+        return cls(
+            source_id=str(data.get("source_id", "")),
+            jurisdiction=str(data.get("jurisdiction", "")),
+            edition=str(data.get("edition", "")),
+            locator=str(data.get("locator", "")),
+            notes=data.get("notes"),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class HalalIngredientMappingDefinition:
+    id: str
+    concept_id: str
+    classification: str
+    citations: list[HalalSourceCitationDefinition]
+    notes: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {
+            "id": self.id,
+            "concept_id": self.concept_id,
+            "classification": self.classification,
+            "citations": [c.to_dict() for c in self.citations],
+        }
+        if self.notes is not None:
+            data["notes"] = self.notes
+        return data
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> HalalIngredientMappingDefinition:
+        citations = [
+            HalalSourceCitationDefinition.from_dict(c)
+            for c in data.get("citations", [])
+            if isinstance(c, dict)
+        ]
+        return cls(
+            id=str(data.get("id", "")),
+            concept_id=str(data.get("concept_id", "")),
+            classification=str(data.get("classification", "")),
+            citations=citations,
+            notes=data.get("notes"),
+        )
+
+
 def compute_bundle_sha256(
     *,
     manifest: ReferenceDatasetManifest,
@@ -230,6 +305,27 @@ def compute_bundle_sha256(
         "mappings": sorted([m.to_dict() for m in mappings], key=lambda x: x["id"]),
         "exclusions": sorted([e.to_dict() for e in exclusions or []], key=lambda x: x["id"]),
         "rules": sorted([r.to_dict() for r in rules], key=lambda x: x["id"]),
+    }
+    encoded = json.dumps(canonical_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def compute_halal_bundle_sha256(
+    *,
+    manifest: ReferenceDatasetManifest,
+    sources: list[ReferenceSourceDefinition],
+    concepts: list[ReferenceConceptDefinition],
+    mappings: list[LexicalMappingDefinition],
+    halal_ingredient_mappings: list[HalalIngredientMappingDefinition],
+) -> str:
+    canonical_payload = {
+        "manifest": manifest.to_dict(include_sha256=False),
+        "sources": sorted([s.to_dict() for s in sources], key=lambda x: x["id"]),
+        "concepts": sorted([c.to_dict() for c in concepts], key=lambda x: x["id"]),
+        "mappings": sorted([m.to_dict() for m in mappings], key=lambda x: x["id"]),
+        "halal_ingredient_mappings": sorted(
+            [m.to_dict() for m in halal_ingredient_mappings], key=lambda x: x["id"]
+        ),
     }
     encoded = json.dumps(canonical_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
@@ -309,11 +405,76 @@ class FoodAllergenReferenceBundle:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class HalalIngredientReferenceBundle:
+    manifest: ReferenceDatasetManifest
+    sources: list[ReferenceSourceDefinition]
+    concepts: list[ReferenceConceptDefinition]
+    mappings: list[LexicalMappingDefinition]
+    halal_ingredient_mappings: list[HalalIngredientMappingDefinition]
+
+    def compute_sha256(self) -> str:
+        return compute_halal_bundle_sha256(
+            manifest=self.manifest,
+            sources=self.sources,
+            concepts=self.concepts,
+            mappings=self.mappings,
+            halal_ingredient_mappings=self.halal_ingredient_mappings,
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "manifest": self.manifest.to_dict(include_sha256=True),
+            "sources": [s.to_dict() for s in self.sources],
+            "concepts": [c.to_dict() for c in self.concepts],
+            "mappings": [m.to_dict() for m in self.mappings],
+            "halal_ingredient_mappings": [m.to_dict() for m in self.halal_ingredient_mappings],
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> HalalIngredientReferenceBundle:
+        _validate_top_level_sections(data, ReferenceDatasetKind.HALAL_INGREDIENT)
+        manifest = ReferenceDatasetManifest.from_dict(data["manifest"])
+        if manifest.dataset_kind != ReferenceDatasetKind.HALAL_INGREDIENT:
+            raise ValueError(
+                f"Dataset kind '{manifest.dataset_kind}' cannot be parsed as a "
+                "HALAL_INGREDIENT bundle"
+            )
+        sources = [ReferenceSourceDefinition.from_dict(s) for s in data.get("sources", [])]
+        concepts = [ReferenceConceptDefinition.from_dict(c) for c in data.get("concepts", [])]
+        mappings = [LexicalMappingDefinition.from_dict(m) for m in data.get("mappings", [])]
+        halal_ingredient_mappings = [
+            HalalIngredientMappingDefinition.from_dict(hm)
+            for hm in data.get("halal_ingredient_mappings", [])
+        ]
+        return cls(
+            manifest=manifest,
+            sources=sources,
+            concepts=concepts,
+            mappings=mappings,
+            halal_ingredient_mappings=halal_ingredient_mappings,
+        )
+
+    @classmethod
+    def from_json_file(cls, path: Path | str) -> HalalIngredientReferenceBundle:
+        raw = Path(path).read_text(encoding="utf-8")
+        return cls.from_dict(json.loads(raw))
+
+    def to_json_file(self, path: Path | str) -> None:
+        Path(path).write_text(
+            json.dumps(self.to_dict(), indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+
+
 _COMMON_TOP_LEVEL_SECTIONS = frozenset({"manifest", "sources"})
 _DATASET_SECTIONS = MappingProxyType(
     {
         ReferenceDatasetKind.FOOD_ALLERGEN.value: frozenset(
             {"concepts", "mappings", "exclusions", "rules"}
+        ),
+        ReferenceDatasetKind.HALAL_INGREDIENT.value: frozenset(
+            {"concepts", "mappings", "halal_ingredient_mappings"}
         ),
     }
 )
@@ -342,9 +503,14 @@ def _parse_food_allergen_bundle(data: dict[str, Any]) -> ReferenceDatasetBundle:
     return FoodAllergenReferenceBundle.from_dict(data)
 
 
+def _parse_halal_ingredient_bundle(data: dict[str, Any]) -> ReferenceDatasetBundle:
+    return HalalIngredientReferenceBundle.from_dict(data)
+
+
 _BUNDLE_PARSERS = MappingProxyType(
     {
         ReferenceDatasetKind.FOOD_ALLERGEN.value: _parse_food_allergen_bundle,
+        ReferenceDatasetKind.HALAL_INGREDIENT.value: _parse_halal_ingredient_bundle,
     }
 )
 

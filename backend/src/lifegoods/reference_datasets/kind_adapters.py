@@ -7,17 +7,42 @@ from sqlalchemy.orm import Session
 
 from lifegoods.reference_datasets.bundle import (
     FoodAllergenReferenceBundle,
+    HalalIngredientReferenceBundle,
+    ReferenceConceptDefinition,
     ReferenceDatasetBundle,
     ReferenceDatasetKind,
 )
 from lifegoods.reference_datasets.models import (
     AllergenRuleRecord,
+    HalalIngredientMappingRecord,
     LexicalExclusionRecord,
     LexicalMappingRecord,
     ReferenceConceptRecord,
     ReferenceDatasetVersionRecord,
     ReferenceSourceRecord,
 )
+
+
+def _persist_concept_records(
+    session: Session,
+    version_id: str,
+    concepts: list[ReferenceConceptDefinition],
+) -> None:
+    roots = [concept for concept in concepts if concept.parent_id is None]
+    children = [concept for concept in concepts if concept.parent_id is not None]
+    for concept in (*roots, *children):
+        session.add(
+            ReferenceConceptRecord(
+                dataset_version_id=version_id,
+                id=concept.id,
+                name=concept.name,
+                condition_family=concept.condition_family,
+                parent_id=concept.parent_id,
+                is_leaf=concept.is_leaf,
+                description=concept.description,
+            )
+        )
+    session.flush()
 
 
 class ReferenceDatasetKindAdapter(Protocol):
@@ -54,25 +79,7 @@ class FoodAllergenReferenceDatasetAdapter:
         bundle: ReferenceDatasetBundle,
     ) -> None:
         allergen_bundle = self._bundle(bundle)
-
-        roots = [concept for concept in allergen_bundle.concepts if concept.parent_id is None]
-        children = [
-            concept for concept in allergen_bundle.concepts if concept.parent_id is not None
-        ]
-        for concept in (*roots, *children):
-            session.add(
-                ReferenceConceptRecord(
-                    dataset_version_id=version.id,
-                    id=concept.id,
-                    name=concept.name,
-                    condition_family=concept.condition_family,
-                    parent_id=concept.parent_id,
-                    is_leaf=concept.is_leaf,
-                    description=concept.description,
-                )
-            )
-
-        session.flush()
+        _persist_concept_records(session, version.id, allergen_bundle.concepts)
 
         for mapping in allergen_bundle.mappings:
             session.add(
@@ -204,9 +211,138 @@ class FoodAllergenReferenceDatasetAdapter:
         return errors
 
 
+class HalalIngredientReferenceDatasetAdapter:
+    @staticmethod
+    def _bundle(bundle: ReferenceDatasetBundle) -> HalalIngredientReferenceBundle:
+        if not isinstance(bundle, HalalIngredientReferenceBundle):
+            raise ValueError(
+                "HALAL_INGREDIENT persistence requires HalalIngredientReferenceBundle, "
+                f"received '{type(bundle).__name__}'"
+            )
+        return cast(HalalIngredientReferenceBundle, bundle)
+
+    def persist_records(
+        self,
+        session: Session,
+        version: ReferenceDatasetVersionRecord,
+        bundle: ReferenceDatasetBundle,
+    ) -> None:
+        halal_bundle = self._bundle(bundle)
+        _persist_concept_records(session, version.id, halal_bundle.concepts)
+
+        for mapping in halal_bundle.mappings:
+            session.add(
+                LexicalMappingRecord(
+                    dataset_version_id=version.id,
+                    id=mapping.id,
+                    concept_id=mapping.concept_id,
+                    language=mapping.language,
+                    mapped_text=mapping.mapped_text,
+                    relationship_type=mapping.relationship_type,
+                    notes=mapping.notes,
+                )
+            )
+
+        session.flush()
+
+        for hm in halal_bundle.halal_ingredient_mappings:
+            session.add(
+                HalalIngredientMappingRecord(
+                    dataset_version_id=version.id,
+                    id=hm.id,
+                    concept_id=hm.concept_id,
+                    classification=hm.classification,
+                    citations=[c.to_dict() for c in hm.citations],
+                    notes=hm.notes,
+                )
+            )
+
+    def bundle_counts(self, bundle: ReferenceDatasetBundle) -> dict[str, int]:
+        halal_bundle = self._bundle(bundle)
+        return {
+            "concept_count": len(halal_bundle.concepts),
+            "mapping_count": len(halal_bundle.mappings),
+            "halal_ingredient_mapping_count": len(halal_bundle.halal_ingredient_mappings),
+        }
+
+    def version_counts(self, version: ReferenceDatasetVersionRecord) -> dict[str, int]:
+        return {
+            "concept_count": len(version.concepts),
+            "mapping_count": len(version.mappings),
+            "halal_ingredient_mapping_count": len(version.halal_ingredient_mappings),
+        }
+
+    def inspect_records(self, version: ReferenceDatasetVersionRecord) -> dict[str, Any]:
+        return {
+            "concepts": [
+                {
+                    "id": concept.id,
+                    "name": concept.name,
+                    "condition_family": concept.condition_family,
+                    "parent_id": concept.parent_id,
+                    "is_leaf": concept.is_leaf,
+                    "description": concept.description,
+                }
+                for concept in version.concepts
+            ],
+            "mappings": [
+                {
+                    "id": mapping.id,
+                    "concept_id": mapping.concept_id,
+                    "language": mapping.language,
+                    "mapped_text": mapping.mapped_text,
+                    "relationship_type": mapping.relationship_type,
+                    "notes": mapping.notes,
+                }
+                for mapping in version.mappings
+            ],
+            "halal_ingredient_mappings": [
+                {
+                    "id": hm.id,
+                    "concept_id": hm.concept_id,
+                    "classification": hm.classification,
+                    "citations": hm.citations,
+                    "notes": hm.notes,
+                }
+                for hm in version.halal_ingredient_mappings
+            ],
+        }
+
+    def activation_errors(
+        self, session: Session, version: ReferenceDatasetVersionRecord
+    ) -> list[str]:
+        errors: list[str] = []
+        for hm in version.halal_ingredient_mappings:
+            for citation in hm.citations:
+                source_id = (
+                    citation.get("source_id")
+                    if isinstance(citation, dict)
+                    else getattr(citation, "source_id", None)
+                )
+                source = (
+                    session.query(ReferenceSourceRecord).filter_by(id=source_id).first()
+                    if source_id
+                    else None
+                )
+                if (
+                    source is None
+                    or not source.source_url
+                    or not source.licensing_decision
+                    or not source.jurisdiction
+                    or not source.name
+                    or not source.publisher
+                ):
+                    errors.append(
+                        f"Reference dataset version '{version.id}' references missing or "
+                        f"incomplete source '{source_id}'"
+                    )
+        return errors
+
+
 _KIND_ADAPTERS = MappingProxyType(
     {
         ReferenceDatasetKind.FOOD_ALLERGEN.value: FoodAllergenReferenceDatasetAdapter(),
+        ReferenceDatasetKind.HALAL_INGREDIENT.value: HalalIngredientReferenceDatasetAdapter(),
     }
 )
 

@@ -431,3 +431,102 @@ def test_cli_inspect_version(
         rule for rule in result["rules"] if rule["rule_kind"] == "DERIVATIVE_MATCH"
     )
     assert derivative_rule["mapping_id"] == "map-en-whey-derived"
+
+
+def test_cli_halal_dataset_full_operator_workflow_independent_of_food_allergen(
+    valid_bundle_file: Path, test_db_url: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fixture_path = (
+        Path(__file__).parent
+        / "fixtures"
+        / "reference_datasets"
+        / "synthetic_halal_ingredient_bundle.json"
+    )
+
+    # 1. Validate Halal bundle
+    exit_code = main(["validate", str(fixture_path)])
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    validate_result = json.loads(captured.out)
+    assert validate_result["status"] == "VALID"
+    assert validate_result["dataset_kind"] == "HALAL_INGREDIENT"
+    assert validate_result["concept_count"] == 2
+    assert validate_result["mapping_count"] == 2
+    assert validate_result["halal_ingredient_mapping_count"] == 2
+
+    # 2. Import FOOD_ALLERGEN version and activate it
+    main(["--database-url", test_db_url, "import", str(valid_bundle_file)])
+    main(["--database-url", test_db_url, "activate", "codex-food-allergen-2026-minimal"])
+    capsys.readouterr()
+
+    # 3. Import HALAL_INGREDIENT version
+    exit_code = main(["--database-url", test_db_url, "import", str(fixture_path)])
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    import_result = json.loads(captured.out)
+    assert import_result["status"] == "READY"
+    assert import_result["id"] == "synthetic-halal-ingredient-2026-v1"
+    assert import_result["dataset_kind"] == "HALAL_INGREDIENT"
+    assert import_result["halal_ingredient_mapping_count"] == 2
+
+    # 4. Inspect HALAL_INGREDIENT version
+    exit_code = main(
+        ["--database-url", test_db_url, "inspect", "synthetic-halal-ingredient-2026-v1"]
+    )
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    inspect_result = json.loads(captured.out)
+    assert inspect_result["id"] == "synthetic-halal-ingredient-2026-v1"
+    assert len(inspect_result["concepts"]) == 2
+    assert len(inspect_result["mappings"]) == 2
+    assert len(inspect_result["halal_ingredient_mappings"]) == 2
+
+    # 5. Check status before activation (HALAL_INGREDIENT should be None)
+    exit_code = main(
+        ["--database-url", test_db_url, "status", "--dataset-kind", "HALAL_INGREDIENT"]
+    )
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert json.loads(captured.out) is None
+
+    # 6. Activate HALAL_INGREDIENT version
+    exit_code = main(
+        [
+            "--database-url",
+            test_db_url,
+            "activate",
+            "synthetic-halal-ingredient-2026-v1",
+            "--approver",
+            "halal-lead@lifegoods.org",
+            "--review-kind",
+            "HALAL_DOMAIN_REVIEW",
+        ]
+    )
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    activate_result = json.loads(captured.out)
+    assert activate_result["status"] == "ACTIVE"
+    assert activate_result["dataset_kind"] == "HALAL_INGREDIENT"
+    assert activate_result["review_kind"] == "HALAL_DOMAIN_REVIEW"
+
+    # 7. Check status after activation
+    exit_code = main(
+        ["--database-url", test_db_url, "status", "--dataset-kind", "HALAL_INGREDIENT"]
+    )
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    status_result = json.loads(captured.out)
+    assert status_result["active_version_id"] == "synthetic-halal-ingredient-2026-v1"
+    assert status_result["dataset_kind"] == "HALAL_INGREDIENT"
+    assert status_result["status"] == "ACTIVE"
+
+    # 8. Check FOOD_ALLERGEN status is independent and still active
+    exit_code = main(
+        ["--database-url", test_db_url, "status", "--dataset-kind", "FOOD_ALLERGEN"]
+    )
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    allergen_status = json.loads(captured.out)
+    assert allergen_status["active_version_id"] == "codex-food-allergen-2026-minimal"
+    assert allergen_status["dataset_kind"] == "FOOD_ALLERGEN"
+

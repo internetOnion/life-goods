@@ -70,12 +70,22 @@ def test_manifest_first_dispatch_rejects_missing_dataset_kind() -> None:
 def test_manifest_first_dispatch_rejects_unsupported_dataset_kind() -> None:
     with pytest.raises(
         ValueError,
-        match="Unsupported dataset kind 'HALAL_INGREDIENT'.*FOOD_ALLERGEN",
+        match=(
+            r"Unsupported dataset kind 'COELIAC_GLUTEN'\. Registered kinds are "
+            r"\['FOOD_ALLERGEN', 'HALAL_INGREDIENT'\]"
+        ),
     ):
         parse_reference_bundle(
             {
-                "manifest": {"dataset_kind": "HALAL_INGREDIENT"},
-                "sources": [],
+                "manifest": {
+                    "id": "unsupported-kind-v1",
+                    "dataset_kind": "COELIAC_GLUTEN",
+                    "edition": "2026",
+                    "jurisdiction": "CODEX",
+                    "source_url": "https://example.test",
+                    "licensing_decision": "PROJECT_AUTHORED",
+                    "sha256": "x",
+                }
             }
         )
 
@@ -121,5 +131,6 @@ def test_unsupported_dataset_kind_does_not_run_food_allergen_invariants() -> Non
 
     assert not report.is_valid
     assert report.errors == [
-        "Unsupported dataset kind 'COELIAC_GLUTEN'. Must be one of ['FOOD_ALLERGEN']"
+        "Unsupported dataset kind 'COELIAC_GLUTEN'. "
+        "Must be one of ['FOOD_ALLERGEN', 'HALAL_INGREDIENT']"
     ]

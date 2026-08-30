@@ -1,0 +1,94 @@
+{
+  "manifest": {
+    "id": "synthetic-halal-ingredient-2026-v1",
+    "dataset_kind": "HALAL_INGREDIENT",
+    "edition": "Synthetic Engineering Edition 2026",
+    "jurisdiction": "CAMBODIA",
+    "source_url": "https://example.test/synthetic/halal-reference-dataset",
+    "licensing_decision": "PROJECT_AUTHORED",
+    "project_approver": "halal-domain-reviewer@lifegoods.org",
+    "review_kind": "HALAL_DOMAIN_REVIEW",
+    "sha256": "5071d15f1877bc8feb67cf2e78ae2e218c7dff404e0f0161458e72ae90958e10"
+  },
+  "sources": [
+    {
+      "id": "source-synthetic-halal-standard-2026",
+      "name": "Synthetic Halal Ingredient Standard for Engineering Validation",
+      "source_type": "NATIONAL_STANDARD",
+      "source_url": "https://example.test/synthetic/halal-reference-dataset",
+      "jurisdiction": "CAMBODIA",
+      "publisher": "Synthetic Standards Authority",
+      "edition": "2026 Edition",
+      "licensing_decision": "PROJECT_AUTHORED",
+      "terms_version": "2026-v1"
+    }
+  ],
+  "concepts": [
+    {
+      "id": "concept-synthetic-porcine",
+      "name": "Porcine ingredients",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Synthetic concept for porcine-derived ingredients."
+    },
+    {
+      "id": "concept-synthetic-gelatin",
+      "name": "Gelatin (source unspecified)",
+      "condition_family": "HALAL_INGREDIENT",
+      "parent_id": null,
+      "is_leaf": true,
+      "description": "Synthetic concept for source-ambiguous gelatin."
+    }
+  ],
+  "mappings": [
+    {
+      "id": "map-synthetic-pork-en",
+      "concept_id": "concept-synthetic-porcine",
+      "language": "en",
+      "mapped_text": "pork",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for pork."
+    },
+    {
+      "id": "map-synthetic-gelatin-en",
+      "concept_id": "concept-synthetic-gelatin",
+      "language": "en",
+      "mapped_text": "gelatin",
+      "relationship_type": "EXACT_NAME",
+      "notes": "Direct English name for gelatin."
+    }
+  ],
+  "halal_ingredient_mappings": [
+    {
+      "id": "halal-map-synthetic-porcine",
+      "concept_id": "concept-synthetic-porcine",
+      "classification": "EXPLICIT_PROHIBITED",
+      "citations": [
+        {
+          "source_id": "source-synthetic-halal-standard-2026",
+          "jurisdiction": "CAMBODIA",
+          "edition": "2026 Edition",
+          "locator": "Article 4.1",
+          "notes": "Synthetic rule prohibiting porcine ingredients."
+        }
+      ],
+      "notes": "Explicit prohibited porcine classification."
+    },
+    {
+      "id": "halal-map-synthetic-gelatin",
+      "concept_id": "concept-synthetic-gelatin",
+      "classification": "SOURCE_AMBIGUOUS",
+      "citations": [
+        {
+          "source_id": "source-synthetic-halal-standard-2026",
+          "jurisdiction": "CAMBODIA",
+          "edition": "2026 Edition",
+          "locator": "Section 5.3",
+          "notes": "Synthetic rule for source-dependent gelatin ambiguity."
+        }
+      ],
+      "notes": "Source-ambiguous gelatin classification."
+    }
+  ]
+}

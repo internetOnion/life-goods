@@ -236,7 +236,10 @@ def main(argv: list[str] | None = None) -> int:
     activate_parser.add_argument(
         "--review-kind",
         default=None,
-        help="Review kind (FOOD_DOMAIN_REVIEW or PROJECT_MAINTAINER_APPROVAL)",
+        help=(
+            "Review kind (FOOD_DOMAIN_REVIEW, HALAL_DOMAIN_REVIEW, "
+            "or PROJECT_MAINTAINER_APPROVAL)"
+        ),
     )
 
     rollback_parser = subparsers.add_parser(

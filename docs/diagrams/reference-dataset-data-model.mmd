@@ -3,13 +3,16 @@ erDiagram
   REFERENCE_DATASET_VERSION ||--o{ LEXICAL_MAPPING : contains
   REFERENCE_DATASET_VERSION ||--o{ LEXICAL_EXCLUSION : contains
   REFERENCE_DATASET_VERSION ||--o{ ALLERGEN_RULE : contains
+  REFERENCE_DATASET_VERSION ||--o{ HALAL_INGREDIENT_MAPPING : contains
   REFERENCE_DATASET_POINTER }o--|| REFERENCE_DATASET_VERSION : activates
 
   REFERENCE_CONCEPT o|--o{ REFERENCE_CONCEPT : parent_of
   REFERENCE_CONCEPT ||--o{ LEXICAL_MAPPING : recognizes
   REFERENCE_CONCEPT ||--o{ LEXICAL_EXCLUSION : suppresses_for
   REFERENCE_CONCEPT ||--o{ ALLERGEN_RULE : governed_by
+  REFERENCE_CONCEPT ||--o{ HALAL_INGREDIENT_MAPPING : classified_by
   REFERENCE_SOURCE ||--o{ ALLERGEN_RULE : supports
+  REFERENCE_SOURCE ||--o{ HALAL_INGREDIENT_MAPPING : cites
   LEXICAL_MAPPING o|--o| ALLERGEN_RULE : derivative_binding
 
   REFERENCE_DATASET_VERSION {
@@ -62,4 +65,11 @@ erDiagram
     string source_id FK
     string mapping_id FK
     string rule_kind
+  }
+  HALAL_INGREDIENT_MAPPING {
+    string dataset_version_id PK,FK
+    string id PK
+    string concept_id FK
+    string classification
+    json citations
   }

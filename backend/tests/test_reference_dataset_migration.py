@@ -253,3 +253,106 @@ def test_reference_dataset_migration_upgrades_and_downgrades(
     assert "lexical_mappings" not in table_names_downgraded
     assert "allergen_rules" not in table_names_downgraded
     assert "reference_dataset_pointers" not in table_names_downgraded
+
+
+def test_halal_ingredient_migration_enforces_mappings_and_constraints(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    database_path = tmp_path / "halal-migration.db"
+    database_url = f"sqlite+pysqlite:///{database_path}"
+    monkeypatch.setenv("LIFEGOODS_DATABASE_URL", database_url)
+    config = Config("backend/alembic.ini")
+    command.upgrade(config, "head")
+
+    engine = create_engine(database_url)
+    assert "halal_ingredient_mappings" in inspect(engine).get_table_names()
+
+    with engine.begin() as connection:
+        connection.execute(text("PRAGMA foreign_keys=ON"))
+        connection.execute(
+            text(
+                "INSERT INTO reference_sources "
+                "(id, name, source_type, source_url, jurisdiction, publisher, "
+                "licensing_decision) VALUES "
+                "('source-synthetic-halal', 'Synthetic Halal Standard', 'NATIONAL_STANDARD', "
+                "'https://example.test/halal', 'CAMBODIA', 'Authority', 'PROJECT_AUTHORED')"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO reference_dataset_versions "
+                "(id, dataset_kind, jurisdiction, source_url, licensing_decision, sha256, "
+                "retrieved_at, status, review_kind, immutable, validation_errors, "
+                "validation_history) VALUES "
+                "('ver-halal-1', 'HALAL_INGREDIENT', 'CAMBODIA', 'https://example.test/halal', "
+                "'PROJECT_AUTHORED', 'hash123', '2026-08-30', 'READY', "
+                "'HALAL_DOMAIN_REVIEW', 1, '[]', '[]')"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO reference_concepts "
+                "(dataset_version_id, id, name, condition_family, is_leaf) VALUES "
+                "('ver-halal-1', 'concept-pork', 'Porcine ingredients', 'HALAL_INGREDIENT', 1)"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO lexical_mappings "
+                "(dataset_version_id, id, concept_id, language, mapped_text, "
+                "relationship_type) VALUES "
+                "('ver-halal-1', 'map-pork-en', 'concept-pork', 'en', 'pork', 'EXACT_NAME')"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO halal_ingredient_mappings "
+                "(dataset_version_id, id, concept_id, classification, citations, notes) VALUES "
+                "('ver-halal-1', 'hm-pork-1', 'concept-pork', 'EXPLICIT_PROHIBITED', "
+                "'[{\"source_id\": \"source-synthetic-halal\", \"jurisdiction\": \"CAMBODIA\", "
+                "\"edition\": \"2026\", \"locator\": \"Art 4\"}]', "
+                "'Prohibited pork mapping')"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO reference_dataset_pointers "
+                "(dataset_kind, active_version_id, previous_version_id, activated_at, "
+                "activated_by, review_kind) "
+                "VALUES ('HALAL_INGREDIENT', 'ver-halal-1', NULL, '2026-08-30 12:00:00', "
+                "'halal-reviewer@lifegoods.org', 'HALAL_DOMAIN_REVIEW')"
+            )
+        )
+
+        assert connection.execute(
+            text(
+                "SELECT classification FROM halal_ingredient_mappings "
+                "WHERE dataset_version_id = 'ver-halal-1' AND id = 'hm-pork-1'"
+            )
+        ).scalar_one() == "EXPLICIT_PROHIBITED"
+
+    # Reject invalid classification
+    with engine.begin() as connection, pytest.raises(exc.IntegrityError):
+        connection.execute(text("PRAGMA foreign_keys=ON"))
+        connection.execute(
+            text(
+                "INSERT INTO halal_ingredient_mappings "
+                "(dataset_version_id, id, concept_id, classification, citations) VALUES "
+                "('ver-halal-1', 'hm-pork-bad', 'concept-pork', 'INVALID_CLASS', '[]')"
+            )
+        )
+
+    # Reject duplicate mapping for same concept in same version
+    with engine.begin() as connection, pytest.raises(exc.IntegrityError):
+        connection.execute(text("PRAGMA foreign_keys=ON"))
+        connection.execute(
+            text(
+                "INSERT INTO halal_ingredient_mappings "
+                "(dataset_version_id, id, concept_id, classification, citations) VALUES "
+                "('ver-halal-1', 'hm-pork-dup', 'concept-pork', 'SOURCE_AMBIGUOUS', '[]')"
+            )
+        )
+
+    command.downgrade(config, "0007")
+    assert "halal_ingredient_mappings" not in inspect(engine).get_table_names()
+

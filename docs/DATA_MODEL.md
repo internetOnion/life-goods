@@ -237,6 +237,8 @@ Invariants:
 - An active allergen leaf has exactly one reviewed English direct-name mapping and an applicable declaration rule; mappings never target parent concepts.
 - Every reviewed derivative mapping has exactly one mapping-linked derivative rule for the same leaf concept; other allergen rule kinds do not link to mappings.
 - A lexical exclusion targets an active leaf, is unique after production normalization, and suppresses at least one approved mapping for only that concept.
+- An active Halal ingredient leaf has exactly one explicit-prohibited or source-ambiguous classification; mappings never target parent concepts.
+- Every Halal ingredient mapping carries at least one source citation containing edition, jurisdiction, and article or section locator referencing a bundle source.
 - Allergen Assessment outcomes contain leaf ancestry in direct-parent-to-root order and applicable rule IDs. Parent concepts group leaves but do not emit outcomes.
 
 The persisted Reference Dataset relationships are shown in

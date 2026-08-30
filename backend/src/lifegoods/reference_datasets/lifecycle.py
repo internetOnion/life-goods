@@ -6,7 +6,11 @@ from datetime import UTC, datetime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from lifegoods.reference_datasets.bundle import ConditionFamily, ReferenceReviewKind
+from lifegoods.reference_datasets.bundle import (
+    ConditionFamily,
+    ReferenceDatasetKind,
+    ReferenceReviewKind,
+)
 from lifegoods.reference_datasets.importer import (
     ReferenceDatasetError,
     ReferenceDatasetValidationError,
@@ -38,10 +42,12 @@ class ReferenceDatasetInactiveError(ReferenceDatasetError):
 
 def get_active_reference_dataset_pointer(
     session: Session,
-    dataset_kind: str | ConditionFamily = ConditionFamily.FOOD_ALLERGEN,
+    dataset_kind: str | ConditionFamily | ReferenceDatasetKind = ConditionFamily.FOOD_ALLERGEN,
 ) -> ReferenceDatasetPointerRecord | None:
     resolved_kind = (
-        dataset_kind.value if isinstance(dataset_kind, ConditionFamily) else str(dataset_kind)
+        dataset_kind.value
+        if isinstance(dataset_kind, (ConditionFamily, ReferenceDatasetKind))
+        else str(dataset_kind)
     )
     return (
         session.query(ReferenceDatasetPointerRecord).filter_by(dataset_kind=resolved_kind).first()
@@ -114,8 +120,10 @@ def activate_reference_dataset_version(
     valid_review_kinds = {
         ReferenceReviewKind.FOOD_DOMAIN_REVIEW.value,
         ReferenceReviewKind.PROJECT_MAINTAINER_APPROVAL.value,
+        ReferenceReviewKind.HALAL_DOMAIN_REVIEW.value,
         "FOOD_DOMAIN_REVIEW",
         "PROJECT_MAINTAINER_APPROVAL",
+        "HALAL_DOMAIN_REVIEW",
     }
     if final_review_kind not in valid_review_kinds:
         raise ReferenceDatasetApprovalError(f"Invalid review kind '{final_review_kind}'")
@@ -181,12 +189,14 @@ def activate_reference_dataset_version(
 def rollback_reference_dataset_version(
     session: Session,
     *,
-    dataset_kind: str | ConditionFamily = ConditionFamily.FOOD_ALLERGEN,
+    dataset_kind: str | ConditionFamily | ReferenceDatasetKind = ConditionFamily.FOOD_ALLERGEN,
     approver: str | None = None,
     now: Callable[[], datetime] | None = None,
 ) -> ReferenceDatasetVersionRecord:
     resolved_kind = (
-        dataset_kind.value if isinstance(dataset_kind, ConditionFamily) else str(dataset_kind)
+        dataset_kind.value
+        if isinstance(dataset_kind, (ConditionFamily, ReferenceDatasetKind))
+        else str(dataset_kind)
     )
     utc_now = (now or (lambda: datetime.now(UTC)))()
 
