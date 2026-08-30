@@ -82,6 +82,38 @@ def test_matching_hardening_migration_enforces_exclusions_and_derivative_links(
             )
         ).scalar_one() == "coconut milk"
 
+        connection.execute(
+            text(
+                "INSERT INTO reference_dataset_versions "
+                "(id, dataset_kind, jurisdiction, source_url, licensing_decision, sha256, "
+                "retrieved_at, status, review_kind, immutable, validation_errors, "
+                "validation_history) VALUES "
+                "('halal-ver-1', 'HALAL_INGREDIENT', 'PROJECT_SCOPE', "
+                "'https://example.test/halal', 'PROJECT_AUTHORED', 'halal-hash', "
+                "'2026-08-30', 'READY', 'HALAL_DOMAIN_REVIEW', 1, '[]', '[]')"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO reference_concepts "
+                "(dataset_version_id, id, name, condition_family, is_leaf) VALUES "
+                "('halal-ver-1', 'concept-pork', 'Pork', 'HALAL_INGREDIENT', 1)"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO lexical_exclusions "
+                "(dataset_version_id, id, concept_id, language, excluded_text) VALUES "
+                "('halal-ver-1', 'exclude-pork-free', 'concept-pork', 'en', 'pork-free')"
+            )
+        )
+        assert connection.execute(
+            text(
+                "SELECT excluded_text FROM lexical_exclusions "
+                "WHERE dataset_version_id = 'halal-ver-1' AND id = 'exclude-pork-free'"
+            )
+        ).scalar_one() == "pork-free"
+
     with engine.begin() as connection, pytest.raises(exc.IntegrityError):
         connection.execute(text("PRAGMA foreign_keys=ON"))
         connection.execute(
@@ -355,4 +387,3 @@ def test_halal_ingredient_migration_enforces_mappings_and_constraints(
 
     command.downgrade(config, "0007")
     assert "halal_ingredient_mappings" not in inspect(engine).get_table_names()
-

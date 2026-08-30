@@ -1254,7 +1254,9 @@ def test_package_matches_with_halal_enabled_and_prohibited_ingredient(
     database[collection_name].insert_one(
         {
             "code": "4006381333931",
+            "lang": "en",
             "product_name_en": "Pork Sausages",
+            "ingredients_text": "Gelatin, pork",
             "ingredients_text_en": "Ingredients: pork (80%), water, salt, spices.",
             "labels_tags": ["en:halal"],
             "last_modified_t": 1787462400,
@@ -1286,19 +1288,41 @@ def test_package_matches_with_halal_enabled_and_prohibited_ingredient(
     assert halal["evidence_coverage"] == "PARTIAL"
     assert halal["engine_version"] == "0.1.0"
     assert halal["reference_dataset_version"]["id"] == "synthetic-halal-ingredient-2026-v1"
-    assert len(halal["checked_evidence"]) == 1
-    assert halal["checked_evidence"][0]["field"] == "ingredient_text"
-    assert len(halal["findings"]) == 1
-    finding = halal["findings"][0]
-    assert finding["concept_id"] == "concept-synthetic-porcine"
-    assert finding["classification"] == "EXPLICIT_PROHIBITED"
-    assert finding["matched_text"] == "pork"
-    assert finding["start_index"] == 13
-    assert finding["end_index"] == 17
-    assert len(finding["citations"]) == 1
-    assert finding["citations"][0]["source_id"] == "source-synthetic-halal-standard-2026"
-    assert finding["citations"][0]["jurisdiction"] == "CAMBODIA"
-    assert finding["citations"][0]["locator"] == "Article 4.1"
+    assert len(halal["checked_evidence"]) == 2
+    assert [evidence["source_field"] for evidence in halal["checked_evidence"]] == [
+        "ingredients_text",
+        "ingredients_text_en",
+    ]
+    assert len(halal["findings"]) == 3
+    assert [finding["classification"] for finding in halal["findings"]] == [
+        "SOURCE_AMBIGUOUS",
+        "EXPLICIT_PROHIBITED",
+        "EXPLICIT_PROHIBITED",
+    ]
+    assert [finding["matched_text"] for finding in halal["findings"]] == [
+        "Gelatin",
+        "pork",
+        "pork",
+    ]
+    assert [finding["source_field"] for finding in halal["findings"]] == [
+        "ingredients_text",
+        "ingredients_text",
+        "ingredients_text_en",
+    ]
+    assert [
+        (finding["start_index"], finding["end_index"])
+        for finding in halal["findings"]
+    ] == [(0, 7), (9, 13), (13, 17)]
+    assert len({finding["id"] for finding in halal["findings"]}) == 3
+    prohibited_finding = halal["findings"][1]
+    assert prohibited_finding["concept_id"] == "concept-synthetic-porcine"
+    assert len(prohibited_finding["citations"]) == 1
+    assert (
+        prohibited_finding["citations"][0]["source_id"]
+        == "source-synthetic-halal-standard-2026"
+    )
+    assert prohibited_finding["citations"][0]["jurisdiction"] == "CAMBODIA"
+    assert prohibited_finding["citations"][0]["locator"] == "Article 4.1"
 
 
 def test_package_matches_with_halal_enabled_and_reference_unavailable(
@@ -1384,4 +1408,3 @@ def test_package_matches_with_halal_enabled_and_evidence_unavailable(
     assert halal["outcome"] == "NOT_ASSESSED"
     assert halal["reference_dataset_version"]["id"] == "synthetic-halal-ingredient-2026-v1"
     assert halal["findings"] == []
-

@@ -11,6 +11,7 @@ from lifegoods.reference_datasets.bundle import (
     HalalIngredientReferenceBundle,
     HalalRelationshipType,
     HalalSourceCitationDefinition,
+    LexicalExclusionDefinition,
     LexicalMappingDefinition,
     ReferenceConceptDefinition,
     ReferenceDatasetKind,
@@ -152,14 +153,59 @@ def create_sample_halal_bundle() -> HalalIngredientReferenceBundle:
     )
 
 
+def with_sample_exclusion(
+    bundle: HalalIngredientReferenceBundle,
+) -> HalalIngredientReferenceBundle:
+    exclusions = [
+        LexicalExclusionDefinition(
+            id="exclude-halal-pork-free-en",
+            concept_id="concept-halal-pork",
+            language="en",
+            excluded_text="pork-free",
+            notes="Synthetic exclusion proving concept-scoped suppression.",
+        )
+    ]
+    sha256 = compute_halal_bundle_sha256(
+        manifest=bundle.manifest,
+        sources=bundle.sources,
+        concepts=bundle.concepts,
+        mappings=bundle.mappings,
+        exclusions=exclusions,
+        halal_ingredient_mappings=bundle.halal_ingredient_mappings,
+    )
+    return replace(
+        bundle,
+        manifest=replace(bundle.manifest, sha256=sha256),
+        exclusions=exclusions,
+    )
+
+
 def test_halal_bundle_round_trip_serialization() -> None:
-    bundle = create_sample_halal_bundle()
+    bundle = with_sample_exclusion(create_sample_halal_bundle())
     payload = bundle.to_dict()
 
     parsed = parse_reference_bundle(payload)
     assert isinstance(parsed, HalalIngredientReferenceBundle)
     assert parsed.to_dict() == payload
     assert parsed.compute_sha256() == bundle.manifest.sha256
+    assert parsed.exclusions == bundle.exclusions
+
+
+def test_halal_bundle_without_exclusions_preserves_legacy_hash() -> None:
+    fixture_path = (
+        Path(__file__).parent
+        / "fixtures"
+        / "reference_datasets"
+        / "synthetic_halal_ingredient_bundle.json"
+    )
+    bundle = load_reference_bundle(fixture_path)
+
+    assert isinstance(bundle, HalalIngredientReferenceBundle)
+    assert bundle.exclusions == []
+    assert (
+        bundle.compute_sha256()
+        == "5071d15f1877bc8feb67cf2e78ae2e218c7dff404e0f0161458e72ae90958e10"
+    )
 
 
 def test_halal_bundle_from_json_file(tmp_path: Path) -> None:
@@ -187,11 +233,31 @@ def test_halal_bundle_dispatch_rejects_foreign_allergen_rules() -> None:
 
 
 def test_halal_bundle_validates_successfully() -> None:
-    bundle = create_sample_halal_bundle()
+    bundle = with_sample_exclusion(create_sample_halal_bundle())
     report = validate_bundle(bundle)
     assert report.is_valid is True
     assert report.errors == []
     assert report.sha256 == bundle.manifest.sha256
+
+
+def test_halal_validation_rejects_exclusion_without_same_concept_mapping() -> None:
+    bundle = create_sample_halal_bundle()
+    exclusion = LexicalExclusionDefinition(
+        id="exclude-halal-wrong-concept",
+        concept_id="concept-halal-gelatin",
+        language="en",
+        excluded_text="pork-free",
+    )
+    invalid_bundle = replace(bundle, exclusions=[exclusion])
+
+    report = validate_bundle(invalid_bundle)
+
+    assert not report.is_valid
+    assert any(
+        "does not contain a suppressible mapping for concept 'concept-halal-gelatin'"
+        in error
+        for error in report.errors
+    )
 
 
 def test_halal_validation_rejects_missing_citations() -> None:
@@ -375,12 +441,13 @@ def db_session(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
 def test_import_halal_bundle_persists_records(db_session) -> None:
     from lifegoods.reference_datasets.importer import import_reference_bundle
+    from lifegoods.reference_datasets.kind_adapters import get_reference_dataset_kind_adapter
     from lifegoods.reference_datasets.models import (
         HalalIngredientMappingRecord,
         ReferenceDatasetVersionRecord,
     )
 
-    bundle = create_sample_halal_bundle()
+    bundle = with_sample_exclusion(create_sample_halal_bundle())
     version = import_reference_bundle(db_session, bundle)
 
     assert version.id == "synthetic-halal-ingredient-2026-v1"
@@ -396,6 +463,7 @@ def test_import_halal_bundle_persists_records(db_session) -> None:
     assert stored_version is not None
     assert len(stored_version.concepts) == 2
     assert len(stored_version.mappings) == 2
+    assert len(stored_version.exclusions) == 1
     assert len(stored_version.halal_ingredient_mappings) == 2
 
     porcine_hm = (
@@ -408,6 +476,19 @@ def test_import_halal_bundle_persists_records(db_session) -> None:
     assert len(porcine_hm.citations) == 1
     assert porcine_hm.citations[0]["source_id"] == "source-synthetic-halal-standard-2026"
     assert porcine_hm.citations[0]["locator"] == "Article 4.1"
+
+    inspection = get_reference_dataset_kind_adapter(version.dataset_kind).inspect_records(
+        stored_version
+    )
+    assert inspection["exclusions"] == [
+        {
+            "id": "exclude-halal-pork-free-en",
+            "concept_id": "concept-halal-pork",
+            "language": "en",
+            "excluded_text": "pork-free",
+            "notes": "Synthetic exclusion proving concept-scoped suppression.",
+        }
+    ]
 
 
 def test_activate_and_rollback_halal_version(db_session) -> None:
@@ -508,5 +589,3 @@ def test_synthetic_fixture_file_validates_and_imports(db_session) -> None:
     assert len(inspection["concepts"]) == 2
     assert len(inspection["mappings"]) == 2
     assert len(inspection["halal_ingredient_mappings"]) == 2
-
-

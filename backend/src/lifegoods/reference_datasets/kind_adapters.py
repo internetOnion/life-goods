@@ -245,6 +245,18 @@ class HalalIngredientReferenceDatasetAdapter:
 
         session.flush()
 
+        for exclusion in halal_bundle.exclusions:
+            session.add(
+                LexicalExclusionRecord(
+                    dataset_version_id=version.id,
+                    id=exclusion.id,
+                    concept_id=exclusion.concept_id,
+                    language=exclusion.language,
+                    excluded_text=exclusion.excluded_text,
+                    notes=exclusion.notes,
+                )
+            )
+
         for hm in halal_bundle.halal_ingredient_mappings:
             session.add(
                 HalalIngredientMappingRecord(
@@ -262,6 +274,7 @@ class HalalIngredientReferenceDatasetAdapter:
         return {
             "concept_count": len(halal_bundle.concepts),
             "mapping_count": len(halal_bundle.mappings),
+            "exclusion_count": len(halal_bundle.exclusions),
             "halal_ingredient_mapping_count": len(halal_bundle.halal_ingredient_mappings),
         }
 
@@ -269,6 +282,7 @@ class HalalIngredientReferenceDatasetAdapter:
         return {
             "concept_count": len(version.concepts),
             "mapping_count": len(version.mappings),
+            "exclusion_count": len(version.exclusions),
             "halal_ingredient_mapping_count": len(version.halal_ingredient_mappings),
         }
 
@@ -295,6 +309,16 @@ class HalalIngredientReferenceDatasetAdapter:
                     "notes": mapping.notes,
                 }
                 for mapping in version.mappings
+            ],
+            "exclusions": [
+                {
+                    "id": exclusion.id,
+                    "concept_id": exclusion.concept_id,
+                    "language": exclusion.language,
+                    "excluded_text": exclusion.excluded_text,
+                    "notes": exclusion.notes,
+                }
+                for exclusion in version.exclusions
             ],
             "halal_ingredient_mappings": [
                 {

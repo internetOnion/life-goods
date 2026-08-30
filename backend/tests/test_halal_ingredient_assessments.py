@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from lifegoods.open_food_facts.models import (
 from lifegoods.package_matches.assessments import (
     DisabledHalalIngredientAssessmentEvaluator,
     EvidenceCoverageState,
+    HalalIngredientAssessmentEvaluation,
     HalalIngredientAssessmentOutcome,
     HalalIngredientAssessmentReason,
     HalalIngredientAssessmentStatus,
@@ -27,11 +29,14 @@ from lifegoods.reference_datasets import (
     HalalAssessmentReferenceVersion,
     HalalIngredientReferenceBundle,
     HalalReferenceConcept,
+    HalalReferenceExclusion,
     HalalReferenceIngredientMapping,
     HalalReferenceLexicalMapping,
     HalalRelationshipType,
     HalalSourceCitation,
+    LexicalExclusionDefinition,
     activate_reference_dataset_version,
+    compute_halal_bundle_sha256,
     import_reference_bundle,
     load_reference_bundle,
 )
@@ -239,6 +244,29 @@ def test_database_halal_reference_data_access_loads_active_data_with_citations(
     )
     bundle = load_reference_bundle(fixture_path)
     assert isinstance(bundle, HalalIngredientReferenceBundle)
+    exclusions = [
+        LexicalExclusionDefinition(
+            id="exclude-synthetic-pork-free-en",
+            concept_id="concept-synthetic-porcine",
+            language="en",
+            excluded_text="pork-free",
+        )
+    ]
+    bundle = replace(
+        bundle,
+        manifest=replace(
+            bundle.manifest,
+            sha256=compute_halal_bundle_sha256(
+                manifest=bundle.manifest,
+                sources=bundle.sources,
+                concepts=bundle.concepts,
+                mappings=bundle.mappings,
+                exclusions=exclusions,
+                halal_ingredient_mappings=bundle.halal_ingredient_mappings,
+            ),
+        ),
+        exclusions=exclusions,
+    )
 
     with db_session_factory() as session:
         import_reference_bundle(session, bundle)
@@ -260,7 +288,28 @@ def test_database_halal_reference_data_access_loads_active_data_with_citations(
     assert active_data.version == version
     assert len(active_data.concepts) == 2
     assert len(active_data.mappings) == 2
+    assert len(active_data.exclusions) == 1
+    assert active_data.exclusions[0].excluded_text == "pork-free"
     assert len(active_data.halal_ingredient_mappings) == 2
+
+    evaluator = StandardHalalIngredientAssessmentEvaluator(
+        enabled=True,
+        engine_version="0.1.0",
+        reference_data=access,
+    )
+    evaluation = evaluator.evaluate(
+        sample_record(
+            ingredient_texts=(
+                SourcedValue(
+                    value="Pork-free gelatin",
+                    source_field="ingredients_text_en",
+                    language="en",
+                ),
+            )
+        )
+    )
+    assert evaluation.outcome == HalalIngredientAssessmentOutcome.SOURCE_AMBIGUOUS
+    assert [finding.matched_text for finding in evaluation.findings] == ["gelatin"]
 
     porcine_mapping = next(
         m
@@ -375,6 +424,37 @@ def test_standard_halal_evaluator_when_no_english_ingredients_returns_evidence_u
     assert evaluation.reference_dataset_version == active_data.version
     assert evaluation.checked_evidence == ()
     assert evaluation.findings == ()
+
+
+@pytest.mark.parametrize(
+    "ingredient_texts",
+    [
+        (),
+        (
+            SourcedValue(
+                value="   ",
+                source_field="ingredients_text_en",
+                language="en",
+            ),
+        ),
+    ],
+)
+def test_standard_halal_evaluator_when_english_evidence_is_missing_or_empty(
+    ingredient_texts: tuple[SourcedValue[str], ...],
+) -> None:
+    active_data = sample_active_halal_reference_data()
+    evaluator = StandardHalalIngredientAssessmentEvaluator(
+        enabled=True,
+        engine_version="0.1.0",
+        reference_data=StubHalalReferenceDataAccess(active_data),
+    )
+
+    evaluation = evaluator.evaluate(sample_record(ingredient_texts=ingredient_texts))
+
+    assert evaluation.status == HalalIngredientAssessmentStatus.NOT_ASSESSED
+    assert evaluation.reason == HalalIngredientAssessmentReason.EVIDENCE_UNAVAILABLE
+    assert evaluation.outcome == HalalIngredientAssessmentOutcome.NOT_ASSESSED
+    assert evaluation.evidence_coverage == EvidenceCoverageState.NOT_ASSESSED
 
 
 def test_standard_halal_evaluator_ignores_product_name_categories_and_halal_claims() -> None:
@@ -492,6 +572,63 @@ def test_source_ambiguous_ingredient_declared_outcome() -> None:
     assert evaluation.findings[0].citations[0].locator == "Section 5.3"
 
 
+def test_normalization_preserves_exact_unicode_source_spans() -> None:
+    active_data = sample_active_halal_reference_data()
+    evaluator = StandardHalalIngredientAssessmentEvaluator(
+        enabled=True,
+        engine_version="0.1.0",
+        reference_data=StubHalalReferenceDataAccess(active_data),
+    )
+    source_text = "Salt，ＰＯＲＫ； gelatin"
+
+    evaluation = evaluator.evaluate(
+        sample_record(
+            ingredient_texts=(
+                SourcedValue(
+                    value=source_text,
+                    source_field="ingredients_text_en",
+                    language="en",
+                ),
+            )
+        )
+    )
+
+    assert [finding.matched_text for finding in evaluation.findings] == [
+        "ＰＯＲＫ",
+        "gelatin",
+    ]
+    for finding in evaluation.findings:
+        assert source_text[finding.start_index : finding.end_index] == finding.matched_text
+
+
+def test_word_boundaries_reject_contained_mapping_text() -> None:
+    active_data = sample_active_halal_reference_data()
+    evaluator = StandardHalalIngredientAssessmentEvaluator(
+        enabled=True,
+        engine_version="0.1.0",
+        reference_data=StubHalalReferenceDataAccess(active_data),
+    )
+
+    evaluation = evaluator.evaluate(
+        sample_record(
+            ingredient_texts=(
+                SourcedValue(
+                    value="Porkpie, gelatinous starch",
+                    source_field="ingredients_text_en",
+                    language="en",
+                ),
+            )
+        )
+    )
+
+    assert (
+        evaluation.outcome
+        == HalalIngredientAssessmentOutcome.NO_NON_HALAL_INGREDIENT_DETECTED_IN_READABLE_LABEL
+    )
+    assert evaluation.evidence_coverage == EvidenceCoverageState.PARTIAL
+    assert evaluation.findings == ()
+
+
 def test_both_prohibited_and_ambiguous_yields_explicit_prohibited_outcome() -> None:
     active_data = sample_active_halal_reference_data()
     evaluator = StandardHalalIngredientAssessmentEvaluator(
@@ -516,6 +653,144 @@ def test_both_prohibited_and_ambiguous_yields_explicit_prohibited_outcome() -> N
         == HalalIngredientAssessmentOutcome.EXPLICIT_PROHIBITED_INGREDIENT_DECLARED
     )
     assert len(evaluation.findings) == 2
+
+
+def test_concept_scoped_exclusion_suppresses_only_its_concept() -> None:
+    active_data = sample_active_halal_reference_data()
+    active_data = replace(
+        active_data,
+        exclusions=(
+            HalalReferenceExclusion(
+                id="exclude-synthetic-pork-gelatin",
+                concept_id="concept-synthetic-porcine",
+                language="en",
+                excluded_text="pork gelatin",
+            ),
+        ),
+    )
+    evaluator = StandardHalalIngredientAssessmentEvaluator(
+        enabled=True,
+        engine_version="0.1.0",
+        reference_data=StubHalalReferenceDataAccess(active_data),
+    )
+
+    evaluation = evaluator.evaluate(
+        sample_record(
+            ingredient_texts=(
+                SourcedValue(
+                    value="Sugar, pork gelatin, salt",
+                    source_field="ingredients_text_en",
+                    language="en",
+                ),
+            )
+        )
+    )
+
+    assert evaluation.outcome == HalalIngredientAssessmentOutcome.SOURCE_AMBIGUOUS
+    assert [finding.matched_text for finding in evaluation.findings] == ["gelatin"]
+    assert evaluation.findings[0].concept_id == "concept-synthetic-gelatin"
+
+
+def test_longest_match_wins_without_hiding_separate_occurrences() -> None:
+    active_data = sample_active_halal_reference_data()
+    active_data = replace(
+        active_data,
+        mappings=(
+            *active_data.mappings,
+            HalalReferenceLexicalMapping(
+                id="map-synthetic-pork-lard-en",
+                concept_id="concept-synthetic-porcine",
+                language="en",
+                mapped_text="pork lard",
+                relationship_type=HalalRelationshipType.CONTAINS_SOURCE,
+            ),
+        ),
+    )
+    evaluator = StandardHalalIngredientAssessmentEvaluator(
+        enabled=True,
+        engine_version="0.1.0",
+        reference_data=StubHalalReferenceDataAccess(active_data),
+    )
+
+    evaluation = evaluator.evaluate(
+        sample_record(
+            ingredient_texts=(
+                SourcedValue(
+                    value="Pork lard, gelatin, pork",
+                    source_field="ingredients_text_en",
+                    language="en",
+                ),
+            )
+        )
+    )
+
+    assert [finding.matched_text for finding in evaluation.findings] == [
+        "Pork lard",
+        "gelatin",
+        "pork",
+    ]
+    assert evaluation.findings[0].mapping_id == "map-synthetic-pork-lard-en"
+
+
+def test_repeated_occurrences_and_multiple_english_fields_keep_provenance() -> None:
+    active_data = sample_active_halal_reference_data()
+    evaluator = StandardHalalIngredientAssessmentEvaluator(
+        enabled=True,
+        engine_version="0.1.0",
+        reference_data=StubHalalReferenceDataAccess(active_data),
+    )
+    record = sample_record(
+        ingredient_texts=(
+            SourcedValue(
+                value="Pork, pork",
+                source_field="ingredients_text_en",
+                language="en",
+            ),
+            SourcedValue(
+                value="Pork, gelatin",
+                source_field="ingredients_text_en_imported",
+                language="en-GB",
+            ),
+        )
+    )
+
+    first = evaluator.evaluate(record)
+    second = evaluator.evaluate(record)
+
+    assert [finding.matched_text for finding in first.findings] == [
+        "Pork",
+        "pork",
+        "Pork",
+        "gelatin",
+    ]
+    assert [finding.source_field for finding in first.findings] == [
+        "ingredients_text_en",
+        "ingredients_text_en",
+        "ingredients_text_en_imported",
+        "ingredients_text_en_imported",
+    ]
+    assert len({finding.id for finding in first.findings}) == 4
+    assert first.findings == second.findings
+
+
+@pytest.mark.parametrize("halal_claim", [None, (), ("en:halal",)])
+def test_halal_label_claim_does_not_change_prohibited_outcome(
+    halal_claim: tuple[str, ...] | None,
+) -> None:
+    active_data = sample_active_halal_reference_data()
+    evaluator = StandardHalalIngredientAssessmentEvaluator(
+        enabled=True,
+        engine_version="0.1.0",
+        reference_data=StubHalalReferenceDataAccess(active_data),
+    )
+
+    evaluation = evaluator.evaluate(sample_record(halal_claim=halal_claim))
+
+    assert (
+        evaluation.outcome
+        == HalalIngredientAssessmentOutcome.EXPLICIT_PROHIBITED_INGREDIENT_DECLARED
+    )
+    assert [finding.matched_text for finding in evaluation.findings] == ["pork"]
 
 
 def test_evaluator_exception_returns_assessment_failed() -> None:
@@ -626,3 +901,42 @@ def test_evaluator_with_cache_stores_and_retrieves_evaluation() -> None:
     eval2 = evaluator.evaluate(record)
     assert eval2 == eval1
 
+
+def test_evaluator_rejects_cached_finding_with_mismatched_mapping_provenance() -> None:
+    active_data = sample_active_halal_reference_data()
+    record = sample_record()
+    uncached_evaluator = StandardHalalIngredientAssessmentEvaluator(
+        enabled=True,
+        engine_version="0.1.0",
+        reference_data=StubHalalReferenceDataAccess(active_data),
+    )
+    valid_evaluation = uncached_evaluator.evaluate(record)
+    invalid_finding = replace(
+        valid_evaluation.findings[0],
+        relationship_type=HalalRelationshipType.SPELLING_VARIANT,
+        halal_mapping_id="halal-map-wrong",
+    )
+    invalid_evaluation = replace(valid_evaluation, findings=(invalid_finding,))
+
+    class InvalidCache:
+        def __init__(self) -> None:
+            self.stored: HalalIngredientAssessmentEvaluation | None = None
+
+        def get(self, key: str) -> HalalIngredientAssessmentEvaluation:
+            return invalid_evaluation
+
+        def set(self, key: str, value: HalalIngredientAssessmentEvaluation) -> None:
+            self.stored = value
+
+    cache = InvalidCache()
+    evaluator = StandardHalalIngredientAssessmentEvaluator(
+        enabled=True,
+        engine_version="0.1.0",
+        reference_data=StubHalalReferenceDataAccess(active_data),
+        cache=cache,
+    )
+
+    evaluation = evaluator.evaluate(record)
+
+    assert evaluation == valid_evaluation
+    assert cache.stored == valid_evaluation

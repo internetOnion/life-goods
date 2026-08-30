@@ -220,6 +220,13 @@ Supported outcomes:
 - label incomplete or unreadable;
 - not assessed.
 
+Readable OFF ingredient Evidence remains `PARTIAL`. When that Evidence contains no accepted
+finding, the assessment may report no declared non-Halal ingredient detected in the readable
+Evidence; this is not a complete-label claim or Halal certification.
+`LABEL_INCOMPLETE_OR_UNREADABLE` remains an explicit contract outcome for future Evidence sources
+that can report label readability separately. Current OFF input is either readable `PARTIAL`
+Evidence or unavailable Evidence, which produces `NOT_ASSESSED`.
+
 Ingredient screening, Seal Observation, and certificate verification are separate. Seal Observation and certificate verification are deferred in MVP-1; ingredient screening never populates either.
 
 ### Additives

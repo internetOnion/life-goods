@@ -795,6 +795,16 @@ class DefaultHalalDeterministicMatcher:
             hm.concept_id: hm for hm in reference_data.halal_ingredient_mappings
         }
 
+        exclusion_intervals: list[tuple[str, int, int]] = []
+        for exclusion in reference_data.exclusions:
+            if exclusion.language.strip().lower() != "en":
+                continue
+            phrase = normalized_phrase(exclusion.excluded_text)
+            exclusion_intervals.extend(
+                (exclusion.concept_id, start, end)
+                for start, end in find_normalized_phrase(normalized_source.text, phrase)
+            )
+
         candidates: list[_HalalMatchCandidate] = []
 
         for mapping in reference_data.mappings:
@@ -808,6 +818,13 @@ class DefaultHalalDeterministicMatcher:
             for normalized_start, normalized_end in find_normalized_phrase(
                 normalized_source.text, mapped_text
             ):
+                if any(
+                    exclusion_concept_id == mapping.concept_id
+                    and normalized_start >= exclusion_start
+                    and normalized_end <= exclusion_end
+                    for exclusion_concept_id, exclusion_start, exclusion_end in exclusion_intervals
+                ):
+                    continue
                 candidates.append(
                     _HalalMatchCandidate(mapping, normalized_start, normalized_end)
                 )
@@ -999,6 +1016,8 @@ def _invalid_cached_halal_evaluation_category(
             or halal_mapping is None
             or finding.id != expected_finding_id
             or mapping.concept_id != finding.concept_id
+            or finding.relationship_type != mapping.relationship_type
+            or finding.halal_mapping_id != halal_mapping.id
             or finding.classification != halal_mapping.classification
             or finding.citations != halal_mapping.citations
             or (finding.source_field, finding.source_text) not in eligible_evidence

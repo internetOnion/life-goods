@@ -278,6 +278,9 @@ class HalalReferenceLexicalMapping:
     notes: str | None = None
 
 
+HalalReferenceExclusion = AllergenReferenceExclusion
+
+
 @dataclass(frozen=True, slots=True)
 class HalalSourceCitation:
     source_id: str
@@ -301,6 +304,7 @@ class ActiveHalalReferenceData:
     version: HalalAssessmentReferenceVersion
     concepts: tuple[HalalReferenceConcept, ...] = ()
     mappings: tuple[HalalReferenceLexicalMapping, ...] = ()
+    exclusions: tuple[HalalReferenceExclusion, ...] = ()
     halal_ingredient_mappings: tuple[HalalReferenceIngredientMapping, ...] = ()
 
 
@@ -427,6 +431,22 @@ class DatabaseHalalReferenceDataAccess:
                     )
                 )
 
+                exclusions = tuple(
+                    HalalReferenceExclusion(
+                        id=e.id,
+                        concept_id=e.concept_id,
+                        language=e.language,
+                        excluded_text=e.excluded_text,
+                        notes=e.notes,
+                    )
+                    for e in (
+                        session.query(LexicalExclusionRecord)
+                        .filter_by(dataset_version_id=version.id)
+                        .order_by(LexicalExclusionRecord.id)
+                        .all()
+                    )
+                )
+
                 halal_ingredient_mappings = tuple(
                     HalalReferenceIngredientMapping(
                         id=hm.id,
@@ -447,6 +467,7 @@ class DatabaseHalalReferenceDataAccess:
                     version=ref_version,
                     concepts=concepts,
                     mappings=mappings,
+                    exclusions=exclusions,
                     halal_ingredient_mappings=halal_ingredient_mappings,
                 )
                 with self._cache_lock:

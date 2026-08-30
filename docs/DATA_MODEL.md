@@ -166,7 +166,11 @@ Required outcome families:
 | Additive         | `IDENTIFIED`, `RULE_APPLIES`, `CONCENTRATION_UNKNOWN`, `CATEGORY_UNCERTAIN`, `INTERNATIONAL_REFERENCE_CONCERN`, `NEUTRAL_EXPLAINER_ONLY`, `NOT_ASSESSED`              |
 | Date             | `DATE_HAS_PASSED`, `DATE_HAS_NOT_PASSED`, `DATE_MEANING_UNCERTAIN`, `NOT_ASSESSED`                                                                                    |
 
-Absence-style outcomes require complete readable evidence. A partial label cannot produce `NO_DECLARATION_DETECTED_IN_READABLE_LABEL`.
+Allergen absence-style outcomes require complete readable evidence. A partial label cannot produce
+`NO_DECLARATION_DETECTED_IN_READABLE_LABEL`. Halal Ingredient Assessment may report
+`NO_NON_HALAL_INGREDIENT_DETECTED_IN_READABLE_LABEL` from readable OFF ingredient Evidence only
+when it also reports `PARTIAL`; this narrow result describes the checked text and never implies a
+complete label or Halal certification.
 
 ### Knowledge entries
 

@@ -452,6 +452,7 @@ def test_cli_halal_dataset_full_operator_workflow_independent_of_food_allergen(
     assert validate_result["dataset_kind"] == "HALAL_INGREDIENT"
     assert validate_result["concept_count"] == 2
     assert validate_result["mapping_count"] == 2
+    assert validate_result["exclusion_count"] == 0
     assert validate_result["halal_ingredient_mapping_count"] == 2
 
     # 2. Import FOOD_ALLERGEN version and activate it
@@ -467,6 +468,7 @@ def test_cli_halal_dataset_full_operator_workflow_independent_of_food_allergen(
     assert import_result["status"] == "READY"
     assert import_result["id"] == "synthetic-halal-ingredient-2026-v1"
     assert import_result["dataset_kind"] == "HALAL_INGREDIENT"
+    assert import_result["exclusion_count"] == 0
     assert import_result["halal_ingredient_mapping_count"] == 2
 
     # 4. Inspect HALAL_INGREDIENT version
@@ -479,6 +481,7 @@ def test_cli_halal_dataset_full_operator_workflow_independent_of_food_allergen(
     assert inspect_result["id"] == "synthetic-halal-ingredient-2026-v1"
     assert len(inspect_result["concepts"]) == 2
     assert len(inspect_result["mappings"]) == 2
+    assert inspect_result["exclusions"] == []
     assert len(inspect_result["halal_ingredient_mappings"]) == 2
 
     # 5. Check status before activation (HALAL_INGREDIENT should be None)
@@ -553,6 +556,7 @@ def test_cli_reviewed_halal_bundle_validation_and_inspection(
     assert validate_result["dataset_kind"] == "HALAL_INGREDIENT"
     assert validate_result["source_count"] == 4
     assert validate_result["concept_count"] == 24
+    assert validate_result["exclusion_count"] == 0
     assert validate_result["halal_ingredient_mapping_count"] == 24
 
     # 2. Import into database
@@ -570,6 +574,6 @@ def test_cli_reviewed_halal_bundle_validation_and_inspection(
     assert inspect_result["id"] == "halal-ingredient-2026-reviewed-english-v1"
     assert inspect_result["status"] == "READY"
     assert len(inspect_result["concepts"]) == 24
+    assert inspect_result["exclusions"] == []
     assert len(inspect_result["halal_ingredient_mappings"]) == 24
-
 

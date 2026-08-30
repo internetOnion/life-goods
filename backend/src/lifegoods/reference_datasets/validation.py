@@ -10,6 +10,8 @@ from lifegoods.reference_datasets.bundle import (
     HalalClassification,
     HalalIngredientReferenceBundle,
     HalalRelationshipType,
+    LexicalExclusionDefinition,
+    LexicalMappingDefinition,
     ReferenceConceptDefinition,
     ReferenceDatasetBundle,
     ReferenceDatasetKind,
@@ -130,6 +132,66 @@ def _validate_concept_hierarchy(
     return errors, concept_ids, concepts_by_id
 
 
+def _validate_lexical_exclusions(
+    exclusions: list[LexicalExclusionDefinition],
+    mappings: list[LexicalMappingDefinition],
+    concepts_by_id: dict[str, ReferenceConceptDefinition],
+) -> list[str]:
+    errors: list[str] = []
+    exclusion_ids: set[str] = set()
+    exclusion_keys: set[tuple[str, str, str]] = set()
+    for exclusion in exclusions:
+        if exclusion.id in exclusion_ids:
+            errors.append(f"Duplicate lexical exclusion ID '{exclusion.id}'")
+        exclusion_ids.add(exclusion.id)
+
+        concept = concepts_by_id.get(exclusion.concept_id)
+        if concept is None:
+            errors.append(
+                f"Lexical exclusion '{exclusion.id}' references non-existent concept "
+                f"'{exclusion.concept_id}'"
+            )
+        elif not concept.is_leaf:
+            errors.append(
+                f"Lexical exclusion '{exclusion.id}' targets non-leaf concept "
+                f"'{exclusion.concept_id}'"
+            )
+
+        language = exclusion.language.strip().lower()
+        if language != "en":
+            errors.append(
+                f"Lexical exclusion '{exclusion.id}' must use supported English language 'en'"
+            )
+
+        normalized_exclusion = normalized_phrase(exclusion.excluded_text)
+        if not normalized_exclusion:
+            errors.append(f"Lexical exclusion '{exclusion.id}' has empty excluded text")
+            continue
+
+        exclusion_key = (language, exclusion.concept_id, normalized_exclusion)
+        if exclusion_key in exclusion_keys:
+            errors.append(
+                f"Duplicate normalized lexical exclusion '{exclusion.excluded_text}' "
+                f"for concept '{exclusion.concept_id}'"
+            )
+        exclusion_keys.add(exclusion_key)
+
+        suppressible = any(
+            mapping.concept_id == exclusion.concept_id
+            and mapping.language.strip().lower() == language
+            and find_normalized_phrase(
+                normalized_exclusion, normalized_phrase(mapping.mapped_text)
+            )
+            for mapping in mappings
+        )
+        if not suppressible:
+            errors.append(
+                f"Lexical exclusion '{exclusion.id}' does not contain a suppressible mapping "
+                f"for concept '{exclusion.concept_id}'"
+            )
+    return errors
+
+
 def _validate_food_allergen_records(bundle: FoodAllergenReferenceBundle) -> list[str]:
     errors: list[str] = []
     valid_condition_families = {f.value for f in ConditionFamily}
@@ -206,56 +268,13 @@ def _validate_food_allergen_records(bundle: FoodAllergenReferenceBundle) -> list
                 direct_english_mappings_by_concept.get(mapping.concept_id, 0) + 1
             )
 
-    # Lexical exclusions: stable IDs, leaf concepts, English text, and useful scope
-    exclusion_ids: set[str] = set()
-    exclusion_keys: set[tuple[str, str, str]] = set()
-    for exclusion in bundle.exclusions:
-        if exclusion.id in exclusion_ids:
-            errors.append(f"Duplicate lexical exclusion ID '{exclusion.id}'")
-        exclusion_ids.add(exclusion.id)
-
-        concept = concepts_by_id.get(exclusion.concept_id)
-        if concept is None:
-            errors.append(
-                f"Lexical exclusion '{exclusion.id}' references non-existent concept "
-                f"'{exclusion.concept_id}'"
-            )
-        elif not concept.is_leaf:
-            errors.append(
-                f"Lexical exclusion '{exclusion.id}' targets non-leaf concept "
-                f"'{exclusion.concept_id}'"
-            )
-
-        language = exclusion.language.strip().lower()
-        if language != "en":
-            errors.append(
-                f"Lexical exclusion '{exclusion.id}' must use supported English language 'en'"
-            )
-
-        normalized_exclusion = normalized_phrase(exclusion.excluded_text)
-        if not normalized_exclusion:
-            errors.append(f"Lexical exclusion '{exclusion.id}' has empty excluded text")
-            continue
-
-        exclusion_key = (language, exclusion.concept_id, normalized_exclusion)
-        if exclusion_key in exclusion_keys:
-            errors.append(
-                f"Duplicate normalized lexical exclusion '{exclusion.excluded_text}' "
-                f"for concept '{exclusion.concept_id}'"
-            )
-        exclusion_keys.add(exclusion_key)
-
-        suppressible = any(
-            mapping.concept_id == exclusion.concept_id
-            and mapping.language.strip().lower() == language
-            and find_normalized_phrase(normalized_exclusion, normalized_phrase(mapping.mapped_text))
-            for mapping in bundle.mappings
+    errors.extend(
+        _validate_lexical_exclusions(
+            bundle.exclusions,
+            bundle.mappings,
+            concepts_by_id,
         )
-        if not suppressible:
-            errors.append(
-                f"Lexical exclusion '{exclusion.id}' does not contain a suppressible mapping "
-                f"for concept '{exclusion.concept_id}'"
-            )
+    )
 
     # Rule validation: concept & source references, typed condition family
     rule_ids: set[str] = set()
@@ -420,6 +439,14 @@ def _validate_halal_ingredient_records(bundle: HalalIngredientReferenceBundle) -
             direct_english_mappings_by_concept[mapping.concept_id] = (
                 direct_english_mappings_by_concept.get(mapping.concept_id, 0) + 1
             )
+
+    errors.extend(
+        _validate_lexical_exclusions(
+            bundle.exclusions,
+            bundle.mappings,
+            concepts_by_id,
+        )
+    )
 
     # Halal ingredient mappings
     hm_ids: set[str] = set()

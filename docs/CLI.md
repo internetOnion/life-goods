@@ -72,7 +72,8 @@ The Reference Datasets CLI manages reviewed, immutable, typed domain records sto
 PostgreSQL. Each bundle manifest selects the dataset-specific record schema, validation rules,
 canonical hash, persistence adapter, and inspection output. The `FOOD_ALLERGEN` kind exposes
 concepts, lexical mappings, exclusions, and allergen rules; the `HALAL_INGREDIENT` kind exposes
-concepts, lexical mappings, and cited Halal ingredient mappings.
+concepts, lexical mappings, optional concept-scoped exclusions, and cited Halal ingredient
+mappings.
 
 **Wrapper Command:** `pnpm reference:dataset -- <subcommand> [options]`
 
@@ -89,8 +90,9 @@ concepts, lexical mappings, and cited Halal ingredient mappings.
 Validates the common bundle manifest, sources, and SHA-256 hash plus the structural invariants
 for the manifest's dataset kind, without inserting into PostgreSQL. For `FOOD_ALLERGEN`, this
 includes concept hierarchies, mapping links, exclusions, and allergen rule references. For
-`HALAL_INGREDIENT`, this includes concept hierarchies, leaf-scoped classifications, and complete
-source citations (with edition, jurisdiction, and article or section locator).
+`HALAL_INGREDIENT`, this includes concept hierarchies, concept-scoped exclusions, leaf-scoped
+classifications, and complete source citations (with edition, jurisdiction, and article or section
+locator).
 
 ```bash
 pnpm reference:dataset -- validate backend/src/lifegoods/reference_datasets/bundles/codex_2026_food_allergen_reviewed_english_v1.json
@@ -128,6 +130,7 @@ pnpm reference:dataset -- validate backend/src/lifegoods/reference_datasets/bund
     "source_count": 4,
     "concept_count": 24,
     "mapping_count": 68,
+    "exclusion_count": 0,
     "halal_ingredient_mapping_count": 24
 }
 ```
@@ -189,7 +192,8 @@ pnpm reference:dataset -- list
 
 Dumps the common version metadata and the complete typed records for that dataset kind. A
 `FOOD_ALLERGEN` version includes all concept nodes, mapped lexical tokens, exclusions, and rules. A
-`HALAL_INGREDIENT` version includes all concept nodes, mapped lexical tokens, and cited Halal ingredient mappings.
+`HALAL_INGREDIENT` version includes all concept nodes, mapped lexical tokens, optional
+concept-scoped exclusions, and cited Halal ingredient mappings.
 
 ```bash
 # Inspect Food Allergen version

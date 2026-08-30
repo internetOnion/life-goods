@@ -317,6 +317,7 @@ def compute_halal_bundle_sha256(
     concepts: list[ReferenceConceptDefinition],
     mappings: list[LexicalMappingDefinition],
     halal_ingredient_mappings: list[HalalIngredientMappingDefinition],
+    exclusions: list[LexicalExclusionDefinition] | None = None,
 ) -> str:
     canonical_payload = {
         "manifest": manifest.to_dict(include_sha256=False),
@@ -327,6 +328,10 @@ def compute_halal_bundle_sha256(
             [m.to_dict() for m in halal_ingredient_mappings], key=lambda x: x["id"]
         ),
     }
+    if exclusions:
+        canonical_payload["exclusions"] = sorted(
+            [exclusion.to_dict() for exclusion in exclusions], key=lambda x: x["id"]
+        )
     encoded = json.dumps(canonical_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
 
@@ -412,6 +417,7 @@ class HalalIngredientReferenceBundle:
     concepts: list[ReferenceConceptDefinition]
     mappings: list[LexicalMappingDefinition]
     halal_ingredient_mappings: list[HalalIngredientMappingDefinition]
+    exclusions: list[LexicalExclusionDefinition] = field(default_factory=list)
 
     def compute_sha256(self) -> str:
         return compute_halal_bundle_sha256(
@@ -420,6 +426,7 @@ class HalalIngredientReferenceBundle:
             concepts=self.concepts,
             mappings=self.mappings,
             halal_ingredient_mappings=self.halal_ingredient_mappings,
+            exclusions=self.exclusions,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -428,6 +435,7 @@ class HalalIngredientReferenceBundle:
             "sources": [s.to_dict() for s in self.sources],
             "concepts": [c.to_dict() for c in self.concepts],
             "mappings": [m.to_dict() for m in self.mappings],
+            "exclusions": [e.to_dict() for e in self.exclusions],
             "halal_ingredient_mappings": [m.to_dict() for m in self.halal_ingredient_mappings],
         }
 
@@ -443,6 +451,9 @@ class HalalIngredientReferenceBundle:
         sources = [ReferenceSourceDefinition.from_dict(s) for s in data.get("sources", [])]
         concepts = [ReferenceConceptDefinition.from_dict(c) for c in data.get("concepts", [])]
         mappings = [LexicalMappingDefinition.from_dict(m) for m in data.get("mappings", [])]
+        exclusions = [
+            LexicalExclusionDefinition.from_dict(e) for e in data.get("exclusions", [])
+        ]
         halal_ingredient_mappings = [
             HalalIngredientMappingDefinition.from_dict(hm)
             for hm in data.get("halal_ingredient_mappings", [])
@@ -453,6 +464,7 @@ class HalalIngredientReferenceBundle:
             concepts=concepts,
             mappings=mappings,
             halal_ingredient_mappings=halal_ingredient_mappings,
+            exclusions=exclusions,
         )
 
     @classmethod
@@ -474,7 +486,7 @@ _DATASET_SECTIONS = MappingProxyType(
             {"concepts", "mappings", "exclusions", "rules"}
         ),
         ReferenceDatasetKind.HALAL_INGREDIENT.value: frozenset(
-            {"concepts", "mappings", "halal_ingredient_mappings"}
+            {"concepts", "mappings", "exclusions", "halal_ingredient_mappings"}
         ),
     }
 )
