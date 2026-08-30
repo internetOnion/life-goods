@@ -46,9 +46,9 @@ MVP-1 uses Product records only from a project-hosted Open Food Facts Dataset Ve
 
 ## Brand Commitments
 
-LifeGoods is calm, credible, practical, fresh, approachable, and food-forward. It behaves like a friendly guide: concise during the shopping task, explanatory when asked, and precise whenever evidence is incomplete or consequential.
+LifeGoods is calm, credible, practical, approachable, and evidence-forward. It behaves like a friendly guide: concise during the shopping task, explanatory when asked, and precise whenever evidence is incomplete or consequential.
 
-The coconut is the primary LifeGoods identity motif and replaces the lotus in future brand and interface work. It represents approachable food context, guidance, and information becoming understandable—not purity, safety, certification, healthfulness, or a favorable Product judgment. Green is the primary brand color, but green must never independently communicate that a Product is safe, healthy, acceptable, certified, or recommended.
+Open Label is the primary LifeGoods identity motif. Its layered package-label sheets represent evidence being revealed while keeping the source visible. The mark is identity only—not purity, safety, certification, healthfulness, or a favorable Product judgment. Palm sugar is reserved for interaction and current location; golden palm sugar is a limited identity and Scan accent, set against a crisp black and white ground. Neither color communicates Product quality, safety, severity, or recommendation.
 
 “Healthy” describes the desired fresh and energetic character of the experience only. It does not authorize health claims, product scoring, “Excellent” or “Bad” labels, positive-versus-negative nutrition verdicts, or decorative reassurance.
 
@@ -64,14 +64,14 @@ LifeGoods must not resemble promotional wellness marketing built around purity l
     - `C:/Users/Lenovo/AppData/Local/Temp/codex-clipboard-b8c7f600-c459-463b-a1ca-51c2a1465aa0.png`
     - `C:/Users/Lenovo/AppData/Local/Temp/codex-clipboard-44a48a6d-ee36-4c00-aaf6-ba04d8d9a169.png`
     - `C:/Users/Lenovo/AppData/Local/Temp/codex-clipboard-99d064af-cbc5-4be2-91ad-a74e997ae465.png`
-- No final coconut artwork, detailed palette, type system, or component language has been approved. Those remain decisions for subsequent visual-world and implementation work.
+- The approved visual direction is `.impeccable/mocks/open-label-scan-a.png`: a code-native Open Label mark, warm-white ground, crisp black type, palm sugar interaction, limited golden palm sugar identity, image-led Product hierarchy, thin dividers, and minimal containers.
 
 ## Product Principles
 
 1. **Evidence before reassurance.** Show what was declared, where it came from, how it was reviewed, and what remains unknown before offering interpretation.
 2. **Khmer comprehension before information density.** Make consequential Khmer wording readable and scannable while preserving original package languages and source meaning.
 3. **Scan first; disclose detail progressively.** Keep the primary mobile journey focused, then reveal source inspection and Learn More content without taking the shopper out of context.
-4. **Fresh utility without health theatre.** Use the coconut identity and food-forward character to make the product approachable without turning visual freshness into a health or purchase claim.
+4. **Open labels without health theatre.** Use the layered-label identity and image-led hierarchy to make evidence approachable without turning visual character into a health or purchase claim.
 5. **Uncertainty stays prominent and actionable.** Missing, stale, conflicting, unreadable, or unreviewed evidence must never disappear behind a confident treatment; pair it with the appropriate recovery action.
 
 ## Accessibility & Inclusion

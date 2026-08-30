@@ -1,104 +1,121 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-30T00:00:00.000Z",
+  "generatedAt": "2026-08-30T22:54:00.000Z",
   "title": "Design System: LifeGoods",
   "extensions": {
     "colorMeta": {
       "brand": {
         "role": "primary",
-        "displayName": "Restrained Coconut Green",
-        "canonical": "oklch(0.47 0.115 157)",
-        "tonalRamp": ["oklch(0.15 0.115 157)", "oklch(0.25 0.115 157)", "oklch(0.35 0.115 157)", "oklch(0.47 0.115 157)", "oklch(0.62 0.115 157)", "oklch(0.75 0.09 157)", "oklch(0.86 0.05 157)", "oklch(0.95 0.025 157)"]
+        "displayName": "Interaction Palm Sugar",
+        "canonical": "#8a4b16",
+        "tonalRamp": ["#2c1505", "#4a240a", "#69330e", "#8a4b16", "#ab6325", "#cb7e39", "#e2a05d", "#f7ede0"]
       },
       "brand-dark": {
         "role": "primary",
-        "displayName": "Coconut Green Ink",
-        "canonical": "oklch(0.36 0.09 157)",
-        "tonalRamp": ["oklch(0.15 0.09 157)", "oklch(0.23 0.09 157)", "oklch(0.3 0.09 157)", "oklch(0.36 0.09 157)", "oklch(0.52 0.09 157)", "oklch(0.68 0.07 157)", "oklch(0.82 0.04 157)", "oklch(0.95 0.02 157)"]
+        "displayName": "Pressed Palm Sugar",
+        "canonical": "#6e350c",
+        "tonalRamp": ["#200d02", "#3b1a05", "#542708", "#6e350c", "#8c4714", "#ad5d20", "#ce7933", "#f2dfcf"]
       },
       "brand-hover": {
         "role": "primary",
-        "displayName": "Coconut Green Hover",
-        "canonical": "oklch(0.31 0.08 157)",
-        "tonalRamp": ["oklch(0.15 0.08 157)", "oklch(0.21 0.08 157)", "oklch(0.27 0.08 157)", "oklch(0.31 0.08 157)", "oklch(0.47 0.08 157)", "oklch(0.64 0.065 157)", "oklch(0.8 0.04 157)", "oklch(0.95 0.018 157)"]
+        "displayName": "Palm Sugar Hover",
+        "canonical": "#562908",
+        "tonalRamp": ["#190a01", "#2e1403", "#431d05", "#562908", "#72390f", "#934c18", "#b56627", "#eed7c5"]
       },
       "brand-soft": {
         "role": "primary",
-        "displayName": "Pale Coconut Wash",
-        "canonical": "oklch(0.94 0.025 157)",
-        "tonalRamp": ["oklch(0.2 0.025 157)", "oklch(0.35 0.025 157)", "oklch(0.5 0.025 157)", "oklch(0.65 0.025 157)", "oklch(0.76 0.025 157)", "oklch(0.84 0.025 157)", "oklch(0.9 0.025 157)", "oklch(0.95 0.02 157)"]
+        "displayName": "Soft Palm Sugar Wash",
+        "canonical": "#f7ede0",
+        "tonalRamp": ["#2e2115", "#523c28", "#77593c", "#9e7753", "#c49a70", "#debda0", "#eedcd0", "#f7ede0"]
       },
       "page": {
         "role": "neutral",
-        "displayName": "Near-White Paper",
-        "canonical": "oklch(0.992 0.002 160)",
-        "tonalRamp": ["oklch(0.15 0.002 160)", "oklch(0.3 0.002 160)", "oklch(0.45 0.002 160)", "oklch(0.6 0.002 160)", "oklch(0.72 0.002 160)", "oklch(0.82 0.002 160)", "oklch(0.91 0.002 160)", "oklch(0.992 0.002 160)"]
+        "displayName": "Warm Paper Ground",
+        "canonical": "#fafaf8",
+        "tonalRamp": ["#1c1c1b", "#383836", "#545451", "#70706c", "#8c8c87", "#aaaaa5", "#c8c8c4", "#fafaf8"]
       },
       "surface": {
         "role": "neutral",
-        "displayName": "Pale Botanical Surface",
-        "canonical": "oklch(0.965 0.008 160)",
-        "tonalRamp": ["oklch(0.15 0.008 160)", "oklch(0.3 0.008 160)", "oklch(0.45 0.008 160)", "oklch(0.6 0.008 160)", "oklch(0.72 0.008 160)", "oklch(0.82 0.008 160)", "oklch(0.91 0.008 160)", "oklch(0.965 0.008 160)"]
+        "displayName": "Pale Surface",
+        "canonical": "#f4f4f5",
+        "tonalRamp": ["#18181b", "#27272a", "#3f3f46", "#52525b", "#71717a", "#a1a1aa", "#d4d4d8", "#f4f4f5"]
       },
       "surface-strong": {
         "role": "neutral",
         "displayName": "Quiet Surface Strong",
-        "canonical": "oklch(0.925 0.014 160)",
-        "tonalRamp": ["oklch(0.15 0.014 160)", "oklch(0.3 0.014 160)", "oklch(0.45 0.014 160)", "oklch(0.6 0.014 160)", "oklch(0.72 0.014 160)", "oklch(0.82 0.014 160)", "oklch(0.9 0.014 160)", "oklch(0.925 0.014 160)"]
+        "canonical": "#e4e4e7",
+        "tonalRamp": ["#18181b", "#27272a", "#3f3f46", "#52525b", "#71717a", "#a1a1aa", "#d4d4d8", "#e4e4e7"]
       },
       "ink": {
         "role": "neutral",
-        "displayName": "Charcoal Ink",
-        "canonical": "oklch(0.235 0.018 165)",
-        "tonalRamp": ["oklch(0.15 0.018 165)", "oklch(0.2 0.018 165)", "oklch(0.235 0.018 165)", "oklch(0.34 0.018 165)", "oklch(0.48 0.018 165)", "oklch(0.64 0.018 165)", "oklch(0.8 0.018 165)", "oklch(0.95 0.012 165)"]
+        "displayName": "Charcoal Black Ink",
+        "canonical": "#111111",
+        "tonalRamp": ["#000000", "#080808", "#111111", "#222222", "#444444", "#777777", "#aaaaaa", "#dddddd"]
       },
       "muted-ink": {
         "role": "neutral",
-        "displayName": "Muted Charcoal",
-        "canonical": "oklch(0.43 0.018 165)",
-        "tonalRamp": ["oklch(0.15 0.018 165)", "oklch(0.27 0.018 165)", "oklch(0.38 0.018 165)", "oklch(0.43 0.018 165)", "oklch(0.56 0.018 165)", "oklch(0.7 0.018 165)", "oklch(0.84 0.018 165)", "oklch(0.95 0.012 165)"]
+        "displayName": "Muted Ink",
+        "canonical": "#66666a",
+        "tonalRamp": ["#121214", "#242428", "#38383e", "#4d4d54", "#66666a", "#8a8a90", "#b3b3b8", "#dedee2"]
       },
       "line": {
         "role": "neutral",
-        "displayName": "Botanical Rule",
-        "canonical": "oklch(0.84 0.012 160)",
-        "tonalRamp": ["oklch(0.15 0.012 160)", "oklch(0.3 0.012 160)", "oklch(0.45 0.012 160)", "oklch(0.6 0.012 160)", "oklch(0.72 0.012 160)", "oklch(0.82 0.012 160)", "oklch(0.88 0.012 160)", "oklch(0.95 0.01 160)"]
+        "displayName": "Divider Rule",
+        "canonical": "#e4e4e7",
+        "tonalRamp": ["#18181b", "#27272a", "#3f3f46", "#52525b", "#71717a", "#a1a1aa", "#d4d4d8", "#e4e4e7"]
       },
       "input": {
         "role": "neutral",
-        "displayName": "Field Boundary",
-        "canonical": "oklch(0.57 0.03 145)",
-        "tonalRamp": ["oklch(0.15 0.03 145)", "oklch(0.28 0.03 145)", "oklch(0.42 0.03 145)", "oklch(0.57 0.03 145)", "oklch(0.68 0.03 145)", "oklch(0.78 0.03 145)", "oklch(0.88 0.03 145)", "oklch(0.95 0.02 145)"]
+        "displayName": "Input Border",
+        "canonical": "#a1a1aa",
+        "tonalRamp": ["#18181b", "#27272a", "#3f3f46", "#52525b", "#71717a", "#a1a1aa", "#d4d4d8", "#f4f4f5"]
       },
       "ring": {
         "role": "primary",
-        "displayName": "Focus Green",
-        "canonical": "oklch(0.36 0.09 157)",
-        "tonalRamp": ["oklch(0.15 0.09 157)", "oklch(0.23 0.09 157)", "oklch(0.3 0.09 157)", "oklch(0.36 0.09 157)", "oklch(0.52 0.09 157)", "oklch(0.68 0.07 157)", "oklch(0.82 0.04 157)", "oklch(0.95 0.02 157)"]
+        "displayName": "Focus Palm Sugar",
+        "canonical": "#8a4b16",
+        "tonalRamp": ["#2c1505", "#4a240a", "#69330e", "#8a4b16", "#ab6325", "#cb7e39", "#e2a05d", "#f7ede0"]
       },
       "destructive": {
         "role": "tertiary",
-        "displayName": "Validation Terracotta",
-        "canonical": "oklch(0.44 0.17 28)",
-        "tonalRamp": ["oklch(0.15 0.17 28)", "oklch(0.25 0.17 28)", "oklch(0.36 0.17 28)", "oklch(0.44 0.17 28)", "oklch(0.58 0.17 28)", "oklch(0.72 0.14 28)", "oklch(0.84 0.1 28)", "oklch(0.95 0.05 28)"]
+        "displayName": "Validation Crimson",
+        "canonical": "#b91c1c",
+        "tonalRamp": ["#210909", "#450a0a", "#7f1d1d", "#991b1b", "#b91c1c", "#dc2626", "#ef4444", "#fecaca"]
+      },
+      "mango": {
+        "role": "secondary",
+        "displayName": "Identity & Scan Golden Palm Sugar",
+        "canonical": "#b86a1a",
+        "tonalRamp": ["#361d04", "#5c3308", "#85490d", "#b86a1a", "#d98829", "#e9a54f", "#f4c683", "#fcf4e8"]
+      },
+      "mango-soft": {
+        "role": "secondary",
+        "displayName": "Soft Golden Palm Sugar Wash",
+        "canonical": "#fcf4e8",
+        "tonalRamp": ["#33230a", "#5e4218", "#8a6327", "#b8883d", "#dbae62", "#ecd096", "#f6e6c7", "#fcf4e8"]
       }
     },
     "typographyMeta": {
       "system-khmer": {
         "displayName": "Khmer-first system sans",
-        "purpose": "One fast system stack for Khmer and Latin UI copy; generous line height protects Khmer readability."
+        "purpose": "One system stack for Khmer and Latin UI copy; generous line height protects stacked subscript consonants."
       }
     },
     "shadows": [
       {
+        "name": "scan-elevation",
+        "value": "0 5px 18px rgba(23,24,26,0.18)",
+        "purpose": "Elevates the floating mobile Scan button to emphasize its primary utility status."
+      },
+      {
         "name": "camera-scrim",
-        "value": "0 0 0 999px oklch(0.12 0.02 160 / 0.18)",
+        "value": "0 0 0 999px rgba(0,0,0,0.5)",
         "purpose": "Functional scan-frame scrim that directs attention to the camera target."
       },
       {
-        "name": "temporary-control",
-        "value": "0 1px 3px oklch(0.12 0.02 160 / 0.12)",
-        "purpose": "Subtle separation for the transient camera control only."
+        "name": "overlay",
+        "value": "0 4px 16px rgba(0,0,0,0.08)",
+        "purpose": "Soft depth for bottom sheets, contextual explainers, and dialog overlays."
       }
     ],
     "motion": [
@@ -111,75 +128,118 @@
     "breakpoints": [
       { "name": "compact", "value": "376px" },
       { "name": "sm", "value": "640px" },
+      { "name": "lg", "value": "1024px" },
       { "name": "content-max", "value": "48rem" }
     ]
   },
   "components": [
     {
+      "name": "Open Label mark",
+      "kind": "custom",
+      "description": "The signature LifeGoods brand mark depicting a golden sprouted bowl motif.",
+      "html": "<svg class=\"ds-open-label\" viewBox=\"0 0 48 48\" fill=\"none\" aria-hidden=\"true\"><path d=\"M 24 19.5 C 17 10.5 11 11 7.5 14.5 C 6 16.5 8 18.5 13 19.2 C 17 19.8 21 19.8 24 19.5 Z\" fill=\"none\" stroke=\"#b86a1a\" stroke-width=\"2.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M 24 19.5 C 25.5 12 29.5 4 36.5 2.5 C 41 4.5 41.5 11 38 15 C 34 18 28.5 19 24 19.5 Z\" fill=\"none\" stroke=\"#b86a1a\" stroke-width=\"2.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M 4 22.5 C 4 21.8 4.6 21.2 5.3 21.2 L 13 21.2 C 16.5 21.2 19.5 24 21.8 28.2 C 22.8 30 25.2 30 26.2 28.2 C 28.5 24 31.5 21.2 35 21.2 L 42.7 21.2 C 43.4 21.2 44 21.8 44 22.5 C 44 34.5 35 44.5 24 44.5 C 13 44.5 4 34.5 4 22.5 Z\" fill=\"#b86a1a\"/></svg>",
+      "css": ".ds-open-label { width: 44px; height: 44px; display: block; flex-shrink: 0; }"
+    },
+    {
+      "name": "Brand lockup",
+      "kind": "custom",
+      "description": "The unified brand identity lockup pairing LifeGoods sprout bowl mark with LifeGoods typography.",
+      "html": "<span class=\"ds-brand-lockup\"><svg class=\"ds-open-label\" viewBox=\"0 0 48 48\" fill=\"none\" aria-hidden=\"true\"><path d=\"M 24 19.5 C 17 10.5 11 11 7.5 14.5 C 6 16.5 8 18.5 13 19.2 C 17 19.8 21 19.8 24 19.5 Z\" fill=\"none\" stroke=\"#b86a1a\" stroke-width=\"2.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M 24 19.5 C 25.5 12 29.5 4 36.5 2.5 C 41 4.5 41.5 11 38 15 C 34 18 28.5 19 24 19.5 Z\" fill=\"none\" stroke=\"#b86a1a\" stroke-width=\"2.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M 4 22.5 C 4 21.8 4.6 21.2 5.3 21.2 L 13 21.2 C 16.5 21.2 19.5 24 21.8 28.2 C 22.8 30 25.2 30 26.2 28.2 C 28.5 24 31.5 21.2 35 21.2 L 42.7 21.2 C 43.4 21.2 44 21.8 44 22.5 C 44 34.5 35 44.5 24 44.5 C 13 44.5 4 34.5 4 22.5 Z\" fill=\"#b86a1a\"/></svg><span class=\"ds-brand-text\"><span class=\"ds-brand-name\">LifeGoods</span></span></span>",
+      "css": ".ds-brand-lockup { display: inline-flex; align-items: center; gap: 10px; } .ds-brand-text { display: flex; flex-direction: column; line-height: 1; } .ds-brand-name { color: #111111; font-size: 1.25rem; font-weight: 900; letter-spacing: -0.03em; font-family: system-ui, sans-serif; }"
+    },
+    {
       "name": "Search field",
       "kind": "input",
       "description": "The shared Product search entry for exact barcode, Product-name, and brand lookup.",
       "html": "<label class=\"ds-search-label\" for=\"ds-search\">Search Product</label><div class=\"ds-search\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><circle cx=\"11\" cy=\"11\" r=\"6.5\"></circle><path d=\"m16 16 4.5 4.5\"></path></svg><input id=\"ds-search\" type=\"search\" placeholder=\"Search by barcode, Product name, or brand\"><button type=\"button\" aria-label=\"Clear search\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><path d=\"m6 6 12 12M18 6 6 18\"></path></svg></button></div>",
-      "css": ".ds-search-label { display: block; position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } .ds-search { display: flex; align-items: center; min-height: 56px; border: 1px solid oklch(0.57 0.03 145); border-radius: 16px; background: oklch(0.992 0.002 160); color: oklch(0.235 0.018 165); } .ds-search > svg { width: 23px; height: 23px; margin-left: 16px; fill: none; stroke: currentColor; stroke-width: 1.75; } .ds-search input { min-width: 0; flex: 1; height: 56px; padding: 0 12px; border: 0; outline: 0; background: transparent; color: inherit; font: 16px/1.65 \"Noto Sans Khmer\", \"Khmer OS System\", Inter, system-ui, sans-serif; } .ds-search button { display: grid; place-items: center; width: 44px; height: 44px; margin-right: 8px; border: 0; border-radius: 999px; background: transparent; color: oklch(0.43 0.018 165); cursor: pointer; } .ds-search button svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.75; } .ds-search:focus-within { border-color: oklch(0.36 0.09 157); outline: 2px solid oklch(0.36 0.09 157 / 0.35); outline-offset: 0; } .ds-search button:hover, .ds-search button:focus-visible { background: oklch(0.94 0.025 157); color: oklch(0.31 0.08 157); }"
+      "css": ".ds-search-label { display: block; position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } .ds-search { display: flex; align-items: center; min-height: 56px; border: 1px solid #e4e4e7; border-radius: 16px; background: #fafaf8; color: #111111; } .ds-search > svg { width: 23px; height: 23px; margin-left: 16px; fill: none; stroke: #6e350c; stroke-width: 2; } .ds-search input { min-width: 0; flex: 1; height: 56px; padding: 0 12px; border: 0; outline: 0; background: transparent; color: inherit; font: 16px/1.65 \"Noto Sans Khmer\", \"Khmer OS System\", Inter, system-ui, sans-serif; } .ds-search button { display: grid; place-items: center; width: 44px; height: 44px; margin-right: 8px; border: 0; border-radius: 999px; background: transparent; color: #66666a; cursor: pointer; } .ds-search button svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.75; } .ds-search:focus-within { border-color: #8a4b16; outline: 2px solid #8a4b16; outline-offset: 0; } .ds-search button:hover, .ds-search button:focus-visible { background: #f7ede0; color: #562908; }"
     },
     {
       "name": "Home search entry",
       "kind": "custom",
-      "description": "A familiar field-shaped link keeps Home camera-first while exposing Search accessibly.",
+      "description": "A familiar field-shaped link keeping Home focused while providing immediate search access.",
       "html": "<a class=\"ds-home-search\" href=\"/search\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><circle cx=\"11\" cy=\"11\" r=\"6.5\"></circle><path d=\"m16 16 4.5 4.5\"></path></svg><span>Search by barcode or Product</span></a>",
-      "css": ".ds-home-search { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 16px; border: 1px solid oklch(0.57 0.03 145); border-radius: 16px; background: oklch(0.992 0.002 160); color: oklch(0.43 0.018 165); text-decoration: none; font: 16px/1.65 \"Noto Sans Khmer\", \"Khmer OS System\", Inter, system-ui, sans-serif; } .ds-home-search svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.75; } .ds-home-search:hover, .ds-home-search:focus-visible { border-color: oklch(0.47 0.115 157); color: oklch(0.235 0.018 165); } .ds-home-search:focus-visible { outline: 3px solid oklch(0.36 0.09 157); outline-offset: 3px; }"
+      "css": ".ds-home-search { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 16px; border: 1px solid #e4e4e7; border-radius: 16px; background: #fafaf8; color: #111111; text-decoration: none; font: 700 16px/1.65 \"Noto Sans Khmer\", \"Khmer OS System\", Inter, system-ui, sans-serif; } .ds-home-search svg { width: 24px; height: 24px; fill: none; stroke: #6e350c; stroke-width: 2.5; } .ds-home-search:hover, .ds-home-search:focus-visible { border-color: #8a4b16; background: #f4f4f5; } .ds-home-search:focus-visible { outline: 3px solid #8a4b16; outline-offset: 3px; }"
+    },
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "description": "High-priority action button with bold typography and pressed palm sugar fill.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">Start scanning</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 24px; border: 0; border-radius: 12px; background: #6e350c; color: #ffffff; font: 900 16px/1.65 \"Noto Sans Khmer\", \"Khmer OS System\", Inter, system-ui, sans-serif; cursor: pointer; transition: background 0.15s; } .ds-btn-primary:hover { background: #562908; } .ds-btn-primary:focus-visible { outline: 3px solid #8a4b16; outline-offset: 3px; }"
     },
     {
       "name": "Search result row",
       "kind": "custom",
       "description": "A full-width, source-led row for opening a Package Match candidate without a score or verdict.",
-      "html": "<button class=\"ds-result\" type=\"button\"><span class=\"ds-result-image\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2\"></rect><path d=\"m7 15 3-3 2 2 2-2 3 3\"></path></svg><small>Image unavailable</small></span><span><strong>Coconut milk</strong><small>Quantity: 400 ml</small><small>Made in: Cambodia</small></span></button>",
-      "css": ".ds-result { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 16px; width: 100%; min-height: 112px; padding: 12px 16px; border: 0; background: oklch(0.992 0.002 160); color: oklch(0.235 0.018 165); text-align: left; cursor: pointer; font: inherit; } .ds-result + .ds-result { border-top: 1px solid oklch(0.84 0.012 160); } .ds-result-image { display: grid; place-items: center; width: 76px; height: 96px; overflow: hidden; border-radius: 12px; background: oklch(0.965 0.008 160); color: oklch(0.43 0.018 165); } .ds-result-image svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.5; } .ds-result small { display: block; margin-top: 4px; color: oklch(0.43 0.018 165); line-height: 1.65; } .ds-result:hover { background: oklch(0.94 0.025 157 / 0.45); } .ds-result:focus-visible { outline: 2px solid oklch(0.36 0.09 157); outline-offset: -2px; }"
+      "html": "<button class=\"ds-result\" type=\"button\"><span class=\"ds-result-image\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2\"></rect><path d=\"m7 15 3-3 2 2 2-2 3 3\"></path></svg><small>Image unavailable</small></span><span><strong>Soy Milk Original</strong><small>Quantity: 300 ml</small><small>Made in: Cambodia</small></span></button>",
+      "css": ".ds-result { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 16px; width: 100%; min-height: 112px; padding: 12px 16px; border: 0; background: #fafaf8; color: #111111; text-align: left; cursor: pointer; font: inherit; } .ds-result + .ds-result { border-top: 1px solid #e4e4e7; } .ds-result-image { display: grid; place-items: center; width: 76px; height: 96px; overflow: hidden; border-radius: 12px; background: #f4f4f5; color: #66666a; } .ds-result-image svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.5; } .ds-result small { display: block; margin-top: 4px; color: #66666a; line-height: 1.65; } .ds-result:hover { background: #f4f4f5; } .ds-result:focus-visible { outline: 2px solid #8a4b16; outline-offset: -2px; }"
     },
     {
-      "name": "Recent search chip",
-      "kind": "chip",
-      "description": "A session-only prior term, shown before typing without implying popularity.",
-      "html": "<button class=\"ds-chip\" type=\"button\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><path d=\"M12 7v5l3 2\"></path><circle cx=\"12\" cy=\"12\" r=\"8\"></circle></svg>Coconut</button>",
-      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 0 14px; border: 0; border-radius: 999px; background: oklch(0.965 0.008 160); color: oklch(0.235 0.018 165); font: 400 16px/1.65 \"Noto Sans Khmer\", \"Khmer OS System\", Inter, system-ui, sans-serif; cursor: pointer; } .ds-chip svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.75; } .ds-chip:hover, .ds-chip:focus-visible { background: oklch(0.94 0.025 157); } .ds-chip:focus-visible { outline: 3px solid oklch(0.36 0.09 157); outline-offset: 3px; }"
-    },
-    {
-      "name": "Bottom navigation",
+      "name": "Five-tab navigation",
       "kind": "nav",
-      "description": "Four-item mobile navigation that remains visible on Home and Search and uses label plus icon state.",
-      "html": "<nav class=\"ds-nav\" aria-label=\"Primary navigation\"><a class=\"ds-nav-item ds-nav-active\" href=\"/\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><path d=\"m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z\"></path></svg><span>Home</span></a><a class=\"ds-nav-item\" href=\"/learn\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><path d=\"M4 5a2 2 0 0 1 2-2h12v17H6a2 2 0 0 0-2 2z\"></path><path d=\"M4 20a2 2 0 0 1 2-2h12\"></path></svg><span>Learn</span></a><a class=\"ds-nav-item\" href=\"/history\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><path d=\"M3 12a9 9 0 1 0 3-6.7\"></path><path d=\"M3 4v5h5\"></path><path d=\"M12 7v5l3 2\"></path></svg><span>History</span></a><a class=\"ds-nav-item\" href=\"/allergies\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M12 8v5\"></path><circle cx=\"12\" cy=\"16.5\" r=\".75\" fill=\"currentColor\" stroke=\"none\"></circle></svg><span>Allergies</span></a></nav>",
-      "css": ".ds-nav { display: grid; grid-template-columns: repeat(4, 1fr); min-height: 80px; border-top: 1px solid oklch(0.84 0.012 160); background: oklch(0.992 0.002 160); } .ds-nav-item { display: grid; grid-template-rows: 32px auto; align-content: center; justify-items: center; gap: 2px; min-height: 74px; padding: 4px; border-radius: 8px; color: oklch(0.235 0.018 165); text-decoration: none; font: 600 12px/1.35 \"Noto Sans Khmer\", \"Khmer OS System\", Inter, system-ui, sans-serif; } .ds-nav-item svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; } .ds-nav-item:hover { background: oklch(0.94 0.025 157); } .ds-nav-active { color: oklch(0.36 0.09 157); font-weight: 700; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; } .ds-nav-active svg { fill: currentColor; stroke: currentColor; } .ds-nav-item:focus-visible { outline: 2px solid oklch(0.36 0.09 157); outline-offset: -2px; }"
+      "description": "Responsive five-item navigation with elevated center Scan button and desktop rail support.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Primary navigation\"><a class=\"ds-nav-item\" href=\"/history\"><span>History</span></a><a class=\"ds-nav-item\" href=\"/learn\"><span>Learn</span></a><a class=\"ds-nav-item ds-nav-scan\" href=\"/\"><span class=\"ds-scan-bubble\">Scan</span></a><a class=\"ds-nav-item\" href=\"/search\"><span>Search</span></a><a class=\"ds-nav-item\" href=\"/allergies\"><span>Concerns</span></a></nav>",
+      "css": ".ds-nav { display: grid; grid-template-columns: repeat(5, 1fr); min-height: 80px; border-top: 1px solid #e4e4e7; background: #fafaf8; } .ds-nav-item { display: grid; align-content: center; justify-items: center; gap: 2px; color: #66666a; text-decoration: none; font: 700 11px/1.35 \"Noto Sans Khmer\", system-ui, sans-serif; } .ds-nav-scan { transform: translateY(-12px); } .ds-scan-bubble { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 9999px; background: #b86a1a; color: #111111; border: 4px solid #fafaf8; box-shadow: 0 5px 18px rgba(17,17,17,0.18); font-weight: 900; }"
     },
     {
-      "name": "Camera viewfinder",
+      "name": "Camera consent card",
       "kind": "custom",
-      "description": "A pale, bounded camera surface that keeps scanner capability and failure states explicit.",
-      "html": "<section class=\"ds-camera\" aria-label=\"Scan with the camera\"><span class=\"ds-corner ds-corner-tl\"></span><span class=\"ds-corner ds-corner-tr\"></span><span class=\"ds-corner ds-corner-bl\"></span><span class=\"ds-corner ds-corner-br\"></span><div class=\"ds-frame\"></div><button class=\"ds-camera-control\" type=\"button\" aria-label=\"Switch to camera\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><path d=\"M7 7h4V3M17 17h-4v4M5 11a7 7 0 0 1 12-5l1 1M19 13a7 7 0 0 1-12 5l-1-1\"></path></svg></button></section>",
-      "css": ".ds-camera { position: relative; display: grid; place-items: center; min-height: 300px; overflow: hidden; background: oklch(0.965 0.008 160); } .ds-corner { position: absolute; width: 32px; height: 32px; border-color: oklch(0.36 0.09 157 / 0.9); border-style: solid; } .ds-corner-tl { top: 16px; left: 16px; border-width: 1px 0 0 1px; border-radius: 8px 0 0; } .ds-corner-tr { top: 16px; right: 16px; border-width: 1px 1px 0 0; border-radius: 0 8px 0 0; } .ds-corner-bl { bottom: 16px; left: 16px; border-width: 0 0 1px 1px; border-radius: 0 0 0 8px; } .ds-corner-br { right: 16px; bottom: 16px; border-width: 0 1px 1px 0; border-radius: 0 0 8px; } .ds-frame { width: min(288px, 80vw); height: 96px; border: 2px solid oklch(0.992 0.002 160 / 0.9); border-radius: 12px; box-shadow: 0 0 0 999px oklch(0.12 0.02 160 / 0.18); } .ds-camera-control { position: absolute; right: 32px; bottom: 40px; display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid oklch(0.992 0.002 160 / 0.7); border-radius: 999px; background: oklch(0.992 0.002 160 / 0.95); color: oklch(0.36 0.09 157); box-shadow: 0 1px 3px oklch(0.12 0.02 160 / 0.12); } .ds-camera-control svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; } .ds-camera-control:focus-visible { outline: 3px solid oklch(0.36 0.09 157); outline-offset: 3px; }"
+      "description": "Privacy-first card explaining camera permissions and local session retention before activation.",
+      "html": "<div class=\"ds-consent\"><span class=\"ds-consent-icon\">🔒</span><h2 class=\"ds-consent-title\">Camera Privacy</h2><p class=\"ds-consent-body\">Frames are processed locally on your device to read package barcodes. Photos are never uploaded.</p><button class=\"ds-btn-primary\" type=\"button\">Start scanning</button></div>",
+      "css": ".ds-consent { display: grid; place-items: center; text-align: center; padding: 40px 24px; max-width: 480px; margin: 0 auto; } .ds-consent-icon { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 16px; background: #fcf4e8; color: #111111; font-size: 28px; } .ds-consent-title { font-size: 24px; font-weight: 900; color: #111111; margin-top: 20px; } .ds-consent-body { font-size: 16px; line-height: 1.65; color: #66666a; margin: 12px 0 24px; }"
     }
   ],
   "narrative": {
-    "northStar": "The Coconut Lens",
-    "overview": "LifeGoods is a calm, camera-first shopping utility. It uses the familiar structure of a barcode scanner while being unusually honest about capability and evidence: an unavailable camera looks unavailable, community data looks unreviewed, and missing fields look unknown rather than reassuring.\n\nThe visual world is white, charcoal, pale botanical neutrals, and restrained coconut green. Crisp one-pixel rules and open space create structure without decorative card stacks. The experience is Khmer-first, with generous Khmer line height and original package languages kept visible.",
+    "northStar": "Open Label",
+    "overview": "LifeGoods is a calm, evidence-forward shopping utility for Cambodian shoppers evaluating sealed packaged foods and beverages. Its central metaphor—Open Label—is represented by layered package-label sheets that reveal underlying label facts while keeping original source evidence in plain view. The design communicates clarity and rigor without adopting the promotional aesthetics of wellness marketing or clinical alarmism.\n\nThe visual atmosphere rests on a warm-white paper ground (#fafaf8), crisp charcoal black typography (#111111), rich palm sugar caramel interaction accents (#8a4b16), and golden palm sugar identity accents (#b86a1a) reserved for the Open Label mark and scanner action. Depth is established through tonal shifts and crisp one-pixel rules rather than decorative shadow cards. The entire experience is Khmer-first, pairing generous line heights with unclipped script rendering while keeping original package languages (Khmer, English, Vietnamese, Chinese, Thai) intact.",
     "keyCharacteristics": [
-      "Khmer-first with generous line height and original package languages kept visible.",
-      "Flat by default: tonal layers, one-pixel rules, and spacing carry depth.",
-      "Green is a restrained identity accent, never a Product verdict.",
-      "Search rows expose source evidence without scores or reassurance."
+      "Evidence Before Reassurance: Missing fields are explicitly Unavailable rather than assumed safe or absent; community data is clearly attributed.",
+      "Khmer-First Hierarchy: System sans typography tuned for complex Khmer ascenders and descenders with minimum 1.65 line heights.",
+      "Flat Paper Aesthetic: Clean warm-white background, pale functional containers, and crisp 1px borders without heavy skeuomorphic shadows or glassmorphism.",
+      "Strict Color Semantics: Palm sugar guides navigation and actions; golden palm sugar identifies brand and scan; crimson signals validation/error; green is never used to imply product health or purchase approval."
     ],
-    "rules": [],
+    "rules": [
+      {
+        "name": "The Color Neutrality Rule",
+        "body": "Color never communicates a health rating, safety verdict, allergen absence, or purchase recommendation. Green is never used as an endorsement.",
+        "section": "colors"
+      },
+      {
+        "name": "The Palm Sugar Scarcity Rule",
+        "body": "Golden Palm Sugar (#b86a1a) is strictly reserved for the Open Label brand mark and the primary Scan action. It is never used as an indicator of evidence severity or product status.",
+        "section": "colors"
+      },
+      {
+        "name": "The Khmer Line-Height Rule",
+        "body": "Khmer text requires a minimum line height of 1.65 for body and 1.7 for headings to avoid clipping subscript consonants and diacritics.",
+        "section": "typography"
+      },
+      {
+        "name": "The No-Truncation Rule",
+        "body": "Consequential product names, ingredient declarations, provenance notes, and uncertainty statements must wrap fully rather than truncate with ellipsis.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Content containers, evidence panels, and search results rest flush against the page ground. Depth is communicated via 1px border rules and subtle surface fills rather than card drop shadows.",
+        "section": "elevation"
+      }
+    ],
     "dos": [
-      "Preserve field-level provenance and original-language evidence.",
-      "Keep uncertainty adjacent to the affected evidence and pair failures with recovery.",
-      "Use familiar scanning and navigation patterns with precise capability copy.",
-      "Verify representative Khmer viewports and both mobile and desktop layouts."
+      "Preserve field-level provenance, source attribution, and original language text alongside Khmer translations.",
+      "Explicitly mark missing or unreviewed data as 'Unavailable from Open Food Facts' rather than 'None'.",
+      "Keep touch targets at or above 44×44 CSS pixels across all viewports.",
+      "Test layouts with real multi-line Khmer script to ensure line heights and wrapping behave cleanly.",
+      "Provide immediate fallback to manual search on camera hesitation or permission refusal."
     ],
     "donts": [
-      "Do not use wellness marketing, purity language, universal health scores, or “Excellent/Bad” labels.",
-      "Do not collapse absent, stale, external, or unreviewed evidence into a negative finding or reassuring absence.",
-      "Do not mix allergen evidence, Halal Ingredient Assessment, Seal Observation, and certificate status.",
-      "Do not add decorative page choreography, bounce, elastic easing, nested card grids, or oversized rounded surfaces.",
-      "Do not treat `TreePalmIcon` as final coconut artwork."
+      "Do not use green, traffic-light badges, or checkmarks to imply that a product is safe, healthy, or approved.",
+      "Do not use health scores, wellness purity marketing, or universal product ratings.",
+      "Do not collapse incomplete, missing, or contradictory evidence into a reassuring negative finding.",
+      "Do not apply heavy drop shadows, card stacking, glassmorphism, or gradient backgrounds.",
+      "Do not truncate product names, ingredients, or uncertainty disclosures."
     ]
   }
 }
+
