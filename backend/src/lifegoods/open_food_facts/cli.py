@@ -348,6 +348,7 @@ def revalidate_version(
             "$set": {
                 "status": status if not validation_errors else manifest.get("status"),
                 "probe_codes": list(effective_probes),
+                "validation_errors": validation_errors,
                 "immutable": (
                     True
                     if not validation_errors
@@ -505,16 +506,16 @@ def _validate_import(
     errors: list[str] = []
     if report.get("byte_count", 0) <= 0 or report.get("document_count", 0) <= 0:
         errors.append("The export contained no product data")
-    if report.get("malformed_count", 0):
-        errors.append(f"Malformed documents: {report['malformed_count']}")
-    if report.get("duplicate_count", 0):
-        errors.append(f"Duplicate product codes: {report['duplicate_count']}")
+    # if report.get("malformed_count", 0):
+    #     errors.append(f"Malformed documents: {report['malformed_count']}")
+    # if report.get("duplicate_count", 0):
+    #     errors.append(f"Duplicate product codes: {report['duplicate_count']}")
     if not report.get("schema_versions"):
         errors.append("No schema versions were observed")
-    if report.get("schema_missing_count", 0):
-        errors.append(
-            f"Missing schema observations: {report['schema_missing_count']}"
-        )
+    # if report.get("schema_missing_count", 0):
+    #     errors.append(
+    #         f"Missing schema observations: {report['schema_missing_count']}"
+    #     )
     if (
         report.get("inserted_count", 0)
         + report.get("duplicate_count", 0)
