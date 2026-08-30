@@ -434,6 +434,310 @@
         "title": "ExternalDatasetVersionResponse",
         "type": "object"
       },
+      "HalalClassification": {
+        "enum": [
+          "EXPLICIT_PROHIBITED",
+          "SOURCE_AMBIGUOUS"
+        ],
+        "title": "HalalClassification",
+        "type": "string"
+      },
+      "HalalIngredientAssessmentOutcome": {
+        "enum": [
+          "EXPLICIT_PROHIBITED_INGREDIENT_DECLARED",
+          "SOURCE_AMBIGUOUS",
+          "NO_NON_HALAL_INGREDIENT_DETECTED_IN_READABLE_LABEL",
+          "LABEL_INCOMPLETE_OR_UNREADABLE",
+          "NOT_ASSESSED"
+        ],
+        "title": "HalalIngredientAssessmentOutcome",
+        "type": "string"
+      },
+      "HalalIngredientAssessmentReason": {
+        "enum": [
+          "FEATURE_DISABLED",
+          "REFERENCE_UNAVAILABLE",
+          "EVIDENCE_UNAVAILABLE",
+          "ASSESSMENT_FAILED"
+        ],
+        "title": "HalalIngredientAssessmentReason",
+        "type": "string"
+      },
+      "HalalIngredientAssessmentResponse": {
+        "properties": {
+          "checked_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/PackageMatchEvidenceResponse"
+            },
+            "title": "Checked Evidence",
+            "type": "array"
+          },
+          "engine_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine Version"
+          },
+          "evidence_coverage": {
+            "$ref": "#/components/schemas/EvidenceCoverageState"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/HalalIngredientFindingResponse"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/HalalIngredientAssessmentOutcome"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HalalIngredientAssessmentReason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reference_dataset_version": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentReferenceDatasetVersionResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/HalalIngredientAssessmentStatus"
+          }
+        },
+        "required": [
+          "status",
+          "reason",
+          "outcome",
+          "evidence_coverage"
+        ],
+        "title": "HalalIngredientAssessmentResponse",
+        "type": "object"
+      },
+      "HalalIngredientAssessmentStatus": {
+        "enum": [
+          "COMPLETED",
+          "NOT_ASSESSED"
+        ],
+        "title": "HalalIngredientAssessmentStatus",
+        "type": "string"
+      },
+      "HalalIngredientFindingResponse": {
+        "properties": {
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/HalalSourceCitationResponse"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "classification": {
+            "$ref": "#/components/schemas/HalalClassification"
+          },
+          "concept_id": {
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "end_index": {
+            "title": "End Index",
+            "type": "integer"
+          },
+          "engine_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine Version"
+          },
+          "halal_mapping_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Halal Mapping Id"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "mapping_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mapping Id"
+          },
+          "matched_text": {
+            "title": "Matched Text",
+            "type": "string"
+          },
+          "off_dataset_version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Off Dataset Version Id"
+          },
+          "reference_dataset_version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Dataset Version Id"
+          },
+          "relationship_type": {
+            "$ref": "#/components/schemas/HalalRelationshipType"
+          },
+          "source_field": {
+            "title": "Source Field",
+            "type": "string"
+          },
+          "source_revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Revision"
+          },
+          "source_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Text"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          },
+          "start_index": {
+            "title": "Start Index",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "concept_id",
+          "classification",
+          "relationship_type",
+          "matched_text",
+          "start_index",
+          "end_index",
+          "source_field",
+          "source_url"
+        ],
+        "title": "HalalIngredientFindingResponse",
+        "type": "object"
+      },
+      "HalalRelationshipType": {
+        "enum": [
+          "EXACT_NAME",
+          "SPELLING_VARIANT",
+          "DERIVED_FROM",
+          "CONTAINS_SOURCE"
+        ],
+        "title": "HalalRelationshipType",
+        "type": "string"
+      },
+      "HalalSourceCitationResponse": {
+        "properties": {
+          "edition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edition"
+          },
+          "jurisdiction": {
+            "title": "Jurisdiction",
+            "type": "string"
+          },
+          "locator": {
+            "title": "Locator",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "jurisdiction",
+          "locator"
+        ],
+        "title": "HalalSourceCitationResponse",
+        "type": "object"
+      },
       "IdentifierScheme": {
         "enum": [
           "GTIN_8",
@@ -545,6 +849,9 @@
             ],
             "title": "External Record Id"
           },
+          "halal_ingredient_assessment": {
+            "$ref": "#/components/schemas/HalalIngredientAssessmentResponse"
+          },
           "identity_evidence": {
             "items": {
               "$ref": "#/components/schemas/PackageMatchEvidenceResponse"
@@ -627,7 +934,8 @@
         },
         "required": [
           "source_kind",
-          "allergen_assessment"
+          "allergen_assessment",
+          "halal_ingredient_assessment"
         ],
         "title": "PackageMatchCandidateResponse",
         "type": "object"

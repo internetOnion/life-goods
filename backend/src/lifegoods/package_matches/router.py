@@ -7,13 +7,19 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse
 
 from lifegoods.core.errors import ErrorCode, ErrorDetail, ErrorEnvelope
-from lifegoods.package_matches.assessments import AllergenAssessmentEvaluation
+from lifegoods.package_matches.assessments import (
+    AllergenAssessmentEvaluation,
+    HalalIngredientAssessmentEvaluation,
+)
 from lifegoods.package_matches.contracts import (
     AllergenAssessmentResponse,
     AllergenConceptOutcomeResponse,
     AllergenFindingResponse,
     AssessmentReferenceDatasetVersionResponse,
     ExternalDatasetVersionResponse,
+    HalalIngredientAssessmentResponse,
+    HalalIngredientFindingResponse,
+    HalalSourceCitationResponse,
     OpenFoodFactsLookupResponse,
     PackageMatchCandidateResponse,
     PackageMatchesResponse,
@@ -28,7 +34,11 @@ from lifegoods.package_matches.models import (
 )
 from lifegoods.package_matches.rate_limit import PackageMatchRateLimiter
 from lifegoods.package_matches.service import FindPackageMatches
-from lifegoods.reference_datasets import AllergenRelationshipType
+from lifegoods.reference_datasets import (
+    AllergenRelationshipType,
+    HalalClassification,
+    HalalRelationshipType,
+)
 
 router = APIRouter(prefix="/api/v1", tags=["Package Matches"])
 logger = logging.getLogger(__name__)
@@ -234,6 +244,81 @@ def _allergen_assessment_response(
     )
 
 
+def _halal_ingredient_assessment_response(
+    assessment: HalalIngredientAssessmentEvaluation,
+) -> HalalIngredientAssessmentResponse:
+    ref_version = (
+        AssessmentReferenceDatasetVersionResponse(
+            id=assessment.reference_dataset_version.id,
+            source_url=assessment.reference_dataset_version.source_url,
+            retrieved_at=assessment.reference_dataset_version.retrieved_at,
+            activated_at=assessment.reference_dataset_version.activated_at,
+            sha256=assessment.reference_dataset_version.sha256,
+            review_kind=assessment.reference_dataset_version.review_kind,
+            dataset_kind=assessment.reference_dataset_version.dataset_kind,
+        )
+        if assessment.reference_dataset_version is not None
+        else None
+    )
+    return HalalIngredientAssessmentResponse(
+        status=assessment.status,
+        reason=assessment.reason,
+        outcome=assessment.outcome,
+        evidence_coverage=assessment.evidence_coverage,
+        engine_version=assessment.engine_version,
+        reference_dataset_version=ref_version,
+        checked_evidence=[
+            PackageMatchEvidenceResponse(
+                field=signal.field,
+                value=signal.value,
+                source_field=signal.source_field,
+                source_name=signal.source_name,
+                source_url=signal.source_url,
+                language=signal.language,
+                observed_at=signal.observed_at,
+                retrieved_at=signal.retrieved_at,
+                source_revision=signal.source_revision,
+                dataset_version_id=signal.dataset_version_id,
+            )
+            for signal in assessment.checked_evidence
+        ],
+        findings=[
+            HalalIngredientFindingResponse(
+                id=finding.id,
+                concept_id=finding.concept_id,
+                mapping_id=finding.mapping_id,
+                halal_mapping_id=finding.halal_mapping_id,
+                classification=HalalClassification(finding.classification),
+                relationship_type=HalalRelationshipType(
+                    finding.relationship_type
+                ),
+                matched_text=finding.matched_text,
+                source_text=finding.source_text,
+                start_index=finding.start_index,
+                end_index=finding.end_index,
+                language=finding.language,
+                citations=[
+                    HalalSourceCitationResponse(
+                        source_id=c.source_id,
+                        jurisdiction=c.jurisdiction,
+                        edition=c.edition,
+                        locator=c.locator,
+                        notes=c.notes,
+                    )
+                    for c in finding.citations
+                ],
+                source_field=finding.source_field,
+                source_url=finding.source_url,
+                source_revision=finding.source_revision,
+                off_dataset_version_id=finding.off_dataset_version_id,
+                reference_dataset_version_id=finding.reference_dataset_version_id,
+                engine_version=finding.engine_version,
+            )
+            for finding in assessment.findings
+        ],
+    )
+
+
 def _candidate_response(
     candidate: PackageMatchCandidate,
 ) -> PackageMatchCandidateResponse:
@@ -258,6 +343,9 @@ def _candidate_response(
         source_kind=candidate.source_kind,
         allergen_assessment=_allergen_assessment_response(
             candidate.allergen_assessment
+        ),
+        halal_ingredient_assessment=_halal_ingredient_assessment_response(
+            candidate.halal_ingredient_assessment
         ),
         package_variant_id=candidate.package_variant_id,
         product_id=candidate.product_id,

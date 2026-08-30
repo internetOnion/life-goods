@@ -1,5 +1,6 @@
 from lifegoods.reference_datasets.access import (
     ActiveAllergenReferenceData,
+    ActiveHalalReferenceData,
     AllergenAssessmentReferenceVersion,
     AllergenReferenceConcept,
     AllergenReferenceDataAccess,
@@ -7,6 +8,13 @@ from lifegoods.reference_datasets.access import (
     AllergenReferenceMapping,
     AllergenReferenceRule,
     DatabaseAllergenReferenceDataAccess,
+    DatabaseHalalReferenceDataAccess,
+    HalalAssessmentReferenceVersion,
+    HalalReferenceConcept,
+    HalalReferenceDataAccess,
+    HalalReferenceIngredientMapping,
+    HalalReferenceLexicalMapping,
+    HalalSourceCitation,
 )
 from lifegoods.reference_datasets.bundle import (
     AllergenRelationshipType,
@@ -61,6 +69,7 @@ from lifegoods.reference_datasets.models import (
 
 __all__ = [
     "ActiveAllergenReferenceData",
+    "ActiveHalalReferenceData",
     "AllergenAssessmentReferenceVersion",
     "AllergenReferenceConcept",
     "AllergenReferenceDataAccess",
@@ -73,12 +82,19 @@ __all__ = [
     "AllergenRuleRecord",
     "ConditionFamily",
     "DatabaseAllergenReferenceDataAccess",
+    "DatabaseHalalReferenceDataAccess",
     "FoodAllergenReferenceBundle",
+    "HalalAssessmentReferenceVersion",
     "HalalClassification",
     "HalalIngredientMappingDefinition",
     "HalalIngredientMappingRecord",
     "HalalIngredientReferenceBundle",
+    "HalalReferenceConcept",
+    "HalalReferenceDataAccess",
+    "HalalReferenceIngredientMapping",
+    "HalalReferenceLexicalMapping",
     "HalalRelationshipType",
+    "HalalSourceCitation",
     "HalalSourceCitationDefinition",
     "LexicalExclusionDefinition",
     "LexicalExclusionRecord",

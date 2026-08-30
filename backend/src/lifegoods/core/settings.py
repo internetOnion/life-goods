@@ -50,6 +50,12 @@ class Settings(BaseSettings):
     off_mongodb_timeout_ms: int = DEFAULT_OFF_MONGODB_TIMEOUT_MS
     allergen_assessments_enabled: bool = False
     assessment_engine_version: str = DEFAULT_ASSESSMENT_ENGINE_VERSION
+    halal_assessments_enabled: bool = False
+    halal_ingredient_assessments_enabled: bool = False
+    halal_assessment_engine_version: str = DEFAULT_ASSESSMENT_ENGINE_VERSION
+    halal_ingredient_assessment_engine_version: str = (
+        DEFAULT_ASSESSMENT_ENGINE_VERSION
+    )
     redis_url: str = DEFAULT_REDIS_URL
     redis_timeout_seconds: float = DEFAULT_REDIS_TIMEOUT_SECONDS
     assessment_cache_enabled: bool = DEFAULT_ASSESSMENT_CACHE_ENABLED

@@ -224,6 +224,16 @@
         "findings": [],
         "source_signals": []
     },
+    "halal_ingredient_assessment": {
+        "status": "NOT_ASSESSED",
+        "reason": "FEATURE_DISABLED",
+        "outcome": "NOT_ASSESSED",
+        "evidence_coverage": "NOT_ASSESSED",
+        "engine_version": null,
+        "reference_dataset_version": null,
+        "checked_evidence": [],
+        "findings": []
+    },
     "dataset_version": {
         "id": "dataset-2026-08-27",
         "source_url": "https://static.openfoodfacts.org/data/export.jsonl.gz",

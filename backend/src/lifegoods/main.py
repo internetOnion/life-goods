@@ -1,5 +1,5 @@
 from collections.abc import Iterator
-from typing import Any
+from typing import Any, cast
 
 import httpx2 as httpx
 import redis
@@ -28,18 +28,25 @@ from lifegoods.package_matches import (
     AllergenAssessmentCache,
     AllergenAssessmentEvaluator,
     FindPackageMatches,
+    HalalIngredientAssessmentCache,
+    HalalIngredientAssessmentEvaluator,
     PackageMatchRateLimiter,
     PackageMatchSourceUnavailableError,
     RedisAllergenAssessmentCache,
+    RedisHalalIngredientAssessmentCache,
     RedisPackageMatchRateLimiter,
     StandardAllergenAssessmentEvaluator,
+    StandardHalalIngredientAssessmentEvaluator,
     get_finder,
     get_rate_limiter,
 )
 from lifegoods.package_matches import (
     router as package_matches_router,
 )
-from lifegoods.reference_datasets import DatabaseAllergenReferenceDataAccess
+from lifegoods.reference_datasets import (
+    DatabaseAllergenReferenceDataAccess,
+    DatabaseHalalReferenceDataAccess,
+)
 
 ERROR_MESSAGES: dict[ErrorCode, str] = {
     ErrorCode.IDENTIFIER_REQUIRED: "An identifier is required.",
@@ -62,6 +69,8 @@ def create_app(
     package_match_limiter: PackageMatchRateLimiter | None = None,
     allergen_evaluator: AllergenAssessmentEvaluator | None = None,
     assessment_cache: AllergenAssessmentCache | None = None,
+    halal_evaluator: HalalIngredientAssessmentEvaluator | None = None,
+    halal_assessment_cache: HalalIngredientAssessmentCache | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings()
     if session_factory is None:
@@ -74,9 +83,23 @@ def create_app(
     owned_mongo_clients: list[MongoClient[dict[str, Any]]] = []
     owned_redis_clients: list[redis.Redis] = []
     shared_redis_client: redis.Redis | None = None
-    if package_match_limiter is None or (
-        assessment_cache is None and resolved_settings.assessment_cache_enabled
+
+    needs_shared_redis = False
+    if package_match_limiter is None and not isinstance(
+        assessment_cache, RedisAllergenAssessmentCache
     ):
+        needs_shared_redis = True
+    if resolved_settings.assessment_cache_enabled:
+        if assessment_cache is None and not isinstance(
+            halal_assessment_cache, RedisHalalIngredientAssessmentCache
+        ):
+            needs_shared_redis = True
+        if halal_assessment_cache is None and not isinstance(
+            assessment_cache, RedisAllergenAssessmentCache
+        ):
+            needs_shared_redis = True
+
+    if needs_shared_redis:
         shared_redis_client = redis.Redis.from_url(
             resolved_settings.redis_url,
             socket_connect_timeout=resolved_settings.redis_timeout_seconds,
@@ -84,19 +107,33 @@ def create_app(
             decode_responses=True,
         )
         owned_redis_clients.append(shared_redis_client)
+
     if package_match_limiter is not None:
         resolved_package_match_limiter = package_match_limiter
     else:
-        assert shared_redis_client is not None
+        limiter_redis_client = cast(
+            redis.Redis,
+            assessment_cache._client
+            if isinstance(assessment_cache, RedisAllergenAssessmentCache)
+            else shared_redis_client,
+        )
+        assert limiter_redis_client is not None
         resolved_package_match_limiter = RedisPackageMatchRateLimiter(
-            shared_redis_client,
+            limiter_redis_client,
             resolved_settings.package_match_requests_per_minute,
             fallback_seconds=resolved_settings.package_match_rate_limit_fallback_seconds,
             local_max_keys=resolved_settings.package_match_rate_limit_local_max_keys,
         )
-    resolved_reference_data = DatabaseAllergenReferenceDataAccess(resolved_session_factory)
+    resolved_reference_data = DatabaseAllergenReferenceDataAccess(
+        resolved_session_factory
+    )
     if assessment_cache is not None:
         resolved_cache: AllergenAssessmentCache | None = assessment_cache
+    elif isinstance(halal_assessment_cache, RedisHalalIngredientAssessmentCache):
+        resolved_cache = RedisAllergenAssessmentCache(
+            halal_assessment_cache._client,
+            ttl_seconds=resolved_settings.assessment_cache_ttl_seconds,
+        )
     elif resolved_settings.assessment_cache_enabled:
         assert shared_redis_client is not None
         resolved_cache = RedisAllergenAssessmentCache(
@@ -113,6 +150,45 @@ def create_app(
             engine_version=resolved_settings.assessment_engine_version,
             reference_data=resolved_reference_data,
             cache=resolved_cache,
+        )
+    )
+
+    resolved_halal_reference_data = DatabaseHalalReferenceDataAccess(
+        resolved_session_factory
+    )
+    if halal_assessment_cache is not None:
+        resolved_halal_cache: HalalIngredientAssessmentCache | None = (
+            halal_assessment_cache
+        )
+    elif isinstance(assessment_cache, RedisAllergenAssessmentCache):
+        resolved_halal_cache = RedisHalalIngredientAssessmentCache(
+            assessment_cache._client,
+            ttl_seconds=resolved_settings.assessment_cache_ttl_seconds,
+        )
+    elif resolved_settings.assessment_cache_enabled:
+        assert shared_redis_client is not None
+        resolved_halal_cache = RedisHalalIngredientAssessmentCache(
+            shared_redis_client,
+            ttl_seconds=resolved_settings.assessment_cache_ttl_seconds,
+        )
+    else:
+        resolved_halal_cache = None
+
+    is_halal_enabled = (
+        resolved_settings.halal_assessments_enabled
+        or resolved_settings.halal_ingredient_assessments_enabled
+    )
+    halal_engine_version = (
+        resolved_settings.halal_assessment_engine_version
+        or resolved_settings.halal_ingredient_assessment_engine_version
+    )
+    resolved_halal_evaluator = (
+        halal_evaluator
+        or StandardHalalIngredientAssessmentEvaluator(
+            enabled=is_halal_enabled,
+            engine_version=halal_engine_version,
+            reference_data=resolved_halal_reference_data,
+            cache=resolved_halal_cache,
         )
     )
     if external_source is None:
@@ -165,7 +241,9 @@ def create_app(
 
     def provide_finder() -> Iterator[FindPackageMatches]:
         yield FindPackageMatches(
-            resolved_source, allergen_evaluator=resolved_allergen_evaluator
+            resolved_source,
+            allergen_evaluator=resolved_allergen_evaluator,
+            halal_evaluator=resolved_halal_evaluator,
         )
 
     app.dependency_overrides[get_finder] = provide_finder
