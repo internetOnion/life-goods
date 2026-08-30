@@ -36,6 +36,31 @@ BUNDLE_PATH = (
     / "halal_ingredient_2026_reviewed_english_v1.json"
 )
 
+EXPECTED_SHA256 = "fa2b3088080e4d1e6938610d518880231ea4a4cc0b5ffee3bfbf1ce5ae795a78"
+EXPECTED_PROJECT_APPROVER = "cambodia-halal-reviewer@lifegoods.org"
+EXPECTED_SOURCE_METADATA = {
+    "source-cambodia-prakas-090-2020": {
+        "jurisdiction": "CAMBODIA",
+        "edition": "Prakas No. 090 (2020)",
+        "licensing_decision": "PUBLIC_GOVERNMENT_STANDARD",
+    },
+    "source-oic-smiic-1-2019": {
+        "jurisdiction": "INTERNATIONAL",
+        "edition": "OIC/SMIIC 1:2019",
+        "licensing_decision": "LICENSED_STANDARD",
+    },
+    "source-oic-smiic-24-2020": {
+        "jurisdiction": "INTERNATIONAL",
+        "edition": "OIC/SMIIC 24:2020",
+        "licensing_decision": "LICENSED_STANDARD",
+    },
+    "source-lifegoods-reviewed-halal-mappings-issue-67": {
+        "jurisdiction": "PROJECT_SCOPE",
+        "edition": "Issue 67",
+        "licensing_decision": "PROJECT_AUTHORED",
+    },
+}
+
 EXPECTED_PROHIBITED_DIRECT_NAMES = {
     "concept-halal-pork": "pork",
     "concept-halal-bacon": "bacon",
@@ -108,10 +133,8 @@ def test_reviewed_release_has_prohibited_and_ambiguous_concepts() -> None:
     assert bundle.manifest.id == "halal-ingredient-2026-reviewed-english-v1"
     assert bundle.manifest.dataset_kind == ReferenceDatasetKind.HALAL_INGREDIENT
     assert bundle.manifest.review_kind == ReferenceReviewKind.HALAL_DOMAIN_REVIEW
-    assert bundle.manifest.project_approver is not None
-    assert "@" in bundle.manifest.project_approver
-    assert report.sha256 == bundle.manifest.sha256
-    assert len(bundle.manifest.sha256) == 64
+    assert bundle.manifest.project_approver == EXPECTED_PROJECT_APPROVER
+    assert report.sha256 == bundle.manifest.sha256 == EXPECTED_SHA256
 
     # Concept verification
     assert len(bundle.concepts) == 24
@@ -147,21 +170,18 @@ def test_reviewed_release_has_prohibited_and_ambiguous_concepts() -> None:
     assert ambiguous_concepts == set(EXPECTED_AMBIGUOUS_DIRECT_NAMES)
 
     # Source and citation verification
-    source_ids = {source.id for source in bundle.sources}
-    assert "source-cambodia-prakas-090-2020" in source_ids
-    assert "source-oic-smiic-1-2019" in source_ids
-    assert "source-oic-smiic-24-2020" in source_ids
-    assert "source-lifegoods-reviewed-halal-mappings-issue-67" in source_ids
-
     sources_by_id = {s.id: s for s in bundle.sources}
-    assert sources_by_id["source-cambodia-prakas-090-2020"].jurisdiction == "CAMBODIA"
-    assert sources_by_id["source-oic-smiic-1-2019"].jurisdiction == "INTERNATIONAL"
-    assert sources_by_id["source-oic-smiic-24-2020"].jurisdiction == "INTERNATIONAL"
+    assert set(sources_by_id) == set(EXPECTED_SOURCE_METADATA)
+    for source_id, expected in EXPECTED_SOURCE_METADATA.items():
+        source = sources_by_id[source_id]
+        assert source.jurisdiction == expected["jurisdiction"]
+        assert source.edition == expected["edition"]
+        assert source.licensing_decision == expected["licensing_decision"]
 
     for hm in bundle.halal_ingredient_mappings:
         assert len(hm.citations) >= 1
         for citation in hm.citations:
-            assert citation.source_id in source_ids
+            assert citation.source_id in sources_by_id
             assert citation.edition.strip()
             assert citation.jurisdiction.strip()
             assert citation.locator.strip()
@@ -273,9 +293,19 @@ def test_database_import_and_inspection_of_reviewed_release(db_session_factory) 
 
         # Inspect imported version through adapter
         inspection = adapter.inspect_records(version)
-        assert len(inspection["concepts"]) == 24
-        assert len(inspection["mappings"]) == len(bundle.mappings)
-        assert len(inspection["halal_ingredient_mappings"]) == 24
+        assert {record["id"]: record for record in inspection["concepts"]} == {
+            concept.id: concept.to_dict() for concept in bundle.concepts
+        }
+        assert {record["id"]: record for record in inspection["mappings"]} == {
+            mapping.id: mapping.to_dict() for mapping in bundle.mappings
+        }
+        assert inspection["exclusions"] == []
+        assert {
+            record["id"]: record for record in inspection["halal_ingredient_mappings"]
+        } == {
+            mapping.id: mapping.to_dict()
+            for mapping in bundle.halal_ingredient_mappings
+        }
 
         # Access returns None when inactive
         access = DatabaseHalalReferenceDataAccess(db_session_factory)

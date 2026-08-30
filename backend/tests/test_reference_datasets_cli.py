@@ -554,8 +554,13 @@ def test_cli_reviewed_halal_bundle_validation_and_inspection(
     assert validate_result["status"] == "VALID"
     assert validate_result["id"] == "halal-ingredient-2026-reviewed-english-v1"
     assert validate_result["dataset_kind"] == "HALAL_INGREDIENT"
+    assert (
+        validate_result["sha256"]
+        == "fa2b3088080e4d1e6938610d518880231ea4a4cc0b5ffee3bfbf1ce5ae795a78"
+    )
     assert validate_result["source_count"] == 4
     assert validate_result["concept_count"] == 24
+    assert validate_result["mapping_count"] == 68
     assert validate_result["exclusion_count"] == 0
     assert validate_result["halal_ingredient_mapping_count"] == 24
 
@@ -573,7 +578,9 @@ def test_cli_reviewed_halal_bundle_validation_and_inspection(
     inspect_result = json.loads(captured.out)
     assert inspect_result["id"] == "halal-ingredient-2026-reviewed-english-v1"
     assert inspect_result["status"] == "READY"
+    assert inspect_result["review_kind"] == "HALAL_DOMAIN_REVIEW"
+    assert inspect_result["project_approver"] == "cambodia-halal-reviewer@lifegoods.org"
+    assert inspect_result["activated_at"] is None
     assert len(inspect_result["concepts"]) == 24
     assert inspect_result["exclusions"] == []
     assert len(inspect_result["halal_ingredient_mappings"]) == 24
-
