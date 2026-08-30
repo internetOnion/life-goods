@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-30T00:00:00.000Z",
+  "title": "Design System: LifeGoods",
+  "extensions": {
+    "colorMeta": {
+      "brand": {
+        "role": "primary",
+        "displayName": "Restrained Coconut Green",
+        "canonical": "oklch(0.47 0.115 157)",
+        "tonalRamp": ["oklch(0.15 0.115 157)", "oklch(0.25 0.115 157)", "oklch(0.35 0.115 157)", "oklch(0.47 0.115 157)", "oklch(0.62 0.115 157)", "oklch(0.75 0.09 157)", "oklch(0.86 0.05 157)", "oklch(0.95 0.025 157)"]
+      },
+      "brand-dark": {
+        "role": "primary",
+        "displayName": "Coconut Green Ink",
+        "canonical": "oklch(0.36 0.09 157)",
+        "tonalRamp": ["oklch(0.15 0.09 157)", "oklch(0.23 0.09 157)", "oklch(0.3 0.09 157)", "oklch(0.36 0.09 157)", "oklch(0.52 0.09 157)", "oklch(0.68 0.07 157)", "oklch(0.82 0.04 157)", "oklch(0.95 0.02 157)"]
+      },
+      "brand-hover": {
+        "role": "primary",
+        "displayName": "Coconut Green Hover",
+        "canonical": "oklch(0.31 0.08 157)",
+        "tonalRamp": ["oklch(0.15 0.08 157)", "oklch(0.21 0.08 157)", "oklch(0.27 0.08 157)", "oklch(0.31 0.08 157)", "oklch(0.47 0.08 157)", "oklch(0.64 0.065 157)", "oklch(0.8 0.04 157)", "oklch(0.95 0.018 157)"]
+      },
+      "brand-soft": {
+        "role": "primary",
+        "displayName": "Pale Coconut Wash",
+        "canonical": "oklch(0.94 0.025 157)",
+        "tonalRamp": ["oklch(0.2 0.025 157)", "oklch(0.35 0.025 157)", "oklch(0.5 0.025 157)", "oklch(0.65 0.025 157)", "oklch(0.76 0.025 157)", "oklch(0.84 0.025 157)", "oklch(0.9 0.025 157)", "oklch(0.95 0.02 157)"]
+      },
+      "page": {
+        "role": "neutral",
+        "displayName": "Near-White Paper",
+        "canonical": "oklch(0.992 0.002 160)",
+        "tonalRamp": ["oklch(0.15 0.002 160)", "oklch(0.3 0.002 160)", "oklch(0.45 0.002 160)", "oklch(0.6 0.002 160)", "oklch(0.72 0.002 160)", "oklch(0.82 0.002 160)", "oklch(0.91 0.002 160)", "oklch(0.992 0.002 160)"]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Pale Botanical Surface",
+        "canonical": "oklch(0.965 0.008 160)",
+        "tonalRamp": ["oklch(0.15 0.008 160)", "oklch(0.3 0.008 160)", "oklch(0.45 0.008 160)", "oklch(0.6 0.008 160)", "oklch(0.72 0.008 160)", "oklch(0.82 0.008 160)", "oklch(0.91 0.008 160)", "oklch(0.965 0.008 160)"]
+      },
+      "surface-strong": {
+        "role": "neutral",
+        "displayName": "Quiet Surface Strong",
+        "canonical": "oklch(0.925 0.014 160)",
+        "tonalRamp": ["oklch(0.15 0.014 160)", "oklch(0.3 0.014 160)", "oklch(0.45 0.014 160)", "oklch(0.6 0.014 160)", "oklch(0.72 0.014 160)", "oklch(0.82 0.014 160)", "oklch(0.9 0.014 160)", "oklch(0.925 0.014 160)"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Charcoal Ink",
+        "canonical": "oklch(0.235 0.018 165)",
+        "tonalRamp": ["oklch(0.15 0.018 165)", "oklch(0.2 0.018 165)", "oklch(0.235 0.018 165)", "oklch(0.34 0.018 165)", "oklch(0.48 0.018 165)", "oklch(0.64 0.018 165)", "oklch(0.8 0.018 165)", "oklch(0.95 0.012 165)"]
+      },
+      "muted-ink": {
+        "role": "neutral",
+        "displayName": "Muted Charcoal",
+        "canonical": "oklch(0.43 0.018 165)",
+        "tonalRamp": ["oklch(0.15 0.018 165)", "oklch(0.27 0.018 165)", "oklch(0.38 0.018 165)", "oklch(0.43 0.018 165)", "oklch(0.56 0.018 165)", "oklch(0.7 0.018 165)", "oklch(0.84 0.018 165)", "oklch(0.95 0.012 165)"]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Botanical Rule",
+        "canonical": "oklch(0.84 0.012 160)",
+        "tonalRamp": ["oklch(0.15 0.012 160)", "oklch(0.3 0.012 160)", "oklch(0.45 0.012 160)", "oklch(0.6 0.012 160)", "oklch(0.72 0.012 160)", "oklch(0.82 0.012 160)", "oklch(0.88 0.012 160)", "oklch(0.95 0.01 160)"]
+      },
+      "input": {
+        "role": "neutral",
+        "displayName": "Field Boundary",
+        "canonical": "oklch(0.57 0.03 145)",
+        "tonalRamp": ["oklch(0.15 0.03 145)", "oklch(0.28 0.03 145)", "oklch(0.42 0.03 145)", "oklch(0.57 0.03 145)", "oklch(0.68 0.03 145)", "oklch(0.78 0.03 145)", "oklch(0.88 0.03 145)", "oklch(0.95 0.02 145)"]
+      },
+      "ring": {
+        "role": "primary",
+        "displayName": "Focus Green",
+        "canonical": "oklch(0.36 0.09 157)",
+        "tonalRamp": ["oklch(0.15 0.09 157)", "oklch(0.23 0.09 157)", "oklch(0.3 0.09 157)", "oklch(0.36 0.09 157)", "oklch(0.52 0.09 157)", "oklch(0.68 0.07 157)", "oklch(0.82 0.04 157)", "oklch(0.95 0.02 157)"]
+      },
+      "destructive": {
+        "role": "tertiary",
+        "displayName": "Validation Terracotta",
+        "canonical": "oklch(0.44 0.17 28)",
+        "tonalRamp": ["oklch(0.15 0.17 28)", "oklch(0.25 0.17 28)", "oklch(0.36 0.17 28)", "oklch(0.44 0.17 28)", "oklch(0.58 0.17 28)", "oklch(0.72 0.14 28)", "oklch(0.84 0.1 28)", "oklch(0.95 0.05 28)"]
+      }
+    },
+    "typographyMeta": {
+      "system-khmer": {
+        "displayName": "Khmer-first system sans",
+        "purpose": "One fast system stack for Khmer and Latin UI copy; generous line height protects Khmer readability."
+      }
+    },
+    "shadows": [
+      {
+        "name": "camera-scrim",
+        "value": "0 0 0 999px oklch(0.12 0.02 160 / 0.18)",
+        "purpose": "Functional scan-frame scrim that directs attention to the camera target."
+      },
+      {
+        "name": "temporary-control",
+        "value": "0 1px 3px oklch(0.12 0.02 160 / 0.12)",
+        "purpose": "Subtle separation for the transient camera control only."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-feedback",
+        "value": "transition-duration: 150ms",
+        "purpose": "Brief color and focus feedback; reduced motion effectively removes transitions."
+      }
+    ],
+    "breakpoints": [
+      { "name": "compact", "value": "376px" },
+      { "name": "sm", "value": "640px" },
+      { "name": "content-max", "value": "48rem" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Search field",
+      "kind": "input",
+      "description": "The shared Product search entry for exact barcode, Product-name, and brand lookup.",
+      "html": "<label class=\"ds-search-label\" for=\"ds-search\">Search Product</label><div class=\"ds-search\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><circle cx=\"11\" cy=\"11\" r=\"6.5\"></circle><path d=\"m16 16 4.5 4.5\"></path></svg><input id=\"ds-search\" type=\"search\" placeholder=\"Search by barcode, Product name, or brand\"><button type=\"button\" aria-label=\"Clear search\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><path d=\"m6 6 12 12M18 6 6 18\"></path></svg></button></div>",
+      "css": ".ds-search-label { display: block; position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } .ds-search { display: flex; align-items: center; min-height: 56px; border: 1px solid oklch(0.57 0.03 145); border-radius: 16px; background: oklch(0.992 0.002 160); color: oklch(0.235 0.018 165); } .ds-search > svg { width: 23px; height: 23px; margin-left: 16px; fill: none; stroke: currentColor; stroke-width: 1.75; } .ds-search input { min-width: 0; flex: 1; height: 56px; padding: 0 12px; border: 0; outline: 0; background: transparent; color: inherit; font: 16px/1.65 \"Noto Sans Khmer\", \"Khmer OS System\", Inter, system-ui, sans-serif; } .ds-search button { display: grid; place-items: center; width: 44px; height: 44px; margin-right: 8px; border: 0; border-radius: 999px; background: transparent; color: oklch(0.43 0.018 165); cursor: pointer; } .ds-search button svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.75; } .ds-search:focus-within { border-color: oklch(0.36 0.09 157); outline: 2px solid oklch(0.36 0.09 157 / 0.35); outline-offset: 0; } .ds-search button:hover, .ds-search button:focus-visible { background: oklch(0.94 0.025 157); color: oklch(0.31 0.08 157); }"
+    },
+    {
+      "name": "Home search entry",
+      "kind": "custom",
+      "description": "A familiar field-shaped link keeps Home camera-first while exposing Search accessibly.",
+      "html": "<a class=\"ds-home-search\" href=\"/search\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><circle cx=\"11\" cy=\"11\" r=\"6.5\"></circle><path d=\"m16 16 4.5 4.5\"></path></svg><span>Search by barcode or Product</span></a>",
+      "css": ".ds-home-search { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 16px; border: 1px solid oklch(0.57 0.03 145); border-radius: 16px; background: oklch(0.992 0.002 160); color: oklch(0.43 0.018 165); text-decoration: none; font: 16px/1.65 \"Noto Sans Khmer\", \"Khmer OS System\", Inter, system-ui, sans-serif; } .ds-home-search svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.75; } .ds-home-search:hover, .ds-home-search:focus-visible { border-color: oklch(0.47 0.115 157); color: oklch(0.235 0.018 165); } .ds-home-search:focus-visible { outline: 3px solid oklch(0.36 0.09 157); outline-offset: 3px; }"
+    },
+    {
+      "name": "Search result row",
+      "kind": "custom",
+      "description": "A full-width, source-led row for opening a Package Match candidate without a score or verdict.",
+      "html": "<button class=\"ds-result\" type=\"button\"><span class=\"ds-result-image\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2\"></rect><path d=\"m7 15 3-3 2 2 2-2 3 3\"></path></svg><small>Image unavailable</small></span><span><strong>Coconut milk</strong><small>Quantity: 400 ml</small><small>Made in: Cambodia</small></span></button>",
+      "css": ".ds-result { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 16px; width: 100%; min-height: 112px; padding: 12px 16px; border: 0; background: oklch(0.992 0.002 160); color: oklch(0.235 0.018 165); text-align: left; cursor: pointer; font: inherit; } .ds-result + .ds-result { border-top: 1px solid oklch(0.84 0.012 160); } .ds-result-image { display: grid; place-items: center; width: 76px; height: 96px; overflow: hidden; border-radius: 12px; background: oklch(0.965 0.008 160); color: oklch(0.43 0.018 165); } .ds-result-image svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.5; } .ds-result small { display: block; margin-top: 4px; color: oklch(0.43 0.018 165); line-height: 1.65; } .ds-result:hover { background: oklch(0.94 0.025 157 / 0.45); } .ds-result:focus-visible { outline: 2px solid oklch(0.36 0.09 157); outline-offset: -2px; }"
+    },
+    {
+      "name": "Recent search chip",
+      "kind": "chip",
+      "description": "A session-only prior term, shown before typing without implying popularity.",
+      "html": "<button class=\"ds-chip\" type=\"button\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><path d=\"M12 7v5l3 2\"></path><circle cx=\"12\" cy=\"12\" r=\"8\"></circle></svg>Coconut</button>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 0 14px; border: 0; border-radius: 999px; background: oklch(0.965 0.008 160); color: oklch(0.235 0.018 165); font: 400 16px/1.65 \"Noto Sans Khmer\", \"Khmer OS System\", Inter, system-ui, sans-serif; cursor: pointer; } .ds-chip svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.75; } .ds-chip:hover, .ds-chip:focus-visible { background: oklch(0.94 0.025 157); } .ds-chip:focus-visible { outline: 3px solid oklch(0.36 0.09 157); outline-offset: 3px; }"
+    },
+    {
+      "name": "Bottom navigation",
+      "kind": "nav",
+      "description": "Four-item mobile navigation that remains visible on Home and Search and uses label plus icon state.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Primary navigation\"><a class=\"ds-nav-item ds-nav-active\" href=\"/\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><path d=\"m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z\"></path></svg><span>Home</span></a><a class=\"ds-nav-item\" href=\"/learn\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><path d=\"M4 5a2 2 0 0 1 2-2h12v17H6a2 2 0 0 0-2 2z\"></path><path d=\"M4 20a2 2 0 0 1 2-2h12\"></path></svg><span>Learn</span></a><a class=\"ds-nav-item\" href=\"/history\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><path d=\"M3 12a9 9 0 1 0 3-6.7\"></path><path d=\"M3 4v5h5\"></path><path d=\"M12 7v5l3 2\"></path></svg><span>History</span></a><a class=\"ds-nav-item\" href=\"/allergies\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M12 8v5\"></path><circle cx=\"12\" cy=\"16.5\" r=\".75\" fill=\"currentColor\" stroke=\"none\"></circle></svg><span>Allergies</span></a></nav>",
+      "css": ".ds-nav { display: grid; grid-template-columns: repeat(4, 1fr); min-height: 80px; border-top: 1px solid oklch(0.84 0.012 160); background: oklch(0.992 0.002 160); } .ds-nav-item { display: grid; grid-template-rows: 32px auto; align-content: center; justify-items: center; gap: 2px; min-height: 74px; padding: 4px; border-radius: 8px; color: oklch(0.235 0.018 165); text-decoration: none; font: 600 12px/1.35 \"Noto Sans Khmer\", \"Khmer OS System\", Inter, system-ui, sans-serif; } .ds-nav-item svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; } .ds-nav-item:hover { background: oklch(0.94 0.025 157); } .ds-nav-active { color: oklch(0.36 0.09 157); font-weight: 700; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; } .ds-nav-active svg { fill: currentColor; stroke: currentColor; } .ds-nav-item:focus-visible { outline: 2px solid oklch(0.36 0.09 157); outline-offset: -2px; }"
+    },
+    {
+      "name": "Camera viewfinder",
+      "kind": "custom",
+      "description": "A pale, bounded camera surface that keeps scanner capability and failure states explicit.",
+      "html": "<section class=\"ds-camera\" aria-label=\"Scan with the camera\"><span class=\"ds-corner ds-corner-tl\"></span><span class=\"ds-corner ds-corner-tr\"></span><span class=\"ds-corner ds-corner-bl\"></span><span class=\"ds-corner ds-corner-br\"></span><div class=\"ds-frame\"></div><button class=\"ds-camera-control\" type=\"button\" aria-label=\"Switch to camera\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><path d=\"M7 7h4V3M17 17h-4v4M5 11a7 7 0 0 1 12-5l1 1M19 13a7 7 0 0 1-12 5l-1-1\"></path></svg></button></section>",
+      "css": ".ds-camera { position: relative; display: grid; place-items: center; min-height: 300px; overflow: hidden; background: oklch(0.965 0.008 160); } .ds-corner { position: absolute; width: 32px; height: 32px; border-color: oklch(0.36 0.09 157 / 0.9); border-style: solid; } .ds-corner-tl { top: 16px; left: 16px; border-width: 1px 0 0 1px; border-radius: 8px 0 0; } .ds-corner-tr { top: 16px; right: 16px; border-width: 1px 1px 0 0; border-radius: 0 8px 0 0; } .ds-corner-bl { bottom: 16px; left: 16px; border-width: 0 0 1px 1px; border-radius: 0 0 0 8px; } .ds-corner-br { right: 16px; bottom: 16px; border-width: 0 1px 1px 0; border-radius: 0 0 8px; } .ds-frame { width: min(288px, 80vw); height: 96px; border: 2px solid oklch(0.992 0.002 160 / 0.9); border-radius: 12px; box-shadow: 0 0 0 999px oklch(0.12 0.02 160 / 0.18); } .ds-camera-control { position: absolute; right: 32px; bottom: 40px; display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid oklch(0.992 0.002 160 / 0.7); border-radius: 999px; background: oklch(0.992 0.002 160 / 0.95); color: oklch(0.36 0.09 157); box-shadow: 0 1px 3px oklch(0.12 0.02 160 / 0.12); } .ds-camera-control svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; } .ds-camera-control:focus-visible { outline: 3px solid oklch(0.36 0.09 157); outline-offset: 3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Coconut Lens",
+    "overview": "LifeGoods is a calm, camera-first shopping utility. It uses the familiar structure of a barcode scanner while being unusually honest about capability and evidence: an unavailable camera looks unavailable, community data looks unreviewed, and missing fields look unknown rather than reassuring.\n\nThe visual world is white, charcoal, pale botanical neutrals, and restrained coconut green. Crisp one-pixel rules and open space create structure without decorative card stacks. The experience is Khmer-first, with generous Khmer line height and original package languages kept visible.",
+    "keyCharacteristics": [
+      "Khmer-first with generous line height and original package languages kept visible.",
+      "Flat by default: tonal layers, one-pixel rules, and spacing carry depth.",
+      "Green is a restrained identity accent, never a Product verdict.",
+      "Search rows expose source evidence without scores or reassurance."
+    ],
+    "rules": [],
+    "dos": [
+      "Preserve field-level provenance and original-language evidence.",
+      "Keep uncertainty adjacent to the affected evidence and pair failures with recovery.",
+      "Use familiar scanning and navigation patterns with precise capability copy.",
+      "Verify representative Khmer viewports and both mobile and desktop layouts."
+    ],
+    "donts": [
+      "Do not use wellness marketing, purity language, universal health scores, or “Excellent/Bad” labels.",
+      "Do not collapse absent, stale, external, or unreviewed evidence into a negative finding or reassuring absence.",
+      "Do not mix allergen evidence, Halal Ingredient Assessment, Seal Observation, and certificate status.",
+      "Do not add decorative page choreography, bounce, elastic easing, nested card grids, or oversized rounded surfaces.",
+      "Do not treat `TreePalmIcon` as final coconut artwork."
+    ]
+  }
+}

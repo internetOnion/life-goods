@@ -12,18 +12,30 @@ import { NewCapturePage } from "../features/package-capture/NewCapturePage"
 import { HomePage } from "../features/package-match/HomePage"
 import { PackageMatchResultPage } from "../features/package-match/PackageMatchResultPage"
 import type { PackageMatchLookup } from "../features/package-match/types"
+import { lookupPackageSearch } from "../features/search/api"
 import { SearchPage } from "../features/search/SearchPage"
+import type { PackageSearchLookup } from "../features/search/types"
 import { AppShell } from "../ui/AppShell"
 
 type AppProps = {
     lookup: PackageMatchLookup
+    searchLookup?: PackageSearchLookup
     demoMode?: boolean
 }
 
-export function App({ lookup, demoMode }: AppProps) {
+type ResultLocationState = {
+    fromBarcode?: boolean
+    fromSearch?: boolean
+    handledBarcode?: string
+    searchQuery?: string
+}
+
+export function App({ lookup, searchLookup, demoMode }: AppProps) {
+    const resolvedSearchLookup = searchLookup ?? lookupPackageSearch
     const [lastIdentifier, setLastIdentifier] = useState("")
     const [focusIdentifier, setFocusIdentifier] = useState(false)
     const location = useLocation()
+    const resultLocationState = location.state as ResultLocationState | null
     const navigate = useNavigate()
     const isResult = location.pathname.startsWith("/results/")
     const wasResult = useRef(isResult)
@@ -44,30 +56,55 @@ export function App({ lookup, demoMode }: AppProps) {
     )
 
     const dismissResult = useCallback(() => {
-        const state = location.state as { fromBarcode?: boolean } | null
-        if (state?.fromBarcode) {
+        if (resultLocationState?.fromSearch) {
+            const search = resultLocationState.searchQuery
+                ? `?q=${encodeURIComponent(resultLocationState.searchQuery)}`
+                : ""
+            void navigate(`${appRoutes.search}${search}`, {
+                replace: true,
+                state: {
+                    handledBarcode: resultLocationState.handledBarcode,
+                },
+            })
+            return
+        }
+        if (resultLocationState?.fromBarcode) {
             void navigate(-1)
             return
         }
         void navigate(appRoutes.home, { replace: true })
-    }, [location.state, navigate])
+    }, [navigate, resultLocationState])
 
     return (
         <AppShell demoMode={demoMode}>
             <Routes>
                 <Route path={appRoutes.home} element={home()} />
-                <Route path={appRoutes.search} element={<SearchPage />} />
+                <Route
+                    path={appRoutes.search}
+                    element={<SearchPage lookup={resolvedSearchLookup} />}
+                />
                 <Route
                     path={appRoutes.result}
                     element={
                         <>
                             <div aria-hidden="true" inert>
-                                {home(true)}
+                                {resultLocationState?.fromSearch ? (
+                                    <SearchPage
+                                        initialQuery={
+                                            resultLocationState.searchQuery
+                                        }
+                                        isModalBackground
+                                        lookup={resolvedSearchLookup}
+                                    />
+                                ) : (
+                                    home(true)
+                                )}
                             </div>
                             <PackageMatchResultPage
                                 lookup={lookup}
                                 onDismiss={dismissResult}
                                 onIdentifierChange={setLastIdentifier}
+                                showDemoNotice={demoMode === true}
                             />
                         </>
                     }

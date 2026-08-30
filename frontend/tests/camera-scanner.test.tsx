@@ -66,9 +66,9 @@ function expectFullWidthCameraPreview(container: HTMLElement) {
         "-translate-x-1/2",
     )
 
-    const form = container.querySelector("form")
-    expect(form).toBeInTheDocument()
-    expect(form).toHaveClass("mx-4", "max-[23.5rem]:mx-[0.625rem]", "sm:mx-0")
+    const searchLink = container.querySelector('a[href="/search"]')
+    expect(searchLink).toBeInTheDocument()
+    expect(searchLink).toHaveClass("min-h-14", "rounded-2xl", "border")
 
     const video = container.querySelector("video")
     expect(video).toBeInTheDocument()
@@ -128,7 +128,7 @@ describe("camera barcode scanner", () => {
         ).not.toBeInTheDocument()
     })
 
-    test("shows the LifeGoods logo and an inert camera-switch control", async () => {
+    test("shows the LifeGoods logo and an inert icon-only camera-switch control", async () => {
         const user = userEvent.setup()
         const stop = vi.fn()
         startMock.mockResolvedValue({ stop })
@@ -152,10 +152,21 @@ describe("camera barcode scanner", () => {
         expect(switchToCamera).toBeEnabled()
         expect(switchToCamera).toHaveAttribute("aria-disabled", "true")
         expect(switchToCamera).toHaveAttribute("tabindex", "-1")
+        expect(switchToCamera).toHaveClass(
+            "right-8",
+            "bottom-10",
+            "size-11",
+            "rounded-full",
+            "p-0",
+        )
+        expect(switchToCamera).toHaveTextContent("")
+        expect(switchToCamera.querySelector("svg")).toBeInTheDocument()
 
-        const input = screen.getByRole("textbox", { name: "Barcode number" })
+        const searchLink = screen.getByRole("link", {
+            name: "Open Product search",
+        })
         const scannerStatus = screen.getByRole("status")
-        expect(input).toHaveValue("")
+        expect(searchLink).toHaveAttribute("href", "/search")
         expect(scannerStatus).toHaveTextContent(
             "Place the barcode inside the scan frame.",
         )
@@ -164,12 +175,22 @@ describe("camera barcode scanner", () => {
         await user.click(switchToCamera)
 
         expect(startMock).toHaveBeenCalledTimes(1)
-        expect(input).toBeVisible()
-        expect(input).toHaveValue("")
+        expect(searchLink).toBeVisible()
         expect(scannerStatus).toHaveTextContent(
             "Place the barcode inside the scan frame.",
         )
         expect(screen.getByTestId("current-path")).toHaveTextContent("/")
+    })
+
+    test("localizes the camera-switch accessible name in Khmer", async () => {
+        await i18n.changeLanguage("km")
+        startMock.mockResolvedValue({ stop: vi.fn() })
+        const lookup = vi.fn<PackageMatchLookup>()
+        renderJourney(lookup)
+
+        expect(
+            await screen.findByRole("button", { name: "ប្តូរទៅកាមេរ៉ា" }),
+        ).toBeVisible()
     })
 
     test("shows a plain camera surface while scanner startup is still pending", async () => {
@@ -189,11 +210,13 @@ describe("camera barcode scanner", () => {
         expect(cameraSurface).toHaveClass("bg-background")
         expect(cameraSurface?.querySelector("p")).not.toBeInTheDocument()
         expect(cameraSurface?.querySelectorAll("svg")).toHaveLength(1)
-        expect(
-            within(cameraSurface as HTMLElement).getByRole("button", {
-                name: "Switch to camera",
-            }),
-        ).toBeVisible()
+        const pendingSwitchToCamera = within(
+            cameraSurface as HTMLElement,
+        ).getByRole("button", {
+            name: "Switch to camera",
+        })
+        expect(pendingSwitchToCamera).toBeVisible()
+        expect(pendingSwitchToCamera).toHaveClass("right-8", "bottom-10")
         expect(await screen.findByRole("status")).toHaveTextContent(
             "Starting camera…",
         )
@@ -223,7 +246,7 @@ describe("camera barcode scanner", () => {
         expect(lookup).toHaveBeenCalledWith("4006381333931")
     })
 
-    test("explains denied permission and keeps manual entry available", async () => {
+    test("explains denied permission and keeps Product search available", async () => {
         const lookup = vi.fn<PackageMatchLookup>()
         startMock.mockRejectedValue(
             new DOMException("denied", "NotAllowedError"),
@@ -234,7 +257,7 @@ describe("camera barcode scanner", () => {
             "Camera access was denied",
         )
         expect(
-            screen.getByRole("textbox", { name: "Barcode number" }),
+            screen.getByRole("link", { name: "Open Product search" }),
         ).toBeVisible()
         expect(
             screen.getByRole("button", { name: "Try camera again" }),
@@ -287,7 +310,7 @@ describe("camera barcode scanner", () => {
 
         expect(await screen.findByRole("alert")).toHaveTextContent(message)
         expect(
-            screen.getByRole("textbox", { name: "Barcode number" }),
+            screen.getByRole("link", { name: "Open Product search" }),
         ).toBeVisible()
     })
 
@@ -308,11 +331,11 @@ describe("camera barcode scanner", () => {
         )
         expect(getUserMedia).not.toHaveBeenCalled()
         expect(
-            screen.getByRole("textbox", { name: "Barcode number" }),
+            screen.getByRole("link", { name: "Open Product search" }),
         ).toBeVisible()
     })
 
-    test("stops an active camera before manual submission", async () => {
+    test("stops an active camera before opening Product search", async () => {
         const user = userEvent.setup()
         const lookup = vi
             .fn<PackageMatchLookup>()
@@ -322,15 +345,13 @@ describe("camera barcode scanner", () => {
         renderJourney(lookup)
 
         await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
-        const input = screen.getByRole("textbox", { name: "Barcode number" })
-        await user.type(input, "4006381333931")
-        await user.click(screen.getByRole("button", { name: "Check barcode" }))
+        await user.click(
+            screen.getByRole("link", { name: "Open Product search" }),
+        )
 
         await waitFor(() => expect(stop).toHaveBeenCalledTimes(1))
         expect(
-            await screen.findByRole("heading", {
-                name: "No package information found",
-            }),
+            await screen.findByRole("heading", { name: "Search" }),
         ).toBeVisible()
     })
 

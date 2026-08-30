@@ -1,7 +1,7 @@
 import {
     ArrowClockwiseIcon,
     BarcodeIcon,
-    CameraIcon,
+    CameraRotateIcon,
     InfoIcon,
     MagnifyingGlassIcon,
     WarningCircleIcon,
@@ -356,16 +356,14 @@ export function HomePage({
                 </div>
                 {cameraState === "starting" || cameraState === "scanning" ? (
                     <Button
+                        aria-label={t("switchToCamera")}
                         aria-disabled="true"
-                        className="border-background/70 bg-background/95 text-primary hover:bg-background hover:text-primary absolute right-4 bottom-16 z-20 min-h-11 rounded-lg px-3 shadow-sm"
+                        className="border-background/70 bg-background/95 text-primary hover:bg-background hover:text-primary absolute right-8 bottom-10 z-20 size-11 rounded-full p-0 shadow-sm [&_svg]:size-6"
                         tabIndex={-1}
                         type="button"
                         variant="outline"
                     >
-                        <CameraIcon aria-hidden="true" size={20} />
-                        <span className="text-sm leading-[1.65]">
-                            {t("switchToCamera")}
-                        </span>
+                        <CameraRotateIcon aria-hidden="true" />
                     </Button>
                 ) : null}
             </section>
@@ -384,6 +382,7 @@ export function HomePage({
                 className="border-border bg-background mx-4 grid grid-cols-[minmax(0,1fr)_3.5rem] gap-x-1 gap-y-2 rounded-2xl border p-4 max-[23.5rem]:mx-[0.625rem] sm:mx-0 sm:grid-cols-[minmax(0,1fr)_4rem] sm:gap-x-2 sm:p-5"
                 noValidate
                 onSubmit={onSubmit}
+                onClick={() => void navigate("/search")}
             >
                 <Button
                     className="text-primary hover:text-primary col-start-2 row-start-1 size-9 !min-h-0 justify-self-center rounded-full border-0 bg-transparent p-0 hover:bg-transparent [&_svg]:size-full"

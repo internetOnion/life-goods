@@ -32,6 +32,14 @@ from lifegoods.package_matches import (
 from lifegoods.package_matches import (
     router as package_matches_router,
 )
+from lifegoods.package_search import (
+    SearchPackages,
+    get_searcher,
+)
+from lifegoods.package_search import (
+    get_rate_limiter as get_package_search_rate_limiter,
+)
+from lifegoods.package_search import router as package_search_router
 
 ERROR_MESSAGES: dict[ErrorCode, str] = {
     ErrorCode.IDENTIFIER_REQUIRED: "An identifier is required.",
@@ -52,6 +60,7 @@ def create_app(
     external_source: ExternalPackageSource | None = None,
     image_source: ExternalImageSource | None = None,
     package_match_limiter: KeyedSlidingWindowLimiter | None = None,
+    package_search_limiter: KeyedSlidingWindowLimiter | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings()
     _ = session_factory
@@ -60,6 +69,10 @@ def create_app(
     resolved_package_match_limiter = (
         package_match_limiter
         or KeyedSlidingWindowLimiter(resolved_settings.package_match_requests_per_minute)
+    )
+    resolved_package_search_limiter = (
+        package_search_limiter
+        or KeyedSlidingWindowLimiter(resolved_settings.package_search_requests_per_minute)
     )
     if external_source is None:
         mongo_client: MongoClient[dict[str, Any]] = MongoClient(
@@ -93,6 +106,7 @@ def create_app(
         allow_headers=["*"],
     )
     app.include_router(package_matches_router)
+    app.include_router(package_search_router)
     app.include_router(open_food_facts_image_router)
 
     @app.get("/scalar", include_in_schema=False)
@@ -110,8 +124,15 @@ def create_app(
     def provide_finder() -> Iterator[FindPackageMatches]:
         yield FindPackageMatches(resolved_source)
 
+    def provide_searcher() -> Iterator[SearchPackages]:
+        yield SearchPackages(resolved_source)  # type: ignore[arg-type]
+
     app.dependency_overrides[get_finder] = provide_finder
     app.dependency_overrides[get_rate_limiter] = lambda: resolved_package_match_limiter
+    app.dependency_overrides[get_searcher] = provide_searcher
+    app.dependency_overrides[get_package_search_rate_limiter] = (
+        lambda: resolved_package_search_limiter
+    )
     app.dependency_overrides[get_image_source] = lambda: resolved_image_source
 
     @app.exception_handler(RequestValidationError)
@@ -123,6 +144,14 @@ def create_app(
                 error=ErrorDetail(
                     code=ErrorCode.REFERENCE_IMAGE_URL_INVALID,
                     message="A valid reference image URL is required.",
+                )
+            )
+            return JSONResponse(status_code=422, content=envelope.model_dump())
+        if request.url.path == "/api/v1/package-search":
+            envelope = ErrorEnvelope(
+                error=ErrorDetail(
+                    code=ErrorCode.PACKAGE_SEARCH_QUERY_INVALID,
+                    message="Enter a search query from 2 to 80 characters.",
                 )
             )
             return JSONResponse(status_code=422, content=envelope.model_dump())

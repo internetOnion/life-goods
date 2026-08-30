@@ -8,6 +8,7 @@
           "IDENTIFIER_LENGTH_UNSUPPORTED",
           "IDENTIFIER_CHECK_DIGIT_INVALID",
           "PACKAGE_MATCH_SOURCE_UNAVAILABLE",
+          "PACKAGE_SEARCH_QUERY_INVALID",
           "REFERENCE_IMAGE_URL_INVALID",
           "REFERENCE_IMAGE_NOT_FOUND",
           "REFERENCE_IMAGE_SOURCE_UNAVAILABLE",
@@ -526,6 +527,175 @@
         ],
         "title": "PackageMatchesResponse",
         "type": "object"
+      },
+      "PackageSearchEvidenceResponse": {
+        "properties": {
+          "dataset_version_id": {
+            "title": "Dataset Version Id",
+            "type": "string"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "retrieved_at": {
+            "format": "date-time",
+            "title": "Retrieved At",
+            "type": "string"
+          },
+          "source_field": {
+            "title": "Source Field",
+            "type": "string"
+          },
+          "source_name": {
+            "title": "Source Name",
+            "type": "string"
+          },
+          "source_revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Revision"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value"
+          }
+        },
+        "required": [
+          "value",
+          "source_field",
+          "language",
+          "source_name",
+          "source_url",
+          "retrieved_at",
+          "dataset_version_id"
+        ],
+        "title": "PackageSearchEvidenceResponse",
+        "type": "object"
+      },
+      "PackageSearchResponse": {
+        "properties": {
+          "dataset_version": {
+            "$ref": "#/components/schemas/ExternalDatasetVersionResponse"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          },
+          "normalized_query": {
+            "title": "Normalized Query",
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/PackageSearchResultResponse"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "normalized_query",
+          "dataset_version",
+          "results",
+          "next_offset"
+        ],
+        "title": "PackageSearchResponse",
+        "type": "object"
+      },
+      "PackageSearchResultResponse": {
+        "properties": {
+          "brands": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PackageSearchEvidenceResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "identifier": {
+            "title": "Identifier",
+            "type": "string"
+          },
+          "manufacturing_place": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PackageSearchEvidenceResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "names": {
+            "items": {
+              "$ref": "#/components/schemas/PackageSearchEvidenceResponse"
+            },
+            "title": "Names",
+            "type": "array"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PackageSearchEvidenceResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reference_image": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PackageMatchReferenceImageResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_kind": {
+            "const": "OPEN_FOOD_FACTS",
+            "default": "OPEN_FOOD_FACTS",
+            "title": "Source Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "names",
+          "brands",
+          "quantity",
+          "manufacturing_place",
+          "reference_image"
+        ],
+        "title": "PackageSearchResultResponse",
+        "type": "object"
       }
     }
   },
@@ -687,6 +857,93 @@
         "summary": "Get Package Matches",
         "tags": [
           "Package Matches"
+        ]
+      }
+    },
+    "/api/v1/package-search": {
+      "get": {
+        "operationId": "searchPackages",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 2,
+              "title": "Query",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "maximum": 24,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageSearchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Search Packages",
+        "tags": [
+          "Package Search"
         ]
       }
     }

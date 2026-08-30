@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
@@ -20,7 +20,7 @@ import {
     sparseOffCandidate,
 } from "./package-match-fixtures"
 
-function renderJourney(lookup: PackageMatchLookup) {
+function renderJourney(lookup: PackageMatchLookup, path = "/search") {
     const queryClient = new QueryClient({
         defaultOptions: {
             mutations: { retry: false },
@@ -30,7 +30,7 @@ function renderJourney(lookup: PackageMatchLookup) {
     return {
         ...render(
             <QueryClientProvider client={queryClient}>
-                <MemoryRouter>
+                <MemoryRouter initialEntries={[path]}>
                     <App lookup={lookup} />
                 </MemoryRouter>
             </QueryClientProvider>,
@@ -39,7 +39,19 @@ function renderJourney(lookup: PackageMatchLookup) {
     }
 }
 
-describe("manual identifier journey", () => {
+function dispatchPointerEvent(
+    element: HTMLElement,
+    type: string,
+    init: Record<string, number | string>,
+) {
+    const event = new Event(type, { bubbles: true, cancelable: true })
+    for (const [key, value] of Object.entries(init)) {
+        Object.defineProperty(event, key, { configurable: true, value })
+    }
+    element.dispatchEvent(event)
+}
+
+describe("identifier search journey", () => {
     afterEach(() => {
         vi.unstubAllGlobals()
     })
@@ -48,82 +60,48 @@ describe("manual identifier journey", () => {
         await i18n.changeLanguage("km")
     })
 
-    test("keeps blank and invalid input local with field-associated Khmer guidance", async () => {
+    test("keeps incomplete and invalid barcodes local with Khmer guidance", async () => {
         const user = userEvent.setup()
         const lookup = vi.fn<PackageMatchLookup>()
         renderJourney(lookup)
 
-        const input = screen.getByRole("textbox", { name: "លេខបាកូដ" })
-        const showHintButton = screen.getByRole("button", {
-            name: "បង្ហាញព័ត៌មានអំពីលេខបាកូដ",
+        const input = screen.getByRole("searchbox", {
+            name: "ស្វែងរកផលិតផល",
         })
-        expect(
-            screen.queryByText(
-                "គាំទ្រលេខ GTIN, EAN និង UPC ដែលមាន ៨, ១២, ១៣ ឬ ១៤ ខ្ទង់។ អ្នកអាចដាក់ដកឃ្លា ឬសញ្ញាដកបាន។",
-            ),
-        ).not.toBeInTheDocument()
+        await user.type(input, "1234")
+        expect(await screen.findByText("បញ្ចូលលេខបាកូដទាំងមូល។")).toBeVisible()
 
-        await user.click(showHintButton)
+        await user.clear(input)
+        await user.type(input, "12345678")
         expect(
-            screen.getByText(
-                "គាំទ្រលេខ GTIN, EAN និង UPC ដែលមាន ៨, ១២, ១៣ ឬ ១៤ ខ្ទង់។ អ្នកអាចដាក់ដកឃ្លា ឬសញ្ញាដកបាន។",
+            await screen.findByText(
+                "ខ្ទង់ត្រួតពិនិត្យរបស់លេខបាកូដមិនត្រឹមត្រូវទេ។",
             ),
         ).toBeVisible()
-        expect(input).toHaveAttribute("aria-describedby", "identifier-hint")
-        await user.click(
-            screen.getByRole("button", {
-                name: "លាក់ព័ត៌មានអំពីលេខបាកូដ",
-            }),
-        )
-        expect(
-            screen.queryByText(
-                "គាំទ្រលេខ GTIN, EAN និង UPC ដែលមាន ៨, ១២, ១៣ ឬ ១៤ ខ្ទង់។ អ្នកអាចដាក់ដកឃ្លា ឬសញ្ញាដកបាន។",
-            ),
-        ).not.toBeInTheDocument()
-        expect(input).not.toHaveAttribute("aria-describedby")
-
-        expect(
-            screen.getByRole("button", { name: "ពិនិត្យបាកូដ" }),
-        ).toBeDisabled()
-
-        await user.type(input, "{Enter}")
-        expect(input).toHaveAccessibleErrorMessage("សូមបញ្ចូលលេខបាកូដ។")
+        expect(input).toHaveAttribute("aria-invalid", "true")
         expect(input).toHaveFocus()
-
-        await user.type(input, "1234")
-        await user.click(screen.getByRole("button", { name: "ពិនិត្យបាកូដ" }))
-
-        expect(input).toHaveAccessibleErrorMessage(
-            "ប្រវែងលេខបាកូដនេះមិនត្រូវបានគាំទ្រទេ។",
-        )
-        expect(input).toHaveFocus()
+        expect(
+            screen.getByRole("navigation", { name: "ការរុករកចម្បង" }),
+        ).toBeVisible()
         expect(lookup).not.toHaveBeenCalled()
     })
 
     test("uses an active-language flag on home and keeps other routes headerless", async () => {
         const user = userEvent.setup()
         const lookup = vi.fn<PackageMatchLookup>()
-        renderJourney(lookup)
+        renderJourney(lookup, "/")
 
         expect(screen.queryByRole("banner")).not.toBeInTheDocument()
-        expect(
-            screen.queryByRole("link", { name: "ទៅទំព័រដើម LifeGoods" }),
-        ).not.toBeInTheDocument()
         const languageSwitch = screen.getByRole("button", {
             name: "ប្តូរទៅភាសាអង់គ្លេស",
         })
         const flag = languageSwitch.querySelector('[data-language-flag="km"]')
-        const input = screen.getByRole("textbox", { name: "លេខបាកូដ" })
-        const submit = screen.getByRole("button", { name: "ពិនិត្យបាកូដ" })
-        expect(languageSwitch.closest("form")).toBe(input.closest("form"))
-        expect(languageSwitch.closest("form")).toContainElement(submit)
         expect(
-            languageSwitch.compareDocumentPosition(submit) &
-                Node.DOCUMENT_POSITION_FOLLOWING,
-        ).toBeTruthy()
+            screen.getByRole("link", { name: "បើកការស្វែងរកផលិតផល" }),
+        ).toHaveAttribute("href", "/search")
         expect(languageSwitch).toHaveClass(
             "!min-h-0",
-            "size-9",
+            "size-10",
             "border-0",
             "p-0",
         )
@@ -135,7 +113,7 @@ describe("manual identifier journey", () => {
         expect(flag).toHaveAttribute("width", "1000")
         expect(flag).toHaveAttribute("height", "640")
         expect(flag).toHaveClass("size-full", "rounded-full", "object-cover")
-        expect(flag?.parentElement).toHaveClass("size-9", "rounded-full")
+        expect(flag?.parentElement).toHaveClass("size-10", "rounded-full")
 
         expect(screen.getByRole("link", { name: "ទំព័រដើម" })).toHaveAttribute(
             "aria-current",
@@ -150,7 +128,7 @@ describe("manual identifier journey", () => {
         )
         expect(englishLanguageSwitch).toHaveClass(
             "!min-h-0",
-            "size-9",
+            "size-10",
             "rounded-full",
         )
         expect(englishFlag).toBeInTheDocument()
@@ -160,7 +138,10 @@ describe("manual identifier journey", () => {
             "rounded-full",
             "object-cover",
         )
-        expect(englishFlag?.parentElement).toHaveClass("size-9", "rounded-full")
+        expect(englishFlag?.parentElement).toHaveClass(
+            "size-10",
+            "rounded-full",
+        )
 
         await user.click(screen.getByRole("link", { name: "Learn" }))
 
@@ -189,9 +170,10 @@ describe("manual identifier journey", () => {
         })
         renderJourney(lookup)
 
-        const input = screen.getByRole("textbox", { name: "លេខបាកូដ" })
+        const input = screen.getByRole("searchbox", {
+            name: "ស្វែងរកផលិតផល",
+        })
         await user.type(input, "4 006381 333931")
-        await user.click(screen.getByRole("button", { name: "ពិនិត្យបាកូដ" }))
 
         expect(
             await screen.findByRole("heading", {
@@ -217,12 +199,132 @@ describe("manual identifier journey", () => {
         await user.click(
             screen.getByRole("button", { name: "សាកល្បងបាកូដផ្សេង" }),
         )
-        const restoredInput = screen.getByRole("textbox", {
-            name: "លេខបាកូដ",
+        const restoredInput = await screen.findByRole("searchbox", {
+            name: "ស្វែងរកផលិតផល",
         })
-        expect(restoredInput).toHaveValue("4006381333931")
+        expect(restoredInput).toHaveValue("4 006381 333931")
         expect(restoredInput).toHaveFocus()
         expect(document.body).not.toHaveClass("overflow-hidden")
+    })
+
+    test("moves the result sheet between expanded and collapsed positions", async () => {
+        await i18n.changeLanguage("en")
+        const user = userEvent.setup()
+        const lookup = vi
+            .fn<PackageMatchLookup>()
+            .mockResolvedValue(packageMatchesResponse())
+        renderJourney(lookup)
+
+        await user.type(
+            screen.getByRole("searchbox", { name: "Search Products" }),
+            "4006381333931",
+        )
+        await screen.findByRole("heading", {
+            name: "No package information found",
+        })
+
+        const dialog = screen.getByRole("dialog")
+        const handle = screen.getByRole("button", {
+            name: "Collapse product details",
+        })
+        expect(handle).toHaveClass("sm:hidden")
+        expect(dialog).toHaveAttribute("data-sheet-position", "expanded")
+
+        dispatchPointerEvent(handle, "pointerdown", {
+            button: 0,
+            clientY: 100,
+            pointerId: 1,
+        })
+        dispatchPointerEvent(handle, "pointermove", {
+            clientY: 900,
+            pointerId: 1,
+        })
+        dispatchPointerEvent(handle, "pointerup", {
+            clientY: 900,
+            pointerId: 1,
+        })
+
+        await waitFor(() =>
+            expect(dialog).toHaveAttribute("data-sheet-position", "collapsed"),
+        )
+        expect(
+            screen.getByRole("heading", { name: "Product details" }),
+        ).toBeVisible()
+        expect(screen.getByRole("dialog")).toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: "Expand product details" }),
+        ).toBeInTheDocument()
+
+        const collapsedHandle = screen.getByRole("button", {
+            name: "Expand product details",
+        })
+        dispatchPointerEvent(collapsedHandle, "pointerdown", {
+            button: 0,
+            clientY: 900,
+            pointerId: 2,
+        })
+        dispatchPointerEvent(collapsedHandle, "pointermove", {
+            clientY: 100,
+            pointerId: 2,
+        })
+        dispatchPointerEvent(collapsedHandle, "pointerup", {
+            clientY: 100,
+            pointerId: 2,
+        })
+
+        await waitFor(() =>
+            expect(dialog).toHaveAttribute("data-sheet-position", "expanded"),
+        )
+
+        dispatchPointerEvent(handle, "pointerdown", {
+            button: 0,
+            clientY: 100,
+            pointerId: 3,
+        })
+        dispatchPointerEvent(handle, "pointermove", {
+            clientY: 300,
+            pointerId: 3,
+        })
+        dispatchPointerEvent(handle, "pointercancel", {
+            clientY: 300,
+            pointerId: 3,
+        })
+
+        await waitFor(() =>
+            expect(dialog).toHaveAttribute("data-sheet-position", "expanded"),
+        )
+    })
+
+    test("supports keyboard sheet position controls without dismissing the result", async () => {
+        await i18n.changeLanguage("en")
+        const user = userEvent.setup()
+        const lookup = vi
+            .fn<PackageMatchLookup>()
+            .mockResolvedValue(packageMatchesResponse())
+        renderJourney(lookup)
+
+        await user.type(
+            screen.getByRole("searchbox", { name: "Search Products" }),
+            "4006381333931",
+        )
+        await screen.findByRole("heading", {
+            name: "No package information found",
+        })
+
+        const dialog = screen.getByRole("dialog")
+        const handle = screen.getByRole("button", {
+            name: "Collapse product details",
+        })
+        handle.focus()
+
+        fireEvent.keyDown(handle, { key: "ArrowDown" })
+        expect(dialog).toHaveAttribute("data-sheet-position", "collapsed")
+        fireEvent.keyDown(handle, { key: "Home" })
+        expect(dialog).toHaveAttribute("data-sheet-position", "expanded")
+
+        await user.click(handle)
+        expect(dialog).toHaveAttribute("data-sheet-position", "collapsed")
+        expect(screen.getByRole("dialog")).toBeInTheDocument()
     })
 
     test("renders a complete OFF match through the English journey", async () => {
@@ -245,10 +347,9 @@ describe("manual identifier journey", () => {
         renderJourney(lookupPackageMatches)
 
         await user.type(
-            screen.getByRole("textbox", { name: "Barcode number" }),
+            screen.getByRole("searchbox", { name: "Search Products" }),
             "4 006381 333931",
         )
-        await user.click(screen.getByRole("button", { name: "Check barcode" }))
 
         expect(
             await screen.findByRole("heading", { name: "Dark chocolate" }),
@@ -261,8 +362,9 @@ describe("manual identifier journey", () => {
         expect((request as Request).url).toBe(
             "https://lifegoods.test/api/v1/package-matches?identifier=4006381333931",
         )
+        expect(screen.getByRole("heading", { name: "Allergens" })).toBeVisible()
         expect(
-            screen.getByText("Community data—not yet reviewed by LifeGoods."),
+            screen.getByRole("heading", { name: "Nutrition facts" }),
         ).toBeVisible()
     })
 
@@ -274,9 +376,10 @@ describe("manual identifier journey", () => {
             .mockResolvedValue(packageMatchesResponse())
         renderJourney(lookup)
 
-        const input = screen.getByRole("textbox", { name: "Barcode number" })
+        const input = screen.getByRole("searchbox", {
+            name: "Search Products",
+        })
         await user.type(input, "4006381333931")
-        await user.click(screen.getByRole("button", { name: "Check barcode" }))
         await screen.findByRole("heading", {
             name: "No package information found",
         })
@@ -286,13 +389,13 @@ describe("manual identifier journey", () => {
         })
         lastAction.focus()
         await user.tab()
-        expect(
-            screen.getByRole("button", { name: "Close result" }),
-        ).toHaveFocus()
+        expect(screen.getByRole("dialog")).toContainElement(
+            document.activeElement as HTMLElement,
+        )
 
         await user.keyboard("{Escape}")
-        const restoredInput = screen.getByRole("textbox", {
-            name: "Barcode number",
+        const restoredInput = await screen.findByRole("searchbox", {
+            name: "Search Products",
         })
         expect(restoredInput).toHaveValue("4006381333931")
         expect(restoredInput).toHaveFocus()
@@ -310,24 +413,23 @@ describe("manual identifier journey", () => {
         renderJourney(lookup)
 
         await user.type(
-            screen.getByRole("textbox", { name: "លេខបាកូដ" }),
+            screen.getByRole("searchbox", { name: "ស្វែងរកផលិតផល" }),
             "8850000000003",
         )
-        await user.click(screen.getByRole("button", { name: "ពិនិត្យបាកូដ" }))
 
         expect(
             await screen.findByRole("heading", {
-                name: "8850000000003",
+                name: "មិនបានរាយព័ត៌មាននេះ",
             }),
         ).toHaveFocus()
         expect(
-            screen.getByText(/មិនមានព័ត៌មាននេះនៅក្នុងកំណត់ត្រាសហគមន៍/),
-        ).toBeVisible()
+            screen.getAllByText("មិនបានរាយព័ត៌មាននេះ").length,
+        ).toBeGreaterThan(5)
 
         await i18n.changeLanguage("en")
         expect(
             await screen.findByRole("heading", {
-                name: "8850000000003",
+                name: "Information not mentioned",
             }),
         ).toBeVisible()
         expect(lookup).toHaveBeenCalledTimes(1)
@@ -348,10 +450,9 @@ describe("manual identifier journey", () => {
         renderJourney(lookup)
 
         await user.type(
-            screen.getByRole("textbox", { name: "Barcode number" }),
+            screen.getByRole("searchbox", { name: "Search Products" }),
             "4006381333931",
         )
-        await user.click(screen.getByRole("button", { name: "Check barcode" }))
 
         expect(
             await screen.findByRole("heading", {
@@ -395,10 +496,9 @@ describe("manual identifier journey", () => {
         renderJourney(lookup)
 
         await user.type(
-            screen.getByRole("textbox", { name: "Barcode number" }),
+            screen.getByRole("searchbox", { name: "Search Products" }),
             "4006381333931",
         )
-        await user.click(screen.getByRole("button", { name: "Check barcode" }))
 
         expect(
             await screen.findByRole("heading", {
@@ -436,10 +536,9 @@ describe("manual identifier journey", () => {
         renderJourney(lookup)
 
         await user.type(
-            screen.getByRole("textbox", { name: "លេខបាកូដ" }),
+            screen.getByRole("searchbox", { name: "ស្វែងរកផលិតផល" }),
             "4 006381 333931",
         )
-        await user.click(screen.getByRole("button", { name: "ពិនិត្យបាកូដ" }))
 
         expect(
             await screen.findByRole("heading", {
@@ -452,7 +551,7 @@ describe("manual identifier journey", () => {
         await user.click(screen.getByRole("button", { name: "ព្យាយាមម្ដងទៀត" }))
         expect(
             await screen.findByRole("heading", {
-                name: "4006381333931",
+                name: "មិនបានរាយព័ត៌មាននេះ",
             }),
         ).toHaveFocus()
         expect(lookup).toHaveBeenNthCalledWith(1, "4006381333931")
@@ -473,10 +572,9 @@ describe("manual identifier journey", () => {
         renderJourney(lookup)
 
         await user.type(
-            screen.getByRole("textbox", { name: "Barcode number" }),
+            screen.getByRole("searchbox", { name: "Search Products" }),
             "4 006381 333931",
         )
-        await user.click(screen.getByRole("button", { name: "Check barcode" }))
 
         expect(
             await screen.findByRole("heading", {
@@ -523,10 +621,9 @@ describe("manual identifier journey", () => {
         renderJourney(lookup)
 
         await user.type(
-            screen.getByRole("textbox", { name: "Barcode number" }),
+            screen.getByRole("searchbox", { name: "Search Products" }),
             "4006381333931",
         )
-        await user.click(screen.getByRole("button", { name: "Check barcode" }))
         await screen.findByRole("heading", {
             name: "Could not check right now",
         })
@@ -568,10 +665,9 @@ describe("manual identifier journey", () => {
         const { queryClient } = renderJourney(lookup)
 
         await user.type(
-            screen.getByRole("textbox", { name: "Barcode number" }),
+            screen.getByRole("searchbox", { name: "Search Products" }),
             "4006381333931",
         )
-        await user.click(screen.getByRole("button", { name: "Check barcode" }))
         await screen.findByRole("heading", { name: "Dark chocolate" })
 
         void queryClient.refetchQueries({

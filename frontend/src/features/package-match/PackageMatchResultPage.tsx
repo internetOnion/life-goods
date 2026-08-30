@@ -11,6 +11,7 @@ import {
 import { useQuery } from "@tanstack/react-query"
 import {
     type KeyboardEvent as ReactKeyboardEvent,
+    type PointerEvent as ReactPointerEvent,
     type Ref,
     useEffect,
     useMemo,
@@ -21,6 +22,7 @@ import { useTranslation } from "react-i18next"
 import { Navigate, useParams } from "react-router"
 
 import { Button } from "@/components/ui/button"
+import { DemoNotice } from "@/ui/DemoNotice"
 import type { PackageMatchCandidateResponse } from "../../api/generated"
 import { validateIdentifier } from "./identifier"
 import { OpenFoodFactsResult } from "./OpenFoodFactsResult"
@@ -30,9 +32,13 @@ type PackageMatchResultPageProps = {
     lookup: PackageMatchLookup
     onDismiss: () => void
     onIdentifierChange: (identifier: string) => void
+    showDemoNotice: boolean
 }
 
 type ResultState = "loading" | "failure" | "noMatch" | "choose" | "candidate"
+type SheetPosition = "expanded" | "collapsed"
+
+const collapsedSheetVisibleHeight = 18 * 16
 
 const focusableSelector = [
     "a[href]",
@@ -48,6 +54,7 @@ export function PackageMatchResultPage({
     lookup,
     onDismiss,
     onIdentifierChange,
+    showDemoNotice,
 }: PackageMatchResultPageProps) {
     const { identifier = "" } = useParams()
     const { t } = useTranslation()
@@ -59,7 +66,20 @@ export function PackageMatchResultPage({
     const modalRef = useRef<HTMLElement>(null)
     const outcomeTitleRef = useRef<HTMLHeadingElement>(null)
     const loadingTitleRef = useRef<HTMLHeadingElement>(null)
+    const ignoreNextHandleClickRef = useRef(false)
+    const dragStateRef = useRef<{
+        pointerId: number
+        startY: number
+        startOffset: number
+        maxOffset: number
+        currentOffset: number
+        hasMoved: boolean
+    } | null>(null)
     const [isRetrying, setIsRetrying] = useState(false)
+    const [sheetPosition, setSheetPosition] =
+        useState<SheetPosition>("expanded")
+    const [sheetOffset, setSheetOffset] = useState(0)
+    const [isDraggingSheet, setIsDraggingSheet] = useState(false)
     const [selectedCandidateIndex, setSelectedCandidateIndex] = useState<
         number | null
     >(null)
@@ -89,6 +109,8 @@ export function PackageMatchResultPage({
 
     useEffect(() => {
         setSelectedCandidateIndex(null)
+        setSheetPosition("expanded")
+        setSheetOffset(0)
     }, [normalizedIdentifier])
 
     useEffect(() => {
@@ -188,6 +210,111 @@ export function PackageMatchResultPage({
             event.stopPropagation()
     }
 
+    const getMaxSheetOffset = () => {
+        const sheetHeight = modalRef.current?.getBoundingClientRect().height
+        const measuredHeight = sheetHeight || window.innerHeight * 0.94
+        return Math.max(
+            0,
+            measuredHeight -
+                Math.min(measuredHeight, collapsedSheetVisibleHeight),
+        )
+    }
+
+    const clampSheetOffset = (offset: number, maxOffset: number) =>
+        Math.min(Math.max(offset, 0), maxOffset)
+
+    const snapSheet = (
+        position: SheetPosition,
+        maxOffset = getMaxSheetOffset(),
+    ) => {
+        setIsDraggingSheet(false)
+        setSheetPosition(position)
+        setSheetOffset(position === "expanded" ? 0 : maxOffset)
+    }
+
+    const toggleSheetPosition = () => {
+        snapSheet(sheetPosition === "expanded" ? "collapsed" : "expanded")
+    }
+
+    const onHandlePointerDown = (
+        event: ReactPointerEvent<HTMLButtonElement>,
+    ) => {
+        if (event.pointerType === "mouse" && event.button !== 0) return
+
+        const maxOffset = getMaxSheetOffset()
+        const startOffset =
+            sheetPosition === "collapsed" ? maxOffset : sheetOffset
+        dragStateRef.current = {
+            pointerId: event.pointerId,
+            startY: event.clientY,
+            startOffset,
+            maxOffset,
+            currentOffset: startOffset,
+            hasMoved: false,
+        }
+        event.currentTarget.setPointerCapture?.(event.pointerId)
+        event.preventDefault()
+        setIsDraggingSheet(true)
+        setSheetOffset(startOffset)
+    }
+
+    const onHandlePointerMove = (
+        event: ReactPointerEvent<HTMLButtonElement>,
+    ) => {
+        const dragState = dragStateRef.current
+        if (!dragState || dragState.pointerId !== event.pointerId) return
+
+        const delta = event.clientY - dragState.startY
+        if (Math.abs(delta) > 4) dragState.hasMoved = true
+        const offset = clampSheetOffset(
+            dragState.startOffset + delta,
+            dragState.maxOffset,
+        )
+        dragState.currentOffset = offset
+        setSheetOffset(offset)
+    }
+
+    const finishHandlePointer = (
+        event: ReactPointerEvent<HTMLButtonElement>,
+    ) => {
+        const dragState = dragStateRef.current
+        if (!dragState || dragState.pointerId !== event.pointerId) return
+
+        if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId)
+        }
+        dragStateRef.current = null
+        if (dragState.hasMoved) ignoreNextHandleClickRef.current = true
+        snapSheet(
+            dragState.currentOffset >= dragState.maxOffset / 2
+                ? "collapsed"
+                : "expanded",
+            dragState.maxOffset,
+        )
+    }
+
+    const onHandleKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
+        if (event.key === "ArrowUp" || event.key === "Home") {
+            event.preventDefault()
+            snapSheet("expanded")
+        } else if (event.key === "ArrowDown" || event.key === "End") {
+            event.preventDefault()
+            snapSheet("collapsed")
+        }
+    }
+
+    const onHandleClick = () => {
+        if (ignoreNextHandleClickRef.current) {
+            ignoreNextHandleClickRef.current = false
+            return
+        }
+        toggleSheetPosition()
+    }
+
+    const sheetStyle = {
+        transform: `translate3d(0, ${sheetOffset}px, 0)`,
+    }
+
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-5">
             <div
@@ -196,7 +323,9 @@ export function PackageMatchResultPage({
             />
             <section
                 ref={modalRef}
-                className="bg-background animate-in slide-in-from-bottom-4 relative z-10 flex max-h-[94svh] min-h-[min(34rem,94svh)] w-full max-w-3xl flex-col overflow-hidden rounded-t-[1.75rem] shadow-[0_1.5rem_4rem_oklch(0.18_0.02_160_/_0.28)] duration-300 ease-out outline-none motion-reduce:animate-none sm:max-h-[90svh] sm:min-h-0 sm:rounded-2xl"
+                className={`bg-background animate-in slide-in-from-bottom-4 relative z-10 flex max-h-[94svh] min-h-[min(34rem,94svh)] w-full max-w-3xl flex-col overflow-hidden rounded-t-[1.75rem] shadow-[0_1.5rem_4rem_oklch(0.18_0.02_160_/_0.28)] duration-300 ease-out outline-none motion-reduce:animate-none sm:max-h-[90svh] sm:min-h-0 sm:rounded-2xl ${isDraggingSheet ? "transition-none" : "transition-transform duration-300"}`}
+                style={sheetStyle}
+                data-sheet-position={sheetPosition}
                 role="dialog"
                 aria-label={t("resultDialogLabel")}
                 aria-modal="true"
@@ -204,10 +333,6 @@ export function PackageMatchResultPage({
                 onKeyDown={keepFocusInside}
             >
                 <div className="border-border bg-background relative z-20 flex min-h-16 shrink-0 items-center justify-center border-b px-16 sm:min-h-14">
-                    <span
-                        className="bg-muted-foreground/65 absolute top-2.5 h-1 w-14 rounded-full sm:hidden"
-                        aria-hidden="true"
-                    />
                     <h1 className="text-lg leading-[1.7] font-semibold">
                         {t("productDetailsTitle")}
                     </h1>
@@ -220,9 +345,36 @@ export function PackageMatchResultPage({
                     >
                         <XIcon aria-hidden="true" size={25} weight="bold" />
                     </Button>
+                    <button
+                        className="focus-visible:ring-ring absolute top-0 left-1/2 z-10 flex size-11 -translate-x-1/2 touch-none items-start justify-center rounded-full pt-2.5 focus-visible:ring-2 focus-visible:outline-none sm:hidden"
+                        type="button"
+                        aria-controls="result-sheet-content"
+                        aria-expanded={sheetPosition === "expanded"}
+                        aria-label={
+                            sheetPosition === "expanded"
+                                ? t("collapseResultSheet")
+                                : t("expandResultSheet")
+                        }
+                        onClick={onHandleClick}
+                        onKeyDown={onHandleKeyDown}
+                        onPointerDown={onHandlePointerDown}
+                        onPointerMove={onHandlePointerMove}
+                        onPointerUp={finishHandlePointer}
+                        onPointerCancel={finishHandlePointer}
+                    >
+                        <span
+                            className="bg-muted-foreground/65 h-1 w-14 rounded-full"
+                            aria-hidden="true"
+                        />
+                    </button>
                 </div>
 
-                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-6 pb-[calc(2rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:px-4 sm:px-8 sm:pt-8">
+                <DemoNotice active={showDemoNotice} />
+
+                <div
+                    className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-6 pb-[calc(2rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:px-4 sm:px-8 sm:pt-8"
+                    id="result-sheet-content"
+                >
                     <div
                         className="sr-only"
                         role="status"

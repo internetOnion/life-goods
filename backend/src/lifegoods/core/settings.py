@@ -7,6 +7,7 @@ DEFAULT_OPEN_FOOD_FACTS_USER_AGENT = (
 )
 DEFAULT_OPEN_FOOD_FACTS_IMAGE_REQUESTS_PER_MINUTE = 60
 DEFAULT_PACKAGE_MATCH_REQUESTS_PER_MINUTE = 60
+DEFAULT_PACKAGE_SEARCH_REQUESTS_PER_MINUTE = 60
 DEFAULT_OFF_MONGODB_URI = (
     "mongodb://lifegoods_reader:lifegoods_reader@localhost:27018/lifegoods_off"
 )
@@ -28,6 +29,7 @@ class Settings(BaseSettings):
         DEFAULT_OPEN_FOOD_FACTS_IMAGE_REQUESTS_PER_MINUTE
     )
     package_match_requests_per_minute: int = DEFAULT_PACKAGE_MATCH_REQUESTS_PER_MINUTE
+    package_search_requests_per_minute: int = DEFAULT_PACKAGE_SEARCH_REQUESTS_PER_MINUTE
     off_mongodb_uri: str = DEFAULT_OFF_MONGODB_URI
     off_mongodb_database: str = DEFAULT_OFF_MONGODB_DATABASE
     off_mongodb_timeout_ms: int = DEFAULT_OFF_MONGODB_TIMEOUT_MS

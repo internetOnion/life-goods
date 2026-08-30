@@ -59,6 +59,8 @@ export const packageMatchTranslations = {
         resultDialogLabel: "លទ្ធផលពិនិត្យបាកូដ",
         productDetailsTitle: "ព័ត៌មានផលិតផល",
         closeResult: "បិទលទ្ធផល",
+        collapseResultSheet: "បង្រួមព័ត៌មានផលិតផល",
+        expandResultSheet: "ពង្រីកព័ត៌មានផលិតផល",
         identifierLabel: "បាកូដដែលបានពិនិត្យ",
         candidateChooserTitle: "រកឃើញ Package Match ច្រើន",
         candidateChooserBody:
@@ -87,8 +89,12 @@ export const packageMatchTranslations = {
         openOriginalReferenceImage: "បើករូបភាពយោងដើម",
         imageRevisionLabel: "កំណែរូបភាព",
         brandLabel: "ម៉ាក",
-        nameLabel: "ឈ្មោះកញ្ចប់",
+        nameLabel: "ឈ្មោះផលិតផល",
         quantityLabel: "បរិមាណ",
+        madeInLabel: "ផលិតនៅ",
+        categoryLabel: "ប្រភេទ",
+        allergenAlertTitle: "ការព្រមានអាលែហ្សែនពីប្រភព",
+        informationNotMentioned: "មិនបានរាយព័ត៌មាននេះ",
         productInformationTitle: "ព័ត៌មានផលិតផល",
         evidenceIncompleteTitle: "ភស្តុតាងសំខាន់មិនពេញលេញ",
         evidenceIncompleteBody:
@@ -130,16 +136,16 @@ export const packageMatchTranslations = {
         provenanceImage: "រូបភាពយោង",
         alternateNamesTitle: "ឈ្មោះផ្សេងៗពីប្រភព",
         alternateNamesBody: "ឈ្មោះទាំងនេះត្រូវបានបង្ហាញជាមួយភាសាដើមរបស់វា។",
-        ingredientsTitle: "អត្ថបទគ្រឿងផ្សំ",
+        ingredientsTitle: "គ្រឿងផ្សំ",
         ingredientsBody:
             "បង្ហាញអត្ថបទពីប្រភពតាមភាសាដើម។ វាមិនមែនជាការវាយតម្លៃសុវត្ថិភាពទេ។",
-        allergensTitle: "ការប្រកាសអាលែហ្សែន",
+        allergensTitle: "អាលែហ្សែន",
         allergensBody:
             "បង្ហាញតែអ្វីដែលប្រភពមាន។ ការមិនមានទិន្នន័យមិនមានន័យថាគ្មានអាលែហ្សែនទេ។",
         tracesTitle: "ការប្រកាសអាចមានសំណល់",
         tracesBody:
             "ទិន្នន័យអាចមានសំណល់ត្រូវបានរក្សាដាច់ដោយឡែកពីការប្រកាសថាមាន។",
-        nutritionTitle: "ការប្រកាសអាហារូបត្ថម្ភ",
+        nutritionTitle: "ព័ត៌មានអាហារូបត្ថម្ភ",
         nutritionBody:
             "តម្លៃពីប្រភពត្រូវបានបង្ហាញដោយគ្មានពិន្ទុ ឬសេចក្តីវិនិច្ឆ័យល្អ/អាក្រក់។",
         packagingLanguagesTitle: "ភាសាលើកញ្ចប់",
@@ -185,6 +191,7 @@ export const packageMatchTranslations = {
         nutritionSaltLabel: "អំបិល",
         nutritionSodiumLabel: "សូដ្យូម",
         nutritionPer100g: "ក្នុង ១០០ ក្រាម",
+        nutritionPer100ml: "ក្នុង ១០០ មីលីលីត្រ",
         nutritionPreparedPer100g: "ក្នុង ១០០ ក្រាម បន្ទាប់ពីរៀបចំ",
         nutritionPerServing: "ក្នុងមួយចំណែកបរិភោគ",
         error: {
@@ -257,6 +264,8 @@ export const packageMatchTranslations = {
         resultDialogLabel: "Barcode check result",
         productDetailsTitle: "Product details",
         closeResult: "Close result",
+        collapseResultSheet: "Collapse product details",
+        expandResultSheet: "Expand product details",
         identifierLabel: "Checked barcode",
         candidateChooserTitle: "Several Package Matches were found",
         candidateChooserBody:
@@ -285,8 +294,12 @@ export const packageMatchTranslations = {
         openOriginalReferenceImage: "Open the original reference image",
         imageRevisionLabel: "Image revision",
         brandLabel: "Brand",
-        nameLabel: "Package name",
+        nameLabel: "Product name",
         quantityLabel: "Quantity",
+        madeInLabel: "Made in",
+        categoryLabel: "Category",
+        allergenAlertTitle: "Allergen alert from source",
+        informationNotMentioned: "Information not mentioned",
         productInformationTitle: "Product information",
         evidenceIncompleteTitle: "Important evidence is incomplete",
         evidenceIncompleteBody:
@@ -329,16 +342,16 @@ export const packageMatchTranslations = {
         alternateNamesTitle: "Other source names",
         alternateNamesBody:
             "These names remain associated with their original languages.",
-        ingredientsTitle: "Ingredient text",
+        ingredientsTitle: "Ingredients",
         ingredientsBody:
             "Source text is shown in its available languages. It is not a safety assessment.",
-        allergensTitle: "Allergen declarations",
+        allergensTitle: "Allergens",
         allergensBody:
             "Only source evidence is shown. Missing data does not mean allergen-free.",
         tracesTitle: "Trace declarations",
         tracesBody:
             "May-contain evidence remains separate from contains declarations.",
-        nutritionTitle: "Nutrition declaration",
+        nutritionTitle: "Nutrition facts",
         nutritionBody:
             "Source values are shown without a score or positive/negative judgment.",
         packagingLanguagesTitle: "Packaging languages",
@@ -384,6 +397,7 @@ export const packageMatchTranslations = {
         nutritionSaltLabel: "Salt",
         nutritionSodiumLabel: "Sodium",
         nutritionPer100g: "per 100 g",
+        nutritionPer100ml: "per 100 ml",
         nutritionPreparedPer100g: "per 100 g prepared",
         nutritionPerServing: "per serving",
         error: {
