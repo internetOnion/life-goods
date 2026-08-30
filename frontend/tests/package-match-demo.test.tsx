@@ -74,8 +74,10 @@ describe("demo Package Match journey", () => {
     })
 
     test("shows the complete demo result after a camera scan", async () => {
+        const user = userEvent.setup()
         renderJourney(createPackageMatchLookup(true), true, "/")
 
+        await user.click(screen.getByRole("button", { name: "Start camera" }))
         await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
         const onResult = startMock.mock.calls[0]?.[1] as
             ((value: string) => void) | undefined

@@ -6,11 +6,16 @@ export type BarcodeScannerSession = {
     stop: () => void
 }
 
+export type BarcodeScannerOptions = {
+    facingMode?: "environment" | "user"
+}
+
 export type BarcodeScanner = {
     start: (
         video: HTMLVideoElement,
         onResult: (value: string) => void,
         onError: (error: BarcodeScannerError) => void,
+        options?: BarcodeScannerOptions,
     ) => Promise<BarcodeScannerSession>
 }
 
@@ -29,41 +34,34 @@ class CameraPreviewError extends Error {
     override name = "CameraPreviewError"
 }
 
-const constraintStages: MediaStreamConstraints[] = [
-    {
-        audio: false,
-        video: {
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
+function constraintStages(
+    facingMode: "environment" | "user",
+): MediaStreamConstraints[] {
+    return [
+        {
+            audio: false,
+            video: {
+                facingMode: { ideal: facingMode },
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+            },
         },
-    },
-    {
-        audio: false,
-        video: {
-            facingMode: { ideal: "environment" },
-        },
-    },
-    {
-        audio: false,
-        video: {
-            facingMode: "environment",
-        },
-    },
-    {
-        audio: false,
-        video: true,
-    },
-]
+        { audio: false, video: { facingMode: { ideal: facingMode } } },
+        { audio: false, video: { facingMode } },
+        { audio: false, video: true },
+    ]
+}
 
-async function acquireMediaStream(): Promise<MediaStream> {
+async function acquireMediaStream(
+    facingMode: "environment" | "user",
+): Promise<MediaStream> {
     const mediaDevices = navigator.mediaDevices
     if (!mediaDevices?.getUserMedia) {
         throw new DOMException("Camera API is unavailable", "NotSupportedError")
     }
 
     let lastError: unknown = null
-    for (const constraints of constraintStages) {
+    for (const constraints of constraintStages(facingMode)) {
         try {
             return await mediaDevices.getUserMedia(constraints)
         } catch (error) {
@@ -274,8 +272,10 @@ async function getNativeDetector(): Promise<NativeDetector | null> {
 }
 
 export const barcodeScanner: BarcodeScanner = {
-    async start(video, onResult, onError) {
-        const stream = await acquireMediaStream()
+    async start(video, onResult, onError, options) {
+        const stream = await acquireMediaStream(
+            options?.facingMode ?? "environment",
+        )
 
         video.muted = true
         video.playsInline = true

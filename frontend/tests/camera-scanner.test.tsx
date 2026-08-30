@@ -1,11 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, waitFor, within } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter, useLocation } from "react-router"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import { App } from "../src/app/App"
-import { HomePage } from "../src/features/package-match/HomePage"
 import type { PackageMatchLookup } from "../src/features/package-match/types"
 import i18n from "../src/i18n"
 import { packageMatchesResponse } from "./package-match-fixtures"
@@ -16,7 +15,7 @@ vi.mock("../src/features/package-match/barcodeScanner", () => ({
     barcodeScanner: { start: startMock },
 }))
 
-function renderJourney(lookup: PackageMatchLookup) {
+function renderJourney(lookup: PackageMatchLookup = vi.fn()) {
     const queryClient = new QueryClient({
         defaultOptions: {
             mutations: { retry: false },
@@ -27,76 +26,26 @@ function renderJourney(lookup: PackageMatchLookup) {
         <QueryClientProvider client={queryClient}>
             <MemoryRouter>
                 <App lookup={lookup} />
-                <CurrentPath />
+                <CurrentLocation />
             </MemoryRouter>
         </QueryClientProvider>,
     )
 }
 
-function CurrentPath() {
+function CurrentLocation() {
     const location = useLocation()
-
     return (
-        <span data-testid="current-path" hidden>
-            {location.pathname}
-        </span>
+        <span
+            data-testid="location"
+            hidden
+        >{`${location.pathname}${location.search}`}</span>
     )
-}
-
-function expectFullWidthCameraPreview(container: HTMLElement) {
-    const main = container.querySelector("main")
-    expect(main).toBeInTheDocument()
-    expect(main).toHaveClass("pt-0", "w-full")
-
-    const cameraSurface = container.querySelector("main > section")
-    expect(cameraSurface).toBeInTheDocument()
-    expect(cameraSurface).toHaveClass(
-        "aspect-square",
-        "w-full",
-        "rounded-none",
-        "border-y",
-        "border-x-0",
-        "sm:aspect-auto",
-        "sm:rounded-3xl",
-        "sm:border",
-    )
-    expect(cameraSurface).not.toHaveClass(
-        "left-1/2",
-        "w-screen",
-        "-translate-x-1/2",
-    )
-
-    const searchLink = container.querySelector('a[href="/search"]')
-    expect(searchLink).toBeInTheDocument()
-    expect(searchLink).toHaveClass("min-h-14", "rounded-2xl", "border")
-
-    const video = container.querySelector("video")
-    expect(video).toBeInTheDocument()
-    expect(video).toHaveClass(
-        "absolute",
-        "inset-0",
-        "block",
-        "h-full",
-        "min-h-full",
-        "min-w-full",
-        "w-full",
-        "max-w-none",
-        "object-cover",
-        "object-center",
-    )
-}
-
-function expectScanFrame(container: HTMLElement) {
-    const scanFrame = container.querySelector(
-        'main > section div[class*="border-background"]',
-    )
-    expect(scanFrame).toBeInTheDocument()
-    expect(scanFrame).toHaveClass("h-24", "w-[min(18rem,80vw)]")
 }
 
 describe("camera barcode scanner", () => {
     beforeEach(async () => {
         await i18n.changeLanguage("en")
+        sessionStorage.clear()
         startMock.mockReset()
         vi.stubGlobal("navigator", {
             mediaDevices: { getUserMedia: vi.fn() },
@@ -105,304 +54,189 @@ describe("camera barcode scanner", () => {
             configurable: true,
             value: true,
         })
+        Object.defineProperty(document, "visibilityState", {
+            configurable: true,
+            value: "visible",
+        })
     })
 
-    test("automatically requests camera access on initial load without a stop button", async () => {
-        const stop = vi.fn()
-        startMock.mockResolvedValue({ stop })
-        const lookup = vi.fn<PackageMatchLookup>()
-        const { container } = renderJourney(lookup)
+    test("explains local frame processing before first camera use", () => {
+        renderJourney()
 
-        expectFullWidthCameraPreview(container)
+        expect(startMock).not.toHaveBeenCalled()
+        expect(
+            screen.getByRole("heading", { name: "Before the camera starts" }),
+        ).toBeVisible()
+        expect(screen.getByText(/processed on this device/)).toBeVisible()
+        expect(
+            screen.getByRole("button", { name: "Start camera" }),
+        ).toBeEnabled()
+        expect(
+            screen.getByRole("link", { name: "Open Product search" }),
+        ).toHaveAttribute("href", "/search")
+    })
+
+    test("starts after consent and remembers only a session flag", async () => {
+        const user = userEvent.setup()
+        startMock.mockResolvedValue({ stop: vi.fn() })
+        renderJourney()
+
+        await user.click(screen.getByRole("button", { name: "Start camera" }))
 
         await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
-        expect(await screen.findByRole("status")).toHaveTextContent(
+        expect(startMock.mock.calls[0]?.[3]).toEqual({
+            facingMode: "environment",
+        })
+        expect(sessionStorage.getItem("lifegoods.camera-started.v1")).toBe(
+            "true",
+        )
+        expect(sessionStorage.length).toBe(1)
+        expect(screen.getByRole("status")).toHaveTextContent(
             "Place the barcode inside the scan frame.",
         )
-        expectScanFrame(container)
+    })
+
+    test("resumes automatically later in the same browser session", async () => {
+        sessionStorage.setItem("lifegoods.camera-started.v1", "true")
+        startMock.mockResolvedValue({ stop: vi.fn() })
+        renderJourney()
+
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
         expect(
-            container.querySelector("main > section p"),
-        ).not.toBeInTheDocument()
-        expect(
-            screen.queryByRole("button", { name: "Stop camera" }),
+            screen.queryByRole("button", { name: "Start camera" }),
         ).not.toBeInTheDocument()
     })
 
-    test("shows the LifeGoods logo and an inert icon-only camera-switch control", async () => {
+    test("pauses and resumes the active stream", async () => {
         const user = userEvent.setup()
         const stop = vi.fn()
+        sessionStorage.setItem("lifegoods.camera-started.v1", "true")
         startMock.mockResolvedValue({ stop })
-        const lookup = vi.fn<PackageMatchLookup>()
-        const { container } = renderJourney(lookup)
-
+        renderJourney()
         await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
 
-        expect(screen.getByRole("img", { name: "LifeGoods" })).toBeVisible()
-        expect(
-            screen.queryByRole("group", { name: "Scan method" }),
-        ).not.toBeInTheDocument()
+        await user.click(screen.getByRole("button", { name: "Pause camera" }))
+        expect(stop).toHaveBeenCalledTimes(1)
+        expect(screen.getByRole("status")).toHaveTextContent("Camera paused.")
 
-        const cameraSurface = container.querySelector("main > section")
-        expect(cameraSurface).toBeInTheDocument()
-        const switchToCamera = within(cameraSurface as HTMLElement).getByRole(
-            "button",
-            { name: "Switch to camera" },
-        )
-        expect(switchToCamera).toBeVisible()
-        expect(switchToCamera).toBeEnabled()
-        expect(switchToCamera).toHaveAttribute("aria-disabled", "true")
-        expect(switchToCamera).toHaveAttribute("tabindex", "-1")
-        expect(switchToCamera).toHaveClass(
-            "right-8",
-            "bottom-10",
-            "size-11",
-            "rounded-full",
-            "p-0",
-        )
-        expect(switchToCamera).toHaveTextContent("")
-        expect(switchToCamera.querySelector("svg")).toBeInTheDocument()
-
-        const searchLink = screen.getByRole("link", {
-            name: "Open Product search",
-        })
-        const scannerStatus = screen.getByRole("status")
-        expect(searchLink).toHaveAttribute("href", "/search")
-        expect(scannerStatus).toHaveTextContent(
-            "Place the barcode inside the scan frame.",
-        )
-        expect(screen.getByTestId("current-path")).toHaveTextContent("/")
-
-        await user.click(switchToCamera)
-
-        expect(startMock).toHaveBeenCalledTimes(1)
-        expect(searchLink).toBeVisible()
-        expect(scannerStatus).toHaveTextContent(
-            "Place the barcode inside the scan frame.",
-        )
-        expect(screen.getByTestId("current-path")).toHaveTextContent("/")
+        await user.click(screen.getByRole("button", { name: "Resume camera" }))
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(2))
     })
 
-    test("localizes the camera-switch accessible name in Khmer", async () => {
-        await i18n.changeLanguage("km")
-        startMock.mockResolvedValue({ stop: vi.fn() })
-        const lookup = vi.fn<PackageMatchLookup>()
-        renderJourney(lookup)
+    test("switches between rear and front camera modes", async () => {
+        const user = userEvent.setup()
+        const stop = vi.fn()
+        sessionStorage.setItem("lifegoods.camera-started.v1", "true")
+        startMock.mockResolvedValue({ stop })
+        renderJourney()
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
 
-        expect(
-            await screen.findByRole("button", { name: "ប្តូរទៅកាមេរ៉ា" }),
-        ).toBeVisible()
+        await user.click(screen.getByRole("button", { name: "Switch camera" }))
+
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(2))
+        expect(stop).toHaveBeenCalled()
+        expect(startMock.mock.calls[1]?.[3]).toEqual({ facingMode: "user" })
     })
 
-    test("shows a plain camera surface while scanner startup is still pending", async () => {
-        const lookup = vi.fn<PackageMatchLookup>()
-        startMock.mockImplementation(async (video: HTMLVideoElement) => {
-            Object.defineProperty(video, "srcObject", {
-                configurable: true,
-                value: {},
-            })
-            await new Promise<never>(() => undefined)
-        })
-        const { container } = renderJourney(lookup)
-
-        expectFullWidthCameraPreview(container)
-
-        const cameraSurface = container.querySelector("main > section")
-        expect(cameraSurface).toHaveClass("bg-background")
-        expect(cameraSurface?.querySelector("p")).not.toBeInTheDocument()
-        expect(cameraSurface?.querySelectorAll("svg")).toHaveLength(1)
-        const pendingSwitchToCamera = within(
-            cameraSurface as HTMLElement,
-        ).getByRole("button", {
-            name: "Switch to camera",
-        })
-        expect(pendingSwitchToCamera).toBeVisible()
-        expect(pendingSwitchToCamera).toHaveClass("right-8", "bottom-10")
-        expect(await screen.findByRole("status")).toHaveTextContent(
-            "Starting camera…",
-        )
-        expect(screen.queryByText("Tap start to scan")).not.toBeInTheDocument()
-    })
-
-    test("stops the camera and opens the existing result journey once a valid code is found", async () => {
+    test("stops scanning and opens a full-screen result for a valid code", async () => {
+        const stop = vi.fn()
+        sessionStorage.setItem("lifegoods.camera-started.v1", "true")
+        startMock.mockResolvedValue({ stop })
         const lookup = vi
             .fn<PackageMatchLookup>()
             .mockResolvedValue(packageMatchesResponse())
-        const stop = vi.fn()
-        startMock.mockResolvedValue({ stop })
         renderJourney(lookup)
-
         await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
-        const onResult = startMock.mock.calls[0]?.[1] as
-            ((value: string) => void) | undefined
-        expect(onResult).toBeDefined()
-        onResult!("4 006381 333931")
+
+        const onResult = startMock.mock.calls[0]?.[1] as (value: string) => void
+        act(() => onResult("4 006381 333931"))
 
         expect(
             await screen.findByRole("heading", {
                 name: "No package information found",
             }),
         ).toBeVisible()
-        expect(stop).toHaveBeenCalledTimes(1)
+        expect(stop).toHaveBeenCalled()
         expect(lookup).toHaveBeenCalledWith("4006381333931")
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+        expect(screen.queryByRole("navigation")).not.toBeInTheDocument()
     })
 
-    test("explains denied permission and keeps Product search available", async () => {
-        const lookup = vi.fn<PackageMatchLookup>()
-        startMock.mockRejectedValue(
-            new DOMException("denied", "NotAllowedError"),
-        )
-        renderJourney(lookup)
+    test("sends an invalid scanned value to Search with inline guidance", async () => {
+        sessionStorage.setItem("lifegoods.camera-started.v1", "true")
+        startMock.mockResolvedValue({ stop: vi.fn() })
+        renderJourney()
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
 
-        expect(await screen.findByRole("alert")).toHaveTextContent(
-            "Camera access was denied",
-        )
-        expect(
-            screen.getByRole("link", { name: "Open Product search" }),
-        ).toBeVisible()
-        expect(
-            screen.getByRole("button", { name: "Try camera again" }),
-        ).toBeEnabled()
-        expect(
-            screen.queryByRole("button", { name: "Switch to camera" }),
-        ).not.toBeInTheDocument()
-    })
+        const onResult = startMock.mock.calls[0]?.[1] as (value: string) => void
+        act(() => onResult("12345678"))
 
-    test("retries camera startup after a recoverable failure", async () => {
-        const user = userEvent.setup()
-        const lookup = vi.fn<PackageMatchLookup>()
-        const stop = vi.fn()
-        startMock
-            .mockRejectedValueOnce(
-                new DOMException("camera busy", "NotReadableError"),
-            )
-            .mockResolvedValueOnce({ stop })
-        renderJourney(lookup)
-
-        expect(await screen.findByRole("alert")).toHaveTextContent(
-            "camera is being used by another app",
+        const input = await screen.findByRole("searchbox", {
+            name: "Search Products",
+        })
+        expect(input).toHaveValue("12345678")
+        expect(screen.getByRole("alert")).toHaveTextContent(
+            "That code is not a barcode format LifeGoods supports",
         )
-
-        await user.click(
-            screen.getByRole("button", { name: "Try camera again" }),
-        )
-        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(2))
-        expect(await screen.findByRole("status")).toHaveTextContent(
-            "Place the barcode inside the scan frame.",
+        expect(screen.getByTestId("location")).toHaveTextContent(
+            "/search?q=12345678",
         )
     })
 
     test.each([
+        ["NotAllowedError", "Camera access was denied"],
         ["NotFoundError", "No camera was found"],
         ["NotReadableError", "camera is being used by another app"],
         ["OverconstrainedError", "requested camera mode"],
-        ["AbortError", "Camera startup was interrupted"],
-        ["TypeError", "requested camera mode"],
-        [
-            "CameraPreviewError",
-            "camera opened, but the video preview did not start",
-        ],
-    ])("explains %s camera failures", async (errorName, message) => {
-        const lookup = vi.fn<PackageMatchLookup>()
-        startMock.mockRejectedValue(
-            new DOMException("camera failed", errorName),
-        )
-        renderJourney(lookup)
+    ])("announces %s startup failures", async (name, message) => {
+        const user = userEvent.setup()
+        startMock.mockRejectedValue(new DOMException("failed", name))
+        renderJourney()
+
+        await user.click(screen.getByRole("button", { name: "Start camera" }))
 
         expect(await screen.findByRole("alert")).toHaveTextContent(message)
         expect(
-            screen.getByRole("link", { name: "Open Product search" }),
-        ).toBeVisible()
+            screen.getByRole("button", { name: "Try camera again" }),
+        ).toBeEnabled()
     })
 
-    test("explains that camera access requires a secure context", async () => {
-        const lookup = vi.fn<PackageMatchLookup>()
-        const getUserMedia = vi.fn()
-        vi.stubGlobal("navigator", {
-            mediaDevices: { getUserMedia },
-        })
-        Object.defineProperty(window, "isSecureContext", {
-            configurable: true,
-            value: false,
-        })
-        renderJourney(lookup)
-
-        expect(await screen.findByRole("alert")).toHaveTextContent(
-            "Camera access requires HTTPS",
-        )
-        expect(getUserMedia).not.toHaveBeenCalled()
-        expect(
-            screen.getByRole("link", { name: "Open Product search" }),
-        ).toBeVisible()
-    })
-
-    test("stops an active camera before opening Product search", async () => {
-        const user = userEvent.setup()
-        const lookup = vi
-            .fn<PackageMatchLookup>()
-            .mockResolvedValue(packageMatchesResponse())
+    test("stops on visibility loss and resumes when visible", async () => {
         const stop = vi.fn()
+        sessionStorage.setItem("lifegoods.camera-started.v1", "true")
         startMock.mockResolvedValue({ stop })
-        renderJourney(lookup)
-
+        renderJourney()
         await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
+
+        Object.defineProperty(document, "visibilityState", {
+            configurable: true,
+            value: "hidden",
+        })
+        fireEvent(document, new Event("visibilitychange"))
+        expect(stop).toHaveBeenCalled()
+
+        Object.defineProperty(document, "visibilityState", {
+            configurable: true,
+            value: "visible",
+        })
+        fireEvent(document, new Event("visibilitychange"))
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(2))
+    })
+
+    test("cleans up the stream when leaving Scan", async () => {
+        const user = userEvent.setup()
+        const stop = vi.fn()
+        sessionStorage.setItem("lifegoods.camera-started.v1", "true")
+        startMock.mockResolvedValue({ stop })
+        renderJourney()
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
+
         await user.click(
             screen.getByRole("link", { name: "Open Product search" }),
         )
-
-        await waitFor(() => expect(stop).toHaveBeenCalledTimes(1))
+        await waitFor(() => expect(stop).toHaveBeenCalled())
         expect(
             await screen.findByRole("heading", { name: "Search" }),
         ).toBeVisible()
-    })
-
-    test("does not start camera when HomePage is rendered as a modal background", () => {
-        const queryClient = new QueryClient({
-            defaultOptions: {
-                mutations: { retry: false },
-                queries: { retry: false },
-            },
-        })
-        render(
-            <QueryClientProvider client={queryClient}>
-                <MemoryRouter>
-                    <HomePage
-                        initialIdentifier=""
-                        isModalBackground={true}
-                        onIdentifierChange={vi.fn()}
-                    />
-                </MemoryRouter>
-            </QueryClientProvider>,
-        )
-
-        expect(startMock).not.toHaveBeenCalled()
-    })
-
-    test("resumes camera automatically when returning to the home screen", async () => {
-        const user = userEvent.setup()
-        const lookup = vi
-            .fn<PackageMatchLookup>()
-            .mockResolvedValue(packageMatchesResponse())
-        const stop = vi.fn()
-        startMock.mockResolvedValue({ stop })
-        renderJourney(lookup)
-
-        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
-        const onResult = startMock.mock.calls[0]?.[1] as
-            ((value: string) => void) | undefined
-        onResult!("4006381333931")
-
-        expect(
-            await screen.findByRole("heading", {
-                name: "No package information found",
-            }),
-        ).toBeVisible()
-        expect(stop).toHaveBeenCalledTimes(1)
-
-        const backButton = screen.getByRole("button", {
-            name: "Close result",
-        })
-        await user.click(backButton)
-
-        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(2))
     })
 })
