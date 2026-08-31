@@ -40,6 +40,7 @@ from lifegoods.reference_datasets.models import (
     LexicalMappingRecord,
     ReferenceConceptRecord,
     ReferenceDatasetVersionRecord,
+    ReferenceDatasetVersionSourceRecord,
     ReferenceSourceRecord,
 )
 from lifegoods.reference_datasets.validation import validate_bundle
@@ -521,6 +522,10 @@ def test_import_valid_bundle_persists_all_entities(db_session: Session) -> None:
         "source-codex-cxs-1-1985-2026",
         "source-lifegoods-reviewed-allergen-mappings-issue-63",
     }
+    assert [source.id for source in version_record.sources] == [
+        "source-codex-cxs-1-1985-2026",
+        "source-lifegoods-reviewed-allergen-mappings-issue-63",
+    ]
 
     concepts = (
         db_session.query(ReferenceConceptRecord)
@@ -590,6 +595,24 @@ def test_import_is_idempotent(db_session: Session) -> None:
     assert versions_count == 1
     concepts_count = db_session.query(ReferenceConceptRecord).count()
     assert concepts_count == 1
+
+
+def test_idempotent_import_repairs_version_source_associations(
+    db_session: Session,
+) -> None:
+    bundle = create_valid_bundle()
+    record = import_reference_bundle(db_session, bundle)
+    db_session.query(ReferenceDatasetVersionSourceRecord).filter_by(
+        dataset_version_id=record.id
+    ).delete()
+    db_session.commit()
+
+    repaired = import_reference_bundle(db_session, bundle)
+
+    assert [source.id for source in repaired.sources] == [
+        "source-codex-cxs-1-1985-2026",
+        "source-lifegoods-reviewed-allergen-mappings-issue-63",
+    ]
 
 
 def test_import_rejects_conflicting_version_content(db_session: Session) -> None:
@@ -798,6 +821,7 @@ def test_rollback_version_restores_previous_active_version(db_session: Session) 
     rolled_back = rollback_reference_dataset_version(
         db_session,
         dataset_kind=ConditionFamily.FOOD_ALLERGEN,
+        approver="operator@lifegoods.org",
         now=lambda: rollback_time,
     )
 
@@ -811,33 +835,49 @@ def test_rollback_version_restores_previous_active_version(db_session: Session) 
     assert pointer is not None
     assert pointer.active_version_id == record1.id
     assert pointer.previous_version_id is None
-    assert pointer.review_kind == ReferenceReviewKind.FOOD_DOMAIN_REVIEW
+    assert pointer.review_kind == ReferenceReviewKind.PROJECT_MAINTAINER_APPROVAL
+    assert pointer.activated_by == "operator@lifegoods.org"
 
-    # Consecutive rollback fails because there is no older previous version
+    # A consecutive rollback safely returns to the pre-release inactive state.
+    deactivated = rollback_reference_dataset_version(
+        db_session,
+        dataset_kind=ConditionFamily.FOOD_ALLERGEN,
+        approver="operator@lifegoods.org",
+    )
+    assert deactivated.id == record1.id
+    assert deactivated.status == "READY"
+    db_session.refresh(pointer)
+    assert pointer.active_version_id is None
+
     with pytest.raises(
-        ReferenceDatasetRollbackError, match="No previous reference dataset version"
+        ReferenceDatasetRollbackError, match="No active reference dataset version"
     ):
         rollback_reference_dataset_version(
-            db_session, dataset_kind=ConditionFamily.FOOD_ALLERGEN
+            db_session,
+            dataset_kind=ConditionFamily.FOOD_ALLERGEN,
+            approver="operator@lifegoods.org",
         )
 
 
-def test_rollback_without_previous_version_fails(db_session: Session) -> None:
+def test_rollback_without_previous_version_deactivates(db_session: Session) -> None:
     bundle = create_valid_bundle()
     record = import_reference_bundle(db_session, bundle)
     activate_reference_dataset_version(db_session, record.id)
 
-    with pytest.raises(
-        ReferenceDatasetRollbackError, match="No previous reference dataset version"
-    ):
-        rollback_reference_dataset_version(
-            db_session, dataset_kind=ConditionFamily.FOOD_ALLERGEN
-        )
+    rolled_back = rollback_reference_dataset_version(
+        db_session,
+        dataset_kind=ConditionFamily.FOOD_ALLERGEN,
+        approver="operator@lifegoods.org",
+    )
+    assert rolled_back.id == record.id
+    assert rolled_back.status == "READY"
 
     pointer = get_active_reference_dataset_pointer(db_session, ConditionFamily.FOOD_ALLERGEN)
     assert pointer is not None
-    assert pointer.active_version_id == record.id
+    assert pointer.active_version_id is None
     assert pointer.previous_version_id is None
+    assert pointer.activated_by == "operator@lifegoods.org"
+    assert pointer.review_kind == ReferenceReviewKind.PROJECT_MAINTAINER_APPROVAL
 
 
 def test_activate_non_existent_version_fails(db_session: Session) -> None:
@@ -867,7 +907,7 @@ def test_activate_failed_or_invalid_version_fails(db_session: Session) -> None:
     assert pointer is None
 
 
-def test_activate_without_approver_fails(db_session: Session) -> None:
+def test_activate_without_release_reviewer_fails(db_session: Session) -> None:
     bundle_dict = create_valid_bundle().to_dict()
     bundle_dict["manifest"]["project_approver"] = None
     bundle_dict["manifest"]["sha256"] = compute_bundle_sha256(
@@ -882,12 +922,12 @@ def test_activate_without_approver_fails(db_session: Session) -> None:
 
     with pytest.raises(
         ReferenceDatasetApprovalError,
-        match="Activation requires recorded project-maintainer approval",
+        match="immutable qualified release review metadata",
     ):
         activate_reference_dataset_version(db_session, record.id)
 
 
-def test_activate_with_explicit_approver_and_review_kind(db_session: Session) -> None:
+def test_operational_approval_cannot_replace_release_review(db_session: Session) -> None:
     bundle_dict = create_valid_bundle().to_dict()
     bundle_dict["manifest"]["project_approver"] = None
     bundle_dict["manifest"]["sha256"] = compute_bundle_sha256(
@@ -900,21 +940,21 @@ def test_activate_with_explicit_approver_and_review_kind(db_session: Session) ->
     bundle = ReferenceBundle.from_dict(bundle_dict)
     record = import_reference_bundle(db_session, bundle)
 
-    activated = activate_reference_dataset_version(
-        db_session,
-        record.id,
-        approver="lead-maintainer@lifegoods.org",
-        review_kind=ReferenceReviewKind.PROJECT_MAINTAINER_APPROVAL,
+    with pytest.raises(
+        ReferenceDatasetApprovalError,
+        match="immutable qualified release review metadata",
+    ):
+        activate_reference_dataset_version(
+            db_session,
+            record.id,
+            approver="lead-maintainer@lifegoods.org",
+            review_kind=ReferenceReviewKind.PROJECT_MAINTAINER_APPROVAL,
+        )
+
+    pointer = get_active_reference_dataset_pointer(
+        db_session, ConditionFamily.FOOD_ALLERGEN
     )
-
-    assert activated.status == "ACTIVE"
-    assert activated.project_approver == "lead-maintainer@lifegoods.org"
-    assert activated.review_kind == ReferenceReviewKind.PROJECT_MAINTAINER_APPROVAL
-
-    pointer = get_active_reference_dataset_pointer(db_session, ConditionFamily.FOOD_ALLERGEN)
-    assert pointer is not None
-    assert pointer.activated_by == "lead-maintainer@lifegoods.org"
-    assert pointer.review_kind == ReferenceReviewKind.PROJECT_MAINTAINER_APPROVAL
+    assert pointer is None
 
 
 def test_activate_idempotent_on_active_version(db_session: Session) -> None:

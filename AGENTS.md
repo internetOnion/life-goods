@@ -40,3 +40,17 @@
 - Add schema changes as Alembic revisions under `backend/migrations/`; normal development uses the PostgreSQL migration path and tests use disposable database fixtures where appropriate.
 - If documentation changes, put research in `docs/research/` and Mermaid source plus rendered output in `docs/diagrams/`.
 - Use lowercase Conventional-style commit prefixes (`feat:`, `fix:`, `docs:`, `test:`, `chore:`) only when a commit is explicitly requested.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and implementation tickets are tracked in GitHub Issues for `internetOnion/life-goods`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the canonical `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix` labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This is a single-context repository using root `CONTEXT.md` and system-wide ADRs under `docs/adr/`. See `docs/agents/domain.md`.

@@ -12,6 +12,8 @@ from lifegoods.open_food_facts.models import (
 from lifegoods.package_matches.assessments import (
     AllergenAssessmentEvaluator,
     DisabledAllergenAssessmentEvaluator,
+    DisabledHalalIngredientAssessmentEvaluator,
+    HalalIngredientAssessmentEvaluator,
 )
 from lifegoods.package_matches.models import (
     OpenFoodFactsLookup,
@@ -32,10 +34,14 @@ class FindPackageMatches:
         self,
         external_source: ExternalPackageSource,
         allergen_evaluator: AllergenAssessmentEvaluator | None = None,
+        halal_evaluator: HalalIngredientAssessmentEvaluator | None = None,
     ) -> None:
         self._external_source = external_source
         self._allergen_evaluator = (
             allergen_evaluator or DisabledAllergenAssessmentEvaluator()
+        )
+        self._halal_evaluator = (
+            halal_evaluator or DisabledHalalIngredientAssessmentEvaluator()
         )
 
     def execute(self, entered_identifier: str) -> PackageMatchResult:
@@ -45,7 +51,9 @@ class FindPackageMatches:
         if isinstance(result, ExternalPackageFound):
             candidates = [
                 _candidate_from_record(
-                    result.record, allergen_evaluator=self._allergen_evaluator
+                    result.record,
+                    allergen_evaluator=self._allergen_evaluator,
+                    halal_evaluator=self._halal_evaluator,
                 )
             ]
             lookup = OpenFoodFactsLookup(
@@ -73,9 +81,14 @@ class FindPackageMatches:
 def _candidate_from_record(
     record: ExternalPackageRecord,
     allergen_evaluator: AllergenAssessmentEvaluator | None = None,
+    halal_evaluator: HalalIngredientAssessmentEvaluator | None = None,
 ) -> PackageMatchCandidate:
     evaluator = allergen_evaluator or DisabledAllergenAssessmentEvaluator()
     allergen_assessment = evaluator.evaluate(record)
+    halal_eval = (
+        halal_evaluator or DisabledHalalIngredientAssessmentEvaluator()
+    )
+    halal_ingredient_assessment = halal_eval.evaluate(record)
     source = PackageMatchSourceMetadata(
         name=record.source.name,
         source_type=record.source.source_type,
@@ -152,6 +165,7 @@ def _candidate_from_record(
         label_evidence=tuple(label),
         reference_images=images,
         allergen_assessment=allergen_assessment,
+        halal_ingredient_assessment=halal_ingredient_assessment,
         retrieved_at=record.retrieved_at,
         source_revision=record.source_revision,
         dataset_version=record.dataset_version,

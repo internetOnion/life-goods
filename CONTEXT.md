@@ -169,10 +169,11 @@ _Avoid_: Latest OFF data, live mirror, source of truth
 **Reference Dataset Version**:
 An immutable, human-reviewed release of sourced concepts, mappings, rules, descriptions, or Knowledge Entries used to interpret Evidence. Its approval applies to that reference release and never reviews or verifies a Product record.
 For a `FOOD_ALLERGEN` release, active leaf concepts may appear once as Allergen Assessment outcomes; non-leaf parent concepts organize ancestry only and never emit duplicate outcomes.
+For a `HALAL_INGREDIENT` release, active leaf concepts are classified as `EXPLICIT_PROHIBITED` or `SOURCE_AMBIGUOUS` with cited regulatory and standards locators; positive whitelist verdicts, blanket additive conclusions, and certificate claims are excluded.
 _Avoid_: Verified Product data, universal truth list, mutable lookup table
 
 **Active Reference Dataset Version**:
-The Reference Dataset Version explicitly selected for an assessment purpose. Active means approved for that scoped use, not universally authoritative or applicable outside its recorded jurisdiction and effective period.
+The Reference Dataset Version explicitly selected for an assessment purpose. Active means approved for that scoped use, not universally authoritative or applicable outside its recorded jurisdiction and effective period. In development environments, all operator activations, approvals, and rollbacks record `lifegoods` as the approver identity.
 _Avoid_: Current truth, globally valid rule, Product approval
 
 ## Vocabulary, translation, and education

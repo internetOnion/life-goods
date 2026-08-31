@@ -21,6 +21,13 @@ from lifegoods.reference_datasets.bundle import (
 )
 from lifegoods.reference_datasets.cli import main
 
+OPERATOR_APPROVAL = [
+    "--approver",
+    "operator@lifegoods.org",
+    "--review-kind",
+    "PROJECT_MAINTAINER_APPROVAL",
+]
+
 
 @pytest.fixture
 def test_db_url(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> str:
@@ -241,7 +248,13 @@ def test_cli_activate_version(
     capsys.readouterr()
 
     exit_code = main(
-        ["--database-url", test_db_url, "activate", "codex-food-allergen-2026-minimal"]
+        [
+            "--database-url",
+            test_db_url,
+            "activate",
+            "codex-food-allergen-2026-minimal",
+            *OPERATOR_APPROVAL,
+        ]
     )
     assert exit_code == 0
     captured = capsys.readouterr()
@@ -250,6 +263,8 @@ def test_cli_activate_version(
     assert result["id"] == "codex-food-allergen-2026-minimal"
     assert result["project_approver"] == "food-reviewer@lifegoods.org"
     assert result["review_kind"] == "FOOD_DOMAIN_REVIEW"
+    assert result["activated_by"] == "operator@lifegoods.org"
+    assert result["activation_review_kind"] == "PROJECT_MAINTAINER_APPROVAL"
     assert result["activated_at"] is not None
 
 
@@ -275,20 +290,45 @@ def test_cli_activate_with_custom_approver(
     captured = capsys.readouterr()
     result = json.loads(captured.out)
     assert result["status"] == "ACTIVE"
-    assert result["project_approver"] == "operator@lifegoods.org"
-    assert result["review_kind"] == "PROJECT_MAINTAINER_APPROVAL"
+    assert result["project_approver"] == "food-reviewer@lifegoods.org"
+    assert result["review_kind"] == "FOOD_DOMAIN_REVIEW"
+    assert result["activated_by"] == "operator@lifegoods.org"
+    assert result["activation_review_kind"] == "PROJECT_MAINTAINER_APPROVAL"
 
 
 def test_cli_activate_unknown_version_fails(
     test_db_url: str, capsys: pytest.CaptureFixture[str]
 ) -> None:
     exit_code = main(
-        ["--database-url", test_db_url, "activate", "non-existent-version"]
+        [
+            "--database-url",
+            test_db_url,
+            "activate",
+            "non-existent-version",
+            *OPERATOR_APPROVAL,
+        ]
     )
     assert exit_code == 1
     captured = capsys.readouterr()
     result = json.loads(captured.err)
     assert "error" in result
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        ["activate", "codex-food-allergen-2026-minimal"],
+        ["rollback", "--dataset-kind", "FOOD_ALLERGEN"],
+    ],
+)
+def test_cli_pointer_changes_require_explicit_operational_approval(
+    command: list[str], test_db_url: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    with pytest.raises(SystemExit) as error:
+        main(["--database-url", test_db_url, *command])
+
+    assert error.value.code == 2
+    assert "--approver" in capsys.readouterr().err
 
 
 def test_cli_rollback_version(
@@ -376,13 +416,20 @@ def test_cli_rollback_version(
     ReferenceBundle.from_dict(b2_dict).to_json_file(f2)
 
     main(["--database-url", test_db_url, "import", str(f1)])
-    main(["--database-url", test_db_url, "activate", "ver-1"])
+    main(["--database-url", test_db_url, "activate", "ver-1", *OPERATOR_APPROVAL])
     main(["--database-url", test_db_url, "import", str(f2)])
-    main(["--database-url", test_db_url, "activate", "ver-2"])
+    main(["--database-url", test_db_url, "activate", "ver-2", *OPERATOR_APPROVAL])
     capsys.readouterr()
 
     exit_code = main(
-        ["--database-url", test_db_url, "rollback", "--dataset-kind", "FOOD_ALLERGEN"]
+        [
+            "--database-url",
+            test_db_url,
+            "rollback",
+            "--dataset-kind",
+            "FOOD_ALLERGEN",
+            *OPERATOR_APPROVAL,
+        ]
     )
     assert exit_code == 0
     captured = capsys.readouterr()
@@ -392,17 +439,38 @@ def test_cli_rollback_version(
     assert result["previous_version_id"] is None
 
 
-def test_cli_rollback_without_previous_fails(
+def test_cli_rollback_without_previous_deactivates_then_fails(
     valid_bundle_file: Path, test_db_url: str, capsys: pytest.CaptureFixture[str]
 ) -> None:
     main(["--database-url", test_db_url, "import", str(valid_bundle_file)])
-    main(["--database-url", test_db_url, "activate", "codex-food-allergen-2026-minimal"])
+    main(
+        [
+            "--database-url",
+            test_db_url,
+            "activate",
+            "codex-food-allergen-2026-minimal",
+            *OPERATOR_APPROVAL,
+        ]
+    )
     capsys.readouterr()
 
-    exit_code = main(
-        ["--database-url", test_db_url, "rollback", "--dataset-kind", "FOOD_ALLERGEN"]
-    )
-    assert exit_code == 1
+    rollback_args = [
+        "--database-url",
+        test_db_url,
+        "rollback",
+        "--dataset-kind",
+        "FOOD_ALLERGEN",
+        *OPERATOR_APPROVAL,
+    ]
+    exit_code = main(rollback_args)
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+    assert result["status"] == "READY"
+    assert result["active_version_id"] is None
+    assert result["activated_by"] == "operator@lifegoods.org"
+
+    assert main(rollback_args) == 1
     captured = capsys.readouterr()
     result = json.loads(captured.err)
     assert "error" in result
@@ -427,7 +495,252 @@ def test_cli_inspect_version(
     assert len(result["exclusions"]) == 1
     assert result["exclusions"][0]["id"] == "exclude-en-coconut-milk-for-milk"
     assert len(result["rules"]) == 2
+    assert [source["id"] for source in result["sources"]] == [
+        "source-codex-cxs-1-1985-2026",
+        "source-lifegoods-reviewed-allergen-mappings-issue-63",
+    ]
     derivative_rule = next(
         rule for rule in result["rules"] if rule["rule_kind"] == "DERIVATIVE_MATCH"
     )
     assert derivative_rule["mapping_id"] == "map-en-whey-derived"
+
+
+def test_cli_halal_dataset_full_operator_workflow_independent_of_food_allergen(
+    valid_bundle_file: Path, test_db_url: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fixture_path = (
+        Path(__file__).parent
+        / "fixtures"
+        / "reference_datasets"
+        / "synthetic_halal_ingredient_bundle.json"
+    )
+
+    # 1. Validate Halal bundle
+    exit_code = main(["validate", str(fixture_path)])
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    validate_result = json.loads(captured.out)
+    assert validate_result["status"] == "VALID"
+    assert validate_result["dataset_kind"] == "HALAL_INGREDIENT"
+    assert validate_result["concept_count"] == 2
+    assert validate_result["mapping_count"] == 2
+    assert validate_result["exclusion_count"] == 0
+    assert validate_result["halal_ingredient_mapping_count"] == 2
+
+    # 2. Import FOOD_ALLERGEN version and activate it
+    main(["--database-url", test_db_url, "import", str(valid_bundle_file)])
+    main(
+        [
+            "--database-url",
+            test_db_url,
+            "activate",
+            "codex-food-allergen-2026-minimal",
+            *OPERATOR_APPROVAL,
+        ]
+    )
+    capsys.readouterr()
+
+    # 3. Import HALAL_INGREDIENT version
+    exit_code = main(["--database-url", test_db_url, "import", str(fixture_path)])
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    import_result = json.loads(captured.out)
+    assert import_result["status"] == "READY"
+    assert import_result["id"] == "synthetic-halal-ingredient-2026-v1"
+    assert import_result["dataset_kind"] == "HALAL_INGREDIENT"
+    assert import_result["exclusion_count"] == 0
+    assert import_result["halal_ingredient_mapping_count"] == 2
+
+    # 4. Inspect HALAL_INGREDIENT version
+    exit_code = main(
+        ["--database-url", test_db_url, "inspect", "synthetic-halal-ingredient-2026-v1"]
+    )
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    inspect_result = json.loads(captured.out)
+    assert inspect_result["id"] == "synthetic-halal-ingredient-2026-v1"
+    assert len(inspect_result["concepts"]) == 2
+    assert len(inspect_result["mappings"]) == 2
+    assert inspect_result["exclusions"] == []
+    assert len(inspect_result["halal_ingredient_mappings"]) == 2
+
+    # 5. Check status before activation (HALAL_INGREDIENT should be None)
+    exit_code = main(
+        ["--database-url", test_db_url, "status", "--dataset-kind", "HALAL_INGREDIENT"]
+    )
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert json.loads(captured.out) is None
+
+    # 6. Activate HALAL_INGREDIENT version
+    exit_code = main(
+        [
+            "--database-url",
+            test_db_url,
+            "activate",
+            "synthetic-halal-ingredient-2026-v1",
+            "--approver",
+            "halal-lead@lifegoods.org",
+            "--review-kind",
+            "PROJECT_MAINTAINER_APPROVAL",
+        ]
+    )
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    activate_result = json.loads(captured.out)
+    assert activate_result["status"] == "ACTIVE"
+    assert activate_result["dataset_kind"] == "HALAL_INGREDIENT"
+    assert activate_result["review_kind"] == "HALAL_DOMAIN_REVIEW"
+    assert (
+        activate_result["project_approver"]
+        == "halal-domain-reviewer@lifegoods.org"
+    )
+    assert activate_result["activated_by"] == "halal-lead@lifegoods.org"
+    assert activate_result["activation_review_kind"] == "PROJECT_MAINTAINER_APPROVAL"
+
+    # 7. Check status after activation
+    exit_code = main(
+        ["--database-url", test_db_url, "status", "--dataset-kind", "HALAL_INGREDIENT"]
+    )
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    status_result = json.loads(captured.out)
+    assert status_result["active_version_id"] == "synthetic-halal-ingredient-2026-v1"
+    assert status_result["dataset_kind"] == "HALAL_INGREDIENT"
+    assert status_result["status"] == "ACTIVE"
+
+    # 8. Check FOOD_ALLERGEN status is independent and still active
+    exit_code = main(
+        ["--database-url", test_db_url, "status", "--dataset-kind", "FOOD_ALLERGEN"]
+    )
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    allergen_status = json.loads(captured.out)
+    assert allergen_status["active_version_id"] == "codex-food-allergen-2026-minimal"
+    assert allergen_status["dataset_kind"] == "FOOD_ALLERGEN"
+
+
+def test_cli_reviewed_halal_bundle_validation_and_inspection(
+    test_db_url: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    bundle_path = (
+        Path(__file__).parents[1]
+        / "src"
+        / "lifegoods"
+        / "reference_datasets"
+        / "bundles"
+        / "halal_ingredient_2026_reviewed_english_v1.json"
+    )
+
+    # 1. Validate
+    exit_code = main(["validate", str(bundle_path)])
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    validate_result = json.loads(captured.out)
+    assert validate_result["status"] == "VALID"
+    assert validate_result["id"] == "halal-ingredient-2026-reviewed-english-v1"
+    assert validate_result["dataset_kind"] == "HALAL_INGREDIENT"
+    assert (
+        validate_result["sha256"]
+        == "fa2b3088080e4d1e6938610d518880231ea4a4cc0b5ffee3bfbf1ce5ae795a78"
+    )
+    assert validate_result["source_count"] == 4
+    assert validate_result["review_kind"] == "HALAL_DOMAIN_REVIEW"
+    assert (
+        validate_result["project_approver"]
+        == "cambodia-halal-reviewer@lifegoods.org"
+    )
+    assert {source["id"] for source in validate_result["sources"]} == {
+        "source-cambodia-prakas-090-2020",
+        "source-oic-smiic-1-2019",
+        "source-oic-smiic-24-2020",
+        "source-lifegoods-reviewed-halal-mappings-issue-67",
+    }
+    assert validate_result["concept_count"] == 24
+    assert validate_result["mapping_count"] == 68
+    assert validate_result["exclusion_count"] == 0
+    assert validate_result["halal_ingredient_mapping_count"] == 24
+
+    # 2. Import into database
+    exit_code = main(["--database-url", test_db_url, "import", str(bundle_path)])
+    assert exit_code == 0
+    capsys.readouterr()
+
+    # 3. Inspect version
+    exit_code = main(
+        ["--database-url", test_db_url, "inspect", "halal-ingredient-2026-reviewed-english-v1"]
+    )
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    inspect_result = json.loads(captured.out)
+    assert inspect_result["id"] == "halal-ingredient-2026-reviewed-english-v1"
+    assert inspect_result["status"] == "READY"
+    assert inspect_result["review_kind"] == "HALAL_DOMAIN_REVIEW"
+    assert inspect_result["project_approver"] == "cambodia-halal-reviewer@lifegoods.org"
+    assert inspect_result["activated_at"] is None
+    assert len(inspect_result["concepts"]) == 24
+    assert inspect_result["exclusions"] == []
+    assert len(inspect_result["halal_ingredient_mappings"]) == 24
+    assert {source["id"] for source in inspect_result["sources"]} == {
+        "source-cambodia-prakas-090-2020",
+        "source-oic-smiic-1-2019",
+        "source-oic-smiic-24-2020",
+        "source-lifegoods-reviewed-halal-mappings-issue-67",
+    }
+    licensed_sources = {
+        source["id"]: source["licensing_decision"]
+        for source in inspect_result["sources"]
+    }
+    assert licensed_sources["source-oic-smiic-1-2019"] == "LICENSED_STANDARD"
+    assert licensed_sources["source-oic-smiic-24-2020"] == "LICENSED_STANDARD"
+
+    # 4. Activate with operational approval without overwriting domain review.
+    exit_code = main(
+        [
+            "--database-url",
+            test_db_url,
+            "activate",
+            "halal-ingredient-2026-reviewed-english-v1",
+            *OPERATOR_APPROVAL,
+        ]
+    )
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    activate_result = json.loads(captured.out)
+    assert activate_result["status"] == "ACTIVE"
+    assert activate_result["review_kind"] == "HALAL_DOMAIN_REVIEW"
+    assert (
+        activate_result["project_approver"]
+        == "cambodia-halal-reviewer@lifegoods.org"
+    )
+    assert activate_result["activated_by"] == "operator@lifegoods.org"
+    assert activate_result["activation_review_kind"] == "PROJECT_MAINTAINER_APPROVAL"
+
+    # 5. First-release rollback records an explicit inactive pointer.
+    exit_code = main(
+        [
+            "--database-url",
+            test_db_url,
+            "rollback",
+            "--dataset-kind",
+            "HALAL_INGREDIENT",
+            *OPERATOR_APPROVAL,
+        ]
+    )
+    assert exit_code == 0
+    capsys.readouterr()
+    exit_code = main(
+        [
+            "--database-url",
+            test_db_url,
+            "status",
+            "--dataset-kind",
+            "HALAL_INGREDIENT",
+        ]
+    )
+    assert exit_code == 0
+    status_result = json.loads(capsys.readouterr().out)
+    assert status_result["status"] == "INACTIVE"
+    assert status_result["active_version_id"] is None
+    assert status_result["activated_by"] == "operator@lifegoods.org"
+    assert status_result["activation_review_kind"] == "PROJECT_MAINTAINER_APPROVAL"

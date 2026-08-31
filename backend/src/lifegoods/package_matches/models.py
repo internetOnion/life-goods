@@ -4,7 +4,10 @@ from enum import StrEnum
 
 from lifegoods.identifiers.models import NormalizedIdentifier
 from lifegoods.open_food_facts.models import ExternalDatasetVersion, JsonValue
-from lifegoods.package_matches.assessments import AllergenAssessmentEvaluation
+from lifegoods.package_matches.assessments import (
+    AllergenAssessmentEvaluation,
+    HalalIngredientAssessmentEvaluation,
+)
 
 
 def json_value(value: object) -> JsonValue:
@@ -88,6 +91,9 @@ class PackageMatchCandidate:
     reference_images: tuple[PackageMatchReferenceImage, ...] = ()
     allergen_assessment: AllergenAssessmentEvaluation = (
         AllergenAssessmentEvaluation()
+    )
+    halal_ingredient_assessment: HalalIngredientAssessmentEvaluation = (
+        HalalIngredientAssessmentEvaluation()
     )
     retrieved_at: datetime | None = None
     is_current: bool | None = None

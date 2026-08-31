@@ -185,7 +185,7 @@ export type AssessmentReferenceDatasetVersionResponse = {
 /**
  * ErrorCode
  */
-export type ErrorCode = 'IDENTIFIER_REQUIRED' | 'IDENTIFIER_CHARACTERS_INVALID' | 'IDENTIFIER_LENGTH_UNSUPPORTED' | 'IDENTIFIER_CHECK_DIGIT_INVALID' | 'PACKAGE_MATCH_SOURCE_UNAVAILABLE' | 'REFERENCE_IMAGE_URL_INVALID' | 'REFERENCE_IMAGE_NOT_FOUND' | 'REFERENCE_IMAGE_SOURCE_UNAVAILABLE' | 'RATE_LIMIT_EXCEEDED';
+export type ErrorCode = 'IDENTIFIER_REQUIRED' | 'IDENTIFIER_CHARACTERS_INVALID' | 'IDENTIFIER_LENGTH_UNSUPPORTED' | 'IDENTIFIER_CHECK_DIGIT_INVALID' | 'PACKAGE_MATCH_SOURCE_UNAVAILABLE' | 'PACKAGE_SEARCH_QUERY_INVALID' | 'REFERENCE_IMAGE_URL_INVALID' | 'REFERENCE_IMAGE_NOT_FOUND' | 'REFERENCE_IMAGE_SOURCE_UNAVAILABLE' | 'RATE_LIMIT_EXCEEDED';
 
 /**
  * ErrorDetail
@@ -237,6 +237,152 @@ export type ExternalDatasetVersionResponse = {
 };
 
 /**
+ * HalalClassification
+ */
+export type HalalClassification = 'EXPLICIT_PROHIBITED' | 'SOURCE_AMBIGUOUS';
+
+/**
+ * HalalIngredientAssessmentOutcome
+ */
+export type HalalIngredientAssessmentOutcome = 'EXPLICIT_PROHIBITED_INGREDIENT_DECLARED' | 'SOURCE_AMBIGUOUS' | 'NO_NON_HALAL_INGREDIENT_DETECTED_IN_READABLE_LABEL' | 'LABEL_INCOMPLETE_OR_UNREADABLE' | 'NOT_ASSESSED';
+
+/**
+ * HalalIngredientAssessmentReason
+ */
+export type HalalIngredientAssessmentReason = 'FEATURE_DISABLED' | 'REFERENCE_UNAVAILABLE' | 'EVIDENCE_UNAVAILABLE' | 'ASSESSMENT_FAILED';
+
+/**
+ * HalalIngredientAssessmentResponse
+ */
+export type HalalIngredientAssessmentResponse = {
+    /**
+     * Checked Evidence
+     */
+    checked_evidence?: Array<PackageMatchEvidenceResponse>;
+    /**
+     * Engine Version
+     */
+    engine_version?: string | null;
+    evidence_coverage: EvidenceCoverageState;
+    /**
+     * Findings
+     */
+    findings?: Array<HalalIngredientFindingResponse>;
+    outcome: HalalIngredientAssessmentOutcome;
+    reason: HalalIngredientAssessmentReason | null;
+    reference_dataset_version?: AssessmentReferenceDatasetVersionResponse | null;
+    status: HalalIngredientAssessmentStatus;
+};
+
+/**
+ * HalalIngredientAssessmentStatus
+ */
+export type HalalIngredientAssessmentStatus = 'COMPLETED' | 'NOT_ASSESSED';
+
+/**
+ * HalalIngredientFindingResponse
+ */
+export type HalalIngredientFindingResponse = {
+    /**
+     * Citations
+     */
+    citations?: Array<HalalSourceCitationResponse>;
+    classification: HalalClassification;
+    /**
+     * Concept Id
+     */
+    concept_id: string;
+    /**
+     * End Index
+     */
+    end_index: number;
+    /**
+     * Engine Version
+     */
+    engine_version?: string | null;
+    /**
+     * Halal Mapping Id
+     */
+    halal_mapping_id?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Language
+     */
+    language?: string | null;
+    /**
+     * Mapping Id
+     */
+    mapping_id?: string | null;
+    /**
+     * Matched Text
+     */
+    matched_text: string;
+    /**
+     * Off Dataset Version Id
+     */
+    off_dataset_version_id?: string | null;
+    /**
+     * Reference Dataset Version Id
+     */
+    reference_dataset_version_id?: string | null;
+    relationship_type: HalalRelationshipType;
+    /**
+     * Source Field
+     */
+    source_field: string;
+    /**
+     * Source Revision
+     */
+    source_revision?: string | null;
+    /**
+     * Source Text
+     */
+    source_text?: string | null;
+    /**
+     * Source Url
+     */
+    source_url: string;
+    /**
+     * Start Index
+     */
+    start_index: number;
+};
+
+/**
+ * HalalRelationshipType
+ */
+export type HalalRelationshipType = 'EXACT_NAME' | 'SPELLING_VARIANT' | 'DERIVED_FROM' | 'CONTAINS_SOURCE';
+
+/**
+ * HalalSourceCitationResponse
+ */
+export type HalalSourceCitationResponse = {
+    /**
+     * Edition
+     */
+    edition?: string | null;
+    /**
+     * Jurisdiction
+     */
+    jurisdiction: string;
+    /**
+     * Locator
+     */
+    locator: string;
+    /**
+     * Notes
+     */
+    notes?: string | null;
+    /**
+     * Source Id
+     */
+    source_id: string;
+};
+
+/**
  * IdentifierScheme
  */
 export type IdentifierScheme = 'GTIN_8' | 'UPC_A' | 'EAN_13' | 'GTIN_14';
@@ -272,6 +418,7 @@ export type PackageMatchCandidateResponse = {
      * External Record Id
      */
     external_record_id?: string | null;
+    halal_ingredient_assessment: HalalIngredientAssessmentResponse;
     /**
      * Identity Evidence
      */
@@ -469,6 +616,85 @@ export type PackageMatchesResponse = {
     scheme: IdentifierScheme;
 };
 
+/**
+ * PackageSearchEvidenceResponse
+ */
+export type PackageSearchEvidenceResponse = {
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string;
+    /**
+     * Language
+     */
+    language: string | null;
+    /**
+     * Retrieved At
+     */
+    retrieved_at: string;
+    /**
+     * Source Field
+     */
+    source_field: string;
+    /**
+     * Source Name
+     */
+    source_name: string;
+    /**
+     * Source Revision
+     */
+    source_revision?: string | null;
+    /**
+     * Source Url
+     */
+    source_url: string;
+    /**
+     * Value
+     */
+    value: unknown;
+};
+
+/**
+ * PackageSearchResponse
+ */
+export type PackageSearchResponse = {
+    dataset_version: ExternalDatasetVersionResponse;
+    /**
+     * Next Offset
+     */
+    next_offset: number | null;
+    /**
+     * Normalized Query
+     */
+    normalized_query: string;
+    /**
+     * Results
+     */
+    results: Array<PackageSearchResultResponse>;
+};
+
+/**
+ * PackageSearchResultResponse
+ */
+export type PackageSearchResultResponse = {
+    brands: PackageSearchEvidenceResponse | null;
+    /**
+     * Identifier
+     */
+    identifier: string;
+    manufacturing_place: PackageSearchEvidenceResponse | null;
+    /**
+     * Names
+     */
+    names: Array<PackageSearchEvidenceResponse>;
+    quantity: PackageSearchEvidenceResponse | null;
+    reference_image: PackageMatchReferenceImageResponse | null;
+    /**
+     * Source Kind
+     */
+    source_kind?: 'OPEN_FOOD_FACTS';
+};
+
 export type GetOpenFoodFactsImageData = {
     body?: never;
     path?: never;
@@ -549,3 +775,49 @@ export type GetPackageMatchesResponses = {
 };
 
 export type GetPackageMatchesResponse = GetPackageMatchesResponses[keyof GetPackageMatchesResponses];
+
+export type SearchPackagesData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Query
+         */
+        query: string;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/package-search';
+};
+
+export type SearchPackagesErrors = {
+    /**
+     * Unprocessable Content
+     */
+    422: ErrorEnvelope;
+    /**
+     * Too Many Requests
+     */
+    429: ErrorEnvelope;
+    /**
+     * Service Unavailable
+     */
+    503: ErrorEnvelope;
+};
+
+export type SearchPackagesError = SearchPackagesErrors[keyof SearchPackagesErrors];
+
+export type SearchPackagesResponses = {
+    /**
+     * Successful Response
+     */
+    200: PackageSearchResponse;
+};
+
+export type SearchPackagesResponse = SearchPackagesResponses[keyof SearchPackagesResponses];

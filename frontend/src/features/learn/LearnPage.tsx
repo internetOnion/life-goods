@@ -1,9 +1,15 @@
-import { ArrowLeftIcon, MagnifyingGlassIcon } from "@phosphor-icons/react"
+import {
+    ArrowLeftIcon,
+    CaretRightIcon,
+    MagnifyingGlassIcon,
+    XIcon,
+} from "@phosphor-icons/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router"
 
 import { appRoutes } from "@/app/routes"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useMvpDemoMode } from "@/config/MvpDemoModeContext"
@@ -97,11 +103,11 @@ function LearnIndexPage({ locale, includeSimulated }: LearnIndexPageProps) {
     })).filter(({ entries }) => entries.length > 0)
 
     return (
-        <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pt-[clamp(2.75rem,9vh,5.5rem)] pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
+        <main className="mx-auto w-full max-w-6xl px-4 pt-8 sm:px-6 sm:pt-12 lg:px-10 lg:pt-16">
             <h1
                 ref={headingRef}
                 tabIndex={-1}
-                className="text-[clamp(2rem,7vw,3.2rem)] leading-[1.7] tracking-tight text-balance"
+                className="text-4xl leading-[1.7] font-black tracking-tight text-balance sm:text-5xl"
             >
                 {t("learn.title")}
             </h1>
@@ -112,20 +118,37 @@ function LearnIndexPage({ locale, includeSimulated }: LearnIndexPageProps) {
                 >
                     {t("learn.searchLabel")}
                 </Label>
-                <div className="border-input bg-background focus-within:border-ring focus-within:ring-ring/40 mt-2 flex min-h-14 items-center gap-3 rounded-xl border px-4 text-lg transition-colors focus-within:ring-2 sm:text-xl">
+                <div className="group border-input bg-background hover:border-primary/40 focus-within:border-primary focus-within:ring-primary/25 mt-2 flex min-h-14 items-center rounded-2xl border px-3.5 transition-all duration-150 focus-within:ring-2">
                     <MagnifyingGlassIcon
-                        className="text-muted-foreground shrink-0"
+                        className="text-muted-foreground group-focus-within:text-primary shrink-0 transition-colors"
                         aria-hidden="true"
-                        size={24}
+                        size={22}
                     />
                     <Input
                         id="learn-search"
-                        className="h-13 min-w-0 flex-1 rounded-none border-0 bg-transparent px-0 text-lg shadow-none outline-none focus-visible:ring-0 md:text-lg"
+                        className="caret-primary selection:bg-brand-soft selection:text-primary text-foreground placeholder:text-muted-foreground/70 h-14 min-w-0 flex-1 rounded-none border-0 bg-transparent px-2.5 text-base shadow-none outline-none focus-visible:ring-0 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
                         type="search"
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
+                        onKeyDown={(event) => {
+                            if (event.key === "Escape" && search) {
+                                event.preventDefault()
+                                setSearch("")
+                            }
+                        }}
                         placeholder={t("learn.searchPlaceholder")}
                     />
+                    {search ? (
+                        <Button
+                            aria-label={t("search.clearInput") || "Clear"}
+                            className="text-muted-foreground hover:bg-muted hover:text-foreground size-10 shrink-0 rounded-full p-0 transition-all active:scale-95"
+                            onClick={() => setSearch("")}
+                            type="button"
+                            variant="ghost"
+                        >
+                            <XIcon aria-hidden="true" size={20} />
+                        </Button>
+                    ) : null}
                 </div>
                 <p
                     className="text-muted-foreground mt-2 text-sm"
@@ -177,7 +200,7 @@ export function LearnArticlePage() {
     return (
         <>
             {entry?.kind === "simulated" ? <DemoNotice active /> : null}
-            <main className="mx-auto w-[min(calc(100%_-_2rem),44rem)] min-w-0 pt-[clamp(2rem,7vh,4.5rem)] pb-[calc(3rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),44rem)] sm:w-[min(calc(100%_-_3rem),44rem)]">
+            <main className="mx-auto w-full max-w-4xl min-w-0 px-4 pt-[clamp(2rem,7vh,4.5rem)] pb-[calc(3rem_+_env(safe-area-inset-bottom))] sm:px-6 lg:px-10">
                 <Link
                     className="text-primary hover:bg-accent focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-bold no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none"
                     to={appRoutes.learn}
@@ -194,11 +217,11 @@ export function LearnArticlePage() {
                         <h1
                             ref={headingRef}
                             tabIndex={-1}
-                            className="mt-2 text-[clamp(2rem,7vw,3.15rem)] leading-[1.55] tracking-tight text-balance"
+                            className="mt-2 text-[clamp(2rem,7vw,3.15rem)] leading-[1.7] tracking-tight text-balance"
                         >
                             {entry.title[locale]}
                         </h1>
-                        <p className="text-muted-foreground mt-4 max-w-[65ch] text-[1.08rem] leading-loose">
+                        <p className="text-muted-foreground mt-4 max-w-[65ch] text-[1.08rem] leading-[1.65]">
                             {entry.summary[locale]}
                         </p>
 
@@ -212,7 +235,7 @@ export function LearnArticlePage() {
                             >
                                 {t("learn.explanationTitle")}
                             </h2>
-                            <p className="mt-3 max-w-[70ch] text-[1.05rem] leading-loose break-words">
+                            <p className="mt-3 max-w-[70ch] text-[1.05rem] leading-[1.65] break-words">
                                 {entry.body[locale]}
                             </p>
                             {entry.kind === "sourced" ? (
@@ -220,7 +243,7 @@ export function LearnArticlePage() {
                                     <h3 className="mt-6 text-lg leading-relaxed font-bold">
                                         {t("learn.keyPointsTitle")}
                                     </h3>
-                                    <ul className="marker:text-coconut-brown mt-3 max-w-[70ch] list-disc space-y-3 pl-6 text-[1.05rem] leading-loose break-words">
+                                    <ul className="marker:text-primary mt-3 max-w-[70ch] list-disc space-y-3 pl-6 text-[1.05rem] leading-[1.65] break-words">
                                         {entry.keyPoints.map((point) => (
                                             <li key={point.en}>
                                                 {point[locale]}
@@ -233,7 +256,7 @@ export function LearnArticlePage() {
 
                         {entry.kind === "sourced" ? (
                             <>
-                                <dl className="border-border bg-muted mt-9 w-fit max-w-full min-w-0 divide-y rounded-xl border px-4 sm:px-5">
+                                <dl className="divide-border border-border mt-9 w-full min-w-0 divide-y border-y">
                                     <div className="grid min-w-0 gap-1 py-4 sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-x-6">
                                         <dt className="font-bold">
                                             {t("learn.publisherLabel")}
@@ -367,32 +390,35 @@ function LearnTopicSection({ topic, entries, locale }: LearnTopicSectionProps) {
             >
                 {t(`learn.topics.${topic}`)}
             </h2>
-            <div className="mt-3 space-y-3">
+            <div className="divide-border border-border mt-3 divide-y border-y">
                 {entries.map((entry) => (
                     <Link
                         key={entry.slug}
-                        className="border-border bg-card hover:border-primary/60 hover:bg-accent focus-visible:ring-ring block min-h-11 rounded-xl border p-4 no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none sm:p-5"
+                        className="hover:bg-muted focus-visible:ring-ring grid min-h-24 grid-cols-[minmax(0,1fr)_2.75rem] items-center gap-4 py-4 no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset sm:py-5"
                         to={articlePath(entry.slug)}
                     >
-                        <span className="text-foreground block text-base leading-relaxed font-bold">
-                            {entry.title[locale]}
-                        </span>
-                        <span className="text-muted-foreground mt-1 block text-sm leading-relaxed">
-                            {entry.kind === "sourced"
-                                ? entry.cardSummary[locale]
-                                : entry.summary[locale]}
-                        </span>
-                        <span className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-relaxed font-bold">
-                            <span className="text-coconut-brown">
-                                {t("learn.readArticle")}
+                        <span className="min-w-0">
+                            <span className="text-foreground block text-base leading-relaxed font-black sm:text-lg">
+                                {entry.title[locale]}
                             </span>
-                            <span className="text-muted-foreground">
+                            <span className="text-muted-foreground mt-1 block text-sm leading-relaxed">
+                                {entry.kind === "sourced"
+                                    ? entry.cardSummary[locale]
+                                    : entry.summary[locale]}
+                            </span>
+                            <span className="text-primary mt-2 block text-xs font-bold">
                                 {t(
                                     entry.kind === "sourced"
                                         ? "learn.sourceBacked"
                                         : "learn.simulatedFixture",
                                 )}
                             </span>
+                        </span>
+                        <span
+                            className="text-foreground grid size-11 place-items-center"
+                            aria-hidden="true"
+                        >
+                            <CaretRightIcon size={22} />
                         </span>
                     </Link>
                 ))}

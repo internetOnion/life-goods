@@ -11,10 +11,17 @@ from lifegoods.open_food_facts.models import (
 )
 from lifegoods.reference_datasets import (
     ActiveAllergenReferenceData,
+    ActiveHalalReferenceData,
     AllergenAssessmentReferenceVersion,
     AllergenReferenceDataAccess,
     AllergenReferenceMapping,
     AllergenRelationshipType,
+    HalalAssessmentReferenceVersion,
+    HalalClassification,
+    HalalReferenceDataAccess,
+    HalalReferenceLexicalMapping,
+    HalalRelationshipType,
+    HalalSourceCitation,
 )
 from lifegoods.reference_datasets.text_normalization import (
     find_normalized_phrase,
@@ -662,4 +669,543 @@ class StandardAllergenAssessmentEvaluator:
                     active_data.version if active_data is not None else None
                 ),
                 source_signals=source_signals,
+            )
+
+
+class HalalIngredientAssessmentStatus(StrEnum):
+    COMPLETED = "COMPLETED"
+    NOT_ASSESSED = "NOT_ASSESSED"
+
+
+class HalalIngredientAssessmentOutcome(StrEnum):
+    EXPLICIT_PROHIBITED_INGREDIENT_DECLARED = (
+        "EXPLICIT_PROHIBITED_INGREDIENT_DECLARED"
+    )
+    SOURCE_AMBIGUOUS = "SOURCE_AMBIGUOUS"
+    NO_NON_HALAL_INGREDIENT_DETECTED_IN_READABLE_LABEL = (
+        "NO_NON_HALAL_INGREDIENT_DETECTED_IN_READABLE_LABEL"
+    )
+    LABEL_INCOMPLETE_OR_UNREADABLE = "LABEL_INCOMPLETE_OR_UNREADABLE"
+    NOT_ASSESSED = "NOT_ASSESSED"
+
+
+class HalalIngredientAssessmentReason(StrEnum):
+    FEATURE_DISABLED = "FEATURE_DISABLED"
+    REFERENCE_UNAVAILABLE = "REFERENCE_UNAVAILABLE"
+    EVIDENCE_UNAVAILABLE = "EVIDENCE_UNAVAILABLE"
+    ASSESSMENT_FAILED = "ASSESSMENT_FAILED"
+
+
+@dataclass(frozen=True, slots=True)
+class HalalIngredientFinding:
+    id: str
+    concept_id: str
+    classification: str = HalalClassification.EXPLICIT_PROHIBITED
+    relationship_type: str = HalalRelationshipType.EXACT_NAME
+    matched_text: str = ""
+    start_index: int = 0
+    end_index: int = 0
+    mapping_id: str | None = None
+    halal_mapping_id: str | None = None
+    source_text: str | None = None
+    language: str | None = None
+    citations: tuple[HalalSourceCitation, ...] = ()
+    source_field: str = ""
+    source_url: str = ""
+    source_revision: str | None = None
+    off_dataset_version_id: str | None = None
+    reference_dataset_version_id: str | None = None
+    engine_version: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class HalalIngredientAssessmentEvaluation:
+    status: HalalIngredientAssessmentStatus = (
+        HalalIngredientAssessmentStatus.NOT_ASSESSED
+    )
+    reason: HalalIngredientAssessmentReason | None = (
+        HalalIngredientAssessmentReason.FEATURE_DISABLED
+    )
+    outcome: HalalIngredientAssessmentOutcome = (
+        HalalIngredientAssessmentOutcome.NOT_ASSESSED
+    )
+    evidence_coverage: EvidenceCoverageState = EvidenceCoverageState.NOT_ASSESSED
+    engine_version: str | None = None
+    reference_dataset_version: HalalAssessmentReferenceVersion | None = None
+    checked_evidence: tuple[PackageMatchEvidence, ...] = ()
+    findings: tuple[HalalIngredientFinding, ...] = ()
+
+    def __post_init__(self) -> None:
+        if (
+            self.status is HalalIngredientAssessmentStatus.COMPLETED
+            and self.reason is not None
+        ):
+            raise ValueError("COMPLETED evaluations require a null reason")
+        if (
+            self.status is HalalIngredientAssessmentStatus.NOT_ASSESSED
+            and self.reason is None
+        ):
+            raise ValueError("NOT_ASSESSED evaluations require a reason")
+
+
+class HalalDeterministicMatcher(Protocol):
+    def match(
+        self,
+        *,
+        ingredient_text: SourcedValue[str],
+        record: ExternalPackageRecord,
+        reference_data: ActiveHalalReferenceData,
+        engine_version: str,
+    ) -> tuple[HalalIngredientFinding, ...]: ...
+
+
+class HalalIngredientAssessmentCache(Protocol):
+    def get(self, key: str) -> HalalIngredientAssessmentEvaluation | None: ...
+    def set(self, key: str, value: HalalIngredientAssessmentEvaluation) -> None: ...
+
+
+class HalalIngredientAssessmentEvaluator(Protocol):
+    def evaluate(
+        self, record: ExternalPackageRecord
+    ) -> HalalIngredientAssessmentEvaluation: ...
+
+
+@dataclass(frozen=True, slots=True)
+class _HalalMatchCandidate:
+    mapping: HalalReferenceLexicalMapping
+    normalized_start: int
+    normalized_end: int
+
+
+class DefaultHalalDeterministicMatcher:
+    def match(
+        self,
+        *,
+        ingredient_text: SourcedValue[str],
+        record: ExternalPackageRecord,
+        reference_data: ActiveHalalReferenceData,
+        engine_version: str,
+    ) -> tuple[HalalIngredientFinding, ...]:
+        source_text = ingredient_text.value
+        if not source_text or not _is_english_evidence(ingredient_text):
+            return ()
+
+        normalized_source = normalize_english_text(source_text)
+        halal_mappings_by_concept = {
+            hm.concept_id: hm for hm in reference_data.halal_ingredient_mappings
+        }
+
+        exclusion_intervals: list[tuple[str, int, int]] = []
+        for exclusion in reference_data.exclusions:
+            if exclusion.language.strip().lower() != "en":
+                continue
+            phrase = normalized_phrase(exclusion.excluded_text)
+            exclusion_intervals.extend(
+                (exclusion.concept_id, start, end)
+                for start, end in find_normalized_phrase(normalized_source.text, phrase)
+            )
+
+        candidates: list[_HalalMatchCandidate] = []
+
+        for mapping in reference_data.mappings:
+            if mapping.language.strip().lower() != "en":
+                continue
+
+            mapped_text = normalized_phrase(mapping.mapped_text)
+            if not mapped_text:
+                continue
+
+            for normalized_start, normalized_end in find_normalized_phrase(
+                normalized_source.text, mapped_text
+            ):
+                if any(
+                    exclusion_concept_id == mapping.concept_id
+                    and normalized_start >= exclusion_start
+                    and normalized_end <= exclusion_end
+                    for exclusion_concept_id, exclusion_start, exclusion_end in exclusion_intervals
+                ):
+                    continue
+                candidates.append(
+                    _HalalMatchCandidate(mapping, normalized_start, normalized_end)
+                )
+
+        candidates.sort(
+            key=lambda candidate: (
+                -sum(
+                    character != " "
+                    for character in normalized_source.text[
+                        candidate.normalized_start : candidate.normalized_end
+                    ]
+                ),
+                -(candidate.normalized_end - candidate.normalized_start),
+                candidate.normalized_start,
+                candidate.mapping.id,
+            )
+        )
+        accepted_candidates: list[_HalalMatchCandidate] = []
+        for candidate in candidates:
+            if any(
+                candidate.normalized_start < accepted.normalized_end
+                and accepted.normalized_start < candidate.normalized_end
+                for accepted in accepted_candidates
+            ):
+                continue
+            accepted_candidates.append(candidate)
+
+        findings: list[HalalIngredientFinding] = []
+        for candidate in accepted_candidates:
+            mapping = candidate.mapping
+            halal_mapping = halal_mappings_by_concept.get(mapping.concept_id)
+            if halal_mapping is None:
+                continue
+
+            start_index, end_index = normalized_source.source_span(
+                candidate.normalized_start, candidate.normalized_end
+            )
+            matched_text = source_text[start_index:end_index]
+            finding_id = (
+                f"finding-{reference_data.version.id}-{mapping.id}-{start_index}-{end_index}"
+            )
+            classification = halal_mapping.classification
+            citations = halal_mapping.citations
+            halal_mapping_id = halal_mapping.id
+            findings.append(
+                HalalIngredientFinding(
+                    id=finding_id,
+                    concept_id=mapping.concept_id,
+                    classification=classification,
+                    relationship_type=mapping.relationship_type,
+                    matched_text=matched_text,
+                    start_index=start_index,
+                    end_index=end_index,
+                    mapping_id=mapping.id,
+                    halal_mapping_id=halal_mapping_id,
+                    source_text=source_text,
+                    language=ingredient_text.language or mapping.language,
+                    citations=citations,
+                    source_field=ingredient_text.source_field,
+                    source_url=record.source_url,
+                    source_revision=record.source_revision,
+                    off_dataset_version_id=record.dataset_version.id,
+                    reference_dataset_version_id=reference_data.version.id,
+                    engine_version=engine_version,
+                )
+            )
+
+        findings.sort(key=lambda f: (f.start_index, f.end_index, f.mapping_id or ""))
+        return tuple(findings)
+
+
+def _combine_halal_field_findings(
+    field_findings: tuple[tuple[HalalIngredientFinding, ...], ...],
+) -> tuple[HalalIngredientFinding, ...]:
+    combined: list[HalalIngredientFinding] = []
+    base_id_occurrences: dict[str, int] = {}
+    used_ids: set[str] = set()
+    for findings in field_findings:
+        for finding in findings:
+            occurrence = base_id_occurrences.get(finding.id, 0) + 1
+            base_id_occurrences[finding.id] = occurrence
+            finding_id = finding.id
+            if occurrence > 1 or finding_id in used_ids:
+                finding_id = _finding_collision_id(
+                    finding.id,
+                    source_field=finding.source_field,
+                    occurrence=occurrence,
+                )
+                while finding_id in used_ids:
+                    occurrence += 1
+                    base_id_occurrences[finding.id] = occurrence
+                    finding_id = _finding_collision_id(
+                        finding.id,
+                        source_field=finding.source_field,
+                        occurrence=occurrence,
+                    )
+                finding = replace(finding, id=finding_id)
+            used_ids.add(finding_id)
+            combined.append(finding)
+    return tuple(combined)
+
+
+def _determine_halal_outcome(
+    findings: tuple[HalalIngredientFinding, ...],
+) -> HalalIngredientAssessmentOutcome:
+    if any(
+        f.classification == HalalClassification.EXPLICIT_PROHIBITED
+        for f in findings
+    ):
+        return HalalIngredientAssessmentOutcome.EXPLICIT_PROHIBITED_INGREDIENT_DECLARED
+    if any(
+        f.classification == HalalClassification.SOURCE_AMBIGUOUS
+        for f in findings
+    ):
+        return HalalIngredientAssessmentOutcome.SOURCE_AMBIGUOUS
+    return (
+        HalalIngredientAssessmentOutcome.NO_NON_HALAL_INGREDIENT_DETECTED_IN_READABLE_LABEL
+    )
+
+
+def _invalid_cached_halal_evaluation_category(
+    evaluation: HalalIngredientAssessmentEvaluation,
+    *,
+    record: ExternalPackageRecord,
+    checked_evidence: tuple[PackageMatchEvidence, ...],
+    reference_data: ActiveHalalReferenceData,
+    engine_version: str,
+) -> str | None:
+    if evaluation.engine_version != engine_version:
+        return "engine_context"
+    if evaluation.reference_dataset_version != reference_data.version:
+        return "reference_context"
+    if evaluation.checked_evidence != checked_evidence:
+        return "checked_evidence"
+
+    eligible_evidence = {
+        (value.source_field, value.value)
+        for value in record.ingredient_texts
+        if _is_english_evidence(value) and value.value and value.value.strip()
+    }
+    if evaluation.status is HalalIngredientAssessmentStatus.NOT_ASSESSED:
+        if (
+            evaluation.reason
+            is HalalIngredientAssessmentReason.EVIDENCE_UNAVAILABLE
+            and evaluation.evidence_coverage is EvidenceCoverageState.NOT_ASSESSED
+            and evaluation.outcome is HalalIngredientAssessmentOutcome.NOT_ASSESSED
+            and not evaluation.findings
+            and not eligible_evidence
+        ):
+            return None
+        return "not_assessed_state"
+
+    if (
+        evaluation.status is not HalalIngredientAssessmentStatus.COMPLETED
+        or evaluation.reason is not None
+        or evaluation.evidence_coverage is not EvidenceCoverageState.PARTIAL
+    ):
+        return "completed_state"
+
+    finding_ids = [finding.id for finding in evaluation.findings]
+    if len(finding_ids) != len(set(finding_ids)):
+        return "finding_ids"
+
+    mappings_by_id = {mapping.id: mapping for mapping in reference_data.mappings}
+    halal_mappings_by_concept = {
+        hm.concept_id: hm for hm in reference_data.halal_ingredient_mappings
+    }
+    base_id_occurrences: dict[str, int] = {}
+    for finding in evaluation.findings:
+        mapping = mappings_by_id.get(finding.mapping_id or "")
+        halal_mapping = halal_mappings_by_concept.get(finding.concept_id)
+        base_id = (
+            f"finding-{reference_data.version.id}-{finding.mapping_id}-"
+            f"{finding.start_index}-{finding.end_index}"
+        )
+        occurrence = base_id_occurrences.get(base_id, 0) + 1
+        base_id_occurrences[base_id] = occurrence
+        expected_finding_id = (
+            base_id
+            if occurrence == 1
+            else _finding_collision_id(
+                base_id,
+                source_field=finding.source_field,
+                occurrence=occurrence,
+            )
+        )
+        if (
+            mapping is None
+            or halal_mapping is None
+            or finding.id != expected_finding_id
+            or mapping.concept_id != finding.concept_id
+            or finding.relationship_type != mapping.relationship_type
+            or finding.halal_mapping_id != halal_mapping.id
+            or finding.classification != halal_mapping.classification
+            or finding.citations != halal_mapping.citations
+            or (finding.source_field, finding.source_text) not in eligible_evidence
+            or finding.source_text is None
+            or finding.start_index < 0
+            or finding.end_index <= finding.start_index
+            or finding.source_text[finding.start_index : finding.end_index]
+            != finding.matched_text
+            or finding.source_url != record.source_url
+            or finding.source_revision != record.source_revision
+            or finding.off_dataset_version_id != record.dataset_version.id
+            or finding.reference_dataset_version_id != reference_data.version.id
+            or finding.engine_version != engine_version
+        ):
+            return "finding_provenance"
+
+    expected_outcome = _determine_halal_outcome(evaluation.findings)
+    if evaluation.outcome != expected_outcome:
+        return "halal_outcome"
+    return None
+
+
+class DisabledHalalIngredientAssessmentEvaluator:
+    def evaluate(
+        self, record: ExternalPackageRecord
+    ) -> HalalIngredientAssessmentEvaluation:
+        return HalalIngredientAssessmentEvaluation(
+            status=HalalIngredientAssessmentStatus.NOT_ASSESSED,
+            reason=HalalIngredientAssessmentReason.FEATURE_DISABLED,
+            outcome=HalalIngredientAssessmentOutcome.NOT_ASSESSED,
+            evidence_coverage=EvidenceCoverageState.NOT_ASSESSED,
+            engine_version=None,
+            reference_dataset_version=None,
+            checked_evidence=(),
+            findings=(),
+        )
+
+
+class StandardHalalIngredientAssessmentEvaluator:
+    def __init__(
+        self,
+        *,
+        enabled: bool = False,
+        engine_version: str = "0.1.0",
+        reference_data: HalalReferenceDataAccess | None = None,
+        matcher: HalalDeterministicMatcher | None = None,
+        cache: HalalIngredientAssessmentCache | None = None,
+    ) -> None:
+        self._enabled = enabled
+        self._engine_version = engine_version
+        self._reference_data = reference_data
+        self._matcher = matcher or DefaultHalalDeterministicMatcher()
+        self._cache = cache
+
+    def evaluate(
+        self, record: ExternalPackageRecord
+    ) -> HalalIngredientAssessmentEvaluation:
+        if not self._enabled:
+            return HalalIngredientAssessmentEvaluation(
+                status=HalalIngredientAssessmentStatus.NOT_ASSESSED,
+                reason=HalalIngredientAssessmentReason.FEATURE_DISABLED,
+                outcome=HalalIngredientAssessmentOutcome.NOT_ASSESSED,
+                evidence_coverage=EvidenceCoverageState.NOT_ASSESSED,
+                engine_version=None,
+                reference_dataset_version=None,
+                checked_evidence=(),
+                findings=(),
+            )
+        active_data: ActiveHalalReferenceData | None = None
+        checked_evidence: tuple[PackageMatchEvidence, ...] = ()
+        try:
+            active_data = (
+                self._reference_data.get_active_data()
+                if self._reference_data is not None
+                else None
+            )
+            if active_data is None:
+                return HalalIngredientAssessmentEvaluation(
+                    status=HalalIngredientAssessmentStatus.NOT_ASSESSED,
+                    reason=HalalIngredientAssessmentReason.REFERENCE_UNAVAILABLE,
+                    outcome=HalalIngredientAssessmentOutcome.NOT_ASSESSED,
+                    evidence_coverage=EvidenceCoverageState.NOT_ASSESSED,
+                    engine_version=self._engine_version,
+                    reference_dataset_version=None,
+                    checked_evidence=(),
+                    findings=(),
+                )
+
+            english_ingredient_texts = tuple(
+                ingredient_text
+                for ingredient_text in record.ingredient_texts
+                if _is_english_evidence(ingredient_text)
+                and ingredient_text.value
+                and ingredient_text.value.strip()
+            )
+            if not english_ingredient_texts:
+                return HalalIngredientAssessmentEvaluation(
+                    status=HalalIngredientAssessmentStatus.NOT_ASSESSED,
+                    reason=HalalIngredientAssessmentReason.EVIDENCE_UNAVAILABLE,
+                    outcome=HalalIngredientAssessmentOutcome.NOT_ASSESSED,
+                    evidence_coverage=EvidenceCoverageState.NOT_ASSESSED,
+                    engine_version=self._engine_version,
+                    reference_dataset_version=active_data.version,
+                    checked_evidence=(),
+                    findings=(),
+                )
+
+            checked_evidence = tuple(
+                _evidence_from_sourced(record, "ingredient_text", ingredient_text)
+                for ingredient_text in english_ingredient_texts
+            )
+
+            cache_key: str | None = None
+            if self._cache is not None:
+                from lifegoods.package_matches.cache import (
+                    halal_assessment_cache_key_for_record,
+                )
+
+                cache_key = halal_assessment_cache_key_for_record(
+                    record,
+                    reference_dataset_version=active_data.version,
+                    engine_version=self._engine_version,
+                )
+                cached_evaluation = self._cache.get(cache_key)
+                if cached_evaluation is not None:
+                    invalid_category = _invalid_cached_halal_evaluation_category(
+                        cached_evaluation,
+                        record=record,
+                        checked_evidence=checked_evidence,
+                        reference_data=active_data,
+                        engine_version=self._engine_version,
+                    )
+                    if invalid_category is None:
+                        return cached_evaluation
+                    logger.warning(
+                        "Halal Assessment Evaluation cache entry rejected",
+                        extra={
+                            "event": "halal_assessment_cache_invalid",
+                            "operation": "validate_halal_assessment_evaluation",
+                            "failure_category": invalid_category,
+                        },
+                    )
+
+            findings = _combine_halal_field_findings(
+                tuple(
+                    self._matcher.match(
+                        ingredient_text=ingredient_text,
+                        record=record,
+                        reference_data=active_data,
+                        engine_version=self._engine_version,
+                    )
+                    for ingredient_text in english_ingredient_texts
+                )
+            )
+            outcome = _determine_halal_outcome(findings)
+
+            evaluation = HalalIngredientAssessmentEvaluation(
+                status=HalalIngredientAssessmentStatus.COMPLETED,
+                reason=None,
+                outcome=outcome,
+                evidence_coverage=EvidenceCoverageState.PARTIAL,
+                engine_version=self._engine_version,
+                reference_dataset_version=active_data.version,
+                checked_evidence=checked_evidence,
+                findings=findings,
+            )
+            if self._cache is not None and cache_key is not None:
+                self._cache.set(cache_key, evaluation)
+            return evaluation
+        except Exception as error:
+            logger.warning(
+                "Halal Ingredient Assessment Evaluation failed",
+                extra={
+                    "event": "halal_ingredient_assessment_failed",
+                    "operation": "evaluate_package_match",
+                    "failure_category": "evaluation_error",
+                    "error_category": type(error).__name__,
+                },
+            )
+            return HalalIngredientAssessmentEvaluation(
+                status=HalalIngredientAssessmentStatus.NOT_ASSESSED,
+                reason=HalalIngredientAssessmentReason.ASSESSMENT_FAILED,
+                outcome=HalalIngredientAssessmentOutcome.NOT_ASSESSED,
+                evidence_coverage=EvidenceCoverageState.NOT_ASSESSED,
+                engine_version=self._engine_version,
+                reference_dataset_version=(
+                    active_data.version if active_data is not None else None
+                ),
+                checked_evidence=checked_evidence,
+                findings=(),
             )
