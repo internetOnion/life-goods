@@ -5,9 +5,8 @@ import { BrowserRouter } from "react-router"
 
 import { client } from "./api/generated/client.gen"
 import { App } from "./app/App"
-import { isMvpDemoMode } from "./config/mvpDemoMode"
-import { createPackageMatchLookup } from "./features/package-match/api"
-import { createPackageSearchLookup } from "./features/search/api"
+import { lookupPackageMatches } from "./features/package-match/api"
+import { lookupPackageSearch } from "./features/search/api"
 import { i18nReady } from "./i18n"
 import "./styles.css"
 
@@ -21,9 +20,6 @@ const queryClient = new QueryClient({
         queries: { retry: false },
     },
 })
-const demoMode = isMvpDemoMode()
-const packageMatchLookup = createPackageMatchLookup(demoMode)
-const packageSearchLookup = createPackageSearchLookup(demoMode)
 
 async function renderApp() {
     await i18nReady
@@ -32,9 +28,8 @@ async function renderApp() {
             <BrowserRouter>
                 <QueryClientProvider client={queryClient}>
                     <App
-                        lookup={packageMatchLookup}
-                        searchLookup={packageSearchLookup}
-                        demoMode={demoMode}
+                        lookup={lookupPackageMatches}
+                        searchLookup={lookupPackageSearch}
                     />
                 </QueryClientProvider>
             </BrowserRouter>
