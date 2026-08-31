@@ -1,3 +1,4 @@
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_OPEN_FOOD_FACTS_IMAGE_BASE_URL = "https://images.openfoodfacts.org"
@@ -27,6 +28,7 @@ class Settings(BaseSettings):
         env_prefix="LIFEGOODS_",
         env_file=(".env", "backend/.env"),
         extra="ignore",
+        populate_by_name=True,
     )
 
     database_url: str = "postgresql+psycopg://lifegoods:lifegoods@localhost:5433/lifegoods"
@@ -52,11 +54,19 @@ class Settings(BaseSettings):
     off_mongodb_timeout_ms: int = DEFAULT_OFF_MONGODB_TIMEOUT_MS
     allergen_assessments_enabled: bool = False
     assessment_engine_version: str = DEFAULT_ASSESSMENT_ENGINE_VERSION
-    halal_assessments_enabled: bool = False
-    halal_ingredient_assessments_enabled: bool = False
-    halal_assessment_engine_version: str = DEFAULT_ASSESSMENT_ENGINE_VERSION
-    halal_ingredient_assessment_engine_version: str = (
-        DEFAULT_ASSESSMENT_ENGINE_VERSION
+    halal_ingredient_assessments_enabled: bool = Field(
+        default=False,
+        validation_alias=AliasChoices(
+            "LIFEGOODS_HALAL_INGREDIENT_ASSESSMENTS_ENABLED",
+            "LIFEGOODS_HALAL_ASSESSMENTS_ENABLED",
+        ),
+    )
+    halal_ingredient_assessment_engine_version: str = Field(
+        default=DEFAULT_ASSESSMENT_ENGINE_VERSION,
+        validation_alias=AliasChoices(
+            "LIFEGOODS_HALAL_INGREDIENT_ASSESSMENT_ENGINE_VERSION",
+            "LIFEGOODS_HALAL_ASSESSMENT_ENGINE_VERSION",
+        ),
     )
     redis_url: str = DEFAULT_REDIS_URL
     redis_timeout_seconds: float = DEFAULT_REDIS_TIMEOUT_SECONDS

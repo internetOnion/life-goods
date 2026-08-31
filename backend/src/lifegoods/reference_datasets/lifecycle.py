@@ -101,6 +101,10 @@ def activate_reference_dataset_version(
         raise ReferenceDatasetValidationError(
             f"Reference dataset version '{version_id}' is missing required metadata"
         )
+    if not version.project_approver or version.reviewed_at is None:
+        raise ReferenceDatasetApprovalError(
+            "Activation requires immutable qualified release review metadata"
+        )
 
     adapter = get_reference_dataset_kind_adapter(version.dataset_kind)
     activation_errors = adapter.activation_errors(session, version)
@@ -143,7 +147,9 @@ def activate_reference_dataset_version(
                 )
                 if current_version is not None:
                     current_version.status = "SUPERSEDED"
-                pointer.previous_version_id = current_active_id
+                pointer.previous_version_id = (
+                    current_active_id if current_active_id is not None else None
+                )
                 pointer.active_version_id = version_id
             pointer.activated_at = utc_now
             pointer.activated_by = final_approver
@@ -161,10 +167,6 @@ def activate_reference_dataset_version(
 
         target_version.status = "ACTIVE"
         target_version.activated_at = utc_now
-        target_version.project_approver = final_approver
-        target_version.review_kind = final_review_kind
-        if target_version.reviewed_at is None:
-            target_version.reviewed_at = utc_now
 
         session.commit()
 
@@ -191,6 +193,7 @@ def rollback_reference_dataset_version(
     *,
     dataset_kind: str | ConditionFamily | ReferenceDatasetKind = ConditionFamily.FOOD_ALLERGEN,
     approver: str | None = None,
+    review_kind: str | ReferenceReviewKind | None = None,
     now: Callable[[], datetime] | None = None,
 ) -> ReferenceDatasetVersionRecord:
     resolved_kind = (
@@ -200,15 +203,49 @@ def rollback_reference_dataset_version(
     )
     utc_now = (now or (lambda: datetime.now(UTC)))()
 
-    pointer = _get_locked_pointer(session, resolved_kind)
-
-    if pointer is None or pointer.previous_version_id is None:
-        raise ReferenceDatasetRollbackError(
-            "No previous reference dataset version is available for rollback"
+    if not approver or not str(approver).strip():
+        raise ReferenceDatasetApprovalError(
+            "Rollback requires recorded project-maintainer approval"
+        )
+    resolved_review_kind = (
+        review_kind.value if isinstance(review_kind, ReferenceReviewKind) else review_kind
+    )
+    final_review_kind = (
+        resolved_review_kind or ReferenceReviewKind.PROJECT_MAINTAINER_APPROVAL.value
+    )
+    if final_review_kind != ReferenceReviewKind.PROJECT_MAINTAINER_APPROVAL.value:
+        raise ReferenceDatasetApprovalError(
+            "Rollback requires PROJECT_MAINTAINER_APPROVAL"
         )
 
-    previous_id = pointer.previous_version_id
+    pointer = _get_locked_pointer(session, resolved_kind)
+
+    if pointer is None or pointer.active_version_id is None:
+        raise ReferenceDatasetRollbackError(
+            "No active reference dataset version is available for rollback"
+        )
+
     current_id = pointer.active_version_id
+    previous_id = pointer.previous_version_id
+
+    current_version = (
+        session.query(ReferenceDatasetVersionRecord).filter_by(id=current_id).first()
+    )
+
+    if previous_id is None:
+        if current_version is None:
+            raise ReferenceDatasetRollbackError(
+                f"Active reference dataset version '{current_id}' does not exist"
+            )
+        current_version.status = "READY"
+        pointer.active_version_id = None
+        pointer.previous_version_id = None
+        pointer.activated_at = utc_now
+        pointer.review_kind = final_review_kind
+        pointer.activated_by = approver
+        session.commit()
+        session.refresh(current_version)
+        return current_version
 
     previous_version = (
         session.query(ReferenceDatasetVersionRecord).filter_by(id=previous_id).first()
@@ -228,7 +265,6 @@ def rollback_reference_dataset_version(
             f"Previous reference dataset version '{previous_id}' is invalid or failed"
         )
 
-    current_version = session.query(ReferenceDatasetVersionRecord).filter_by(id=current_id).first()
     if current_version is not None:
         current_version.status = "SUPERSEDED"
 
@@ -238,8 +274,8 @@ def rollback_reference_dataset_version(
     pointer.active_version_id = previous_id
     pointer.previous_version_id = None
     pointer.activated_at = utc_now
-    pointer.review_kind = previous_version.review_kind
-    pointer.activated_by = approver or previous_version.project_approver or pointer.activated_by
+    pointer.review_kind = final_review_kind
+    pointer.activated_by = approver
 
     session.commit()
     session.refresh(previous_version)

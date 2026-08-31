@@ -133,6 +133,34 @@ def get_package_matches(
             if candidate.allergen_assessment.reason is not None
         }
     )
+    halal_assessment_statuses = sorted(
+        {
+            str(candidate.halal_ingredient_assessment.status)
+            for candidate in result.candidates
+        }
+    )
+    halal_assessment_reasons = sorted(
+        {
+            str(candidate.halal_ingredient_assessment.reason)
+            for candidate in result.candidates
+            if candidate.halal_ingredient_assessment.reason is not None
+        }
+    )
+    halal_engine_versions = sorted(
+        {
+            candidate.halal_ingredient_assessment.engine_version
+            for candidate in result.candidates
+            if candidate.halal_ingredient_assessment.engine_version is not None
+        }
+    )
+    halal_reference_version_ids = sorted(
+        {
+            candidate.halal_ingredient_assessment.reference_dataset_version.id
+            for candidate in result.candidates
+            if candidate.halal_ingredient_assessment.reference_dataset_version
+            is not None
+        }
+    )
     logger.info(
         "Package Match lookup completed",
         extra={
@@ -147,6 +175,18 @@ def get_package_matches(
             ),
             "assessment_status": ",".join(assessment_statuses) or "NO_CANDIDATE",
             "assessment_reason": ",".join(assessment_reasons) or None,
+            "halal_ingredient_assessment_status": (
+                ",".join(halal_assessment_statuses) or "NO_CANDIDATE"
+            ),
+            "halal_ingredient_assessment_reason": (
+                ",".join(halal_assessment_reasons) or None
+            ),
+            "halal_ingredient_assessment_engine_version": (
+                ",".join(halal_engine_versions) or None
+            ),
+            "halal_ingredient_reference_dataset_version_id": (
+                ",".join(halal_reference_version_ids) or None
+            ),
         },
     )
     return PackageMatchesResponse(

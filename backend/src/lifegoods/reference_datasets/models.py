@@ -40,6 +40,19 @@ class ReferenceSourceRecord(Base):
     )
 
 
+class ReferenceDatasetVersionSourceRecord(Base):
+    __tablename__ = "reference_dataset_version_sources"
+
+    dataset_version_id: Mapped[str] = mapped_column(
+        ForeignKey("reference_dataset_versions.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    source_id: Mapped[str] = mapped_column(
+        ForeignKey("reference_sources.id", ondelete="RESTRICT"),
+        primary_key=True,
+    )
+
+
 class ReferenceDatasetVersionRecord(Base):
     __tablename__ = "reference_dataset_versions"
     __table_args__ = (
@@ -102,6 +115,11 @@ class ReferenceDatasetVersionRecord(Base):
         back_populates="dataset_version",
         cascade="all, delete-orphan",
         overlaps="concept,halal_ingredient_mappings",
+    )
+    sources: Mapped[list[ReferenceSourceRecord]] = relationship(
+        secondary="reference_dataset_version_sources",
+        order_by="ReferenceSourceRecord.id",
+        viewonly=True,
     )
 
 
@@ -355,9 +373,9 @@ class ReferenceDatasetPointerRecord(Base):
     )
 
     dataset_kind: Mapped[str] = mapped_column(String(32), primary_key=True)
-    active_version_id: Mapped[str] = mapped_column(
+    active_version_id: Mapped[str | None] = mapped_column(
         ForeignKey("reference_dataset_versions.id", ondelete="RESTRICT"),
-        nullable=False,
+        nullable=True,
     )
     previous_version_id: Mapped[str | None] = mapped_column(
         ForeignKey("reference_dataset_versions.id", ondelete="RESTRICT"),
@@ -367,7 +385,7 @@ class ReferenceDatasetPointerRecord(Base):
     activated_by: Mapped[str] = mapped_column(String(255), nullable=False)
     review_kind: Mapped[str] = mapped_column(String(64), nullable=False)
 
-    active_version: Mapped[ReferenceDatasetVersionRecord] = relationship(
+    active_version: Mapped[ReferenceDatasetVersionRecord | None] = relationship(
         foreign_keys=[active_version_id]
     )
     previous_version: Mapped[ReferenceDatasetVersionRecord | None] = relationship(

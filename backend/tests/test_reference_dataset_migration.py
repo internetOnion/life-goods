@@ -6,6 +6,51 @@ from alembic.config import Config
 from sqlalchemy import create_engine, exc, inspect, text
 
 
+def test_rollout_controls_migration_tracks_sources_and_inactive_pointer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    database_path = tmp_path / "rollout-controls.db"
+    database_url = f"sqlite+pysqlite:///{database_path}"
+    monkeypatch.setenv("LIFEGOODS_DATABASE_URL", database_url)
+    config = Config("backend/alembic.ini")
+    command.upgrade(config, "head")
+
+    engine = create_engine(database_url)
+    schema = inspect(engine)
+    assert "reference_dataset_version_sources" in schema.get_table_names()
+    active_column = next(
+        column
+        for column in schema.get_columns("reference_dataset_pointers")
+        if column["name"] == "active_version_id"
+    )
+    assert active_column["nullable"] is True
+
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO reference_dataset_pointers "
+                "(dataset_kind, active_version_id, previous_version_id, activated_at, "
+                "activated_by, review_kind) VALUES "
+                "('HALAL_INGREDIENT', NULL, NULL, '2026-08-31 10:00:00', "
+                "'operator@lifegoods.org', 'PROJECT_MAINTAINER_APPROVAL')"
+            )
+        )
+
+    command.downgrade(config, "0008")
+    downgraded = inspect(engine)
+    assert "reference_dataset_version_sources" not in downgraded.get_table_names()
+    active_column = next(
+        column
+        for column in downgraded.get_columns("reference_dataset_pointers")
+        if column["name"] == "active_version_id"
+    )
+    assert active_column["nullable"] is False
+    with engine.begin() as connection:
+        assert connection.execute(
+            text("SELECT COUNT(*) FROM reference_dataset_pointers")
+        ).scalar_one() == 0
+
+
 def test_matching_hardening_migration_enforces_exclusions_and_derivative_links(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

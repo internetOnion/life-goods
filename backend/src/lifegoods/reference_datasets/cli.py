@@ -36,6 +36,20 @@ def _json_default(value: object) -> str:
     raise TypeError(f"Cannot serialize {type(value).__name__}")
 
 
+def _source_output(source: Any) -> dict[str, Any]:
+    return {
+        "id": source.id,
+        "name": source.name,
+        "source_type": source.source_type,
+        "source_url": source.source_url,
+        "jurisdiction": source.jurisdiction,
+        "publisher": source.publisher,
+        "edition": source.edition,
+        "licensing_decision": source.licensing_decision,
+        "terms_version": source.terms_version,
+    }
+
+
 def validate_file(bundle_path: str | Path) -> dict[str, Any]:
     bundle = load_reference_bundle(bundle_path)
     report = validate_bundle(bundle)
@@ -48,8 +62,12 @@ def validate_file(bundle_path: str | Path) -> dict[str, Any]:
         "dataset_kind": bundle.manifest.dataset_kind,
         "edition": bundle.manifest.edition,
         "jurisdiction": bundle.manifest.jurisdiction,
+        "licensing_decision": bundle.manifest.licensing_decision,
+        "review_kind": bundle.manifest.review_kind,
+        "project_approver": bundle.manifest.project_approver,
         "sha256": report.sha256,
         "source_count": len(bundle.sources),
+        "sources": [_source_output(source) for source in bundle.sources],
         **adapter.bundle_counts(bundle),
     }
 
@@ -65,6 +83,7 @@ def import_file(session: Session, bundle_path: str | Path) -> dict[str, Any]:
         "edition": record.edition,
         "jurisdiction": record.jurisdiction,
         "source_url": record.source_url,
+        "licensing_decision": record.licensing_decision,
         "sha256": record.sha256,
         "review_kind": record.review_kind,
         "project_approver": record.project_approver,
@@ -88,13 +107,17 @@ def _format_version_output(
         "edition": record.edition,
         "jurisdiction": record.jurisdiction,
         "source_url": record.source_url,
+        "licensing_decision": record.licensing_decision,
         "sha256": record.sha256,
         "review_kind": record.review_kind,
         "project_approver": record.project_approver,
         "retrieved_at": record.retrieved_at,
         "reviewed_at": record.reviewed_at,
         "activated_at": record.activated_at,
+        "active_version_id": pointer.active_version_id if pointer else None,
         "previous_version_id": pointer.previous_version_id if pointer else None,
+        "activated_by": pointer.activated_by if pointer else None,
+        "activation_review_kind": pointer.review_kind if pointer else None,
         "immutable": record.immutable,
         **adapter.version_counts(record),
     }
@@ -107,6 +130,8 @@ def activate_version(
     approver: str | None = None,
     review_kind: str | None = None,
 ) -> dict[str, Any]:
+    if review_kind != "PROJECT_MAINTAINER_APPROVAL":
+        raise ValueError("Activation requires PROJECT_MAINTAINER_APPROVAL")
     record = activate_reference_dataset_version(
         session,
         version_id,
@@ -122,11 +147,13 @@ def rollback_version(
     *,
     dataset_kind: str = "FOOD_ALLERGEN",
     approver: str | None = None,
+    review_kind: str | None = None,
 ) -> dict[str, Any]:
     record = rollback_reference_dataset_version(
         session,
         dataset_kind=dataset_kind,
         approver=approver,
+        review_kind=review_kind,
     )
     pointer = get_active_reference_dataset_pointer(session, record.dataset_kind)
     return _format_version_output(record, pointer)
@@ -140,6 +167,20 @@ def status_version(
     pointer = get_active_reference_dataset_pointer(session, dataset_kind)
     if pointer is None:
         return None
+    if pointer.active_version_id is None:
+        return {
+            "dataset_kind": pointer.dataset_kind,
+            "active_version_id": None,
+            "previous_version_id": pointer.previous_version_id,
+            "activated_at": pointer.activated_at,
+            "activated_by": pointer.activated_by,
+            "review_kind": pointer.review_kind,
+            "activation_review_kind": pointer.review_kind,
+            "release_review_kind": None,
+            "release_project_approver": None,
+            "status": "INACTIVE",
+            "sha256": None,
+        }
     record = (
         session.query(ReferenceDatasetVersionRecord).filter_by(id=pointer.active_version_id).first()
     )
@@ -152,6 +193,9 @@ def status_version(
         "activated_at": pointer.activated_at,
         "activated_by": pointer.activated_by,
         "review_kind": pointer.review_kind,
+        "activation_review_kind": pointer.review_kind,
+        "release_review_kind": record.review_kind,
+        "release_project_approver": record.project_approver,
         "status": record.status,
         "sha256": record.sha256,
     }
@@ -192,6 +236,7 @@ def inspect_version(session: Session, version_id: str) -> dict[str, Any]:
         "edition": record.edition,
         "jurisdiction": record.jurisdiction,
         "source_url": record.source_url,
+        "licensing_decision": record.licensing_decision,
         "sha256": record.sha256,
         "status": record.status,
         "review_kind": record.review_kind,
@@ -201,6 +246,7 @@ def inspect_version(session: Session, version_id: str) -> dict[str, Any]:
         "immutable": record.immutable,
         "validation_errors": record.validation_errors,
         "validation_history": record.validation_history,
+        "sources": [_source_output(source) for source in record.sources],
         **adapter.inspect_records(record),
     }
 
@@ -230,16 +276,13 @@ def main(argv: list[str] | None = None) -> int:
     activate_parser.add_argument("version_id", help="Reference dataset version ID")
     activate_parser.add_argument(
         "--approver",
-        default=None,
+        required=True,
         help="Recorded project maintainer approver",
     )
     activate_parser.add_argument(
         "--review-kind",
-        default=None,
-        help=(
-            "Review kind (FOOD_DOMAIN_REVIEW, HALAL_DOMAIN_REVIEW, "
-            "or PROJECT_MAINTAINER_APPROVAL)"
-        ),
+        required=True,
+        help="Operational review kind (PROJECT_MAINTAINER_APPROVAL)",
     )
 
     rollback_parser = subparsers.add_parser(
@@ -252,8 +295,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     rollback_parser.add_argument(
         "--approver",
-        default=None,
+        required=True,
         help="Recorded operator requesting rollback",
+    )
+    rollback_parser.add_argument(
+        "--review-kind",
+        required=True,
+        help="Rollback approval kind (PROJECT_MAINTAINER_APPROVAL)",
     )
 
     status_parser = subparsers.add_parser(
@@ -299,6 +347,7 @@ def main(argv: list[str] | None = None) -> int:
                     session,
                     dataset_kind=args.dataset_kind,
                     approver=args.approver,
+                    review_kind=args.review_kind,
                 )
             elif args.command == "status":
                 output = status_version(

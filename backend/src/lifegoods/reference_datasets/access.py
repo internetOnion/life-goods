@@ -136,7 +136,7 @@ class DatabaseAllergenReferenceDataAccess:
                     if pointer.activated_at.tzinfo is None
                     else pointer.activated_at
                 )
-                cache_key = (version.id, activated_at, pointer.review_kind)
+                cache_key = (version.id, activated_at, version.review_kind)
                 with self._cache_lock:
                     cached = self._cache.get(cache_key)
                 if cached is not None:
@@ -148,7 +148,7 @@ class DatabaseAllergenReferenceDataAccess:
                     retrieved_at=retrieved_at,
                     activated_at=activated_at,
                     sha256=version.sha256,
-                    review_kind=pointer.review_kind,
+                    review_kind=version.review_kind,
                     dataset_kind=pointer.dataset_kind,
                 )
 
@@ -381,7 +381,7 @@ class DatabaseHalalReferenceDataAccess:
                     if pointer.activated_at.tzinfo is None
                     else pointer.activated_at
                 )
-                cache_key = (version.id, activated_at, pointer.review_kind)
+                cache_key = (version.id, activated_at, version.review_kind)
                 with self._cache_lock:
                     cached = self._cache.get(cache_key)
                 if cached is not None:
@@ -393,7 +393,7 @@ class DatabaseHalalReferenceDataAccess:
                     retrieved_at=retrieved_at,
                     activated_at=activated_at,
                     sha256=version.sha256,
-                    review_kind=pointer.review_kind,
+                    review_kind=version.review_kind,
                     dataset_kind=pointer.dataset_kind,
                 )
 

@@ -184,19 +184,13 @@ def create_app(
     else:
         resolved_halal_cache = None
 
-    is_halal_enabled = (
-        resolved_settings.halal_assessments_enabled
-        or resolved_settings.halal_ingredient_assessments_enabled
-    )
-    halal_engine_version = (
-        resolved_settings.halal_assessment_engine_version
-        or resolved_settings.halal_ingredient_assessment_engine_version
-    )
     resolved_halal_evaluator = (
         halal_evaluator
         or StandardHalalIngredientAssessmentEvaluator(
-            enabled=is_halal_enabled,
-            engine_version=halal_engine_version,
+            enabled=resolved_settings.halal_ingredient_assessments_enabled,
+            engine_version=(
+                resolved_settings.halal_ingredient_assessment_engine_version
+            ),
             reference_data=resolved_halal_reference_data,
             cache=resolved_halal_cache,
         )

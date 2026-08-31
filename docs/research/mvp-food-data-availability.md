@@ -20,15 +20,15 @@ Do **not** ship any of the following claims from these sources alone: “safe,�
 
 ## Source suitability summary
 
-| Source | What the MVP can use | What it cannot establish | MVP treatment |
-|---|---|---|---|
-| Open Food Facts | Barcode lookup, product name, brands, label languages, countries sold, photos, ingredient transcription, allergen/traces tags, nutrition, categories, packaging metadata | Completeness, accuracy, current formulation, the photographed physical package, legal compliance, manufacturing origin, or absence of allergens | Use as a seed/cache and show provenance/freshness. Fall back to package photos. Never interpret a missing field as a negative result. |
-| Codex CXS 1-1985 | International baseline for pre-packaged food labelling and allergen declarations | Cambodian law or a product-specific safety verdict | Curate versioned allergen rules and vocabulary locally; attach the Codex edition and section to derived claims. |
-| Codex GSFA | INS/name/synonym, functional class, food-category provisions, maximum-use provisions | Whether Cambodia adopted a provision, whether a particular product category mapping is correct, or whether an additive's actual concentration complies | Seed a versioned additive and provision table. Only make a provision assessment after category, jurisdiction, effective date, and (where needed) concentration are known. |
-| EFSA / OpenFoodTox | Substance identifiers, EFSA assessment references, reference values and hazard summaries | Cambodian authorization, product-level risk, or exposure from a label that omits concentration | Optional explainer/reference layer, not the MVP compliance engine. |
-| Cambodian official sources | Khmer-label requirements, national standards/regulations, point lookup of a Cambodian product-registration mark | A complete, documented barcode-keyed food catalogue or machine-readable additive/allergen ruleset | Curate applicable rules manually with source, effective dates, and legal-review status. Use registration-mark lookup only when that mark is visible. |
-| Cambodia Halal authorities | Competent body, certification procedure and enforcement context | A verified certificate from a barcode or logo image alone | Store seal observation separately. Until an authoritative registry/feed is obtained, certificate verification must be manual or `NOT_ASSESSED`. |
-| GS1 / Verified by GS1 | GTIN/check-digit and licence/identity verification where available | Product manufacturing country or physical-package authenticity | Validate identifier syntax and optionally licence ownership; never infer origin from prefix. |
+| Source                     | What the MVP can use                                                                                                                                                     | What it cannot establish                                                                                                                               | MVP treatment                                                                                                                                                             |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Open Food Facts            | Barcode lookup, product name, brands, label languages, countries sold, photos, ingredient transcription, allergen/traces tags, nutrition, categories, packaging metadata | Completeness, accuracy, current formulation, the photographed physical package, legal compliance, manufacturing origin, or absence of allergens        | Use as a seed/cache and show provenance/freshness. Fall back to package photos. Never interpret a missing field as a negative result.                                     |
+| Codex CXS 1-1985           | International baseline for pre-packaged food labelling and allergen declarations                                                                                         | Cambodian law or a product-specific safety verdict                                                                                                     | Curate versioned allergen rules and vocabulary locally; attach the Codex edition and section to derived claims.                                                           |
+| Codex GSFA                 | INS/name/synonym, functional class, food-category provisions, maximum-use provisions                                                                                     | Whether Cambodia adopted a provision, whether a particular product category mapping is correct, or whether an additive's actual concentration complies | Seed a versioned additive and provision table. Only make a provision assessment after category, jurisdiction, effective date, and (where needed) concentration are known. |
+| EFSA / OpenFoodTox         | Substance identifiers, EFSA assessment references, reference values and hazard summaries                                                                                 | Cambodian authorization, product-level risk, or exposure from a label that omits concentration                                                         | Optional explainer/reference layer, not the MVP compliance engine.                                                                                                        |
+| Cambodian official sources | Khmer-label requirements, national standards/regulations, point lookup of a Cambodian product-registration mark                                                          | A complete, documented barcode-keyed food catalogue or machine-readable additive/allergen ruleset                                                      | Curate applicable rules manually with source, effective dates, and legal-review status. Use registration-mark lookup only when that mark is visible.                      |
+| Cambodia Halal authorities | Competent body, certification procedure and enforcement context                                                                                                          | A verified certificate from a barcode or logo image alone                                                                                              | Store seal observation separately. Until an authoritative registry/feed is obtained, certificate verification must be manual or `NOT_ASSESSED`.                           |
+| GS1 / Verified by GS1      | GTIN/check-digit and licence/identity verification where available                                                                                                       | Product manufacturing country or physical-package authenticity                                                                                         | Validate identifier syntax and optionally licence ownership; never infer origin from prefix.                                                                              |
 
 ## Open Food Facts audit
 
@@ -48,21 +48,21 @@ I queried the official structured search endpoint with `countries_tags_en=cambod
 
 Field presence among the 1,230 returned records:
 
-| Field/evidence | Records | Share |
-|---|---:|---:|
-| Product name | 1,085 | 88.2% |
-| Selected front image | 1,059 | 86.1% |
-| Any ingredient text | 238 | 19.3% |
-| Non-empty allergen tag list | 122 | 9.9% |
-| Non-empty trace tag list | 10 | 0.8% |
-| Non-empty nutrition object | 343 | 27.9% |
-| Brand | 426 | 34.6% |
-| Category | 291 | 23.7% |
-| Structured packaging data | 128 | 10.4% |
-| Khmer product name | 53 | 4.3% |
-| Khmer language tag | 68 | 5.5% |
-| Khmer ingredient text | 6 | 0.5% |
-| OFF `complete == 1` | 1 | 0.1% |
+| Field/evidence              | Records | Share |
+| --------------------------- | ------: | ----: |
+| Product name                |   1,085 | 88.2% |
+| Selected front image        |   1,059 | 86.1% |
+| Any ingredient text         |     238 | 19.3% |
+| Non-empty allergen tag list |     122 |  9.9% |
+| Non-empty trace tag list    |      10 |  0.8% |
+| Non-empty nutrition object  |     343 | 27.9% |
+| Brand                       |     426 | 34.6% |
+| Category                    |     291 | 23.7% |
+| Structured packaging data   |     128 | 10.4% |
+| Khmer product name          |      53 |  4.3% |
+| Khmer language tag          |      68 |  5.5% |
+| Khmer ingredient text       |       6 |  0.5% |
+| OFF `complete == 1`         |       1 |  0.1% |
 
 The mean OFF `completeness` value was approximately **0.306**. A separate image-metadata response showed selected ingredient-image keys for 189 records (15.4%) and nutrition-image keys for 196 (15.9%). Treat these two values as **lower bounds**, because OFF's search response exposed inconsistent legacy `images` and derived `selected_images` coverage; product-by-product reads are the reliable way to retrieve current selected image URLs. [Reproducible image-metadata query](https://world.openfoodfacts.org/api/v2/search?countries_tags_en=cambodia&page_size=0&sort_by=nothing&fields=code,images) and [OFF image-field documentation](https://openfoodfacts.github.io/openfoodfacts-server/api/how-to-download-images/).
 
@@ -123,6 +123,19 @@ The MISTI standards catalogue lists Cambodian standards, including food standard
 
 The CCF Department of Halal says it acts as secretariat to the Commission for Examination of Halal Products in Cambodia and investigates technical-standard/certification violations and misuse or expiry of Halal labels. The CCF also publishes the application Prakas. [CCF Department of Halal](https://www.ccfdg.gov.kh/en/about-ccf/department-of-halal/) and [CCF Prakas library](https://www.ccfdg.gov.kh/en/laws-regulations/prakas/).
 
+The reviewed English ingredient-screening release now records four source sets separately:
+
+- Cambodian Joint Prakas No. 090 (2020), published by the Ministry of Commerce and Ministry of Economy and Finance through CCF/CHSC, with the reuse decision `PUBLIC_GOVERNMENT_STANDARD`;
+- licensed OIC/SMIIC 1:2019, _General Requirements for Halal Food_, with the reuse decision `LICENSED_STANDARD`;
+- licensed OIC/SMIIC 24:2020, _General Requirements for Halal Food Additives and other Halal Chemicals_, with the reuse decision `LICENSED_STANDARD`; and
+- the project-authored, reviewer-approved English term pack from [Issue 67](https://github.com/internetOnion/life-goods/issues/67), with the reuse decision `PROJECT_AUTHORED`.
+
+These sources are published as immutable Reference Dataset Version
+`halal-ingredient-2026-reviewed-english-v1`, canonical SHA-256
+`fa2b3088080e4d1e6938610d518880231ea4a4cc0b5ffee3bfbf1ce5ae795a78`. The release records
+`cambodia-halal-reviewer@lifegoods.org` and `HALAL_DOMAIN_REVIEW`; deployment activation records
+a separate project-maintainer approval and does not replace that qualified review identity.
+
 This audit did **not** identify an official public, barcode-searchable or API-accessible Cambodia Halal certificate registry. That absence is not proof that no internal or request-based registry exists; data access should be confirmed directly with CCF/CHSC.
 
 Until such access exists:
@@ -130,7 +143,15 @@ Until such access exists:
 - a photographed logo can only yield `SEAL_OBSERVED_NOT_VERIFIED`;
 - a submitted certificate must retain certificate number, holder, scoped products/sites, certifier, issue/expiry dates and source document;
 - `CERTIFICATE_VERIFIED` requires a direct authoritative lookup or manual confirmation;
-- ingredient screening remains separate and may say “No non-Halal ingredients detected in the complete readable label,” never “Halal.”
+- ingredient screening remains separate and may say “No non-Halal ingredients detected in the readable Evidence checked,” never “Halal.”
+
+The current backend release is narrower still: it evaluates readable English Open Food Facts
+ingredient Evidence as `PARTIAL`. It may report an explicit prohibited mapping, a
+source-ambiguous mapping, or that no mapped concern was detected in the checked text. It does not
+use an Open Food Facts community Halal label Claim, create a positive whitelist or blanket
+E-number verdict, observe a seal, verify a Certificate, or establish a Product-level Halal
+conclusion. OCR, translation, registry integration, and shopper Package Capture remain outside
+this release.
 
 ## GS1/barcode data
 
@@ -192,4 +213,3 @@ Before the MVP can display an assessment rather than only product identity:
 - Actual shelf coverage: scan a stratified sample of products in Cambodian markets and compare it with OFF, because the OFF country facet is contributor-maintained and not a market census.
 - OFF ODbL/CC BY-SA compliance design for a database that mixes OFF data with locally submitted observations.
 - A defined package-revision matching policy so an older OFF formulation is not presented as the current physical label.
-
