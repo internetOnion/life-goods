@@ -12,13 +12,13 @@ export function DemoNotice({ active }: DemoNoticeProps) {
 
     return (
         <aside
-            className="border-coconut-brown bg-coconut-brown-soft text-foreground mx-auto w-[min(calc(100%_-_2rem),48rem)] rounded-b-xl border-x border-b px-4 py-3 max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]"
+            className="border-mango bg-mango-soft text-foreground mx-auto w-full max-w-7xl border-b px-4 py-3 sm:px-6 lg:px-10"
             aria-label={t("demoNotice.title")}
             role="status"
         >
             <div className="flex items-start gap-3">
                 <FlaskIcon
-                    className="text-coconut-brown mt-0.5 shrink-0"
+                    className="text-foreground mt-0.5 shrink-0"
                     aria-hidden="true"
                     size={24}
                     weight="bold"

@@ -4,9 +4,8 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "predev": "node scripts/generate-dev-cert.mjs --force",
-        "dev": "vite --mode https",
-        "dev:http": "vite --mode http",
+        "dev": "vite",
+        "dev:http": "vite",
         "predev:https": "node scripts/generate-dev-cert.mjs --force",
         "dev:https": "vite --mode https",
         "build": "tsc -b && vite build",

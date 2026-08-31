@@ -44,7 +44,7 @@ def dataset_database():
 
 def test_dataset_lookup_maps_full_document_and_version_provenance() -> None:
     database = dataset_database()
-    payload = json.loads((FIXTURES / "complete.json").read_text())
+    payload = json.loads((FIXTURES / "complete.json").read_text(encoding="utf-8"))
     database[COLLECTION_NAME].insert_one(payload["product"])
     source = OpenFoodFactsDatasetSource(database)
 

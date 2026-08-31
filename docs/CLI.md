@@ -25,8 +25,8 @@ This document provides a comprehensive reference for all command-line interfaces
 | **Prune OFF Datasets**          | `pnpm off:dataset -- prune`                                             | Deletes inactive, non-previous dataset collections.                              |
 | **Delete OFF Dataset**          | `pnpm off:dataset -- delete <version_id>`                               | Drops specific inactive dataset collection.                                      |
 | **Start Backend Dev Server**    | `pnpm backend:dev`                                                      | Runs FastAPI server with hot-reload at `http://localhost:8000`.                  |
-| **Start Frontend (HTTPS)**      | `pnpm dev` or `pnpm dev:https`                                          | Starts Vite dev server with self-signed certificate at `https://localhost:5173`. |
-| **Start Frontend (HTTP)**       | `pnpm dev:http`                                                         | Starts Vite dev server over HTTP at `http://localhost:5173`.                     |
+| **Start Frontend (HTTP - Default)** | `pnpm dev` or `pnpm dev:http`                                          | Starts Vite dev server over HTTP at `http://localhost:5173`.                     |
+| **Start Frontend (HTTPS)**      | `pnpm dev:https`                                                        | Starts Vite dev server with self-signed certificate at `https://localhost:5173`. |
 | **Build Frontend**              | `pnpm build`                                                            | Compiles TypeScript and runs Vite production build.                              |
 | **Run All Tests**               | `pnpm test`                                                             | Runs frontend Vitest and backend pytest suites.                                  |
 | **Run Lint Checks**             | `pnpm lint`                                                             | Runs Prettier, ESLint, and Ruff checks.                                          |
@@ -331,22 +331,22 @@ Starts FastAPI with Uvicorn and hot reloading on `http://localhost:8000`.
 pnpm backend:dev
 ```
 
-### Frontend Development Server (HTTPS - Default)
+### Frontend Development Server (HTTP - Default)
 
-Generates a local self-signed certificate supporting local IP addresses and launches Vite over HTTPS at `https://localhost:5173` (proxies `/api` to `http://localhost:8000`).
+Launches Vite without SSL certificates at `http://localhost:5173`. Useful for standard development.
 
 ```bash
 pnpm dev
 # Or explicitly:
-pnpm dev:https
+pnpm dev:http
 ```
 
-### Frontend Development Server (HTTP)
+### Frontend Development Server (HTTPS)
 
-Launches Vite without SSL certificates at `http://localhost:5173`. Useful for environments where camera access is not required.
+Generates a local self-signed certificate supporting local IP addresses and launches Vite over HTTPS at `https://localhost:5173` (proxies `/api` to `http://localhost:8000`). Required for camera barcode scanning access.
 
 ```bash
-pnpm dev:http
+pnpm dev:https
 ```
 
 ### Frontend Production Build

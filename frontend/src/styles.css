@@ -3,8 +3,12 @@
 
 @theme inline {
     --font-sans:
-        "Noto Sans Khmer", "Khmer OS System", Inter, ui-sans-serif, system-ui,
-        sans-serif;
+        "Noto Sans Khmer", "Khmer OS System", "Khmer Sangam MN", "Khmer UI",
+        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", Roboto, sans-serif;
+    --font-mono:
+        ui-monospace, "SF Mono", "Cascadia Code", "Segoe UI Mono",
+        "Liberation Mono", Menlo, Monaco, Consolas, monospace;
     --color-brand: var(--brand);
     --color-brand-dark: var(--brand-dark);
     --color-brand-hover: var(--brand-hover);
@@ -25,28 +29,47 @@
     --color-input: var(--input);
     --color-ring: var(--ring);
     --color-destructive: var(--destructive);
-    --color-coconut-brown: var(--coconut-brown);
-    --color-coconut-brown-soft: var(--coconut-brown-soft);
+    --color-mango: var(--mango);
+    --color-mango-soft: var(--mango-soft);
+    --animate-scan-laser: scan-laser 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite
+        alternate;
+}
+
+@keyframes scan-laser {
+    0% {
+        top: 6%;
+        opacity: 0.15;
+    }
+    15% {
+        opacity: 0.95;
+    }
+    85% {
+        opacity: 0.95;
+    }
+    100% {
+        top: 94%;
+        opacity: 0.15;
+    }
 }
 
 :root {
     color-scheme: light;
-    --brand: oklch(0.47 0.115 157);
-    --brand-dark: oklch(0.36 0.09 157);
-    --brand-hover: oklch(0.31 0.08 157);
-    --brand-soft: oklch(0.94 0.025 157);
-    --page: oklch(0.992 0.002 160);
-    --surface: oklch(0.965 0.008 160);
-    --surface-strong: oklch(0.925 0.014 160);
-    --ink: oklch(0.235 0.018 165);
-    --muted-ink: oklch(0.43 0.018 165);
-    --line: oklch(0.84 0.012 160);
+    --brand: #8a4b16;
+    --brand-dark: #6e350c;
+    --brand-hover: #562908;
+    --brand-soft: #f7ede0;
+    --page: #fafaf8;
+    --surface: #f4f4f5;
+    --surface-strong: #e4e4e7;
+    --ink: #111111;
+    --muted-ink: #66666a;
+    --line: #e4e4e7;
     --background: var(--page);
     --foreground: var(--ink);
     --card: var(--page);
     --card-foreground: var(--ink);
     --primary: var(--brand-dark);
-    --primary-foreground: oklch(0.99 0 0);
+    --primary-foreground: #ffffff;
     --secondary: var(--surface-strong);
     --secondary-foreground: var(--ink);
     --muted: var(--surface);
@@ -54,11 +77,11 @@
     --accent: var(--brand-soft);
     --accent-foreground: var(--brand-hover);
     --border: var(--line);
-    --input: oklch(0.57 0.03 145);
-    --ring: oklch(0.36 0.09 157);
-    --destructive: oklch(0.44 0.17 28);
-    --coconut-brown: oklch(0.48 0.09 72);
-    --coconut-brown-soft: oklch(0.94 0.035 78);
+    --input: #a1a1aa;
+    --ring: #8a4b16;
+    --destructive: #b91c1c;
+    --mango: #b86a1a;
+    --mango-soft: #fcf4e8;
 }
 
 * {
@@ -83,6 +106,22 @@ body {
     font-synthesis: none;
     line-height: 1.65;
     text-rendering: optimizeLegibility;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+:lang(km),
+[lang="km"] {
+    letter-spacing: normal;
+}
+
+[lang="km"] h1,
+[lang="km"] h2,
+[lang="km"] h3,
+[lang="km"] h4,
+[lang="km"] h5,
+[lang="km"] h6 {
+    letter-spacing: 0;
+    line-height: 1.7;
 }
 
 h1,
@@ -91,7 +130,17 @@ h3,
 h4,
 h5,
 h6 {
-    color: var(--primary);
+    color: var(--foreground);
+    line-height: 1.7;
+    letter-spacing: -0.02em;
+}
+
+code,
+kbd,
+samp,
+pre {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
 }
 
 button,
@@ -113,10 +162,14 @@ input {
 }
 
 a:focus-visible,
-summary:focus-visible,
-[tabindex="-1"]:focus-visible {
+summary:focus-visible {
     outline: 3px solid var(--ring);
     outline-offset: 3px;
+}
+
+h1[tabindex="-1"]:focus,
+h2[tabindex="-1"]:focus {
+    outline: none;
 }
 
 a {

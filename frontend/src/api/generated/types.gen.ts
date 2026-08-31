@@ -185,7 +185,7 @@ export type AssessmentReferenceDatasetVersionResponse = {
 /**
  * ErrorCode
  */
-export type ErrorCode = 'IDENTIFIER_REQUIRED' | 'IDENTIFIER_CHARACTERS_INVALID' | 'IDENTIFIER_LENGTH_UNSUPPORTED' | 'IDENTIFIER_CHECK_DIGIT_INVALID' | 'PACKAGE_MATCH_SOURCE_UNAVAILABLE' | 'REFERENCE_IMAGE_URL_INVALID' | 'REFERENCE_IMAGE_NOT_FOUND' | 'REFERENCE_IMAGE_SOURCE_UNAVAILABLE' | 'RATE_LIMIT_EXCEEDED';
+export type ErrorCode = 'IDENTIFIER_REQUIRED' | 'IDENTIFIER_CHARACTERS_INVALID' | 'IDENTIFIER_LENGTH_UNSUPPORTED' | 'IDENTIFIER_CHECK_DIGIT_INVALID' | 'PACKAGE_MATCH_SOURCE_UNAVAILABLE' | 'PACKAGE_SEARCH_QUERY_INVALID' | 'REFERENCE_IMAGE_URL_INVALID' | 'REFERENCE_IMAGE_NOT_FOUND' | 'REFERENCE_IMAGE_SOURCE_UNAVAILABLE' | 'RATE_LIMIT_EXCEEDED';
 
 /**
  * ErrorDetail
@@ -616,6 +616,85 @@ export type PackageMatchesResponse = {
     scheme: IdentifierScheme;
 };
 
+/**
+ * PackageSearchEvidenceResponse
+ */
+export type PackageSearchEvidenceResponse = {
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string;
+    /**
+     * Language
+     */
+    language: string | null;
+    /**
+     * Retrieved At
+     */
+    retrieved_at: string;
+    /**
+     * Source Field
+     */
+    source_field: string;
+    /**
+     * Source Name
+     */
+    source_name: string;
+    /**
+     * Source Revision
+     */
+    source_revision?: string | null;
+    /**
+     * Source Url
+     */
+    source_url: string;
+    /**
+     * Value
+     */
+    value: unknown;
+};
+
+/**
+ * PackageSearchResponse
+ */
+export type PackageSearchResponse = {
+    dataset_version: ExternalDatasetVersionResponse;
+    /**
+     * Next Offset
+     */
+    next_offset: number | null;
+    /**
+     * Normalized Query
+     */
+    normalized_query: string;
+    /**
+     * Results
+     */
+    results: Array<PackageSearchResultResponse>;
+};
+
+/**
+ * PackageSearchResultResponse
+ */
+export type PackageSearchResultResponse = {
+    brands: PackageSearchEvidenceResponse | null;
+    /**
+     * Identifier
+     */
+    identifier: string;
+    manufacturing_place: PackageSearchEvidenceResponse | null;
+    /**
+     * Names
+     */
+    names: Array<PackageSearchEvidenceResponse>;
+    quantity: PackageSearchEvidenceResponse | null;
+    reference_image: PackageMatchReferenceImageResponse | null;
+    /**
+     * Source Kind
+     */
+    source_kind?: 'OPEN_FOOD_FACTS';
+};
+
 export type GetOpenFoodFactsImageData = {
     body?: never;
     path?: never;
@@ -696,3 +775,49 @@ export type GetPackageMatchesResponses = {
 };
 
 export type GetPackageMatchesResponse = GetPackageMatchesResponses[keyof GetPackageMatchesResponses];
+
+export type SearchPackagesData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Query
+         */
+        query: string;
+        /**
+         * Offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/package-search';
+};
+
+export type SearchPackagesErrors = {
+    /**
+     * Unprocessable Content
+     */
+    422: ErrorEnvelope;
+    /**
+     * Too Many Requests
+     */
+    429: ErrorEnvelope;
+    /**
+     * Service Unavailable
+     */
+    503: ErrorEnvelope;
+};
+
+export type SearchPackagesError = SearchPackagesErrors[keyof SearchPackagesErrors];
+
+export type SearchPackagesResponses = {
+    /**
+     * Successful Response
+     */
+    200: PackageSearchResponse;
+};
+
+export type SearchPackagesResponse = SearchPackagesResponses[keyof SearchPackagesResponses];

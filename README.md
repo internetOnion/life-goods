@@ -67,11 +67,11 @@ Run the API backend and Web Client in separate terminals:
 # Terminal 1: Backend API (http://localhost:8000)
 pnpm backend:dev
 
-# Terminal 2: Web Client (https://localhost:5173)
+# Terminal 2: Web Client (http://localhost:5173)
 pnpm dev
 ```
 
-Open `https://localhost:5173` in your browser. For plain HTTP without camera access, run `pnpm dev:http` instead.
+Open `http://localhost:5173` in your browser. For HTTPS with camera access, run `pnpm dev:https` instead.
 
 ## Verification
 
