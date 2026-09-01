@@ -2,7 +2,7 @@ import logging
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from time import monotonic
-from typing import Annotated
+from typing import Annotated, Any
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -241,26 +241,60 @@ def _search_evidence(
 
     if not isinstance(record, ExternalPackageRecord):
         return []
-    values = []
-    values.extend(("name", value) for value in record.names)
-    if record.brands is not None:
-        values.append(("brand", record.brands))
-    values.extend(("ingredients", value) for value in record.ingredient_texts)
+    values: list[tuple[str, SourcedValue[Any]]] = [
+        (
+            "identifier",
+            SourcedValue(value=record.identifier, source_field="code"),
+        )
+    ]
+    _append_sequence_or_unknown(values, "name", "product_name", record.names)
+    _append_optional_or_unknown(values, "brands", "brands", record.brands)
+    _append_optional_or_unknown(values, "quantity", "quantity", record.quantity)
+    _append_sequence_or_unknown(
+        values, "ingredient_text", "ingredients_text", record.ingredient_texts
+    )
+    for field, source_field, value in (
+        ("allergen_declaration", "allergens", record.allergen_declaration),
+        ("allergen_tags", "allergens_tags", record.allergen_tags),
+        ("trace_declaration", "traces", record.trace_declaration),
+        ("trace_tags", "traces_tags", record.trace_tags),
+        ("additive_tags", "additives_tags", record.additives),
+        ("halal_label_claim", "labels_tags", record.halal_label_claim),
+        ("packaging_languages", "languages_tags", record.packaging_languages),
+        ("countries_sold", "countries_tags", record.countries_sold),
+    ):
+        _append_optional_or_unknown(values, field, source_field, value)
     if record.manufacturing_places is not None:
-        values.append(("made_in", record.manufacturing_places))
+        values.append(("manufacturing_places", record.manufacturing_places))
     elif made_in:
         values.append(
             (
-                "made_in",
+                "manufacturing_places",
                 SourcedValue(value=made_in, source_field="manufacturing_places_tags"),
             )
         )
-    if record.allergen_declaration is not None:
-        values.append(("allergens", record.allergen_declaration))
-    if record.allergen_tags is not None:
-        values.append(("allergens", record.allergen_tags))
-    if record.additives is not None:
-        values.append(("additives", record.additives))
+    else:
+        values.append(
+            (
+                "manufacturing_places",
+                SourcedValue(value=None, source_field="manufacturing_places"),
+            )
+        )
+    _append_sequence_or_unknown(
+        values,
+        "storage_instructions",
+        "conservation_conditions",
+        record.storage_conditions,
+    )
+    nutrition_by_source = {value.source_field: value for value in record.nutrition}
+    for source_field in (
+        "nutriments",
+        "nutrition_data_per",
+        "nutrition_data_prepared_per",
+        "serving_size",
+    ):
+        value = nutrition_by_source.get(source_field)
+        _append_optional_or_unknown(values, "nutrition", source_field, value)
     return [
         PackageMatchEvidenceResponse(
             field=field,
@@ -276,3 +310,28 @@ def _search_evidence(
         )
         for field, value in values
     ]
+
+
+def _append_optional_or_unknown(
+    values: list[tuple[str, SourcedValue[Any]]],
+    field: str,
+    source_field: str,
+    value: SourcedValue[Any] | None,
+) -> None:
+    values.append(
+        (field, value)
+        if value is not None
+        else (field, SourcedValue(value=None, source_field=source_field))
+    )
+
+
+def _append_sequence_or_unknown(
+    values: list[tuple[str, SourcedValue[Any]]],
+    field: str,
+    source_field: str,
+    sourced_values: Sequence[SourcedValue[Any]],
+) -> None:
+    if sourced_values:
+        values.extend((field, value) for value in sourced_values)
+    else:
+        values.append((field, SourcedValue(value=None, source_field=source_field)))

@@ -50,12 +50,21 @@ def search_database() -> tuple[Database[dict[str, Any]], str]:
                 "product_name_en": "Oreo Chocolate",
                 "product_name_fr": "Oreo Chocolat",
                 "brands": "Oreo",
+                "quantity": "120 g",
                 "manufacturing_places": "China",
                 "manufacturing_places_tags": ["en:china"],
                 "ingredients_text_en": "Wheat flour, sugar",
                 "ingredients_text_fr": "Farine de blé, sucre",
+                "traces": "May contain milk",
+                "traces_tags": ["en:milk"],
                 "allergens_tags": ["en:wheat"],
                 "additives_tags": ["en:e322"],
+                "conservation_conditions_en": "Store in a cool, dry place",
+                "labels_tags": ["en:halal"],
+                "nutriments": {"energy-kcal_100g": 480, "unrelated": "ignored"},
+                "nutrition_data_per": "100g",
+                "languages_tags": ["en:english", "fr:french"],
+                "countries_tags": ["en:germany"],
                 "lang": "en",
             },
             {
@@ -230,6 +239,53 @@ def test_search_api_returns_product_facts_and_match_fields() -> None:
     assert {item["value"] for item in body["results"][0]["other_names"]} >= {"Oreo Chocolat"}
 
 
+def test_search_api_returns_every_non_empty_sourced_field_as_evidence() -> None:
+    database, version_id = search_database()
+    build_search_index(database, version_id)
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    client = TestClient(
+        create_app(
+            session_factory=sessionmaker(engine, expire_on_commit=False),
+            external_source=OpenFoodFactsDatasetSource(database),
+            package_match_limiter=AllowAllLimiter(),  # type: ignore[arg-type]
+            search_rate_limiter=AllowAllLimiter(),  # type: ignore[arg-type]
+        )
+    )
+
+    response = client.get("/api/v1/package-matches/search", params={"q": "oreo"})
+
+    assert response.status_code == 200
+    evidence = response.json()["results"][0]["evidence"]
+    returned_fields = {(item["field"], item["source_field"]) for item in evidence}
+    assert returned_fields >= {
+        ("identifier", "code"),
+        ("name", "product_name_en"),
+        ("name", "product_name_fr"),
+        ("brands", "brands"),
+        ("quantity", "quantity"),
+        ("ingredient_text", "ingredients_text_en"),
+        ("ingredient_text", "ingredients_text_fr"),
+        ("allergen_tags", "allergens_tags"),
+        ("trace_declaration", "traces"),
+        ("trace_tags", "traces_tags"),
+        ("additive_tags", "additives_tags"),
+        ("manufacturing_places", "manufacturing_places"),
+        ("storage_instructions", "conservation_conditions_en"),
+        ("halal_label_claim", "labels_tags"),
+        ("nutrition", "nutriments"),
+        ("nutrition", "nutrition_data_per"),
+        ("packaging_languages", "languages_tags"),
+        ("countries_sold", "countries_tags"),
+    }
+    assert all(item["source_name"] == "Open Food Facts" for item in evidence)
+    assert all(item["dataset_version_id"] == version_id for item in evidence)
+
+
 def test_search_api_preserves_missing_fields_as_unknown() -> None:
     database, version_id = search_database()
     build_search_index(database, version_id)
@@ -256,6 +312,17 @@ def test_search_api_preserves_missing_fields_as_unknown() -> None:
     assert result["made_in"] == ["Thailand"]
     assert result["allergens"] is None
     assert result["additives"] is None
+    evidence = {
+        (item["field"], item["source_field"]): item["value"]
+        for item in result["evidence"]
+    }
+    assert evidence[("allergen_declaration", "allergens")] is None
+    assert evidence[("allergen_tags", "allergens_tags")] is None
+    assert evidence[("trace_declaration", "traces")] is None
+    assert evidence[("trace_tags", "traces_tags")] is None
+    assert evidence[("additive_tags", "additives_tags")] is None
+    assert evidence[("halal_label_claim", "labels_tags")] is None
+    assert evidence[("nutrition", "nutriments")] is None
 
 
 def test_search_api_returns_search_specific_validation_error() -> None:
