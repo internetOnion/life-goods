@@ -185,7 +185,7 @@ export type AssessmentReferenceDatasetVersionResponse = {
 /**
  * ErrorCode
  */
-export type ErrorCode = 'IDENTIFIER_REQUIRED' | 'IDENTIFIER_CHARACTERS_INVALID' | 'IDENTIFIER_LENGTH_UNSUPPORTED' | 'IDENTIFIER_CHECK_DIGIT_INVALID' | 'PACKAGE_MATCH_SOURCE_UNAVAILABLE' | 'REFERENCE_IMAGE_URL_INVALID' | 'REFERENCE_IMAGE_NOT_FOUND' | 'REFERENCE_IMAGE_SOURCE_UNAVAILABLE' | 'RATE_LIMIT_EXCEEDED';
+export type ErrorCode = 'IDENTIFIER_REQUIRED' | 'IDENTIFIER_CHARACTERS_INVALID' | 'IDENTIFIER_LENGTH_UNSUPPORTED' | 'IDENTIFIER_CHECK_DIGIT_INVALID' | 'PACKAGE_MATCH_SOURCE_UNAVAILABLE' | 'REFERENCE_IMAGE_URL_INVALID' | 'REFERENCE_IMAGE_NOT_FOUND' | 'REFERENCE_IMAGE_SOURCE_UNAVAILABLE' | 'RATE_LIMIT_EXCEEDED' | 'SEARCH_QUERY_REQUIRED' | 'SEARCH_QUERY_INVALID' | 'SEARCH_RESULTS_NOT_FOUND';
 
 /**
  * ErrorDetail
@@ -469,6 +469,143 @@ export type PackageMatchesResponse = {
     scheme: IdentifierScheme;
 };
 
+/**
+ * PackageSearchAdditiveResponse
+ */
+export type PackageSearchAdditiveResponse = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * PackageSearchNameResponse
+ */
+export type PackageSearchNameResponse = {
+    /**
+     * Language
+     */
+    language: string | null;
+    /**
+     * Source Field
+     */
+    source_field: string;
+    /**
+     * Value
+     */
+    value: string;
+};
+
+/**
+ * PackageSearchResponse
+ */
+export type PackageSearchResponse = {
+    dataset_version: ExternalDatasetVersionResponse | null;
+    /**
+     * Has More
+     */
+    has_more: boolean;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Query
+     */
+    query: string;
+    /**
+     * Results
+     */
+    results?: Array<PackageSearchResultResponse>;
+    /**
+     * Source
+     */
+    source: string;
+};
+
+/**
+ * PackageSearchResultResponse
+ */
+export type PackageSearchResultResponse = {
+    /**
+     * Additives
+     */
+    additives?: Array<PackageSearchAdditiveResponse> | null;
+    /**
+     * Allergens
+     */
+    allergens?: Array<string> | null;
+    /**
+     * Barcode
+     */
+    barcode: string;
+    /**
+     * Brand
+     */
+    brand?: Array<string> | null;
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string;
+    /**
+     * Evidence
+     */
+    evidence?: Array<PackageMatchEvidenceResponse>;
+    /**
+     * Image Url
+     */
+    image_url?: string | null;
+    /**
+     * Ingredients
+     */
+    ingredients?: string | null;
+    /**
+     * Made In
+     */
+    made_in?: Array<string> | null;
+    /**
+     * Matched Fields
+     */
+    matched_fields?: Array<string>;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Other Names
+     */
+    other_names?: Array<PackageSearchNameResponse>;
+    /**
+     * Quantity
+     */
+    quantity?: string | null;
+    /**
+     * Source Record Id
+     */
+    source_record_id: string;
+    /**
+     * Source Revision
+     */
+    source_revision?: string | null;
+    /**
+     * Source Updated At
+     */
+    source_updated_at: string | null;
+    /**
+     * Source Url
+     */
+    source_url: string;
+};
+
 export type GetOpenFoodFactsImageData = {
     body?: never;
     path?: never;
@@ -549,3 +686,56 @@ export type GetPackageMatchesResponses = {
 };
 
 export type GetPackageMatchesResponse = GetPackageMatchesResponses[keyof GetPackageMatchesResponses];
+
+export type SearchPackageMatchesData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Q
+         * Product name, brand, or manufacturing country to search for.
+         */
+        q: string;
+        /**
+         * Page
+         * Result page number.
+         */
+        page?: number;
+        /**
+         * Page Size
+         * Results per page.
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/package-matches/search';
+};
+
+export type SearchPackageMatchesErrors = {
+    /**
+     * No Package Match candidates matched the search query.
+     */
+    404: ErrorEnvelope;
+    /**
+     * Unprocessable Content
+     */
+    422: ErrorEnvelope;
+    /**
+     * Too Many Requests
+     */
+    429: ErrorEnvelope;
+    /**
+     * Service Unavailable
+     */
+    503: ErrorEnvelope;
+};
+
+export type SearchPackageMatchesError = SearchPackageMatchesErrors[keyof SearchPackageMatchesErrors];
+
+export type SearchPackageMatchesResponses = {
+    /**
+     * Successful Response
+     */
+    200: PackageSearchResponse;
+};
+
+export type SearchPackageMatchesResponse = SearchPackageMatchesResponses[keyof SearchPackageMatchesResponses];

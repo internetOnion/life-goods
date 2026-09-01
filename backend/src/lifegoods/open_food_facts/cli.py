@@ -21,6 +21,7 @@ from lifegoods.open_food_facts.dataset import (
     PRODUCT_COLLECTION_PREFIX,
     VERSIONS_COLLECTION,
 )
+from lifegoods.package_matches.search import build_search_index, search_collection_name
 
 DEFAULT_EXPORT_URL = (
     "https://static.openfoodfacts.org/data/openfoodfacts-products.jsonl.gz"
@@ -144,6 +145,8 @@ def import_url(
                 "validation_errors": validation_errors,
             }
             versions.update_one({"_id": version_id}, {"$set": update})
+            if not validation_errors:
+                build_search_index(database, version_id)
             result = versions.find_one({"_id": version_id})
             if result is None:
                 raise DatasetImportError("Imported manifest disappeared")
@@ -189,6 +192,13 @@ def activate_version(
             or collection_name not in database.list_collection_names()
         ):
             raise ValueError("Dataset product collection is unavailable")
+        search_index = manifest.get("search_index")
+        if (
+            not isinstance(search_index, dict)
+            or search_index.get("status") != "READY"
+            or search_index.get("collection_name") not in database.list_collection_names()
+        ):
+            raise ValueError("Dataset search collection is unavailable")
         database[collection_name].create_index(
             [("code", ASCENDING)], unique=True, name="uq_off_code"
         )
@@ -230,6 +240,13 @@ def rollback_version(
         manifest = database[VERSIONS_COLLECTION].find_one({"_id": previous_id})
         if manifest is None or manifest.get("status") not in {"READY", "ACTIVE"}:
             raise ValueError("The previous dataset version is not ready")
+        search_index = manifest.get("search_index")
+        if (
+            not isinstance(search_index, dict)
+            or search_index.get("status") != "READY"
+            or search_index.get("collection_name") not in database.list_collection_names()
+        ):
+            raise ValueError("Dataset search collection is unavailable")
         activated_at = (now or (lambda: datetime.now(UTC)))()
         result = database[CONTROL_COLLECTION].update_one(
             {"_id": ACTIVE_POINTER_ID, "active_version_id": current_id},
@@ -277,6 +294,7 @@ def prune_versions(database: Database[dict[str, Any]]) -> list[str]:
             collection_name = manifest.get("collection_name")
             if isinstance(collection_name, str):
                 database.drop_collection(collection_name)
+            database.drop_collection(search_collection_name(version_id))
             database[VERSIONS_COLLECTION].delete_one({"_id": version_id})
             removed.append(version_id)
         return removed
@@ -303,6 +321,7 @@ def delete_version(
         collection_name = manifest.get("collection_name")
         if isinstance(collection_name, str):
             database.drop_collection(collection_name)
+        database.drop_collection(search_collection_name(version_id))
         database[VERSIONS_COLLECTION].delete_one({"_id": version_id})
         return {"deleted_version_id": version_id}
 
@@ -370,6 +389,12 @@ def revalidate_version(
 
 def list_versions(database: Database[dict[str, Any]]) -> list[dict[str, Any]]:
     return list(database[VERSIONS_COLLECTION].find({}).sort("retrieval_started_at", -1))
+
+
+def reindex_search(database: Database[dict[str, Any]], version_id: str) -> dict[str, Any]:
+    """Build the local search collection for an imported dataset version."""
+    with lifecycle_lock(database):
+        return build_search_index(database, version_id)
 
 
 def _stream_import(
@@ -506,10 +531,10 @@ def _validate_import(
     errors: list[str] = []
     if report.get("byte_count", 0) <= 0 or report.get("document_count", 0) <= 0:
         errors.append("The export contained no product data")
-    # if report.get("malformed_count", 0):
-    #     errors.append(f"Malformed documents: {report['malformed_count']}")
-    # if report.get("duplicate_count", 0):
-    #     errors.append(f"Duplicate product codes: {report['duplicate_count']}")
+    if report.get("malformed_count", 0):
+        errors.append(f"Malformed documents: {report['malformed_count']}")
+    if report.get("duplicate_count", 0):
+        errors.append(f"Duplicate product codes: {report['duplicate_count']}")
     if not report.get("schema_versions"):
         errors.append("No schema versions were observed")
     # if report.get("schema_missing_count", 0):
@@ -569,6 +594,8 @@ def main(argv: list[str] | None = None) -> int:
     revalidate_parser = subparsers.add_parser("revalidate")
     revalidate_parser.add_argument("version_id")
     revalidate_parser.add_argument("--probe", action="append", dest="probes")
+    reindex_parser = subparsers.add_parser("reindex-search")
+    reindex_parser.add_argument("version_id")
     activate_parser = subparsers.add_parser("activate")
     activate_parser.add_argument("version_id")
     delete_parser = subparsers.add_parser("delete")
@@ -612,6 +639,8 @@ def main(argv: list[str] | None = None) -> int:
                 args.version_id,
                 probe_codes=tuple(args.probes or DEFAULT_PROBE_CODES),
             )
+        elif args.command == "reindex-search":
+            output = reindex_search(database, args.version_id)
         elif args.command == "activate":
             output = activate_version(database, args.version_id)
         elif args.command == "delete":

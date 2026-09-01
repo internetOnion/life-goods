@@ -85,6 +85,8 @@ def test_import_streams_hashes_validates_and_preserves_full_documents() -> None:
     assert manifest["document_count"] == manifest["inserted_count"] == 2
     assert manifest["malformed_count"] == manifest["duplicate_count"] == 0
     assert manifest["schema_versions"] == [1003]
+    assert manifest["search_index"]["status"] == "READY"
+    assert manifest["search_index"]["document_count"] == 2
     assert len(manifest["sha256"]) == 64
     stored = database[manifest["collection_name"]].find_one({"code": PROBE_CODE})
     assert stored is not None

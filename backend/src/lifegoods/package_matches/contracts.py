@@ -149,3 +149,44 @@ class PackageMatchesResponse(BaseModel):
         )
     )
     open_food_facts: OpenFoodFactsLookupResponse
+
+
+class PackageSearchNameResponse(BaseModel):
+    value: str
+    language: str | None
+    source_field: str
+
+
+class PackageSearchAdditiveResponse(BaseModel):
+    code: str
+    name: str
+
+
+class PackageSearchResultResponse(BaseModel):
+    barcode: str
+    name: str
+    other_names: list[PackageSearchNameResponse] = Field(default_factory=list)
+    brand: list[str] | None = None
+    made_in: list[str] | None = None
+    quantity: str | None = None
+    image_url: str | None = None
+    ingredients: str | None = None
+    allergens: list[str] | None = None
+    additives: list[PackageSearchAdditiveResponse] | None = None
+    matched_fields: list[str] = Field(default_factory=list)
+    source_record_id: str
+    source_url: str
+    source_updated_at: datetime | None
+    source_revision: str | None = None
+    dataset_version_id: str
+    evidence: list[PackageMatchEvidenceResponse] = Field(default_factory=list)
+
+
+class PackageSearchResponse(BaseModel):
+    query: str
+    page: int
+    page_size: int
+    has_more: bool
+    source: str
+    dataset_version: ExternalDatasetVersionResponse | None
+    results: list[PackageSearchResultResponse] = Field(default_factory=list)

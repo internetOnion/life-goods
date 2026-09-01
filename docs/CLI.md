@@ -20,6 +20,7 @@ This document provides a comprehensive reference for all command-line interfaces
 | **Import OFF Dataset**          | `pnpm off:dataset -- import-url [--url <url>]`                    | Streams and imports compressed Open Food Facts JSONL export into MongoDB.        |
 | **List OFF Datasets**           | `pnpm off:dataset -- list`                                        | Lists all imported OFF dataset versions and statuses.                            |
 | **Activate OFF Dataset**        | `pnpm off:dataset -- activate <version_id>`                       | Sets active OFF dataset version in MongoDB control collection.                   |
+| **Build OFF Search Index**      | `pnpm off:dataset -- reindex-search <version_id>`                 | Builds local name, brand, and manufacturing-country search data.                 |
 | **Revalidate OFF Dataset**      | `pnpm off:dataset -- revalidate <version_id>`                     | Re-verifies barcodes and collection integrity for a dataset version.             |
 | **Rollback OFF Dataset**        | `pnpm off:dataset -- rollback`                                    | Reverts active OFF pointer to the previous version.                              |
 | **Prune OFF Datasets**          | `pnpm off:dataset -- prune`                                       | Deletes inactive, non-previous dataset collections.                              |
@@ -161,10 +162,18 @@ pnpm off:dataset -- import-url [--url <url>] [--probe <barcode>] [--progress-sec
 
 #### `activate`
 
-Atomically points the active OFF dataset pointer to the specified version ID and ensures the unique `code` index exists.
+Atomically points the active OFF dataset pointer to the specified version ID and ensures its product and search indexes exist.
 
 ```bash
 pnpm off:dataset -- activate <version_id>
+```
+
+#### `reindex-search`
+
+Builds the derived search collection for an imported dataset version. The source product collection is not changed.
+
+```bash
+pnpm off:dataset -- reindex-search <version_id>
 ```
 
 #### `revalidate`
