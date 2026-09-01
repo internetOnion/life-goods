@@ -1,5 +1,14 @@
-import { ImageSquareIcon, LinkSimpleIcon } from "@phosphor-icons/react"
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import {
+    ArchiveIcon,
+    DatabaseIcon,
+    ForkKnifeIcon,
+    ImageSquareIcon,
+    InfoIcon,
+    LeafIcon,
+    LinkSimpleIcon,
+    WarningCircleIcon,
+} from "@phosphor-icons/react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import type {
@@ -7,7 +16,8 @@ import type {
     PackageMatchReferenceImageResponse,
 } from "../../api/generated"
 import type { OpenFoodFactsCandidate } from "./types"
-import { EvidenceSnapshot, type EvidenceSnapshotItem } from "./EvidenceSnapshot"
+import { type EvidenceSnapshotItem } from "./EvidenceSnapshot"
+import { ResultAccordion } from "./ResultAccordion"
 
 export type OpenFoodFactsResultProps = {
     candidate: OpenFoodFactsCandidate
@@ -122,51 +132,90 @@ export function OpenFoodFactsResult({
         setReferenceImageFailed(false)
     }, [referenceImage?.url])
 
+    const nutritionSummary = nutritionSummaryValues(nutrition, language, t)
+
     return (
-        <article className="animate-in fade-in mx-auto grid max-w-6xl min-w-0 gap-9 duration-200">
+        <article className="animate-in fade-in mx-auto grid max-w-5xl min-w-0 gap-5 duration-200">
             <SummarySection
                 headingRef={headingRef}
                 packageName={packageName}
                 brand={preferredEvidence(brands, language)}
                 quantity={preferredEvidence(quantities, language)}
+                category={preferredEvidence(categories, language)}
                 madeIn={preferredEvidence(manufacturingPlaces, language)}
                 normalizedIdentifier={normalizedIdentifier}
+                allergen={staticAllergenAlert}
+                nutritionSummary={nutritionSummary}
                 referenceImage={referenceImage}
                 referenceImageFailed={referenceImageFailed}
                 onImageError={() => setReferenceImageFailed(true)}
             />
 
-            <EvidenceSnapshot items={snapshot} />
+            <EvidenceStatus snapshot={snapshot} />
 
-            <ProductInformationSection
-                name={selectedName}
-                brand={preferredEvidence(brands, language)}
-                category={preferredEvidence(categories, language)}
-                identifier={fieldEvidence(identityEvidence, "identifier")[0]}
-                normalizedIdentifier={normalizedIdentifier}
-            />
+            <div className="grid gap-3" aria-label={t("productDetailsTitle")}>
+                <ResultAccordion
+                    id="result-section-product-information"
+                    title={t("productInformationTitle")}
+                    icon={InfoIcon}
+                >
+                    <ProductInformationContent
+                        name={selectedName}
+                        brand={preferredEvidence(brands, language)}
+                        category={preferredEvidence(categories, language)}
+                        identifier={fieldEvidence(identityEvidence, "identifier")[0]}
+                        normalizedIdentifier={normalizedIdentifier}
+                    />
+                </ResultAccordion>
 
-            <EvidenceSection
-                id="result-section-allergens"
-                title={t("allergensTitle")}
-                description={t("allergensBody")}
-                evidence={allergens}
-            />
+                <ResultAccordion
+                    id="result-section-allergens"
+                    title={t("allergensTitle")}
+                    icon={WarningCircleIcon}
+                    description={t("allergensBody")}
+                >
+                    <EvidenceList evidence={allergens} />
+                </ResultAccordion>
 
-            <IngredientsSection
-                evidence={preferredEvidence(ingredients, language)}
-            />
+                <ResultAccordion
+                    id="result-section-ingredients"
+                    title={t("ingredientsTitle")}
+                    icon={LeafIcon}
+                    description={t("ingredientsBody")}
+                >
+                    <IngredientsContent
+                        evidence={preferredEvidence(ingredients, language)}
+                    />
+                </ResultAccordion>
 
-            <NutritionSection evidence={nutrition} />
+                <ResultAccordion
+                    id="result-section-nutrition"
+                    title={t("nutritionTitle")}
+                    icon={ForkKnifeIcon}
+                    description={t("nutritionBody")}
+                >
+                    <NutritionContent evidence={nutrition} />
+                </ResultAccordion>
 
-            <EvidenceSection
-                id="result-section-storage"
-                title={t("storageTitle")}
-                evidence={storageInstructions}
-                preferLanguage={language}
-            />
+                <ResultAccordion
+                    id="result-section-storage"
+                    title={t("storageTitle")}
+                    icon={ArchiveIcon}
+                >
+                    <EvidenceList
+                        evidence={storageInstructions}
+                        preferLanguage={language}
+                    />
+                </ResultAccordion>
 
-            <SourceDetails candidate={candidate} />
+                <ResultAccordion
+                    id="result-section-source"
+                    title={t("sourceDetailsTitle")}
+                    icon={DatabaseIcon}
+                >
+                    <SourceContent candidate={candidate} />
+                </ResultAccordion>
+            </div>
         </article>
     )
 }
@@ -176,8 +225,11 @@ function SummarySection({
     packageName,
     brand,
     quantity,
+    category,
     madeIn,
     normalizedIdentifier,
+    allergen,
+    nutritionSummary,
     referenceImage,
     referenceImageFailed,
     onImageError,
@@ -186,20 +238,21 @@ function SummarySection({
     packageName: string | undefined
     brand: PackageMatchEvidenceResponse | undefined
     quantity: PackageMatchEvidenceResponse | undefined
+    category: PackageMatchEvidenceResponse | undefined
     madeIn: PackageMatchEvidenceResponse | undefined
     normalizedIdentifier: string
+    allergen: string | undefined
+    nutritionSummary: NutritionSummaryValues
     referenceImage: PackageMatchReferenceImageResponse | undefined
     referenceImageFailed: boolean
     onImageError: () => void
 }) {
     const { t } = useTranslation()
     const hasReferenceImage = Boolean(referenceImage) && !referenceImageFailed
+    const madeInValue = printableText(madeIn?.value)
     return (
-        <section
-            className="border-border grid min-w-0 gap-6 border-b pb-9"
-            aria-labelledby="off-result-title"
-        >
-            <div className="grid min-w-0 items-start gap-6 min-[22.5rem]:grid-cols-[minmax(7rem,10rem)_minmax(0,1fr)] lg:grid-cols-[minmax(15rem,22rem)_minmax(0,1fr)] lg:gap-12">
+        <section className="grid min-w-0 gap-3" aria-labelledby="off-result-title">
+            <div className="grid min-w-0 items-start gap-4 min-[22.5rem]:grid-cols-[minmax(7.5rem,10rem)_minmax(0,1fr)] sm:grid-cols-[minmax(10rem,13rem)_minmax(0,1fr)] sm:gap-6 lg:grid-cols-[minmax(14rem,18rem)_minmax(0,1fr)] lg:gap-10">
                 {hasReferenceImage ? (
                     <ReferenceImage
                         image={referenceImage!}
@@ -211,33 +264,45 @@ function SummarySection({
                 )}
                 <div className="min-w-0">
                     <h1
-                        className="text-[clamp(1.45rem,6vw,2.1rem)] leading-[1.7] tracking-tight text-balance wrap-anywhere"
+                        className="text-[clamp(1.45rem,6vw,2.1rem)] leading-[1.35] font-black tracking-tight text-balance wrap-anywhere"
                         ref={headingRef}
                         id="off-result-title"
                         tabIndex={-1}
                     >
                         {packageName ?? t("informationNotMentioned")}
                     </h1>
-                    <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-                        <SummaryFact label={t("brandLabel")} evidence={brand} />
+                    <p className="text-muted-foreground mt-1 wrap-anywhere">
+                        {[printableText(brand?.value), printableText(quantity?.value), printableText(category?.value)]
+                            .filter(Boolean)
+                            .join(" · ") || t("informationNotMentioned")}
+                    </p>
+                    <dl className="mt-3 grid gap-0.5 text-[0.9375rem] leading-[1.5]">
                         <SummaryFact
-                            label={t("quantityLabel")}
-                            evidence={quantity}
+                            label={t("containsAllergenLabel")}
+                            value={allergen}
                         />
                         <SummaryFact
-                            label={t("madeInLabel")}
-                            evidence={madeIn}
+                            label={t("nutritionSugarsLabel")}
+                            value={nutritionSummary.sugars}
+                        />
+                        <SummaryFact
+                            label={t("calorieLabel")}
+                            value={nutritionSummary.calories}
+                        />
+                        <SummaryFact
+                            label={t("nutritionFatLabel")}
+                            value={nutritionSummary.fat}
                         />
                         <SummaryFact
                             label={t("identifierLabel")}
-                            evidence={
-                                {
-                                    value: normalizedIdentifier,
-                                } as PackageMatchEvidenceResponse
-                            }
+                            value={normalizedIdentifier}
                         />
                     </dl>
                 </div>
+            </div>
+            <div className="bg-secondary text-secondary-foreground rounded-xl px-4 py-2 text-center font-black">
+                {t("productMadeInLabel")} {" "}
+                <span>{madeInValue ?? t("informationNotMentioned")}</span>
             </div>
         </section>
     )
@@ -256,7 +321,7 @@ function ReferenceImage({
     return (
         <figure className="m-0 min-w-0">
             <img
-                className="bg-muted mx-auto aspect-[4/5] w-full rounded-2xl object-contain"
+                className="bg-muted mx-auto aspect-[4/5] w-full rounded-xl object-contain"
                 src={image.url}
                 alt={
                     packageName
@@ -274,7 +339,7 @@ function ImagePlaceholder() {
     const { t } = useTranslation()
     return (
         <div
-            className="bg-muted text-muted-foreground grid aspect-[4/5] min-h-32 place-content-center justify-items-center gap-2 rounded-2xl p-3 text-center text-sm leading-relaxed"
+            className="bg-muted text-muted-foreground grid aspect-[4/5] min-h-32 place-content-center justify-items-center gap-2 rounded-xl p-3 text-center text-sm leading-relaxed"
             role="img"
             aria-label={t("imageUnavailable")}
         >
@@ -284,7 +349,80 @@ function ImagePlaceholder() {
     )
 }
 
-function ProductInformationSection({
+function EvidenceStatus({ snapshot }: { snapshot: EvidenceSnapshotItem[] }) {
+    const { t } = useTranslation()
+    const evidenceGaps = snapshot.find((item) => item.kind === "evidence_gaps")
+    const sourceReview = snapshot.find((item) => item.kind === "source_review")
+
+    return (
+        <section
+            className="border-border border-y py-3"
+            aria-labelledby="evidence-status-title"
+        >
+            <h2
+                id="evidence-status-title"
+                className="text-sm font-black tracking-tight"
+            >
+                {t("evidenceSnapshotTitle")}
+            </h2>
+            <div className="text-muted-foreground mt-1 grid gap-0.5 text-sm leading-relaxed">
+                {evidenceGaps ? (
+                    <p className="wrap-anywhere">
+                        <span className="font-bold">{t("evidenceGapsSnapshot")}:</span>{" "}
+                        {evidenceGaps.value}
+                    </p>
+                ) : null}
+                {sourceReview ? (
+                    <p className="wrap-anywhere">
+                        <span className="font-bold">{t("sourceReviewSnapshot")}:</span>{" "}
+                        {sourceReview.value}
+                        {sourceReview.detail ? ` · ${sourceReview.detail}` : ""}
+                    </p>
+                ) : null}
+            </div>
+        </section>
+    )
+}
+
+function EvidenceList({
+    evidence,
+    preferLanguage,
+}: {
+    evidence: PackageMatchEvidenceResponse[]
+    preferLanguage?: string
+}) {
+    const { t } = useTranslation()
+    const orderedEvidence = useMemo(() => {
+        if (!preferLanguage) return evidence
+        return [...evidence].sort(
+            (left, right) =>
+                languageRank(left.language, preferLanguage) -
+                languageRank(right.language, preferLanguage),
+        )
+    }, [evidence, preferLanguage])
+
+    return orderedEvidence.length > 0 ? (
+        <div className="mt-4 grid gap-4">
+            {orderedEvidence.map((item, index) => (
+                <div
+                    className="border-border grid min-w-0 gap-1 border-t pt-3 first:border-t-0 first:pt-0"
+                    key={`${item.field}-${item.source_field}-${item.language ?? "und"}-${index}`}
+                >
+                    {evidenceFieldLabels[item.field] ? (
+                        <p className="text-muted-foreground text-sm leading-relaxed font-semibold">
+                            {t(evidenceFieldLabels[item.field]!)}
+                        </p>
+                    ) : null}
+                    <EvidenceValue evidence={item} />
+                </div>
+            ))}
+        </div>
+    ) : (
+        <UnavailableValue className="mt-4" />
+    )
+}
+
+function ProductInformationContent({
     name,
     brand,
     category,
@@ -299,101 +437,39 @@ function ProductInformationSection({
 }) {
     const { t } = useTranslation()
     return (
-        <CategorySection
-            title={t("productInformationTitle")}
-            id="result-section-product-information"
-        >
-            <dl className="mt-4 grid gap-3 min-[30rem]:grid-cols-2">
-                <FactRow label={t("nameLabel")} evidence={name} />
-                <FactRow label={t("brandLabel")} evidence={brand} />
-                <FactRow label={t("categoryLabel")} evidence={category} />
-                <FactRow
-                    label={t("identifierLabel")}
-                    evidence={identifier}
-                    fallback={normalizedIdentifier}
-                />
-            </dl>
-        </CategorySection>
+        <dl className="mt-4 grid gap-3 min-[30rem]:grid-cols-2">
+            <FactRow label={t("nameLabel")} evidence={name} />
+            <FactRow label={t("brandLabel")} evidence={brand} />
+            <FactRow label={t("categoryLabel")} evidence={category} />
+            <FactRow
+                label={t("identifierLabel")}
+                evidence={identifier}
+                fallback={normalizedIdentifier}
+            />
+        </dl>
     )
 }
 
-function IngredientsSection({
+function IngredientsContent({
     evidence,
 }: {
     evidence: PackageMatchEvidenceResponse | undefined
 }) {
-    const { t } = useTranslation()
     const ingredients = ingredientItems(evidence?.value)
-    return (
-        <CategorySection
-            title={t("ingredientsTitle")}
-            id="result-section-ingredients"
-            description={t("ingredientsBody")}
-        >
-            {ingredients.length > 0 ? (
-                <ul className="mt-4 grid gap-x-6 gap-y-2 pl-5 leading-relaxed min-[30rem]:grid-cols-2">
-                    {ingredients.map((item, index) => (
-                        <li className="wrap-anywhere" key={`${item}-${index}`}>
-                            {item}
-                        </li>
-                    ))}
-                </ul>
-            ) : (
-                <UnavailableValue className="mt-4" />
-            )}
-        </CategorySection>
+    return ingredients.length > 0 ? (
+        <ul className="mt-4 grid gap-x-6 gap-y-2 pl-5 leading-relaxed min-[30rem]:grid-cols-2">
+            {ingredients.map((item, index) => (
+                <li className="wrap-anywhere" key={`${item}-${index}`}>
+                    {item}
+                </li>
+            ))}
+        </ul>
+    ) : (
+        <UnavailableValue className="mt-4" />
     )
 }
 
-function EvidenceSection({
-    id,
-    title,
-    description,
-    evidence,
-    preferLanguage,
-}: {
-    id: string
-    title: string
-    description?: string
-    evidence: PackageMatchEvidenceResponse[]
-    preferLanguage?: string
-}) {
-    const { t } = useTranslation()
-    const orderedEvidence = useMemo(() => {
-        if (!preferLanguage) return evidence
-        return [...evidence].sort(
-            (left, right) =>
-                languageRank(left.language, preferLanguage) -
-                languageRank(right.language, preferLanguage),
-        )
-    }, [evidence, preferLanguage])
-
-    return (
-        <CategorySection title={title} id={id} description={description}>
-            {orderedEvidence.length > 0 ? (
-                <div className="mt-4 grid gap-4">
-                    {orderedEvidence.map((item, index) => (
-                        <div
-                            className="border-border grid min-w-0 gap-1 border-t pt-3 first:border-t-0 first:pt-0"
-                            key={`${item.field}-${item.source_field}-${item.language ?? "und"}-${index}`}
-                        >
-                            {evidenceFieldLabels[item.field] ? (
-                                <p className="text-muted-foreground text-sm leading-relaxed font-semibold">
-                                    {t(evidenceFieldLabels[item.field]!)}
-                                </p>
-                            ) : null}
-                            <EvidenceValue evidence={item} />
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <UnavailableValue className="mt-4" />
-            )}
-        </CategorySection>
-    )
-}
-
-function NutritionSection({
+function NutritionContent({
     evidence,
 }: {
     evidence: PackageMatchEvidenceResponse[]
@@ -413,14 +489,8 @@ function NutritionSection({
             : []),
     ]
 
-    return (
-        <CategorySection
-            title={t("nutritionTitle")}
-            id="result-section-nutrition"
-            description={t("nutritionBody")}
-        >
-            {matrix.length > 0 ? (
-                <div className="border-border mt-4 overflow-hidden rounded-lg border">
+    return matrix.length > 0 ? (
+        <div className="border-border mt-4 overflow-hidden rounded-lg border">
                     <div
                         className={`bg-muted grid gap-3 border-b px-3 py-2 text-sm font-semibold ${nutritionGridClass(bases.length)}`}
                         role="row"
@@ -462,23 +532,17 @@ function NutritionSection({
                             ))}
                         </div>
                     ))}
-                </div>
-            ) : (
-                <UnavailableValue className="mt-4" />
-            )}
-        </CategorySection>
+        </div>
+    ) : (
+        <UnavailableValue className="mt-4" />
     )
 }
 
-function SourceDetails({ candidate }: { candidate: OpenFoodFactsCandidate }) {
+function SourceContent({ candidate }: { candidate: OpenFoodFactsCandidate }) {
     const { t } = useTranslation()
     const source = candidate.source
     return (
-        <CategorySection
-            title={t("sourceDetailsTitle")}
-            id="result-section-source"
-            className="bg-muted/50"
-        >
+        <>
             <dl className="mt-4 grid gap-3 min-[30rem]:grid-cols-2">
                 <FactRow label={t("sourceLabel")} value={source?.name} />
                 <FactRow
@@ -499,50 +563,52 @@ function SourceDetails({ candidate }: { candidate: OpenFoodFactsCandidate }) {
             ) : (
                 <UnavailableValue className="mt-4" />
             )}
-        </CategorySection>
+        </>
     )
 }
 
-function CategorySection({
-    title,
-    id,
-    description,
-    className = "",
-    children,
-}: {
-    title: string
-    id: string
-    description?: string
-    className?: string
-    children: ReactNode
-}) {
-    return (
-        <section
-            className={`border-border min-w-0 border-t pt-6 ${className}`}
-            aria-labelledby={id}
-        >
-            <h2
-                className="text-[clamp(1.15rem,4.5vw,1.45rem)] leading-[1.7] tracking-tight text-balance"
-                id={id}
-            >
-                {title}
-            </h2>
-            {description ? (
-                <p className="text-muted-foreground mt-1 max-w-[68ch] leading-relaxed">
-                    {description}
-                </p>
-            ) : null}
-            {children}
-        </section>
+type NutritionSummaryValues = {
+    sugars?: string
+    calories?: string
+    fat?: string
+}
+
+function nutritionSummaryValues(
+    evidence: PackageMatchEvidenceResponse[],
+    language: string,
+    t: (key: string) => string,
+): NutritionSummaryValues {
+    const matrix = nutritionMatrix(evidence)
+    const basis: NutritionBasis = matrix.some(
+        (row) => row.values.per100ml,
     )
+        ? "per100ml"
+        : "per100g"
+    const locale = language === "en" ? "en" : "km-KH"
+
+    const valueFor = (...nutrients: string[]) => {
+        const row = nutrients
+            .map((nutrient) => matrix.find((item) => item.nutrient === nutrient))
+            .find(Boolean)
+        const cell = row?.values[basis]
+        if (!cell) return undefined
+        const value = formatNutritionCell(cell, locale, t)
+        return value === t("nutritionMissingCell") ? undefined : value
+    }
+
+    return {
+        sugars: valueFor("sugars"),
+        calories: valueFor("energy_kcal", "energy", "energy_kj"),
+        fat: valueFor("fat"),
+    }
 }
 
 function SummaryFact({
     label,
-    evidence,
+    value,
 }: {
     label: string
-    evidence: PackageMatchEvidenceResponse | undefined
+    value: string | undefined
 }) {
     return (
         <div className="min-w-0">
@@ -550,11 +616,7 @@ function SummaryFact({
                 {label}
             </dt>
             <dd className="mt-0.5 wrap-anywhere">
-                {evidence ? (
-                    <EvidenceValue evidence={evidence} />
-                ) : (
-                    <UnavailableValue />
-                )}
+                {value ?? <UnavailableValue />}
             </dd>
         </div>
     )
