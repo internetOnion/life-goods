@@ -1,27 +1,30 @@
-# Technology Stack and Initial Implementation Plan
+# Technology Stack and Current Implementation Plan
 
 ## Summary
 
-The project will use:
+The project uses or plans to use:
 
 - React, Vite, and TypeScript for the shopper application.
 - FastAPI and Python for the REST API.
-- Celery and Python for durable background work.
+- Celery and Python for planned durable background work.
 - Python for AI benchmarking and image-processing experiments.
+- MongoDB for the read-only Open Food Facts Dataset Version and its derived search index.
+- PostgreSQL for reference datasets and the future reviewed catalog.
+- Redis for shared Package Match/search rate limiting and the optional non-durable assessment cache.
 - shadcn/ui components with Tailwind CSS utilities for frontend styling.
 
 The frontend component and utility conventions are fixed by this document; broader visual direction remains governed by PRODUCT.md and DESIGN.md.
 
-The first implementation milestone is a known-barcode-to-evidence-backed-package-candidates vertical slice. AI extraction and moderation will follow after the identity and provenance foundation is working.
+The current implemented slice covers camera/manual barcode lookup, OFF-backed Package Match candidates, versioned OFF dataset operations, a paginated OFF-backed search API, reference-dataset-backed stateless allergen evaluation, constrained reference-image delivery, and generated API artifacts. The shopper-facing search page, Package Capture processing, AI extraction, reviewed local catalog, and durable background work remain incomplete or planned.
 
 ## Application foundation
 
 - Structure the repository as `frontend`, `backend`, `evaluation`, and `infra`.
 - Pin Node.js 24 LTS and Python 3.13.
 - Use pnpm for frontend dependencies and uv for Python dependencies.
-- Use Docker Compose locally for PostgreSQL, Redis, and an S3-compatible object-storage emulator.
+- Use Docker Compose locally for PostgreSQL, MongoDB, and Redis. Add an S3-compatible object-storage emulator when Package Capture storage is implemented.
 - Use a CI pipeline for linting, type checking, tests, OpenAPI drift detection, builds, and migration validation.
-- Maintain preview, staging, and production configurations with separate databases, buckets, Redis instances, secrets, and allowed origins.
+- Maintain preview, staging, and production configurations with separate databases, buckets when needed, Redis instances, secrets, and allowed origins.
 - Ensure all CLI scripts, package scripts, build configurations, and path operations maintain cross-platform compatibility across Windows, macOS, and Linux without relying on POSIX-only shell assumptions.
 
 ## Frontend
@@ -45,30 +48,31 @@ The first implementation milestone is a known-barcode-to-evidence-backed-package
 - Use PostgreSQL; select its hosting provider, topology, and deployment region before the pilot deployment.
 - Keep all catalog, reference dataset, and durable data access behind FastAPI; the browser must never connect directly to PostgreSQL.
 - Keep repositories and application services separate from HTTP route handlers.
-- Begin with Product, Package Variant, External Identifier, Claim, Evidence, and field-level provenance.
+- The reviewed Product, Package Variant, External Identifier, Claim, and Evidence model remains a post-MVP target. The current API reads external Product evidence from an immutable, manually activated OFF Dataset Version and keeps it separate from reviewed reference data.
 - Host immutable Reference Dataset Versions (concepts, lexical mappings, exclusions, and rules) in PostgreSQL with atomic activation and rollback.
 - Serve a manually activated OFF Dataset Version from a separate read-only MongoDB database. Preserve full external documents and an immutable manifest with source URL, retrieval and activation times, integrity hash, counts, schema versions, attribution, and license metadata.
 - Enforce domain invariants through PostgreSQL constraints and reviewed Alembic SQL migrations.
 
 ## Public API
 
-The first public endpoint will be:
+The current public endpoints are:
 
 ```http
 GET /api/v1/package-matches?identifier={value}
+GET /api/v1/package-matches/search?q={value}&page={number}&page_size={number}
+GET /api/v1/open-food-facts-images?url={encoded_url}
 ```
 
-It will validate and normalize GTIN, EAN, and UPC identifiers and return zero or more Package Variant candidates.
+`package-matches` validates and normalizes GTIN, EAN, and UPC identifiers and returns zero or more external Package Match candidates. `package-matches/search` searches the active OFF Dataset Version by an identifier, product name, brand, or explicit manufacturing country. Search requires at least two normalized characters, accepts pages 1–100 and page sizes 1–50, and returns `has_more` for pagination. Search results are backed by a derived, version-pinned MongoDB index; `pnpm off:dataset -- reindex-search <version_id>` rebuilds it.
+
+The shopper-facing search route currently renders a placeholder while the backend contract is available for integration.
 
 Candidate responses will include:
 
-- Immutable internal identifiers.
-- Names with language, role, and source.
-- Package quantity when supported by evidence.
-- Reference package image information.
-- Field-level source and attribution metadata.
-- Evidence observation or retrieval times.
-- Claim review state and relevant uncertainty.
+- External source identity and attribution metadata.
+- Field-level identity and label evidence with source, language, retrieval, revision, and dataset-version metadata.
+- Package quantity and reference package image information when supported by OFF evidence.
+- A stateless allergen Assessment Evaluation with explicit availability/reason fields, concept outcomes, and source-linked findings when the feature is enabled and a valid reference version is active.
 
 Missing upstream fields must be omitted or marked unknown. Missing ingredient, allergen, trace, or nutrition data must never become a negative Claim such as “none detected.”
 
@@ -80,14 +84,13 @@ degradation and recovery transition logs. Client identity comes from the ASGI co
 deployments behind a reverse proxy must configure the ASGI server with an explicit trusted-
 proxy allowlist rather than trusting forwarding headers in application code.
 
-## Jobs, private media, and AI
+## Planned jobs, private media, and AI
 
-- Run FastAPI and Celery as separately deployable application and worker processes or containers.
-- Use a Redis-compatible shared service as the Celery broker; select its hosting and deployment model before the pilot deployment.
-- Store durable Package Capture job state in PostgreSQL rather than relying on Redis result retention.
-- Deploy the SPA through a static frontend hosting service with CDN and preview-deployment support.
-- Store private Package Capture media in private S3-compatible object storage with configurable regional placement and lifecycle controls.
-- Upload media through short-lived presigned URLs into a private, capture-only bucket or prefix.
+- FastAPI is implemented; Celery workers, a Redis-compatible broker, and durable Package Capture job state are planned but are not part of the current runtime.
+- Store durable Package Capture job state in PostgreSQL rather than relying on Redis result retention when that workflow is implemented.
+- Deploy the SPA through a static frontend hosting service with CDN and preview-deployment support before pilot deployment.
+- Store private Package Capture media in private S3-compatible object storage with configurable regional placement and lifecycle controls when Package Capture processing is implemented.
+- Upload media through short-lived presigned URLs into a private, capture-only bucket or prefix when the capture workflow is implemented.
 - Delete media through retryable Celery cleanup tasks no later than 24 hours after upload. Storage lifecycle rules are a backup, not the primary deletion mechanism.
 - Alert on cleanup failures and media that remains after its expiry deadline.
 - Define a provider-neutral extraction interface and benchmark hosted-API and self-hosted multimodal model options before selecting an AI deployment model or provider.
@@ -97,15 +100,16 @@ proxy allowlist rather than trusting forwarding headers in application code.
 
 ### Backend
 
-Use pytest for MVP unit and API/database integration coverage of:
+Current pytest coverage includes:
 
 - Identifier check digits and normalization.
 - Open Food Facts mapping and missing-field semantics.
 - OFF Dataset Version import, validation, activation, rollback, and field-level provenance.
+- OFF search-index construction, identifier/name/brand/country search, pagination, and search failures.
 - PostgreSQL constraints and transactions.
 - API validation and error responses.
-- Job retries, idempotency, timeouts, and partial extraction results.
-- Private-media expiry and deletion behavior.
+
+Job retries, idempotency, extraction results, and private-media expiry/deletion remain planned test areas for the Package Capture workflow.
 
 ### Frontend
 
@@ -133,12 +137,12 @@ Browser end-to-end automation is outside the MVP scope. Manual identifier, scann
 - Production deployment requires successful MVP unit/component and API/database tests, generated-client drift checks, migration validation, and a staging smoke test.
 - Run Alembic migrations as a separate release step before deploying application processes that require the new schema.
 - Use scrubbed error and performance tracing for the React application, FastAPI, and Celery.
-- Emit structured Package Match logs for latency, candidate count, OFF outcome and Dataset
+- Emit structured Package Match and search logs for latency, candidate count, OFF outcome and Dataset
   Version, assessment availability, rate-limit state, and sanitized dependency failure
   categories. Logs must exclude identifiers, client addresses and digests, label text,
   preferences, credentials, and private Package Capture data.
 - Store only allowlisted anonymous journey and failure events internally with short retention.
-- Alert on API error rate, queue backlog, extraction failures, cleanup failures, and expired private media.
+- Alert on API error rate now; add queue backlog, extraction failures, cleanup failures, and expired private media when those workflows are deployed.
 
 ## Explicit decisions and deferrals
 
