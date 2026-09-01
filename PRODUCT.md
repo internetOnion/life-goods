@@ -1,81 +1,66 @@
-# Product
+# Life Goods
 
-<!-- impeccable:product-schema 1 -->
+Life Goods is a Khmer-first product-information experience for people shopping in Cambodia. It makes Open Food Facts data easier to access and understand without creating a separate food catalog or verification system.
 
-## Platform
+## Audience
 
-web
+The first audience is Khmer-speaking people using a mobile phone while shopping in Cambodia. The product remains accessible elsewhere, but Cambodia determines the initial language, device, connectivity, and usability priorities.
 
-## Users
+## Purpose
 
-LifeGoods primarily serves Khmer-speaking shoppers evaluating sealed packaged food or non-alcoholic beverages before purchase in Cambodia. The primary shopper uses a mobile phone in a store or market, may be under time pressure, may have an inconsistent connection, and should not need an account or technical knowledge.
+A shopper scans a packaged-food barcode and receives a readable presentation of the available Open Food Facts record. Search is a fallback when scanning is unavailable or unsuccessful.
 
-Allergy-conscious and Halal-conscious shoppers share this journey. They need declared concerns, incomplete evidence, ingredient-source ambiguity, Seal Observation, and certificate status kept visibly separate. Optional preference profiles may prioritize relevant guidance but must never hide other critical concerns or uncertainty.
+Life Goods initially presents the breadth of consumer-facing data available on Open Food Facts, including product identity, images, ingredients, nutrition, Source Assessments, environmental and packaging information, other product details, and source history. The information hierarchy will be refined after representative records have been explored in the interface.
 
-## Product Purpose
+## Product sequence
 
-LifeGoods helps a shopper scan a barcode or photograph a package and receive Khmer-first Shopper Guidance grounded in readable label evidence. It prioritizes candidate package identity, Critical Declared Concerns, Evidence Uncertainty, a Khmer label summary, and inspectable source evidence.
+1. **Backend exploration:** expose a raw Source Record from the static local Dataset Snapshot through an experimental Life Goods API.
+2. **English prototype:** build and refine a mobile information architecture against complete, sparse, multilingual, and irregular Source Records.
+3. **Contract refinement:** replace the exploratory payload with a stable product-page contract. Search may proceed in parallel when it can reuse stable lookup foundations.
+4. **Khmer public MVP:** localize the interface, add on-demand Khmer Translation with Original Text available per field, and complete fluent-human review of interface terminology and explanations.
 
-Success means shoppers can understand what the package declares, what the evidence supports, and what remains uncertain without mistaking the interface for a purchase recommendation. LifeGoods never declares a Product safe, healthy, allergen-free, Halal, legally compliant, or authentic.
+English is a development milestone, not the final product identity. Khmer support is required before the public MVP.
 
-## Positioning
+## Product principles
 
-LifeGoods is an evidence-scoped package-label guide for Cambodian shoppers. Its distinguishing mechanism is to keep original package evidence, Khmer explanation, provenance, review state, and uncertainty visibly connected instead of compressing them into a universal score or verdict.
+1. **Source breadth before hierarchy.** First learn which Open Food Facts data is useful; then refine how it is prioritized.
+2. **Localization without ownership.** Life Goods translates and redesigns the experience but does not present source data as its own catalog.
+3. **Original meaning remains accessible.** Khmer Translation never replaces Original Text and is always identified as machine-generated.
+4. **Missing means unknown.** An absent field is Source Data Unavailable, not evidence that a property is absent.
+5. **Attribution stays visible.** Every Product page identifies Open Food Facts as the source and links to applicable data and image licensing information.
+6. **Lookup works without translation.** A translation failure falls back to Original Text instead of failing the Product page.
+7. **Privacy by omission.** Barcode decoding happens on the device. The backend receives only the Barcode and does not build accounts, scan histories, or barcode-level analytics.
 
-Open Food Facts and other external records remain attributed external evidence. Internally reviewed Claims remain distinguishable from community data, and a barcode or reference image produces a Package Match candidate rather than proof that the shopper holds the same Package Revision.
+## Source and interpretation boundary
 
-MVP-1 uses Product records only from a project-hosted Open Food Facts Dataset Version. It may prioritize evidence-scoped Allergen, Halal Ingredient, and Additive Assessments produced from separately activated, human-reviewed reference datasets, but neither local hosting nor reference approval reviews or verifies the Product. Ingredient descriptions and Learn content are English-first in MVP-1; Khmer translation follows in the next version.
+Life Goods may display Open Food Facts Source Assessments such as Nutri-Score, NOVA, Green-Score, and nutrient-level classifications. These remain explicitly attributed Open Food Facts calculations; Life Goods does not verify or adopt them as its own judgments.
 
-## Operating Context
+Life Goods does not declare a Product healthy, safe, allergen-free, Halal, authentic, legally compliant, or suitable for purchase. It does not infer a reassuring conclusion from missing or incomplete source data.
 
-- The primary journey occurs on a mobile device while a shopper is handling a physical package in a Cambodian store or market.
-- The online MVP is delivered as a responsive Web Client and Telegram Mini App; offline operation is deferred.
-- A shopper may scan a barcode, enter an identifier manually, search the catalog, or use private Package Capture when current label evidence is missing.
-- Package Capture media remains private to the active session, is retained only for processing and encrypted retry or recovery for at most 24 hours, and never becomes catalog or training data.
-- Original package languages remain available alongside Khmer presentation. Relevant source languages include Khmer, English, Vietnamese, Simplified Chinese, and Thai.
+## MVP constraints
 
-## Capabilities and Constraints
+- Mobile-first progressive web application
+- Anonymous use with no accounts or server-side history
+- On-device Barcode decoding; no camera frame or package-photo upload
+- One static, locally hosted Open Food Facts Dataset Snapshot
+- Read-only product experience with no contributions, corrections, or moderation
+- On-demand Khmer Translation after the English prototype is refined
+- Original Text available per translated field
+- Human Khmer review for interface language, navigation, explanations, disclaimers, and accessibility copy
+- Privacy-preserving aggregate metrics only: lookup volume, found rate, latency, cache performance, and errors
 
-- The MVP supports sealed retail packaged foods and non-alcoholic packaged beverages offered for sale in Cambodia.
-- Alcohol, supplements, infant formula and specialized nutrition, medicines, restaurant or fresh food, and unlabeled products are outside the MVP boundary.
-- Product identity, label facts, translations, assessments, and source evidence remain separate layers with field-level provenance.
-- Missing, stale, conflicting, unreadable, external-only, or unreviewed evidence must remain explicit and must not become a negative Claim or reassuring absence.
-- Allergen, Halal Ingredient, additive, date, Seal Observation, certificate, compliance, and authenticity concepts remain semantically separate.
-- The product must not provide universal health scores, traffic-light purchase judgments, automatic green-check reassurance, or safety, health, allergen-free, Halal, legal, compliance, authenticity, or purchase verdicts.
-- No shopper account is required. Preferences remain local, scan history remains session-only, and analytics exclude raw photos, precise location, dietary preferences, and persistent identity.
+## Not in the MVP
 
-## Brand Commitments
+- A Life Goods-owned Product catalog
+- User contributions or Open Food Facts editing
+- Product, package, claim, or source verification
+- Package-photo capture, OCR, or image retention
+- Accounts, saved Products, persistent scan history, or personalization
+- Safety, health, dietary, certification, authenticity, legal, or purchase verdicts
+- Live Open Food Facts API fallback
+- Automatic Dataset Snapshot updates
+- A required relational database
 
-LifeGoods is calm, credible, practical, approachable, and evidence-forward. It behaves like a friendly guide: concise during the shopping task, explanatory when asked, and precise whenever evidence is incomplete or consequential.
+## Attribution
 
-Open Label is the primary LifeGoods identity motif. Its layered package-label sheets represent evidence being revealed while keeping the source visible. The mark is identity only—not purity, safety, certification, healthfulness, or a favorable Product judgment. Palm sugar is reserved for interaction and current location; golden palm sugar is a limited identity and Scan accent, set against a crisp black and white ground. Neither color communicates Product quality, safety, severity, or recommendation.
-
-“Healthy” describes the desired fresh and energetic character of the experience only. It does not authorize health claims, product scoring, “Excellent” or “Bad” labels, positive-versus-negative nutrition verdicts, or decorative reassurance.
-
-The supplied mobile references are binding tonal and structural inspiration for a direct, image-led, highly legible shopping utility. They are not templates to copy, and their scoring systems, verdict language, color-coded judgments, branding, and product conclusions are excluded from LifeGoods.
-
-LifeGoods must not resemble promotional wellness marketing built around purity language, aspirational health outcomes, or imagery that makes weak evidence feel conclusive.
-
-## Evidence on Hand
-
-- The repository specifications, domain glossary, data model, ADRs, user stories, and research documents are the authoritative evidence for product behavior and terminology.
-- The existing Figma concept remains an evolving structural reference rather than an exact visual specification.
-- The following user-supplied mobile screenshots are visual references for future design work:
-    - `C:/Users/Lenovo/AppData/Local/Temp/codex-clipboard-b8c7f600-c459-463b-a1ca-51c2a1465aa0.png`
-    - `C:/Users/Lenovo/AppData/Local/Temp/codex-clipboard-44a48a6d-ee36-4c00-aaf6-ba04d8d9a169.png`
-    - `C:/Users/Lenovo/AppData/Local/Temp/codex-clipboard-99d064af-cbc5-4be2-91ad-a74e997ae465.png`
-- The approved visual direction is `.impeccable/mocks/open-label-scan-a.png`: a code-native Open Label mark, warm-white ground, crisp black type, palm sugar interaction, limited golden palm sugar identity, image-led Product hierarchy, thin dividers, and minimal containers.
-
-## Product Principles
-
-1. **Evidence before reassurance.** Show what was declared, where it came from, how it was reviewed, and what remains unknown before offering interpretation.
-2. **Khmer comprehension before information density.** Make consequential Khmer wording readable and scannable while preserving original package languages and source meaning.
-3. **Scan first; disclose detail progressively.** Keep the primary mobile journey focused, then reveal source inspection and Learn More content without taking the shopper out of context.
-4. **Open labels without health theatre.** Use the layered-label identity and image-led hierarchy to make evidence approachable without turning visual character into a health or purchase claim.
-5. **Uncertainty stays prominent and actionable.** Missing, stale, conflicting, unreadable, or unreviewed evidence must never disappear behind a confident treatment; pair it with the appropriate recovery action.
-
-## Accessibility & Inclusion
-
-Target WCAG 2.2 AA and test the complete primary journey in Khmer as well as English. Use touch targets of at least 44 by 44 CSS pixels, visible keyboard focus, sufficient text and non-text contrast, and meaning that never depends on color alone.
-
-Khmer readability requires generous line height, tested glyph rendering, layouts that tolerate longer labels without truncation, and validation on representative low- and mid-range Android devices, Telegram WebView, and supported iOS Safari devices. Motion must respect reduced-motion preferences, and the online MVP must explain connectivity, camera, and device failures without stranding the shopper.
+Every Product page will display a visible “Data from Open Food Facts” link. A global data-and-licenses notice will cover the [Open Food Facts reuse terms](https://world.openfoodfacts.org/data), including the database, database contents, and image licenses.

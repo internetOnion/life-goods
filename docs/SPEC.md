@@ -1,309 +1,198 @@
-# Khmer Food Product Intelligence MVP
+# Life Goods specification
 
-## 1. Purpose
+## Status
 
-The MVP helps a Khmer-speaking shopper understand evidence from a sealed packaged-food label before purchase. It is delivered online as a responsive website and Telegram Mini App.
+This specification defines the new backend-first product direction. The current repository still contains catalog, package-match, reference-dataset, allergen, Halal, assessment, and package-capture code from the previous direction. Those modules are transitional and do not define the target product.
 
-The product provides Shopper Guidance: prioritized declared concerns, uncertainty, Khmer label facts, and supporting evidence. It does not recommend whether to buy a Product and never declares a Product safe, healthy, allergen-free, Halal, legally compliant, or authentic.
+The documentation reset does not remove implementation code or databases. Backend simplification will be a separate, atomic change.
 
-## 2. Pilot boundary
+## 1. Product boundary
 
-### Included products
+Life Goods is a read-only Khmer-first presentation layer over Open Food Facts data. It initially serves people shopping in Cambodia through a mobile-first progressive web application.
 
-- Sealed retail packaged foods sold in Cambodia
-- Non-alcoholic packaged beverages sold in Cambodia
+The MVP:
 
-### Unsupported in the MVP
+- decodes Barcodes on the shopper's device;
+- finds Source Records in one static local Dataset Snapshot;
+- presents consumer-facing Open Food Facts information with visible Source Attribution;
+- develops the information architecture in English before adding Khmer localization;
+- later generates Khmer Translation on demand while preserving Original Text; and
+- remains anonymous and read-only.
 
-- Alcohol
-- Dietary supplements
-- Infant formula and specialized clinical nutrition
-- Medicines or products making medicinal claims
-- Restaurant-prepared and fresh food
-- Unlabeled homemade products
+The MVP does not own a Product catalog, accept contributions, upload package photos, or verify source data. It does not produce health, safety, allergen-free, Halal, authenticity, legal, compliance, or purchase verdicts.
 
-Unsupported products receive an explicit scope message rather than a generic assessment.
+## 2. Current milestone
 
-### Included capabilities
+The first backend milestone is one cached, read-only Product Lookup endpoint over the configured Dataset Snapshot. It establishes Barcode validation, source provenance, missing-state behavior, and a raw exploratory payload before the product-page contract is refined.
 
-- Barcode scan and multilingual catalog search
-- Open Food Facts identity and label evidence with field-level provenance
-- A manually activated, project-hosted OFF Dataset Version for Product lookup
-- Locally hosted, immutable, human-reviewed reference datasets for allergen, Halal ingredient, and additive assessments
-- Temporary private Package Capture when current label evidence is missing
-- Original label transcription and concise source-cited English ingredient descriptions
-- Allergen, Halal-ingredient, additive, and date assessments
-- Evidence uncertainty and source inspection
-- A data-driven Learn section covering every consequential concept presented by the MVP
-- Optional local preference prioritization
-- Khmer interface with optional English
+Search is an optional parallel follow-on. It is not required for the first endpoint, but it is not blocked by a formal phase gate once it can reuse stable lookup foundations.
 
-### Deferred capabilities
-
-- Locally observed Product seed data, reviewed-local precedence, Product Claims, Preferred Claims, conflicts, and catalog moderation
-- Khmer ingredient descriptions and Khmer Knowledge Entry translation
-- Offline operation
-- Public contributions and community verification
-- SME authenticity advisories
-- Nutrition visualizations and health scoring
-- Certificate verification beyond seal observation
-- Legal Compliance Assessments
-- Share-card generation
-- Official reporting referrals
-- Broad Food Literacy Hub content
+## 3. Experimental Product Lookup API
 
-## 3. Primary journey
+### Request
 
-1. The shopper scans a barcode.
-2. The system validates and normalizes the identifier.
-3. The system finds Package Match candidates in the Active OFF Dataset Version.
-4. The result displays immediately with a reference package image and “Different package?” action.
-5. The first screen prioritizes:
-    1. candidate identity;
-    2. profile-matched and other evidence-scoped concerns;
-    3. Evidence Uncertainty;
-    4. available original label evidence and English ingredient explanations;
-    5. source evidence and observation date.
-6. Missing, inconsistent, or visibly different evidence leads to optional private Package Capture.
-7. The shopper may open reusable Knowledge Entries for details.
+`GET /api/experimental/products/{barcode}`
 
-No confirmation blocks the initial result. Barcode identity and visual similarity produce candidates, not proof that the physical package is the same revision.
+The route belongs to Life Goods rather than the source provider. The response identifies Open Food Facts through explicit metadata.
 
-## 4. Identification and fallback behavior
+Before lookup, the backend:
 
-### Barcode
+1. accepts only explicitly supported retail Barcode formats;
+2. normalizes the value;
+3. validates length, format, and check digit; and
+4. rejects invalid input without accessing the cache or Dataset Snapshot.
 
-- Support common GTIN/EAN/UPC retail identifiers.
-- Verify check digits and store normalized scheme/value separately from internal IDs.
-- Do not infer manufacturing country from a GS1 prefix.
-- Target detection within one second on representative pilot devices.
-- Target a usable known result within three seconds at the 95th percentile during pilot testing.
+### Successful response
 
-### Failure-specific recovery
+A successful response returns `200 OK` with an envelope shaped like:
 
-- No detection after about five seconds: offer zoom, Package Capture, or search.
-- Valid identifier not found: offer Package Capture immediately.
-- Repeated invalid identifier: explain and continue scanning.
-- Camera permission/device failure: show direct recovery and image upload.
-- Network failure: explain that the MVP requires internet.
+```json
+{
+    "data": {
+        "source_record": {}
+    },
+    "meta": {
+        "lookup": {
+            "barcode": "3017620422003"
+        },
+        "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org/product/3017620422003"
+        },
+        "dataset": {
+            "version": "configured-version-id",
+            "retrieved_at": "source-retrieval-timestamp"
+        }
+    }
+}
+```
 
-### Search
+`source_record` contains the raw imported Open Food Facts document. The backend removes MongoDB `_id`, local import bookkeeping, and other storage-only metadata. It does not normalize or selectively project Open Food Facts fields in this experimental contract.
 
-- Search identifiers and available Product/brand names in the Active OFF Dataset Version.
-- Preserve any Khmer, English, Vietnamese, Simplified Chinese, and Thai source names present in OFF without inventing translations.
-- Preserve language and source for every name.
-- Distinguish Package Variants rather than merging sizes and markets.
+This endpoint is intentionally unstable. After the English Product page reveals its actual needs, a stable Life Goods projection will graduate under `/api/v1/products/{barcode}`.
 
-## 5. Data acquisition
+### Errors
 
-### Open Food Facts
+Errors use a consistent envelope:
 
-Open Food Facts is an External Evidence Source, not the source of truth. The data-availability audit found 1,231 Cambodia-tagged records on 2026-08-21, but only 19.3% contained ingredient text and 0.5% Khmer ingredient text. See [`research/mvp-food-data-availability.md`](research/mvp-food-data-availability.md).
+```json
+{
+    "error": {
+        "code": "product_not_found",
+        "message": "Product not found"
+    }
+}
+```
 
-The MVP may use all eligible available fields, including identifiers, names, brands, selected images, original ingredient text, declared allergen/trace tags, nutrition declarations, categories, packaging languages, and source metadata.
+Required behavior:
 
-Package Match reads these fields from the Active OFF Dataset Version: a manually imported, full global official export stored read-only in project-operated MongoDB. The dataset version is immutable and identified by its source URL, retrieval and activation times, integrity hash, and observed schema versions. It remains active until an operator validates and atomically activates another version; no age implies synchronization with upstream OFF.
+| Condition                                           | HTTP status | Error code            |
+| --------------------------------------------------- | ----------: | --------------------- |
+| Unsupported, malformed, or checksum-invalid Barcode |       `422` | `invalid_barcode`     |
+| Valid Barcode absent from the Dataset Snapshot      |       `404` | `product_not_found`   |
+| Dataset Snapshot missing, inactive, or unreachable  |       `503` | `dataset_unavailable` |
+| Anonymous rate limit exceeded                       |       `429` | `rate_limit_exceeded` |
+| Unexpected internal failure                         |       `500` | `internal_error`      |
 
-Rules:
+The service never falls back silently to the live Open Food Facts API.
 
-- Preserve source URL, attribution, retrieval time, source revision/last-modified data, and field provenance.
-- Treat citations and integrity hashes as provenance metadata only; they do not verify the Product, package, or any Claim.
-- Keep OFF Evidence distinguishable from future project-reviewed Product Claims.
-- Never interpret an empty field as a negative result.
-- Display OFF-only results as external community data not reviewed by this project.
-- Link to the source Product and comply with ODbL, Database Contents License, and image CC BY-SA obligations after licensing review.
-- Expose the OFF Dataset Version and retrieval date with every OFF Package Match.
-- Return the unavailable journey when no valid Active OFF Dataset Version can serve a cited candidate.
-- Do not fall back to the public OFF product API. Selected image URLs may continue through the constrained image proxy.
+## 4. Dataset Snapshot
 
-### Assessment reference datasets
+The MVP uses one static, explicitly selected Open Food Facts Dataset Snapshot already hosted in MongoDB. Dataset updating, automatic synchronization, and periodic activation are deferred. The design keeps a version identifier so a different snapshot can be selected later without changing source semantics.
 
-MVP-1 hosts Reference Dataset Versions in PostgreSQL for allergen vocabulary, Halal ingredient mappings, additive rules, ingredient concepts and English descriptions, and Knowledge Entries.
+The Dataset Snapshot remains external source data. Local hosting, integrity checks, indexing, and selection do not make it a Life Goods catalog or verify any Source Record.
 
-Rules:
+## 5. Cache and rate limiting
 
-- Record source URL, license/reuse decision, jurisdiction, edition/effective period where applicable, retrieval time, integrity hash, reviewer, review date, validation result, and activation time.
-- Keep source sets separate rather than merging Cambodian rules, international references, lexical taxonomies, ontologies, and project-authored explanations into one truth table.
-- Require a one-time qualified human review before a version is activated; corrections create a new immutable version.
-- Treat activation as approval for a scoped assessment input, never Product review or verification.
-- Begin the allergen vocabulary with the current Codex major-allergen baseline; keep jurisdiction-specific extensions and exemptions separate.
-- Maintain a small project-authored Halal mapping that distinguishes explicit prohibited ingredients from source-dependent ambiguity and cites Cambodian and properly licensed international sources.
-- Prefer reviewed Cambodian additive rules. If none apply, a reviewed Codex rule may be used only as an explicitly labeled international reference.
-- Host concise project-authored English ingredient descriptions linked to stable identifiers and cited sources; defer Khmer translation.
-- Use manual import, validation, activation, and rollback. Do not synchronize reference data automatically in MVP-1.
+Redis remains disposable infrastructure for Product Lookup caching and anonymous rate limiting.
 
-The current complete `FOOD_ALLERGEN` release is
-`codex-food-allergen-2026-reviewed-english-v1`. It contains 26 active leaf concepts and three
-non-emitting parent groups. Its reviewed English mappings comprise the 26 direct names plus
-the project-reviewed derivatives `whey` and `tahini`; the typed `coconut milk` exclusion
-suppresses only the contained milk match. The release contains no other derivative, synonym,
-non-English, or Open Food Facts taxonomy mappings. Wheat, rye, barley, oats, sulphite,
-lactose, and non-`FOOD_ALLERGEN` condition families are outside this release. The earlier
-one-concept milk release remains immutable for tracer and rollback coverage but is not the
-complete release.
+- Cache found and not-found results.
+- Include Dataset Snapshot version and normalized Barcode in lookup cache keys.
+- Keep invalid Barcodes out of the cache.
+- Namespace cache and rate-limit keys by purpose.
+- Treat cache contents as reproducible and disposable.
+- Use an in-memory substitute where appropriate for isolated tests or single-process development.
 
-### Reviewed Product catalog
+The Product Lookup endpoint is public and requires no authentication. Apply a practical per-IP rate limit that allows ordinary shopping sessions while discouraging automated extraction.
 
-Locally observed Product seed data, reviewed Package Revisions, Product Claims, Preferred Claims, Unresolved Conflicts, moderator workflow, and reviewed-local precedence are post-MVP. The future reviewed catalog remains separate from OFF and from the reference datasets used for interpretation.
+## 6. Product-page exploration
 
-### Private Package Capture
+The English prototype uses the exploratory Source Record to reproduce Open Food Facts' consumer-facing data coverage in a new mobile information architecture. It does not copy the Open Food Facts visual design.
 
-- Require front and ingredient/label-panel photos.
-- Request targeted close-ups only when critical evidence is unreadable or absent.
-- Immediate output remains private to the session and never becomes catalog or training data.
-- Application media retention is limited to active processing and encrypted retry/recovery for at most 24 hours.
-- AI-provider transmission and retention terms must be disclosed and approved before launch.
-- Target interpretation within 15 seconds after upload in pilot conditions.
+The prototype should account for:
 
-## 6. Translation and vocabulary
+- identity, images, Barcode, brand, categories, labels, packaging, and countries;
+- nutrition facts and ingredients;
+- Source Assessments such as Nutri-Score, NOVA, Green-Score, and nutrient levels;
+- additives and ingredient analysis;
+- environmental, transport, and packaging information;
+- other available consumer-facing product information;
+- source and contribution metadata that helps a Shopper understand provenance; and
+- explicit Source Data Unavailable states.
 
-### Ingredient presentation
+Do not expose local database metadata, import bookkeeping, moderation controls, contribution controls, account controls, or Open Food Facts editing workflows in the shopper interface.
 
-- Preserve original label text, order, punctuation, percentages, and compound-ingredient structure.
-- Show concise, project-authored, source-cited English descriptions alongside source terms when available.
-- Put longer explanations behind Learn More.
-- Use approved human-reviewed interface wording for consequential assessment states.
-- Do not use AI-generated translations or descriptions as assessment inputs.
-- Keep ambiguous terms untranslated and show uncertainty.
+The English prototype is ready for Khmer localization only when representative complete, sparse, multilingual, irregular, and data-rich Source Records render intentionally on mobile without broken layouts or accidental raw-field dumps.
 
-### Reviewed Safety Vocabulary
+## 7. Attribution and licensing
 
-Initial content:
+Every Product page displays a visible “Data from Open Food Facts” link. Link to the corresponding Open Food Facts Product page when possible.
 
-- Current Codex major-allergen baseline, with jurisdiction-specific additions and exemptions kept separate
-- Reviewed declaration, precautionary, synonym, and ingredient-derivative mappings required by deterministic MVP scenarios
-- A small project-authored Halal ingredient mapping with explicit-prohibited and source-ambiguous states
-- Additive concepts and Cambodian rules where available, plus a separate Codex international-reference rule set
-- Multilingual source synonyms only where supported and reviewed; no invented translation coverage
+The product also provides a global notice covering the Open Food Facts [conditions for reuse](https://world.openfoodfacts.org/data):
 
-Each immutable version is imported, validated, reviewed by qualified humans, and explicitly activated. MVP-1 does not require a general Product verification or moderator system. Only activated reference mappings may power consequential assessments.
+- database under the Open Database License;
+- individual database contents under the Database Contents License; and
+- product images under Creative Commons Attribution-ShareAlike, subject to other rights that may apply.
 
-## 7. Assessment semantics
+Source Assessments remain visibly attributed Open Food Facts calculations. Life Goods may translate their explanations but does not verify, recalculate, or present them as Life Goods judgments.
 
-All assessments in MVP-1 are stateless Assessment Evaluations derived dynamically per Package Match request from original readable Evidence through an Active Reference Dataset Version and versioned rules, with optional non-durable caching. A translation or Ingredient Explainer is never the assessment input, and evaluations never write durable Assessment Run records to the database.
+## 8. Khmer localization
 
-Assessment Evaluation availability is separate from per-concept outcomes. A completed
-evaluation reports `COMPLETED` with a null reason, including when partial readable Evidence
-produces only `LABEL_INCOMPLETE_OR_UNREADABLE` concept outcomes. An evaluation that cannot run
-reports `NOT_ASSESSED` with exactly one reason: `FEATURE_DISABLED`, `REFERENCE_UNAVAILABLE`,
-`EVIDENCE_UNAVAILABLE`, or `ASSESSMENT_FAILED`. These assessment states do not change Package
-Match availability; an unavailable Active OFF Dataset Version retains its separate Package
-Match failure behavior.
+Khmer localization begins after the English information architecture is refined.
 
-### Allergen
+- Khmer becomes the primary display language.
+- Original Text remains available per translated field through a clear control.
+- Khmer Translation is generated on demand rather than for the whole Dataset Snapshot.
+- Translation output is cached against Dataset Snapshot version, source content, and translation configuration.
+- Machine-generated text is visibly identified.
+- Translation failure falls back to Original Text and does not fail Product Lookup.
+- Fluent human review is required for interface vocabulary, navigation, explanations, disclaimers, and accessibility copy.
+- Individual Product translations are not presented as human-reviewed or verified.
 
-Supported outcomes:
+Translation provider and model selection are deferred until this phase.
 
-- `DECLARED_CONTAINS`
-- `DECLARED_MAY_CONTAIN`
-- `DERIVED_FROM_INGREDIENT`
-- `NO_DECLARATION_DETECTED_IN_READABLE_LABEL`
-- `LABEL_INCOMPLETE_OR_UNREADABLE`
-- `NOT_ASSESSED`
+## 9. Privacy and measurement
 
-“No declaration detected” must state that it is not an allergen-free guarantee.
+- Decode camera frames on the device and send only the normalized Barcode for lookup.
+- Do not upload or retain camera frames or package photos.
+- Do not create accounts, server-side scan history, saved Products, or personalization in the MVP.
+- Do not retain Barcode-level analytics, persistent IP identifiers, or per-Shopper histories.
+- Permit aggregate counts for lookup volume, found/not-found rate, latency, cache performance, and error rate.
+- Minimize or redact Barcodes in application logs unless a short-lived operational diagnostic explicitly requires them.
 
-The Dietary Preference Profile may prioritize matching outcomes but does not change assessment logic or hide other concerns or Evidence Uncertainty.
+## 10. Backend transition
 
-Package Match returns one outcome for each active leaf concept in stable concept-ID order.
-Each outcome includes its parent concept IDs in direct-parent-to-root order and the rule IDs
-applicable to that leaf. Parent groups remain available for grouping and never appear as
-separate outcomes.
+The new read-only MVP has no durable relational data requirement. The backend refactor will therefore:
 
-### Halal-related ingredient evidence
+1. preserve the MongoDB Dataset Snapshot and Open Food Facts import/read foundation;
+2. preserve Redis as disposable cache and rate-limit infrastructure;
+3. remove the PostgreSQL and Alembic runtime dependency;
+4. remove obsolete catalog, package-match, reference-dataset, allergen, Halal, assessment, and package-capture implementation only after their dependencies are mapped;
+5. replace obsolete models, migrations, tests, configuration, and infrastructure together; and
+6. update README and development commands atomically with that implementation change.
 
-Supported outcomes:
+No shared, staging, or production PostgreSQL history must be preserved. Do not delete the existing migration chain in isolation: the clean-slate removal belongs to the atomic backend refactor.
 
-- explicit prohibited ingredient declared;
-- source ambiguous;
-- no declared non-Halal ingredient detected in readable evidence;
-- label incomplete or unreadable;
-- not assessed.
+## 11. First milestone acceptance criteria
 
-Readable OFF ingredient Evidence remains `PARTIAL`. When that Evidence contains no accepted
-finding, the assessment may report no declared non-Halal ingredient detected in the readable
-Evidence; this is not a complete-label claim or Halal certification.
-`LABEL_INCOMPLETE_OR_UNREADABLE` remains an explicit contract outcome for future Evidence sources
-that can report label readability separately. Current OFF input is either readable `PARTIAL`
-Evidence or unavailable Evidence, which produces `NOT_ASSESSED`.
+The first backend milestone is complete when:
 
-Ingredient screening, Seal Observation, and certificate verification are separate. Seal Observation and certificate verification are deferred in MVP-1; ingredient screening never populates either.
-
-### Additives
-
-- Identify exact approved names, synonyms, INS/E-numbers, and functions.
-- Provide neutral reviewed English explanations in MVP-1.
-- State a Cambodian limit concern only when jurisdiction, food category, effective period, and required concentration support it.
-- When no applicable Cambodian rule is available, a reviewed Codex rule may produce an explicitly labeled International Reference Concern, never a Cambodian legal conclusion.
-- Use `CONCENTRATION_UNKNOWN` when amount is required but not declared.
-- Never label an additive dangerous merely because it appears.
-
-### Dates
-
-- Distinguish manufacture, best-before, use-by/expiry, shelf-life instruction, and unknown.
-- Preserve exact source text and scope the date to the Observed Package or identified Batch.
-- Say date has passed, date has not passed, or date meaning uncertain.
-- Never say safe.
-- Keep correction/manual entry optional.
-
-## 8. Trust and moderation
-
-MVP-1 does not review or verify OFF Products. Citations, local storage, integrity hashes, and dataset activation establish provenance and operational integrity only.
-
-Reference Dataset Version approval is a narrow release decision for assessment inputs. It does not create accepted Product Claims, Preferred Claims, Unresolved Conflicts, or reviewed Package Revisions.
-
-The following reviewed Product catalog model is deferred until after MVP-1. When introduced, verification belongs to individual Claims, not an entire Product.
-
-Claim review states:
-
-- `PROPOSED`
-- `ACCEPTED`
-- `DISPUTED`
-- `REJECTED`
-- `SUPERSEDED`
-- `WITHDRAWN`
-
-Production method, confidence, source authority, and review state are separate attributes. Competing Claims remain preserved. A Preferred Claim may be selected for a Package Revision without deleting conflicts.
-
-Future project-team Moderators may accept shared Product Claims only under an approved workflow. “Official” confirmation will require identifiable authoritative Evidence rather than moderator opinion.
-
-## 9. AI and rule provenance
-
-Model selection is not locked before evaluation. Build a representative 50–100-image benchmark covering regional languages, small print, glare, curved packages, date codes, allergens, and ambiguous ingredients. Compare transcription accuracy, structured extraction, latency, cost, and failures.
-
-Every Extraction Run records provider and model identifier, prompt, schema, processing versions, input evidence references, raw structured output, uncertainty, status, latency, failure reason, and proposed Claims/translations.
-
-Durable persistent Assessment Runs are deferred post-MVP; MVP-1 uses stateless Assessment Evaluations whose output is scoped to the candidate response, with optional non-durable cache-aside caching. When persistent Assessment Runs are introduced post-MVP, every run will record the Claims, evidence, approved vocabulary, and rule versions used.
-
-Unsupported accuracy, “zero hallucination,” and “zero false negative” claims are prohibited.
-
-## 10. Privacy and analytics
-
-- No account is required for shopper features.
-- The Dietary Preference Profile offers only allergens from the Active Reference Dataset Version and persists only in that browser/device until reset.
-- Preference values never enter backend storage or analytics and prioritize rather than hide concerns.
-- Scan history is current-session only.
-- Do not collect GPS by default or retain EXIF metadata.
-- Analytics use short-lived random sessions and record journey/failure events only.
-- Analytics exclude raw photos, precise location, dietary preferences, and persistent identity.
-- A failed extraction returns partial evidence and uncertainty, never a fabricated or safety-clearing result.
-
-## 11. Knowledge content
-
-- Use no fixed topic-count target; publish the reviewed entries needed to explain every consequential MVP-1 concept.
-- Author concise original English summaries from primary or authoritative sources; defer Khmer translation.
-- Preserve source, edition, jurisdiction, retrieval date, author/reviewer, and review state.
-- Publish only after applicable language and domain review and explicit version activation.
-- Link to official material when an activated local entry is unavailable.
-- Do not scrape and republish content merely because it is publicly accessible.
-
-## 12. Pilot research and gates
-
-- Interview and observe approximately 8–12 relevant shoppers.
-- Run iterative Khmer usability rounds of about five participants.
-- Validate the provisional persona, barcode-first behavior, image comparison, and uncertainty language.
-- Require at least 80% known-barcode identity success, 90% of known results within three seconds, and 80% of Package Captures within 15 seconds under pilot conditions.
-- Require at least 80% participant comprehension of concern vs no declaration detected vs uncertainty.
-- Treat any interpretation of the UI as a safety, Halal, allergen-free, legal, or authenticity guarantee as a critical design failure.
-
-See [`USER_STORIES.md`](USER_STORIES.md) for behavioral acceptance criteria and [`DATA_MODEL.md`](DATA_MODEL.md) for the conceptual and logical data model.
+- supported Barcodes are normalized and validated before lookup;
+- a known Barcode returns the raw Source Record in the documented envelope;
+- storage-only fields do not leave the backend;
+- source name, source Product URL, Dataset Snapshot version, and retrieval time are present;
+- invalid, unknown, unavailable-source, rate-limit, and internal-error paths use the documented statuses and codes;
+- found and not-found cache behavior is covered by tests;
+- the service never calls the live Open Food Facts API as a fallback;
+- the endpoint is represented in FastAPI's OpenAPI contract and generated frontend client; and
+- aggregate metrics contain no retained Barcode or Shopper history.
