@@ -18,6 +18,7 @@
 .impeccable/live/manual-edit-evidence/
 .impeccable/live/pending-manual-edits.json
 .impeccable/live/deferred-svelte-component-accepts.json
+.impeccable/review/
 .impeccable-live.json
 .impeccable-live/
 app/.impeccable-live/

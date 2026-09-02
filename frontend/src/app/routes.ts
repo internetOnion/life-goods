@@ -1,26 +1,10 @@
-import { matchPath } from "react-router"
-
 export const appRoutes = {
     home: "/",
     search: "/search",
-    result: "/results/:identifier",
-    captureNew: "/capture/new",
-    captureDetail: "/captures/:captureId",
     learn: "/learn",
-    learnDetail: "/learn/:slug",
-    history: "/history",
+    learnArticle: "/learn/:slug",
+    concerns: "/concerns",
     allergies: "/allergies",
+    product: "/products/:barcode",
+    dataAndLicenses: "/data-and-licenses",
 } as const
-
-const focusedRoutePatterns = [
-    appRoutes.result,
-    appRoutes.captureNew,
-    appRoutes.captureDetail,
-    appRoutes.learnDetail,
-] as const
-
-export function isFocusedRoute(pathname: string) {
-    return focusedRoutePatterns.some(
-        (pattern) => matchPath(pattern, pathname) !== null,
-    )
-}

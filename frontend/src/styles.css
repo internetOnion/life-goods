@@ -1,98 +1,137 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
-@theme inline {
+@theme {
+    --color-primary-50: #f8f5f1;
+    --color-primary-100: #f3e8dd;
+    --color-primary-200: #edd1b6;
+    --color-primary-300: #e7b583;
+    --color-primary-400: #e19447;
+    --color-primary-500: #b86a1a;
+    --color-primary-600: #995613;
+    --color-primary-700: #7b440d;
+    --color-primary-800: #5a320b;
+    --color-primary-900: #39210a;
+    --color-primary-950: #1f1307;
+
+    --color-success-50: #f4f6f3;
+    --color-success-100: #e6ede3;
+    --color-success-200: #ccddc6;
+    --color-success-300: #abcb9f;
+    --color-success-400: #82b96e;
+    --color-success-500: #5f8d4e;
+    --color-success-600: #4d753f;
+    --color-success-700: #3d5e31;
+    --color-success-800: #2d4525;
+    --color-success-900: #1f2d19;
+    --color-success-950: #11190f;
+
+    --color-info-50: #f3f5f6;
+    --color-info-100: #e3e8ee;
+    --color-info-200: #c4d1df;
+    --color-info-300: #9cb4ce;
+    --color-info-400: #6e93ba;
+    --color-info-500: #4f7cac;
+    --color-info-600: #3f658e;
+    --color-info-700: #315072;
+    --color-info-800: #253b53;
+    --color-info-900: #1a2836;
+    --color-info-950: #0f161e;
+
+    --color-warning-50: #f9f6f0;
+    --color-warning-100: #f6ecda;
+    --color-warning-200: #f4dcae;
+    --color-warning-300: #f5c875;
+    --color-warning-400: #f7b231;
+    --color-warning-500: #d98e04;
+    --color-warning-600: #b47500;
+    --color-warning-700: #8f5d00;
+    --color-warning-800: #694400;
+    --color-warning-900: #432d03;
+    --color-warning-950: #241904;
+
+    --color-error-50: #f7f2f2;
+    --color-error-100: #f0e0e0;
+    --color-error-200: #e5bdbd;
+    --color-error-300: #d99191;
+    --color-error-400: #cb5c5c;
+    --color-error-500: #c94c4c;
+    --color-error-600: #b03232;
+    --color-error-700: #8e2525;
+    --color-error-800: #681d1d;
+    --color-error-900: #431515;
+    --color-error-950: #240d0d;
+
+    --color-neutral-50: #f3f5f6;
+    --color-neutral-100: #e3e7ed;
+    --color-neutral-200: #c6cfdd;
+    --color-neutral-300: #9fb1cb;
+    --color-neutral-400: #6e8eb9;
+    --color-neutral-500: #64748b;
+    --color-neutral-600: #526073;
+    --color-neutral-700: #404c5b;
+    --color-neutral-800: #303843;
+    --color-neutral-900: #21252c;
+    --color-neutral-950: #131519;
+
+    --color-background: var(--color-neutral-50);
+    --color-foreground: var(--color-neutral-950);
+    --color-card: #ffffff;
+    --color-card-foreground: var(--color-neutral-950);
+    --color-primary: var(--color-primary-600);
+    --color-primary-foreground: #ffffff;
+    --color-secondary: var(--color-neutral-100);
+    --color-secondary-foreground: var(--color-neutral-900);
+    --color-muted: var(--color-neutral-100);
+    --color-muted-foreground: var(--color-neutral-600);
+    --color-accent: var(--color-primary-100);
+    --color-accent-foreground: var(--color-primary-900);
+    --color-border: var(--color-neutral-200);
+    --color-input: var(--color-neutral-300);
+    --color-ring: var(--color-primary-500);
+    --color-destructive: var(--color-error-600);
+
     --font-sans:
-        "Noto Sans Khmer", "Khmer OS System", "Khmer Sangam MN", "Khmer UI",
-        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-        "Segoe UI", Roboto, sans-serif;
+        "Plus Jakarta Sans", "Noto Sans Khmer", ui-sans-serif, system-ui,
+        -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     --font-mono:
-        ui-monospace, "SF Mono", "Cascadia Code", "Segoe UI Mono",
-        "Liberation Mono", Menlo, Monaco, Consolas, monospace;
-    --color-brand: var(--brand);
-    --color-brand-dark: var(--brand-dark);
-    --color-brand-hover: var(--brand-hover);
-    --color-brand-soft: var(--brand-soft);
-    --color-background: var(--background);
-    --color-foreground: var(--foreground);
-    --color-card: var(--card);
-    --color-card-foreground: var(--card-foreground);
-    --color-primary: var(--primary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-secondary: var(--secondary);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-muted: var(--muted);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-accent: var(--accent);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-border: var(--border);
-    --color-input: var(--input);
-    --color-ring: var(--ring);
-    --color-destructive: var(--destructive);
-    --color-mango: var(--mango);
-    --color-mango-soft: var(--mango-soft);
-    --animate-scan-laser: scan-laser 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite
-        alternate;
+        "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Code",
+        "Segoe UI Mono", monospace;
+    --shadow-source-sheet: 0 14px 38px -28px rgba(19, 21, 25, 0.55);
+    --shadow-source-sheet-body: 0 14px 38px -28px rgba(19, 21, 25, 0.42);
+    --shadow-action-lift: 0 8px 20px -14px rgba(90, 50, 11, 0.8);
+    --animate-scan-laser: scan-laser 2.2s ease-in-out infinite;
 }
 
 @keyframes scan-laser {
     0% {
-        top: 6%;
-        opacity: 0.15;
+        top: 10%;
+        opacity: 0;
     }
-    15% {
-        opacity: 0.95;
-    }
-    85% {
-        opacity: 0.95;
+    20%,
+    80% {
+        opacity: 1;
     }
     100% {
-        top: 94%;
-        opacity: 0.15;
+        top: 90%;
+        opacity: 0;
     }
 }
 
 :root {
     color-scheme: light;
-    --brand: #8a4b16;
-    --brand-dark: #6e350c;
-    --brand-hover: #562908;
-    --brand-soft: #f7ede0;
-    --page: #fafaf8;
-    --surface: #f4f4f5;
-    --surface-strong: #e4e4e7;
-    --ink: #111111;
-    --muted-ink: #66666a;
-    --line: #e4e4e7;
-    --background: var(--page);
-    --foreground: var(--ink);
-    --card: var(--page);
-    --card-foreground: var(--ink);
-    --primary: var(--brand-dark);
-    --primary-foreground: #ffffff;
-    --secondary: var(--surface-strong);
-    --secondary-foreground: var(--ink);
-    --muted: var(--surface);
-    --muted-foreground: var(--muted-ink);
-    --accent: var(--brand-soft);
-    --accent-foreground: var(--brand-hover);
-    --border: var(--line);
-    --input: #a1a1aa;
-    --ring: #8a4b16;
-    --destructive: #b91c1c;
-    --mango: #b86a1a;
-    --mango-soft: #fcf4e8;
+    --mango: var(--color-primary-500);
 }
 
 * {
     box-sizing: border-box;
-    border-color: var(--border);
+    border-color: var(--color-border);
 }
 
 html {
     min-width: 320px;
-    background: var(--background);
-    scrollbar-color: var(--primary) var(--muted);
+    scroll-behavior: smooth;
+    background: var(--color-background);
+    scrollbar-color: var(--color-primary-600) var(--color-neutral-100);
     scrollbar-width: thin;
 }
 
@@ -100,39 +139,31 @@ body {
     min-width: 320px;
     min-height: 100vh;
     margin: 0;
-    background: var(--background);
-    color: var(--foreground);
+    background: var(--color-background);
+    color: var(--color-foreground);
     font-family: var(--font-sans);
     font-synthesis: none;
-    line-height: 1.65;
+    line-height: 1.6;
     text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
 :lang(km),
 [lang="km"] {
+    font-family:
+        "Noto Sans Khmer", "Khmer OS System", "Khmer Sangam MN", sans-serif;
     letter-spacing: normal;
 }
 
+:lang(km) h1,
+:lang(km) h2,
+:lang(km) h3,
 [lang="km"] h1,
 [lang="km"] h2,
-[lang="km"] h3,
-[lang="km"] h4,
-[lang="km"] h5,
-[lang="km"] h6 {
+[lang="km"] h3 {
+    line-height: 1.55;
     letter-spacing: 0;
-    line-height: 1.7;
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-    color: var(--foreground);
-    line-height: 1.7;
-    letter-spacing: -0.02em;
 }
 
 code,
@@ -158,12 +189,18 @@ button {
 }
 
 input {
-    caret-color: var(--primary);
+    caret-color: var(--color-primary-600);
+}
+
+a {
+    color: var(--color-info-700);
+    text-underline-offset: 0.22em;
 }
 
 a:focus-visible,
 summary:focus-visible {
-    outline: 3px solid var(--ring);
+    border-radius: 0.5rem;
+    outline: 3px solid var(--color-ring);
     outline-offset: 3px;
 }
 
@@ -172,28 +209,24 @@ h2[tabindex="-1"]:focus {
     outline: none;
 }
 
-a {
-    color: var(--primary);
-    text-underline-offset: 0.2em;
-}
-
 ::selection {
-    color: var(--foreground);
-    background: var(--accent);
+    color: var(--color-primary-950);
+    background: var(--color-primary-200);
 }
 
 ::-webkit-scrollbar {
     width: 10px;
+    height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--muted);
+    background: var(--color-neutral-100);
 }
 
 ::-webkit-scrollbar-thumb {
-    border: 2px solid var(--muted);
+    border: 2px solid var(--color-neutral-100);
     border-radius: 999px;
-    background: var(--primary);
+    background: var(--color-primary-600);
 }
 
 @media (prefers-reduced-motion: reduce) {

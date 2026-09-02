@@ -248,3 +248,11 @@ export const LEARN_TOPIC_ORDER: LearnTopic[] = [
     "ingredients",
     "dates",
 ]
+
+export const LEARN_TOPIC_LABELS: Record<LearnTopic, string> = {
+    laws: "Laws & Regulations",
+    declarations: "Declarations & Claims",
+    evidence: "Evidence & Uncertainty",
+    ingredients: "Ingredients & Additives",
+    dates: "Dates & Seals",
+}

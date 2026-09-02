@@ -11,7 +11,7 @@ vi.mock("@zxing/browser", () => ({
     })),
 }))
 
-import { barcodeScanner } from "../src/features/package-match/barcodeScanner"
+import { barcodeScanner } from "../src/features/scan/barcodeScanner"
 
 function createVideoFrame(drawable = true) {
     const state = {

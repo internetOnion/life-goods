@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest"
 
-import { validateIdentifier } from "../src/features/package-match/identifier"
+import { validateIdentifier } from "../src/features/scan/identifier"
 import cases from "../../evaluation/datasets/identifier_cases.json"
 
 describe("barcode validation", () => {

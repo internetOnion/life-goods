@@ -1,41 +1,52 @@
+import { ArrowRightIcon } from "@phosphor-icons/react"
 import { useEffect, useRef } from "react"
-import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
 
+import { Button } from "@/components/ui/button"
+import { usePageMetadata } from "@/lib/metadata"
 import { OpenLabelMark } from "@/ui/OpenLabelMark"
 
 export function NotFoundPage() {
-    const { t } = useTranslation()
     const headingRef = useRef<HTMLHeadingElement>(null)
+
+    usePageMetadata({
+        title: "Page not found",
+        description: "There is no Life Goods page at this address.",
+    })
 
     useEffect(() => {
         headingRef.current?.focus()
     }, [])
 
     return (
-        <main className="mx-auto grid min-h-[calc(100svh-6rem)] w-full max-w-5xl content-center px-4 py-10 sm:px-6 lg:px-10">
+        <main className="mx-auto grid min-h-[calc(100svh-8rem)] w-full max-w-xl content-center px-4 py-12 sm:px-6">
             <div
-                className="bg-mango-soft mb-7 grid size-24 place-items-center rounded-3xl"
+                className="bg-primary-100 mb-7 grid size-20 place-items-center rounded-2xl"
                 aria-hidden="true"
             >
-                <OpenLabelMark className="size-16" />
+                <OpenLabelMark className="size-12" />
             </div>
             <h1
-                className="text-4xl leading-[1.7] font-black tracking-tight text-balance sm:text-5xl"
+                className="text-4xl leading-tight font-extrabold tracking-[-0.03em] text-balance text-neutral-950 sm:text-5xl"
                 ref={headingRef}
                 tabIndex={-1}
             >
-                {t("notFound.title")}
+                Page not found
             </h1>
-            <p className="text-muted-foreground mt-3 max-w-[62ch] text-[1.05rem] leading-[1.65]">
-                {t("notFound.body")}
+            <p className="mt-4 max-w-[60ch] text-lg leading-relaxed text-neutral-600">
+                There is no Life Goods page at this address. Return to the
+                scanner to look up a Product.
             </p>
-            <Link
-                className="bg-primary text-primary-foreground hover:bg-brand-hover focus-visible:ring-ring mt-7 inline-flex min-h-11 w-fit items-center justify-center rounded-xl px-5 py-2 font-bold no-underline transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-                to="/"
-            >
-                {t("notFound.home")}
-            </Link>
+            <Button asChild className="mt-7 w-fit">
+                <Link to="/">
+                    Scan a Barcode
+                    <ArrowRightIcon
+                        aria-hidden="true"
+                        size={18}
+                        weight="bold"
+                    />
+                </Link>
+            </Button>
         </main>
     )
 }

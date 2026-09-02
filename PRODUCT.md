@@ -1,27 +1,61 @@
+# Product
+
+<!-- impeccable:product-schema 1 -->
+
 # Life Goods
 
-Life Goods is a Khmer-first product-information experience for people shopping in Cambodia. It makes Open Food Facts data easier to access and understand without creating a separate food catalog or verification system.
+## Platform
 
-## Audience
+web
 
-The first audience is Khmer-speaking people using a mobile phone while shopping in Cambodia. The product remains accessible elsewhere, but Cambodia determines the initial language, device, connectivity, and usability priorities.
+## Users
 
-## Purpose
+The first audience is Khmer-speaking Shoppers using a mobile phone while shopping in Cambodia. Life Goods remains accessible elsewhere, but Cambodia determines the initial language, device, connectivity, and usability priorities.
 
-A shopper scans a packaged-food barcode and receives a readable presentation of the available Open Food Facts record. Search is a fallback when scanning is unavailable or unsuccessful.
+## Product Purpose
 
-Life Goods initially presents the breadth of consumer-facing data available on Open Food Facts, including product identity, images, ingredients, nutrition, Source Assessments, environmental and packaging information, other product details, and source history. The information hierarchy will be refined after representative records have been explored in the interface.
+Life Goods makes Open Food Facts data easier to access and understand without creating a separate food catalog or verification system. A Shopper scans a packaged-food Barcode and receives a readable presentation of the available Source Record. Typed Barcode entry is the fallback when scanning is unavailable or unsuccessful.
 
-## Product sequence
+The English prototype explores a mobile information architecture against complete, sparse, multilingual, irregular, and data-rich Source Records. The public MVP follows with Khmer localization, on-demand Khmer Translation, and Original Text available per translated field.
 
-1. **Backend exploration:** expose a raw Source Record from the static local Dataset Snapshot through an experimental Life Goods API.
-2. **English prototype:** build and refine a mobile information architecture against complete, sparse, multilingual, and irregular Source Records.
-3. **Contract refinement:** replace the exploratory payload with a stable product-page contract. Search may proceed in parallel when it can reuse stable lookup foundations.
-4. **Khmer public MVP:** localize the interface, add on-demand Khmer Translation with Original Text available per field, and complete fluent-human review of interface terminology and explanations.
+Success means a Shopper can move quickly from a Barcode to understandable Product information while always being able to distinguish source data, Source Assessments, generated translation, and Source Data Unavailable.
 
-English is a development milestone, not the final product identity. Khmer support is required before the public MVP.
+## Positioning
 
-## Product principles
+Life Goods is a Khmer-first, read-only presentation layer over one static local Open Food Facts Dataset Snapshot. It localizes and redesigns the experience while keeping Open Food Facts visibly attributed and without adopting its data as a Life Goods catalog or judgment.
+
+## Operating Context
+
+The primary workflow happens one-handed on a mobile phone in a shop. The Shopper scans a physical Barcode on-device or types it, then reads Product identity, images, ingredients, nutrition, Source Assessments, environmental and packaging information, other available details, and source history. Connectivity may be constrained, Product records may be incomplete or inconsistent, and package images and text may be multilingual.
+
+## Capabilities and Constraints
+
+- Mobile-first progressive web application with anonymous, read-only use
+- On-device Barcode decoding; camera frames and package photos are not uploaded or retained
+- Product Lookup against one static, locally hosted Open Food Facts Dataset Snapshot
+- English information-architecture prototype before the Khmer public MVP
+- On-demand Khmer Translation in the public MVP, with Original Text available per translated field
+- Translation failure falls back to Original Text instead of failing Product Lookup
+- Visible Source Attribution on every Product page and a global data-and-licenses notice
+- Privacy-preserving aggregate operational metrics only; no accounts, saved Products, persistent scan history, personalization, Barcode-level analytics, or persistent Shopper identifiers
+- No Product contributions, corrections, moderation, verification, live Open Food Facts fallback, or automatic Dataset Snapshot updates
+- No health, safety, allergen-free, Halal, authenticity, legal, compliance, or purchase verdicts
+
+Source Assessments such as Nutri-Score, NOVA, Green-Score, and nutrient-level classifications remain visibly attributed Open Food Facts calculations. Life Goods does not verify, recalculate, or adopt them as its own judgments. Source Data Unavailable is unknown, not evidence that a Product has or lacks a property.
+
+## Brand Commitments
+
+The product name and wordmark use the spaced form “Life Goods.” The supplied warm amber brand, cool slate surface palette, and close visual relationship to the `life-goods-viewer` reference are binding inputs. The public identity must remain Khmer-ready rather than treating Khmer as a fallback adaptation. Visual communication, including iconography and illustrations, must prioritize semantic clarity for the Shopper and maintain a crafted, vibe-coded character over rigid adherence to any single icon vendor.
+
+## Evidence on Hand
+
+- Raw Source Records and Dataset Snapshot metadata from the experimental Product Lookup API
+- Open Food Facts Product images and Product-page links when supplied by the Source Record
+- Complete and sparse Open Food Facts test fixtures under `backend/tests/fixtures/open_food_facts/`
+- A visual and interaction reference in the sibling `life-goods-viewer` repository
+- No testimonials, customer claims, verification evidence, pricing claims, or Life Goods-owned Product data
+
+## Product Principles
 
 1. **Source breadth before hierarchy.** First learn which Open Food Facts data is useful; then refine how it is prioritized.
 2. **Localization without ownership.** Life Goods translates and redesigns the experience but does not present source data as its own catalog.
@@ -29,38 +63,12 @@ English is a development milestone, not the final product identity. Khmer suppor
 4. **Missing means unknown.** An absent field is Source Data Unavailable, not evidence that a property is absent.
 5. **Attribution stays visible.** Every Product page identifies Open Food Facts as the source and links to applicable data and image licensing information.
 6. **Lookup works without translation.** A translation failure falls back to Original Text instead of failing the Product page.
-7. **Privacy by omission.** Barcode decoding happens on the device. The backend receives only the Barcode and does not build accounts, scan histories, or barcode-level analytics.
+7. **Privacy by omission.** Barcode decoding happens on the device, and Life Goods does not build accounts, scan histories, or Barcode-level analytics.
 
-## Source and interpretation boundary
+## Accessibility & Inclusion
 
-Life Goods may display Open Food Facts Source Assessments such as Nutri-Score, NOVA, Green-Score, and nutrient-level classifications. These remain explicitly attributed Open Food Facts calculations; Life Goods does not verify or adopt them as its own judgments.
-
-Life Goods does not declare a Product healthy, safe, allergen-free, Halal, authentic, legally compliant, or suitable for purchase. It does not infer a reassuring conclusion from missing or incomplete source data.
-
-## MVP constraints
-
-- Mobile-first progressive web application
-- Anonymous use with no accounts or server-side history
-- On-device Barcode decoding; no camera frame or package-photo upload
-- One static, locally hosted Open Food Facts Dataset Snapshot
-- Read-only product experience with no contributions, corrections, or moderation
-- On-demand Khmer Translation after the English prototype is refined
-- Original Text available per translated field
-- Human Khmer review for interface language, navigation, explanations, disclaimers, and accessibility copy
-- Privacy-preserving aggregate metrics only: lookup volume, found rate, latency, cache performance, and errors
-
-## Not in the MVP
-
-- A Life Goods-owned Product catalog
-- User contributions or Open Food Facts editing
-- Product, package, claim, or source verification
-- Package-photo capture, OCR, or image retention
-- Accounts, saved Products, persistent scan history, or personalization
-- Safety, health, dietary, certification, authenticity, legal, or purchase verdicts
-- Live Open Food Facts API fallback
-- Automatic Dataset Snapshot updates
-- A required relational database
+Khmer support is required before the public MVP. Fluent human review is required for interface terminology, navigation, explanations, disclaimers, and accessibility copy. Complete, sparse, multilingual, irregular, and data-rich Source Records must render intentionally on mobile without broken layouts or accidental raw-field dumps.
 
 ## Attribution
 
-Every Product page will display a visible “Data from Open Food Facts” link. A global data-and-licenses notice will cover the [Open Food Facts reuse terms](https://world.openfoodfacts.org/data), including the database, database contents, and image licenses.
+Every Product page displays a visible “Data from Open Food Facts” link. A global data-and-licenses notice covers the [Open Food Facts reuse terms](https://world.openfoodfacts.org/data), including the database, database contents, and image licenses.

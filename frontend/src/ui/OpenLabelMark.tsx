@@ -17,7 +17,7 @@ export function OpenLabelMark({
             aria-hidden={decorative || undefined}
             role={decorative ? undefined : "img"}
         >
-            {!decorative ? <title>LifeGoods</title> : null}
+            {!decorative ? <title>Life Goods</title> : null}
             <path
                 d="M 24 19.5 C 17 10.5 11 11 7.5 14.5 C 6 16.5 8 18.5 13 19.2 C 17 19.8 21 19.8 24 19.5 Z"
                 fill="none"
@@ -51,7 +51,7 @@ export function BrandLockup({ compact = false, className }: BrandLockupProps) {
     return (
         <span
             className={cn("inline-flex items-center gap-2.5", className)}
-            aria-label="LifeGoods"
+            aria-label="Life Goods"
         >
             <OpenLabelMark className={compact ? "size-8" : "size-10"} />
             <span
@@ -60,7 +60,7 @@ export function BrandLockup({ compact = false, className }: BrandLockupProps) {
                     compact ? "text-lg" : "text-xl sm:text-2xl",
                 )}
             >
-                LifeGoods
+                Life Goods
             </span>
         </span>
     )
