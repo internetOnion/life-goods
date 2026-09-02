@@ -7,6 +7,7 @@ export const appRoutes = {
     captureNew: "/capture/new",
     captureDetail: "/captures/:captureId",
     learn: "/learn",
+    learnGuide: "/learn/guides/:guideSlug",
     learnDetail: "/learn/:slug",
     history: "/history",
     allergies: "/allergies",
@@ -16,6 +17,7 @@ const focusedRoutePatterns = [
     appRoutes.result,
     appRoutes.captureNew,
     appRoutes.captureDetail,
+    appRoutes.learnGuide,
     appRoutes.learnDetail,
 ] as const
 

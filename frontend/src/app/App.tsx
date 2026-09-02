@@ -5,7 +5,11 @@ import { appRoutes } from "./routes"
 
 import { AllergiesPage } from "../features/allergies/AllergiesPage"
 import { HistoryPage } from "../features/history/HistoryPage"
-import { LearnArticlePage, LearnPage } from "../features/learn/LearnPage"
+import {
+    LearnArticlePage,
+    LearnGuidePage,
+    LearnPage,
+} from "../features/learn/LearnPage"
 import { NotFoundPage } from "../features/not-found/NotFoundPage"
 import { CapturePage } from "../features/package-capture/CapturePage"
 import { NewCapturePage } from "../features/package-capture/NewCapturePage"
@@ -102,6 +106,10 @@ export function App({ lookup, searchLookup, demoMode }: AppProps) {
                     element={<CapturePage />}
                 />
                 <Route path={appRoutes.learn} element={<LearnPage />} />
+                <Route
+                    path={appRoutes.learnGuide}
+                    element={<LearnGuidePage />}
+                />
                 <Route
                     path={appRoutes.learnDetail}
                     element={<LearnArticlePage />}
