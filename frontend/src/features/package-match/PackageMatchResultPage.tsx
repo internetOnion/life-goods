@@ -21,6 +21,7 @@ import { BrandLockup } from "@/ui/OpenLabelMark"
 import { EvidenceSnapshot, type EvidenceSnapshotItem } from "./EvidenceSnapshot"
 import { validateIdentifier } from "./identifier"
 import { OpenFoodFactsResult } from "./OpenFoodFactsResult"
+import { ResultAccordion } from "./ResultAccordion"
 import { isOpenFoodFactsCandidate, type PackageMatchLookup } from "./types"
 
 type PackageMatchResultPageProps = {
@@ -413,6 +414,7 @@ function ReviewedCatalogResult({
     normalizedIdentifier: string
 }) {
     const { t } = useTranslation()
+    const [referenceImageFailed, setReferenceImageFailed] = useState(false)
     const snapshot: EvidenceSnapshotItem[] = [
         { kind: "declared_concerns", value: t("sourceNotAvailable") },
         {
@@ -437,58 +439,112 @@ function ReviewedCatalogResult({
         if (typeof ref === "object" && ref?.current) ref.current.focus()
     }, [ref])
 
+    const referenceImage =
+        candidate.reference_images?.find((image) => image.role === "front") ??
+        candidate.reference_images?.[0]
+    const name = candidateDisplayName(candidate)
+
     return (
-        <article className="mx-auto max-w-5xl">
-            <DatabaseIcon
-                className="text-primary"
-                aria-hidden="true"
-                size={40}
-            />
-            <h1
-                className="mt-4 text-3xl leading-[1.7] font-black text-balance sm:text-5xl"
-                ref={ref}
-                tabIndex={-1}
+        <article className="animate-in fade-in mx-auto grid max-w-5xl min-w-0 gap-5 duration-200">
+            <section
+                className="grid min-w-0 gap-3"
+                aria-labelledby="catalog-result-title"
             >
-                {t("reviewedCatalogTitle")}
-            </h1>
-            <p className="text-muted-foreground mt-3 max-w-3xl leading-relaxed">
-                {t("reviewedCatalogBody")}
-            </p>
-            <div className="mt-8">
-                <EvidenceSnapshot items={snapshot} />
-            </div>
-            <section className="mt-9" aria-labelledby="catalog-identity-title">
-                <h2 id="catalog-identity-title" className="text-2xl font-black">
-                    {t("productInformationTitle")}
-                </h2>
-                <dl className="divide-border border-border mt-4 divide-y border-y">
-                    <CatalogFact
-                        label={t("identifierLabel")}
-                        value={normalizedIdentifier}
-                    />
-                    <CatalogFact
-                        label={t("productIdLabel")}
-                        value={candidate.product_id}
-                    />
-                    <CatalogFact
-                        label={t("packageVariantIdLabel")}
-                        value={candidate.package_variant_id}
-                    />
-                </dl>
-            </section>
-            <div className="border-mango bg-mango-soft mt-8 border-y p-4">
-                <div className="flex items-start gap-3">
-                    <InfoIcon
-                        className="mt-0.5 shrink-0"
-                        aria-hidden="true"
-                        size={22}
-                    />
-                    <p className="leading-relaxed">
-                        {t("reviewedCatalogDetailsUnavailable")}
-                    </p>
+                <div className="grid min-w-0 items-start gap-4 min-[22.5rem]:grid-cols-[minmax(7.5rem,10rem)_minmax(0,1fr)] sm:grid-cols-[minmax(10rem,13rem)_minmax(0,1fr)] sm:gap-6 lg:grid-cols-[minmax(14rem,18rem)_minmax(0,1fr)] lg:gap-10">
+                    {referenceImage && !referenceImageFailed ? (
+                        <img
+                            className="bg-muted mx-auto aspect-[4/5] w-full rounded-xl object-contain"
+                            src={referenceImage.url}
+                            alt=""
+                            decoding="async"
+                            onError={() => setReferenceImageFailed(true)}
+                        />
+                    ) : (
+                        <div
+                            className="bg-muted text-muted-foreground grid aspect-[4/5] min-h-32 place-content-center justify-items-center gap-2 rounded-xl p-3 text-center text-sm leading-relaxed"
+                            role="img"
+                            aria-label={t("imageUnavailable")}
+                        >
+                            <ImageSquareIcon aria-hidden="true" size={32} />
+                            <span>{t("imageUnavailable")}</span>
+                        </div>
+                    )}
+                    <div className="min-w-0">
+                        <h1
+                            className="text-[clamp(1.45rem,6vw,2.1rem)] leading-[1.35] font-black tracking-tight text-balance wrap-anywhere"
+                            ref={ref}
+                            id="catalog-result-title"
+                            tabIndex={-1}
+                        >
+                            {name ?? t("reviewedCatalogTitle")}
+                        </h1>
+                        <p className="text-muted-foreground mt-2 leading-relaxed">
+                            {t("reviewedCatalogBody")}
+                        </p>
+                        <dl className="mt-3 grid gap-0.5 text-[0.9375rem] leading-[1.5]">
+                            <CatalogSummaryFact
+                                label={t("identifierLabel")}
+                                value={normalizedIdentifier}
+                            />
+                            <CatalogSummaryFact
+                                label={t("productIdLabel")}
+                                value={candidate.product_id}
+                            />
+                        </dl>
+                    </div>
                 </div>
+                <div className="bg-secondary text-secondary-foreground rounded-xl px-4 py-2 text-center font-black">
+                    {t("productMadeInLabel")} <span>{t("informationNotMentioned")}</span>
+                </div>
+            </section>
+
+            <div className="border-border border-y py-3">
+                <p className="text-sm font-black">{t("evidenceSnapshotTitle")}</p>
+                <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+                    {t("reviewedCatalogDetailsUnavailable")}
+                </p>
+            </div>
+
+            <div className="grid gap-3" aria-label={t("productDetailsTitle")}>
+                <ResultAccordion
+                    id="catalog-result-section-information"
+                    title={t("productInformationTitle")}
+                    icon={DatabaseIcon}
+                >
+                    <dl className="divide-border border-border mt-4 divide-y border-y">
+                        <CatalogFact
+                            label={t("identifierLabel")}
+                            value={normalizedIdentifier}
+                        />
+                        <CatalogFact
+                            label={t("productIdLabel")}
+                            value={candidate.product_id}
+                        />
+                        <CatalogFact
+                            label={t("packageVariantIdLabel")}
+                            value={candidate.package_variant_id}
+                        />
+                    </dl>
+                </ResultAccordion>
+                <ResultAccordion
+                    id="catalog-result-section-evidence"
+                    title={t("evidenceSnapshotTitle")}
+                    icon={InfoIcon}
+                >
+                    <EvidenceSnapshot items={snapshot} />
+                </ResultAccordion>
             </div>
         </article>
+    )
+}
+
+function CatalogSummaryFact({ label, value }: { label: string; value?: string | null }) {
+    const { t } = useTranslation()
+    return (
+        <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-2">
+            <dt className="text-muted-foreground">{label}:</dt>
+            <dd className="wrap-anywhere">{value ?? t("catalogValueUnavailable")}</dd>
+        </div>
     )
 }
 

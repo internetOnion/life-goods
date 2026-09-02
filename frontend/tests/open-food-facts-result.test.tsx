@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, test } from "vitest"
 
 import type {
@@ -79,7 +80,8 @@ describe("OpenFoodFactsResult", () => {
         await i18n.changeLanguage("en")
     })
 
-    test("renders the seven requested sections with complete mock data", () => {
+    test("renders the compact result shell and independently expandable sections", async () => {
+        const user = userEvent.setup()
         render(renderResult(completeMockCandidate()))
 
         expect(
@@ -105,20 +107,30 @@ describe("OpenFoodFactsResult", () => {
                 name: "Reference package image for Dark chocolate",
             }),
         ).toBeVisible()
-        expect(within(summary).getByText("100 g")).toBeVisible()
-        expect(within(summary).getByText("Made in")).toBeVisible()
+        expect(within(summary).getByText(/100 g/)).toBeVisible()
+        expect(within(summary).getByText("Contains allergen")).toBeVisible()
+        expect(within(summary).getByText("23.4 g")).toBeVisible()
+        expect(within(summary).getByText("550 kcal")).toBeVisible()
+        expect(within(summary).getByText("35 g")).toBeVisible()
+        expect(within(summary).getByText("Checked barcode")).toBeVisible()
+        expect(within(summary).getByText(/Product made in/)).toBeVisible()
         expect(within(summary).getByText("Cambodia")).toBeVisible()
         const snapshot = screen
             .getByRole("heading", { name: "Evidence Snapshot" })
             .closest("section")!
-        expect(within(snapshot).getByText("Declared concerns")).toBeVisible()
-        expect(within(snapshot).getByText("Contains milk")).toBeVisible()
-        expect(within(snapshot).getByText("Evidence gaps")).toBeVisible()
-        expect(within(snapshot).getByText("Source and review")).toBeVisible()
+        expect(within(snapshot).getByText(/Evidence gaps/)).toBeVisible()
+        expect(within(snapshot).getByText(/Source and review/)).toBeVisible()
+        expect(within(summary).getByText("Contains milk")).toBeVisible()
 
         const productInformation = screen
             .getByRole("heading", { name: "Product information" })
-            .closest("section")!
+            .closest("details")!
+        expect(productInformation).not.toHaveAttribute("open")
+        await user.click(
+            within(productInformation).getByRole("heading", {
+                name: "Product information",
+            }),
+        )
         expect(
             within(productInformation).getByText("Chocolate confectionery"),
         ).toBeVisible()
@@ -128,17 +140,27 @@ describe("OpenFoodFactsResult", () => {
 
         const ingredients = screen
             .getByRole("heading", { name: "Ingredients" })
-            .closest("section")!
+            .closest("details")!
+        expect(ingredients).not.toHaveAttribute("open")
+        await user.click(
+            within(ingredients).getByRole("heading", { name: "Ingredients" }),
+        )
         expect(
             within(ingredients).getAllByRole("listitem").length,
         ).toBeGreaterThan(1)
 
+        await user.click(
+            screen.getByRole("heading", { name: "Nutrition facts" }),
+        )
         expect(
             screen.getByRole("columnheader", { name: "per 100 g" }),
         ).toBeVisible()
         expect(
             screen.getByRole("columnheader", { name: "per serving" }),
         ).toBeVisible()
+        await user.click(
+            screen.getByRole("heading", { name: "Storage instructions" }),
+        )
         expect(screen.getByText("Keep in a cool, dry place")).toBeVisible()
     })
 
@@ -188,11 +210,18 @@ describe("OpenFoodFactsResult", () => {
         ).toBeVisible()
     })
 
-    test("keeps Source and Attribution limited to source, attribution, and record link", () => {
+    test("keeps Source and Attribution limited to source, attribution, and record link", async () => {
+        const user = userEvent.setup()
         render(renderResult(completeMockCandidate()))
         const sourceSection = screen
             .getByRole("heading", { name: "Source and attribution" })
-            .closest("section")!
+            .closest("details")!
+
+        await user.click(
+            within(sourceSection).getByRole("heading", {
+                name: "Source and attribution",
+            }),
+        )
 
         expect(within(sourceSection).getByText("Open Food Facts")).toBeVisible()
         expect(
@@ -213,6 +242,7 @@ describe("OpenFoodFactsResult", () => {
     })
 
     test("prefers the current interface language and retains ingredient evidence", async () => {
+        const user = userEvent.setup()
         await i18n.changeLanguage("km")
         render(renderResult(completeMockCandidate()))
         expect(
@@ -222,6 +252,7 @@ describe("OpenFoodFactsResult", () => {
         ).toHaveFocus()
         expect(screen.getByRole("heading", { name: "អាលែហ្សែន" })).toBeVisible()
         expect(screen.getByRole("heading", { name: "គ្រឿងផ្សំ" })).toBeVisible()
+        await user.click(screen.getByRole("heading", { name: "គ្រឿងផ្សំ" }))
         expect(
             screen.getByText(/អត្ថបទគ្រឿងផ្សំវែងសម្រាប់ផ្ទៀងផ្ទាត់/),
         ).toBeVisible()
