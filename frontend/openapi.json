@@ -345,6 +345,25 @@
         "title": "AssessmentReferenceDatasetVersionResponse",
         "type": "object"
       },
+      "DatasetSnapshotResponse": {
+        "properties": {
+          "retrieved_at": {
+            "format": "date-time",
+            "title": "Retrieved At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "retrieved_at"
+        ],
+        "title": "DatasetSnapshotResponse",
+        "type": "object"
+      },
       "ErrorCode": {
         "enum": [
           "IDENTIFIER_REQUIRED",
@@ -1391,6 +1410,151 @@
         ],
         "title": "PackageSearchResultResponse",
         "type": "object"
+      },
+      "ProductLookupDataResponse": {
+        "properties": {
+          "source_record": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Source Record",
+            "type": "object"
+          }
+        },
+        "required": [
+          "source_record"
+        ],
+        "title": "ProductLookupDataResponse",
+        "type": "object"
+      },
+      "ProductLookupErrorCode": {
+        "enum": [
+          "invalid_barcode",
+          "product_not_found",
+          "dataset_unavailable",
+          "rate_limit_exceeded",
+          "internal_error"
+        ],
+        "title": "ProductLookupErrorCode",
+        "type": "string"
+      },
+      "ProductLookupErrorDetail": {
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ProductLookupErrorCode"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ProductLookupErrorDetail",
+        "type": "object"
+      },
+      "ProductLookupErrorMetaResponse": {
+        "properties": {
+          "dataset": {
+            "$ref": "#/components/schemas/DatasetSnapshotResponse"
+          }
+        },
+        "required": [
+          "dataset"
+        ],
+        "title": "ProductLookupErrorMetaResponse",
+        "type": "object"
+      },
+      "ProductLookupErrorResponse": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ProductLookupErrorDetail"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductLookupErrorMetaResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ProductLookupErrorResponse",
+        "type": "object"
+      },
+      "ProductLookupMetaResponse": {
+        "properties": {
+          "dataset": {
+            "$ref": "#/components/schemas/DatasetSnapshotResponse"
+          },
+          "lookup": {
+            "$ref": "#/components/schemas/ProductLookupMetadataResponse"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SourceAttributionResponse"
+          }
+        },
+        "required": [
+          "lookup",
+          "source",
+          "dataset"
+        ],
+        "title": "ProductLookupMetaResponse",
+        "type": "object"
+      },
+      "ProductLookupMetadataResponse": {
+        "properties": {
+          "barcode": {
+            "title": "Barcode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "barcode"
+        ],
+        "title": "ProductLookupMetadataResponse",
+        "type": "object"
+      },
+      "ProductLookupResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ProductLookupDataResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ProductLookupMetaResponse"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "ProductLookupResponse",
+        "type": "object"
+      },
+      "SourceAttributionResponse": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "product_url": {
+            "title": "Product Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "product_url"
+        ],
+        "title": "SourceAttributionResponse",
+        "type": "object"
       }
     }
   },
@@ -1400,6 +1564,91 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/experimental/products/{barcode}": {
+      "get": {
+        "description": "Looks up a Barcode in the selected local Open Food Facts Dataset Snapshot and returns the raw Source Record. This experimental contract is unstable.",
+        "operationId": "getExperimentalProduct",
+        "parameters": [
+          {
+            "description": "GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode.",
+            "in": "path",
+            "name": "barcode",
+            "required": true,
+            "schema": {
+              "description": "GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode.",
+              "title": "Barcode",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductLookupResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductLookupErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductLookupErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductLookupErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductLookupErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductLookupErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Look up an experimental raw Product",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
     "/api/v1/open-food-facts-images": {
       "get": {
         "operationId": "getOpenFoodFactsImage",

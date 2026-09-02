@@ -129,3 +129,47 @@ def test_allergen_assessment_contract_exposes_only_backend_release_states(
         }
     ).lower()
     assert all(term not in package_match_contract for term in forbidden_contract_terms)
+
+
+def test_experimental_product_lookup_is_typed_in_openapi(client: TestClient) -> None:
+    response = client.get("/openapi.json")
+    assert response.status_code == 200
+    specification = response.json()
+
+    operation = specification["paths"]["/api/experimental/products/{barcode}"]["get"]
+    assert operation["operationId"] == "getExperimentalProduct"
+    assert operation["tags"] == ["Products"]
+    assert operation["parameters"] == [
+        {
+            "name": "barcode",
+            "in": "path",
+            "required": True,
+            "schema": {
+                "type": "string",
+                "description": "GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode.",
+                "title": "Barcode",
+            },
+            "description": "GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode.",
+        }
+    ]
+    assert set(operation["responses"]) == {"200", "404", "422", "429", "500", "503"}
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/ProductLookupResponse"
+    }
+    for status in ("404", "422", "429", "500", "503"):
+        assert operation["responses"][status]["content"]["application/json"][
+            "schema"
+        ] == {"$ref": "#/components/schemas/ProductLookupErrorResponse"}
+
+    schemas = specification["components"]["schemas"]
+    assert schemas["ProductLookupErrorCode"]["enum"] == [
+        "invalid_barcode",
+        "product_not_found",
+        "dataset_unavailable",
+        "rate_limit_exceeded",
+        "internal_error",
+    ]
+    source_record = schemas["ProductLookupDataResponse"]["properties"][
+        "source_record"
+    ]
+    assert source_record["type"] == "object"

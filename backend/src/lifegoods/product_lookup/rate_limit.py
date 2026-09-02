@@ -10,11 +10,11 @@ from lifegoods.core.rate_limit import RedisSlidingWindowRateLimiter
 logger = logging.getLogger(__name__)
 
 
-class PackageMatchRateLimiter(Protocol):
+class ProductLookupRateLimiter(Protocol):
     def try_acquire(self, key: str) -> tuple[bool, int]: ...
 
 
-class RedisPackageMatchRateLimiter(RedisSlidingWindowRateLimiter):
+class RedisProductLookupRateLimiter(RedisSlidingWindowRateLimiter):
     def __init__(
         self,
         client: redis.Redis,
@@ -24,15 +24,14 @@ class RedisPackageMatchRateLimiter(RedisSlidingWindowRateLimiter):
         fallback_seconds: float = 5.0,
         local_max_keys: int = 10_000,
         monotonic: Callable[[], float] = system_monotonic,
-        key_prefix: str = "package-matches:rate-limit",
         watch_retries: int = 8,
     ) -> None:
         super().__init__(
             client,
             requests_per_minute,
-            key_prefix=key_prefix,
-            display_name="Package Match",
-            event_prefix="package_match",
+            key_prefix="product-lookup:rate-limit",
+            display_name="Product Lookup",
+            event_prefix="product_lookup",
             logger=logger,
             window_seconds=window_seconds,
             fallback_seconds=fallback_seconds,

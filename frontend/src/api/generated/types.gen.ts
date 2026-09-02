@@ -183,6 +183,20 @@ export type AssessmentReferenceDatasetVersionResponse = {
 };
 
 /**
+ * DatasetSnapshotResponse
+ */
+export type DatasetSnapshotResponse = {
+    /**
+     * Retrieved At
+     */
+    retrieved_at: string;
+    /**
+     * Version
+     */
+    version: string;
+};
+
+/**
  * ErrorCode
  */
 export type ErrorCode = 'IDENTIFIER_REQUIRED' | 'IDENTIFIER_CHARACTERS_INVALID' | 'IDENTIFIER_LENGTH_UNSUPPORTED' | 'IDENTIFIER_CHECK_DIGIT_INVALID' | 'PACKAGE_MATCH_SOURCE_UNAVAILABLE' | 'PACKAGE_SEARCH_QUERY_INVALID' | 'REFERENCE_IMAGE_URL_INVALID' | 'REFERENCE_IMAGE_NOT_FOUND' | 'REFERENCE_IMAGE_SOURCE_UNAVAILABLE' | 'RATE_LIMIT_EXCEEDED';
@@ -694,6 +708,137 @@ export type PackageSearchResultResponse = {
      */
     source_kind?: 'OPEN_FOOD_FACTS';
 };
+
+/**
+ * ProductLookupDataResponse
+ */
+export type ProductLookupDataResponse = {
+    /**
+     * Source Record
+     */
+    source_record: {
+        [key: string]: JsonValue;
+    };
+};
+
+/**
+ * ProductLookupErrorCode
+ */
+export type ProductLookupErrorCode = 'invalid_barcode' | 'product_not_found' | 'dataset_unavailable' | 'rate_limit_exceeded' | 'internal_error';
+
+/**
+ * ProductLookupErrorDetail
+ */
+export type ProductLookupErrorDetail = {
+    code: ProductLookupErrorCode;
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * ProductLookupErrorMetaResponse
+ */
+export type ProductLookupErrorMetaResponse = {
+    dataset: DatasetSnapshotResponse;
+};
+
+/**
+ * ProductLookupErrorResponse
+ */
+export type ProductLookupErrorResponse = {
+    error: ProductLookupErrorDetail;
+    meta?: ProductLookupErrorMetaResponse | null;
+};
+
+/**
+ * ProductLookupMetaResponse
+ */
+export type ProductLookupMetaResponse = {
+    dataset: DatasetSnapshotResponse;
+    lookup: ProductLookupMetadataResponse;
+    source: SourceAttributionResponse;
+};
+
+/**
+ * ProductLookupMetadataResponse
+ */
+export type ProductLookupMetadataResponse = {
+    /**
+     * Barcode
+     */
+    barcode: string;
+};
+
+/**
+ * ProductLookupResponse
+ */
+export type ProductLookupResponse = {
+    data: ProductLookupDataResponse;
+    meta: ProductLookupMetaResponse;
+};
+
+/**
+ * SourceAttributionResponse
+ */
+export type SourceAttributionResponse = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Product Url
+     */
+    product_url: string;
+};
+
+export type GetExperimentalProductData = {
+    body?: never;
+    path: {
+        /**
+         * Barcode
+         * GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode.
+         */
+        barcode: string;
+    };
+    query?: never;
+    url: '/api/experimental/products/{barcode}';
+};
+
+export type GetExperimentalProductErrors = {
+    /**
+     * Not Found
+     */
+    404: ProductLookupErrorResponse;
+    /**
+     * Unprocessable Content
+     */
+    422: ProductLookupErrorResponse;
+    /**
+     * Too Many Requests
+     */
+    429: ProductLookupErrorResponse;
+    /**
+     * Internal Server Error
+     */
+    500: ProductLookupErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: ProductLookupErrorResponse;
+};
+
+export type GetExperimentalProductError = GetExperimentalProductErrors[keyof GetExperimentalProductErrors];
+
+export type GetExperimentalProductResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProductLookupResponse;
+};
+
+export type GetExperimentalProductResponse = GetExperimentalProductResponses[keyof GetExperimentalProductResponses];
 
 export type GetOpenFoodFactsImageData = {
     body?: never;

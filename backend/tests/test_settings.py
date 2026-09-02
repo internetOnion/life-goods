@@ -47,3 +47,17 @@ def test_canonical_halal_settings_take_precedence_over_legacy_aliases(
 
     assert settings.halal_ingredient_assessments_enabled is False
     assert settings.halal_ingredient_assessment_engine_version == "canonical-2"
+
+
+def test_product_lookup_settings_use_product_specific_names(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("LIFEGOODS_PRODUCT_LOOKUP_CACHE_ENABLED", "false")
+    monkeypatch.setenv("LIFEGOODS_PRODUCT_LOOKUP_CACHE_TTL_SECONDS", "123")
+    monkeypatch.setenv("LIFEGOODS_PRODUCT_LOOKUP_REQUESTS_PER_MINUTE", "17")
+
+    settings = settings_from_environment()
+
+    assert settings.product_lookup_cache_enabled is False
+    assert settings.product_lookup_cache_ttl_seconds == 123
+    assert settings.product_lookup_requests_per_minute == 17

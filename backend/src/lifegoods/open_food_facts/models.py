@@ -3,9 +3,8 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Literal, Protocol
 
+from lifegoods.core.types import JsonValue
 from lifegoods.identifiers.models import NormalizedIdentifier
-
-type JsonValue = None | bool | int | float | str | list[JsonValue] | dict[str, JsonValue]
 
 
 @dataclass(frozen=True, slots=True)
