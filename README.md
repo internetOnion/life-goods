@@ -1,6 +1,6 @@
 # LifeGoods
 
-LifeGoods is a Khmer-first packaged-food guidance application. This repository currently contains the manual identifier walking skeleton: an anonymous shopper can validate a GTIN, EAN, or UPC identifier locally and distinguish invalid input, a valid identifier with no Package Match, and a temporary lookup failure.
+LifeGoods is a Khmer-first packaged-food guidance application. It helps shoppers understand evidence from sealed packaged-food labels before purchase.
 
 The identifier is a lookup key for a `Package Variant`; it is not a `Product` identity or a safety, health, Halal, legal, authenticity, or purchase conclusion.
 
@@ -8,85 +8,85 @@ The identifier is a lookup key for a `Package Variant`; it is not a `Product` id
 
 - Node.js 24 LTS and pnpm
 - Python 3.13 and uv
-- Docker with Compose for local PostgreSQL and MongoDB
+- Docker with Compose (for local PostgreSQL, MongoDB, and Redis)
 
-## Install
+## Getting Started
+
+### 1. Install Dependencies & Configure Environment
 
 ```bash
 pnpm install
 pnpm backend:install
+cp backend/.env.example backend/.env
 ```
 
-## Run locally
+> **Note**: To enable stateless assessments in development, set `LIFEGOODS_ALLERGEN_ASSESSMENTS_ENABLED=true` and `LIFEGOODS_HALAL_INGREDIENT_ASSESSMENTS_ENABLED=true` in `backend/.env` after activating the corresponding reference datasets in Step 4. Halal engine releases are selected with `LIFEGOODS_HALAL_INGREDIENT_ASSESSMENT_ENGINE_VERSION`.
 
-Start PostgreSQL and MongoDB, then apply the relational migration:
+### 2. Start Databases & Apply Migrations
+
+Start local PostgreSQL (port `5433`), MongoDB (port `27018`), and Redis (port `6380`), then apply PostgreSQL schema migrations:
 
 ```bash
-docker compose -f infra/compose.yaml up -d postgres mongodb
+docker compose -f infra/compose.yaml up -d
 pnpm db:migrate
 ```
 
-Package Match requires an Active OFF Dataset Version. Importing the full global export is
-an explicit operator action; see [`docs/OFF_DATASET.md`](docs/OFF_DATASET.md) for the
-sample workflow, production-sized import, validation, activation, rollback, and backup gate.
+### 3. Ingest & Activate Open Food Facts Product Mirror (MongoDB)
 
-The FastAPI backend uses MongoDB with a read-only application credential. Dataset commands
-use the separate operator credential:
+Stream, index, and activate the Open Food Facts external catalog snapshot:
 
 ```bash
 pnpm off:dataset -- import-url
 pnpm off:dataset -- list
-pnpm off:dataset -- activate <version_id>
+pnpm off:dataset -- activate <off_version_id>
 ```
 
-Additional lifecycle commands are documented in `docs/OFF_DATASET.md`.
+### 4. Ingest & Activate Reference Datasets (PostgreSQL)
 
-Start the API and Web Client in separate terminals. The normal Web Client command uses HTTPS so camera access works when testing from a phone:
+Validate, import, and activate the reviewed English Food Allergen and Halal Ingredient reference datasets:
 
 ```bash
+# Food Allergens (Codex 2026)
+pnpm reference:dataset -- validate backend/src/lifegoods/reference_datasets/bundles/codex_2026_food_allergen_reviewed_english_v1.json
+pnpm reference:dataset -- import backend/src/lifegoods/reference_datasets/bundles/codex_2026_food_allergen_reviewed_english_v1.json
+pnpm reference:dataset -- activate codex-food-allergen-2026-reviewed-english-v1 --approver lifegoods --review-kind PROJECT_MAINTAINER_APPROVAL
+pnpm reference:dataset -- status --dataset-kind FOOD_ALLERGEN
+
+# Halal Ingredients (Cambodia Prakas No. 090 & OIC/SMIIC)
+pnpm reference:dataset -- validate backend/src/lifegoods/reference_datasets/bundles/halal_ingredient_2026_reviewed_english_v1.json
+pnpm reference:dataset -- import backend/src/lifegoods/reference_datasets/bundles/halal_ingredient_2026_reviewed_english_v1.json
+pnpm reference:dataset -- activate halal-ingredient-2026-reviewed-english-v1 --approver lifegoods --review-kind PROJECT_MAINTAINER_APPROVAL
+pnpm reference:dataset -- status --dataset-kind HALAL_INGREDIENT
+```
+
+### 5. Start Development Servers
+
+Run the API backend and Web Client in separate terminals:
+
+```bash
+# Terminal 1: Backend API (http://localhost:8000)
 pnpm backend:dev
+
+# Terminal 2: Web Client (http://localhost:5173)
 pnpm dev
 ```
 
-Open the `https://localhost:5173` URL. The Web Client proxies `/api` requests to `http://localhost:8000` during development.
+Open `http://localhost:5173` in your browser. For HTTPS with camera access, run `pnpm dev:https` instead.
 
-For development without camera access, use the explicit HTTP command:
-
-```bash
-pnpm dev:http
-```
-
-For a phone, connect the phone and computer to the same Wi-Fi, then open the `Network: https://<computer-LAN-IP>:<port>/` URL printed by Vite. Do not use `localhost` on the phone; it refers to the phone itself. Accept the local self-signed certificate warning on the phone before selecting “Start camera”. If the browser does not allow the exception, install a trusted local development certificate or use a secure HTTPS tunnel. The HTTPS dev command requires `openssl`; it regenerates an ignored certificate under `frontend/certs/` on each start so the current LAN IP is included, and still proxies `/api` to the HTTP API at `http://localhost:8000`.
-
-## Verify
+## Verification
 
 ```bash
+# Run full verification suite (TypeScript, Ruff, ESLint, Vitest, pytest, Vite build, OpenAPI check)
 pnpm typecheck
 pnpm lint
 pnpm test
 pnpm build
 pnpm api:check
-docker compose -f infra/compose.yaml config
 ```
 
-`pnpm test` runs the frontend Vitest suite and backend pytest unit and API/database integration coverage. Pilot readiness also requires the documented manual device, accessibility, localization, privacy, performance, and staging smoke checks.
+## Documentation
 
-## OpenAPI client
-
-FastAPI is the source of truth. Regenerate the committed Web Client contract after changing an API route or response:
-
-```bash
-pnpm api:generate
-```
-
-`pnpm api:check` regenerates the OpenAPI document and client, then fails if either differs from the committed files.
-
-## Layout
-
-- `frontend/`: React, Vite, TypeScript, generated API client, localization, and focused Vitest tests
-- `backend/`: FastAPI, application service, Package Match domain behavior, SQLAlchemy adapter, Open Food Facts dataset/image adapters, Alembic migrations, dataset CLI, and pytest coverage
-- `infra/`: local PostgreSQL and MongoDB Compose configuration and MongoDB initialization script
-
-See [`docs/REPOSITORY.md`](docs/REPOSITORY.md) for the planned monorepo structure and branch workflow.
-
-Khmer interface copy in this first slice is an implementation draft and requires the language review called for by issue #4 before production release.
+- [CLI Reference Manual](docs/CLI.md) — Complete guide to all CLI commands, arguments, dataset management, and lifecycle tools
+- [Reference Dataset Operations](docs/REFERENCE_DATASETS.md) — Reference dataset bundle specifications, review scope, and rollbacks
+- [Open Food Facts Dataset Operations](docs/OFF_DATASET.md) — External dataset import, validation gates, and MongoDB management
+- [Project Documentation Index](DOCS.md) — Architecture, domain glossary, and specifications

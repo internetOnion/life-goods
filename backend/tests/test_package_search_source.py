@@ -105,8 +105,11 @@ class SearchDatabase:
     def __getitem__(self, name: str):
         return self.collections[name]
 
-    def list_collection_names(self) -> list[str]:
-        return list(self.collections)
+    def list_collection_names(self, filter: dict[str, Any] | None = None) -> list[str]:
+        names = list(self.collections)
+        if filter and "name" in filter:
+            return [name for name in names if name == filter["name"]]
+        return names
 
 
 def test_search_uses_cambodia_filter_text_ranking_and_stable_tie_break() -> None:

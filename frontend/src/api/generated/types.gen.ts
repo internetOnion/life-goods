@@ -5,6 +5,184 @@ export type ClientOptions = {
 };
 
 /**
+ * AllergenAssessmentOutcome
+ */
+export type AllergenAssessmentOutcome = 'DECLARED_CONTAINS' | 'DECLARED_MAY_CONTAIN' | 'DERIVED_FROM_INGREDIENT' | 'NO_DECLARATION_DETECTED_IN_READABLE_LABEL' | 'LABEL_INCOMPLETE_OR_UNREADABLE' | 'NOT_ASSESSED';
+
+/**
+ * AllergenAssessmentReason
+ */
+export type AllergenAssessmentReason = 'FEATURE_DISABLED' | 'REFERENCE_UNAVAILABLE' | 'EVIDENCE_UNAVAILABLE' | 'ASSESSMENT_FAILED';
+
+/**
+ * AllergenAssessmentResponse
+ */
+export type AllergenAssessmentResponse = {
+    /**
+     * Concepts
+     */
+    concepts?: Array<AllergenConceptOutcomeResponse>;
+    /**
+     * Engine Version
+     */
+    engine_version?: string | null;
+    evidence_coverage: EvidenceCoverageState;
+    /**
+     * Findings
+     */
+    findings?: Array<AllergenFindingResponse>;
+    reason: AllergenAssessmentReason | null;
+    reference_dataset_version?: AssessmentReferenceDatasetVersionResponse | null;
+    /**
+     * Source Signals
+     */
+    source_signals?: Array<PackageMatchEvidenceResponse>;
+    status: AllergenAssessmentStatus;
+};
+
+/**
+ * AllergenAssessmentStatus
+ */
+export type AllergenAssessmentStatus = 'COMPLETED' | 'NOT_ASSESSED';
+
+/**
+ * AllergenConceptOutcomeResponse
+ */
+export type AllergenConceptOutcomeResponse = {
+    /**
+     * Concept Id
+     */
+    concept_id: string;
+    /**
+     * Finding Ids
+     */
+    finding_ids?: Array<string>;
+    /**
+     * Name
+     */
+    name: string;
+    outcome: AllergenAssessmentOutcome;
+    /**
+     * Parent Ids
+     */
+    parent_ids?: Array<string>;
+    /**
+     * Reason
+     */
+    reason?: string | null;
+    /**
+     * Rule Ids
+     */
+    rule_ids?: Array<string>;
+};
+
+/**
+ * AllergenFindingResponse
+ */
+export type AllergenFindingResponse = {
+    /**
+     * Concept Id
+     */
+    concept_id: string;
+    /**
+     * End Index
+     */
+    end_index: number;
+    /**
+     * Engine Version
+     */
+    engine_version?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Language
+     */
+    language?: string | null;
+    /**
+     * Mapping Id
+     */
+    mapping_id?: string | null;
+    /**
+     * Matched Text
+     */
+    matched_text: string;
+    /**
+     * Off Dataset Version Id
+     */
+    off_dataset_version_id?: string | null;
+    /**
+     * Reference Dataset Version Id
+     */
+    reference_dataset_version_id?: string | null;
+    relationship_type: AllergenRelationshipType;
+    /**
+     * Rule Id
+     */
+    rule_id?: string | null;
+    /**
+     * Source Field
+     */
+    source_field: string;
+    /**
+     * Source Revision
+     */
+    source_revision?: string | null;
+    /**
+     * Source Text
+     */
+    source_text?: string | null;
+    /**
+     * Source Url
+     */
+    source_url: string;
+    /**
+     * Start Index
+     */
+    start_index: number;
+};
+
+/**
+ * AllergenRelationshipType
+ */
+export type AllergenRelationshipType = 'EXACT_NAME' | 'SPELLING_VARIANT' | 'DERIVED_FROM' | 'CONTAINS_SOURCE' | 'PRECAUTIONARY_PHRASE';
+
+/**
+ * AssessmentReferenceDatasetVersionResponse
+ */
+export type AssessmentReferenceDatasetVersionResponse = {
+    /**
+     * Activated At
+     */
+    activated_at: string;
+    /**
+     * Dataset Kind
+     */
+    dataset_kind?: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Retrieved At
+     */
+    retrieved_at: string;
+    /**
+     * Review Kind
+     */
+    review_kind: string;
+    /**
+     * Sha256
+     */
+    sha256: string;
+    /**
+     * Source Url
+     */
+    source_url: string;
+};
+
+/**
  * ErrorCode
  */
 export type ErrorCode = 'IDENTIFIER_REQUIRED' | 'IDENTIFIER_CHARACTERS_INVALID' | 'IDENTIFIER_LENGTH_UNSUPPORTED' | 'IDENTIFIER_CHECK_DIGIT_INVALID' | 'PACKAGE_MATCH_SOURCE_UNAVAILABLE' | 'PACKAGE_SEARCH_QUERY_INVALID' | 'REFERENCE_IMAGE_URL_INVALID' | 'REFERENCE_IMAGE_NOT_FOUND' | 'REFERENCE_IMAGE_SOURCE_UNAVAILABLE' | 'RATE_LIMIT_EXCEEDED';
@@ -26,6 +204,11 @@ export type ErrorDetail = {
 export type ErrorEnvelope = {
     error: ErrorDetail;
 };
+
+/**
+ * EvidenceCoverageState
+ */
+export type EvidenceCoverageState = 'NOT_ASSESSED' | 'COMPLETE_READABLE_LABEL' | 'PARTIAL' | 'UNREADABLE';
 
 /**
  * ExternalDatasetVersionResponse
@@ -54,9 +237,159 @@ export type ExternalDatasetVersionResponse = {
 };
 
 /**
+ * HalalClassification
+ */
+export type HalalClassification = 'EXPLICIT_PROHIBITED' | 'SOURCE_AMBIGUOUS';
+
+/**
+ * HalalIngredientAssessmentOutcome
+ */
+export type HalalIngredientAssessmentOutcome = 'EXPLICIT_PROHIBITED_INGREDIENT_DECLARED' | 'SOURCE_AMBIGUOUS' | 'NO_NON_HALAL_INGREDIENT_DETECTED_IN_READABLE_LABEL' | 'LABEL_INCOMPLETE_OR_UNREADABLE' | 'NOT_ASSESSED';
+
+/**
+ * HalalIngredientAssessmentReason
+ */
+export type HalalIngredientAssessmentReason = 'FEATURE_DISABLED' | 'REFERENCE_UNAVAILABLE' | 'EVIDENCE_UNAVAILABLE' | 'ASSESSMENT_FAILED';
+
+/**
+ * HalalIngredientAssessmentResponse
+ */
+export type HalalIngredientAssessmentResponse = {
+    /**
+     * Checked Evidence
+     */
+    checked_evidence?: Array<PackageMatchEvidenceResponse>;
+    /**
+     * Engine Version
+     */
+    engine_version?: string | null;
+    evidence_coverage: EvidenceCoverageState;
+    /**
+     * Findings
+     */
+    findings?: Array<HalalIngredientFindingResponse>;
+    outcome: HalalIngredientAssessmentOutcome;
+    reason: HalalIngredientAssessmentReason | null;
+    reference_dataset_version?: AssessmentReferenceDatasetVersionResponse | null;
+    status: HalalIngredientAssessmentStatus;
+};
+
+/**
+ * HalalIngredientAssessmentStatus
+ */
+export type HalalIngredientAssessmentStatus = 'COMPLETED' | 'NOT_ASSESSED';
+
+/**
+ * HalalIngredientFindingResponse
+ */
+export type HalalIngredientFindingResponse = {
+    /**
+     * Citations
+     */
+    citations?: Array<HalalSourceCitationResponse>;
+    classification: HalalClassification;
+    /**
+     * Concept Id
+     */
+    concept_id: string;
+    /**
+     * End Index
+     */
+    end_index: number;
+    /**
+     * Engine Version
+     */
+    engine_version?: string | null;
+    /**
+     * Halal Mapping Id
+     */
+    halal_mapping_id?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Language
+     */
+    language?: string | null;
+    /**
+     * Mapping Id
+     */
+    mapping_id?: string | null;
+    /**
+     * Matched Text
+     */
+    matched_text: string;
+    /**
+     * Off Dataset Version Id
+     */
+    off_dataset_version_id?: string | null;
+    /**
+     * Reference Dataset Version Id
+     */
+    reference_dataset_version_id?: string | null;
+    relationship_type: HalalRelationshipType;
+    /**
+     * Source Field
+     */
+    source_field: string;
+    /**
+     * Source Revision
+     */
+    source_revision?: string | null;
+    /**
+     * Source Text
+     */
+    source_text?: string | null;
+    /**
+     * Source Url
+     */
+    source_url: string;
+    /**
+     * Start Index
+     */
+    start_index: number;
+};
+
+/**
+ * HalalRelationshipType
+ */
+export type HalalRelationshipType = 'EXACT_NAME' | 'SPELLING_VARIANT' | 'DERIVED_FROM' | 'CONTAINS_SOURCE';
+
+/**
+ * HalalSourceCitationResponse
+ */
+export type HalalSourceCitationResponse = {
+    /**
+     * Edition
+     */
+    edition?: string | null;
+    /**
+     * Jurisdiction
+     */
+    jurisdiction: string;
+    /**
+     * Locator
+     */
+    locator: string;
+    /**
+     * Notes
+     */
+    notes?: string | null;
+    /**
+     * Source Id
+     */
+    source_id: string;
+};
+
+/**
  * IdentifierScheme
  */
 export type IdentifierScheme = 'GTIN_8' | 'UPC_A' | 'EAN_13' | 'GTIN_14';
+
+export type JsonValue = boolean | number | number | string | Array<JsonValue> | {
+    [key: string]: JsonValue;
+} | null;
 
 /**
  * OpenFoodFactsLookupResponse
@@ -79,11 +412,13 @@ export type OpenFoodFactsLookupStatus = 'AVAILABLE' | 'NOT_FOUND' | 'UNAVAILABLE
  * PackageMatchCandidateResponse
  */
 export type PackageMatchCandidateResponse = {
+    allergen_assessment: AllergenAssessmentResponse;
     dataset_version?: ExternalDatasetVersionResponse | null;
     /**
      * External Record Id
      */
     external_record_id?: string | null;
+    halal_ingredient_assessment: HalalIngredientAssessmentResponse;
     /**
      * Identity Evidence
      */
@@ -156,10 +491,7 @@ export type PackageMatchEvidenceResponse = {
      * Source Url
      */
     source_url: string;
-    /**
-     * Value
-     */
-    value: unknown;
+    value: JsonValue;
 };
 
 /**
@@ -273,6 +605,7 @@ export type PackageMatchSourceResponse = {
 export type PackageMatchesResponse = {
     /**
      * Candidates
+     * Candidate Package Matches only; a result does not prove identity with the physical package in a shopper's possession.
      */
     candidates: Array<PackageMatchCandidateResponse>;
     /**
@@ -410,6 +743,7 @@ export type GetPackageMatchesData = {
     query: {
         /**
          * Identifier
+         * GTIN, EAN, or UPC identifier used to find Package Match candidates.
          */
         identifier: string;
     };

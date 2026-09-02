@@ -1,6 +1,7 @@
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import mongomock
 
@@ -103,6 +104,86 @@ def test_dataset_no_match_identifies_the_version_that_was_checked() -> None:
 
     assert isinstance(result, ExternalPackageNotFound)
     assert result.dataset_version.id == VERSION_ID
+
+
+def test_dataset_lookup_caches_manifest_but_reads_active_pointer_each_time(
+    monkeypatch,
+) -> None:
+    database = dataset_database()
+    database[COLLECTION_NAME].insert_one({"code": "4006381333931"})
+    pointer_find = MagicMock(wraps=database[CONTROL_COLLECTION].find_one)
+    manifest_find = MagicMock(wraps=database[VERSIONS_COLLECTION].find_one)
+    product_find = MagicMock(wraps=database[COLLECTION_NAME].find_one)
+    list_names = MagicMock(wraps=database.list_collection_names)
+    monkeypatch.setattr(database[CONTROL_COLLECTION], "find_one", pointer_find)
+    monkeypatch.setattr(database[VERSIONS_COLLECTION], "find_one", manifest_find)
+    monkeypatch.setattr(database[COLLECTION_NAME], "find_one", product_find)
+    monkeypatch.setattr(database, "list_collection_names", list_names)
+    source = OpenFoodFactsDatasetSource(database)
+
+    first = source.fetch(normalize_identifier("4006381333931"))
+    second = source.fetch(normalize_identifier("4006381333931"))
+
+    assert isinstance(first, ExternalPackageFound)
+    assert isinstance(second, ExternalPackageFound)
+    assert pointer_find.call_count == 2
+    assert manifest_find.call_count == 1
+    assert product_find.call_count == 2
+    assert list_names.call_count == 1
+
+
+def test_dataset_no_match_rechecks_cached_collection_before_returning(monkeypatch) -> None:
+    database = dataset_database()
+    database[COLLECTION_NAME].create_index("code")
+    source = OpenFoodFactsDatasetSource(database)
+
+    first = source.fetch(normalize_identifier("4006381333931"))
+    monkeypatch.setattr(source, "_collection_exists", lambda _name: False)
+    second = source.fetch(normalize_identifier("4006381333931"))
+
+    assert isinstance(first, ExternalPackageNotFound)
+    assert isinstance(second, ExternalPackageUnavailable)
+
+
+def test_dataset_manifest_cache_observes_activation_and_rollback_immediately() -> None:
+    database = dataset_database()
+    second_version_id = "dataset-2026-08-28"
+    second_collection = "off_products_dataset_2026_08_28"
+    database[COLLECTION_NAME].insert_one(
+        {"code": "4006381333931", "product_name": "First"}
+    )
+    database[VERSIONS_COLLECTION].insert_one(
+        {
+            "_id": second_version_id,
+            "collection_name": second_collection,
+            "source_url": "https://static.openfoodfacts.org/data/export.jsonl.gz",
+            "retrieval_completed_at": RETRIEVED_AT,
+            "activated_at": ACTIVATED_AT,
+            "sha256": "b" * 64,
+            "status": "ACTIVE",
+        }
+    )
+    database[second_collection].insert_one(
+        {"code": "4006381333931", "product_name": "Second"}
+    )
+    source = OpenFoodFactsDatasetSource(database)
+
+    first = source.fetch(normalize_identifier("4006381333931"))
+    database[CONTROL_COLLECTION].update_one(
+        {"_id": ACTIVE_POINTER_ID}, {"$set": {"active_version_id": second_version_id}}
+    )
+    second = source.fetch(normalize_identifier("4006381333931"))
+    database[CONTROL_COLLECTION].update_one(
+        {"_id": ACTIVE_POINTER_ID}, {"$set": {"active_version_id": VERSION_ID}}
+    )
+    rolled_back = source.fetch(normalize_identifier("4006381333931"))
+
+    assert isinstance(first, ExternalPackageFound)
+    assert isinstance(second, ExternalPackageFound)
+    assert isinstance(rolled_back, ExternalPackageFound)
+    assert first.record.dataset_version.id == VERSION_ID
+    assert second.record.dataset_version.id == second_version_id
+    assert rolled_back.record.dataset_version.id == VERSION_ID
 
 
 def test_missing_active_version_is_unavailable() -> None:

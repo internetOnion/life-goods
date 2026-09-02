@@ -97,16 +97,39 @@ export function OpenFoodFactsResult({
     const staticAllergenAlert = printableText(
         preferredEvidence(allergens, language)?.value,
     )
+    const allergenFindings = candidate.allergen_assessment?.findings ?? []
+    const allergenConcepts = (
+        candidate.allergen_assessment?.concepts ?? []
+    ).filter(
+        (concept) =>
+            concept.outcome === "DECLARED_CONTAINS" ||
+            concept.outcome === "DECLARED_MAY_CONTAIN" ||
+            concept.outcome === "DERIVED_FROM_INGREDIENT",
+    )
+    const assessedAllergens =
+        allergenConcepts.length > 0
+            ? allergenConcepts.map((concept) => concept.name).join(", ")
+            : allergenFindings.length > 0
+              ? allergenFindings
+                    .map((finding) => finding.matched_text)
+                    .join(", ")
+              : null
+    const declaredConcernText =
+        staticAllergenAlert ??
+        (assessedAllergens ? `Contains ${assessedAllergens}` : null) ??
+        t("sourceNotAvailable")
     const missingGroups = [
         ingredients.length === 0 ? t("evidenceIngredientsLabel") : null,
-        allergens.length === 0 ? t("evidenceAllergensLabel") : null,
+        allergens.length === 0 && allergenFindings.length === 0
+            ? t("evidenceAllergensLabel")
+            : null,
         nutrition.length === 0 ? t("evidenceNutritionLabel") : null,
         storageInstructions.length === 0 ? t("evidenceStorageLabel") : null,
     ].filter((value): value is string => Boolean(value))
     const snapshot: EvidenceSnapshotItem[] = [
         {
             kind: "declared_concerns",
-            value: staticAllergenAlert ?? t("sourceNotAvailable"),
+            value: declaredConcernText,
         },
         {
             kind: "evidence_gaps",

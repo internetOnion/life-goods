@@ -147,8 +147,12 @@ A reproducible record of an AI processing attempt, including model, prompt and s
 _Avoid_: AI verification, Product extraction status
 
 **Assessment Run**:
-A reproducible application of specified vocabulary and rule versions to source Claims and evidence. Recalculation supersedes earlier assessments without erasing them.
-_Avoid_: Mutable warning calculation
+A deferred, reproducible post-MVP persistent record of an assessment application linking specified vocabulary and rule versions to source Claims and evidence.
+_Avoid_: Mutable warning calculation, request-time cache
+
+**Assessment Evaluation**:
+A stateless, request-time derivation of safety or nutritional guidance for a specific candidate from readable Evidence and an Active Reference Dataset Version, with optional non-durable caching. It does not persist durable run records or declare a Product safe.
+_Avoid_: Assessment Run, safety verdict, permanent product score
 
 **External Evidence Source**:
 A third-party source such as Open Food Facts whose fields and images remain individually attributed, dated, and distinguishable from project-reviewed Claims.
@@ -164,10 +168,12 @@ _Avoid_: Latest OFF data, live mirror, source of truth
 
 **Reference Dataset Version**:
 An immutable, human-reviewed release of sourced concepts, mappings, rules, descriptions, or Knowledge Entries used to interpret Evidence. Its approval applies to that reference release and never reviews or verifies a Product record.
+For a `FOOD_ALLERGEN` release, active leaf concepts may appear once as Allergen Assessment outcomes; non-leaf parent concepts organize ancestry only and never emit duplicate outcomes.
+For a `HALAL_INGREDIENT` release, active leaf concepts are classified as `EXPLICIT_PROHIBITED` or `SOURCE_AMBIGUOUS` with cited regulatory and standards locators; positive whitelist verdicts, blanket additive conclusions, and certificate claims are excluded.
 _Avoid_: Verified Product data, universal truth list, mutable lookup table
 
 **Active Reference Dataset Version**:
-The Reference Dataset Version explicitly selected for an assessment purpose. Active means approved for that scoped use, not universally authoritative or applicable outside its recorded jurisdiction and effective period.
+The Reference Dataset Version explicitly selected for an assessment purpose. Active means approved for that scoped use, not universally authoritative or applicable outside its recorded jurisdiction and effective period. In development environments, all operator activations, approvals, and rollbacks record `lifegoods` as the approver identity.
 _Avoid_: Current truth, globally valid rule, Product approval
 
 ## Vocabulary, translation, and education
@@ -183,6 +189,14 @@ _Avoid_: AI confidence, translated
 **Safety Vocabulary Match**:
 A traceable mapping from original Label Transcription to an approved canonical allergen, additive, or critical ingredient term. Safety assessments use this match and its evidence, never a Khmer translation alone.
 _Avoid_: Translation match, AI safety guess
+
+**Lexical Exclusion**:
+A versioned, language-tagged phrase attached to a specific leaf Reference Concept that suppresses contained lexical matches for only that concept (for example, suppressing the milk match within `coconut milk`) without affecting other concepts or returning matcher exclusions to the shopper.
+_Avoid_: Global stopword, negative ingredient, allergen removal
+
+**Mapping-Linked Derivative Rule**:
+A rule explicitly linked to a specific lexical mapping (such as a `DERIVED_FROM` mapping from `whey` to milk or `tahini` to sesame) that provides the rule basis for findings derived through that mapping.
+_Avoid_: Universal derivative rule, hardcoded alias rule
 
 **Knowledge Entry**:
 A reusable, versioned, language-tagged explanation linked to a canonical ingredient, allergen, additive, date, or certification concept, with sources, review state, and jurisdiction where relevant.

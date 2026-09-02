@@ -7,8 +7,13 @@ from lifegoods.open_food_facts.models import (
     ExternalPackageRecord,
     ExternalPackageSource,
     ExternalPackageUnavailable,
-    JsonValue,
     SourcedValue,
+)
+from lifegoods.package_matches.assessments import (
+    AllergenAssessmentEvaluator,
+    DisabledAllergenAssessmentEvaluator,
+    DisabledHalalIngredientAssessmentEvaluator,
+    HalalIngredientAssessmentEvaluator,
 )
 from lifegoods.package_matches.models import (
     OpenFoodFactsLookup,
@@ -20,6 +25,7 @@ from lifegoods.package_matches.models import (
     PackageMatchSourceKind,
     PackageMatchSourceMetadata,
     PackageMatchSourceUnavailableError,
+    json_value,
 )
 
 
@@ -27,15 +33,29 @@ class FindPackageMatches:
     def __init__(
         self,
         external_source: ExternalPackageSource,
+        allergen_evaluator: AllergenAssessmentEvaluator | None = None,
+        halal_evaluator: HalalIngredientAssessmentEvaluator | None = None,
     ) -> None:
         self._external_source = external_source
+        self._allergen_evaluator = (
+            allergen_evaluator or DisabledAllergenAssessmentEvaluator()
+        )
+        self._halal_evaluator = (
+            halal_evaluator or DisabledHalalIngredientAssessmentEvaluator()
+        )
 
     def execute(self, entered_identifier: str) -> PackageMatchResult:
         identifier = normalize_identifier(entered_identifier)
         result = self._external_source.fetch(identifier)
         candidates: list[PackageMatchCandidate] = []
         if isinstance(result, ExternalPackageFound):
-            candidates = [_candidate_from_record(result.record)]
+            candidates = [
+                _candidate_from_record(
+                    result.record,
+                    allergen_evaluator=self._allergen_evaluator,
+                    halal_evaluator=self._halal_evaluator,
+                )
+            ]
             lookup = OpenFoodFactsLookup(
                 status=OpenFoodFactsLookupStatus.AVAILABLE,
                 dataset_version=result.record.dataset_version,
@@ -58,7 +78,17 @@ class FindPackageMatches:
         )
 
 
-def _candidate_from_record(record: ExternalPackageRecord) -> PackageMatchCandidate:
+def _candidate_from_record(
+    record: ExternalPackageRecord,
+    allergen_evaluator: AllergenAssessmentEvaluator | None = None,
+    halal_evaluator: HalalIngredientAssessmentEvaluator | None = None,
+) -> PackageMatchCandidate:
+    evaluator = allergen_evaluator or DisabledAllergenAssessmentEvaluator()
+    allergen_assessment = evaluator.evaluate(record)
+    halal_eval = (
+        halal_evaluator or DisabledHalalIngredientAssessmentEvaluator()
+    )
+    halal_ingredient_assessment = halal_eval.evaluate(record)
     source = PackageMatchSourceMetadata(
         name=record.source.name,
         source_type=record.source.source_type,
@@ -134,6 +164,8 @@ def _candidate_from_record(record: ExternalPackageRecord) -> PackageMatchCandida
         identity_evidence=tuple(identity),
         label_evidence=tuple(label),
         reference_images=images,
+        allergen_assessment=allergen_assessment,
+        halal_ingredient_assessment=halal_ingredient_assessment,
         retrieved_at=record.retrieved_at,
         source_revision=record.source_revision,
         dataset_version=record.dataset_version,
@@ -147,7 +179,7 @@ def _evidence(
 ) -> PackageMatchEvidence:
     return PackageMatchEvidence(
         field=mapped_field,
-        value=_json_value(sourced.value),
+        value=json_value(sourced.value),
         source_field=sourced.source_field,
         source_name=record.source.name,
         source_url=record.source_url,
@@ -157,13 +189,3 @@ def _evidence(
         source_revision=record.source_revision,
         dataset_version_id=record.dataset_version.id,
     )
-
-
-def _json_value(value: object) -> JsonValue:
-    if value is None or isinstance(value, bool | int | float | str):
-        return value
-    if isinstance(value, tuple | list):
-        return [_json_value(item) for item in value]
-    if isinstance(value, dict):
-        return {str(key): _json_value(item) for key, item in value.items()}
-    raise TypeError(f"Unsupported external evidence value: {type(value).__name__}")

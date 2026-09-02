@@ -1,12 +1,26 @@
 from datetime import datetime
-from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from lifegoods.identifiers.models import IdentifierScheme
+from lifegoods.open_food_facts.models import JsonValue
+from lifegoods.package_matches.assessments import (
+    AllergenAssessmentOutcome,
+    AllergenAssessmentReason,
+    AllergenAssessmentStatus,
+    EvidenceCoverageState,
+    HalalIngredientAssessmentOutcome,
+    HalalIngredientAssessmentReason,
+    HalalIngredientAssessmentStatus,
+)
 from lifegoods.package_matches.models import (
     OpenFoodFactsLookupStatus,
     PackageMatchSourceKind,
+)
+from lifegoods.reference_datasets import (
+    AllergenRelationshipType,
+    HalalClassification,
+    HalalRelationshipType,
 )
 
 
@@ -24,7 +38,7 @@ class PackageMatchSourceResponse(BaseModel):
 
 class PackageMatchEvidenceResponse(BaseModel):
     field: str
-    value: Any
+    value: JsonValue
     source_field: str
     source_name: str
     source_url: str
@@ -59,15 +73,111 @@ class ExternalDatasetVersionResponse(BaseModel):
     sha256: str
 
 
+class AssessmentReferenceDatasetVersionResponse(BaseModel):
+    id: str
+    source_url: str
+    retrieved_at: datetime
+    activated_at: datetime
+    sha256: str
+    review_kind: str
+    dataset_kind: str = "FOOD_ALLERGEN"
+
+
+class AllergenFindingResponse(BaseModel):
+    id: str
+    concept_id: str
+    mapping_id: str | None = None
+    rule_id: str | None = None
+    relationship_type: AllergenRelationshipType
+    matched_text: str
+    source_text: str | None = None
+    start_index: int
+    end_index: int
+    language: str | None = None
+    source_field: str
+    source_url: str
+    source_revision: str | None = None
+    off_dataset_version_id: str | None = None
+    reference_dataset_version_id: str | None = None
+    engine_version: str | None = None
+
+
+class AllergenConceptOutcomeResponse(BaseModel):
+    concept_id: str
+    name: str
+    outcome: AllergenAssessmentOutcome
+    reason: str | None = None
+    finding_ids: list[str] = Field(default_factory=list)
+    parent_ids: list[str] = Field(default_factory=list)
+    rule_ids: list[str] = Field(default_factory=list)
+
+
+class AllergenAssessmentResponse(BaseModel):
+    status: AllergenAssessmentStatus
+    reason: AllergenAssessmentReason | None
+    evidence_coverage: EvidenceCoverageState
+    engine_version: str | None = None
+    reference_dataset_version: AssessmentReferenceDatasetVersionResponse | None = (
+        None
+    )
+    concepts: list[AllergenConceptOutcomeResponse] = Field(default_factory=list)
+    findings: list[AllergenFindingResponse] = Field(default_factory=list)
+    source_signals: list[PackageMatchEvidenceResponse] = Field(default_factory=list)
+
+
+class HalalSourceCitationResponse(BaseModel):
+    source_id: str
+    jurisdiction: str
+    edition: str | None = None
+    locator: str
+    notes: str | None = None
+
+
+class HalalIngredientFindingResponse(BaseModel):
+    id: str
+    concept_id: str
+    mapping_id: str | None = None
+    halal_mapping_id: str | None = None
+    classification: HalalClassification
+    relationship_type: HalalRelationshipType
+    matched_text: str
+    source_text: str | None = None
+    start_index: int
+    end_index: int
+    language: str | None = None
+    citations: list[HalalSourceCitationResponse] = Field(default_factory=list)
+    source_field: str
+    source_url: str
+    source_revision: str | None = None
+    off_dataset_version_id: str | None = None
+    reference_dataset_version_id: str | None = None
+    engine_version: str | None = None
+
+
+class HalalIngredientAssessmentResponse(BaseModel):
+    status: HalalIngredientAssessmentStatus
+    reason: HalalIngredientAssessmentReason | None
+    outcome: HalalIngredientAssessmentOutcome
+    evidence_coverage: EvidenceCoverageState
+    engine_version: str | None = None
+    reference_dataset_version: AssessmentReferenceDatasetVersionResponse | None = (
+        None
+    )
+    checked_evidence: list[PackageMatchEvidenceResponse] = Field(default_factory=list)
+    findings: list[HalalIngredientFindingResponse] = Field(default_factory=list)
+
+
 class PackageMatchCandidateResponse(BaseModel):
     source_kind: PackageMatchSourceKind
+    allergen_assessment: AllergenAssessmentResponse
+    halal_ingredient_assessment: HalalIngredientAssessmentResponse
     package_variant_id: str | None = None
     product_id: str | None = None
     external_record_id: str | None = None
     source: PackageMatchSourceResponse | None = None
-    identity_evidence: list[PackageMatchEvidenceResponse] = []
-    label_evidence: list[PackageMatchEvidenceResponse] = []
-    reference_images: list[PackageMatchReferenceImageResponse] = []
+    identity_evidence: list[PackageMatchEvidenceResponse] = Field(default_factory=list)
+    label_evidence: list[PackageMatchEvidenceResponse] = Field(default_factory=list)
+    reference_images: list[PackageMatchReferenceImageResponse] = Field(default_factory=list)
     retrieved_at: datetime | None = None
     source_revision: str | None = None
     dataset_version: ExternalDatasetVersionResponse | None = None
@@ -82,5 +192,10 @@ class OpenFoodFactsLookupResponse(BaseModel):
 class PackageMatchesResponse(BaseModel):
     normalized_identifier: str
     scheme: IdentifierScheme
-    candidates: list[PackageMatchCandidateResponse]
+    candidates: list[PackageMatchCandidateResponse] = Field(
+        description=(
+            "Candidate Package Matches only; a result does not prove identity with the "
+            "physical package in a shopper's possession."
+        )
+    )
     open_food_facts: OpenFoodFactsLookupResponse

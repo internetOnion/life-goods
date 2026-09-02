@@ -8,7 +8,7 @@ import completeCandidateFixture from "../../../../evaluation/fixtures/package_ma
 import type { PackageMatchLookup } from "./types"
 
 const completeCandidate: PackageMatchCandidateResponse = {
-    ...completeCandidateFixture,
+    ...(completeCandidateFixture as unknown as PackageMatchCandidateResponse),
     source_kind: "OPEN_FOOD_FACTS",
 }
 

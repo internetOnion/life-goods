@@ -155,7 +155,7 @@ MVP-1 activates an immutable Reference Dataset Version after one-time qualified 
 - maximum concentration and unit when applicable;
 - review status.
 
-`AssessmentRun` records the exact Claims, Vocabulary Version, Rule Set Version, and processing version used. `DerivedAssessment` stores assessment type, outcome, evidence-coverage state, explanation key, and supersession time.
+`AssessmentEvaluation` is a stateless, request-time evaluation derived from readable Evidence and an Active Reference Dataset Version, with optional non-durable caching. Persistent `AssessmentRun` and `DerivedAssessment` database tables are deferred until post-MVP or when catalog moderation requires them.
 
 Required outcome families:
 
@@ -166,7 +166,11 @@ Required outcome families:
 | Additive         | `IDENTIFIED`, `RULE_APPLIES`, `CONCENTRATION_UNKNOWN`, `CATEGORY_UNCERTAIN`, `INTERNATIONAL_REFERENCE_CONCERN`, `NEUTRAL_EXPLAINER_ONLY`, `NOT_ASSESSED`              |
 | Date             | `DATE_HAS_PASSED`, `DATE_HAS_NOT_PASSED`, `DATE_MEANING_UNCERTAIN`, `NOT_ASSESSED`                                                                                    |
 
-Absence-style outcomes require complete readable evidence. A partial label cannot produce `NO_DECLARATION_DETECTED_IN_READABLE_LABEL`.
+Allergen absence-style outcomes require complete readable evidence. A partial label cannot produce
+`NO_DECLARATION_DETECTED_IN_READABLE_LABEL`. Halal Ingredient Assessment may report
+`NO_NON_HALAL_INGREDIENT_DETECTED_IN_READABLE_LABEL` from readable OFF ingredient Evidence only
+when it also reports `PARTIAL`; this narrow result describes the checked text and never implies a
+complete label or Halal certification.
 
 ### Knowledge entries
 
@@ -206,26 +210,49 @@ For Open Food Facts:
 
 Reference data is relational and separately versioned in PostgreSQL:
 
-| Entity                    | Purpose                                                                                                                            |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `ReferenceSource`         | Source identity, URL, license/reuse decision, jurisdiction, publisher, edition, and terms metadata                                 |
-| `ReferenceDatasetVersion` | Immutable import with retrieval time, integrity hash, validation results, reviewer, review date, activation time, and supersession |
-| `ReferenceConcept`        | Stable allergen, ingredient, additive, chemical, rule, or educational concept identifier                                           |
-| `LexicalMapping`          | Language-tagged exact term, synonym, precautionary phrase, or reviewed derivative mapping to a Reference Concept                   |
-| `AllergenRule`            | Codex baseline or separately scoped jurisdiction-specific declaration/derivative rule                                              |
-| `HalalIngredientMapping`  | Project-authored explicit-prohibited or source-ambiguous mapping with cited rule basis                                             |
-| `AdditiveRule`            | Cambodian or separately labeled international-reference rule with food category, effective period, limit, and unit                 |
-| `IngredientDescription`   | Project-authored language-tagged neutral explanation linked to stable concepts and citations                                       |
-| `KnowledgeEntry`          | Locally hosted contextual explanation released through the same versioned source/review boundary                                   |
+| Entity                          | Purpose                                                                                                                            |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `ReferenceSource`               | Source identity, URL, license/reuse decision, jurisdiction, publisher, edition, and terms metadata                                 |
+| `ReferenceDatasetVersion`       | Immutable import with retrieval time, integrity hash, validation results, reviewer, review date, activation time, and supersession |
+| `ReferenceDatasetVersionSource` | Membership of every source in an immutable release envelope, including project-authored sources not cited directly by a rule row   |
+| `ReferenceConcept`              | Stable allergen, ingredient, additive, chemical, rule, or educational concept identifier                                           |
+| `LexicalMapping`                | Language-tagged exact term, synonym, precautionary phrase, or reviewed derivative mapping to a Reference Concept                   |
+| `LexicalExclusion`              | Versioned, language-tagged phrase that suppresses contained mappings for one leaf Reference Concept                                |
+| `AllergenRule`                  | Codex mandatory, regional-or-national, exemption, derivative, or precautionary rule; derivative rules link to one Lexical Mapping  |
+| `HalalIngredientMapping`        | Project-authored explicit-prohibited or source-ambiguous mapping with cited rule basis                                             |
+| `AdditiveRule`                  | Cambodian or separately labeled international-reference rule with food category, effective period, limit, and unit                 |
+| `IngredientDescription`         | Project-authored language-tagged neutral explanation linked to stable concepts and citations                                       |
+| `KnowledgeEntry`                | Locally hosted contextual explanation released through the same versioned source/review boundary                                   |
+
+Every imported bundle has a common immutable envelope containing its
+`ReferenceDatasetVersion` manifest and `ReferenceSource` definitions. The manifest's
+`dataset_kind` selects a typed record set, canonical serializer, validation policy, persistence
+adapter, and inspection format. Domain records remain in separate relational tables such as
+`AllergenRule`, with later Halal ingredient and additive records using their own typed tables;
+they are not flattened into a universal mutable reference table or an opaque JSON payload.
 
 Invariants:
 
 - Only an Active Reference Dataset Version may drive an automated assessment.
 - Cambodian rules, Codex international references, jurisdiction-specific allergen rules, external lexical taxonomies, ontologies, and project-authored wording remain separate source sets.
 - Activation is manual and atomic; corrections create a new immutable version and the previous valid version remains available for rollback.
-- Every Assessment Run records the exact reference versions, rules, mappings, and original OFF Evidence used.
+- Immutable release review (`project_approver` and domain `review_kind`) is distinct from the operator and `PROJECT_MAINTAINER_APPROVAL` recorded on the active pointer. Activation and rollback never rewrite qualified domain-review metadata.
+- An active pointer may explicitly select no version after first-release rollback. This preserves the recorded operator approval while causing assessment access to return `REFERENCE_UNAVAILABLE` until another valid version is activated.
+- Every bundle source is linked to its Reference Dataset Version at import. An idempotent re-import may repair missing membership links but cannot change source definitions or release content under the same integrity hash.
+- Every Assessment Evaluation derives from specified reference versions, rules, mappings, and original OFF Evidence, without writing durable run records to the database.
 - A reference-data record cannot create a Product, reviewed Package Revision, accepted Product Claim, Preferred Claim, or Product verification state.
 - Missing, ambiguous, inapplicable, or unavailable reference data produces Evidence Uncertainty or `NOT_ASSESSED`.
+- An active allergen leaf has exactly one reviewed English direct-name mapping and an applicable declaration rule; mappings never target parent concepts.
+- Every reviewed derivative mapping has exactly one mapping-linked derivative rule for the same leaf concept; other allergen rule kinds do not link to mappings.
+- A lexical exclusion targets an active leaf, is unique after production normalization, and suppresses at least one approved mapping for only that concept.
+- An active Halal ingredient leaf has exactly one explicit-prohibited or source-ambiguous classification; mappings never target parent concepts.
+- Every Halal ingredient mapping carries at least one source citation containing edition, jurisdiction, and article or section locator referencing a bundle source.
+- Halal Ingredient Assessment uses readable English ingredient Evidence only. Community Halal label Evidence, Seal Observation, and certificate verification are separate inputs and deferred capabilities; none can drive or be populated by ingredient screening.
+- Allergen Assessment outcomes contain leaf ancestry in direct-parent-to-root order and applicable rule IDs. Parent concepts group leaves but do not emit outcomes.
+
+The persisted Reference Dataset relationships are shown in
+[`reference-dataset-data-model.svg`](diagrams/reference-dataset-data-model.svg); the editable
+Mermaid source is [`reference-dataset-data-model.mmd`](diagrams/reference-dataset-data-model.mmd).
 
 ## 8. Ephemeral shopper boundary
 
@@ -264,7 +291,7 @@ Moderator acceptance is not authoritative-source confirmation. Store authoritati
 1. A Product has no barcode, expiry date, ingredient list, or verification-status column.
 2. Every active Package Revision belongs to exactly one Package Variant.
 3. Every concrete Date Marking belongs to an Observed Package and optionally a Batch.
-4. Every Derived Assessment belongs to one Assessment Run.
+4. Every Derived Assessment in post-MVP catalog history belongs to one Assessment Run; MVP-1 uses stateless Assessment Evaluations.
 5. Every safety-critical match points to original transcription evidence and an approved vocabulary version.
 6. Only one active Preferred Claim exists per Package Revision and predicate.
 7. Claims and assessments are superseded, not destructively overwritten.

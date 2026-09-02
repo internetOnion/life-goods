@@ -11,6 +11,7 @@ import { CapturePage } from "../features/package-capture/CapturePage"
 import { NewCapturePage } from "../features/package-capture/NewCapturePage"
 import { HomePage } from "../features/package-match/HomePage"
 import { PackageMatchResultPage } from "../features/package-match/PackageMatchResultPage"
+import { lookupPackageMatches } from "../features/package-match/api"
 import type { PackageMatchLookup } from "../features/package-match/types"
 import { lookupPackageSearch } from "../features/search/api"
 import { SearchPage } from "../features/search/SearchPage"
@@ -18,7 +19,7 @@ import type { PackageSearchLookup } from "../features/search/types"
 import { AppShell } from "../ui/AppShell"
 
 type AppProps = {
-    lookup: PackageMatchLookup
+    lookup?: PackageMatchLookup
     searchLookup?: PackageSearchLookup
     demoMode?: boolean
 }
@@ -31,6 +32,7 @@ type ResultLocationState = {
 }
 
 export function App({ lookup, searchLookup, demoMode }: AppProps) {
+    const resolvedLookup = lookup ?? lookupPackageMatches
     const resolvedSearchLookup = searchLookup ?? lookupPackageSearch
     const [lastIdentifier, setLastIdentifier] = useState("")
     const [focusIdentifier, setFocusIdentifier] = useState(false)
@@ -86,7 +88,7 @@ export function App({ lookup, searchLookup, demoMode }: AppProps) {
                     path={appRoutes.result}
                     element={
                         <PackageMatchResultPage
-                            lookup={lookup}
+                            lookup={resolvedLookup}
                             onDismiss={dismissResult}
                             onIdentifierChange={setLastIdentifier}
                             showDemoNotice={demoMode === true}

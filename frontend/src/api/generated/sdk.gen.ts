@@ -29,7 +29,8 @@ export const getOpenFoodFactsImage = <ThrowOnError extends boolean = false>(opti
 };
 
 /**
- * Get Package Matches
+ * Find Package Match candidates
+ * Looks up candidate Package Matches using the active Open Food Facts Dataset Version. Open Food Facts fields are external Evidence, and a returned match does not prove identity with the physical package in a shopper's possession.
  */
 export const getPackageMatches = <ThrowOnError extends boolean = false>(options: Options<GetPackageMatchesData, ThrowOnError>) => {
     return (options.client ?? client).get<GetPackageMatchesResponses, GetPackageMatchesErrors, ThrowOnError>({

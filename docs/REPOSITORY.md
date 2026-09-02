@@ -42,12 +42,13 @@ life-goods/
 │   ├── tests/
 ├── backend/
 │   ├── src/lifegoods/
-│   │   ├── api/
+│   │   ├── core/
+│   │   ├── identifiers/
 │   │   ├── catalog/
+│   │   ├── open_food_facts/
+│   │   ├── reference_datasets/
+│   │   ├── package_matches/
 │   │   ├── claims/
-│   │   ├── matching/
-│   │   ├── assessment/
-│   │   ├── knowledge/
 │   │   ├── capture/
 │   │   ├── application/
 │   │   ├── adapters/
@@ -79,7 +80,16 @@ Shared `ui/` code should contain presentation primitives with real reuse. Featur
 
 ### Backend
 
-Keep HTTP handlers thin and put use-case coordination in `application/`. Domain behavior and invariants belong to focused modules such as `catalog/`, `claims/`, `matching/`, and `assessment/`. Concrete PostgreSQL, Open Food Facts, object-storage, and queue integrations are adapters at those modules' seams.
+Backend code is structured into domain and application modules:
+
+- `core/`: shared settings, database connections, and base domain errors;
+- `identifiers/`: GTIN/EAN/UPC algorithms, check digits, and normalization;
+- `catalog/`: durable PostgreSQL catalog persistence and model definitions;
+- `open_food_facts/`: external MongoDB OFF dataset querying, image caching proxy, and operator dataset CLI;
+- `reference_datasets/`: immutable PostgreSQL reference datasets, bundle validation, lexical text normalization, importer, lifecycle management, and operator CLI;
+- `package_matches/`: package matching use cases, stateless allergen evaluations, and public REST API route handlers;
+- `capture/`: privacy seam for isolated ephemeral Package Capture media, processing, and deletion;
+- `claims/`, `application/`, `adapters/`, and `worker/`: supporting domain and worker infrastructure.
 
 FastAPI and Celery share the backend package initially but use separate runtime entry points. Split them into separately maintained applications only if deployment or ownership needs eventually justify the additional interface.
 

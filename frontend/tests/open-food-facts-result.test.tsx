@@ -2,7 +2,10 @@ import { fireEvent, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, test } from "vitest"
 
-import type { PackageMatchEvidenceResponse } from "../src/api/generated"
+import type {
+    JsonValue,
+    PackageMatchEvidenceResponse,
+} from "../src/api/generated"
 import { OpenFoodFactsResult } from "../src/features/package-match/OpenFoodFactsResult"
 import type { OpenFoodFactsCandidate } from "../src/features/package-match/types"
 import i18n from "../src/i18n"
@@ -16,7 +19,7 @@ const sourceUrl = "https://world.openfoodfacts.org/product/4006381333931"
 
 function evidence(
     field: string,
-    value: unknown,
+    value: JsonValue,
     language: string | null = null,
 ): PackageMatchEvidenceResponse {
     return {

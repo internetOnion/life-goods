@@ -76,3 +76,56 @@ def test_scalar_route_is_excluded_from_openapi(client: TestClient) -> None:
     assert response.status_code == 200
     openapi_spec = response.json()
     assert "/scalar" not in openapi_spec.get("paths", {})
+
+
+def test_allergen_assessment_contract_exposes_only_backend_release_states(
+    client: TestClient,
+) -> None:
+    response = client.get("/openapi.json")
+    assert response.status_code == 200
+    openapi_spec = response.json()
+    schemas = openapi_spec["components"]["schemas"]
+
+    assert schemas["AllergenAssessmentStatus"]["enum"] == [
+        "COMPLETED",
+        "NOT_ASSESSED",
+    ]
+    assert schemas["AllergenAssessmentReason"]["enum"] == [
+        "FEATURE_DISABLED",
+        "REFERENCE_UNAVAILABLE",
+        "EVIDENCE_UNAVAILABLE",
+        "ASSESSMENT_FAILED",
+    ]
+
+    assessment_schema = schemas["AllergenAssessmentResponse"]
+    assert {"status", "reason", "evidence_coverage"}.issubset(
+        assessment_schema["required"]
+    )
+    assert assessment_schema["properties"]["status"] == {
+        "$ref": "#/components/schemas/AllergenAssessmentStatus"
+    }
+    assert assessment_schema["properties"]["reason"]["anyOf"] == [
+        {"$ref": "#/components/schemas/AllergenAssessmentReason"},
+        {"type": "null"},
+    ]
+    assert "allergen_assessment" in schemas["PackageMatchCandidateResponse"]["required"]
+
+    paths = openapi_spec["paths"]
+    assert not any("allergen" in path for path in paths)
+    package_match_parameters = paths["/api/v1/package-matches"]["get"]["parameters"]
+    assert [parameter["name"] for parameter in package_match_parameters] == ["identifier"]
+
+    forbidden_contract_terms = {
+        "allergy_profile",
+        "preferences",
+        "package_capture",
+        "translation",
+    }
+    package_match_contract = str(
+        {
+            "path": paths["/api/v1/package-matches"],
+            "candidate": schemas["PackageMatchCandidateResponse"],
+            "assessment": assessment_schema,
+        }
+    ).lower()
+    assert all(term not in package_match_contract for term in forbidden_contract_terms)
