@@ -8,6 +8,7 @@ import zlib
 from collections.abc import Callable, Generator, Iterable
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
+from threading import Event, Thread
 from typing import Any
 
 import httpx2 as httpx
@@ -20,6 +21,7 @@ from lifegoods.open_food_facts.dataset import (
     CONTROL_COLLECTION,
     PRODUCT_COLLECTION_PREFIX,
     VERSIONS_COLLECTION,
+    ensure_package_search_indexes,
 )
 from lifegoods.package_matches.search import build_search_index, search_collection_name
 
@@ -59,7 +61,7 @@ def lifecycle_lock(
     except DuplicateKeyError:
         existing = lock_collection.find_one({"_id": LIFECYCLE_LOCK_ID})
         expires_at = existing.get("expires_at") if isinstance(existing, dict) else None
-        if isinstance(expires_at, datetime) and expires_at <= now:
+        if isinstance(expires_at, datetime) and _as_utc(expires_at) <= now:
             replaced = lock_collection.find_one_and_update(
                 {"_id": LIFECYCLE_LOCK_ID, "expires_at": expires_at},
                 {
@@ -72,9 +74,34 @@ def lifecycle_lock(
             acquired = replaced is not None
     if not acquired:
         raise DatasetImportError("Another dataset lifecycle operation is in progress")
+    stop_renewal = Event()
+
+    def renew() -> None:
+        interval_seconds = max(1.0, ttl_seconds / 3)
+        while not stop_renewal.wait(interval_seconds):
+            result = lock_collection.update_one(
+                {"_id": LIFECYCLE_LOCK_ID, "owner_id": owner},
+                {
+                    "$set": {
+                        "expires_at": datetime.now(UTC)
+                        + timedelta(seconds=ttl_seconds),
+                    }
+                },
+            )
+            if result.modified_count != 1:
+                return
+
+    renewal_thread = Thread(
+        target=renew,
+        name="lifegoods-dataset-lock-renewal",
+        daemon=True,
+    )
+    renewal_thread.start()
     try:
         yield
     finally:
+        stop_renewal.set()
+        renewal_thread.join()
         lock_collection.delete_one({"_id": LIFECYCLE_LOCK_ID, "owner_id": owner})
 
 
@@ -114,57 +141,58 @@ def import_url(
         "validation_errors": [],
     }
     versions = database[VERSIONS_COLLECTION]
-    versions.insert_one(manifest)
     owned_client = client is None
     http_client = client or httpx.Client(timeout=None, follow_redirects=True)
     try:
-        report = _stream_import(
-            database,
-            collection_name,
-            source_url,
-            http_client,
-            batch_size,
-            progress=progress,
-            progress_interval_seconds=progress_interval_seconds,
-        )
         with lifecycle_lock(database):
-            completed_at = utc_now()
-            validation_errors = _validate_import(
-                database,
-                collection_name,
-                report,
-                probe_codes,
-            )
-            status = "READY" if not validation_errors else "FAILED"
-            update = {
-                **report,
-                "retrieval_completed_at": completed_at,
-                "status": status,
-                "immutable": status == "READY",
-                "probe_codes": list(probe_codes),
-                "validation_errors": validation_errors,
-            }
-            versions.update_one({"_id": version_id}, {"$set": update})
-            if not validation_errors:
-                build_search_index(database, version_id)
-            result = versions.find_one({"_id": version_id})
-            if result is None:
-                raise DatasetImportError("Imported manifest disappeared")
-            if validation_errors:
-                raise DatasetImportError("; ".join(validation_errors))
-            return result
-    except Exception as error:
-        versions.update_one(
-            {"_id": version_id},
-            {
-                "$set": {
-                    "status": "FAILED",
-                    "retrieval_completed_at": utc_now(),
-                    "failure": str(error),
+            versions.insert_one(manifest)
+            try:
+                report = _stream_import(
+                    database,
+                    collection_name,
+                    source_url,
+                    http_client,
+                    batch_size,
+                    progress=progress,
+                    progress_interval_seconds=progress_interval_seconds,
+                )
+                completed_at = utc_now()
+                validation_errors = _validate_import(
+                    database,
+                    collection_name,
+                    report,
+                    probe_codes,
+                )
+                status = "READY" if not validation_errors else "FAILED"
+                update = {
+                    **report,
+                    "retrieval_completed_at": completed_at,
+                    "status": status,
+                    "immutable": status == "READY",
+                    "probe_codes": list(probe_codes),
+                    "validation_errors": validation_errors,
                 }
-            },
-        )
-        raise
+                versions.update_one({"_id": version_id}, {"$set": update})
+                if not validation_errors:
+                    build_search_index(database, version_id)
+                result = versions.find_one({"_id": version_id})
+                if result is None:
+                    raise DatasetImportError("Imported manifest disappeared")
+                if validation_errors:
+                    raise DatasetImportError("; ".join(validation_errors))
+                return result
+            except BaseException as error:
+                versions.update_one(
+                    {"_id": version_id},
+                    {
+                        "$set": {
+                            "status": "FAILED",
+                            "retrieval_completed_at": utc_now(),
+                            "failure": _failure_message(error),
+                        }
+                    },
+                )
+                raise
     finally:
         if owned_client:
             http_client.close()
@@ -202,6 +230,7 @@ def activate_version(
         database[collection_name].create_index(
             [("code", ASCENDING)], unique=True, name="uq_off_code"
         )
+        ensure_package_search_indexes(database[collection_name])
 
         pointer = database[CONTROL_COLLECTION].find_one({"_id": ACTIVE_POINTER_ID}) or {}
         previous_id = pointer.get("active_version_id")
@@ -531,16 +560,16 @@ def _validate_import(
     errors: list[str] = []
     if report.get("byte_count", 0) <= 0 or report.get("document_count", 0) <= 0:
         errors.append("The export contained no product data")
-    # if report.get("malformed_count", 0):
-    #     errors.append(f"Malformed documents: {report['malformed_count']}")
-    # if report.get("duplicate_count", 0):
-    #     errors.append(f"Duplicate product codes: {report['duplicate_count']}")
+    if report.get("malformed_count", 0):
+        errors.append(f"Malformed documents: {report['malformed_count']}")
+    if report.get("duplicate_count", 0):
+        errors.append(f"Duplicate product codes: {report['duplicate_count']}")
     if not report.get("schema_versions"):
         errors.append("No schema versions were observed")
-    # if report.get("schema_missing_count", 0):
-    #     errors.append(
-    #         f"Missing schema observations: {report['schema_missing_count']}"
-    #     )
+    if report.get("schema_missing_count", 0):
+        errors.append(
+            f"Missing schema observations: {report['schema_missing_count']}"
+        )
     if (
         report.get("inserted_count", 0)
         + report.get("duplicate_count", 0)
@@ -553,6 +582,10 @@ def _validate_import(
         collection.create_index([("code", ASCENDING)], unique=True, name="uq_off_code")
     except PyMongoError as error:
         errors.append(f"Unique product-code index failed: {error}")
+    try:
+        ensure_package_search_indexes(collection)
+    except PyMongoError as error:
+        errors.append(f"Package search indexes failed: {error}")
     if collection.count_documents({}) != report.get("inserted_count", 0):
         errors.append("MongoDB document count does not match the import report")
     missing_probes = [
@@ -567,6 +600,17 @@ def _required_manifest(manifest: dict[str, Any] | None) -> dict[str, Any]:
     if manifest is None:
         raise ValueError("Dataset version does not exist")
     return manifest
+
+
+def _failure_message(error: BaseException) -> str:
+    message = str(error).strip()
+    return message or type(error).__name__
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def _json_default(value: object) -> str:

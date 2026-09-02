@@ -7,16 +7,23 @@ from datetime import UTC, datetime
 from threading import Lock
 from typing import Any
 
+from pymongo import ASCENDING, TEXT
 from pymongo.database import Database
 from pymongo.errors import PyMongoError
 
-from lifegoods.identifiers import NormalizedIdentifier
+from lifegoods.identifiers import (
+    InvalidIdentifierError,
+    NormalizedIdentifier,
+    normalize_identifier,
+)
 from lifegoods.open_food_facts.models import (
     ExternalDatasetVersion,
     ExternalLookupResult,
     ExternalPackageFound,
     ExternalPackageNotFound,
     ExternalPackageRecord,
+    ExternalPackageSearchPage,
+    ExternalPackageSearchUnavailableError,
     ExternalPackageUnavailable,
     ExternalSelectedImage,
     ExternalSourceMetadata,
@@ -29,6 +36,9 @@ CONTROL_COLLECTION = "off_dataset_control"
 VERSIONS_COLLECTION = "off_dataset_versions"
 ACTIVE_POINTER_ID = "active"
 PRODUCT_COLLECTION_PREFIX = "off_products_"
+PACKAGE_SEARCH_TEXT_INDEX = "idx_off_package_search_text"
+PACKAGE_SEARCH_COUNTRY_INDEX = "idx_off_countries_tags"
+PACKAGE_SEARCH_COUNTRY_TAG = "en:cambodia"
 OPEN_FOOD_FACTS_BASE_URL = "https://world.openfoodfacts.org"
 DEFAULT_OPEN_FOOD_FACTS_IMAGE_BASE_URL = "https://images.openfoodfacts.org"
 MANIFEST_CACHE_MAX_VERSIONS = 8
@@ -43,6 +53,12 @@ LOCALIZED_NAME_FIELDS = (
     ("product_name_vi", "vi"),
     ("product_name_zh", "zh"),
 )
+PACKAGE_SEARCH_TEXT_FIELDS = tuple(
+    (field, TEXT) for field, _language in LOCALIZED_NAME_FIELDS
+) + (("brands", TEXT),)
+PACKAGE_SEARCH_TEXT_WEIGHTS = {
+    field: 10 for field, _language in LOCALIZED_NAME_FIELDS
+} | {"brands": 8}
 LOCALIZED_INGREDIENT_FIELDS = (
     ("ingredients_text", None),
     ("ingredients_text_en", "en"),
@@ -207,6 +223,110 @@ class OpenFoodFactsDatasetSource:
             )
         return tuple(results)
 
+    def search(
+        self,
+        query: str,
+        *,
+        offset: int,
+        limit: int,
+    ) -> ExternalPackageSearchPage:
+        normalized_query = " ".join(query.split())
+        try:
+            pointer = self._database[CONTROL_COLLECTION].find_one(
+                {"_id": ACTIVE_POINTER_ID}
+            )
+            if pointer is None or not isinstance(pointer.get("active_version_id"), str):
+                _log_off_unavailable(
+                    "search_packages_read_active_pointer", "metadata_invalid"
+                )
+                raise ExternalPackageSearchUnavailableError("Active dataset unavailable")
+            version_id = pointer["active_version_id"]
+            resolved = self._cached_manifest(version_id)
+            if resolved is None:
+                resolved = self._resolve_manifest(version_id)
+            if resolved is None:
+                raise ExternalPackageSearchUnavailableError("Active dataset unavailable")
+            dataset_version = resolved.version
+            collection_name = resolved.collection_name
+            collection = self._database[collection_name]
+            available_indexes = collection.index_information()
+            if not {
+                PACKAGE_SEARCH_TEXT_INDEX,
+                PACKAGE_SEARCH_COUNTRY_INDEX,
+            }.issubset(available_indexes):
+                _log_off_unavailable("search_packages_check_indexes", "indexes_missing")
+                raise ExternalPackageSearchUnavailableError(
+                    "Package search indexes unavailable"
+                )
+
+            projection: dict[str, Any] = {
+                "_id": 0,
+                "code": 1,
+                "lang": 1,
+                "brands": 1,
+                "quantity": 1,
+                "manufacturing_places": 1,
+                "selected_images": 1,
+                "images": 1,
+                "image_front_url": 1,
+                "image_front_small_url": 1,
+                "last_modified_t": 1,
+                "score": {"$meta": "textScore"},
+            }
+            projection.update({field: 1 for field, _language in LOCALIZED_NAME_FIELDS})
+            cursor = (
+                collection.find(
+                    {
+                        "countries_tags": PACKAGE_SEARCH_COUNTRY_TAG,
+                        "$text": {"$search": normalized_query},
+                    },
+                    projection,
+                )
+                .sort(
+                    [
+                        ("score", {"$meta": "textScore"}),
+                        ("code", ASCENDING),
+                    ]
+                )
+                .skip(offset)
+                .limit(limit + 1)
+            )
+            documents = list(cursor)
+        except ExternalPackageSearchUnavailableError:
+            raise
+        except (PyMongoError, KeyError, TypeError, ValueError) as error:
+            _log_off_unavailable("search_packages", "dependency_error", error)
+            raise ExternalPackageSearchUnavailableError(
+                "Package search source unavailable"
+            ) from error
+
+        has_more = len(documents) > limit
+        records: list[ExternalPackageRecord] = []
+        for product in documents[:limit]:
+            code = product.get("code")
+            if not isinstance(code, str):
+                continue
+            try:
+                identifier = normalize_identifier(code)
+            except InvalidIdentifierError:
+                continue
+            records.append(
+                _record_from_product(
+                    identifier,
+                    product,
+                    self._source_metadata,
+                    dataset_version,
+                    self._image_base_url,
+                )
+            )
+
+        return ExternalPackageSearchPage(
+            normalized_query=normalized_query,
+            records=tuple(records),
+            dataset_version=dataset_version,
+            next_offset=offset + limit if has_more else None,
+        )
+
     def _cached_manifest(self, version_id: str) -> _ResolvedDataset | None:
         with self._manifest_cache_lock:
             resolved = self._manifest_cache.get(version_id)
@@ -238,9 +358,12 @@ class OpenFoodFactsDatasetSource:
             return existing
 
     def _collection_exists(self, collection_name: str) -> bool:
-        return bool(
-            self._database.list_collection_names(filter={"name": collection_name})
-        )
+        try:
+            return bool(
+                self._database.list_collection_names(filter={"name": collection_name})
+            )
+        except TypeError:
+            return collection_name in self._database.list_collection_names()
 
 
 def _log_off_unavailable(
@@ -257,6 +380,19 @@ def _log_off_unavailable(
             "failure_category": failure_category,
             "error_category": type(error).__name__ if error is not None else None,
         },
+    )
+
+
+def ensure_package_search_indexes(collection: Any) -> None:
+    collection.create_index(
+        list(PACKAGE_SEARCH_TEXT_FIELDS),
+        name=PACKAGE_SEARCH_TEXT_INDEX,
+        default_language="none",
+        weights=PACKAGE_SEARCH_TEXT_WEIGHTS,
+    )
+    collection.create_index(
+        [("countries_tags", ASCENDING)],
+        name=PACKAGE_SEARCH_COUNTRY_INDEX,
     )
 
 

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react"
+import { OpenLabelMark } from "./OpenLabelMark"
 
 type PlaceholderPageProps = {
     title: string
@@ -13,15 +14,21 @@ export function PlaceholderPage({ title, body }: PlaceholderPageProps) {
     }, [title])
 
     return (
-        <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pt-[calc(clamp(3rem,12vh,7rem)_+_env(safe-area-inset-top))] pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
+        <main className="mx-auto grid min-h-[calc(100svh-6rem)] w-full max-w-5xl content-center px-4 py-10 sm:px-6 lg:px-10">
+            <div
+                className="bg-mango-soft mb-7 grid size-24 place-items-center rounded-3xl"
+                aria-hidden="true"
+            >
+                <OpenLabelMark className="size-16" />
+            </div>
             <h1
-                className="text-[clamp(2rem,7vw,3.2rem)] leading-[1.7] tracking-tight text-balance"
+                className="max-w-3xl text-4xl leading-[1.7] font-black tracking-tight text-balance sm:text-5xl"
                 ref={headingRef}
                 tabIndex={-1}
             >
                 {title}
             </h1>
-            <p className="text-muted-foreground mt-3 max-w-[62ch] text-[1.05rem] leading-loose">
+            <p className="text-muted-foreground mt-3 max-w-[62ch] text-[1.05rem] leading-[1.65]">
                 {body}
             </p>
         </main>

@@ -3,15 +3,23 @@ export const packageMatchTranslations = {
         title: "ពិនិត្យបាកូដលើកញ្ចប់",
         homeIntro: "បញ្ចូលលេខបាកូដ ដើម្បីរកព័ត៌មានកញ្ចប់ពីប្រភព។",
         cameraTitle: "ស្កេនដោយកាមេរ៉ា",
+        cameraPrivacyTitle: "មុនពេលបើកកាមេរ៉ា",
+        cameraPrivacyBody:
+            "ស៊ុមវីដេអូត្រូវបានដំណើរការនៅក្នុងឧបករណ៍នេះ ដើម្បីរកបាកូដ។ LifeGoods មិនផ្ទុក ឬបញ្ជូនរូបភាពកាមេរ៉ាទេ។",
+        cameraPrivacySession:
+            "ជម្រើសនេះត្រូវបានចងចាំតែក្នុងសម័យកម្មវិធីរុករកនេះ។",
         cameraComingSoon: "កាមេរ៉ានឹងមកឆាប់ៗ។ សូមប្រើលេខបាកូដឥឡូវនេះ។",
         cameraIdle: "ចុចចាប់ផ្តើម ដើម្បីស្កេនលេខបាកូដលើកញ្ចប់។",
         cameraStart: "ចាប់ផ្តើមកាមេរ៉ា",
         cameraStarting: "កំពុងបើកកាមេរ៉ា…",
         cameraScanning: "ដាក់លេខបាកូដក្នុងប្រអប់ស្កេន។",
         cameraStop: "បិទកាមេរ៉ា",
+        cameraPause: "ផ្អាកកាមេរ៉ា",
+        cameraResume: "បន្តកាមេរ៉ា",
+        cameraPaused: "កាមេរ៉ាត្រូវបានផ្អាក។",
+        cameraSwitch: "ប្តូរកាមេរ៉ា",
         cameraTryAgain: "ព្យាយាមបើកម្ដងទៀត",
         cameraUnavailable: "មិនអាចប្រើកាមេរ៉ា",
-        cameraDelayed: "មិនទាន់រកឃើញលេខបាកូដទេ។ អ្នកអាចបញ្ចូលលេខខាងក្រោម។",
         cameraInvalid:
             "លេខដែលបានរកឃើញមិនមែនជាបាកូដដែល LifeGoods គាំទ្រទេ។ សូមសាកល្បងម្ដងទៀត។",
         cameraErrorPermission:
@@ -29,9 +37,9 @@ export const packageMatchTranslations = {
             "កម្មវិធីរុករកនេះមិនអាចប្រើការកំណត់កាមេរ៉ានេះបានទេ។ សូមបើកទំព័រតាម HTTPS ក្នុង Safari ឬបញ្ចូលលេខបាកូដខាងក្រោម។",
         cameraErrorInterrupted:
             "ការបើកកាមេរ៉ាត្រូវបានរំខាន។ សូមត្រឡប់មកទំព័រនេះ បើកទំព័រឡើងវិញ ហើយសាកល្បងម្ដងទៀត ឬបញ្ចូលលេខបាកូដខាងក្រោម។",
-        scanModeLabel: "របៀបស្កេន",
-        scanModeBarcode: "បាកូដ",
-        scanModeCamera: "កាមេរ៉ា",
+        switchToCamera: "ប្តូរទៅកាមេរ៉ា",
+        searchByNameOrBarcode: "ស្វែងរកតាមឈ្មោះផលិតផល ឬបាកូដ",
+        openProductSearch: "បើកការស្វែងរកផលិតផល",
         fieldLabel: "លេខបាកូដ",
         fieldPlaceholder: "លេខបាកូដ",
         fieldHint:
@@ -60,7 +68,18 @@ export const packageMatchTranslations = {
         backHome: "ត្រឡប់ទៅទំព័រដើម",
         resultDialogLabel: "លទ្ធផលពិនិត្យបាកូដ",
         productDetailsTitle: "ព័ត៌មានផលិតផល",
+        evidenceSnapshotTitle: "ទិដ្ឋភាពសង្ខេបភស្តុតាង",
+        declaredConcernsSnapshot: "កង្វល់ដែលបានប្រកាស",
+        evidenceGapsSnapshot: "ចន្លោះភស្តុតាង",
+        sourceReviewSnapshot: "ប្រភព និងការពិនិត្យ",
+        sourceNotAvailable: "មិនមានពីប្រភពនេះ",
+        missingGroups: "ក្រុមដែលខ្វះ៖ {{fields}}",
+        noEvidenceGaps: "មានក្រុមភស្តុតាងសំខាន់ទាំងអស់នៅក្នុងប្រភពនេះ។",
+        reviewedSourceState: "កំណត់ត្រាកាតាឡុកដែលបានពិនិត្យ",
+        communitySourceState: "ទិន្នន័យសហគមន៍—មិនទាន់ពិនិត្យដោយ LifeGoods",
         closeResult: "បិទលទ្ធផល",
+        collapseResultSheet: "បង្រួមព័ត៌មានផលិតផល",
+        expandResultSheet: "ពង្រីកព័ត៌មានផលិតផល",
         identifierLabel: "បាកូដដែលបានពិនិត្យ",
         candidateChooserTitle: "រកឃើញ Package Match ច្រើន",
         candidateChooserBody:
@@ -85,12 +104,19 @@ export const packageMatchTranslations = {
         referenceImageAltUnnamed: "រូបភាពកញ្ចប់យោង",
         imageUnavailable: "មិនមានរូបភាពកញ្ចប់យោង",
         referenceImageDetails: "ព័ត៌មានប្រភពរូបភាពយោង",
+        containsAllergenLabel: "មានអាលែហ្សែន",
+        calorieLabel: "កាឡូរី",
+        productMadeInLabel: "ផលិតនៅ",
         openReferenceImageSource: "បើកទំព័រប្រភពសម្រាប់រូបភាពយោងនេះ",
         openOriginalReferenceImage: "បើករូបភាពយោងដើម",
         imageRevisionLabel: "កំណែរូបភាព",
         brandLabel: "ម៉ាក",
-        nameLabel: "ឈ្មោះកញ្ចប់",
+        nameLabel: "ឈ្មោះផលិតផល",
         quantityLabel: "បរិមាណ",
+        madeInLabel: "ផលិតនៅ",
+        categoryLabel: "ប្រភេទ",
+        allergenAlertTitle: "ការព្រមានអាលែហ្សែនពីប្រភព",
+        informationNotMentioned: "មិនបានរាយព័ត៌មាននេះ",
         productInformationTitle: "ព័ត៌មានផលិតផល",
         evidenceIncompleteTitle: "ភស្តុតាងសំខាន់មិនពេញលេញ",
         evidenceIncompleteBody:
@@ -132,16 +158,16 @@ export const packageMatchTranslations = {
         provenanceImage: "រូបភាពយោង",
         alternateNamesTitle: "ឈ្មោះផ្សេងៗពីប្រភព",
         alternateNamesBody: "ឈ្មោះទាំងនេះត្រូវបានបង្ហាញជាមួយភាសាដើមរបស់វា។",
-        ingredientsTitle: "អត្ថបទគ្រឿងផ្សំ",
+        ingredientsTitle: "គ្រឿងផ្សំ",
         ingredientsBody:
             "បង្ហាញអត្ថបទពីប្រភពតាមភាសាដើម។ វាមិនមែនជាការវាយតម្លៃសុវត្ថិភាពទេ។",
-        allergensTitle: "ការប្រកាសអាលែហ្សែន",
+        allergensTitle: "អាលែហ្សែន",
         allergensBody:
             "បង្ហាញតែអ្វីដែលប្រភពមាន។ ការមិនមានទិន្នន័យមិនមានន័យថាគ្មានអាលែហ្សែនទេ។",
         tracesTitle: "ការប្រកាសអាចមានសំណល់",
         tracesBody:
             "ទិន្នន័យអាចមានសំណល់ត្រូវបានរក្សាដាច់ដោយឡែកពីការប្រកាសថាមាន។",
-        nutritionTitle: "ការប្រកាសអាហារូបត្ថម្ភ",
+        nutritionTitle: "ព័ត៌មានអាហារូបត្ថម្ភ",
         nutritionBody:
             "តម្លៃពីប្រភពត្រូវបានបង្ហាញដោយគ្មានពិន្ទុ ឬសេចក្តីវិនិច្ឆ័យល្អ/អាក្រក់។",
         packagingLanguagesTitle: "ភាសាលើកញ្ចប់",
@@ -187,6 +213,7 @@ export const packageMatchTranslations = {
         nutritionSaltLabel: "អំបិល",
         nutritionSodiumLabel: "សូដ្យូម",
         nutritionPer100g: "ក្នុង ១០០ ក្រាម",
+        nutritionPer100ml: "ក្នុង ១០០ មីលីលីត្រ",
         nutritionPreparedPer100g: "ក្នុង ១០០ ក្រាម បន្ទាប់ពីរៀបចំ",
         nutritionPerServing: "ក្នុងមួយចំណែកបរិភោគ",
         error: {
@@ -201,6 +228,11 @@ export const packageMatchTranslations = {
         homeIntro:
             "Enter the digits below a barcode to find source-scoped package information.",
         cameraTitle: "Scan with the camera",
+        cameraPrivacyTitle: "Before the camera starts",
+        cameraPrivacyBody:
+            "Video frames are processed on this device to detect a barcode. LifeGoods does not store or upload camera images.",
+        cameraPrivacySession:
+            "This choice is remembered only for this browser session.",
         cameraComingSoon:
             "Camera scanning is coming soon. Use the barcode number for now.",
         cameraIdle: "Tap start to scan the barcode on the package.",
@@ -208,9 +240,12 @@ export const packageMatchTranslations = {
         cameraStarting: "Starting camera…",
         cameraScanning: "Place the barcode inside the scan frame.",
         cameraStop: "Stop camera",
+        cameraPause: "Pause camera",
+        cameraResume: "Resume camera",
+        cameraPaused: "Camera paused.",
+        cameraSwitch: "Switch camera",
         cameraTryAgain: "Try camera again",
         cameraUnavailable: "Camera unavailable",
-        cameraDelayed: "No barcode yet. You can enter the number below.",
         cameraInvalid:
             "That code is not a barcode format LifeGoods supports. Try again.",
         cameraErrorPermission:
@@ -229,9 +264,9 @@ export const packageMatchTranslations = {
             "This browser cannot use the requested camera mode. Open this page in Safari over HTTPS, or enter the barcode number below.",
         cameraErrorInterrupted:
             "Camera startup was interrupted. Return to this page, reload it, and try again—or enter the barcode number below.",
-        scanModeLabel: "Scan method",
-        scanModeBarcode: "Barcode",
-        scanModeCamera: "Camera",
+        switchToCamera: "Switch to camera",
+        searchByNameOrBarcode: "Search by Product name or barcode",
+        openProductSearch: "Open Product search",
         fieldLabel: "Barcode number",
         fieldPlaceholder: "Barcode number",
         fieldHint:
@@ -260,7 +295,19 @@ export const packageMatchTranslations = {
         backHome: "Back to Home",
         resultDialogLabel: "Barcode check result",
         productDetailsTitle: "Product details",
+        evidenceSnapshotTitle: "Evidence Snapshot",
+        declaredConcernsSnapshot: "Declared concerns",
+        evidenceGapsSnapshot: "Evidence gaps",
+        sourceReviewSnapshot: "Source and review",
+        sourceNotAvailable: "Not available from this source",
+        missingGroups: "Missing groups: {{fields}}",
+        noEvidenceGaps:
+            "All core evidence groups are available from this source.",
+        reviewedSourceState: "Reviewed catalog record",
+        communitySourceState: "Community data—not reviewed by LifeGoods",
         closeResult: "Close result",
+        collapseResultSheet: "Collapse product details",
+        expandResultSheet: "Expand product details",
         identifierLabel: "Checked barcode",
         candidateChooserTitle: "Several Package Matches were found",
         candidateChooserBody:
@@ -284,13 +331,20 @@ export const packageMatchTranslations = {
         referenceImageAltUnnamed: "Reference package image",
         imageUnavailable: "Reference package image unavailable",
         referenceImageDetails: "Reference image source details",
+        containsAllergenLabel: "Contains allergen",
+        calorieLabel: "Calories",
+        productMadeInLabel: "Product made in",
         openReferenceImageSource:
             "Open the source page for this reference image",
         openOriginalReferenceImage: "Open the original reference image",
         imageRevisionLabel: "Image revision",
         brandLabel: "Brand",
-        nameLabel: "Package name",
+        nameLabel: "Product name",
         quantityLabel: "Quantity",
+        madeInLabel: "Made in",
+        categoryLabel: "Category",
+        allergenAlertTitle: "Allergen alert from source",
+        informationNotMentioned: "Information not mentioned",
         productInformationTitle: "Product information",
         evidenceIncompleteTitle: "Important evidence is incomplete",
         evidenceIncompleteBody:
@@ -333,16 +387,16 @@ export const packageMatchTranslations = {
         alternateNamesTitle: "Other source names",
         alternateNamesBody:
             "These names remain associated with their original languages.",
-        ingredientsTitle: "Ingredient text",
+        ingredientsTitle: "Ingredients",
         ingredientsBody:
             "Source text is shown in its available languages. It is not a safety assessment.",
-        allergensTitle: "Allergen declarations",
+        allergensTitle: "Allergens",
         allergensBody:
             "Only source evidence is shown. Missing data does not mean allergen-free.",
         tracesTitle: "Trace declarations",
         tracesBody:
             "May-contain evidence remains separate from contains declarations.",
-        nutritionTitle: "Nutrition declaration",
+        nutritionTitle: "Nutrition facts",
         nutritionBody:
             "Source values are shown without a score or positive/negative judgment.",
         packagingLanguagesTitle: "Packaging languages",
@@ -388,6 +442,7 @@ export const packageMatchTranslations = {
         nutritionSaltLabel: "Salt",
         nutritionSodiumLabel: "Sodium",
         nutritionPer100g: "per 100 g",
+        nutritionPer100ml: "per 100 ml",
         nutritionPreparedPer100g: "per 100 g prepared",
         nutritionPerServing: "per serving",
         error: {

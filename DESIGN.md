@@ -1,121 +1,207 @@
 ---
 name: LifeGoods
 description: Khmer-first packaged-food label guidance with evidence and visible uncertainty.
+colors:
+  brand: "#8a4b16"
+  brand-dark: "#6e350c"
+  brand-hover: "#562908"
+  brand-soft: "#f7ede0"
+  page: "#fafaf8"
+  surface: "#f4f4f5"
+  surface-strong: "#e4e4e7"
+  ink: "#111111"
+  muted-ink: "#66666a"
+  line: "#e4e4e7"
+  input: "#a1a1aa"
+  ring: "#8a4b16"
+  destructive: "#b91c1c"
+  mango: "#b86a1a"
+  mango-soft: "#fcf4e8"
+typography:
+  display:
+    fontFamily: '"Noto Sans Khmer", "Khmer OS System", Inter, ui-sans-serif, system-ui, sans-serif'
+    fontSize: "1.75rem"
+    fontWeight: 900
+    lineHeight: 1.7
+    letterSpacing: "-0.02em"
+  headline:
+    fontFamily: '"Noto Sans Khmer", "Khmer OS System", Inter, ui-sans-serif, system-ui, sans-serif'
+    fontSize: "1.5rem"
+    fontWeight: 900
+    lineHeight: 1.7
+    letterSpacing: "-0.02em"
+  title:
+    fontFamily: '"Noto Sans Khmer", "Khmer OS System", Inter, ui-sans-serif, system-ui, sans-serif'
+    fontSize: "1.125rem"
+    fontWeight: 700
+    lineHeight: 1.65
+  body:
+    fontFamily: '"Noto Sans Khmer", "Khmer OS System", Inter, ui-sans-serif, system-ui, sans-serif'
+    fontSize: "1rem"
+    fontWeight: 400
+    lineHeight: 1.65
+  label:
+    fontFamily: '"Noto Sans Khmer", "Khmer OS System", Inter, ui-sans-serif, system-ui, sans-serif'
+    fontSize: "0.75rem"
+    fontWeight: 700
+    lineHeight: 1.35
+    letterSpacing: "0.05em"
+rounded:
+  sm: "8px"
+  md: "12px"
+  lg: "16px"
+  xl: "20px"
+  full: "9999px"
+spacing:
+  xs: "4px"
+  sm: "8px"
+  md: "16px"
+  lg: "24px"
+  xl: "32px"
+components:
+  button-primary:
+    backgroundColor: "{colors.brand-dark}"
+    textColor: "#ffffff"
+    rounded: "{rounded.md}"
+    padding: "10px 24px"
+  button-primary-hover:
+    backgroundColor: "{colors.brand-hover}"
 ---
 
 # Design System: LifeGoods
 
-## 1. Creative direction
+## Overview
 
-**North star: “The Coconut Lens.”**
+**Creative North Star: "Open Label"**
 
-LifeGoods is a calm, camera-first shopping utility. It uses the familiar structure of a barcode scanner while being unusually honest about capability and evidence: an unavailable camera looks unavailable, community data looks unreviewed, and missing fields look unknown rather than reassuring.
+LifeGoods is a calm, evidence-forward shopping utility for Cambodian shoppers evaluating sealed packaged foods and beverages. Its central metaphor—Open Label—is represented by layered package-label sheets that reveal underlying label facts while keeping original source evidence in plain view. The design communicates clarity and rigor without adopting the promotional aesthetics of wellness marketing or clinical alarmism.
 
-The visual world is white, charcoal, pale botanical neutrals, and restrained coconut green. Crisp one-pixel rules and open space create structure without decorative card stacks. The experience is Khmer-first, with generous Khmer line height and original package languages kept visible.
+The visual atmosphere rests on a warm-white paper ground (`#fafaf8`), crisp charcoal black typography (`#111111`), rich palm sugar caramel interaction accents (`#8a4b16`), and golden palm sugar identity accents (`#b86a1a`) reserved for the Open Label mark and scanner action. Depth is established through tonal shifts and crisp one-pixel rules rather than decorative shadow cards. The entire experience is Khmer-first, pairing generous line heights with unclipped script rendering while keeping original package languages (Khmer, English, Vietnamese, Chinese, Thai) intact.
 
-The coconut is the product’s identity motif. The current shell intentionally renders no temporary logo or wordmark; final coconut artwork remains future brand work rather than a placeholder in the shopping task. The supplied Open Food Facts screens and the approved `.impeccable/mocks/home-camera-b-approved.png` comp are structural references, not sources for scoring, verdict language, or branding.
+**Key Characteristics:**
+- **Evidence Before Reassurance:** Missing fields are explicitly "Unavailable" rather than assumed safe or absent; community data is clearly attributed.
+- **Khmer-First Hierarchy:** System sans typography tuned for complex Khmer ascenders and descenders with minimum 1.65 line heights.
+- **Flat Paper Aesthetic:** Clean warm-white background, pale functional containers, and crisp 1px borders without heavy skeuomorphic shadows or glassmorphism.
+- **Strict Color Semantics:** Palm sugar guides navigation and actions; golden palm sugar identifies brand and scan; crimson signals validation/error; green is never used to imply product health or purchase approval.
 
-## 2. Color tokens
+## Colors
 
-The implemented palette lives in `frontend/src/styles.css` as OKLCH tokens. The shadcn semantic tokens map to these roles:
+The LifeGoods palette pairs warm paper neutrals with authentic Cambodian palm sugar (ស្ករត្នោត) interaction and identity accents, supported by crisp black and white foundations.
 
-- **Brand** — `oklch(0.47 0.115 157)`: identity accent.
-- **Brand dark** — `oklch(0.36 0.09 157)`: primary actions, active navigation, focus, and source links.
-- **Brand hover** — `oklch(0.31 0.08 157)`: interactive hover only.
-- **Brand soft** — `oklch(0.94 0.025 157)`: selected icon wells and quiet disclosure surfaces.
-- **Page / background** — `oklch(0.992 0.002 160)`: near-white app background.
-- **Surface / muted** — `oklch(0.965 0.008 160)`: viewfinder and grouped source surfaces.
-- **Surface strong / secondary** — `oklch(0.925 0.014 160)`: disabled and secondary control distinction.
-- **Ink / foreground** — `oklch(0.235 0.018 165)`: primary text and icon color.
-- **Muted foreground** — `oklch(0.43 0.018 165)`: secondary text that still meets the contrast target.
-- **Line / border** — `oklch(0.84 0.012 160)`: separators and quiet boundaries.
-- **Error / destructive** — `oklch(0.44 0.17 28)`: validation and temporary failure support, always paired with text.
+### Primary (Palm Sugar)
+- **Interaction Palm Sugar** (`#8a4b16`): Interactive focus rings, active badges, evidence lines, and secondary action highlights.
+- **Pressed Palm Sugar** (`#6e350c`): Primary button fills, active navigation highlights, and interactive links.
+- **Palm Sugar Hover** (`#562908`): Hover state for interactive primary actions.
+- **Soft Palm Sugar Wash** (`#f7ede0`): Subdued container backgrounds for active tabs, selected icon wells, and focus callouts.
 
-### Color rules
+### Secondary (Golden Palm Sugar)
+- **Identity & Scan Golden Palm Sugar** (`#b86a1a`): Warm golden accent used exclusively for the Open Label folded corner mark and the prominent mobile Scan button.
+- **Soft Golden Palm Sugar Wash** (`#fcf4e8`): Background for the Open Label back sheet and the camera privacy icon container.
 
-- Green never means safe, healthy, allergen-free, Halal, authentic, compliant, or recommended.
-- Active and error states include labels, shape, weight, or icons; color is never the only cue.
-- Brand green remains a small accent rather than a full-screen wellness treatment.
-- No gradients, glass effects, traffic-light nutrition colors, or green-check reassurance.
+### Tertiary
+- **Validation Crimson** (`#b91c1c`): Form validation errors and hardware failure notices. Always paired with text labels and explanatory copy.
 
-## 3. Typography
+### Neutral (Black & White Ground)
+- **Warm Paper Ground** (`#fafaf8`): Base page background providing a warm, legible ground.
+- **Pale Surface** (`#f4f4f5`): Viewfinder inactive areas, disabled containers, and secondary element backing.
+- **Quiet Surface Strong** (`#e4e4e7`): Secondary buttons, subtle dividers, and inactive control fills.
+- **Charcoal Black Ink** (`#111111`): Primary body text, headings, and prominent icons.
+- **Muted Ink** (`#66666a`): Secondary labels, timestamps, and metadata meeting WCAG 2.2 AA contrast standards.
+- **Divider Rule** (`#e4e4e7`): One-pixel borders separating content sections and list rows.
+- **Input Border** (`#a1a1aa`): Default border for form controls and text fields.
 
-The UI uses one system stack: `"Noto Sans Khmer", "Khmer OS System", Inter, ui-sans-serif, system-ui, sans-serif`. This avoids a branded Latin face that weakens the Khmer hierarchy and keeps loading fast on modest devices.
+### Named Rules
+**The Color Neutrality Rule.** Color never communicates a health rating, safety verdict, allergen absence, or purchase recommendation. Green is never used as an endorsement.
+**The Palm Sugar Scarcity Rule.** Golden Palm Sugar (`#b86a1a`) is strictly reserved for the Open Label brand mark and the primary Scan action. It is never used as an indicator of evidence severity or product status.
 
-- Khmer body copy uses a `1.65` base line height.
-- Khmer screen and result headings use a `1.7` line height so stacked glyphs do not clip.
-- Major headings use fluid sizing and restrained negative tracking; body copy does not use tightened tracking.
-- Evidence prose stays near 65–75 characters per line on wide screens.
-- Metadata remains readable body text, never tiny uppercase labeling.
+## Typography
 
-Components expand for real Khmer copy. Consequential labels, source state, and evidence are not truncated. Browser checks cover 320, 360, and 393px widths.
+**Display & Headline Font:** `"Noto Sans Khmer", "Khmer OS System", Inter, ui-sans-serif, system-ui, sans-serif`
+**Body Font:** `"Noto Sans Khmer", "Khmer OS System", Inter, ui-sans-serif, system-ui, sans-serif`
+**Label / Code Font:** `"Noto Sans Khmer", "Khmer OS System", Inter, ui-sans-serif, system-ui, sans-serif`
 
-## 4. Layout and elevation
+**Character:** A modern, highly legible system sans pairing that provides native Khmer glyph shaping and reliable cross-platform fallback across iOS, Android, and web.
 
-The shell is mobile-first and bounded to a 48rem content column on desktop. It is headerless: no logo, wordmark, or replacement top bar competes with the shopping task. Home uses one dominant pale viewfinder, a compact active-language flag aligned directly above the barcode submit column, an attached barcode form, and a fixed four-item bottom navigation. Result routes hide both the language switch and bottom navigation and expose a visible localized back action.
+### Hierarchy
+- **Display** (Bold 900, 1.75rem / 28px, line-height 1.7, tracking -0.02em): Major screen titles and result headings.
+- **Headline** (Bold 900, 1.5rem / 24px, line-height 1.7, tracking -0.02em): Feature section headers and dialog titles.
+- **Title** (Bold 700, 1.125rem / 18px, line-height 1.65): Card titles, group labels, and modal headings.
+- **Body** (Regular 400, 1rem / 16px, line-height 1.65): Primary readable text, evidence descriptions, and transcriptions (bounded to 65–75 characters per line on desktop).
+- **Label** (Bold 700, 0.75rem / 12px, line-height 1.35, tracking 0.05em): Uppercase metadata tags, category badges, and navigation labels.
 
-LifeGoods is flat by default. Depth comes from tonal layers, one-pixel rules, and spacing. Rounded corners are restrained and functional; shadows are reserved for temporary overlays. Do not nest evidence in repetitive cards.
+### Named Rules
+**The Khmer Line-Height Rule.** Khmer text requires a minimum line height of 1.65 for body and 1.7 for headings to avoid clipping subscript consonants and diacritics.
+**The No-Truncation Rule.** Consequential product names, ingredient declarations, provenance notes, and uncertainty statements must wrap fully rather than truncate with ellipsis.
 
-Safe-area insets are applied to fixed navigation and result bottoms. The primary barcode action remains visible at a 320×568 viewport, while supporting guidance can scroll.
+## Layout
 
-## 5. Components and states
+LifeGoods uses a mobile-first responsive architecture designed for one-handed store usage while scaling cleanly to tablets and desktops.
 
-### App shell
+- **Content Bounding:** Mobile layouts stretch to full viewport width with standard padding (`16px` to `24px`). Desktop views bound the reading column to `48rem` (768px) centered on screen, or expand with a dedicated left navigation rail on wide displays (`lg` breakpoint ≥ 1024px).
+- **Header Structure:** Home features a top utility header containing the `<BrandLockup />` on the left and a 44px circular language switch with country flag icons (Cambodia / United Kingdom) on the right.
+- **Navigation Model:**
+  - **Mobile:** Fixed bottom navigation bar with 5 destinations: History, Learn, Scan (centered, elevated mango circular button), Search, Concerns.
+  - **Desktop:** Fixed left rail (`28` width / 112px) with the compact BrandLockup at top and 5 vertically stacked navigation links.
+  - **Focused Result Routes:** Hide the primary navigation to maximize vertical reading area and expose a prominent `<ResultBackButton />`.
+- **Touch Targets:** All interactive controls maintain a strict minimum bounding box of 44×44 CSS pixels.
 
-- Top: no branded header, logo, wordmark, or persistent language control.
-- Home only: one circular flag button shows the active interface language—Cambodia in Khmer mode and the United Kingdom in English mode—and its accessible name states the destination language action.
-- The flag occupies its own utility row between the camera placeholder and barcode form, centered over the form’s submit column without overlay positioning.
-- Bottom: Home, Learn, History, and Allergies with Phosphor icons, text, and non-color active treatment.
+## Elevation & Depth
 
-### Camera scanner
+Surfaces are flat by default. Visual hierarchy is established through contrasting background tones (`#fafaf7` vs `#f2f4f6`), crisp one-pixel border lines (`#d9dde2`), and whitespace.
 
-- The viewfinder automatically requests camera access and starts scanning on page load; once granted, the camera remains continuously active on the home screen.
-- Starting shows a pending state, then an environment-facing live video preview with a clear scan frame and concise guidance.
-- Valid camera results use the same identifier normalization and Package Match route as manual entry. The stream stops before navigation and duplicate detections are ignored.
-- Permission, missing-device, busy-device, unsupported-browser, invalid-code, and delayed-detection states remain explicit and keep manual barcode entry available with retry actions.
-- Camera frames are decoded locally and are not uploaded or retained. Streams stop on success, manual submission, route changes, visibility loss, and unmount.
+### Shadow Vocabulary
+- **Scan Button Elevation** (`box-shadow: 0 5px 18px rgba(23,24,26,0.18)`): Used exclusively on the mobile bottom navigation's central elevated Scan button to emphasize its primary action role.
+- **Camera Scrim** (`box-shadow: 0 0 0 999px rgba(0,0,0,0.5)`): Functional scan-frame mask focusing attention on the viewfinder area.
+- **Dropdown / Overlay** (`box-shadow: 0 4px 16px rgba(0,0,0,0.08)`): Used for context sheets and floating menus.
 
-### Barcode control
+### Named Rules
+**The Flat-By-Default Rule.** Content containers, evidence panels, and search results rest flush against the page ground. Depth is communicated via 1px border rules and subtle surface fills rather than card drop shadows.
 
-- Label, hint, visible focus, field-associated validation, and a 44px minimum action.
-- Spaces and hyphens are accepted, then the normalized identifier drives the URL.
-- Loading moves to the result route; duplicate requests are prevented by route/query state.
+## Shapes
 
-### Open Food Facts result
+The geometric vocabulary balances clean rounded rectangles with precise structural lines.
 
-- Identity leads: reference image, localized name, alternate names, brand, quantity, and identifier.
-- A prominent disclosure states that the community data is not reviewed by LifeGoods.
-- Ingredients, allergens, traces, nutrition, packaging languages, and countries remain separate evidence groups.
-- Missing fields say “Unavailable from Open Food Facts,” never “none.”
-- Keyboard-accessible disclosures expose language, source field, source URL, and retrieval metadata.
-- Source attribution, licenses, freshness, revision, and record link close the reading order.
-- No score, positive/negative grouping, purchase verdict, or safety conclusion.
+- **Controls & Buttons:** 12px (`rounded-xl`) for primary buttons and inputs; 9999px (`rounded-full`) for circular action buttons, chips, and language toggles.
+- **Containers & Viewfinder:** 16px to 24px (`rounded-2xl` to `rounded-3xl`) for camera viewports, permission cards, and modal sheets.
+- **Borders:** Consistent 1px solid stroke (`#e4e4e7`) on cards, inputs, and dividers.
+- **Open Label Motif:** Layered geometric label sheets with a 4px corner radius and a 45-degree folded golden palm sugar top-right flap.
 
-### Journey states
+## Components
 
-Invalid input remains local to the form. Loading, confirmed no-match, temporary failure, OFF match, and unsupported non-OFF candidates are distinct states with live announcements and focused outcome headings. Retry and back navigation preserve the normalized identifier.
+### Buttons
+- **Primary Action:** Solid background (`#6e350c`), white text, 12px radius, min 44px height, bold font. Hover shifts to `#562908`.
+- **Outline / Secondary:** 1px border (`#e4e4e7`), background `#fafaf8`, foreground `#111111`. Hover shifts to `#f4f4f5`.
+- **Scan Action:** Circular 52×52px golden palm sugar button (`#b86a1a`) with dark icon and 4px page-colored boundary ring on mobile navigation.
 
-## 6. Interaction and accessibility
+### Open Label Brand Lockup
+- **Mark:** Custom SVG depicting two offset label sheets with folded golden palm sugar corner and palm sugar evidence lines.
+- **Typography:** Uppercase "OPEN LABEL" tracker tag in `#6e350c` paired with bold "LifeGoods" wordmark in `#111111`.
 
-- Target WCAG 2.2 AA with visible `:focus-visible` outlines and at least 44×44 CSS-pixel targets.
-- Motion is limited to brief state feedback; `prefers-reduced-motion` reduces animations and transitions to effectively zero.
-- Image failures become labeled placeholders with no broken-image icon from the browser.
-- Interface locale changes do not refetch data or clear the current identifier.
-- Home keyboard order follows the language flag, field hint, barcode input, submit action, then navigation; result outcomes receive focus after asynchronous completion.
+### Camera Scanner & Privacy Consent Card
+- **Consent State:** Displayed before camera access. Features a soft golden palm sugar lock icon container, clear explanation of on-device processing and 24-hour retention policy, and an explicit "Start scanning" button.
+- **Active Viewfinder:** Full-bleed video feed with responsive aspect ratio, dark gradient overlay, pause button, and camera rotate button.
+- **Search Escape Hatch:** Prominent full-width button below the viewfinder providing an immediate transition to text and barcode search.
 
-## 7. Do and don’t
+### Search Field & Results
+- **Search Input:** 56px height, 16px radius, clear button, magnifier icon, active focus ring in `#8a4b16`.
+- **Result Row:** 2-column layout with 76×96px package image preview, product name, quantity, origin, and unreviewed status notice.
 
-### Do
+### Navigation
+- **5-Tab Navigation:** History (`ClockCounterClockwiseIcon`), Learn (`BookOpenTextIcon`), Scan (`ScanIcon`), Search (`MagnifyingGlassIcon`), Concerns (`ListChecksIcon`).
+- **Active State:** Tinted icon well (`#f7ede0`) and bold label; Scan button uses golden palm sugar circle (`#b86a1a`).
 
-- Preserve field-level provenance and original-language evidence.
-- Keep uncertainty adjacent to the affected evidence and pair failures with recovery.
-- Use familiar scanning and navigation patterns with precise capability copy.
-- Verify representative Khmer viewports and both mobile and desktop layouts.
+## Do's and Don'ts
 
-### Don’t
+### Do:
+- **Do** preserve field-level provenance, source attribution, and original language text alongside Khmer translations.
+- **Do** explicitly mark missing or unreviewed data as "Unavailable from Open Food Facts" rather than "None".
+- **Do** keep touch targets at or above 44×44 CSS pixels across all viewports.
+- **Do** test layouts with real multi-line Khmer script to ensure line heights and wrapping behave cleanly.
+- **Do** provide immediate fallback to manual search on camera hesitation or permission refusal.
 
-- Do not use wellness marketing, purity language, universal health scores, or “Excellent/Bad” labels.
-- Do not collapse absent, stale, external, or unreviewed evidence into a negative finding or reassuring absence.
-- Do not mix allergen evidence, Halal Ingredient Assessment, Seal Observation, and certificate status.
-- Do not add decorative page choreography, bounce, elastic easing, nested card grids, or oversized rounded surfaces.
-- Do not treat `TreePalmIcon` as final coconut artwork.
+### Don't:
+- **Don't** use green, traffic-light badges, or checkmarks to imply that a product is safe, healthy, or approved.
+- **Don't** use health scores, wellness purity marketing, or universal product ratings.
+- **Don't** collapse incomplete, missing, or contradictory evidence into a reassuring negative finding.
+- **Don't** apply heavy drop shadows, card stacking, glassmorphism, or gradient backgrounds.
+- **Don't** truncate product names, ingredients, or uncertainty disclosures.

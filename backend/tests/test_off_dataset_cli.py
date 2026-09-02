@@ -10,6 +10,8 @@ import pytest
 from lifegoods.open_food_facts import (
     ACTIVE_POINTER_ID,
     CONTROL_COLLECTION,
+    PACKAGE_SEARCH_COUNTRY_INDEX,
+    PACKAGE_SEARCH_TEXT_INDEX,
     VERSIONS_COLLECTION,
 )
 from lifegoods.open_food_facts.cli import (
@@ -91,7 +93,10 @@ def test_import_streams_hashes_validates_and_preserves_full_documents() -> None:
     stored = database[manifest["collection_name"]].find_one({"code": PROBE_CODE})
     assert stored is not None
     assert stored["brands"] == "LifeGoods fixture"
-    assert "uq_off_code" in database[manifest["collection_name"]].index_information()
+    indexes = database[manifest["collection_name"]].index_information()
+    assert "uq_off_code" in indexes
+    assert PACKAGE_SEARCH_TEXT_INDEX in indexes
+    assert PACKAGE_SEARCH_COUNTRY_INDEX in indexes
     assert progress[-1]["byte_count"] == len(compressed)
     assert progress[-1]["document_count"] == 2
     assert progress[-1]["inserted_count"] == 2
@@ -121,6 +126,66 @@ def test_import_rejects_and_records_duplicate_barcodes() -> None:
     assert manifest["document_count"] == 2
     assert manifest["inserted_count"] == 1
     assert manifest["duplicate_count"] == 1
+
+
+def test_import_acquires_lifecycle_lock_before_opening_download() -> None:
+    database = mongomock.MongoClient().lifegoods_off
+    database[CONTROL_COLLECTION].insert_one(
+        {
+            "_id": "dataset-lifecycle-lock",
+            "owner_id": "another-import",
+            "expires_at": datetime.now(UTC) + timedelta(minutes=5),
+        }
+    )
+    requests: list[httpx.Request] = []
+    client = httpx.Client(
+        transport=httpx.MockTransport(
+            lambda request: (
+                requests.append(request),
+                httpx.Response(200, stream=httpx.ByteStream(b"")),
+            )[1]
+        )
+    )
+
+    try:
+        with pytest.raises(
+            DatasetImportError, match="Another dataset lifecycle operation is in progress"
+        ):
+            import_url(
+                database,
+                SOURCE_URL,
+                probe_codes=(PROBE_CODE,),
+                client=client,
+            )
+    finally:
+        client.close()
+
+    assert requests == []
+    assert database[VERSIONS_COLLECTION].count_documents({}) == 0
+
+
+def test_interrupted_import_is_recorded_as_failed() -> None:
+    database = mongomock.MongoClient().lifegoods_off
+
+    def interrupt(_request: httpx.Request) -> httpx.Response:
+        raise KeyboardInterrupt
+
+    client = httpx.Client(transport=httpx.MockTransport(interrupt))
+    try:
+        with pytest.raises(KeyboardInterrupt):
+            import_url(
+                database,
+                SOURCE_URL,
+                probe_codes=(PROBE_CODE,),
+                client=client,
+            )
+    finally:
+        client.close()
+
+    manifest = database[VERSIONS_COLLECTION].find_one({})
+    assert manifest is not None
+    assert manifest["status"] == "FAILED"
+    assert manifest["failure"] == "KeyboardInterrupt"
 
 
 def test_revalidate_version_preserves_failed_dataset_and_history() -> None:

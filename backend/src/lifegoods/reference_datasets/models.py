@@ -40,12 +40,25 @@ class ReferenceSourceRecord(Base):
     )
 
 
+class ReferenceDatasetVersionSourceRecord(Base):
+    __tablename__ = "reference_dataset_version_sources"
+
+    dataset_version_id: Mapped[str] = mapped_column(
+        ForeignKey("reference_dataset_versions.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    source_id: Mapped[str] = mapped_column(
+        ForeignKey("reference_sources.id", ondelete="RESTRICT"),
+        primary_key=True,
+    )
+
+
 class ReferenceDatasetVersionRecord(Base):
     __tablename__ = "reference_dataset_versions"
     __table_args__ = (
         CheckConstraint(
             "dataset_kind IN ('FOOD_ALLERGEN', 'COELIAC_GLUTEN', "
-            "'SULPHITE_SENSITIVITY', 'INTOLERANCE')",
+            "'SULPHITE_SENSITIVITY', 'INTOLERANCE', 'HALAL_INGREDIENT')",
             name="ck_ref_dataset_version_kind",
         ),
         CheckConstraint(
@@ -53,7 +66,8 @@ class ReferenceDatasetVersionRecord(Base):
             name="ck_ref_dataset_version_status",
         ),
         CheckConstraint(
-            "review_kind IN ('FOOD_DOMAIN_REVIEW', 'PROJECT_MAINTAINER_APPROVAL')",
+            "review_kind IN ('FOOD_DOMAIN_REVIEW', 'PROJECT_MAINTAINER_APPROVAL', "
+            "'HALAL_DOMAIN_REVIEW')",
             name="ck_ref_dataset_version_review_kind",
         ),
     )
@@ -97,6 +111,16 @@ class ReferenceDatasetVersionRecord(Base):
     rules: Mapped[list[AllergenRuleRecord]] = relationship(
         back_populates="dataset_version", cascade="all, delete-orphan", overlaps="concept,rules"
     )
+    halal_ingredient_mappings: Mapped[list[HalalIngredientMappingRecord]] = relationship(
+        back_populates="dataset_version",
+        cascade="all, delete-orphan",
+        overlaps="concept,halal_ingredient_mappings",
+    )
+    sources: Mapped[list[ReferenceSourceRecord]] = relationship(
+        secondary="reference_dataset_version_sources",
+        order_by="ReferenceSourceRecord.id",
+        viewonly=True,
+    )
 
 
 class ReferenceConceptRecord(Base):
@@ -109,7 +133,7 @@ class ReferenceConceptRecord(Base):
         ),
         CheckConstraint(
             "condition_family IN ('FOOD_ALLERGEN', 'COELIAC_GLUTEN', "
-            "'SULPHITE_SENSITIVITY', 'INTOLERANCE')",
+            "'SULPHITE_SENSITIVITY', 'INTOLERANCE', 'HALAL_INGREDIENT')",
             name="ck_ref_concept_condition_family",
         ),
     )
@@ -147,6 +171,15 @@ class ReferenceConceptRecord(Base):
         cascade="all, delete-orphan",
         foreign_keys="[AllergenRuleRecord.dataset_version_id, AllergenRuleRecord.concept_id]",
         overlaps="dataset_version,rules",
+    )
+    halal_ingredient_mappings: Mapped[list[HalalIngredientMappingRecord]] = relationship(
+        back_populates="concept",
+        cascade="all, delete-orphan",
+        foreign_keys=(
+            "[HalalIngredientMappingRecord.dataset_version_id, "
+            "HalalIngredientMappingRecord.concept_id]"
+        ),
+        overlaps="dataset_version,halal_ingredient_mappings",
     )
 
 
@@ -282,24 +315,67 @@ class AllergenRuleRecord(Base):
     source: Mapped[ReferenceSourceRecord] = relationship()
 
 
+class HalalIngredientMappingRecord(Base):
+    __tablename__ = "halal_ingredient_mappings"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["dataset_version_id", "concept_id"],
+            ["reference_concepts.dataset_version_id", "reference_concepts.id"],
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint(
+            "dataset_version_id",
+            "concept_id",
+            name="uq_halal_mapping_concept",
+        ),
+        CheckConstraint(
+            "classification IN ('EXPLICIT_PROHIBITED', 'SOURCE_AMBIGUOUS')",
+            name="ck_halal_mapping_classification",
+        ),
+    )
+
+    dataset_version_id: Mapped[str] = mapped_column(
+        ForeignKey("reference_dataset_versions.id", ondelete="CASCADE"), primary_key=True
+    )
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    concept_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    classification: Mapped[str] = mapped_column(String(32), nullable=False)
+    citations: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSON().with_variant(postgresql.JSONB(astext_type=Text()), "postgresql"),
+        nullable=False,
+    )
+    notes: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+
+    dataset_version: Mapped[ReferenceDatasetVersionRecord] = relationship(
+        back_populates="halal_ingredient_mappings",
+        overlaps="concept,halal_ingredient_mappings",
+    )
+    concept: Mapped[ReferenceConceptRecord] = relationship(
+        back_populates="halal_ingredient_mappings",
+        foreign_keys=[dataset_version_id, concept_id],
+        overlaps="dataset_version,halal_ingredient_mappings",
+    )
+
+
 class ReferenceDatasetPointerRecord(Base):
     __tablename__ = "reference_dataset_pointers"
     __table_args__ = (
         CheckConstraint(
             "dataset_kind IN ('FOOD_ALLERGEN', 'COELIAC_GLUTEN', "
-            "'SULPHITE_SENSITIVITY', 'INTOLERANCE')",
+            "'SULPHITE_SENSITIVITY', 'INTOLERANCE', 'HALAL_INGREDIENT')",
             name="ck_ref_dataset_pointer_kind",
         ),
         CheckConstraint(
-            "review_kind IN ('FOOD_DOMAIN_REVIEW', 'PROJECT_MAINTAINER_APPROVAL')",
+            "review_kind IN ('FOOD_DOMAIN_REVIEW', 'PROJECT_MAINTAINER_APPROVAL', "
+            "'HALAL_DOMAIN_REVIEW')",
             name="ck_ref_dataset_pointer_review_kind",
         ),
     )
 
     dataset_kind: Mapped[str] = mapped_column(String(32), primary_key=True)
-    active_version_id: Mapped[str] = mapped_column(
+    active_version_id: Mapped[str | None] = mapped_column(
         ForeignKey("reference_dataset_versions.id", ondelete="RESTRICT"),
-        nullable=False,
+        nullable=True,
     )
     previous_version_id: Mapped[str | None] = mapped_column(
         ForeignKey("reference_dataset_versions.id", ondelete="RESTRICT"),
@@ -309,7 +385,7 @@ class ReferenceDatasetPointerRecord(Base):
     activated_by: Mapped[str] = mapped_column(String(255), nullable=False)
     review_kind: Mapped[str] = mapped_column(String(64), nullable=False)
 
-    active_version: Mapped[ReferenceDatasetVersionRecord] = relationship(
+    active_version: Mapped[ReferenceDatasetVersionRecord | None] = relationship(
         foreign_keys=[active_version_id]
     )
     previous_version: Mapped[ReferenceDatasetVersionRecord | None] = relationship(

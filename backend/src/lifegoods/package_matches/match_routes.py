@@ -32,6 +32,7 @@ from lifegoods.package_matches.models import (
     PackageMatchSourceUnavailableError,
 )
 from lifegoods.package_matches.rate_limit import PackageMatchRateLimiter
+from lifegoods.package_matches.router import _halal_ingredient_assessment_response
 from lifegoods.package_matches.service import FindPackageMatches
 from lifegoods.reference_datasets import AllergenRelationshipType
 
@@ -248,6 +249,9 @@ def _candidate_response(
     return PackageMatchCandidateResponse(
         source_kind=candidate.source_kind,
         allergen_assessment=_allergen_assessment_response(candidate.allergen_assessment),
+        halal_ingredient_assessment=_halal_ingredient_assessment_response(
+            candidate.halal_ingredient_assessment
+        ),
         package_variant_id=candidate.package_variant_id,
         product_id=candidate.product_id,
         external_record_id=candidate.external_record_id,

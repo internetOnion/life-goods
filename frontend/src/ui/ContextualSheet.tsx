@@ -32,7 +32,7 @@ export function ContextualSheet({
             <Dialog.Portal>
                 <Dialog.Overlay className="bg-foreground/35 data-[state=closed]:animate-out data-[state=open]:animate-in fixed inset-0 z-50" />
                 <Dialog.Content
-                    className="bg-background fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[min(90svh,48rem)] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl border-t p-5 shadow-[0_-12px_40px_oklch(0.2_0.02_160_/_0.16)] outline-none sm:inset-y-8 sm:bottom-auto sm:max-h-[calc(100svh-4rem)] sm:rounded-2xl sm:border"
+                    className="bg-background fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[min(90svh,48rem)] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl border-t p-5 shadow-[0_-12px_40px_rgba(23,24,26,0.16)] outline-none sm:inset-y-8 sm:bottom-auto sm:max-h-[calc(100svh-4rem)] sm:rounded-2xl sm:border"
                     onOpenAutoFocus={(event) => {
                         event.preventDefault()
                         titleRef.current?.focus()

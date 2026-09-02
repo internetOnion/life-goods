@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetPackageMatchesData, GetPackageMatchesErrors, GetPackageMatchesResponses, SearchPackageMatchesData, SearchPackageMatchesErrors, SearchPackageMatchesResponses } from './types.gen';
+import type { GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetPackageMatchesData, GetPackageMatchesErrors, GetPackageMatchesResponses, SearchPackageMatchesData, SearchPackageMatchesErrors, SearchPackageMatchesResponses, SearchPackagesData, SearchPackagesErrors, SearchPackagesResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -46,6 +46,16 @@ export const getPackageMatches = <ThrowOnError extends boolean = false>(options:
 export const searchPackageMatches = <ThrowOnError extends boolean = false>(options: Options<SearchPackageMatchesData, ThrowOnError>) => {
     return (options.client ?? client).get<SearchPackageMatchesResponses, SearchPackageMatchesErrors, ThrowOnError>({
         url: '/api/v1/package-matches/search',
+        ...options
+    });
+};
+
+/**
+ * Search Packages
+ */
+export const searchPackages = <ThrowOnError extends boolean = false>(options: Options<SearchPackagesData, ThrowOnError>) => {
+    return (options.client ?? client).get<SearchPackagesResponses, SearchPackagesErrors, ThrowOnError>({
+        url: '/api/v1/package-search',
         ...options
     });
 };

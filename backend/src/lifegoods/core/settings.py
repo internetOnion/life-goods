@@ -1,3 +1,4 @@
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_OPEN_FOOD_FACTS_IMAGE_BASE_URL = "https://images.openfoodfacts.org"
@@ -10,6 +11,7 @@ DEFAULT_PACKAGE_MATCH_REQUESTS_PER_MINUTE = 60
 DEFAULT_PACKAGE_SEARCH_REQUESTS_PER_MINUTE = 30
 DEFAULT_PACKAGE_MATCH_RATE_LIMIT_FALLBACK_SECONDS = 5.0
 DEFAULT_PACKAGE_MATCH_RATE_LIMIT_LOCAL_MAX_KEYS = 10_000
+DEFAULT_PACKAGE_SEARCH_REQUESTS_PER_MINUTE = 60
 DEFAULT_OFF_MONGODB_URI = (
     "mongodb://lifegoods_reader:lifegoods_reader@localhost:27018/lifegoods_off"
 )
@@ -27,6 +29,7 @@ class Settings(BaseSettings):
         env_prefix="LIFEGOODS_",
         env_file=(".env", "backend/.env"),
         extra="ignore",
+        populate_by_name=True,
     )
 
     database_url: str = "postgresql+psycopg://lifegoods:lifegoods@localhost:5433/lifegoods"
@@ -47,11 +50,26 @@ class Settings(BaseSettings):
     package_match_rate_limit_local_max_keys: int = (
         DEFAULT_PACKAGE_MATCH_RATE_LIMIT_LOCAL_MAX_KEYS
     )
+    package_search_requests_per_minute: int = DEFAULT_PACKAGE_SEARCH_REQUESTS_PER_MINUTE
     off_mongodb_uri: str = DEFAULT_OFF_MONGODB_URI
     off_mongodb_database: str = DEFAULT_OFF_MONGODB_DATABASE
     off_mongodb_timeout_ms: int = DEFAULT_OFF_MONGODB_TIMEOUT_MS
     allergen_assessments_enabled: bool = False
     assessment_engine_version: str = DEFAULT_ASSESSMENT_ENGINE_VERSION
+    halal_ingredient_assessments_enabled: bool = Field(
+        default=False,
+        validation_alias=AliasChoices(
+            "LIFEGOODS_HALAL_INGREDIENT_ASSESSMENTS_ENABLED",
+            "LIFEGOODS_HALAL_ASSESSMENTS_ENABLED",
+        ),
+    )
+    halal_ingredient_assessment_engine_version: str = Field(
+        default=DEFAULT_ASSESSMENT_ENGINE_VERSION,
+        validation_alias=AliasChoices(
+            "LIFEGOODS_HALAL_INGREDIENT_ASSESSMENT_ENGINE_VERSION",
+            "LIFEGOODS_HALAL_ASSESSMENT_ENGINE_VERSION",
+        ),
+    )
     redis_url: str = DEFAULT_REDIS_URL
     redis_timeout_seconds: float = DEFAULT_REDIS_TIMEOUT_SECONDS
     assessment_cache_enabled: bool = DEFAULT_ASSESSMENT_CACHE_ENABLED

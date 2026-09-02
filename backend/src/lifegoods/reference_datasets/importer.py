@@ -5,13 +5,13 @@ from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
-from lifegoods.reference_datasets.bundle import ReferenceBundle
+from lifegoods.reference_datasets.bundle import ReferenceDatasetBundle
+from lifegoods.reference_datasets.kind_adapters import (
+    get_reference_dataset_kind_adapter,
+)
 from lifegoods.reference_datasets.models import (
-    AllergenRuleRecord,
-    LexicalExclusionRecord,
-    LexicalMappingRecord,
-    ReferenceConceptRecord,
     ReferenceDatasetVersionRecord,
+    ReferenceDatasetVersionSourceRecord,
     ReferenceSourceRecord,
 )
 from lifegoods.reference_datasets.validation import validate_bundle
@@ -29,9 +29,84 @@ class ReferenceDatasetConflictError(ReferenceDatasetError):
     pass
 
 
+def _persist_sources(
+    session: Session,
+    bundle: ReferenceDatasetBundle,
+    *,
+    created_at: datetime,
+) -> None:
+    for source in bundle.sources:
+        existing = session.query(ReferenceSourceRecord).filter_by(id=source.id).first()
+        if existing is None:
+            session.add(
+                ReferenceSourceRecord(
+                    id=source.id,
+                    name=source.name,
+                    source_type=source.source_type,
+                    source_url=source.source_url,
+                    jurisdiction=source.jurisdiction,
+                    publisher=source.publisher,
+                    edition=source.edition,
+                    licensing_decision=source.licensing_decision,
+                    terms_version=source.terms_version,
+                    created_at=created_at,
+                )
+            )
+            continue
+
+        expected = (
+            source.name,
+            source.source_type,
+            source.source_url,
+            source.jurisdiction,
+            source.publisher,
+            source.edition,
+            source.licensing_decision,
+            source.terms_version,
+        )
+        actual = (
+            existing.name,
+            existing.source_type,
+            existing.source_url,
+            existing.jurisdiction,
+            existing.publisher,
+            existing.edition,
+            existing.licensing_decision,
+            existing.terms_version,
+        )
+        if actual != expected:
+            raise ReferenceDatasetConflictError(
+                f"Reference source '{source.id}' conflicts with existing source definition "
+                "in database."
+            )
+
+
+def _associate_version_sources(
+    session: Session,
+    version_id: str,
+    bundle: ReferenceDatasetBundle,
+) -> None:
+    existing_source_ids = {
+        source_id
+        for (source_id,) in (
+            session.query(ReferenceDatasetVersionSourceRecord.source_id)
+            .filter_by(dataset_version_id=version_id)
+            .all()
+        )
+    }
+    for source in bundle.sources:
+        if source.id not in existing_source_ids:
+            session.add(
+                ReferenceDatasetVersionSourceRecord(
+                    dataset_version_id=version_id,
+                    source_id=source.id,
+                )
+            )
+
+
 def import_reference_bundle(
     session: Session,
-    bundle: ReferenceBundle,
+    bundle: ReferenceDatasetBundle,
     *,
     now: Callable[[], datetime] | None = None,
 ) -> ReferenceDatasetVersionRecord:
@@ -41,51 +116,25 @@ def import_reference_bundle(
 
     utc_now = (now or (lambda: datetime.now(UTC)))()
 
-    existing = (
-        session.query(ReferenceDatasetVersionRecord)
-        .filter_by(id=bundle.manifest.id)
-        .first()
-    )
-    if existing is not None:
-        if existing.sha256 == report.sha256:
-            return existing
+    existing = session.query(ReferenceDatasetVersionRecord).filter_by(id=bundle.manifest.id).first()
+    if existing is not None and existing.sha256 != report.sha256:
         raise ReferenceDatasetConflictError(
             f"Bundle with version ID '{bundle.manifest.id}' conflicts with existing "
             f"imported version (SHA-256 mismatch: existing '{existing.sha256}' "
             f"vs bundle '{report.sha256}')"
         )
 
-    # 1. Upsert / insert reference sources
-    for src in bundle.sources:
-        existing_source = session.query(ReferenceSourceRecord).filter_by(id=src.id).first()
-        if existing_source is None:
-            source_record = ReferenceSourceRecord(
-                id=src.id,
-                name=src.name,
-                source_type=src.source_type,
-                source_url=src.source_url,
-                jurisdiction=src.jurisdiction,
-                publisher=src.publisher,
-                edition=src.edition,
-                licensing_decision=src.licensing_decision,
-                terms_version=src.terms_version,
-                created_at=utc_now,
-            )
-            session.add(source_record)
-        else:
-            if (
-                existing_source.name != src.name
-                or existing_source.source_url != src.source_url
-                or existing_source.jurisdiction != src.jurisdiction
-                or existing_source.licensing_decision != src.licensing_decision
-            ):
-                raise ReferenceDatasetConflictError(
-                    f"Reference source '{src.id}' conflicts with existing source definition "
-                    f"in database."
-                )
+    # 1. Upsert / insert reference sources for both new and idempotent imports.
+    _persist_sources(session, bundle, created_at=utc_now)
 
     # Flush sources before rules reference them
     session.flush()
+
+    if existing is not None:
+        _associate_version_sources(session, existing.id, bundle)
+        session.commit()
+        session.refresh(existing)
+        return existing
 
     # 2. Create version record
     version_record = ReferenceDatasetVersionRecord(
@@ -113,65 +162,10 @@ def import_reference_bundle(
     )
     session.add(version_record)
     session.flush()
+    _associate_version_sources(session, version_record.id, bundle)
 
-    # 3. Create concepts (insert roots first, then children to satisfy FKs)
-    roots = [c for c in bundle.concepts if c.parent_id is None]
-    children = [c for c in bundle.concepts if c.parent_id is not None]
-
-    for concept in (*roots, *children):
-        concept_record = ReferenceConceptRecord(
-            dataset_version_id=version_record.id,
-            id=concept.id,
-            name=concept.name,
-            condition_family=concept.condition_family,
-            parent_id=concept.parent_id,
-            is_leaf=concept.is_leaf,
-            description=concept.description,
-        )
-        session.add(concept_record)
-
-    session.flush()
-
-    # 4. Create lexical mappings
-    for mapping in bundle.mappings:
-        mapping_record = LexicalMappingRecord(
-            dataset_version_id=version_record.id,
-            id=mapping.id,
-            concept_id=mapping.concept_id,
-            language=mapping.language,
-            mapped_text=mapping.mapped_text,
-            relationship_type=mapping.relationship_type,
-            notes=mapping.notes,
-        )
-        session.add(mapping_record)
-
-    session.flush()
-
-    # 5. Create lexical exclusions
-    for exclusion in bundle.exclusions:
-        exclusion_record = LexicalExclusionRecord(
-            dataset_version_id=version_record.id,
-            id=exclusion.id,
-            concept_id=exclusion.concept_id,
-            language=exclusion.language,
-            excluded_text=exclusion.excluded_text,
-            notes=exclusion.notes,
-        )
-        session.add(exclusion_record)
-
-    # 6. Create allergen rules
-    for rule in bundle.rules:
-        rule_record = AllergenRuleRecord(
-            dataset_version_id=version_record.id,
-            id=rule.id,
-            concept_id=rule.concept_id,
-            source_id=rule.source_id,
-            rule_kind=rule.rule_kind,
-            condition_family=rule.condition_family,
-            mapping_id=rule.mapping_id,
-            description=rule.description,
-        )
-        session.add(rule_record)
+    adapter = get_reference_dataset_kind_adapter(bundle.manifest.dataset_kind)
+    adapter.persist_records(session, version_record, bundle)
 
     session.commit()
     session.refresh(version_record)

@@ -31,11 +31,11 @@ describe("app routes and shell", () => {
     })
 
     test.each([
-        ["/", "Camera unavailable"],
+        ["/", "Before the camera starts"],
         ["/search", "Search"],
         ["/learn", "Learn"],
         ["/history", "History"],
-        ["/allergies", "Allergies"],
+        ["/allergies", "Concerns"],
     ])("registers the ordinary route %s", (path, heading) => {
         renderRoute(path)
 
@@ -141,5 +141,34 @@ describe("app routes and shell", () => {
 
         expect(screen.getByRole("heading", { name: "ស្វែងយល់" })).toBeVisible()
         expect(document.documentElement).toHaveAttribute("lang", "km")
+    })
+
+    test("renders all 5 bottom navigation tabs with correct links and active state", async () => {
+        const user = userEvent.setup()
+        renderRoute("/")
+
+        const nav = screen.getByRole("navigation", {
+            name: "Primary navigation",
+        })
+        expect(nav).toBeVisible()
+
+        const historyLink = screen.getByRole("link", { name: "History" })
+        const learnLink = screen.getByRole("link", { name: "Learn" })
+        const scanLink = screen.getByRole("link", { name: "Scan" })
+        const searchLink = screen.getByRole("link", { name: "Search" })
+        const concernsLink = screen.getByRole("link", { name: "Concerns" })
+
+        expect(historyLink).toHaveAttribute("href", "/history")
+        expect(learnLink).toHaveAttribute("href", "/learn")
+        expect(scanLink).toHaveAttribute("href", "/")
+        expect(searchLink).toHaveAttribute("href", "/search")
+        expect(concernsLink).toHaveAttribute("href", "/allergies")
+
+        expect(scanLink).toHaveAttribute("aria-current", "page")
+
+        await user.click(searchLink)
+        expect(screen.getByRole("heading", { name: "Search" })).toBeVisible()
+        expect(searchLink).toHaveAttribute("aria-current", "page")
+        expect(scanLink).not.toHaveAttribute("aria-current")
     })
 })

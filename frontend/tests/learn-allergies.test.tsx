@@ -198,7 +198,7 @@ describe("Learn source content and Allergies demos", () => {
     test("keeps Allergies unavailable outside demo mode", () => {
         renderRoute("/allergies", false)
 
-        expect(screen.getByRole("heading", { name: "Allergies" })).toBeVisible()
+        expect(screen.getByRole("heading", { name: "Concerns" })).toBeVisible()
         expect(screen.queryByRole("checkbox")).not.toBeInTheDocument()
     })
 
@@ -207,7 +207,7 @@ describe("Learn source content and Allergies demos", () => {
         const setItem = vi.spyOn(Storage.prototype, "setItem")
         const { unmount } = renderRoute("/allergies", true)
 
-        expect(screen.getByText("Your allergies")).toBeVisible()
+        expect(screen.getByText("Selected concerns")).toBeVisible()
         expect(
             screen.queryByText("Simulated preference demo"),
         ).not.toBeInTheDocument()

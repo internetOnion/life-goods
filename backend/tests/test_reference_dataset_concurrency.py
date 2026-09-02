@@ -221,6 +221,7 @@ def test_reference_data_cache_tracks_activation_and_rollback(
     with factory() as session:
         rollback_reference_dataset_version(
             session,
+            approver="operator@lifegoods.org",
             now=lambda: datetime(2026, 8, 29, 10, 0, tzinfo=UTC),
         )
     rolled_back = access.get_active_data()

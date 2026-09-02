@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
@@ -20,7 +20,7 @@ import {
     sparseOffCandidate,
 } from "./package-match-fixtures"
 
-function renderJourney(lookup: PackageMatchLookup) {
+function renderJourney(lookup: PackageMatchLookup, path = "/search") {
     const queryClient = new QueryClient({
         defaultOptions: {
             mutations: { retry: false },
@@ -30,7 +30,7 @@ function renderJourney(lookup: PackageMatchLookup) {
     return {
         ...render(
             <QueryClientProvider client={queryClient}>
-                <MemoryRouter>
+                <MemoryRouter initialEntries={[path]}>
                     <App lookup={lookup} />
                 </MemoryRouter>
             </QueryClientProvider>,
@@ -39,7 +39,7 @@ function renderJourney(lookup: PackageMatchLookup) {
     }
 }
 
-describe("manual identifier journey", () => {
+describe("identifier search journey", () => {
     afterEach(() => {
         vi.unstubAllGlobals()
     })
@@ -48,96 +48,52 @@ describe("manual identifier journey", () => {
         await i18n.changeLanguage("km")
     })
 
-    test("keeps blank and invalid input local with field-associated Khmer guidance", async () => {
+    test("keeps incomplete and invalid barcodes local with Khmer guidance", async () => {
         const user = userEvent.setup()
         const lookup = vi.fn<PackageMatchLookup>()
         renderJourney(lookup)
 
-        const input = screen.getByRole("textbox", { name: "លេខបាកូដ" })
-        const showHintButton = screen.getByRole("button", {
-            name: "បង្ហាញព័ត៌មានអំពីលេខបាកូដ",
+        const input = screen.getByRole("searchbox", {
+            name: "ស្វែងរកផលិតផល",
         })
-        expect(
-            screen.queryByText(
-                "គាំទ្រលេខ GTIN, EAN និង UPC ដែលមាន ៨, ១២, ១៣ ឬ ១៤ ខ្ទង់។ អ្នកអាចដាក់ដកឃ្លា ឬសញ្ញាដកបាន។",
-            ),
-        ).not.toBeInTheDocument()
+        await user.type(input, "1234")
+        expect(await screen.findByText("បញ្ចូលលេខបាកូដទាំងមូល។")).toBeVisible()
 
-        await user.click(showHintButton)
+        await user.clear(input)
+        await user.type(input, "12345678")
         expect(
-            screen.getByText(
-                "គាំទ្រលេខ GTIN, EAN និង UPC ដែលមាន ៨, ១២, ១៣ ឬ ១៤ ខ្ទង់។ អ្នកអាចដាក់ដកឃ្លា ឬសញ្ញាដកបាន។",
+            await screen.findByText(
+                "ខ្ទង់ត្រួតពិនិត្យរបស់លេខបាកូដមិនត្រឹមត្រូវទេ។",
             ),
         ).toBeVisible()
-        expect(input).toHaveAttribute("aria-describedby", "identifier-hint")
-        await user.click(
-            screen.getByRole("button", {
-                name: "លាក់ព័ត៌មានអំពីលេខបាកូដ",
-            }),
-        )
-        expect(
-            screen.queryByText(
-                "គាំទ្រលេខ GTIN, EAN និង UPC ដែលមាន ៨, ១២, ១៣ ឬ ១៤ ខ្ទង់។ អ្នកអាចដាក់ដកឃ្លា ឬសញ្ញាដកបាន។",
-            ),
-        ).not.toBeInTheDocument()
-        expect(input).not.toHaveAttribute("aria-describedby")
-
-        expect(
-            screen.getByRole("button", { name: "ពិនិត្យបាកូដ" }),
-        ).toBeDisabled()
-
-        await user.type(input, "{Enter}")
-        expect(input).toHaveAccessibleErrorMessage("សូមបញ្ចូលលេខបាកូដ។")
+        expect(input).toHaveAttribute("aria-invalid", "true")
         expect(input).toHaveFocus()
-
-        await user.type(input, "1234")
-        await user.click(screen.getByRole("button", { name: "ពិនិត្យបាកូដ" }))
-
-        expect(input).toHaveAccessibleErrorMessage(
-            "ប្រវែងលេខបាកូដនេះមិនត្រូវបានគាំទ្រទេ។",
-        )
-        expect(input).toHaveFocus()
+        expect(
+            screen.getByRole("navigation", { name: "ការរុករកចម្បង" }),
+        ).toBeVisible()
         expect(lookup).not.toHaveBeenCalled()
     })
 
-    test("uses an active-language flag on home and keeps other routes headerless", async () => {
+    test("uses a labeled language control on Scan and keeps other routes focused", async () => {
         const user = userEvent.setup()
         const lookup = vi.fn<PackageMatchLookup>()
-        renderJourney(lookup)
+        renderJourney(lookup, "/")
 
-        expect(screen.queryByRole("banner")).not.toBeInTheDocument()
-        expect(
-            screen.queryByRole("link", { name: "ទៅទំព័រដើម LifeGoods" }),
-        ).not.toBeInTheDocument()
+        expect(screen.getByRole("banner")).toBeVisible()
         const languageSwitch = screen.getByRole("button", {
             name: "ប្តូរទៅភាសាអង់គ្លេស",
         })
-        const flag = languageSwitch.querySelector('[data-language-flag="km"]')
-        const input = screen.getByRole("textbox", { name: "លេខបាកូដ" })
-        const submit = screen.getByRole("button", { name: "ពិនិត្យបាកូដ" })
-        expect(languageSwitch.closest("form")).toBe(input.closest("form"))
-        expect(languageSwitch.closest("form")).toContainElement(submit)
         expect(
-            languageSwitch.compareDocumentPosition(submit) &
-                Node.DOCUMENT_POSITION_FOLLOWING,
-        ).toBeTruthy()
-        expect(languageSwitch).toHaveClass(
-            "!min-h-0",
-            "size-9",
-            "border-0",
-            "p-0",
+            screen.getByRole("link", { name: "បើកការស្វែងរកផលិតផល" }),
+        ).toHaveAttribute("href", "/search")
+        const khmerFlag = languageSwitch.querySelector(
+            '[data-language-flag="km"]',
         )
-        expect(flag).toBeInTheDocument()
-        expect(flag).toBeInstanceOf(HTMLImageElement)
-        expect(flag).toHaveAttribute("src", "/flags/cambodia.svg")
-        expect(flag).toHaveAttribute("alt", "")
-        expect(flag).toHaveAttribute("aria-hidden", "true")
-        expect(flag).toHaveAttribute("width", "1000")
-        expect(flag).toHaveAttribute("height", "640")
-        expect(flag).toHaveClass("size-full", "rounded-full", "object-cover")
-        expect(flag?.parentElement).toHaveClass("size-9", "rounded-full")
+        expect(khmerFlag).toBeInTheDocument()
+        expect(khmerFlag).toHaveAttribute("src", "/flags/cambodia.svg")
+        expect(languageSwitch).toHaveClass("min-h-11", "min-w-11")
 
-        expect(screen.getByRole("link", { name: "ទំព័រដើម" })).toHaveAttribute(
+        expect(screen.getByRole("link", { name: "ស្កេន" })).toHaveAttribute(
             "aria-current",
             "page",
         )
@@ -148,19 +104,8 @@ describe("manual identifier journey", () => {
         const englishFlag = englishLanguageSwitch.querySelector(
             '[data-language-flag="en"]',
         )
-        expect(englishLanguageSwitch).toHaveClass(
-            "!min-h-0",
-            "size-9",
-            "rounded-full",
-        )
         expect(englishFlag).toBeInTheDocument()
-        expect(englishFlag).toHaveClass(
-            "size-full",
-            "overflow-hidden",
-            "rounded-full",
-            "object-cover",
-        )
-        expect(englishFlag?.parentElement).toHaveClass("size-9", "rounded-full")
+        expect(englishFlag).toHaveAttribute("src", "/flags/united-kingdom.svg")
 
         await user.click(screen.getByRole("link", { name: "Learn" }))
 
@@ -189,9 +134,10 @@ describe("manual identifier journey", () => {
         })
         renderJourney(lookup)
 
-        const input = screen.getByRole("textbox", { name: "លេខបាកូដ" })
+        const input = screen.getByRole("searchbox", {
+            name: "ស្វែងរកផលិតផល",
+        })
         await user.type(input, "4 006381 333931")
-        await user.click(screen.getByRole("button", { name: "ពិនិត្យបាកូដ" }))
 
         expect(
             await screen.findByRole("heading", {
@@ -204,12 +150,10 @@ describe("manual identifier journey", () => {
         expect(lookup).toHaveBeenCalledWith("4006381333931")
         expect(screen.getAllByText("4006381333931").length).toBeGreaterThan(0)
         expect(screen.queryByRole("navigation")).not.toBeInTheDocument()
-        expect(screen.queryByRole("banner")).not.toBeInTheDocument()
-        expect(screen.getByRole("dialog")).toHaveAccessibleName(
-            "លទ្ធផលពិនិត្យបាកូដ",
-        )
-        expect(document.querySelector("[inert]")).toBeInTheDocument()
-        expect(document.body).toHaveClass("overflow-hidden")
+        expect(screen.getByRole("banner")).toBeVisible()
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+        expect(document.querySelector("[inert]")).not.toBeInTheDocument()
+        expect(document.body).not.toHaveClass("overflow-hidden")
         expect(
             screen.queryByRole("button", { name: "ប្តូរទៅភាសាអង់គ្លេស" }),
         ).not.toBeInTheDocument()
@@ -217,12 +161,36 @@ describe("manual identifier journey", () => {
         await user.click(
             screen.getByRole("button", { name: "សាកល្បងបាកូដផ្សេង" }),
         )
-        const restoredInput = screen.getByRole("textbox", {
-            name: "លេខបាកូដ",
+        const restoredInput = await screen.findByRole("searchbox", {
+            name: "ស្វែងរកផលិតផល",
         })
-        expect(restoredInput).toHaveValue("4006381333931")
+        expect(restoredInput).toHaveValue("4 006381 333931")
         expect(restoredInput).toHaveFocus()
         expect(document.body).not.toHaveClass("overflow-hidden")
+    })
+
+    test("renders results as a focused full-screen route", async () => {
+        await i18n.changeLanguage("en")
+        const user = userEvent.setup()
+        const lookup = vi
+            .fn<PackageMatchLookup>()
+            .mockResolvedValue(packageMatchesResponse())
+        renderJourney(lookup)
+
+        await user.type(
+            screen.getByRole("searchbox", { name: "Search Products" }),
+            "4006381333931",
+        )
+        await screen.findByRole("heading", {
+            name: "No package information found",
+        })
+
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+        expect(
+            screen.queryByText("Collapse product details"),
+        ).not.toBeInTheDocument()
+        expect(screen.getByRole("banner")).toBeVisible()
+        expect(screen.queryByRole("navigation")).not.toBeInTheDocument()
     })
 
     test("renders a complete OFF match through the English journey", async () => {
@@ -245,10 +213,9 @@ describe("manual identifier journey", () => {
         renderJourney(lookupPackageMatches)
 
         await user.type(
-            screen.getByRole("textbox", { name: "Barcode number" }),
+            screen.getByRole("searchbox", { name: "Search Products" }),
             "4 006381 333931",
         )
-        await user.click(screen.getByRole("button", { name: "Check barcode" }))
 
         expect(
             await screen.findByRole("heading", { name: "Dark chocolate" }),
@@ -261,12 +228,13 @@ describe("manual identifier journey", () => {
         expect((request as Request).url).toBe(
             "https://lifegoods.test/api/v1/package-matches?identifier=4006381333931",
         )
+        expect(screen.getByRole("heading", { name: "Allergens" })).toBeVisible()
         expect(
-            screen.getByText("Community data—not yet reviewed by LifeGoods."),
+            screen.getByRole("heading", { name: "Nutrition facts" }),
         ).toBeVisible()
     })
 
-    test("traps modal focus, closes with Escape, and restores barcode focus", async () => {
+    test("closes the focused result with Escape and restores the Search query", async () => {
         await i18n.changeLanguage("en")
         const user = userEvent.setup()
         const lookup = vi
@@ -274,29 +242,21 @@ describe("manual identifier journey", () => {
             .mockResolvedValue(packageMatchesResponse())
         renderJourney(lookup)
 
-        const input = screen.getByRole("textbox", { name: "Barcode number" })
+        const input = screen.getByRole("searchbox", {
+            name: "Search Products",
+        })
         await user.type(input, "4006381333931")
-        await user.click(screen.getByRole("button", { name: "Check barcode" }))
         await screen.findByRole("heading", {
             name: "No package information found",
         })
 
-        const lastAction = screen.getByRole("button", {
-            name: "Try another barcode",
-        })
-        lastAction.focus()
-        await user.tab()
-        expect(
-            screen.getByRole("button", { name: "Close result" }),
-        ).toHaveFocus()
-
         await user.keyboard("{Escape}")
-        const restoredInput = screen.getByRole("textbox", {
-            name: "Barcode number",
+        const restoredInput = await screen.findByRole("searchbox", {
+            name: "Search Products",
         })
         expect(restoredInput).toHaveValue("4006381333931")
         expect(restoredInput).toHaveFocus()
-        expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+        expect(screen.getByRole("navigation")).toBeVisible()
     })
 
     test("keeps a sparse OFF match explicit while changing interface language", async () => {
@@ -310,24 +270,23 @@ describe("manual identifier journey", () => {
         renderJourney(lookup)
 
         await user.type(
-            screen.getByRole("textbox", { name: "លេខបាកូដ" }),
+            screen.getByRole("searchbox", { name: "ស្វែងរកផលិតផល" }),
             "8850000000003",
         )
-        await user.click(screen.getByRole("button", { name: "ពិនិត្យបាកូដ" }))
 
         expect(
             await screen.findByRole("heading", {
-                name: "8850000000003",
+                name: "មិនបានរាយព័ត៌មាននេះ",
             }),
         ).toHaveFocus()
         expect(
-            screen.getByText(/មិនមានព័ត៌មាននេះនៅក្នុងកំណត់ត្រាសហគមន៍/),
-        ).toBeVisible()
+            screen.getAllByText("មិនបានរាយព័ត៌មាននេះ").length,
+        ).toBeGreaterThan(5)
 
         await i18n.changeLanguage("en")
         expect(
             await screen.findByRole("heading", {
-                name: "8850000000003",
+                name: "Information not mentioned",
             }),
         ).toBeVisible()
         expect(lookup).toHaveBeenCalledTimes(1)
@@ -348,18 +307,26 @@ describe("manual identifier journey", () => {
         renderJourney(lookup)
 
         await user.type(
-            screen.getByRole("textbox", { name: "Barcode number" }),
+            screen.getByRole("searchbox", { name: "Search Products" }),
             "4006381333931",
         )
-        await user.click(screen.getByRole("button", { name: "Check barcode" }))
 
         expect(
             await screen.findByRole("heading", {
-                name: "A LifeGoods catalog record is available",
+                name: "Dark chocolate",
             }),
         ).toHaveFocus()
-        expect(screen.getByText("product-1")).toBeVisible()
-        expect(screen.getByText("variant-1")).toBeVisible()
+        const productInformation = screen
+            .getByRole("heading", { name: "Product information" })
+            .closest("details")!
+        expect(productInformation).not.toHaveAttribute("open")
+        await user.click(
+            within(productInformation).getByRole("heading", {
+                name: "Product information",
+            }),
+        )
+        expect(within(productInformation).getByText("product-1")).toBeVisible()
+        expect(within(productInformation).getByText("variant-1")).toBeVisible()
         expect(
             screen.getByText(
                 "This record does not yet contain a display name, image, quantity, or label evidence. Missing information does not mean the package makes no declaration.",
@@ -395,10 +362,9 @@ describe("manual identifier journey", () => {
         renderJourney(lookup)
 
         await user.type(
-            screen.getByRole("textbox", { name: "Barcode number" }),
+            screen.getByRole("searchbox", { name: "Search Products" }),
             "4006381333931",
         )
-        await user.click(screen.getByRole("button", { name: "Check barcode" }))
 
         expect(
             await screen.findByRole("heading", {
@@ -436,10 +402,9 @@ describe("manual identifier journey", () => {
         renderJourney(lookup)
 
         await user.type(
-            screen.getByRole("textbox", { name: "លេខបាកូដ" }),
+            screen.getByRole("searchbox", { name: "ស្វែងរកផលិតផល" }),
             "4 006381 333931",
         )
-        await user.click(screen.getByRole("button", { name: "ពិនិត្យបាកូដ" }))
 
         expect(
             await screen.findByRole("heading", {
@@ -452,7 +417,7 @@ describe("manual identifier journey", () => {
         await user.click(screen.getByRole("button", { name: "ព្យាយាមម្ដងទៀត" }))
         expect(
             await screen.findByRole("heading", {
-                name: "4006381333931",
+                name: "មិនបានរាយព័ត៌មាននេះ",
             }),
         ).toHaveFocus()
         expect(lookup).toHaveBeenNthCalledWith(1, "4006381333931")
@@ -473,10 +438,9 @@ describe("manual identifier journey", () => {
         renderJourney(lookup)
 
         await user.type(
-            screen.getByRole("textbox", { name: "Barcode number" }),
+            screen.getByRole("searchbox", { name: "Search Products" }),
             "4 006381 333931",
         )
-        await user.click(screen.getByRole("button", { name: "Check barcode" }))
 
         expect(
             await screen.findByRole("heading", {
@@ -523,10 +487,9 @@ describe("manual identifier journey", () => {
         renderJourney(lookup)
 
         await user.type(
-            screen.getByRole("textbox", { name: "Barcode number" }),
+            screen.getByRole("searchbox", { name: "Search Products" }),
             "4006381333931",
         )
-        await user.click(screen.getByRole("button", { name: "Check barcode" }))
         await screen.findByRole("heading", {
             name: "Could not check right now",
         })
@@ -568,10 +531,9 @@ describe("manual identifier journey", () => {
         const { queryClient } = renderJourney(lookup)
 
         await user.type(
-            screen.getByRole("textbox", { name: "Barcode number" }),
+            screen.getByRole("searchbox", { name: "Search Products" }),
             "4006381333931",
         )
-        await user.click(screen.getByRole("button", { name: "Check barcode" }))
         await screen.findByRole("heading", { name: "Dark chocolate" })
 
         void queryClient.refetchQueries({

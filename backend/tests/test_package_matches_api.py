@@ -36,11 +36,19 @@ from lifegoods.open_food_facts import (
 )
 from lifegoods.package_matches import (
     AllergenFinding,
+    HalalIngredientFinding,
     PackageMatchCandidateResponse,
     StandardAllergenAssessmentEvaluator,
+    StandardHalalIngredientAssessmentEvaluator,
 )
-from lifegoods.reference_datasets import DatabaseAllergenReferenceDataAccess
-from lifegoods.reference_datasets.bundle import ReferenceBundle
+from lifegoods.reference_datasets import (
+    DatabaseAllergenReferenceDataAccess,
+    DatabaseHalalReferenceDataAccess,
+)
+from lifegoods.reference_datasets.bundle import (
+    ReferenceBundle,
+    load_reference_bundle,
+)
 from lifegoods.reference_datasets.importer import import_reference_bundle
 from lifegoods.reference_datasets.lifecycle import activate_reference_dataset_version
 from lifegoods.reference_datasets.models import ReferenceDatasetVersionRecord
@@ -63,6 +71,20 @@ CODEX_REVIEWED_ENGLISH_BUNDLE_PATH = (
     / "reference_datasets"
     / "bundles"
     / "codex_2026_food_allergen_reviewed_english_v1.json"
+)
+HALAL_SYNTHETIC_BUNDLE_PATH = (
+    Path(__file__).parent
+    / "fixtures"
+    / "reference_datasets"
+    / "synthetic_halal_ingredient_bundle.json"
+)
+HALAL_REVIEWED_BUNDLE_PATH = (
+    Path(__file__).parents[1]
+    / "src"
+    / "lifegoods"
+    / "reference_datasets"
+    / "bundles"
+    / "halal_ingredient_2026_reviewed_english_v1.json"
 )
 DATASET_VERSION = ExternalDatasetVersion(
     id="dataset-2026-08-27",
@@ -104,6 +126,11 @@ class UnavailableSource(ConfirmedNoMatchSource):
 class FailingMatcher:
     def match(self, **_kwargs: object) -> tuple[AllergenFinding, ...]:
         raise RuntimeError("matcher failed")
+
+
+class FailingHalalMatcher:
+    def match(self, **_kwargs: object) -> tuple[HalalIngredientFinding, ...]:
+        raise RuntimeError("halal matcher failed")
 
 
 def off_source_with_record(**overrides: object) -> OpenFoodFactsDatasetSource:
@@ -1184,3 +1211,419 @@ def test_package_matches_with_active_allergen_dataset_missing_english_text(
     assert assessment["reference_dataset_version"]["id"] == "codex-food-allergen-2026-minimal"
     assert assessment["concepts"] == []
     assert assessment["findings"] == []
+
+
+def test_package_matches_candidate_includes_disabled_halal_assessment_by_default(
+    session_factory: sessionmaker[Session],
+) -> None:
+    with TestClient(
+        create_app(
+            settings=Settings(
+                halal_ingredient_assessments_enabled=False,
+                package_match_requests_per_minute=10_000,
+            ),
+            session_factory=session_factory,
+            external_source=off_source_with_record(),
+        )
+    ) as test_client:
+        response = test_client.get(
+            "/api/v1/package-matches", params={"identifier": "4006381333931"}
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    candidate = body["candidates"][0]
+    halal = candidate["halal_ingredient_assessment"]
+    assert halal["status"] == "NOT_ASSESSED"
+    assert halal["reason"] == "FEATURE_DISABLED"
+    assert halal["outcome"] == "NOT_ASSESSED"
+    assert halal["evidence_coverage"] == "NOT_ASSESSED"
+    assert halal["engine_version"] is None
+    assert halal["reference_dataset_version"] is None
+    assert halal["checked_evidence"] == []
+    assert halal["findings"] == []
+
+
+def test_package_matches_with_halal_enabled_and_prohibited_ingredient(
+    session_factory: sessionmaker[Session],
+) -> None:
+    bundle = load_reference_bundle(HALAL_SYNTHETIC_BUNDLE_PATH)
+    with session_factory() as session:
+        import_reference_bundle(session, bundle)
+        activate_reference_dataset_version(session, bundle.manifest.id)
+
+    database = mongomock.MongoClient().lifegoods_off
+    collection_name = "off_products_dataset_2026_08_27"
+    database[VERSIONS_COLLECTION].insert_one(
+        {
+            "_id": DATASET_VERSION.id,
+            "collection_name": collection_name,
+            "source_url": DATASET_VERSION.source_url,
+            "retrieval_completed_at": DATASET_VERSION.retrieved_at,
+            "activated_at": DATASET_VERSION.activated_at,
+            "sha256": DATASET_VERSION.sha256,
+            "status": "ACTIVE",
+        }
+    )
+    database[CONTROL_COLLECTION].insert_one(
+        {"_id": ACTIVE_POINTER_ID, "active_version_id": DATASET_VERSION.id}
+    )
+    database[collection_name].insert_one(
+        {
+            "code": "4006381333931",
+            "lang": "en",
+            "product_name_en": "Pork Sausages",
+            "ingredients_text": "Gelatin, pork",
+            "ingredients_text_en": "Ingredients: pork (80%), water, salt, spices.",
+            "labels_tags": ["en:halal"],
+            "last_modified_t": 1787462400,
+        }
+    )
+
+    with TestClient(
+        create_app(
+            settings=Settings(
+                halal_ingredient_assessments_enabled=True,
+                assessment_cache_enabled=False,
+                package_match_requests_per_minute=10_000,
+            ),
+            session_factory=session_factory,
+            external_source=OpenFoodFactsDatasetSource(database),
+        )
+    ) as test_client:
+        response = test_client.get(
+            "/api/v1/package-matches", params={"identifier": "4006381333931"}
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    candidate = body["candidates"][0]
+    halal = candidate["halal_ingredient_assessment"]
+    assert halal["status"] == "COMPLETED"
+    assert halal["reason"] is None
+    assert halal["outcome"] == "EXPLICIT_PROHIBITED_INGREDIENT_DECLARED"
+    assert halal["evidence_coverage"] == "PARTIAL"
+    assert halal["engine_version"] == "0.1.0"
+    assert halal["reference_dataset_version"]["id"] == "synthetic-halal-ingredient-2026-v1"
+    assert len(halal["checked_evidence"]) == 2
+    assert [evidence["source_field"] for evidence in halal["checked_evidence"]] == [
+        "ingredients_text",
+        "ingredients_text_en",
+    ]
+    assert len(halal["findings"]) == 3
+    assert [finding["classification"] for finding in halal["findings"]] == [
+        "SOURCE_AMBIGUOUS",
+        "EXPLICIT_PROHIBITED",
+        "EXPLICIT_PROHIBITED",
+    ]
+    assert [finding["matched_text"] for finding in halal["findings"]] == [
+        "Gelatin",
+        "pork",
+        "pork",
+    ]
+    assert [finding["source_field"] for finding in halal["findings"]] == [
+        "ingredients_text",
+        "ingredients_text",
+        "ingredients_text_en",
+    ]
+    assert [
+        (finding["start_index"], finding["end_index"])
+        for finding in halal["findings"]
+    ] == [(0, 7), (9, 13), (13, 17)]
+    assert len({finding["id"] for finding in halal["findings"]}) == 3
+    prohibited_finding = halal["findings"][1]
+    assert prohibited_finding["concept_id"] == "concept-synthetic-porcine"
+    assert len(prohibited_finding["citations"]) == 1
+    assert (
+        prohibited_finding["citations"][0]["source_id"]
+        == "source-synthetic-halal-standard-2026"
+    )
+    assert prohibited_finding["citations"][0]["jurisdiction"] == "CAMBODIA"
+    assert prohibited_finding["citations"][0]["locator"] == "Article 4.1"
+
+
+def test_package_matches_with_halal_enabled_and_reference_unavailable(
+    session_factory: sessionmaker[Session],
+) -> None:
+    with TestClient(
+        create_app(
+            settings=Settings(
+                halal_ingredient_assessments_enabled=True,
+                assessment_cache_enabled=False,
+                package_match_requests_per_minute=10_000,
+            ),
+            session_factory=session_factory,
+            external_source=off_source_with_record(),
+        )
+    ) as test_client:
+        response = test_client.get(
+            "/api/v1/package-matches", params={"identifier": "4006381333931"}
+        )
+
+    assert response.status_code == 200
+    candidate = response.json()["candidates"][0]
+    halal = candidate["halal_ingredient_assessment"]
+    assert halal["status"] == "NOT_ASSESSED"
+    assert halal["reason"] == "REFERENCE_UNAVAILABLE"
+    assert halal["outcome"] == "NOT_ASSESSED"
+    assert halal["findings"] == []
+
+
+def test_package_matches_with_halal_enabled_and_evidence_unavailable(
+    session_factory: sessionmaker[Session],
+) -> None:
+    bundle = load_reference_bundle(HALAL_SYNTHETIC_BUNDLE_PATH)
+    with session_factory() as session:
+        import_reference_bundle(session, bundle)
+        activate_reference_dataset_version(session, bundle.manifest.id)
+
+    database = mongomock.MongoClient().lifegoods_off
+    collection_name = "off_products_dataset_2026_08_27"
+    database[VERSIONS_COLLECTION].insert_one(
+        {
+            "_id": DATASET_VERSION.id,
+            "collection_name": collection_name,
+            "source_url": DATASET_VERSION.source_url,
+            "retrieval_completed_at": DATASET_VERSION.retrieved_at,
+            "activated_at": DATASET_VERSION.activated_at,
+            "sha256": DATASET_VERSION.sha256,
+            "status": "ACTIVE",
+        }
+    )
+    database[CONTROL_COLLECTION].insert_one(
+        {"_id": ACTIVE_POINTER_ID, "active_version_id": DATASET_VERSION.id}
+    )
+    database[collection_name].insert_one(
+        {
+            "code": "4006381333931",
+            "product_name_km": "សូកូឡាខ្មៅ",
+            "ingredients_text_km": "ម៉ាសកាកាវ ស្ករ ប៊ឺកាកាវ",
+            "last_modified_t": 1787462400,
+        }
+    )
+
+    with TestClient(
+        create_app(
+            settings=Settings(
+                halal_ingredient_assessments_enabled=True,
+                assessment_cache_enabled=False,
+                package_match_requests_per_minute=10_000,
+            ),
+            session_factory=session_factory,
+            external_source=OpenFoodFactsDatasetSource(database),
+        )
+    ) as test_client:
+        response = test_client.get(
+            "/api/v1/package-matches", params={"identifier": "4006381333931"}
+        )
+
+    assert response.status_code == 200
+    candidate = response.json()["candidates"][0]
+    halal = candidate["halal_ingredient_assessment"]
+    assert halal["status"] == "NOT_ASSESSED"
+    assert halal["reason"] == "EVIDENCE_UNAVAILABLE"
+    assert halal["outcome"] == "NOT_ASSESSED"
+    assert halal["reference_dataset_version"]["id"] == "synthetic-halal-ingredient-2026-v1"
+    assert halal["findings"] == []
+
+
+def _activate_reviewed_halal_release(
+    session_factory: sessionmaker[Session],
+) -> None:
+    bundle = load_reference_bundle(HALAL_REVIEWED_BUNDLE_PATH)
+    with session_factory() as session:
+        import_reference_bundle(session, bundle)
+        activate_reference_dataset_version(
+            session,
+            bundle.manifest.id,
+            approver="staging-operator@lifegoods.org",
+            review_kind="PROJECT_MAINTAINER_APPROVAL",
+        )
+
+
+@pytest.mark.parametrize(
+    ("ingredient_text", "expected_status", "expected_reason", "expected_outcome"),
+    [
+        (
+            "Wheat flour, pork, salt",
+            "COMPLETED",
+            None,
+            "EXPLICIT_PROHIBITED_INGREDIENT_DECLARED",
+        ),
+        (
+            "Sugar, gelatin, natural flavor",
+            "COMPLETED",
+            None,
+            "SOURCE_AMBIGUOUS",
+        ),
+        (
+            "Wheat flour, sugar, cocoa butter",
+            "COMPLETED",
+            None,
+            "NO_NON_HALAL_INGREDIENT_DETECTED_IN_READABLE_LABEL",
+        ),
+        (None, "NOT_ASSESSED", "EVIDENCE_UNAVAILABLE", "NOT_ASSESSED"),
+    ],
+)
+def test_reviewed_halal_release_staging_smoke_evidence_scenarios(
+    session_factory: sessionmaker[Session],
+    ingredient_text: str | None,
+    expected_status: str,
+    expected_reason: str | None,
+    expected_outcome: str,
+) -> None:
+    _activate_reviewed_halal_release(session_factory)
+    source_overrides: dict[str, object] = {"ingredients_text_en": ingredient_text}
+    if ingredient_text is None:
+        source_overrides["ingredients_text_km"] = "ម្សៅ ស្ករ អំបិល"
+
+    with TestClient(
+        create_app(
+            settings=Settings(
+                halal_ingredient_assessments_enabled=True,
+                halal_ingredient_assessment_engine_version="0.1.0",
+                assessment_cache_enabled=False,
+                package_match_requests_per_minute=10_000,
+            ),
+            session_factory=session_factory,
+            external_source=off_source_with_record(**source_overrides),
+        )
+    ) as test_client:
+        response = test_client.get(
+            "/api/v1/package-matches", params={"identifier": "4006381333931"}
+        )
+
+    assert response.status_code == 200
+    assessment = response.json()["candidates"][0]["halal_ingredient_assessment"]
+    assert assessment["status"] == expected_status
+    assert assessment["reason"] == expected_reason
+    assert assessment["outcome"] == expected_outcome
+    assert assessment["engine_version"] == "0.1.0"
+    assert (
+        assessment["reference_dataset_version"]["id"]
+        == "halal-ingredient-2026-reviewed-english-v1"
+    )
+    assert (
+        assessment["reference_dataset_version"]["review_kind"]
+        == "HALAL_DOMAIN_REVIEW"
+    )
+    if expected_status == "COMPLETED":
+        assert assessment["evidence_coverage"] == "PARTIAL"
+
+
+def test_reviewed_halal_release_staging_smoke_reference_unavailable(
+    session_factory: sessionmaker[Session],
+) -> None:
+    with TestClient(
+        create_app(
+            settings=Settings(
+                halal_ingredient_assessments_enabled=True,
+                assessment_cache_enabled=False,
+                package_match_requests_per_minute=10_000,
+            ),
+            session_factory=session_factory,
+            external_source=off_source_with_record(
+                ingredients_text_en="Wheat flour, pork, salt"
+            ),
+        )
+    ) as test_client:
+        response = test_client.get(
+            "/api/v1/package-matches", params={"identifier": "4006381333931"}
+        )
+
+    assert response.status_code == 200
+    assessment = response.json()["candidates"][0]["halal_ingredient_assessment"]
+    assert assessment["status"] == "NOT_ASSESSED"
+    assert assessment["reason"] == "REFERENCE_UNAVAILABLE"
+    assert assessment["outcome"] == "NOT_ASSESSED"
+    assert assessment["engine_version"] == "0.1.0"
+    assert assessment["reference_dataset_version"] is None
+
+
+def test_reviewed_halal_release_staging_smoke_assessment_failure(
+    session_factory: sessionmaker[Session],
+) -> None:
+    _activate_reviewed_halal_release(session_factory)
+    evaluator = StandardHalalIngredientAssessmentEvaluator(
+        enabled=True,
+        engine_version="0.1.0",
+        reference_data=DatabaseHalalReferenceDataAccess(session_factory),
+        matcher=FailingHalalMatcher(),
+    )
+    with TestClient(
+        create_app(
+            settings=Settings(
+                assessment_cache_enabled=False,
+                package_match_requests_per_minute=10_000,
+            ),
+            session_factory=session_factory,
+            external_source=off_source_with_record(
+                ingredients_text_en="Wheat flour, pork, salt"
+            ),
+            halal_evaluator=evaluator,
+        )
+    ) as test_client:
+        response = test_client.get(
+            "/api/v1/package-matches", params={"identifier": "4006381333931"}
+        )
+
+    assert response.status_code == 200
+    assessment = response.json()["candidates"][0]["halal_ingredient_assessment"]
+    assert assessment["status"] == "NOT_ASSESSED"
+    assert assessment["reason"] == "ASSESSMENT_FAILED"
+    assert assessment["outcome"] == "NOT_ASSESSED"
+    assert assessment["engine_version"] == "0.1.0"
+    assert (
+        assessment["reference_dataset_version"]["id"]
+        == "halal-ingredient-2026-reviewed-english-v1"
+    )
+
+
+def test_reviewed_halal_release_log_is_sanitized_and_versioned(
+    session_factory: sessionmaker[Session],
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _activate_reviewed_halal_release(session_factory)
+    route_logger = logging.getLogger("lifegoods.package_matches.router")
+    monkeypatch.setattr(route_logger, "disabled", False)
+    with (
+        caplog.at_level("INFO", logger=route_logger.name),
+        TestClient(
+            create_app(
+                settings=Settings(
+                    halal_ingredient_assessments_enabled=True,
+                    assessment_cache_enabled=False,
+                    package_match_requests_per_minute=10_000,
+                ),
+                session_factory=session_factory,
+                external_source=off_source_with_record(
+                    product_name_en="DO-NOT-LOG-LABEL",
+                    ingredients_text_en="DO-NOT-LOG-PORK pork",
+                ),
+            ),
+            client=("203.0.113.42", 50000),
+        ) as test_client,
+    ):
+        response = test_client.get(
+            "/api/v1/package-matches", params={"identifier": "4006381333931"}
+        )
+
+    assert response.status_code == 200
+    completed = next(
+        record
+        for record in caplog.records
+        if record.__dict__.get("event") == "package_match_lookup_completed"
+    )
+    assert completed.__dict__["halal_ingredient_assessment_status"] == "COMPLETED"
+    assert completed.__dict__["halal_ingredient_assessment_reason"] is None
+    assert completed.__dict__["halal_ingredient_assessment_engine_version"] == "0.1.0"
+    assert (
+        completed.__dict__["halal_ingredient_reference_dataset_version_id"]
+        == "halal-ingredient-2026-reviewed-english-v1"
+    )
+    logged = str(completed.__dict__)
+    assert "4006381333931" not in logged
+    assert "203.0.113.42" not in logged
+    assert "DO-NOT-LOG-LABEL" not in logged
+    assert "DO-NOT-LOG-PORK" not in logged

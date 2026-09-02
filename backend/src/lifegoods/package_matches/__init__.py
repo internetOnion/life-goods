@@ -11,20 +11,35 @@ from lifegoods.package_matches.assessments import (
     AllergenDeterministicMatcher,
     AllergenFinding,
     DefaultAllergenDeterministicMatcher,
+    DefaultHalalDeterministicMatcher,
     DefaultOffAllergenEvidenceExtractor,
     DisabledAllergenAssessmentEvaluator,
+    DisabledHalalIngredientAssessmentEvaluator,
     EvidenceCoverageState,
+    HalalDeterministicMatcher,
+    HalalIngredientAssessmentCache,
+    HalalIngredientAssessmentEvaluation,
+    HalalIngredientAssessmentEvaluator,
+    HalalIngredientAssessmentOutcome,
+    HalalIngredientAssessmentReason,
+    HalalIngredientAssessmentStatus,
+    HalalIngredientFinding,
     OffAllergenEvidenceExtractor,
     StandardAllergenAssessmentEvaluator,
+    StandardHalalIngredientAssessmentEvaluator,
 )
 from lifegoods.package_matches.cache import (
     DEFAULT_ASSESSMENT_CACHE_TTL_SECONDS,
     RedisAllergenAssessmentCache,
+    RedisHalalIngredientAssessmentCache,
     assessment_cache_key_for_record,
     build_assessment_cache_key,
     compute_evidence_digest,
     deserialize_assessment_evaluation,
+    deserialize_halal_assessment_evaluation,
+    halal_assessment_cache_key_for_record,
     serialize_assessment_evaluation,
+    serialize_halal_assessment_evaluation,
 )
 from lifegoods.package_matches.contracts import (
     AllergenAssessmentResponse,
@@ -32,6 +47,9 @@ from lifegoods.package_matches.contracts import (
     AllergenFindingResponse,
     AssessmentReferenceDatasetVersionResponse,
     ExternalDatasetVersionResponse,
+    HalalIngredientAssessmentResponse,
+    HalalIngredientFindingResponse,
+    HalalSourceCitationResponse,
     OpenFoodFactsLookupResponse,
     PackageMatchCandidateResponse,
     PackageMatchesResponse,
@@ -44,8 +62,6 @@ from lifegoods.package_matches.contracts import (
     PackageSearchResultResponse,
 )
 from lifegoods.package_matches.dependencies import (
-    get_finder,
-    get_rate_limiter,
     get_search_rate_limiter,
     get_searcher,
 )
@@ -64,7 +80,7 @@ from lifegoods.package_matches.rate_limit import (
     PackageMatchRateLimiter,
     RedisPackageMatchRateLimiter,
 )
-from lifegoods.package_matches.router import router
+from lifegoods.package_matches.router import get_finder, get_rate_limiter, router
 from lifegoods.package_matches.search import (
     MongoPackageSearch,
     PackageSearch,
@@ -74,7 +90,10 @@ from lifegoods.package_matches.search import (
     build_search_index,
 )
 from lifegoods.package_matches.service import FindPackageMatches
-from lifegoods.reference_datasets import AllergenReferenceDataAccess
+from lifegoods.reference_datasets import (
+    AllergenReferenceDataAccess,
+    HalalReferenceDataAccess,
+)
 
 __all__ = [
     "AllergenAssessmentCache",
@@ -93,11 +112,25 @@ __all__ = [
     "AssessmentReferenceDatasetVersionResponse",
     "DEFAULT_ASSESSMENT_CACHE_TTL_SECONDS",
     "DefaultAllergenDeterministicMatcher",
+    "DefaultHalalDeterministicMatcher",
     "DefaultOffAllergenEvidenceExtractor",
     "DisabledAllergenAssessmentEvaluator",
+    "DisabledHalalIngredientAssessmentEvaluator",
     "EvidenceCoverageState",
     "ExternalDatasetVersionResponse",
     "FindPackageMatches",
+    "HalalDeterministicMatcher",
+    "HalalIngredientAssessmentCache",
+    "HalalIngredientAssessmentEvaluation",
+    "HalalIngredientAssessmentEvaluator",
+    "HalalIngredientAssessmentOutcome",
+    "HalalIngredientAssessmentReason",
+    "HalalIngredientAssessmentResponse",
+    "HalalIngredientAssessmentStatus",
+    "HalalIngredientFinding",
+    "HalalIngredientFindingResponse",
+    "HalalReferenceDataAccess",
+    "HalalSourceCitationResponse",
     "OffAllergenEvidenceExtractor",
     "OpenFoodFactsLookup",
     "OpenFoodFactsLookupResponse",
@@ -121,12 +154,15 @@ __all__ = [
     "PackageSearchResponse",
     "PackageSearchResultResponse",
     "RedisAllergenAssessmentCache",
+    "RedisHalalIngredientAssessmentCache",
     "RedisPackageMatchRateLimiter",
     "StandardAllergenAssessmentEvaluator",
+    "StandardHalalIngredientAssessmentEvaluator",
     "assessment_cache_key_for_record",
     "build_assessment_cache_key",
     "compute_evidence_digest",
     "deserialize_assessment_evaluation",
+    "deserialize_halal_assessment_evaluation",
     "get_finder",
     "get_rate_limiter",
     "get_search_rate_limiter",
@@ -136,6 +172,8 @@ __all__ = [
     "SearchPage",
     "SearchValidationError",
     "build_search_index",
+    "halal_assessment_cache_key_for_record",
     "router",
     "serialize_assessment_evaluation",
+    "serialize_halal_assessment_evaluation",
 ]

@@ -89,15 +89,15 @@ function DemoAllergiesPage() {
     )
 
     return (
-        <main className="mx-auto w-[min(calc(100%_-_2rem),48rem)] pt-[clamp(2.75rem,9vh,5.5rem)] pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),48rem)] sm:w-[min(calc(100%_-_3rem),48rem)]">
+        <main className="mx-auto w-full max-w-5xl px-4 pt-8 sm:px-6 sm:pt-12 lg:px-10 lg:pt-16">
             <h1
                 ref={headingRef}
                 tabIndex={-1}
-                className="text-[clamp(2rem,7vw,3.2rem)] leading-[1.7] tracking-tight text-balance"
+                className="text-4xl leading-[1.7] font-black tracking-tight text-balance sm:text-5xl"
             >
                 {t("allergies.title")}
             </h1>
-            <p className="text-muted-foreground mt-3 max-w-[62ch] text-[1.05rem] leading-loose">
+            <p className="text-muted-foreground mt-3 max-w-[62ch] text-[1.05rem] leading-[1.65]">
                 {t("allergies.intro")}
             </p>
 
@@ -105,7 +105,7 @@ function DemoAllergiesPage() {
                 className="mt-7"
                 aria-labelledby="selected-allergies-heading"
             >
-                <div className="border-border bg-background sticky top-0 z-10 -mx-2 flex min-h-14 items-center justify-between gap-3 border-b px-2 py-2">
+                <div className="border-border bg-background/95 sticky top-0 z-10 -mx-2 flex min-h-14 items-center justify-between gap-3 border-b px-2 py-2 backdrop-blur-lg">
                     <h2
                         id="selected-allergies-heading"
                         className="min-w-0 text-lg leading-[1.7] font-bold"
@@ -177,7 +177,7 @@ function DemoAllergiesPage() {
                 >
                     {t("allergies.optionsHeading")}
                 </h2>
-                <fieldset className="mt-3 grid grid-cols-2 gap-3">
+                <fieldset className="divide-border border-border mt-3 divide-y border-y lg:grid lg:grid-cols-2 lg:divide-y-0">
                     <legend className="sr-only">
                         {t("allergies.optionsHeading")}
                     </legend>
@@ -191,7 +191,7 @@ function DemoAllergiesPage() {
                         return (
                             <Label
                                 key={option.id}
-                                className={`hover:bg-accent focus-within:border-ring focus-within:ring-ring/40 flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 transition-colors focus-within:ring-2 ${selectedOption ? "border-primary/60 bg-primary/10 text-primary" : "border-border bg-background"}`}
+                                className={`hover:bg-muted focus-within:ring-ring lg:border-border flex min-h-16 cursor-pointer items-center gap-4 px-2 py-3 transition-colors focus-within:ring-2 focus-within:ring-inset lg:border-b lg:odd:border-r ${selectedOption ? "bg-brand-soft text-foreground" : "bg-background"}`}
                                 htmlFor={inputId}
                             >
                                 <Input
@@ -204,7 +204,7 @@ function DemoAllergiesPage() {
                                     onChange={() => toggleOption(option.id)}
                                 />
                                 <Icon
-                                    className="size-6 shrink-0"
+                                    className="text-primary size-6 shrink-0"
                                     aria-hidden="true"
                                     size={24}
                                     weight="regular"
@@ -218,7 +218,7 @@ function DemoAllergiesPage() {
                 </fieldset>
             </section>
 
-            <aside className="border-border bg-muted mt-8 rounded-xl border p-4">
+            <aside className="border-mango bg-mango-soft mt-8 border-y p-4">
                 <p className="font-bold">{t("allergies.prioritizationNote")}</p>
                 <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
                     {t("allergies.noSafetyClaim")}

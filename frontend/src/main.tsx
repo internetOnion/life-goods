@@ -6,6 +6,7 @@ import { BrowserRouter } from "react-router"
 import { client } from "./api/generated/client.gen"
 import { App } from "./app/App"
 import { lookupPackageMatches } from "./features/package-match/api"
+import { lookupPackageSearch } from "./features/search/api"
 import { i18nReady } from "./i18n"
 import "./styles.css"
 
@@ -26,7 +27,10 @@ async function renderApp() {
         <StrictMode>
             <BrowserRouter>
                 <QueryClientProvider client={queryClient}>
-                    <App lookup={lookupPackageMatches} />
+                    <App
+                        lookup={lookupPackageMatches}
+                        searchLookup={lookupPackageSearch}
+                    />
                 </QueryClientProvider>
             </BrowserRouter>
         </StrictMode>,

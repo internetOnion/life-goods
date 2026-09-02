@@ -111,6 +111,28 @@ class ExternalPackageSource(Protocol):
     def fetch(self, identifier: NormalizedIdentifier) -> ExternalLookupResult: ...
 
 
+@dataclass(frozen=True, slots=True)
+class ExternalPackageSearchPage:
+    normalized_query: str
+    records: tuple[ExternalPackageRecord, ...]
+    dataset_version: ExternalDatasetVersion
+    next_offset: int | None
+
+
+class ExternalPackageSearchSource(Protocol):
+    def search(
+        self,
+        query: str,
+        *,
+        offset: int,
+        limit: int,
+    ) -> ExternalPackageSearchPage: ...
+
+
+class ExternalPackageSearchUnavailableError(RuntimeError):
+    pass
+
+
 class ExternalImageUrlInvalidError(ValueError):
     pass
 

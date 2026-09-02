@@ -3,51 +3,41 @@ import {
     CaretRightIcon,
     CircleNotchIcon,
     DatabaseIcon,
+    ImageSquareIcon,
     InfoIcon,
     MagnifyingGlassIcon,
     WarningCircleIcon,
-    XIcon,
 } from "@phosphor-icons/react"
 import { useQuery } from "@tanstack/react-query"
-import {
-    type KeyboardEvent as ReactKeyboardEvent,
-    type Ref,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-} from "react"
+import { type Ref, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Navigate, useParams } from "react-router"
 
+import type { PackageMatchCandidateResponse } from "@/api/generated"
 import { Button } from "@/components/ui/button"
-import type { PackageMatchCandidateResponse } from "../../api/generated"
+import { DemoNotice } from "@/ui/DemoNotice"
+import { BrandLockup } from "@/ui/OpenLabelMark"
+
+import { EvidenceSnapshot, type EvidenceSnapshotItem } from "./EvidenceSnapshot"
 import { validateIdentifier } from "./identifier"
 import { OpenFoodFactsResult } from "./OpenFoodFactsResult"
+import { ResultAccordion } from "./ResultAccordion"
 import { isOpenFoodFactsCandidate, type PackageMatchLookup } from "./types"
 
 type PackageMatchResultPageProps = {
     lookup: PackageMatchLookup
     onDismiss: () => void
     onIdentifierChange: (identifier: string) => void
+    showDemoNotice: boolean
 }
 
 type ResultState = "loading" | "failure" | "noMatch" | "choose" | "candidate"
-
-const focusableSelector = [
-    "a[href]",
-    "button:not([disabled])",
-    "input:not([disabled])",
-    "select:not([disabled])",
-    "textarea:not([disabled])",
-    "summary",
-    '[tabindex]:not([tabindex="-1"])',
-].join(",")
 
 export function PackageMatchResultPage({
     lookup,
     onDismiss,
     onIdentifierChange,
+    showDemoNotice,
 }: PackageMatchResultPageProps) {
     const { identifier = "" } = useParams()
     const { t } = useTranslation()
@@ -56,9 +46,7 @@ export function PackageMatchResultPage({
         [identifier],
     )
     const normalizedIdentifier = validation.valid ? validation.value : ""
-    const modalRef = useRef<HTMLElement>(null)
     const outcomeTitleRef = useRef<HTMLHeadingElement>(null)
-    const loadingTitleRef = useRef<HTMLHeadingElement>(null)
     const [isRetrying, setIsRetrying] = useState(false)
     const [selectedCandidateIndex, setSelectedCandidateIndex] = useState<
         number | null
@@ -96,66 +84,24 @@ export function PackageMatchResultPage({
     }, [onIdentifierChange, validation])
 
     useEffect(() => {
-        const wasScrollLocked =
-            document.body.classList.contains("overflow-hidden")
-        document.body.classList.add("overflow-hidden")
-        modalRef.current?.focus()
-
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape") {
-                event.preventDefault()
-                onDismiss()
-                return
-            }
-            if (event.key !== "Tab" || !modalRef.current) return
-
-            const focusable = Array.from(
-                modalRef.current.querySelectorAll<HTMLElement>(
-                    focusableSelector,
-                ),
-            ).filter(
-                (element) => element.getAttribute("aria-hidden") !== "true",
-            )
-            if (focusable.length === 0) {
-                event.preventDefault()
-                modalRef.current.focus()
-                return
-            }
-
-            const first = focusable[0]!
-            const last = focusable[focusable.length - 1]!
-            if (event.shiftKey && document.activeElement === first) {
-                event.preventDefault()
-                last.focus()
-            } else if (!event.shiftKey && document.activeElement === last) {
-                event.preventDefault()
-                first.focus()
-            }
-        }
-
-        document.addEventListener("keydown", onKeyDown)
-        return () => {
-            if (!wasScrollLocked)
-                document.body.classList.remove("overflow-hidden")
-            document.removeEventListener("keydown", onKeyDown)
-        }
-    }, [onDismiss])
+        if (state !== "candidate") outcomeTitleRef.current?.focus()
+    }, [state])
 
     useEffect(() => {
-        if (state === "loading" && isRetrying) {
-            loadingTitleRef.current?.focus()
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") onDismiss()
         }
-        if (["failure", "noMatch", "choose"].includes(state)) {
-            outcomeTitleRef.current?.focus()
-        }
-    }, [isRetrying, state])
+        document.addEventListener("keydown", onKeyDown)
+        return () => document.removeEventListener("keydown", onKeyDown)
+    }, [onDismiss])
 
     if (!validation.valid) {
+        const value = identifier.trim()
         return (
             <Navigate
                 replace
-                to="/"
-                state={{ invalidIdentifier: identifier }}
+                to={`/search?q=${encodeURIComponent(value)}`}
+                state={{ invalidIdentifier: value }}
             />
         )
     }
@@ -183,166 +129,132 @@ export function PackageMatchResultPage({
         }
     }
 
-    const keepFocusInside = (event: ReactKeyboardEvent<HTMLElement>) => {
-        if (event.key === "Tab" && event.defaultPrevented)
-            event.stopPropagation()
-    }
-
     return (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-5">
-            <div
-                className="animate-in fade-in bg-foreground/38 absolute inset-0 duration-200 motion-reduce:animate-none"
-                aria-hidden="true"
-            />
-            <section
-                ref={modalRef}
-                className="bg-background animate-in slide-in-from-bottom-4 relative z-10 flex max-h-[94svh] min-h-[min(34rem,94svh)] w-full max-w-3xl flex-col overflow-hidden rounded-t-[1.75rem] shadow-[0_1.5rem_4rem_oklch(0.18_0.02_160_/_0.28)] duration-300 ease-out outline-none motion-reduce:animate-none sm:max-h-[90svh] sm:min-h-0 sm:rounded-2xl"
-                role="dialog"
-                aria-label={t("resultDialogLabel")}
-                aria-modal="true"
-                tabIndex={-1}
-                onKeyDown={keepFocusInside}
-            >
-                <div className="border-border bg-background relative z-20 flex min-h-16 shrink-0 items-center justify-center border-b px-16 sm:min-h-14">
-                    <span
-                        className="bg-muted-foreground/65 absolute top-2.5 h-1 w-14 rounded-full sm:hidden"
-                        aria-hidden="true"
-                    />
-                    <h1 className="text-lg leading-[1.7] font-semibold">
-                        {t("productDetailsTitle")}
-                    </h1>
+        <div className="bg-background min-h-svh">
+            <header className="border-border bg-background/95 sticky top-0 z-30 border-b backdrop-blur-lg">
+                <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-10">
                     <Button
-                        className="text-foreground hover:bg-muted absolute right-2 size-11 rounded-full p-0"
+                        className="text-foreground hover:bg-muted hover:text-foreground -ml-2 min-h-11 rounded-full px-3"
                         variant="ghost"
                         type="button"
                         aria-label={t("closeResult")}
                         onClick={onDismiss}
                     >
-                        <XIcon aria-hidden="true" size={25} weight="bold" />
+                        <ArrowLeftIcon
+                            aria-hidden="true"
+                            size={22}
+                            weight="bold"
+                        />
+                        <span>{t("backHome")}</span>
                     </Button>
+                    <BrandLockup compact />
+                </div>
+            </header>
+            <DemoNotice active={showDemoNotice} />
+            <main className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 sm:py-10 lg:px-10">
+                <div
+                    className="sr-only"
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
+                >
+                    {announcement}
                 </div>
 
-                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-6 pb-[calc(2rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:px-4 sm:px-8 sm:pt-8">
-                    <div
-                        className="sr-only"
-                        role="status"
-                        aria-live="polite"
-                        aria-atomic="true"
-                    >
-                        {announcement}
-                    </div>
+                {state === "loading" ? (
+                    <ResultStateMessage
+                        ref={outcomeTitleRef}
+                        icon="loading"
+                        title={t("loading")}
+                        body={t("loadingBody")}
+                        identifier={normalizedIdentifier}
+                    />
+                ) : null}
 
-                    {state === "loading" ? (
-                        <section className="grid min-h-[20rem] place-content-center justify-items-center gap-4 text-center">
-                            <CircleNotchIcon
-                                className="text-primary animate-spin motion-reduce:animate-none"
-                                aria-hidden="true"
-                                size={38}
-                                weight="bold"
-                            />
-                            <h1
-                                className="text-[clamp(1.65rem,6vw,2.35rem)] leading-[1.7] tracking-tight text-balance"
-                                ref={loadingTitleRef}
-                                tabIndex={-1}
+                {state === "failure" ? (
+                    <ResultStateMessage
+                        ref={outcomeTitleRef}
+                        icon="warning"
+                        title={t("failureTitle")}
+                        body={t("failureBody")}
+                        identifier={normalizedIdentifier}
+                        primaryLabel={t("retry")}
+                        onPrimary={() => void retry()}
+                        secondaryLabel={t("tryAnother")}
+                        onSecondary={onDismiss}
+                    />
+                ) : null}
+
+                {state === "noMatch" ? (
+                    <ResultStateMessage
+                        ref={outcomeTitleRef}
+                        icon="search"
+                        title={t("noMatchTitle")}
+                        body={t("noMatchBody")}
+                        identifier={normalizedIdentifier}
+                        primaryLabel={t("tryAnother")}
+                        onPrimary={onDismiss}
+                    />
+                ) : null}
+
+                {state === "choose" ? (
+                    <CandidateChooser
+                        headingRef={outcomeTitleRef}
+                        candidates={candidates}
+                        onChoose={setSelectedCandidateIndex}
+                    />
+                ) : null}
+
+                {state === "candidate" && selectedCandidate ? (
+                    <>
+                        {candidates.length > 1 ? (
+                            <Button
+                                className="mb-6 -ml-3 px-3"
+                                variant="ghost"
+                                type="button"
+                                onClick={() => setSelectedCandidateIndex(null)}
                             >
-                                {t("loading")}
-                            </h1>
-                            <p className="text-muted-foreground max-w-[38rem] leading-relaxed">
-                                {t("loadingBody")}
-                            </p>
-                        </section>
-                    ) : null}
-
-                    {state === "failure" ? (
-                        <ResultStateMessage
-                            ref={outcomeTitleRef}
-                            icon="warning"
-                            title={t("failureTitle")}
-                            body={t("failureBody")}
-                            identifier={normalizedIdentifier}
-                            primaryLabel={t("retry")}
-                            onPrimary={() => void retry()}
-                            secondaryLabel={t("tryAnother")}
-                            onSecondary={onDismiss}
-                        />
-                    ) : null}
-
-                    {state === "noMatch" ? (
-                        <ResultStateMessage
-                            ref={outcomeTitleRef}
-                            centered
-                            icon="search"
-                            title={t("noMatchTitle")}
-                            body={t("noMatchBody")}
-                            identifier={normalizedIdentifier}
-                            primaryLabel={t("tryAnother")}
-                            onPrimary={onDismiss}
-                        />
-                    ) : null}
-
-                    {state === "choose" ? (
-                        <CandidateChooser
-                            headingRef={outcomeTitleRef}
-                            candidates={candidates}
-                            onChoose={setSelectedCandidateIndex}
-                        />
-                    ) : null}
-
-                    {state === "candidate" && selectedCandidate ? (
-                        <>
-                            {candidates.length > 1 ? (
-                                <Button
-                                    className="mb-6 -ml-3 px-3"
-                                    variant="ghost"
-                                    type="button"
-                                    onClick={() =>
-                                        setSelectedCandidateIndex(null)
-                                    }
-                                >
-                                    <ArrowLeftIcon
-                                        aria-hidden="true"
-                                        size={20}
-                                        weight="bold"
-                                    />
-                                    <span>{t("backToCandidates")}</span>
-                                </Button>
-                            ) : null}
-                            {isOpenFoodFactsCandidate(selectedCandidate) ? (
-                                <OpenFoodFactsResult
-                                    candidate={selectedCandidate}
-                                    normalizedIdentifier={normalizedIdentifier}
+                                <ArrowLeftIcon
+                                    aria-hidden="true"
+                                    size={20}
+                                    weight="bold"
                                 />
-                            ) : (
-                                <ReviewedCatalogResult
-                                    ref={outcomeTitleRef}
-                                    candidate={selectedCandidate}
-                                    normalizedIdentifier={normalizedIdentifier}
-                                />
-                            )}
-                        </>
-                    ) : null}
-                </div>
-            </section>
+                                <span>{t("backToCandidates")}</span>
+                            </Button>
+                        ) : null}
+                        {isOpenFoodFactsCandidate(selectedCandidate) ? (
+                            <OpenFoodFactsResult
+                                candidate={selectedCandidate}
+                                normalizedIdentifier={normalizedIdentifier}
+                            />
+                        ) : (
+                            <ReviewedCatalogResult
+                                ref={outcomeTitleRef}
+                                candidate={selectedCandidate}
+                                normalizedIdentifier={normalizedIdentifier}
+                            />
+                        )}
+                    </>
+                ) : null}
+            </main>
         </div>
     )
 }
 
 type ResultStateMessageProps = {
     ref: Ref<HTMLHeadingElement>
-    centered?: boolean
-    icon: "search" | "warning"
+    icon: "loading" | "search" | "warning"
     title: string
     body: string
     identifier: string
-    primaryLabel: string
-    onPrimary: () => void
+    primaryLabel?: string
+    onPrimary?: () => void
     secondaryLabel?: string
     onSecondary?: () => void
 }
 
 function ResultStateMessage({
     ref,
-    centered = false,
     icon,
     title,
     body,
@@ -353,60 +265,64 @@ function ResultStateMessage({
     onSecondary,
 }: ResultStateMessageProps) {
     const { t } = useTranslation()
-    const Icon = icon === "warning" ? WarningCircleIcon : MagnifyingGlassIcon
-
+    const Icon =
+        icon === "warning"
+            ? WarningCircleIcon
+            : icon === "loading"
+              ? CircleNotchIcon
+              : MagnifyingGlassIcon
     return (
-        <section
-            className={
-                centered
-                    ? "mx-auto grid min-h-[24rem] max-w-xl content-center justify-items-center text-center"
-                    : "max-w-xl pt-[clamp(1rem,5vh,3rem)]"
-            }
-        >
+        <section className="mx-auto grid min-h-[65svh] max-w-xl content-center justify-items-center text-center">
             <span
-                className="border-border bg-muted text-foreground grid size-16 place-items-center rounded-full border"
+                className="bg-muted text-foreground grid size-16 place-items-center rounded-2xl"
                 aria-hidden="true"
             >
-                <Icon size={34} weight="regular" />
+                <Icon
+                    className={
+                        icon === "loading"
+                            ? "animate-spin motion-reduce:animate-none"
+                            : ""
+                    }
+                    size={34}
+                    weight="regular"
+                />
             </span>
             <h1
-                className="mt-5 text-[clamp(1.75rem,6vw,2.45rem)] leading-[1.7] tracking-tight text-balance"
+                className="mt-5 text-3xl leading-[1.7] font-black text-balance sm:text-4xl"
                 ref={ref}
                 tabIndex={-1}
             >
                 {title}
             </h1>
-            <p className="text-muted-foreground mt-1 max-w-[42rem] leading-relaxed">
+            <p className="text-muted-foreground mt-3 max-w-lg leading-relaxed">
                 {body}
             </p>
-            <dl className="border-border mt-6 w-full max-w-md border-y py-4 text-left">
-                <div>
-                    <dt className="text-muted-foreground text-sm leading-relaxed">
+            <dl className="border-border mt-6 w-full border-y py-4 text-left">
+                <div className="grid gap-1 sm:grid-cols-[10rem_minmax(0,1fr)]">
+                    <dt className="text-muted-foreground text-sm">
                         {t("identifierLabel")}
                     </dt>
-                    <dd className="mt-1 font-mono wrap-anywhere tabular-nums">
+                    <dd className="font-mono wrap-anywhere tabular-nums">
                         {identifier}
                     </dd>
                 </div>
             </dl>
-            <div
-                className={`mt-6 flex flex-wrap gap-3 ${
-                    centered ? "justify-center" : ""
-                }`}
-            >
-                <Button type="button" onClick={onPrimary}>
-                    {primaryLabel}
-                </Button>
-                {secondaryLabel && onSecondary ? (
-                    <Button
-                        variant="outline"
-                        type="button"
-                        onClick={onSecondary}
-                    >
-                        {secondaryLabel}
+            {primaryLabel && onPrimary ? (
+                <div className="mt-6 flex flex-wrap justify-center gap-3">
+                    <Button type="button" onClick={onPrimary}>
+                        {primaryLabel}
                     </Button>
-                ) : null}
-            </div>
+                    {secondaryLabel && onSecondary ? (
+                        <Button
+                            variant="outline"
+                            type="button"
+                            onClick={onSecondary}
+                        >
+                            {secondaryLabel}
+                        </Button>
+                    ) : null}
+                </div>
+            ) : null}
         </section>
     )
 }
@@ -421,43 +337,65 @@ function CandidateChooser({
     onChoose: (index: number) => void
 }) {
     const { t } = useTranslation()
-
     return (
-        <section className="mx-auto max-w-2xl">
+        <section className="mx-auto max-w-4xl">
             <InfoIcon className="text-primary" aria-hidden="true" size={34} />
             <h1
-                className="mt-4 text-[clamp(1.75rem,6vw,2.45rem)] leading-[1.7] tracking-tight text-balance"
+                className="mt-4 text-3xl leading-[1.7] font-black text-balance sm:text-4xl"
                 ref={headingRef}
                 tabIndex={-1}
             >
                 {t("candidateChooserTitle")}
             </h1>
-            <p className="text-muted-foreground mt-1 max-w-[42rem] leading-relaxed">
+            <p className="text-muted-foreground mt-3 max-w-2xl leading-relaxed">
                 {t("candidateChooserBody")}
             </p>
-            <div className="border-border mt-7 border-y">
+            <div className="divide-border border-border mt-8 divide-y border-y">
                 {candidates.map((candidate, index) => {
+                    const image =
+                        candidate.reference_images?.find(
+                            (item) => item.role === "front",
+                        ) ?? candidate.reference_images?.[0]
                     const name = candidateDisplayName(candidate)
                     const sourceLabel = isOpenFoodFactsCandidate(candidate)
                         ? t("openFoodFactsSourceLabel")
                         : t("reviewedCatalogSourceLabel")
                     return (
                         <Button
-                            className="border-border hover:bg-muted focus-visible:ring-ring grid min-h-[4.75rem] w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-none border-b px-1 py-4 text-left font-normal whitespace-normal transition-colors last:border-b-0 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
+                            className="hover:bg-muted focus-visible:ring-ring grid min-h-28 w-full grid-cols-[5rem_minmax(0,1fr)_2.75rem] items-center gap-4 py-4 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset sm:grid-cols-[6rem_minmax(0,1fr)_2.75rem]"
                             key={`${candidate.source_kind}-${candidate.package_variant_id ?? candidate.external_record_id ?? index}`}
                             type="button"
                             variant="ghost"
                             onClick={() => onChoose(index)}
                         >
+                            {image ? (
+                                <img
+                                    className="bg-muted aspect-square size-20 rounded-xl object-contain sm:size-24"
+                                    src={image.url}
+                                    alt=""
+                                />
+                            ) : (
+                                <span
+                                    className="bg-muted text-muted-foreground grid aspect-square size-20 place-items-center rounded-xl sm:size-24"
+                                    aria-hidden="true"
+                                >
+                                    <ImageSquareIcon size={28} />
+                                </span>
+                            )}
                             <span className="min-w-0">
-                                <span className="block leading-relaxed font-semibold wrap-anywhere">
+                                <span className="block text-lg font-black wrap-anywhere">
                                     {name ?? t("candidateNameUnavailable")}
                                 </span>
-                                <span className="text-muted-foreground mt-0.5 block text-sm leading-relaxed">
+                                <span className="text-muted-foreground mt-1 block text-sm leading-relaxed">
                                     {sourceLabel}
                                 </span>
                             </span>
-                            <CaretRightIcon aria-hidden="true" size={22} />
+                            <span
+                                className="grid size-11 place-items-center"
+                                aria-hidden="true"
+                            >
+                                <CaretRightIcon size={22} />
+                            </span>
                         </Button>
                     )
                 })}
@@ -476,55 +414,148 @@ function ReviewedCatalogResult({
     normalizedIdentifier: string
 }) {
     const { t } = useTranslation()
+    const [referenceImageFailed, setReferenceImageFailed] = useState(false)
+    const snapshot: EvidenceSnapshotItem[] = [
+        { kind: "declared_concerns", value: t("sourceNotAvailable") },
+        {
+            kind: "evidence_gaps",
+            value: t("missingGroups", {
+                fields: [
+                    t("evidenceIngredientsLabel"),
+                    t("evidenceAllergensLabel"),
+                    t("evidenceNutritionLabel"),
+                    t("evidenceStorageLabel"),
+                ].join(", "),
+            }),
+        },
+        {
+            kind: "source_review",
+            value: t("reviewedSourceState"),
+            detail: candidate.source?.name ?? undefined,
+        },
+    ]
 
     useEffect(() => {
         if (typeof ref === "object" && ref?.current) ref.current.focus()
     }, [ref])
 
+    const referenceImage =
+        candidate.reference_images?.find((image) => image.role === "front") ??
+        candidate.reference_images?.[0]
+    const name = candidateDisplayName(candidate)
+
     return (
-        <article className="mx-auto max-w-2xl">
-            <DatabaseIcon
-                className="text-primary"
-                aria-hidden="true"
-                size={40}
-            />
-            <h1
-                className="mt-4 text-[clamp(1.75rem,6vw,2.45rem)] leading-[1.7] tracking-tight text-balance"
-                ref={ref}
-                tabIndex={-1}
+        <article className="animate-in fade-in mx-auto grid max-w-5xl min-w-0 gap-5 duration-200">
+            <section
+                className="grid min-w-0 gap-3"
+                aria-labelledby="catalog-result-title"
             >
-                {t("reviewedCatalogTitle")}
-            </h1>
-            <p className="text-muted-foreground mt-1 leading-relaxed">
-                {t("reviewedCatalogBody")}
-            </p>
-            <dl className="border-border mt-7 divide-y border-y">
-                <CatalogFact
-                    label={t("identifierLabel")}
-                    value={normalizedIdentifier}
-                />
-                <CatalogFact
-                    label={t("productIdLabel")}
-                    value={candidate.product_id}
-                />
-                <CatalogFact
-                    label={t("packageVariantIdLabel")}
-                    value={candidate.package_variant_id}
-                />
-            </dl>
-            <div className="bg-muted mt-7 rounded-xl p-4">
-                <div className="flex items-start gap-3">
-                    <InfoIcon
-                        className="mt-0.5 shrink-0"
-                        aria-hidden="true"
-                        size={22}
-                    />
-                    <p className="leading-relaxed">
-                        {t("reviewedCatalogDetailsUnavailable")}
-                    </p>
+                <div className="grid min-w-0 items-start gap-4 min-[22.5rem]:grid-cols-[minmax(7.5rem,10rem)_minmax(0,1fr)] sm:grid-cols-[minmax(10rem,13rem)_minmax(0,1fr)] sm:gap-6 lg:grid-cols-[minmax(14rem,18rem)_minmax(0,1fr)] lg:gap-10">
+                    {referenceImage && !referenceImageFailed ? (
+                        <img
+                            className="bg-muted mx-auto aspect-[4/5] w-full rounded-xl object-contain"
+                            src={referenceImage.url}
+                            alt=""
+                            decoding="async"
+                            onError={() => setReferenceImageFailed(true)}
+                        />
+                    ) : (
+                        <div
+                            className="bg-muted text-muted-foreground grid aspect-[4/5] min-h-32 place-content-center justify-items-center gap-2 rounded-xl p-3 text-center text-sm leading-relaxed"
+                            role="img"
+                            aria-label={t("imageUnavailable")}
+                        >
+                            <ImageSquareIcon aria-hidden="true" size={32} />
+                            <span>{t("imageUnavailable")}</span>
+                        </div>
+                    )}
+                    <div className="min-w-0">
+                        <h1
+                            className="text-[clamp(1.45rem,6vw,2.1rem)] leading-[1.35] font-black tracking-tight text-balance wrap-anywhere"
+                            ref={ref}
+                            id="catalog-result-title"
+                            tabIndex={-1}
+                        >
+                            {name ?? t("reviewedCatalogTitle")}
+                        </h1>
+                        <p className="text-muted-foreground mt-2 leading-relaxed">
+                            {t("reviewedCatalogBody")}
+                        </p>
+                        <dl className="mt-3 grid gap-0.5 text-[0.9375rem] leading-[1.5]">
+                            <CatalogSummaryFact
+                                label={t("identifierLabel")}
+                                value={normalizedIdentifier}
+                            />
+                            <CatalogSummaryFact
+                                label={t("productIdLabel")}
+                                value={candidate.product_id}
+                            />
+                        </dl>
+                    </div>
                 </div>
+                <div className="bg-secondary text-secondary-foreground rounded-xl px-4 py-2 text-center font-black">
+                    {t("productMadeInLabel")}{" "}
+                    <span>{t("informationNotMentioned")}</span>
+                </div>
+            </section>
+
+            <div className="border-border border-y py-3">
+                <p className="text-sm font-black">
+                    {t("evidenceSnapshotTitle")}
+                </p>
+                <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+                    {t("reviewedCatalogDetailsUnavailable")}
+                </p>
+            </div>
+
+            <div className="grid gap-3" aria-label={t("productDetailsTitle")}>
+                <ResultAccordion
+                    id="catalog-result-section-information"
+                    title={t("productInformationTitle")}
+                    icon={DatabaseIcon}
+                >
+                    <dl className="divide-border border-border mt-4 divide-y border-y">
+                        <CatalogFact
+                            label={t("identifierLabel")}
+                            value={normalizedIdentifier}
+                        />
+                        <CatalogFact
+                            label={t("productIdLabel")}
+                            value={candidate.product_id}
+                        />
+                        <CatalogFact
+                            label={t("packageVariantIdLabel")}
+                            value={candidate.package_variant_id}
+                        />
+                    </dl>
+                </ResultAccordion>
+                <ResultAccordion
+                    id="catalog-result-section-evidence"
+                    title={t("evidenceSnapshotTitle")}
+                    icon={InfoIcon}
+                >
+                    <EvidenceSnapshot items={snapshot} />
+                </ResultAccordion>
             </div>
         </article>
+    )
+}
+
+function CatalogSummaryFact({
+    label,
+    value,
+}: {
+    label: string
+    value?: string | null
+}) {
+    const { t } = useTranslation()
+    return (
+        <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-2">
+            <dt className="text-muted-foreground">{label}:</dt>
+            <dd className="wrap-anywhere">
+                {value ?? t("catalogValueUnavailable")}
+            </dd>
+        </div>
     )
 }
 
@@ -537,7 +568,7 @@ function CatalogFact({
 }) {
     const { t } = useTranslation()
     return (
-        <div className="grid gap-1 py-4 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-5">
+        <div className="grid gap-1 py-4 sm:grid-cols-[12rem_minmax(0,1fr)] sm:gap-6">
             <dt className="text-muted-foreground">{label}</dt>
             <dd className="font-mono wrap-anywhere tabular-nums">
                 {value ?? t("catalogValueUnavailable")}

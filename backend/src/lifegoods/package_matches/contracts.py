@@ -9,12 +9,19 @@ from lifegoods.package_matches.assessments import (
     AllergenAssessmentReason,
     AllergenAssessmentStatus,
     EvidenceCoverageState,
+    HalalIngredientAssessmentOutcome,
+    HalalIngredientAssessmentReason,
+    HalalIngredientAssessmentStatus,
 )
 from lifegoods.package_matches.models import (
     OpenFoodFactsLookupStatus,
     PackageMatchSourceKind,
 )
-from lifegoods.reference_datasets import AllergenRelationshipType
+from lifegoods.reference_datasets import (
+    AllergenRelationshipType,
+    HalalClassification,
+    HalalRelationshipType,
+)
 
 
 class PackageMatchSourceResponse(BaseModel):
@@ -118,9 +125,52 @@ class AllergenAssessmentResponse(BaseModel):
     source_signals: list[PackageMatchEvidenceResponse] = Field(default_factory=list)
 
 
+class HalalSourceCitationResponse(BaseModel):
+    source_id: str
+    jurisdiction: str
+    edition: str | None = None
+    locator: str
+    notes: str | None = None
+
+
+class HalalIngredientFindingResponse(BaseModel):
+    id: str
+    concept_id: str
+    mapping_id: str | None = None
+    halal_mapping_id: str | None = None
+    classification: HalalClassification
+    relationship_type: HalalRelationshipType
+    matched_text: str
+    source_text: str | None = None
+    start_index: int
+    end_index: int
+    language: str | None = None
+    citations: list[HalalSourceCitationResponse] = Field(default_factory=list)
+    source_field: str
+    source_url: str
+    source_revision: str | None = None
+    off_dataset_version_id: str | None = None
+    reference_dataset_version_id: str | None = None
+    engine_version: str | None = None
+
+
+class HalalIngredientAssessmentResponse(BaseModel):
+    status: HalalIngredientAssessmentStatus
+    reason: HalalIngredientAssessmentReason | None
+    outcome: HalalIngredientAssessmentOutcome
+    evidence_coverage: EvidenceCoverageState
+    engine_version: str | None = None
+    reference_dataset_version: AssessmentReferenceDatasetVersionResponse | None = (
+        None
+    )
+    checked_evidence: list[PackageMatchEvidenceResponse] = Field(default_factory=list)
+    findings: list[HalalIngredientFindingResponse] = Field(default_factory=list)
+
+
 class PackageMatchCandidateResponse(BaseModel):
     source_kind: PackageMatchSourceKind
     allergen_assessment: AllergenAssessmentResponse
+    halal_ingredient_assessment: HalalIngredientAssessmentResponse
     package_variant_id: str | None = None
     product_id: str | None = None
     external_record_id: str | None = None
