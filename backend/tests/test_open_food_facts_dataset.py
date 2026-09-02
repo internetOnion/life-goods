@@ -75,6 +75,38 @@ def test_dataset_lookup_maps_full_document_and_version_provenance() -> None:
     assert record.halal_label_claim.value == ("en:halal",)
 
 
+def test_dataset_batch_lookup_preserves_order_and_version_provenance() -> None:
+    database = dataset_database()
+    database[COLLECTION_NAME].insert_many(
+        [
+            {"code": "4006381333931", "product_name": "First"},
+            {"code": "8850000000003", "product_name": "Second"},
+        ]
+    )
+    source = OpenFoodFactsDatasetSource(database)
+
+    results = source.fetch_many(
+        VERSION_ID,
+        (
+            normalize_identifier("8850000000003"),
+            normalize_identifier("4006381333931"),
+            normalize_identifier("12345670"),
+        ),
+    )
+
+    assert [type(result) for result in results] == [
+        ExternalPackageFound,
+        ExternalPackageFound,
+        ExternalPackageNotFound,
+    ]
+    assert isinstance(results[0], ExternalPackageFound)
+    assert isinstance(results[1], ExternalPackageFound)
+    assert isinstance(results[2], ExternalPackageNotFound)
+    assert results[0].record.identifier == "8850000000003"
+    assert results[1].record.identifier == "4006381333931"
+    assert results[2].dataset_version.id == VERSION_ID
+
+
 def test_dataset_lookup_preserves_missing_fields_without_negative_evidence() -> None:
     database = dataset_database()
     payload = json.loads((FIXTURES / "sparse.json").read_text())

@@ -121,6 +121,11 @@ class OpenFoodFactsDatasetSource:
     def metadata(self) -> ExternalSourceMetadata:
         return self._source_metadata
 
+    @property
+    def database(self) -> Database[dict[str, Any]]:
+        """MongoDB database used by this immutable dataset source."""
+        return self._database
+
     def fetch(self, identifier: NormalizedIdentifier) -> ExternalLookupResult:
         try:
             pointer = self._database[CONTROL_COLLECTION].find_one(
@@ -164,6 +169,60 @@ class OpenFoodFactsDatasetSource:
             )
         )
 
+    def fetch_many(
+        self,
+        version_id: str,
+        identifiers: tuple[NormalizedIdentifier, ...],
+    ) -> tuple[ExternalLookupResult, ...]:
+        """Fetch several Products from one pinned OFF Dataset Version."""
+        if not identifiers:
+            return ()
+        try:
+            resolved = self._cached_manifest(version_id)
+            if resolved is None:
+                resolved = self._resolve_manifest(version_id)
+            if resolved is None:
+                return tuple(_unavailable(identifier) for identifier in identifiers)
+            products = {
+                product.get("code"): product
+                for product in self._database[resolved.collection_name].find(
+                    {"code": {"$in": [identifier.value for identifier in identifiers]}}
+                )
+                if isinstance(product.get("code"), str)
+            }
+        except (PyMongoError, KeyError, TypeError, ValueError) as error:
+            _log_off_unavailable("fetch_packages", "dependency_error", error)
+            return tuple(_unavailable(identifier) for identifier in identifiers)
+
+        results: list[ExternalLookupResult] = []
+        for identifier in identifiers:
+            product = products.get(identifier.value)
+            if product is None:
+                results.append(
+                    ExternalPackageNotFound(
+                        identifier=identifier.value,
+                        source=self._source_metadata,
+                        dataset_version=resolved.version,
+                    )
+                )
+                continue
+            if product.get("code") != identifier.value:
+                _log_off_unavailable("validate_product", "record_invalid")
+                results.append(_unavailable(identifier))
+                continue
+            results.append(
+                ExternalPackageFound(
+                    record=_record_from_product(
+                        identifier,
+                        product,
+                        self._source_metadata,
+                        resolved.version,
+                        self._image_base_url,
+                    )
+                )
+            )
+        return tuple(results)
+
     def search(
         self,
         query: str,
@@ -177,7 +236,9 @@ class OpenFoodFactsDatasetSource:
                 {"_id": ACTIVE_POINTER_ID}
             )
             if pointer is None or not isinstance(pointer.get("active_version_id"), str):
-                _log_off_unavailable("search_packages_read_active_pointer", "metadata_invalid")
+                _log_off_unavailable(
+                    "search_packages_read_active_pointer", "metadata_invalid"
+                )
                 raise ExternalPackageSearchUnavailableError("Active dataset unavailable")
             version_id = pointer["active_version_id"]
             resolved = self._cached_manifest(version_id)
@@ -436,6 +497,21 @@ def _localized_texts(
                     language=resolved_language,
                 )
             )
+    known_fields = {source_field for source_field, _ in fields}
+    base_field = fields[0][0]
+    for source_field, raw_value in product.items():
+        if source_field in known_fields or not source_field.startswith(f"{base_field}_"):
+            continue
+        language = source_field.rsplit("_", 1)[-1]
+        if len(language) != 2 or not language.isalpha():
+            continue
+        value = _non_empty_string(raw_value)
+        if value is None:
+            continue
+        resolved = SourcedValue(value=value, source_field=source_field, language=language)
+        if not deduplicate or (value, language) not in seen:
+            values.append(resolved)
+            seen.add((value, language))
     return tuple(values)
 
 

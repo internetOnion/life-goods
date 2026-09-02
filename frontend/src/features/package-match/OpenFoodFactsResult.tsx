@@ -186,7 +186,9 @@ export function OpenFoodFactsResult({
                         name={selectedName}
                         brand={preferredEvidence(brands, language)}
                         category={preferredEvidence(categories, language)}
-                        identifier={fieldEvidence(identityEvidence, "identifier")[0]}
+                        identifier={
+                            fieldEvidence(identityEvidence, "identifier")[0]
+                        }
                         normalizedIdentifier={normalizedIdentifier}
                     />
                 </ResultAccordion>
@@ -274,7 +276,10 @@ function SummarySection({
     const hasReferenceImage = Boolean(referenceImage) && !referenceImageFailed
     const madeInValue = printableText(madeIn?.value)
     return (
-        <section className="grid min-w-0 gap-3" aria-labelledby="off-result-title">
+        <section
+            className="grid min-w-0 gap-3"
+            aria-labelledby="off-result-title"
+        >
             <div className="grid min-w-0 items-start gap-4 min-[22.5rem]:grid-cols-[minmax(7.5rem,10rem)_minmax(0,1fr)] sm:grid-cols-[minmax(10rem,13rem)_minmax(0,1fr)] sm:gap-6 lg:grid-cols-[minmax(14rem,18rem)_minmax(0,1fr)] lg:gap-10">
                 {hasReferenceImage ? (
                     <ReferenceImage
@@ -295,7 +300,11 @@ function SummarySection({
                         {packageName ?? t("informationNotMentioned")}
                     </h1>
                     <p className="text-muted-foreground mt-1 wrap-anywhere">
-                        {[printableText(brand?.value), printableText(quantity?.value), printableText(category?.value)]
+                        {[
+                            printableText(brand?.value),
+                            printableText(quantity?.value),
+                            printableText(category?.value),
+                        ]
                             .filter(Boolean)
                             .join(" · ") || t("informationNotMentioned")}
                     </p>
@@ -324,7 +333,7 @@ function SummarySection({
                 </div>
             </div>
             <div className="bg-secondary text-secondary-foreground rounded-xl px-4 py-2 text-center font-black">
-                {t("productMadeInLabel")} {" "}
+                {t("productMadeInLabel")}{" "}
                 <span>{madeInValue ?? t("informationNotMentioned")}</span>
             </div>
         </section>
@@ -391,13 +400,17 @@ function EvidenceStatus({ snapshot }: { snapshot: EvidenceSnapshotItem[] }) {
             <div className="text-muted-foreground mt-1 grid gap-0.5 text-sm leading-relaxed">
                 {evidenceGaps ? (
                     <p className="wrap-anywhere">
-                        <span className="font-bold">{t("evidenceGapsSnapshot")}:</span>{" "}
+                        <span className="font-bold">
+                            {t("evidenceGapsSnapshot")}:
+                        </span>{" "}
                         {evidenceGaps.value}
                     </p>
                 ) : null}
                 {sourceReview ? (
                     <p className="wrap-anywhere">
-                        <span className="font-bold">{t("sourceReviewSnapshot")}:</span>{" "}
+                        <span className="font-bold">
+                            {t("sourceReviewSnapshot")}:
+                        </span>{" "}
                         {sourceReview.value}
                         {sourceReview.detail ? ` · ${sourceReview.detail}` : ""}
                     </p>
@@ -514,47 +527,47 @@ function NutritionContent({
 
     return matrix.length > 0 ? (
         <div className="border-border mt-4 overflow-hidden rounded-lg border">
-                    <div
-                        className={`bg-muted grid gap-3 border-b px-3 py-2 text-sm font-semibold ${nutritionGridClass(bases.length)}`}
-                        role="row"
+            <div
+                className={`bg-muted grid gap-3 border-b px-3 py-2 text-sm font-semibold ${nutritionGridClass(bases.length)}`}
+                role="row"
+            >
+                <span role="columnheader">{t("nutrientLabel")}</span>
+                {bases.map((basis) => (
+                    <span
+                        className="text-right wrap-anywhere"
+                        key={basis}
+                        role="columnheader"
                     >
-                        <span role="columnheader">{t("nutrientLabel")}</span>
-                        {bases.map((basis) => (
-                            <span
-                                className="text-right wrap-anywhere"
-                                key={basis}
-                                role="columnheader"
-                            >
-                                {nutritionBasisLabel(basis, t)}
-                            </span>
-                        ))}
-                    </div>
-                    {matrix.map((row) => (
-                        <div
-                            className={`border-border grid gap-3 border-b px-3 py-3 last:border-b-0 ${nutritionGridClass(bases.length)}`}
-                            key={row.nutrient}
-                            role="row"
+                        {nutritionBasisLabel(basis, t)}
+                    </span>
+                ))}
+            </div>
+            {matrix.map((row) => (
+                <div
+                    className={`border-border grid gap-3 border-b px-3 py-3 last:border-b-0 ${nutritionGridClass(bases.length)}`}
+                    key={row.nutrient}
+                    role="row"
+                >
+                    <span className="wrap-anywhere" role="rowheader">
+                        {nutritionLabelKeys[row.nutrient]
+                            ? t(nutritionLabelKeys[row.nutrient]!)
+                            : humanizeSourceKey(row.nutrient)}
+                    </span>
+                    {bases.map((basis) => (
+                        <span
+                            className="text-right font-mono wrap-anywhere tabular-nums"
+                            key={basis}
+                            role="cell"
                         >
-                            <span className="wrap-anywhere" role="rowheader">
-                                {nutritionLabelKeys[row.nutrient]
-                                    ? t(nutritionLabelKeys[row.nutrient]!)
-                                    : humanizeSourceKey(row.nutrient)}
-                            </span>
-                            {bases.map((basis) => (
-                                <span
-                                    className="text-right font-mono wrap-anywhere tabular-nums"
-                                    key={basis}
-                                    role="cell"
-                                >
-                                    {formatNutritionCell(
-                                        row.values[basis],
-                                        locale === "en" ? "en" : "km-KH",
-                                        t,
-                                    )}
-                                </span>
-                            ))}
-                        </div>
+                            {formatNutritionCell(
+                                row.values[basis],
+                                locale === "en" ? "en" : "km-KH",
+                                t,
+                            )}
+                        </span>
                     ))}
+                </div>
+            ))}
         </div>
     ) : (
         <UnavailableValue className="mt-4" />
@@ -602,16 +615,16 @@ function nutritionSummaryValues(
     t: (key: string) => string,
 ): NutritionSummaryValues {
     const matrix = nutritionMatrix(evidence)
-    const basis: NutritionBasis = matrix.some(
-        (row) => row.values.per100ml,
-    )
+    const basis: NutritionBasis = matrix.some((row) => row.values.per100ml)
         ? "per100ml"
         : "per100g"
     const locale = language === "en" ? "en" : "km-KH"
 
     const valueFor = (...nutrients: string[]) => {
         const row = nutrients
-            .map((nutrient) => matrix.find((item) => item.nutrient === nutrient))
+            .map((nutrient) =>
+                matrix.find((item) => item.nutrient === nutrient),
+            )
             .find(Boolean)
         const cell = row?.values[basis]
         if (!cell) return undefined

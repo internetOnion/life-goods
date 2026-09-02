@@ -1,4 +1,4 @@
-import type { PackageSearchResponse } from "@/api/generated"
+import type { LifegoodsPackageSearchContractsPackageSearchResponse as PackageSearchResponse } from "@/api/generated"
 
 export type PackageSearchLookup = (
     query: string,
@@ -7,6 +7,6 @@ export type PackageSearchLookup = (
 ) => Promise<PackageSearchResponse>
 
 export type {
-    PackageSearchResponse,
-    PackageSearchResultResponse,
+    LifegoodsPackageSearchContractsPackageSearchResponse as PackageSearchResponse,
+    LifegoodsPackageSearchContractsPackageSearchResultResponse as PackageSearchResultResponse,
 } from "@/api/generated"

@@ -5,9 +5,9 @@ import { MemoryRouter } from "react-router"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import type {
+    LifegoodsPackageSearchContractsPackageSearchResponse as PackageSearchResponse,
+    LifegoodsPackageSearchContractsPackageSearchResultResponse as PackageSearchResultResponse,
     PackageSearchEvidenceResponse,
-    PackageSearchResponse,
-    PackageSearchResultResponse,
 } from "../src/api/generated"
 import { App } from "../src/app/App"
 import type { PackageMatchLookup } from "../src/features/package-match/types"

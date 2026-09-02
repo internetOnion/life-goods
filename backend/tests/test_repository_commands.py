@@ -19,7 +19,6 @@ def test_dev_server_scripts_separate_http_and_https() -> None:
     frontend_package = json.loads(
         (REPOSITORY_ROOT / "frontend" / "package.json").read_text()
     )
-
     assert root_package["scripts"]["dev"] == "pnpm --dir frontend dev"
     assert root_package["scripts"]["dev:https"] == "pnpm --dir frontend dev:https"
 
@@ -29,4 +28,3 @@ def test_dev_server_scripts_separate_http_and_https() -> None:
     assert frontend_package["scripts"]["predev:https"].startswith(
         "node scripts/generate-dev-cert.mjs"
     )
-

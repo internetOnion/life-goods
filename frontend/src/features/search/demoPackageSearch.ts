@@ -1,7 +1,7 @@
 import type {
+    LifegoodsPackageSearchContractsPackageSearchResponse as PackageSearchResponse,
+    LifegoodsPackageSearchContractsPackageSearchResultResponse as PackageSearchResultResponse,
     PackageSearchEvidenceResponse,
-    PackageSearchResponse,
-    PackageSearchResultResponse,
 } from "@/api/generated"
 
 import type { PackageSearchLookup } from "./types"

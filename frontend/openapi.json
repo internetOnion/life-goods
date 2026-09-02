@@ -356,7 +356,10 @@
           "REFERENCE_IMAGE_URL_INVALID",
           "REFERENCE_IMAGE_NOT_FOUND",
           "REFERENCE_IMAGE_SOURCE_UNAVAILABLE",
-          "RATE_LIMIT_EXCEEDED"
+          "RATE_LIMIT_EXCEEDED",
+          "SEARCH_QUERY_REQUIRED",
+          "SEARCH_QUERY_INVALID",
+          "SEARCH_RESULTS_NOT_FOUND"
         ],
         "title": "ErrorCode",
         "type": "string"
@@ -1223,6 +1226,24 @@
         "title": "PackageMatchesResponse",
         "type": "object"
       },
+      "PackageSearchAdditiveResponse": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name"
+        ],
+        "title": "PackageSearchAdditiveResponse",
+        "type": "object"
+      },
       "PackageSearchEvidenceResponse": {
         "properties": {
           "dataset_version_id": {
@@ -1284,7 +1305,255 @@
         "title": "PackageSearchEvidenceResponse",
         "type": "object"
       },
-      "PackageSearchResponse": {
+      "PackageSearchNameResponse": {
+        "properties": {
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "source_field": {
+            "title": "Source Field",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "language",
+          "source_field"
+        ],
+        "title": "PackageSearchNameResponse",
+        "type": "object"
+      },
+      "lifegoods__package_matches__contracts__PackageSearchResponse": {
+        "properties": {
+          "dataset_version": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExternalDatasetVersionResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/lifegoods__package_matches__contracts__PackageSearchResultResponse"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query",
+          "page",
+          "page_size",
+          "has_more",
+          "source",
+          "dataset_version"
+        ],
+        "title": "PackageSearchResponse",
+        "type": "object"
+      },
+      "lifegoods__package_matches__contracts__PackageSearchResultResponse": {
+        "properties": {
+          "additives": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PackageSearchAdditiveResponse"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Additives"
+          },
+          "allergens": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allergens"
+          },
+          "barcode": {
+            "title": "Barcode",
+            "type": "string"
+          },
+          "brand": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand"
+          },
+          "dataset_version_id": {
+            "title": "Dataset Version Id",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/PackageMatchEvidenceResponse"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "ingredients": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ingredients"
+          },
+          "made_in": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Made In"
+          },
+          "matched_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Matched Fields",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "other_names": {
+            "items": {
+              "$ref": "#/components/schemas/PackageSearchNameResponse"
+            },
+            "title": "Other Names",
+            "type": "array"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "source_record_id": {
+            "title": "Source Record Id",
+            "type": "string"
+          },
+          "source_revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Revision"
+          },
+          "source_updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Updated At"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "barcode",
+          "name",
+          "source_record_id",
+          "source_url",
+          "source_updated_at",
+          "dataset_version_id"
+        ],
+        "title": "PackageSearchResultResponse",
+        "type": "object"
+      },
+      "lifegoods__package_search__contracts__PackageSearchResponse": {
         "properties": {
           "dataset_version": {
             "$ref": "#/components/schemas/ExternalDatasetVersionResponse"
@@ -1306,7 +1575,7 @@
           },
           "results": {
             "items": {
-              "$ref": "#/components/schemas/PackageSearchResultResponse"
+              "$ref": "#/components/schemas/lifegoods__package_search__contracts__PackageSearchResultResponse"
             },
             "title": "Results",
             "type": "array"
@@ -1321,7 +1590,7 @@
         "title": "PackageSearchResponse",
         "type": "object"
       },
-      "PackageSearchResultResponse": {
+      "lifegoods__package_search__contracts__PackageSearchResultResponse": {
         "properties": {
           "brands": {
             "anyOf": [
@@ -1558,6 +1827,111 @@
         ]
       }
     },
+    "/api/v1/package-matches/search": {
+      "get": {
+        "description": "Searches the active local Open Food Facts Dataset Version by product name, brand, or explicit manufacturing country. Results are external Evidence and do not prove product origin or identity.",
+        "operationId": "searchPackageMatches",
+        "parameters": [
+          {
+            "description": "Product name, brand, or manufacturing country to search for.",
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "description": "Product name, brand, or manufacturing country to search for.",
+              "maxLength": 100,
+              "minLength": 2,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Result page number.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "description": "Result page number.",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Results per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "description": "Results per page.",
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/lifegoods__package_matches__contracts__PackageSearchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "No Package Match candidates matched the search query."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Search Package Match candidates",
+        "tags": [
+          "Package Matches"
+        ]
+      }
+    },
     "/api/v1/package-search": {
       "get": {
         "operationId": "searchPackages",
@@ -1602,7 +1976,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PackageSearchResponse"
+                  "$ref": "#/components/schemas/lifegoods__package_search__contracts__PackageSearchResponse"
                 }
               }
             },

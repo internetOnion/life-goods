@@ -494,12 +494,15 @@ function ReviewedCatalogResult({
                     </div>
                 </div>
                 <div className="bg-secondary text-secondary-foreground rounded-xl px-4 py-2 text-center font-black">
-                    {t("productMadeInLabel")} <span>{t("informationNotMentioned")}</span>
+                    {t("productMadeInLabel")}{" "}
+                    <span>{t("informationNotMentioned")}</span>
                 </div>
             </section>
 
             <div className="border-border border-y py-3">
-                <p className="text-sm font-black">{t("evidenceSnapshotTitle")}</p>
+                <p className="text-sm font-black">
+                    {t("evidenceSnapshotTitle")}
+                </p>
                 <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
                     {t("reviewedCatalogDetailsUnavailable")}
                 </p>
@@ -538,12 +541,20 @@ function ReviewedCatalogResult({
     )
 }
 
-function CatalogSummaryFact({ label, value }: { label: string; value?: string | null }) {
+function CatalogSummaryFact({
+    label,
+    value,
+}: {
+    label: string
+    value?: string | null
+}) {
     const { t } = useTranslation()
     return (
         <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-2">
             <dt className="text-muted-foreground">{label}:</dt>
-            <dd className="wrap-anywhere">{value ?? t("catalogValueUnavailable")}</dd>
+            <dd className="wrap-anywhere">
+                {value ?? t("catalogValueUnavailable")}
+            </dd>
         </div>
     )
 }

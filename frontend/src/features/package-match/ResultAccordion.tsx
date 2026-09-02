@@ -15,9 +15,9 @@ export function ResultAccordion({
     children: ReactNode
 }) {
     return (
-        <details className="group overflow-hidden rounded-xl bg-secondary">
+        <details className="group bg-secondary overflow-hidden rounded-xl">
             <summary
-                className="focus-visible:ring-ring flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 px-4 py-2.5 font-black focus-visible:ring-2 focus-visible:ring-inset focus-visible:outline-none [&::-webkit-details-marker]:hidden"
+                className="focus-visible:ring-ring flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 px-4 py-2.5 font-black focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset [&::-webkit-details-marker]:hidden"
                 aria-controls={`${id}-content`}
             >
                 <span className="flex min-w-0 items-center gap-3">
@@ -28,7 +28,7 @@ export function ResultAccordion({
                         weight="regular"
                     />
                     <span
-                        className="wrap-anywhere leading-[1.45]"
+                        className="leading-[1.45] wrap-anywhere"
                         role="heading"
                         aria-level={2}
                     >
@@ -42,10 +42,7 @@ export function ResultAccordion({
                     weight="bold"
                 />
             </summary>
-            <div
-                className="bg-background px-4 pb-5 pt-1"
-                id={`${id}-content`}
-            >
+            <div className="bg-background px-4 pt-1 pb-5" id={`${id}-content`}>
                 {description ? (
                     <p className="text-muted-foreground max-w-[68ch] leading-relaxed">
                         {description}
