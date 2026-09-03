@@ -7,6 +7,7 @@ from lifegoods.product_lookup.cache import (
     product_lookup_cache_key,
 )
 from lifegoods.product_lookup.contracts import (
+    DatasetSnapshotResponse,
     EnvironmentProjection,
     GradedSourceAssessment,
     NovaSourceAssessment,
@@ -20,11 +21,14 @@ from lifegoods.product_lookup.contracts import (
     ProductLookupErrorCode,
     ProductLookupErrorDetail,
     ProductLookupErrorResponse,
+    ProductLookupMetadataResponse,
+    ProductLookupMetaResponse,
     ProductLookupResponse,
     ProductProjection,
     ProductProjectionData,
     ProductProjectionResponse,
     SourceAssessmentsProjection,
+    SourceAttributionResponse,
     SourceImage,
     SourceRecordMetadataProjection,
 )
@@ -39,6 +43,7 @@ from lifegoods.product_lookup.models import (
     RawProductLookupSource,
     SourceRecord,
 )
+from lifegoods.product_lookup.projection import project_source_record
 from lifegoods.product_lookup.rate_limit import (
     ProductLookupRateLimiter,
     RedisProductLookupRateLimiter,
@@ -53,6 +58,7 @@ from lifegoods.product_lookup.service import LookupProduct, ProductLookupResult
 
 __all__ = [
     "DatasetSnapshot",
+    "DatasetSnapshotResponse",
     "DatasetUnavailableError",
     "EnvironmentProjection",
     "GradedSourceAssessment",
@@ -73,6 +79,8 @@ __all__ = [
     "ProductLookupErrorCode",
     "ProductLookupErrorDetail",
     "ProductLookupErrorResponse",
+    "ProductLookupMetadataResponse",
+    "ProductLookupMetaResponse",
     "ProductLookupMetrics",
     "ProductLookupRateLimiter",
     "ProductLookupResponse",
@@ -84,9 +92,11 @@ __all__ = [
     "RedisProductLookupCache",
     "RedisProductLookupRateLimiter",
     "SourceAssessmentsProjection",
+    "SourceAttributionResponse",
     "SourceImage",
     "SourceRecord",
     "SourceRecordMetadataProjection",
+    "project_source_record",
     "get_product_lookup",
     "get_product_lookup_metrics",
     "get_product_lookup_rate_limiter",
