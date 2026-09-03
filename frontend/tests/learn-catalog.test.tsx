@@ -8,13 +8,13 @@ import { LEARN_GUIDES } from "../src/features/learn/guides"
 import { LEARN_SOURCES } from "../src/features/learn/sources"
 import type { AdditiveRecord } from "../src/features/learn/types"
 import { learnCatalogErrors } from "../src/features/learn/validation"
-import type { PackageMatchLookup } from "../src/features/package-match/types"
-import i18n from "../src/i18n"
+import i18n from "../src/features/learn/translations"
+import type { ProductLookup } from "../src/features/product/api"
 
 function renderRoute(path: string) {
     return render(
         <MemoryRouter initialEntries={[path]}>
-            <App lookup={vi.fn<PackageMatchLookup>()} demoMode={false} />
+            <App lookup={vi.fn<ProductLookup>()} demoMode={false} />
         </MemoryRouter>,
     )
 }

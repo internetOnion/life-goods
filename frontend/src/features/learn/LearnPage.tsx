@@ -13,15 +13,12 @@ import {
     XIcon,
 } from "@phosphor-icons/react"
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react"
-import { useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router"
 
 import { appRoutes } from "@/app/routes"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useMvpDemoMode } from "@/config/MvpDemoModeContext"
-import { DemoNotice } from "@/ui/DemoNotice"
+import { usePageMetadata } from "@/lib/metadata"
 
 import {
     KNOWLEDGE_ENTRIES,
@@ -39,6 +36,7 @@ import {
 import { LEARN_GUIDES } from "./guides"
 import { LEARN_SOURCE_BY_ID } from "./sources"
 import type { LearnCategory, LearnEntry, LearnGuide } from "./types"
+import { useLearnTranslation as useTranslation } from "./translations"
 import { validateLearnCatalog } from "./validation"
 
 if (import.meta.env.DEV) validateLearnCatalog()
@@ -153,7 +151,11 @@ function categoryForTopic(topic: LearnTopic): LearnCategory {
 }
 
 export function LearnPage() {
-    const { i18n } = useTranslation()
+    const { i18n, t } = useTranslation()
+    usePageMetadata({
+        title: t("learn.title"),
+        description: t("learn.intro"),
+    })
 
     return <LearnIndexPage locale={currentLocale(i18n.resolvedLanguage)} />
 }
@@ -281,13 +283,13 @@ function LearnIndexPage({ locale }: LearnIndexPageProps) {
                 className="border-border mt-8 border-y py-5"
                 aria-labelledby="learn-search-heading"
             >
-                <Label
+                <label
                     id="learn-search-heading"
                     className="text-base leading-relaxed font-bold sm:text-lg"
                     htmlFor="learn-search"
                 >
                     {t("learn.searchLabel")}
-                </Label>
+                </label>
                 <div className="border-input bg-background focus-within:border-ring focus-within:ring-ring/40 mt-2 flex min-h-14 items-center gap-3 rounded-xl border px-4 transition-colors focus-within:ring-2">
                     <MagnifyingGlassIcon
                         className="text-muted-foreground shrink-0"
@@ -545,9 +547,12 @@ function LearnIndexPage({ locale }: LearnIndexPageProps) {
     )
 }
 
-export function LearnArticlePage() {
+type LearnArticlePageProps = {
+    demoMode?: boolean
+}
+
+export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
     const { t, i18n } = useTranslation()
-    const demoMode = useMvpDemoMode()
     const { slug } = useParams<{ slug: string }>()
     const headingRef = useRef<HTMLHeadingElement>(null)
     const locale = currentLocale(i18n.resolvedLanguage)
@@ -562,6 +567,12 @@ export function LearnArticlePage() {
     const hasLanguageFallback = Boolean(
         entry && locale === "km" && !entry.title.km,
     )
+    usePageMetadata({
+        title:
+            structuredEntry?.title.en ??
+            entry?.title.en ??
+            t("learn.unavailableTitle"),
+    })
 
     useEffect(() => {
         headingRef.current?.focus()
@@ -589,7 +600,7 @@ export function LearnArticlePage() {
 
     return (
         <>
-            {entry?.kind === "simulated" ? <DemoNotice active /> : null}
+            {entry?.kind === "simulated" ? <LearnDemoNotice active /> : null}
             <main className="mx-auto w-[min(calc(100%_-_2rem),46rem)] min-w-0 pt-[clamp(2rem,7vh,4.5rem)] pb-[calc(3rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),46rem)] sm:w-[min(calc(100%_-_3rem),46rem)]">
                 <Link
                     className="text-primary hover:bg-accent focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-bold no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none"
@@ -877,6 +888,9 @@ export function LearnGuidePage() {
     const locale = currentLocale(i18n.resolvedLanguage)
     const guide = LEARN_GUIDES.find((candidate) => candidate.slug === guideSlug)
     const headingRef = useRef<HTMLHeadingElement>(null)
+    usePageMetadata({
+        title: guide?.title.en ?? t("learn.unavailableGuideTitle"),
+    })
 
     useEffect(() => {
         headingRef.current?.focus()
@@ -951,6 +965,25 @@ export function LearnGuidePage() {
                 </section>
             )}
         </main>
+    )
+}
+
+function LearnDemoNotice({ active }: { active: boolean }) {
+    const { t } = useTranslation()
+
+    if (!active) return null
+
+    return (
+        <aside
+            className="border-mango bg-mango-soft text-foreground mx-auto w-full max-w-7xl border-b px-4 py-3 sm:px-6 lg:px-10"
+            aria-label={t("learn.demoNoticeTitle")}
+            role="status"
+        >
+            <p className="font-bold">{t("learn.demoNoticeTitle")}</p>
+            <p className="mt-0.5 text-sm leading-relaxed">
+                {t("learn.demoNoticeBody")}
+            </p>
+        </aside>
     )
 }
 

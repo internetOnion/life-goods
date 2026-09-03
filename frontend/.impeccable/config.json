@@ -1,3 +1,27 @@
 {
-    "buildPath": "code"
+  "buildPath": "code",
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font-size",
+        "value": "1.06rem",
+        "createdAt": "2026-09-03T12:00:14.729Z",
+        "reason": "User requested preserving PR 80 Learn UI as-is; this inherited text scale is intentional."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "1.08rem",
+        "createdAt": "2026-09-03T12:00:14.809Z",
+        "reason": "User requested preserving PR 80 Learn UI as-is; this inherited text scale is intentional."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "1.05rem",
+        "createdAt": "2026-09-03T12:00:14.890Z",
+        "reason": "User requested preserving PR 80 Learn UI as-is; this inherited text scale is intentional."
+      }
+    ]
+  }
 }

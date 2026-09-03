@@ -1,3 +1,7 @@
+import { useSyncExternalStore } from "react"
+
+import type { LearnLocale } from "./types"
+
 export const learnTranslations = {
     km: {
         learn: {
@@ -57,6 +61,9 @@ export const learnTranslations = {
             recordLink: "ទិន្នន័យច្បាប់នៅ Open Development Cambodia",
             khmerResourceLink: "ធនធាន PDF ភាសាខ្មែរ",
             englishResourceLink: "ធនធាន PDF ភាសាអង់គ្លេស",
+            demoNoticeTitle: "កំពុងបង្ហាញទិន្នន័យសាកល្បង",
+            demoNoticeBody:
+                "ខ្លឹមសារនេះគឺសម្រាប់ការបង្ហាញសាកល្បងប៉ុណ្ណោះ មិនមែនជាព័ត៌មានកញ្ចប់ពិតទេ។",
             topics: {
                 laws: "មូលដ្ឋានស្លាក",
                 declarations: "អាលែហ្សែន និងការប្រកាស",
@@ -128,6 +135,9 @@ export const learnTranslations = {
             recordLink: "Open Development Cambodia law record",
             khmerResourceLink: "Khmer PDF resource",
             englishResourceLink: "English PDF resource",
+            demoNoticeTitle: "Demo data is active",
+            demoNoticeBody:
+                "This content is for demonstration only and is not real package information.",
             topics: {
                 laws: "Label basics",
                 declarations: "Allergens and declarations",
@@ -139,3 +149,67 @@ export const learnTranslations = {
         },
     },
 } as const
+
+type LearnTranslationValues = Record<string, string | number>
+type LearnTranslationListener = () => void
+
+let activeLocale: LearnLocale = "en"
+const listeners = new Set<LearnTranslationListener>()
+
+function subscribe(listener: LearnTranslationListener) {
+    listeners.add(listener)
+    return () => listeners.delete(listener)
+}
+
+function getSnapshot() {
+    return activeLocale
+}
+
+function lookupTranslation(key: string, locale: LearnLocale): unknown {
+    return key
+        .split(".")
+        .reduce<unknown>(
+            (value, segment) =>
+                typeof value === "object" && value !== null
+                    ? (value as Record<string, unknown>)[segment]
+                    : undefined,
+            learnTranslations[locale],
+        )
+}
+
+function translate(key: string, values?: LearnTranslationValues) {
+    const translated = lookupTranslation(key, activeLocale)
+    const fallback = lookupTranslation(key, "en")
+    const text =
+        typeof translated === "string"
+            ? translated
+            : typeof fallback === "string"
+              ? fallback
+              : key
+
+    return text.replace(/{{\s*(\w+)\s*}}/g, (_, name: string) =>
+        values?.[name] === undefined
+            ? "{{" + name + "}}"
+            : String(values[name]),
+    )
+}
+
+export const learnI18n = {
+    get resolvedLanguage() {
+        return activeLocale
+    },
+    changeLanguage(language: string) {
+        activeLocale = language === "km" ? "km" : "en"
+        listeners.forEach((listener) => listener())
+        return Promise.resolve(learnI18n)
+    },
+    getSnapshot,
+    subscribe,
+}
+
+export function useLearnTranslation() {
+    useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+    return { i18n: learnI18n, t: translate }
+}
+
+export default learnI18n

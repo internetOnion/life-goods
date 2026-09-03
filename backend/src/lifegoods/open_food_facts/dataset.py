@@ -55,6 +55,7 @@ logger = logging.getLogger(__name__)
 LOCALIZED_NAME_FIELDS = (
     ("product_name", None),
     ("product_name_en", "en"),
+    ("product_name_fr", "fr"),
     ("product_name_km", "km"),
     ("product_name_th", "th"),
     ("product_name_vi", "vi"),
@@ -69,6 +70,7 @@ PACKAGE_SEARCH_TEXT_WEIGHTS = {
 LOCALIZED_INGREDIENT_FIELDS = (
     ("ingredients_text", None),
     ("ingredients_text_en", "en"),
+    ("ingredients_text_fr", "fr"),
     ("ingredients_text_km", "km"),
     ("ingredients_text_th", "th"),
     ("ingredients_text_vi", "vi"),
@@ -77,6 +79,7 @@ LOCALIZED_INGREDIENT_FIELDS = (
 LOCALIZED_STORAGE_FIELDS = (
     ("conservation_conditions", None),
     ("conservation_conditions_en", "en"),
+    ("conservation_conditions_fr", "fr"),
     ("conservation_conditions_km", "km"),
     ("conservation_conditions_th", "th"),
     ("conservation_conditions_vi", "vi"),
@@ -123,6 +126,11 @@ class OpenFoodFactsDatasetSource:
             contents_license="Database Contents License",
             image_license="CC BY-SA",
         )
+
+    @property
+    def database(self) -> Database[dict[str, Any]]:
+        """Expose the backing database to the optional package search index."""
+        return self._database
 
     @property
     def metadata(self) -> ExternalSourceMetadata:

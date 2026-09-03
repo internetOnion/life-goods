@@ -770,6 +770,7 @@ export const LEARN_TOPIC_ORDER: LearnTopic[] = [
 export const LEARN_TOPIC_LABELS: Record<LearnTopic, string> = {
     laws: "Laws & Regulations",
     declarations: "Declarations & Claims",
+    halal: "Halal",
     evidence: "Evidence & Uncertainty",
     ingredients: "Ingredients & Additives",
     dates: "Dates & Seals",

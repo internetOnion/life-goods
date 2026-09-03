@@ -18,9 +18,10 @@ import { appRoutes } from "./routes"
 
 type AppProps = {
     lookup?: ProductLookup
+    demoMode?: boolean
 }
 
-export function App({ lookup = lookupProduct }: AppProps) {
+export function App({ lookup = lookupProduct, demoMode = false }: AppProps) {
     return (
         <AppShell>
             <Routes>
@@ -33,7 +34,7 @@ export function App({ lookup = lookupProduct }: AppProps) {
                 />
                 <Route
                     path={appRoutes.learnDetail}
-                    element={<LearnArticlePage />}
+                    element={<LearnArticlePage demoMode={demoMode} />}
                 />
                 <Route path={appRoutes.concerns} element={<ConcernsPage />} />
                 <Route

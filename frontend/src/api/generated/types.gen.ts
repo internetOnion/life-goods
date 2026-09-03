@@ -701,6 +701,90 @@ export type PackageSearchNameResponse = {
 };
 
 /**
+ * ProductLookupDataResponse
+ */
+export type ProductLookupDataResponse = {
+    /**
+     * Source Record
+     */
+    source_record: {
+        [key: string]: JsonValue;
+    };
+};
+
+/**
+ * ProductLookupErrorCode
+ */
+export type ProductLookupErrorCode = 'invalid_barcode' | 'product_not_found' | 'dataset_unavailable' | 'rate_limit_exceeded' | 'internal_error';
+
+/**
+ * ProductLookupErrorDetail
+ */
+export type ProductLookupErrorDetail = {
+    code: ProductLookupErrorCode;
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * ProductLookupErrorMetaResponse
+ */
+export type ProductLookupErrorMetaResponse = {
+    dataset: DatasetSnapshotResponse;
+};
+
+/**
+ * ProductLookupErrorResponse
+ */
+export type ProductLookupErrorResponse = {
+    error: ProductLookupErrorDetail;
+    meta?: ProductLookupErrorMetaResponse | null;
+};
+
+/**
+ * ProductLookupMetaResponse
+ */
+export type ProductLookupMetaResponse = {
+    dataset: DatasetSnapshotResponse;
+    lookup: ProductLookupMetadataResponse;
+    source: SourceAttributionResponse;
+};
+
+/**
+ * ProductLookupMetadataResponse
+ */
+export type ProductLookupMetadataResponse = {
+    /**
+     * Barcode
+     */
+    barcode: string;
+};
+
+/**
+ * ProductLookupResponse
+ */
+export type ProductLookupResponse = {
+    data: ProductLookupDataResponse;
+    meta: ProductLookupMetaResponse;
+};
+
+/**
+ * SourceAttributionResponse
+ */
+export type SourceAttributionResponse = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Product Url
+     */
+    product_url: string;
+};
+
+/**
  * PackageSearchResponse
  */
 export type LifegoodsPackageMatchesContractsPackageSearchResponse = {
@@ -844,90 +928,6 @@ export type LifegoodsPackageSearchContractsPackageSearchResultResponse = {
      * Source Kind
      */
     source_kind?: 'OPEN_FOOD_FACTS';
-};
-
-/**
- * ProductLookupDataResponse
- */
-export type ProductLookupDataResponse = {
-    /**
-     * Source Record
-     */
-    source_record: {
-        [key: string]: JsonValue;
-    };
-};
-
-/**
- * ProductLookupErrorCode
- */
-export type ProductLookupErrorCode = 'invalid_barcode' | 'product_not_found' | 'dataset_unavailable' | 'rate_limit_exceeded' | 'internal_error';
-
-/**
- * ProductLookupErrorDetail
- */
-export type ProductLookupErrorDetail = {
-    code: ProductLookupErrorCode;
-    /**
-     * Message
-     */
-    message: string;
-};
-
-/**
- * ProductLookupErrorMetaResponse
- */
-export type ProductLookupErrorMetaResponse = {
-    dataset: DatasetSnapshotResponse;
-};
-
-/**
- * ProductLookupErrorResponse
- */
-export type ProductLookupErrorResponse = {
-    error: ProductLookupErrorDetail;
-    meta?: ProductLookupErrorMetaResponse | null;
-};
-
-/**
- * ProductLookupMetaResponse
- */
-export type ProductLookupMetaResponse = {
-    dataset: DatasetSnapshotResponse;
-    lookup: ProductLookupMetadataResponse;
-    source: SourceAttributionResponse;
-};
-
-/**
- * ProductLookupMetadataResponse
- */
-export type ProductLookupMetadataResponse = {
-    /**
-     * Barcode
-     */
-    barcode: string;
-};
-
-/**
- * ProductLookupResponse
- */
-export type ProductLookupResponse = {
-    data: ProductLookupDataResponse;
-    meta: ProductLookupMetaResponse;
-};
-
-/**
- * SourceAttributionResponse
- */
-export type SourceAttributionResponse = {
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Product Url
-     */
-    product_url: string;
 };
 
 export type GetExperimentalProductData = {

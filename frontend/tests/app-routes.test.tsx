@@ -58,9 +58,7 @@ describe("Life Goods routes", () => {
         unmountSearch()
 
         const { unmount: unmountLearn } = renderRoute("/learn")
-        expect(
-            screen.getByRole("heading", { name: "Learn & Regulations" }),
-        ).toHaveFocus()
+        expect(screen.getByRole("heading", { name: "Learn" })).toHaveFocus()
         unmountLearn()
 
         const { unmount: unmountConcerns } = renderRoute("/concerns")

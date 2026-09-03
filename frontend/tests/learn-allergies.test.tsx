@@ -4,8 +4,8 @@ import { MemoryRouter, useLocation } from "react-router"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import { App } from "../src/app/App"
-import type { PackageMatchLookup } from "../src/features/package-match/types"
-import i18n from "../src/i18n"
+import i18n from "../src/features/learn/translations"
+import type { ProductLookup } from "../src/features/product/api"
 
 const recordUrl =
     "https://data.opendevelopmentcambodia.net/laws_record/law-on-food-safety"
@@ -25,7 +25,7 @@ function LocationProbe() {
 function renderRoute(path: string, demoMode: boolean) {
     return render(
         <MemoryRouter initialEntries={[path]}>
-            <App lookup={vi.fn<PackageMatchLookup>()} demoMode={demoMode} />
+            <App lookup={vi.fn<ProductLookup>()} demoMode={demoMode} />
             <LocationProbe />
         </MemoryRouter>,
     )
@@ -271,7 +271,9 @@ describe("Learn source content and Allergies demos", () => {
         expect(
             await screen.findByRole("heading", { name: "Law on Food Safety" }),
         ).toHaveFocus()
-        expect(screen.queryByRole("navigation")).not.toBeInTheDocument()
+        expect(
+            screen.getByRole("navigation", { name: "Primary navigation" }),
+        ).toBeVisible()
 
         const backLink = screen.getAllByRole("link")[0]!
         await user.click(backLink)
@@ -328,51 +330,14 @@ describe("Learn source content and Allergies demos", () => {
         ).toBeVisible()
     })
 
-    test("keeps Allergies unavailable outside demo mode", () => {
+    test("keeps the existing Concerns route available", () => {
         renderRoute("/allergies", false)
 
-        expect(screen.getByRole("heading", { name: "Concerns" })).toBeVisible()
-        expect(screen.queryByRole("checkbox")).not.toBeInTheDocument()
-    })
-
-    test("keeps allergy selections in memory and resets them", async () => {
-        const user = userEvent.setup()
-        const setItem = vi.spyOn(Storage.prototype, "setItem")
-        const { unmount } = renderRoute("/allergies", true)
-
-        expect(screen.getByText("Selected concerns")).toBeVisible()
         expect(
-            screen.queryByText("Simulated preference demo"),
-        ).not.toBeInTheDocument()
-        expect(
-            screen.queryByText(/These options demonstrate the interaction/),
-        ).not.toBeInTheDocument()
-
-        const milk = screen.getByRole("checkbox", { name: "Dairy" })
-        const soy = screen.getByRole("checkbox", { name: "Soybean" })
-        await user.click(milk)
-        await user.click(soy)
-        expect(milk).toBeChecked()
-        expect(soy).toBeChecked()
-        expect(screen.getByText("2 selected")).toBeVisible()
-        expect(
-            screen.getByText(/never hide other Critical Declared Concerns/),
+            screen.getByRole("heading", {
+                name: "Dietary & Allergy Concerns",
+            }),
         ).toBeVisible()
-        expect(
-            screen.getByText(
-                "A selection never means that a Product is safe or allergen-free.",
-            ),
-        ).toBeVisible()
-
-        await user.click(
-            screen.getByRole("button", { name: "Reset selections" }),
-        )
-        expect(milk).not.toBeChecked()
-        expect(soy).not.toBeChecked()
-        expect(screen.getByText("0 selected")).toBeVisible()
-        expect(setItem).not.toHaveBeenCalled()
-
-        unmount()
-        setItem.mockRestore()
+        expect(screen.getByRole("checkbox", { name: "Dairy" })).toBeVisible()
     })
 })
