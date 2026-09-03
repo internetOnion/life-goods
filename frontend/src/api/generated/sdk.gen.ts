@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetPackageMatchesData, GetPackageMatchesErrors, GetPackageMatchesResponses, SearchPackageMatchesData, SearchPackageMatchesErrors, SearchPackageMatchesResponses, SearchPackagesData, SearchPackagesErrors, SearchPackagesResponses } from './types.gen';
+import type { GetExperimentalProductData, GetExperimentalProductErrors, GetExperimentalProductResponses, GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetPackageMatchesData, GetPackageMatchesErrors, GetPackageMatchesResponses, SearchPackageMatchesData, SearchPackageMatchesErrors, SearchPackageMatchesResponses, SearchPackagesData, SearchPackagesErrors, SearchPackagesResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -16,6 +16,17 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
      * used to access values that aren't defined as part of the SDK function.
      */
     meta?: Record<string, unknown>;
+};
+
+/**
+ * Look up an experimental raw Product
+ * Looks up a Barcode in the selected local Open Food Facts Dataset Snapshot and returns the raw Source Record. This experimental contract is unstable.
+ */
+export const getExperimentalProduct = <ThrowOnError extends boolean = false>(options: Options<GetExperimentalProductData, ThrowOnError>) => {
+    return (options.client ?? client).get<GetExperimentalProductResponses, GetExperimentalProductErrors, ThrowOnError>({
+        url: '/api/experimental/products/{barcode}',
+        ...options
+    });
 };
 
 /**

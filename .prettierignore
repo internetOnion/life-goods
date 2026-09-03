@@ -9,4 +9,4 @@ test-results/
 pnpm-lock.yaml
 frontend/src/api/generated/
 frontend/openapi.json
-frontend/.impeccable/live/
+frontend/.impeccable/

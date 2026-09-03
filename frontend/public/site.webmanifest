@@ -1,0 +1,29 @@
+{
+    "name": "Life Goods",
+    "short_name": "Life Goods",
+    "description": "Scan a Barcode to read attributed Open Food Facts Product information with Life Goods.",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#F3F5F6",
+    "theme_color": "#F3F5F6",
+    "icons": [
+        {
+            "src": "/favicon.svg",
+            "type": "image/svg+xml",
+            "sizes": "any"
+        },
+        {
+            "src": "/icon-192.png",
+            "type": "image/png",
+            "sizes": "192x192",
+            "purpose": "any"
+        },
+        {
+            "src": "/icon-512.png",
+            "type": "image/png",
+            "sizes": "512x512",
+            "purpose": "any"
+        }
+    ]
+}

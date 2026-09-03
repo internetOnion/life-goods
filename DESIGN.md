@@ -1,207 +1,331 @@
 ---
-name: LifeGoods
-description: Khmer-first packaged-food label guidance with evidence and visible uncertainty.
+name: Life Goods
+description: "The Source Reader: calm Barcode-to-attributed-source understanding."
 colors:
-  brand: "#8a4b16"
-  brand-dark: "#6e350c"
-  brand-hover: "#562908"
-  brand-soft: "#f7ede0"
-  page: "#fafaf8"
-  surface: "#f4f4f5"
-  surface-strong: "#e4e4e7"
-  ink: "#111111"
-  muted-ink: "#66666a"
-  line: "#e4e4e7"
-  input: "#a1a1aa"
-  ring: "#8a4b16"
-  destructive: "#b91c1c"
-  mango: "#b86a1a"
-  mango-soft: "#fcf4e8"
+    amber-mark: "#b86a1a"
+    amber-action: "#995613"
+    amber-action-deep: "#7b440d"
+    amber-ink: "#5a320b"
+    amber-soft: "#f3e8dd"
+    blue-attribution: "#315072"
+    blue-soft: "#e3e8ee"
+    slate-canvas: "#f3f5f6"
+    white-sheet: "#ffffff"
+    slate-ink: "#131519"
+    slate-strong: "#303843"
+    slate-body: "#404c5b"
+    slate-muted: "#526073"
+    slate-border: "#c6cfdd"
+    slate-soft: "#e3e7ed"
+    destructive: "#b03232"
+    destructive-soft: "#f7f2f2"
 typography:
-  display:
-    fontFamily: '"Noto Sans Khmer", "Khmer OS System", Inter, ui-sans-serif, system-ui, sans-serif'
-    fontSize: "1.75rem"
-    fontWeight: 900
-    lineHeight: 1.7
-    letterSpacing: "-0.02em"
-  headline:
-    fontFamily: '"Noto Sans Khmer", "Khmer OS System", Inter, ui-sans-serif, system-ui, sans-serif'
-    fontSize: "1.5rem"
-    fontWeight: 900
-    lineHeight: 1.7
-    letterSpacing: "-0.02em"
-  title:
-    fontFamily: '"Noto Sans Khmer", "Khmer OS System", Inter, ui-sans-serif, system-ui, sans-serif'
-    fontSize: "1.125rem"
-    fontWeight: 700
-    lineHeight: 1.65
-  body:
-    fontFamily: '"Noto Sans Khmer", "Khmer OS System", Inter, ui-sans-serif, system-ui, sans-serif'
-    fontSize: "1rem"
-    fontWeight: 400
-    lineHeight: 1.65
-  label:
-    fontFamily: '"Noto Sans Khmer", "Khmer OS System", Inter, ui-sans-serif, system-ui, sans-serif'
-    fontSize: "0.75rem"
-    fontWeight: 700
-    lineHeight: 1.35
-    letterSpacing: "0.05em"
+    display:
+        fontFamily: "Plus Jakarta Sans, Noto Sans Khmer, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+        fontSize: "clamp(1.75rem, 7vw, 2.5rem)"
+        fontWeight: 800
+        lineHeight: 1.12
+        letterSpacing: "-0.035em"
+    headline:
+        fontFamily: "Plus Jakarta Sans, Noto Sans Khmer, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+        fontSize: "1.5rem"
+        fontWeight: 800
+        lineHeight: 1.25
+        letterSpacing: "-0.02em"
+    title:
+        fontFamily: "Plus Jakarta Sans, Noto Sans Khmer, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+        fontSize: "1.25rem"
+        fontWeight: 800
+        lineHeight: 1.25
+        letterSpacing: "-0.02em"
+    body:
+        fontFamily: "Plus Jakarta Sans, Noto Sans Khmer, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+        fontSize: "1rem"
+        fontWeight: 400
+        lineHeight: 1.6
+        letterSpacing: "normal"
+    label:
+        fontFamily: "Plus Jakarta Sans, Noto Sans Khmer, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+        fontSize: "0.875rem"
+        fontWeight: 800
+        lineHeight: 1.5
+        letterSpacing: "normal"
+    identifier:
+        fontFamily: "JetBrains Mono, ui-monospace, SF Mono, Cascadia Code, Segoe UI Mono, monospace"
+        fontSize: "0.875rem"
+        fontWeight: 400
+        lineHeight: 1.5
+        letterSpacing: "0.04em"
 rounded:
-  sm: "8px"
-  md: "12px"
-  lg: "16px"
-  xl: "20px"
-  full: "9999px"
+    focus: "0.5rem"
+    control: "0.75rem"
+    surface: "1rem"
+    aperture: "1.5rem"
+    pill: "9999px"
 spacing:
-  xs: "4px"
-  sm: "8px"
-  md: "16px"
-  lg: "24px"
-  xl: "32px"
+    xs: "0.5rem"
+    sm: "0.75rem"
+    md: "1rem"
+    lg: "1.25rem"
+    xl: "1.5rem"
+    section: "2.5rem"
 components:
-  button-primary:
-    backgroundColor: "{colors.brand-dark}"
-    textColor: "#ffffff"
-    rounded: "{rounded.md}"
-    padding: "10px 24px"
-  button-primary-hover:
-    backgroundColor: "{colors.brand-hover}"
+    button-primary:
+        backgroundColor: "{colors.amber-action}"
+        textColor: "{colors.white-sheet}"
+        typography: "{typography.label}"
+        rounded: "{rounded.control}"
+        padding: "0.5rem 1rem"
+        height: "44px"
+    button-primary-hover:
+        backgroundColor: "{colors.amber-action-deep}"
+        textColor: "{colors.white-sheet}"
+    button-outline:
+        backgroundColor: "{colors.white-sheet}"
+        textColor: "{colors.slate-ink}"
+        typography: "{typography.label}"
+        rounded: "{rounded.control}"
+        padding: "0.5rem 1rem"
+        height: "44px"
+    button-ghost:
+        backgroundColor: "transparent"
+        textColor: "{colors.slate-muted}"
+        typography: "{typography.label}"
+        rounded: "{rounded.control}"
+        padding: "0.5rem 1rem"
+        height: "44px"
+    input-barcode:
+        backgroundColor: "{colors.white-sheet}"
+        textColor: "{colors.slate-ink}"
+        typography: "{typography.identifier}"
+        rounded: "{rounded.control}"
+        padding: "0.5rem 0.875rem"
+        height: "48px"
+    nav-active:
+        backgroundColor: "{colors.amber-soft}"
+        textColor: "{colors.amber-ink}"
+        typography: "{typography.label}"
+        rounded: "{rounded.control}"
+        padding: "0.625rem"
+        height: "44px"
+    chip-neutral:
+        backgroundColor: "{colors.slate-soft}"
+        textColor: "{colors.slate-body}"
+        rounded: "{rounded.pill}"
+        padding: "0.25rem 0.75rem"
+    source-sheet:
+        backgroundColor: "{colors.white-sheet}"
+        textColor: "{colors.slate-ink}"
+        padding: "1.25rem"
+    camera-aperture:
+        backgroundColor: "{colors.slate-ink}"
+        textColor: "{colors.white-sheet}"
+        rounded: "{rounded.aperture}"
+        padding: "1.5rem"
 ---
 
-# Design System: LifeGoods
+# Design System: Life Goods
 
 ## Overview
 
-**Creative North Star: "Open Label"**
+**Creative North Star: "The Source Reader"**
 
-LifeGoods is a calm, evidence-forward shopping utility for Cambodian shoppers evaluating sealed packaged foods and beverages. Its central metaphor—Open Label—is represented by layered package-label sheets that reveal underlying label facts while keeping original source evidence in plain view. The design communicates clarity and rigor without adopting the promotional aesthetics of wellness marketing or clinical alarmism.
+Life Goods is a calm, grounded reading tool for attributed source data, not a verdict dashboard. A cool slate canvas holds narrow white sheets of Open Food Facts information; amber exists only to move the Shopper forward, and blue exists only to name the source. Density is generous but ordered: one 36rem reading rail, dividers instead of boxes, monospaced identifiers wherever a machine value appears. The dark scanner aperture is the single moment of high drama, and it exists to make a privacy promise before it asks for the camera.
 
-The visual atmosphere rests on a warm-white paper ground (`#fafaf8`), crisp charcoal black typography (`#111111`), rich palm sugar caramel interaction accents (`#8a4b16`), and golden palm sugar identity accents (`#b86a1a`) reserved for the Open Label mark and scanner action. Depth is established through tonal shifts and crisp one-pixel rules rather than decorative shadow cards. The entire experience is Khmer-first, pairing generous line heights with unclipped script rendering while keeping original package languages (Khmer, English, Vietnamese, Chinese, Thai) intact.
+The interface is compact, mobile-first, and privacy-forward. It moves from one physical Barcode to Product identity and progressively disclosed Open Food Facts information without expanding into a lifestyle-app shell. Missing source data is never decorated, softened, or inferred: it reads exactly `Source Data Unavailable` — the interface's most important sentence.
 
 **Key Characteristics:**
-- **Evidence Before Reassurance:** Missing fields are explicitly "Unavailable" rather than assumed safe or absent; community data is clearly attributed.
-- **Khmer-First Hierarchy:** System sans typography tuned for complex Khmer ascenders and descenders with minimum 1.65 line heights.
-- **Flat Paper Aesthetic:** Clean warm-white background, pale functional containers, and crisp 1px borders without heavy skeuomorphic shadows or glassmorphism.
-- **Strict Color Semantics:** Palm sugar guides navigation and actions; golden palm sugar identifies brand and scan; crimson signals validation/error; green is never used to imply product health or purchase approval.
+
+- Narrow, one-handed reading column on a cool slate canvas
+- White source sheets carry the content; the canvas is only a field
+- Amber action and blue Source Attribution
+- Dark camera glass separated from reading surfaces
+- Compact rounded controls and mono identifiers
+- Dividers and disclosure instead of dashboard tiles
 
 ## Colors
 
-The LifeGoods palette pairs warm paper neutrals with authentic Cambodian palm sugar (ស្ករត្នោត) interaction and identity accents, supported by crisp black and white foundations.
+The palette separates Life Goods action, external-source attribution, reading surfaces, and scanner material by role.
 
-### Primary (Palm Sugar)
-- **Interaction Palm Sugar** (`#8a4b16`): Interactive focus rings, active badges, evidence lines, and secondary action highlights.
-- **Pressed Palm Sugar** (`#6e350c`): Primary button fills, active navigation highlights, and interactive links.
-- **Palm Sugar Hover** (`#562908`): Hover state for interactive primary actions.
-- **Soft Palm Sugar Wash** (`#f7ede0`): Subdued container backgrounds for active tabs, selected icon wells, and focus callouts.
+### Primary
 
-### Secondary (Golden Palm Sugar)
-- **Identity & Scan Golden Palm Sugar** (`#b86a1a`): Warm golden accent used exclusively for the Open Label folded corner mark and the prominent mobile Scan button.
-- **Soft Golden Palm Sugar Wash** (`#fcf4e8`): Background for the Open Label back sheet and the camera privacy icon container.
+- **Warm Amber Mark** (`colors.amber-mark`, #B86A1A): the brighter action used against dark camera glass, the scan laser, and section icon emphasis.
+- **Grounded Amber Action** (`colors.amber-action`, #995613): primary controls, focus accents, and section icon tiles.
+- **Deep Amber Action** (`colors.amber-action-deep`, #7B440D): hover and active states.
+- **Amber Ink** (`colors.amber-ink`, #5A320B): high-contrast text on pale amber active navigation and action tiles.
+- **Pale Amber Wash** (`colors.amber-soft`, #F3E8DD): active navigation, action tiles, and warm explanatory surfaces.
 
-### Tertiary
-- **Validation Crimson** (`#b91c1c`): Form validation errors and hardware failure notices. Always paired with text labels and explanatory copy.
+### Secondary
 
-### Neutral (Black & White Ground)
-- **Warm Paper Ground** (`#fafaf8`): Base page background providing a warm, legible ground.
-- **Pale Surface** (`#f4f4f5`): Viewfinder inactive areas, disabled containers, and secondary element backing.
-- **Quiet Surface Strong** (`#e4e4e7`): Secondary buttons, subtle dividers, and inactive control fills.
-- **Charcoal Black Ink** (`#111111`): Primary body text, headings, and prominent icons.
-- **Muted Ink** (`#66666a`): Secondary labels, timestamps, and metadata meeting WCAG 2.2 AA contrast standards.
-- **Divider Rule** (`#e4e4e7`): One-pixel borders separating content sections and list rows.
-- **Input Border** (`#a1a1aa`): Default border for form controls and text fields.
+- **Attribution Blue** (`colors.blue-attribution`, #315072): Open Food Facts links, source context, and licensing actions.
+- **Source Blue Wash** (`colors.blue-soft`, #E3E8EE): source and licensing icon fields where attribution needs a quiet background.
+
+### Neutral
+
+- **Cool Slate Canvas** (`colors.slate-canvas`, #F3F5F6): the application background and info-50 wash.
+- **White Source Sheet** (`colors.white-sheet`, #FFFFFF): Product identity, the Product reading sheet, header, footer, fields, and outline controls.
+- **Camera Ink** (`colors.slate-ink`, #131519): primary text and the scanner aperture — the shared value that makes the aperture feel native.
+- **Raised Camera Slate** (`colors.slate-strong`, #303843): camera-state icon wells and dark secondary camera controls.
+- **Body Slate** (`colors.slate-body`, #404C5B): source rows, neutral tags, and supporting text.
+- **Muted Slate** (`colors.slate-muted`, #526073): supporting copy, metadata, and inactive navigation.
+- **Slate Divider** (`colors.slate-border`, #C6CFDD): field strokes, section dividers, and table rules.
+- **Soft Slate** (`colors.slate-soft`, #E3E7ED): chips, skeletons, and quiet hover fills.
+- **Destructive Red** (`colors.destructive`, #B03232): error text; **Destructive Wash** (`colors.destructive-soft`, #F7F2F2): error containers without alarm-heavy saturation.
 
 ### Named Rules
-**The Color Neutrality Rule.** Color never communicates a health rating, safety verdict, allergen absence, or purchase recommendation. Green is never used as an endorsement.
-**The Palm Sugar Scarcity Rule.** Golden Palm Sugar (`#b86a1a`) is strictly reserved for the Open Label brand mark and the primary Scan action. It is never used as an indicator of evidence severity or product status.
+
+**The White Sheet Rule.** Source data is read on white. The slate canvas is a field, never a data surface.
+
+**The One Amber Rule.** Amber marks the action a Shopper can take next — primary buttons, section icons, the laser. Never body text, never decoration.
+
+**The Blue Names the Source Rule.** Blue is reserved for Source Attribution, source context, and licensing links so external information never reads as a Life Goods claim.
+
+**The Exact Absence Rule.** Missing source values render exactly `Source Data Unavailable`. No synonyms, no "none", no inference.
 
 ## Typography
 
-**Display & Headline Font:** `"Noto Sans Khmer", "Khmer OS System", Inter, ui-sans-serif, system-ui, sans-serif`
-**Body Font:** `"Noto Sans Khmer", "Khmer OS System", Inter, ui-sans-serif, system-ui, sans-serif`
-**Label / Code Font:** `"Noto Sans Khmer", "Khmer OS System", Inter, ui-sans-serif, system-ui, sans-serif`
+**Display Font:** Plus Jakarta Sans (with Noto Sans Khmer and system sans-serif fallbacks)  
+**Body Font:** Plus Jakarta Sans (with Noto Sans Khmer and system sans-serif fallbacks)  
+**Label/Mono Font:** JetBrains Mono (with platform monospace fallbacks)
 
-**Character:** A modern, highly legible system sans pairing that provides native Khmer glyph shaping and reliable cross-platform fallback across iOS, Android, and web.
+**Character:** Plus Jakarta Sans provides a compact, clear, contemporary reading voice with heavy headings rather than editorial ornament. Noto Sans Khmer is part of the primary stack, and JetBrains Mono makes Barcodes and measured values visibly machine-readable.
 
 ### Hierarchy
-- **Display** (Bold 900, 1.75rem / 28px, line-height 1.7, tracking -0.02em): Major screen titles and result headings.
-- **Headline** (Bold 900, 1.5rem / 24px, line-height 1.7, tracking -0.02em): Feature section headers and dialog titles.
-- **Title** (Bold 700, 1.125rem / 18px, line-height 1.65): Card titles, group labels, and modal headings.
-- **Body** (Regular 400, 1rem / 16px, line-height 1.65): Primary readable text, evidence descriptions, and transcriptions (bounded to 65–75 characters per line on desktop).
-- **Label** (Bold 700, 0.75rem / 12px, line-height 1.35, tracking 0.05em): Uppercase metadata tags, category badges, and navigation labels.
+
+- **Display** (800, `clamp(1.75rem, 7vw, 2.5rem)`, 1.12, −0.035em): Product names and primary page headings; tightly tracked and allowed to wrap.
+- **Headline** (800, `1.5rem`, 1.25): major content sections and privacy-critical scanner messages.
+- **Title** (800, `1.25rem`, 1.25): section titles and compact state headings.
+- **Body** (400–600, `1rem`, 1.6–1.75): source descriptions, Original Text, and explanations; always `wrap-anywhere`, never truncated.
+- **Label** (700–800, `0.75–0.875rem`, uppercase for field labels, 0.06–0.08em): field names, Original Text language tags, navigation.
+- **Identifier** (400, `0.875rem`, `0.04em`, tabular numerals): Barcodes, nutrition amounts, timestamps.
 
 ### Named Rules
-**The Khmer Line-Height Rule.** Khmer text requires a minimum line height of 1.65 for body and 1.7 for headings to avoid clipping subscript consonants and diacritics.
-**The No-Truncation Rule.** Consequential product names, ingredient declarations, provenance notes, and uncertainty statements must wrap fully rather than truncate with ellipsis.
+
+**The Machine Value Rule.** Set Barcodes and numeric source values in the mono stack with tabular numerals; keep names and explanations in the sans stack.
+
+**The Khmer Is Native Rule.** Noto Sans Khmer is a first-line script fallback, with normal letter spacing and relaxed heading line-height for Khmer text.
 
 ## Layout
 
-LifeGoods uses a mobile-first responsive architecture designed for one-handed store usage while scaling cleanly to tablets and desktops.
-
-- **Content Bounding:** Mobile layouts stretch to full viewport width with standard padding (`16px` to `24px`). Desktop views bound the reading column to `48rem` (768px) centered on screen, or expand with a dedicated left navigation rail on wide displays (`lg` breakpoint ≥ 1024px).
-- **Header Structure:** Home features a top utility header containing the `<BrandLockup />` on the left and a 44px circular language switch with country flag icons (Cambodia / United Kingdom) on the right.
-- **Navigation Model:**
-  - **Mobile:** Fixed bottom navigation bar with 5 destinations: History, Learn, Scan (centered, elevated mango circular button), Search, Concerns.
-  - **Desktop:** Fixed left rail (`28` width / 112px) with the compact BrandLockup at top and 5 vertically stacked navigation links.
-  - **Focused Result Routes:** Hide the primary navigation to maximize vertical reading area and expose a prominent `<ResultBackButton />`.
-- **Touch Targets:** All interactive controls maintain a strict minimum bounding box of 44×44 CSS pixels.
+One centered reading rail: maximum `36rem`, `1rem` mobile gutters widening to `1.5rem` at `sm`. Minimum viewport width is 320px; every layout must survive it. The sticky header is `4rem` high, and the Product section rail pins immediately beneath it. Product sections stack inside one white sheet separated by hairlines with `2.5rem` vertical padding. Detail rows use a `10rem` label column only when space supports it; nutrition reads as a labelled stacked list on phones and a right-aligned table from `sm`, with columns derived from supplied data only. Space above a heading is always larger than the space below it.
 
 ## Elevation & Depth
 
-Surfaces are flat by default. Visual hierarchy is established through contrasting background tones (`#fafaf7` vs `#f2f4f6`), crisp one-pixel border lines (`#d9dde2`), and whitespace.
+Flat by default; tonal layering, borders, and sticky translucency come before shadow. Shadows are reserved for the two white Product source sheets and the scanner aperture.
 
 ### Shadow Vocabulary
-- **Scan Button Elevation** (`box-shadow: 0 5px 18px rgba(23,24,26,0.18)`): Used exclusively on the mobile bottom navigation's central elevated Scan button to emphasize its primary action role.
-- **Camera Scrim** (`box-shadow: 0 0 0 999px rgba(0,0,0,0.5)`): Functional scan-frame mask focusing attention on the viewfinder area.
-- **Dropdown / Overlay** (`box-shadow: 0 4px 16px rgba(0,0,0,0.08)`): Used for context sheets and floating menus.
+
+- **Action Lift** (`0 8px 20px -14px rgba(90, 50, 11, 0.8)`): primary amber buttons.
+- **Source Sheet Lift** (`0 14px 38px -28px rgba(19, 21, 25, 0.55)` / `0.42` on the body sheet): Product identity and reading sheets.
+- **Camera Aperture Lift** (`0 16px 40px -24px rgba(19, 21, 25, 0.8)`): the scanner aperture only.
 
 ### Named Rules
-**The Flat-By-Default Rule.** Content containers, evidence panels, and search results rest flush against the page ground. Depth is communicated via 1px border rules and subtle surface fills rather than card drop shadows.
+
+**The Felt Shadow Rule.** If a shadow's edge is visible, it is too strong. Sheets separate by contrast, not by drop.
 
 ## Shapes
 
-The geometric vocabulary balances clean rounded rectangles with precise structural lines.
+Controls and alerts use compact `0.75rem` corners. Icon wells, image fields, source callouts, and action tiles use `1rem`. The scanner aperture uses the largest recurring corner at `1.5rem`; tags, status pills, and the scan laser are the only full pills. Borders are quiet one-pixel slate rules; long Product information stays in open divider rows instead of becoming a grid of independently rounded cards. Focus is a 2–3px amber ring with offset.
 
-- **Controls & Buttons:** 12px (`rounded-xl`) for primary buttons and inputs; 9999px (`rounded-full`) for circular action buttons, chips, and language toggles.
-- **Containers & Viewfinder:** 16px to 24px (`rounded-2xl` to `rounded-3xl`) for camera viewports, permission cards, and modal sheets.
-- **Borders:** Consistent 1px solid stroke (`#e4e4e7`) on cards, inputs, and dividers.
-- **Open Label Motif:** Layered geometric label sheets with a 4px corner radius and a 45-degree folded golden palm sugar top-right flap.
+## Iconography & Illustration
+
+Iconography and illustration in Life Goods serve as quiet, rapid visual anchors for the Shopper. They guide one-handed mobile reading and clarify physical food attributes without becoming decorative clutter or introducing misleading metaphors.
+
+### Library Freedom & Selection
+
+Life Goods is **not** dogmatically restricted to Phosphor Icons (`@phosphor-icons/react`). Teams and agents may draw from any high-quality icon set (such as Phosphor, Lucide, Tabler, Radix) or build bespoke SVG components, provided every visual meets the semantic and aesthetic standards below.
+
+### Semantic Fidelity First
+
+Every icon and illustration must directly and truthfully represent the exact real-world concept, food component, data state, or action it depicts.
+- **Never substitute an unrelated symbol** due to library limitations (for example, never use a coffee bean for soybean, a carrot for celery, a 3x3 app-launcher grid for sesame, a generic tree for tree nuts, a hardware hex nut for peanuts, or an abstract hypnotic swirl for mollusks).
+- **No misplaced metaphors**: Never use commercial or transaction iconography (such as cashier receipts or shopping carts) for read-only Product information or nutrition tables.
+- **Accurate representation**: When representing allergens, ingredients, or food categories, the graphic must reflect the recognizable botanical, culinary, or biological structure of the item. When a standard icon library lacks an accurate symbol, implement a bespoke, semantically faithful vector SVG.
+
+### Vibe-Coded & Non-Generic Aesthetic
+
+Visuals must never feel generic, bland, sterile, or like off-the-shelf corporate template art. Every icon and illustration must feel **vibe-coded**—deliberately crafted, tactile, and harmonious with the "Source Reader" visual identity:
+- **Stroke & Geometry:** Optical line-weights should sit consistently between 1.5px and 2px (or bold/heavy equivalents when matching display typography), featuring rounded endpoints and soft joins that mirror the `0.75rem` / `1rem` corner radiuses of the interface.
+- **Color Roles:** Icons inherit deliberate semantic color roles:
+  - *Warm Amber* (`amber-mark` / `amber-action`) for forward Shopper actions, camera viewfinder laser/brackets, and primary section emphasis.
+  - *Attribution Blue* (`blue-attribution` / `blue-soft`) for Open Food Facts provenance and licensing iconography.
+  - *Body Slate* (`slate-body` / `slate-muted`) for neutral metadata, dietary attributes, and quiet secondary indicators.
+  - *Error Red* (`destructive`) strictly for validation and hardware failures.
+- **Tactile Wells:** Section and category icons sit inside quiet `1rem` rounded wells (`bg-primary-100 text-primary-700` or `bg-neutral-100 text-neutral-700`) rather than floating unanchored.
+
+### Purposeful Illustrations
+
+Illustrations (for empty states, educational guides, camera consent, and missing-data notices) must be purposeful, minimal, and grounded in physical packaged goods, camera apertures, barcodes, and calm reading surfaces.
+- Strictly avoid generic tech flat illustration ("corporate Memphis") or cartoonish characters.
+- Keep illustrations grounded in reality: real package contours, authentic barcode geometries, clean optical lenses, and calm paper sheets.
+
+### Named Rules
+
+**The Semantic Fidelity Rule.** An icon or illustration must directly and unambiguously communicate the real-world concept, ingredient, or action it signifies. Mismatched substitutions are prohibited.
+
+**The Vibe-Coded Character Rule.** Visual symbols must feel intentionally crafted, tactile, and stylistically harmonious with the Life Goods palette and geometry—never generic, sterile, or disconnected from the product context.
 
 ## Components
 
 ### Buttons
-- **Primary Action:** Solid background (`#6e350c`), white text, 12px radius, min 44px height, bold font. Hover shifts to `#562908`.
-- **Outline / Secondary:** 1px border (`#e4e4e7`), background `#fafaf8`, foreground `#111111`. Hover shifts to `#f4f4f5`.
-- **Scan Action:** Circular 52×52px golden palm sugar button (`#b86a1a`) with dark icon and 4px page-colored boundary ring on mobile navigation.
 
-### Open Label Brand Lockup
-- **Mark:** Custom SVG depicting two offset label sheets with folded golden palm sugar corner and palm sugar evidence lines.
-- **Typography:** Uppercase "OPEN LABEL" tracker tag in `#6e350c` paired with bold "LifeGoods" wordmark in `#111111`.
+- **Shape:** compact rounded controls (`0.75rem`), minimum `44px` target, active `0.98` scale.
+- **Primary:** grounded amber with white extra-bold text and `0.5rem 1rem` padding; camera actions use the brighter amber mark on glass.
+- **Hover / Focus:** deepen amber through #7B440D → #5A320B; two-pixel amber ring with canvas offset; transitions complete in `150ms`.
+- **Outline:** white with slate border; hover strengthens border and quiet slate fill.
+- **Ghost:** transparent with muted slate text; hover introduces soft slate fill.
 
-### Camera Scanner & Privacy Consent Card
-- **Consent State:** Displayed before camera access. Features a soft golden palm sugar lock icon container, clear explanation of on-device processing and 24-hour retention policy, and an explicit "Start scanning" button.
-- **Active Viewfinder:** Full-bleed video feed with responsive aspect ratio, dark gradient overlay, pause button, and camera rotate button.
-- **Search Escape Hatch:** Prominent full-width button below the viewfinder providing an immediate transition to text and barcode search.
+### Chips
 
-### Search Field & Results
-- **Search Input:** 56px height, 16px radius, clear button, magnifier icon, active focus ring in `#8a4b16`.
-- **Result Row:** 2-column layout with 76×96px package image preview, product name, quantity, origin, and unreviewed status notice.
+- **Style:** full-pill soft slate fills with muted slate semibold text, `0.25rem 0.75rem` padding.
+- **State:** chips present source-provided categories, labels, and additives only — never mixed-meaning packaging data, and never selectable verdict badges.
+
+### Cards / Containers
+
+- **Corner Style:** white Product source sheets are square-edged; contained callouts and icon fields use `1rem`.
+- **Background:** white for source sheets, slate canvas for the field, pale blue for source context, pale amber for Life Goods actions.
+- **Shadow Strategy:** per the Source Sheet Lift vocabulary; ordinary callouts stay flat.
+- **Border:** one-pixel slate dividers inside dense source content instead of boxing every row.
+- **Internal Padding:** `1.25rem` on mobile, `1.5rem` where the rail permits.
+
+### Inputs / Fields
+
+- **Style:** `48px` high, white, one-pixel slate border, `0.75rem` corners.
+- **Focus:** amber border with a soft three-pixel amber-tint ring.
+- **Error / Disabled:** errors use a destructive wash with `role="alert"` text; disabled fields retain structure at half opacity.
+- **Barcode Entry:** mono stack, tabular numerals, modest positive tracking.
 
 ### Navigation
-- **5-Tab Navigation:** History (`ClockCounterClockwiseIcon`), Learn (`BookOpenTextIcon`), Scan (`ScanIcon`), Search (`MagnifyingGlassIcon`), Concerns (`ListChecksIcon`).
-- **Active State:** Tinted icon well (`#f7ede0`) and bold label; Scan button uses golden palm sugar circle (`#b86a1a`).
+
+A compact sticky white/92 backdrop-blur header with icon-and-label pill links and `44px` minimum targets. Active pills fill pale amber with deep amber text; inactive links are muted slate with a soft slate hover. The Product section rail is a sticky scroll strip with a 2px underline on hover. The Data and licenses destination may leave the compact mobile header but stays present in the global footer.
+
+### Scanner Aperture (signature)
+
+A single dark glass surface (#131519) with `1.5rem` corners, a restrained slate ring, and centered privacy copy before camera access. Warm amber corner brackets and the laser (#E7B583/#E19447) mark the scan frame; a green pulse (#82B96E) signals readiness; a gradient-black dock holds circular pause/switch controls. All states (consent, starting, paused, error, scanning) keep the privacy copy first, and reduced-motion preferences suppress animation.
+
+### Source Attribution Panel
+
+A pale blue wash (info-50), dark blue informational iconography, divider rows, and explicit blue links to Open Food Facts and licensing. It explains provenance without adopting source data as Life Goods-owned content — the only tinted panel on the reading sheet.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** preserve field-level provenance, source attribution, and original language text alongside Khmer translations.
-- **Do** explicitly mark missing or unreviewed data as "Unavailable from Open Food Facts" rather than "None".
-- **Do** keep touch targets at or above 44×44 CSS pixels across all viewports.
-- **Do** test layouts with real multi-line Khmer script to ensure line heights and wrapping behave cleanly.
-- **Do** provide immediate fallback to manual search on camera hesitation or permission refusal.
+
+- **Do** keep every route inside the narrow source rail and preserve comfortable one-handed targets.
+- **Do** apply `wrap-anywhere` to all source text and mono identifiers; long taxonomy strings wrap, never overflow.
+- **Do** group packaging by meaning (Original Text, recycling instructions, materials, shapes, recycling, components) with normalized, deduplicated values.
+- **Do** derive nutrition table columns from supplied data only; stack them on phones.
+- **Do** place Barcodes and measured values in mono with tabular numerals.
+- **Do** choose icons and illustrations that accurately represent the semantic meaning of the underlying data, ingredient, action, or state.
+- **Do** use any icon library or bespoke SVG that maintains the vibe-coded, tactile Life Goods design language and optical harmony.
 
 ### Don't:
-- **Don't** use green, traffic-light badges, or checkmarks to imply that a product is safe, healthy, or approved.
-- **Don't** use health scores, wellness purity marketing, or universal product ratings.
-- **Don't** collapse incomplete, missing, or contradictory evidence into a reassuring negative finding.
-- **Don't** apply heavy drop shadows, card stacking, glassmorphism, or gradient backgrounds.
-- **Don't** truncate product names, ingredients, or uncertainty disclosures.
+
+- **Don't** turn Source Assessments into dominant score tiles, traffic-light verdicts, or purchase recommendations; keep the attribution sentence directly under the section heading.
+- **Don't** render missing data as "—", "none", "N/A", or a friendlier phrase; only `Source Data Unavailable`.
+- **Don't** use blue for ordinary Life Goods actions or amber to imply source-data quality; success/error/warning appear only in status.
+- **Don't** round and shadow every content block, and never use shadows stronger than the sheet vocabulary.
+- **Don't** force horizontal scrolling for data; the 320px viewport is the floor.
+- **Don't** upload, retain, or visually imply capture of camera frames beyond the local scanner aperture.
+- **Don't** force an icon library choice or generic placeholder that compromises semantic meaning (e.g., using a coffee bean for soybean, a carrot for celery, or a receipt for nutrition facts).
+- **Don't** use sterile, bland, or corporate-style stock illustrations and generic icons that lack visual character.

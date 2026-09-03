@@ -1,21 +1,17 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router"
-import { beforeEach, describe, expect, test, vi } from "vitest"
+import { describe, expect, test, vi } from "vitest"
 
 import { App } from "../src/app/App"
-import type { PackageMatchLookup } from "../src/features/package-match/types"
-import i18n from "../src/i18n"
+import type { ProductLookup } from "../src/features/product/api"
+import { productResponse } from "./product-fixtures"
 
-function renderRoute(path: string, lookup = vi.fn<PackageMatchLookup>()) {
+function renderRoute(path: string, lookup = vi.fn<ProductLookup>()) {
     const queryClient = new QueryClient({
-        defaultOptions: {
-            mutations: { retry: false },
-            queries: { retry: false },
-        },
+        defaultOptions: { queries: { retry: false } },
     })
-
     return render(
         <QueryClientProvider client={queryClient}>
             <MemoryRouter initialEntries={[path]}>
@@ -25,150 +21,93 @@ function renderRoute(path: string, lookup = vi.fn<PackageMatchLookup>()) {
     )
 }
 
-describe("app routes and shell", () => {
-    beforeEach(async () => {
-        await i18n.changeLanguage("en")
-    })
-
-    test.each([
-        ["/", "Before the camera starts"],
-        ["/search", "Search"],
-        ["/learn", "Learn"],
-        ["/history", "History"],
-        ["/allergies", "Concerns"],
-    ])("registers the ordinary route %s", (path, heading) => {
-        renderRoute(path)
-
-        expect(screen.getByRole("heading", { name: heading })).toBeVisible()
-        expect(
-            screen.getByRole("navigation", { name: "Primary navigation" }),
-        ).toBeVisible()
-    })
-
-    test("preserves the existing History placeholder", () => {
-        renderRoute("/history")
-
-        expect(
-            screen.getByText(
-                "Current-session scan history is not available in this version yet. LifeGoods does not require an account.",
-            ),
-        ).toBeVisible()
-    })
-
-    test("hides bottom navigation and provides localized exit on new capture", async () => {
-        const user = userEvent.setup()
-        renderRoute("/capture/new")
-
-        expect(
-            screen.getByRole("heading", { name: "New Package Capture" }),
-        ).toHaveFocus()
-        expect(screen.queryByRole("navigation")).not.toBeInTheDocument()
-
-        await user.click(
-            screen.getByRole("button", { name: "Exit Package Capture" }),
-        )
-        expect(
-            screen.getByRole("region", { name: "Scan with the camera" }),
-        ).toBeVisible()
-    })
-
-    test("hides bottom navigation and returns capture results to capture start", async () => {
-        const user = userEvent.setup()
-        renderRoute("/captures/capture-123")
-
-        expect(
-            screen.getByRole("heading", { name: "Package Capture result" }),
-        ).toHaveFocus()
-        expect(screen.queryByRole("navigation")).not.toBeInTheDocument()
-
-        await user.click(
-            screen.getByRole("button", { name: "Back to Package Capture" }),
-        )
-        expect(
-            screen.getByRole("heading", { name: "New Package Capture" }),
-        ).toBeVisible()
-    })
-
-    test("keeps result routes focused without bottom navigation", async () => {
-        const lookup = vi.fn<PackageMatchLookup>().mockResolvedValue({
-            normalized_identifier: "4006381333931",
-            scheme: "EAN_13",
-            candidates: [],
-            open_food_facts: {
-                status: "NOT_FOUND",
-                dataset_version: null,
-                error_code: null,
-            },
-        })
-        renderRoute("/results/4006381333931", lookup)
-
-        expect(
-            await screen.findByRole("heading", {
-                name: "No package information found",
-            }),
-        ).toBeVisible()
-        expect(screen.queryByRole("navigation")).not.toBeInTheDocument()
-    })
-
-    test("renders an explicit not-found page without redirecting", () => {
-        renderRoute("/not-a-route")
-
-        expect(
-            screen.getByRole("heading", { name: "Page not found" }),
-        ).toHaveFocus()
-        expect(
-            screen.getByRole("link", { name: "Go to Home" }),
-        ).toHaveAttribute("href", "/")
-        expect(
-            screen.getByRole("navigation", { name: "Primary navigation" }),
-        ).toBeVisible()
-    })
-
-    test("treats unmatched focused-route descendants as ordinary not-found routes", () => {
-        renderRoute("/captures/capture-123/extra")
-
-        expect(
-            screen.getByRole("heading", { name: "Page not found" }),
-        ).toBeVisible()
-        expect(
-            screen.getByRole("navigation", { name: "Primary navigation" }),
-        ).toBeVisible()
-    })
-
-    test("keeps Khmer as the default and updates the document language", async () => {
-        await i18n.changeLanguage("km")
-        renderRoute("/learn")
-
-        expect(screen.getByRole("heading", { name: "ស្វែងយល់" })).toBeVisible()
-        expect(document.documentElement).toHaveAttribute("lang", "km")
-    })
-
-    test("renders all 5 bottom navigation tabs with correct links and active state", async () => {
-        const user = userEvent.setup()
+describe("Life Goods routes", () => {
+    test("keeps the core shopper journey visible in the shared shell", () => {
         renderRoute("/")
 
-        const nav = screen.getByRole("navigation", {
+        expect(
+            screen.getByRole("heading", { level: 1, name: "Scan a Barcode" }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("heading", { name: "Your camera stays private" }),
+        ).toBeVisible()
+        const navigation = screen.getByRole("navigation", {
             name: "Primary navigation",
         })
-        expect(nav).toBeVisible()
+        expect(navigation).toBeVisible()
+        expect(screen.getByRole("link", { name: "Scan" })).toHaveAttribute(
+            "aria-current",
+            "page",
+        )
+        expect(screen.getByRole("link", { name: "Learn" })).toBeVisible()
+        expect(screen.getByRole("link", { name: "Concerns" })).toBeVisible()
+        expect(
+            within(navigation).queryByRole("link", { name: "Search" }),
+        ).not.toBeInTheDocument()
+        expect(screen.getByRole("link", { name: "Search" })).toBeVisible()
+        expect(screen.getAllByText("Life Goods").length).toBeGreaterThan(0)
+        expect(document.documentElement).toHaveAttribute("lang", "en")
+    })
 
-        const historyLink = screen.getByRole("link", { name: "History" })
-        const learnLink = screen.getByRole("link", { name: "Learn" })
-        const scanLink = screen.getByRole("link", { name: "Scan" })
+    test("registers search, learn, concerns, and data-and-license routes", () => {
+        const { unmount: unmountSearch } = renderRoute("/search")
+        expect(screen.getByRole("heading", { name: "Search" })).toHaveFocus()
+        expect(
+            screen.queryByRole("navigation", { name: "Primary navigation" }),
+        ).not.toBeInTheDocument()
+        unmountSearch()
+
+        const { unmount: unmountLearn } = renderRoute("/learn")
+        expect(screen.getByRole("heading", { name: "Learn" })).toHaveFocus()
+        unmountLearn()
+
+        const { unmount: unmountConcerns } = renderRoute("/concerns")
+        expect(
+            screen.getByRole("heading", { name: "Dietary & Allergy Concerns" }),
+        ).toHaveFocus()
+        unmountConcerns()
+
+        const { unmount: unmountAllergies } = renderRoute("/allergies")
+        expect(
+            screen.getByRole("heading", { name: "Dietary & Allergy Concerns" }),
+        ).toHaveFocus()
+        unmountAllergies()
+
+        renderRoute("/data-and-licenses")
+        expect(
+            screen.getByRole("heading", { name: "Data and licenses" }),
+        ).toHaveFocus()
+        expect(
+            screen.getByRole("link", {
+                name: "Open Food Facts conditions for reuse",
+            }),
+        ).toHaveAttribute("href", "https://world.openfoodfacts.org/data")
+    })
+
+    test("loads the Product route through Product Lookup", async () => {
+        const lookup = vi
+            .fn<ProductLookup>()
+            .mockResolvedValue(productResponse())
+        renderRoute("/products/4006381333931", lookup)
+
+        expect(
+            await screen.findByRole("heading", { name: "Dark Chocolate" }),
+        ).toHaveFocus()
+        expect(lookup).toHaveBeenCalledWith("4006381333931")
+    })
+
+    test("renders an explicit not-found route", () => {
+        renderRoute("/not-a-route")
+        expect(
+            screen.getByRole("heading", { name: "Page not found" }),
+        ).toHaveFocus()
+    })
+
+    test("clicking search bar from scanner navigates to /search and focuses search input", async () => {
+        const user = userEvent.setup()
+        renderRoute("/")
         const searchLink = screen.getByRole("link", { name: "Search" })
-        const concernsLink = screen.getByRole("link", { name: "Concerns" })
-
-        expect(historyLink).toHaveAttribute("href", "/history")
-        expect(learnLink).toHaveAttribute("href", "/learn")
-        expect(scanLink).toHaveAttribute("href", "/")
-        expect(searchLink).toHaveAttribute("href", "/search")
-        expect(concernsLink).toHaveAttribute("href", "/allergies")
-
-        expect(scanLink).toHaveAttribute("aria-current", "page")
-
         await user.click(searchLink)
-        expect(screen.getByRole("heading", { name: "Search" })).toBeVisible()
-        expect(searchLink).toHaveAttribute("aria-current", "page")
-        expect(scanLink).not.toHaveAttribute("aria-current")
+        expect(screen.getByRole("textbox", { name: "Search" })).toHaveFocus()
     })
 })

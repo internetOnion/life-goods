@@ -55,14 +55,28 @@ from lifegoods.package_matches import (
 )
 from lifegoods.package_search import (
     SearchPackages,
+    get_searcher,
 )
 from lifegoods.package_search import (
     get_rate_limiter as get_package_search_rate_limiter,
 )
-from lifegoods.package_search import (
-    get_searcher as get_package_searcher,
-)
 from lifegoods.package_search import router as package_search_router
+from lifegoods.product_lookup import (
+    LookupProduct,
+    NoOpProductLookupMetrics,
+    NullProductLookupCache,
+    ProductLookupCache,
+    ProductLookupMetrics,
+    ProductLookupRateLimiter,
+    RawProductLookupSource,
+    RedisProductLookupCache,
+    RedisProductLookupRateLimiter,
+    get_product_lookup,
+    get_product_lookup_metrics,
+    get_product_lookup_rate_limiter,
+    install_product_lookup_access_log_filter,
+    product_lookup_router,
+)
 from lifegoods.reference_datasets import (
     DatabaseAllergenReferenceDataAccess,
     DatabaseHalalReferenceDataAccess,
@@ -94,8 +108,13 @@ def create_app(
     search_rate_limiter: PackageMatchRateLimiter | None = None,
     halal_evaluator: HalalIngredientAssessmentEvaluator | None = None,
     halal_assessment_cache: HalalIngredientAssessmentCache | None = None,
+    product_lookup_source: RawProductLookupSource | None = None,
+    product_lookup_cache: ProductLookupCache | None = None,
+    product_lookup_limiter: ProductLookupRateLimiter | None = None,
+    product_lookup_metrics: ProductLookupMetrics | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings()
+    install_product_lookup_access_log_filter()
     if session_factory is None:
         db_engine = create_engine(resolved_settings.database_url)
         resolved_session_factory = sessionmaker(db_engine, expire_on_commit=False)
@@ -106,6 +125,7 @@ def create_app(
     owned_mongo_clients: list[MongoClient[dict[str, Any]]] = []
     owned_redis_clients: list[redis.Redis] = []
     shared_redis_client: redis.Redis | None = None
+
     needs_shared_redis = False
     if package_match_limiter is None and not isinstance(
         assessment_cache, RedisAllergenAssessmentCache
@@ -122,6 +142,13 @@ def create_app(
             assessment_cache, RedisAllergenAssessmentCache
         ):
             needs_shared_redis = True
+    if product_lookup_limiter is None:
+        needs_shared_redis = True
+    if (
+        resolved_settings.product_lookup_cache_enabled
+        and product_lookup_cache is None
+    ):
+        needs_shared_redis = True
 
     if needs_shared_redis:
         shared_redis_client = redis.Redis.from_url(
@@ -224,20 +251,59 @@ def create_app(
         package_search_limiter
         or KeyedSlidingWindowLimiter(resolved_settings.package_search_requests_per_minute)
     )
-    if external_source is None:
+    needs_dataset_source = external_source is None or (
+        product_lookup_source is None
+        and not isinstance(external_source, OpenFoodFactsDatasetSource)
+    )
+    dataset_source: OpenFoodFactsDatasetSource | None = None
+    if needs_dataset_source:
         mongo_client: MongoClient[dict[str, Any]] = MongoClient(
             resolved_settings.off_mongodb_uri,
             serverSelectionTimeoutMS=resolved_settings.off_mongodb_timeout_ms,
         )
         owned_mongo_clients.append(mongo_client)
-        resolved_source: ExternalPackageSource = OpenFoodFactsDatasetSource(
+        dataset_source = OpenFoodFactsDatasetSource(
             mongo_client[resolved_settings.off_mongodb_database],
             image_base_url=resolved_settings.open_food_facts_image_base_url,
         )
+    if external_source is None:
+        assert dataset_source is not None
+        resolved_source: ExternalPackageSource = dataset_source
     else:
         resolved_source = external_source
+    if product_lookup_source is not None:
+        resolved_product_lookup_source = product_lookup_source
+    elif isinstance(resolved_source, OpenFoodFactsDatasetSource):
+        resolved_product_lookup_source = resolved_source
+    else:
+        assert dataset_source is not None
+        resolved_product_lookup_source = dataset_source
+
+    if product_lookup_cache is not None:
+        resolved_product_lookup_cache = product_lookup_cache
+    elif resolved_settings.product_lookup_cache_enabled:
+        assert shared_redis_client is not None
+        resolved_product_lookup_cache = RedisProductLookupCache(
+            shared_redis_client,
+            ttl_seconds=resolved_settings.product_lookup_cache_ttl_seconds,
+        )
+    else:
+        resolved_product_lookup_cache = NullProductLookupCache()
+    if product_lookup_limiter is not None:
+        resolved_product_lookup_limiter = product_lookup_limiter
+    else:
+        assert shared_redis_client is not None
+        resolved_product_lookup_limiter = RedisProductLookupRateLimiter(
+            shared_redis_client,
+            resolved_settings.product_lookup_requests_per_minute,
+        )
+    resolved_product_lookup_metrics = (
+        product_lookup_metrics or NoOpProductLookupMetrics()
+    )
     resolved_package_search = package_search
-    if resolved_package_search is None and isinstance(resolved_source, OpenFoodFactsDatasetSource):
+    if resolved_package_search is None and isinstance(
+        resolved_source, OpenFoodFactsDatasetSource
+    ):
         resolved_package_search = MongoPackageSearch(resolved_source)
     if image_source is None:
         image_http_client = httpx.Client()
@@ -261,6 +327,7 @@ def create_app(
     app.include_router(package_matches_router)
     app.include_router(package_search_router)
     app.include_router(open_food_facts_image_router)
+    app.include_router(product_lookup_router)
 
     @app.get("/scalar", include_in_schema=False)
     async def scalar_html() -> HTMLResponse:
@@ -292,11 +359,21 @@ def create_app(
     app.dependency_overrides[get_package_match_search_rate_limiter] = (
         lambda: resolved_search_rate_limiter
     )
-    app.dependency_overrides[get_package_searcher] = provide_searcher
+    app.dependency_overrides[get_searcher] = provide_searcher
     app.dependency_overrides[get_package_search_rate_limiter] = (
         lambda: resolved_package_search_limiter
     )
     app.dependency_overrides[get_image_source] = lambda: resolved_image_source
+    app.dependency_overrides[get_product_lookup] = lambda: LookupProduct(
+        resolved_product_lookup_source,
+        resolved_product_lookup_cache,
+    )
+    app.dependency_overrides[get_product_lookup_rate_limiter] = (
+        lambda: resolved_product_lookup_limiter
+    )
+    app.dependency_overrides[get_product_lookup_metrics] = (
+        lambda: resolved_product_lookup_metrics
+    )
 
     @app.exception_handler(RequestValidationError)
     async def request_validation_handler(

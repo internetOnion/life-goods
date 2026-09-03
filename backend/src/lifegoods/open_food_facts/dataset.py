@@ -1,11 +1,12 @@
 import json
 import logging
+import math
 import re
 from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from threading import Lock
-from typing import Any
+from typing import Any, cast
 
 from pymongo import ASCENDING, TEXT
 from pymongo.database import Database
@@ -31,6 +32,12 @@ from lifegoods.open_food_facts.models import (
     JsonValue,
     SourcedValue,
 )
+from lifegoods.product_lookup.models import (
+    DatasetSnapshot,
+    DatasetUnavailableError,
+    InvalidSourceRecordError,
+    SourceRecord,
+)
 
 CONTROL_COLLECTION = "off_dataset_control"
 VERSIONS_COLLECTION = "off_dataset_versions"
@@ -48,6 +55,7 @@ logger = logging.getLogger(__name__)
 LOCALIZED_NAME_FIELDS = (
     ("product_name", None),
     ("product_name_en", "en"),
+    ("product_name_fr", "fr"),
     ("product_name_km", "km"),
     ("product_name_th", "th"),
     ("product_name_vi", "vi"),
@@ -62,6 +70,7 @@ PACKAGE_SEARCH_TEXT_WEIGHTS = {
 LOCALIZED_INGREDIENT_FIELDS = (
     ("ingredients_text", None),
     ("ingredients_text_en", "en"),
+    ("ingredients_text_fr", "fr"),
     ("ingredients_text_km", "km"),
     ("ingredients_text_th", "th"),
     ("ingredients_text_vi", "vi"),
@@ -70,6 +79,7 @@ LOCALIZED_INGREDIENT_FIELDS = (
 LOCALIZED_STORAGE_FIELDS = (
     ("conservation_conditions", None),
     ("conservation_conditions_en", "en"),
+    ("conservation_conditions_fr", "fr"),
     ("conservation_conditions_km", "km"),
     ("conservation_conditions_th", "th"),
     ("conservation_conditions_vi", "vi"),
@@ -118,13 +128,13 @@ class OpenFoodFactsDatasetSource:
         )
 
     @property
-    def metadata(self) -> ExternalSourceMetadata:
-        return self._source_metadata
+    def database(self) -> Database[dict[str, Any]]:
+        """Expose the backing database to the optional package search index."""
+        return self._database
 
     @property
-    def database(self) -> Database[dict[str, Any]]:
-        """MongoDB database used by this immutable dataset source."""
-        return self._database
+    def metadata(self) -> ExternalSourceMetadata:
+        return self._source_metadata
 
     def fetch(self, identifier: NormalizedIdentifier) -> ExternalLookupResult:
         try:
@@ -168,6 +178,71 @@ class OpenFoodFactsDatasetSource:
                 self._image_base_url,
             )
         )
+
+    def resolve_product_lookup_snapshot(self) -> DatasetSnapshot:
+        try:
+            pointer = self._database[CONTROL_COLLECTION].find_one(
+                {"_id": ACTIVE_POINTER_ID}
+            )
+            if pointer is None or not isinstance(pointer.get("active_version_id"), str):
+                _log_off_unavailable(
+                    "product_lookup_read_active_pointer", "metadata_invalid"
+                )
+                raise DatasetUnavailableError("Dataset Snapshot pointer unavailable")
+            version_id = pointer["active_version_id"]
+            resolved = self._cached_manifest(version_id)
+            if resolved is None:
+                resolved = self._resolve_manifest(version_id)
+            if resolved is None:
+                raise DatasetUnavailableError("Dataset Snapshot manifest unavailable")
+            return DatasetSnapshot(
+                version=resolved.version.id,
+                retrieved_at=resolved.version.retrieved_at,
+                collection_name=resolved.collection_name,
+            )
+        except DatasetUnavailableError:
+            raise
+        except (PyMongoError, KeyError, TypeError, ValueError) as error:
+            _log_off_unavailable(
+                "product_lookup_resolve_snapshot", "dependency_error", error
+            )
+            raise DatasetUnavailableError("Dataset Snapshot unavailable") from error
+
+    def fetch_source_record(
+        self,
+        identifier: NormalizedIdentifier,
+        snapshot: DatasetSnapshot,
+    ) -> SourceRecord | None:
+        try:
+            product = self._database[snapshot.collection_name].find_one(
+                {"code": identifier.value}
+            )
+            if product is None:
+                if not self._collection_exists(snapshot.collection_name):
+                    _log_off_unavailable(
+                        "product_lookup_verify_product_collection",
+                        "collection_missing",
+                    )
+                    raise DatasetUnavailableError(
+                        "Dataset Snapshot Product collection unavailable"
+                    )
+                return None
+        except DatasetUnavailableError:
+            raise
+        except (PyMongoError, KeyError, TypeError, ValueError) as error:
+            _log_off_unavailable("product_lookup_fetch", "dependency_error", error)
+            raise DatasetUnavailableError("Dataset Snapshot unavailable") from error
+
+        source_record = {
+            key: value for key, value in product.items() if key != "_id"
+        }
+        try:
+            _validate_json_value(source_record)
+        except (TypeError, ValueError) as error:
+            raise InvalidSourceRecordError(
+                "Source Record contains a non-JSON storage value"
+            ) from error
+        return cast(SourceRecord, source_record)
 
     def fetch_many(
         self,
@@ -236,9 +311,7 @@ class OpenFoodFactsDatasetSource:
                 {"_id": ACTIVE_POINTER_ID}
             )
             if pointer is None or not isinstance(pointer.get("active_version_id"), str):
-                _log_off_unavailable(
-                    "search_packages_read_active_pointer", "metadata_invalid"
-                )
+                _log_off_unavailable("search_packages_read_active_pointer", "metadata_invalid")
                 raise ExternalPackageSearchUnavailableError("Active dataset unavailable")
             version_id = pointer["active_version_id"]
             resolved = self._cached_manifest(version_id)
@@ -383,6 +456,26 @@ def _log_off_unavailable(
     )
 
 
+def _validate_json_value(value: Any) -> None:
+    if value is None or isinstance(value, (bool, int, str)):
+        return
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise ValueError("Non-finite numbers are not JSON-compatible")
+        return
+    if isinstance(value, list):
+        for item in value:
+            _validate_json_value(item)
+        return
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if not isinstance(key, str):
+                raise TypeError("JSON object keys must be strings")
+            _validate_json_value(item)
+        return
+    raise TypeError("Value is not JSON-compatible")
+
+
 def ensure_package_search_indexes(collection: Any) -> None:
     collection.create_index(
         list(PACKAGE_SEARCH_TEXT_FIELDS),
@@ -497,21 +590,6 @@ def _localized_texts(
                     language=resolved_language,
                 )
             )
-    known_fields = {source_field for source_field, _ in fields}
-    base_field = fields[0][0]
-    for source_field, raw_value in product.items():
-        if source_field in known_fields or not source_field.startswith(f"{base_field}_"):
-            continue
-        language = source_field.rsplit("_", 1)[-1]
-        if len(language) != 2 or not language.isalpha():
-            continue
-        value = _non_empty_string(raw_value)
-        if value is None:
-            continue
-        resolved = SourcedValue(value=value, source_field=source_field, language=language)
-        if not deduplicate or (value, language) not in seen:
-            values.append(resolved)
-            seen.add((value, language))
     return tuple(values)
 
 

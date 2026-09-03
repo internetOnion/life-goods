@@ -1,0 +1,260 @@
+{
+    "schemaVersion": 2,
+    "generatedAt": "2026-09-02T00:00:00Z",
+    "title": "Design System: Life Goods",
+    "extensions": {
+        "colorMeta": {
+            "amber-action": {
+                "role": "primary",
+                "displayName": "Grounded Amber Action",
+                "canonical": "#995613",
+                "tonalRamp": [
+                    "#1f1307",
+                    "#39210a",
+                    "#5a320b",
+                    "#7b440d",
+                    "#995613",
+                    "#b86a1a",
+                    "#e19447",
+                    "#e7b583",
+                    "#edd1b6",
+                    "#f3e8dd"
+                ]
+            },
+            "blue-attribution": {
+                "role": "secondary",
+                "displayName": "Attribution Blue",
+                "canonical": "#315072",
+                "tonalRamp": [
+                    "#0f161e",
+                    "#1a2836",
+                    "#253b53",
+                    "#315072",
+                    "#3f658e",
+                    "#4f7cac",
+                    "#6e93ba",
+                    "#9cb4ce",
+                    "#c4d1df",
+                    "#e3e8ee"
+                ]
+            },
+            "slate-canvas": {
+                "role": "neutral",
+                "displayName": "Cool Slate Canvas",
+                "canonical": "#f3f5f6",
+                "tonalRamp": [
+                    "#131519",
+                    "#21252c",
+                    "#303843",
+                    "#404c5b",
+                    "#526073",
+                    "#64748b",
+                    "#9fb1cb",
+                    "#c6cfdd",
+                    "#e3e7ed",
+                    "#f3f5f6"
+                ]
+            },
+            "white-sheet": {
+                "role": "neutral",
+                "displayName": "White Source Sheet",
+                "canonical": "#ffffff"
+            },
+            "slate-ink": {
+                "role": "neutral",
+                "displayName": "Camera Ink",
+                "canonical": "#131519"
+            },
+            "slate-border": {
+                "role": "neutral",
+                "displayName": "Slate Divider",
+                "canonical": "#c6cfdd"
+            }
+        },
+        "typographyMeta": {
+            "display": {
+                "displayName": "Display",
+                "purpose": "Product names and primary page headings only."
+            },
+            "headline": {
+                "displayName": "Headline",
+                "purpose": "Major content sections beside amber icon tiles."
+            },
+            "body": {
+                "displayName": "Body",
+                "purpose": "Source text and descriptions, always wrap-anywhere."
+            },
+            "label": {
+                "displayName": "Label",
+                "purpose": "Uppercase field labels and Original Text language tags."
+            },
+            "identifier": {
+                "displayName": "Identifier",
+                "purpose": "Barcodes, nutrition values, and measurements in JetBrains Mono."
+            }
+        },
+        "shadows": [
+            {
+                "name": "sheet-lift",
+                "value": "0 14px 38px -28px rgba(19,21,25,0.55)",
+                "purpose": "Hero card and reading sheet only."
+            },
+            {
+                "name": "scanner-depth",
+                "value": "0 16px 40px -24px rgba(19,21,25,0.8)",
+                "purpose": "The dark scanner aperture, the one emphatic shadow."
+            },
+            {
+                "name": "action-breath",
+                "value": "0 8px 20px -14px rgba(90,50,11,0.8)",
+                "purpose": "Amber primary buttons."
+            }
+        ],
+        "motion": [
+            {
+                "name": "scan-laser",
+                "value": "scan-laser 2.2s ease-in-out infinite",
+                "purpose": "Scanner aperture laser sweep; disabled under prefers-reduced-motion."
+            },
+            {
+                "name": "state-transition",
+                "value": "150ms",
+                "purpose": "Button and navigation color transitions."
+            }
+        ],
+        "breakpoints": [
+            { "name": "min", "value": "320px" },
+            { "name": "sm", "value": "640px" }
+        ]
+    },
+    "components": [
+        {
+            "name": "Primary Button",
+            "kind": "button",
+            "refersTo": "button-default",
+            "description": "Amber action for the Shopper's next step.",
+            "html": "<button class=\"ds-btn-primary\">Find Product</button>",
+            "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 44px; padding: 0.5rem 1rem; border: none; border-radius: 0.75rem; background: #995613; color: #fff; font: 800 0.875rem/1.5 'Plus Jakarta Sans', sans-serif; box-shadow: 0 8px 20px -14px rgba(90,50,11,0.8); cursor: pointer; transition: background 150ms, transform 150ms; } .ds-btn-primary:hover { background: #7b440d; } .ds-btn-primary:active { background: #5a320b; transform: scale(0.98); } .ds-btn-primary:focus-visible { outline: 2px solid #b86a1a; outline-offset: 2px; }"
+        },
+        {
+            "name": "Outline Button",
+            "kind": "button",
+            "refersTo": "button-outline",
+            "description": "Secondary recovery action on white ground.",
+            "html": "<button class=\"ds-btn-outline\">Enter another Barcode</button>",
+            "css": ".ds-btn-outline { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 44px; padding: 0.5rem 1rem; border: 1px solid #c6cfdd; border-radius: 0.75rem; background: #fff; color: #131519; font: 800 0.875rem/1.5 'Plus Jakarta Sans', sans-serif; cursor: pointer; transition: background 150ms, border-color 150ms; } .ds-btn-outline:hover { border-color: #9fb1cb; background: #e3e7ed; } .ds-btn-outline:focus-visible { outline: 2px solid #b86a1a; outline-offset: 2px; }"
+        },
+        {
+            "name": "Barcode Input",
+            "kind": "input",
+            "refersTo": "input",
+            "description": "48px white field, mono digits, amber focus.",
+            "html": "<input class=\"ds-input\" placeholder=\"3017620422003\" inputmode=\"numeric\" />",
+            "css": ".ds-input { width: 100%; height: 48px; padding: 0.5rem 0.875rem; border: 1px solid #c6cfdd; border-radius: 0.75rem; background: #fff; color: #131519; font: 400 1.125rem/1.5 'JetBrains Mono', monospace; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; outline: none; transition: border-color 150ms, box-shadow 150ms; } .ds-input::placeholder { color: #9fb1cb; } .ds-input:focus-visible { border-color: #b86a1a; box-shadow: 0 0 0 3px rgba(184,106,26,0.25); }"
+        },
+        {
+            "name": "Navigation Pill",
+            "kind": "nav",
+            "refersTo": "nav-item",
+            "description": "Header link; active state fills soft amber.",
+            "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-pill is-active\" href=\"#\">Scan</a><a class=\"ds-nav-pill\" href=\"#\">Enter Barcode</a></nav>",
+            "css": ".ds-nav { display: flex; gap: 0.25rem; } .ds-nav-pill { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 44px; padding: 0 0.75rem; border-radius: 0.75rem; color: #526073; font: 700 0.875rem/1.5 'Plus Jakarta Sans', sans-serif; text-decoration: none; transition: background 150ms, color 150ms; } .ds-nav-pill:hover { background: #e3e7ed; color: #131519; } .ds-nav-pill.is-active { background: #f3e8dd; color: #5a320b; } .ds-nav-pill:focus-visible { outline: 2px solid #b86a1a; outline-offset: 2px; }"
+        },
+        {
+            "name": "Fact Row",
+            "kind": "custom",
+            "refersTo": "fact-row",
+            "description": "Label/value row with hairline divider and exact absence copy.",
+            "html": "<dl class=\"dl-facts\"><div class=\"ds-fact\"><dt>Source</dt><dd>Open Food Facts</dd></div><div class=\"ds-fact\"><dt>Origin</dt><dd class=\"ds-absent\">Source Data Unavailable</dd></div></dl>",
+            "css": ".dl-facts { border-top: 1px solid #c6cfdd; border-bottom: 1px solid #c6cfdd; } .ds-fact { display: grid; gap: 0.25rem; padding: 0.75rem 0; } .ds-fact + .ds-fact { border-top: 1px solid #c6cfdd; } .ds-fact dt { font: 700 0.875rem/1.5 'Plus Jakarta Sans', sans-serif; color: #64748b; } .ds-fact dd { margin: 0; font: 400 0.875rem/1.5 'Plus Jakarta Sans', sans-serif; color: #303843; overflow-wrap: anywhere; } .ds-absent { font-weight: 600; color: #526073; } @media (min-width: 640px) { .ds-fact { grid-template-columns: 10rem minmax(0, 1fr); gap: 1rem; } }"
+        },
+        {
+            "name": "Source Chip",
+            "kind": "chip",
+            "refersTo": "chip",
+            "description": "Category, label, or additive value from the source record.",
+            "html": "<span class=\"ds-chip\">chocolate</span>",
+            "css": ".ds-chip { display: inline-flex; padding: 0.25rem 0.75rem; border-radius: 999px; background: #e3e7ed; color: #404c5b; font: 600 0.875rem/1.5 'Plus Jakarta Sans', sans-serif; overflow-wrap: anywhere; }"
+        },
+        {
+            "name": "Scanner Aperture",
+            "kind": "custom",
+            "refersTo": "scanner-aperture",
+            "description": "Dark privacy-first camera consent surface with amber signal.",
+            "html": "<section class=\"ds-aperture\"><div class=\"ds-aperture-tile\">🔒</div><h2>Your camera stays private</h2><p>Barcode detection happens on this device.</p><button class=\"ds-btn-primary ds-aperture-action\">Start camera</button></section>",
+            "css": ".ds-aperture { min-height: 24rem; display: grid; place-items: center; text-align: center; padding: 2.5rem 1.5rem; border-radius: 1.5rem; background: #131519; color: #fff; box-shadow: 0 16px 40px -24px rgba(19,21,25,0.8); outline: 1px solid #303843; outline-offset: -1px; } .ds-aperture-tile { display: grid; place-items: center; width: 64px; height: 64px; margin: 0 auto 1.25rem; border-radius: 1rem; background: #303843; color: #e7b583; outline: 1px solid rgba(255,255,255,0.1); outline-offset: -1px; } .ds-aperture h2 { margin: 0; font: 800 1.5rem/1.25 'Plus Jakarta Sans', sans-serif; letter-spacing: -0.02em; } .ds-aperture p { margin: 0.75rem 0 0; font: 400 0.875rem/1.6 'Plus Jakarta Sans', sans-serif; color: #c6cfdd; } .ds-aperture-action { min-height: 48px; margin-top: 1.75rem; background: #b86a1a; padding: 0.5rem 1.5rem; font-size: 1rem; } .ds-aperture-action:hover { background: #995613; } .ds-aperture-action:active { background: #7b440d; }"
+        },
+        {
+            "name": "Attribution Link",
+            "kind": "custom",
+            "refersTo": "attribution-link",
+            "description": "Blue external link that names Open Food Facts.",
+            "html": "<a class=\"ds-attribution\" href=\"#\" target=\"_blank\" rel=\"noreferrer\">Data from Open Food Facts ↗</a>",
+            "css": ".ds-attribution { display: inline-flex; align-items: center; gap: 0.5rem; min-height: 44px; color: #315072; font: 800 0.875rem/1.5 'Plus Jakarta Sans', sans-serif; text-decoration: none; } .ds-attribution:hover { text-decoration: underline; text-underline-offset: 0.22em; } .ds-attribution:focus-visible { outline: 3px solid #b86a1a; outline-offset: 3px; border-radius: 0.5rem; }"
+        }
+    ],
+    "narrative": {
+        "northStar": "The Source Reader",
+        "overview": "Life Goods is a calm, grounded reading tool for attributed source data, not a verdict dashboard. A cool slate canvas holds narrow white sheets of Open Food Facts information; amber exists only to move the Shopper forward, and blue exists only to name the source. Density is generous but ordered: one 36rem reading rail, dividers instead of boxes, monospaced identifiers wherever a machine value appears. The dark scanner aperture is the single moment of high drama, and it exists to make a privacy promise before it asks for the camera.\n\nThe interface is compact, mobile-first, and privacy-forward. Missing source data is never decorated, softened, or inferred: it reads exactly Source Data Unavailable — the interface's most important sentence.",
+        "keyCharacteristics": [
+            "Narrow, one-handed reading column on a cool slate canvas",
+            "White source sheets carry the content; the canvas is only a field",
+            "Amber action and blue Source Attribution",
+            "Dark camera glass separated from reading surfaces",
+            "Compact rounded controls and mono identifiers",
+            "Dividers and disclosure instead of dashboard tiles"
+        ],
+        "rules": [
+            {
+                "name": "The White Sheet Rule",
+                "body": "Source data is read on white. The slate canvas is a field, never a data surface.",
+                "section": "colors"
+            },
+            {
+                "name": "The One Amber Rule",
+                "body": "Amber marks the action a Shopper can take next — primary buttons, section icons, the laser. Never body text, never decoration.",
+                "section": "colors"
+            },
+            {
+                "name": "The Blue Names the Source Rule",
+                "body": "Blue is reserved for Source Attribution, source context, and licensing links so external information never reads as a Life Goods claim.",
+                "section": "colors"
+            },
+            {
+                "name": "The Exact Absence Rule",
+                "body": "Missing source values render exactly Source Data Unavailable. No synonyms, no \"none\", no inference.",
+                "section": "colors"
+            },
+            {
+                "name": "The Machine Value Rule",
+                "body": "Set Barcodes and numeric source values in the mono stack with tabular numerals; keep names and explanations in the sans stack.",
+                "section": "typography"
+            },
+            {
+                "name": "The Khmer Is Native Rule",
+                "body": "Noto Sans Khmer is a first-line script fallback, with normal letter spacing and relaxed heading line-height for Khmer text.",
+                "section": "typography"
+            },
+            {
+                "name": "The Felt Shadow Rule",
+                "body": "If a shadow's edge is visible, it is too strong. Sheets separate by contrast, not by drop.",
+                "section": "elevation"
+            }
+        ],
+        "dos": [
+            "Do keep every route inside the narrow source rail and preserve comfortable one-handed targets.",
+            "Do apply wrap-anywhere to all source text and mono identifiers; long taxonomy strings wrap, never overflow.",
+            "Do group packaging by meaning (Original Text, recycling instructions, materials, shapes, recycling, components) with normalized, deduplicated values.",
+            "Do derive nutrition table columns from supplied data only; stack them on phones.",
+            "Do place Barcodes and measured values in mono with tabular numerals."
+        ],
+        "donts": [
+            "Don't turn Source Assessments into dominant score tiles, traffic-light verdicts, or purchase recommendations; keep the attribution sentence directly under the section heading.",
+            "Don't render missing data as \"—\", \"none\", \"N/A\", or a friendlier phrase; only Source Data Unavailable.",
+            "Don't use blue for ordinary Life Goods actions or amber to imply source-data quality; success/error/warning appear only in status.",
+            "Don't round and shadow every content block, and never use shadows stronger than the sheet vocabulary.",
+            "Don't force horizontal scrolling for data; the 320px viewport is the floor.",
+            "Don't upload, retain, or visually imply capture of camera frames beyond the local scanner aperture."
+        ]
+    }
+}

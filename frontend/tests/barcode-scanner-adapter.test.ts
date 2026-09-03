@@ -11,7 +11,7 @@ vi.mock("@zxing/browser", () => ({
     })),
 }))
 
-import { barcodeScanner } from "../src/features/package-match/barcodeScanner"
+import { barcodeScanner } from "../src/features/scan/barcodeScanner"
 
 function createVideoFrame(drawable = true) {
     const state = {
@@ -181,6 +181,62 @@ describe("barcode scanner adapter", () => {
             vi.unstubAllGlobals()
         }
     })
+
+    test("falls back to zxing if native BarcodeDetector hangs or times out", async () => {
+        const BarcodeDetectorMock = vi.fn()
+        Object.assign(BarcodeDetectorMock, {
+            getSupportedFormats: vi.fn().mockReturnValue(new Promise(() => {})), // never resolves!
+        })
+        vi.stubGlobal("BarcodeDetector", BarcodeDetectorMock)
+
+        try {
+            const onResult = vi.fn()
+            decodeFromCanvasMock.mockReturnValue({
+                getText: () => "4006381333931",
+            })
+            const { video } = createVideoFrame()
+
+            const session = await barcodeScanner.start(video, onResult, vi.fn())
+
+            await vi.waitFor(() =>
+                expect(onResult).toHaveBeenCalledWith("4006381333931"),
+            )
+            session.stop()
+        } finally {
+            vi.unstubAllGlobals()
+        }
+    }, 2000)
+
+    test("falls back to zxing if native BarcodeDetector detect hangs or throws", async () => {
+        const detectMock = vi.fn().mockReturnValue(new Promise(() => {})) // detect hangs!
+        const BarcodeDetectorMock = vi.fn().mockImplementation(() => ({
+            detect: detectMock,
+        }))
+        Object.assign(BarcodeDetectorMock, {
+            getSupportedFormats: vi
+                .fn()
+                .mockResolvedValue(["ean_13", "qr_code"]),
+        })
+        vi.stubGlobal("BarcodeDetector", BarcodeDetectorMock)
+
+        try {
+            const onResult = vi.fn()
+            decodeFromCanvasMock.mockReturnValue({
+                getText: () => "4006381333931",
+            })
+            const { video } = createVideoFrame()
+
+            const session = await barcodeScanner.start(video, onResult, vi.fn())
+
+            await vi.waitFor(
+                () => expect(onResult).toHaveBeenCalledWith("4006381333931"),
+                { timeout: 2000 },
+            )
+            session.stop()
+        } finally {
+            vi.unstubAllGlobals()
+        }
+    }, 3000)
 
     test("ignores normal frame decode misses without stopping the session", async () => {
         decodeFromCanvasMock.mockImplementation(() => {

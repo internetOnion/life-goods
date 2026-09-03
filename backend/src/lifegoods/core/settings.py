@@ -22,6 +22,9 @@ DEFAULT_REDIS_URL = "redis://localhost:6380/0"
 DEFAULT_REDIS_TIMEOUT_SECONDS = 0.5
 DEFAULT_ASSESSMENT_CACHE_ENABLED = True
 DEFAULT_ASSESSMENT_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60
+DEFAULT_PRODUCT_LOOKUP_CACHE_ENABLED = True
+DEFAULT_PRODUCT_LOOKUP_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60
+DEFAULT_PRODUCT_LOOKUP_REQUESTS_PER_MINUTE = 60
 
 
 class Settings(BaseSettings):
@@ -74,5 +77,8 @@ class Settings(BaseSettings):
     redis_timeout_seconds: float = DEFAULT_REDIS_TIMEOUT_SECONDS
     assessment_cache_enabled: bool = DEFAULT_ASSESSMENT_CACHE_ENABLED
     assessment_cache_ttl_seconds: int = DEFAULT_ASSESSMENT_CACHE_TTL_SECONDS
+    product_lookup_cache_enabled: bool = DEFAULT_PRODUCT_LOOKUP_CACHE_ENABLED
+    product_lookup_cache_ttl_seconds: int = DEFAULT_PRODUCT_LOOKUP_CACHE_TTL_SECONDS
+    product_lookup_requests_per_minute: int = DEFAULT_PRODUCT_LOOKUP_REQUESTS_PER_MINUTE
     # Retained only for configuration compatibility; MVP-1 never consults it.
     project_catalog_enabled: bool = False
