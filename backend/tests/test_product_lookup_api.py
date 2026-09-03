@@ -145,6 +145,7 @@ def test_product_lookup_preserves_sparse_source_record_without_inference() -> No
     [
         ("9638 5074", "96385074"),
         ("0-12345-67890-5", "012345678905"),
+        ("4006 381 333931", "4006381333931"),
         ("1 0012345 000017", "10012345000017"),
     ],
 )
@@ -166,12 +167,25 @@ def test_product_lookup_supports_each_barcode_length_at_the_http_boundary(
     assert response.json()["meta"]["lookup"]["barcode"] == normalized
 
 
-def test_invalid_barcode_uses_stable_error_and_never_enters_lookup_cache() -> None:
+@pytest.mark.parametrize(
+    "invalid_input",
+    [
+        "1234",  # unsupported length
+        "4006381333932",  # invalid check digit
+        "400638133393A",  # invalid characters
+    ],
+    ids=["unsupported-length", "invalid-check-digit", "invalid-characters"],
+)
+def test_invalid_barcode_uses_stable_error_and_never_enters_lookup_cache(
+    invalid_input: str,
+) -> None:
     database = _dataset_database()
     redis_client = fakeredis.FakeRedis(decode_responses=True)
 
     with _client(database, redis_client=redis_client) as client:
-        response = client.get("/api/experimental/products/1234")
+        response = client.get(
+            "/api/experimental/products/" + quote(invalid_input, safe="")
+        )
 
     assert response.status_code == 422
     assert response.json() == {
