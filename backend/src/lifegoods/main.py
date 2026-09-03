@@ -115,11 +115,13 @@ def create_app(
 ) -> FastAPI:
     resolved_settings = settings or Settings()
     install_product_lookup_access_log_filter()
-    if session_factory is None:
-        db_engine = create_engine(resolved_settings.database_url)
-        resolved_session_factory = sessionmaker(db_engine, expire_on_commit=False)
-    else:
-        resolved_session_factory = session_factory
+    resolved_session_factory = session_factory
+    if resolved_session_factory is None and resolved_settings.database_url:
+        try:
+            db_engine = create_engine(resolved_settings.database_url)
+            resolved_session_factory = sessionmaker(db_engine, expire_on_commit=False)
+        except Exception:
+            resolved_session_factory = None
 
     owned_http_clients: list[httpx.Client] = []
     owned_mongo_clients: list[MongoClient[dict[str, Any]]] = []
@@ -186,9 +188,12 @@ def create_app(
             local_max_keys=resolved_settings.package_match_rate_limit_local_max_keys,
             key_prefix="package-matches:search-rate-limit",
         )
-    resolved_reference_data = DatabaseAllergenReferenceDataAccess(
-        resolved_session_factory
-    )
+    if resolved_session_factory is not None:
+        resolved_reference_data: DatabaseAllergenReferenceDataAccess | None = (
+            DatabaseAllergenReferenceDataAccess(resolved_session_factory)
+        )
+    else:
+        resolved_reference_data = None
     if assessment_cache is not None:
         resolved_cache: AllergenAssessmentCache | None = assessment_cache
     elif isinstance(halal_assessment_cache, RedisHalalIngredientAssessmentCache):
@@ -208,16 +213,22 @@ def create_app(
     resolved_allergen_evaluator = (
         allergen_evaluator
         or StandardAllergenAssessmentEvaluator(
-            enabled=resolved_settings.allergen_assessments_enabled,
+            enabled=(
+                resolved_settings.allergen_assessments_enabled
+                and resolved_reference_data is not None
+            ),
             engine_version=resolved_settings.assessment_engine_version,
             reference_data=resolved_reference_data,
             cache=resolved_cache,
         )
     )
 
-    resolved_halal_reference_data = DatabaseHalalReferenceDataAccess(
-        resolved_session_factory
-    )
+    if resolved_session_factory is not None:
+        resolved_halal_reference_data: DatabaseHalalReferenceDataAccess | None = (
+            DatabaseHalalReferenceDataAccess(resolved_session_factory)
+        )
+    else:
+        resolved_halal_reference_data = None
     if halal_assessment_cache is not None:
         resolved_halal_cache: HalalIngredientAssessmentCache | None = (
             halal_assessment_cache
@@ -239,7 +250,10 @@ def create_app(
     resolved_halal_evaluator = (
         halal_evaluator
         or StandardHalalIngredientAssessmentEvaluator(
-            enabled=resolved_settings.halal_ingredient_assessments_enabled,
+            enabled=(
+                resolved_settings.halal_ingredient_assessments_enabled
+                and resolved_halal_reference_data is not None
+            ),
             engine_version=(
                 resolved_settings.halal_ingredient_assessment_engine_version
             ),

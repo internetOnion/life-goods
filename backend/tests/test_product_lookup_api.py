@@ -10,11 +10,7 @@ import mongomock
 import pytest
 from fastapi.testclient import TestClient
 from pymongo.errors import AutoReconnect
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
 
-from lifegoods.core.database import Base
 from lifegoods.identifiers import normalize_identifier
 from lifegoods.main import create_app
 from lifegoods.open_food_facts import (
@@ -37,14 +33,7 @@ RETRIEVED_AT = datetime(2026, 8, 27, 8, 0, tzinfo=UTC)
 ACTIVATED_AT = datetime(2026, 8, 27, 9, 0, tzinfo=UTC)
 
 
-def _session_factory() -> sessionmaker[Session]:
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(engine)
-    return sessionmaker(engine, expire_on_commit=False)
+
 
 
 def _dataset_database():
@@ -78,7 +67,6 @@ def _client(
     redis_client = redis_client or fakeredis.FakeRedis(decode_responses=True)
     source = OpenFoodFactsDatasetSource(database)
     app = create_app(
-        session_factory=_session_factory(),
         external_source=source,
         product_lookup_source=source,
         product_lookup_cache=RedisProductLookupCache(redis_client, ttl_seconds=3600),
@@ -483,7 +471,6 @@ def test_in_memory_cache_expires_at_the_http_seam() -> None:
     redis_client = fakeredis.FakeRedis(decode_responses=True)
     source = OpenFoodFactsDatasetSource(database)
     app = create_app(
-        session_factory=_session_factory(),
         external_source=source,
         product_lookup_source=source,
         product_lookup_cache=cache,
