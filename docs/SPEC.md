@@ -202,3 +202,11 @@ The first backend milestone is complete when:
 - the service never calls the live Open Food Facts API as a fallback;
 - the endpoint is represented in FastAPI's OpenAPI contract and generated frontend client; and
 - aggregate metrics contain no retained Barcode or Shopper history.
+
+## 12. Deliberate compatibility surface (Issue #83)
+
+To allow safe incremental migration of the frontend without breaking existing prototype behavior:
+
+1. **Deprecated Experimental Route**: `GET /api/experimental/products/{barcode}` is retained with `deprecated=True` in OpenAPI. It returns `ProductLookupResponse` containing the unprojected Open Food Facts `source_record`.
+2. **Dual-Contract Frontend Adapter**: `adaptProductLookup` in `frontend/src/features/product/adapter.ts` accepts either `ProductProjectionResponse` (from the stable `/api/v1/products/{barcode}` endpoint) or `ProductLookupResponse` (from the deprecated experimental route).
+3. **Subsequent Removal Issue**: Once frontend presentation components consume `ProductProjection` directly and no consumers rely on `adaptProductLookup`'s legacy candidate structure, the experimental endpoint and dual-mode adapter will be removed in a dedicated follow-up issue.

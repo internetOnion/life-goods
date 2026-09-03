@@ -132,7 +132,7 @@ def create_app(
     else:
         resolved_image_source = image_source
 
-    app = FastAPI(title="LifeGoods API", version="0.1.0")
+    app = FastAPI(title="Life Goods API", version="0.1.0")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(resolved_settings.allowed_origins),
