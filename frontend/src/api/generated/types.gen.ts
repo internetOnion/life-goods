@@ -199,7 +199,7 @@ export type DatasetSnapshotResponse = {
 /**
  * ErrorCode
  */
-export type ErrorCode = 'IDENTIFIER_REQUIRED' | 'IDENTIFIER_CHARACTERS_INVALID' | 'IDENTIFIER_LENGTH_UNSUPPORTED' | 'IDENTIFIER_CHECK_DIGIT_INVALID' | 'PACKAGE_MATCH_SOURCE_UNAVAILABLE' | 'PACKAGE_SEARCH_QUERY_INVALID' | 'REFERENCE_IMAGE_URL_INVALID' | 'REFERENCE_IMAGE_NOT_FOUND' | 'REFERENCE_IMAGE_SOURCE_UNAVAILABLE' | 'RATE_LIMIT_EXCEEDED';
+export type ErrorCode = 'IDENTIFIER_REQUIRED' | 'IDENTIFIER_CHARACTERS_INVALID' | 'IDENTIFIER_LENGTH_UNSUPPORTED' | 'IDENTIFIER_CHECK_DIGIT_INVALID' | 'PACKAGE_MATCH_SOURCE_UNAVAILABLE' | 'PACKAGE_SEARCH_QUERY_INVALID' | 'REFERENCE_IMAGE_URL_INVALID' | 'REFERENCE_IMAGE_NOT_FOUND' | 'REFERENCE_IMAGE_SOURCE_UNAVAILABLE' | 'RATE_LIMIT_EXCEEDED' | 'SEARCH_QUERY_REQUIRED' | 'SEARCH_QUERY_INVALID' | 'SEARCH_RESULTS_NOT_FOUND';
 
 /**
  * ErrorDetail
@@ -631,6 +631,20 @@ export type PackageMatchesResponse = {
 };
 
 /**
+ * PackageSearchAdditiveResponse
+ */
+export type PackageSearchAdditiveResponse = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * PackageSearchEvidenceResponse
  */
 export type PackageSearchEvidenceResponse = {
@@ -669,9 +683,132 @@ export type PackageSearchEvidenceResponse = {
 };
 
 /**
+ * PackageSearchNameResponse
+ */
+export type PackageSearchNameResponse = {
+    /**
+     * Language
+     */
+    language: string | null;
+    /**
+     * Source Field
+     */
+    source_field: string;
+    /**
+     * Value
+     */
+    value: string;
+};
+
+/**
  * PackageSearchResponse
  */
-export type PackageSearchResponse = {
+export type LifegoodsPackageMatchesContractsPackageSearchResponse = {
+    dataset_version: ExternalDatasetVersionResponse | null;
+    /**
+     * Has More
+     */
+    has_more: boolean;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Query
+     */
+    query: string;
+    /**
+     * Results
+     */
+    results?: Array<LifegoodsPackageMatchesContractsPackageSearchResultResponse>;
+    /**
+     * Source
+     */
+    source: string;
+};
+
+/**
+ * PackageSearchResultResponse
+ */
+export type LifegoodsPackageMatchesContractsPackageSearchResultResponse = {
+    /**
+     * Additives
+     */
+    additives?: Array<PackageSearchAdditiveResponse> | null;
+    /**
+     * Allergens
+     */
+    allergens?: Array<string> | null;
+    /**
+     * Barcode
+     */
+    barcode: string;
+    /**
+     * Brand
+     */
+    brand?: Array<string> | null;
+    /**
+     * Dataset Version Id
+     */
+    dataset_version_id: string;
+    /**
+     * Evidence
+     */
+    evidence?: Array<PackageMatchEvidenceResponse>;
+    /**
+     * Image Url
+     */
+    image_url?: string | null;
+    /**
+     * Ingredients
+     */
+    ingredients?: string | null;
+    /**
+     * Made In
+     */
+    made_in?: Array<string> | null;
+    /**
+     * Matched Fields
+     */
+    matched_fields?: Array<string>;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Other Names
+     */
+    other_names?: Array<PackageSearchNameResponse>;
+    /**
+     * Quantity
+     */
+    quantity?: string | null;
+    /**
+     * Source Record Id
+     */
+    source_record_id: string;
+    /**
+     * Source Revision
+     */
+    source_revision?: string | null;
+    /**
+     * Source Updated At
+     */
+    source_updated_at: string | null;
+    /**
+     * Source Url
+     */
+    source_url: string;
+};
+
+/**
+ * PackageSearchResponse
+ */
+export type LifegoodsPackageSearchContractsPackageSearchResponse = {
     dataset_version: ExternalDatasetVersionResponse;
     /**
      * Next Offset
@@ -684,13 +821,13 @@ export type PackageSearchResponse = {
     /**
      * Results
      */
-    results: Array<PackageSearchResultResponse>;
+    results: Array<LifegoodsPackageSearchContractsPackageSearchResultResponse>;
 };
 
 /**
  * PackageSearchResultResponse
  */
-export type PackageSearchResultResponse = {
+export type LifegoodsPackageSearchContractsPackageSearchResultResponse = {
     brands: PackageSearchEvidenceResponse | null;
     /**
      * Identifier
@@ -921,6 +1058,59 @@ export type GetPackageMatchesResponses = {
 
 export type GetPackageMatchesResponse = GetPackageMatchesResponses[keyof GetPackageMatchesResponses];
 
+export type SearchPackageMatchesData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Q
+         * Product name, brand, or manufacturing country to search for.
+         */
+        q: string;
+        /**
+         * Page
+         * Result page number.
+         */
+        page?: number;
+        /**
+         * Page Size
+         * Results per page.
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/package-matches/search';
+};
+
+export type SearchPackageMatchesErrors = {
+    /**
+     * No Package Match candidates matched the search query.
+     */
+    404: ErrorEnvelope;
+    /**
+     * Unprocessable Content
+     */
+    422: ErrorEnvelope;
+    /**
+     * Too Many Requests
+     */
+    429: ErrorEnvelope;
+    /**
+     * Service Unavailable
+     */
+    503: ErrorEnvelope;
+};
+
+export type SearchPackageMatchesError = SearchPackageMatchesErrors[keyof SearchPackageMatchesErrors];
+
+export type SearchPackageMatchesResponses = {
+    /**
+     * Successful Response
+     */
+    200: LifegoodsPackageMatchesContractsPackageSearchResponse;
+};
+
+export type SearchPackageMatchesResponse = SearchPackageMatchesResponses[keyof SearchPackageMatchesResponses];
+
 export type SearchPackagesData = {
     body?: never;
     path?: never;
@@ -962,7 +1152,7 @@ export type SearchPackagesResponses = {
     /**
      * Successful Response
      */
-    200: PackageSearchResponse;
+    200: LifegoodsPackageSearchContractsPackageSearchResponse;
 };
 
 export type SearchPackagesResponse = SearchPackagesResponses[keyof SearchPackagesResponses];

@@ -285,7 +285,6 @@ def deserialize_assessment_evaluation(data: str) -> AllergenAssessmentEvaluation
                 review_kind=ref_dict["review_kind"],
                 dataset_kind=ref_dict["dataset_kind"],
             )
-
         concepts = tuple(_deserialize_concept(c) for c in _require_list(raw, "concepts"))
         findings = tuple(_deserialize_finding(f) for f in _require_list(raw, "findings"))
         source_signals = tuple(
@@ -816,4 +815,3 @@ class RedisHalalIngredientAssessmentCache:
                     "error_category": type(exc).__name__,
                 },
             )
-

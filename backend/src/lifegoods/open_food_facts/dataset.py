@@ -236,6 +236,60 @@ class OpenFoodFactsDatasetSource:
             ) from error
         return cast(SourceRecord, source_record)
 
+    def fetch_many(
+        self,
+        version_id: str,
+        identifiers: tuple[NormalizedIdentifier, ...],
+    ) -> tuple[ExternalLookupResult, ...]:
+        """Fetch several Products from one pinned OFF Dataset Version."""
+        if not identifiers:
+            return ()
+        try:
+            resolved = self._cached_manifest(version_id)
+            if resolved is None:
+                resolved = self._resolve_manifest(version_id)
+            if resolved is None:
+                return tuple(_unavailable(identifier) for identifier in identifiers)
+            products = {
+                product.get("code"): product
+                for product in self._database[resolved.collection_name].find(
+                    {"code": {"$in": [identifier.value for identifier in identifiers]}}
+                )
+                if isinstance(product.get("code"), str)
+            }
+        except (PyMongoError, KeyError, TypeError, ValueError) as error:
+            _log_off_unavailable("fetch_packages", "dependency_error", error)
+            return tuple(_unavailable(identifier) for identifier in identifiers)
+
+        results: list[ExternalLookupResult] = []
+        for identifier in identifiers:
+            product = products.get(identifier.value)
+            if product is None:
+                results.append(
+                    ExternalPackageNotFound(
+                        identifier=identifier.value,
+                        source=self._source_metadata,
+                        dataset_version=resolved.version,
+                    )
+                )
+                continue
+            if product.get("code") != identifier.value:
+                _log_off_unavailable("validate_product", "record_invalid")
+                results.append(_unavailable(identifier))
+                continue
+            results.append(
+                ExternalPackageFound(
+                    record=_record_from_product(
+                        identifier,
+                        product,
+                        self._source_metadata,
+                        resolved.version,
+                        self._image_base_url,
+                    )
+                )
+            )
+        return tuple(results)
+
     def search(
         self,
         query: str,

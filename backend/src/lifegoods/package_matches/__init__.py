@@ -56,6 +56,14 @@ from lifegoods.package_matches.contracts import (
     PackageMatchEvidenceResponse,
     PackageMatchReferenceImageResponse,
     PackageMatchSourceResponse,
+    PackageSearchAdditiveResponse,
+    PackageSearchNameResponse,
+    PackageSearchResponse,
+    PackageSearchResultResponse,
+)
+from lifegoods.package_matches.dependencies import (
+    get_search_rate_limiter,
+    get_searcher,
 )
 from lifegoods.package_matches.models import (
     OpenFoodFactsLookup,
@@ -73,6 +81,14 @@ from lifegoods.package_matches.rate_limit import (
     RedisPackageMatchRateLimiter,
 )
 from lifegoods.package_matches.router import get_finder, get_rate_limiter, router
+from lifegoods.package_matches.search import (
+    MongoPackageSearch,
+    PackageSearch,
+    SearchHit,
+    SearchPage,
+    SearchValidationError,
+    build_search_index,
+)
 from lifegoods.package_matches.service import FindPackageMatches
 from lifegoods.reference_datasets import (
     AllergenReferenceDataAccess,
@@ -132,6 +148,11 @@ __all__ = [
     "PackageMatchSourceResponse",
     "PackageMatchSourceUnavailableError",
     "PackageMatchesResponse",
+    "PackageSearch",
+    "PackageSearchAdditiveResponse",
+    "PackageSearchNameResponse",
+    "PackageSearchResponse",
+    "PackageSearchResultResponse",
     "RedisAllergenAssessmentCache",
     "RedisHalalIngredientAssessmentCache",
     "RedisPackageMatchRateLimiter",
@@ -144,6 +165,13 @@ __all__ = [
     "deserialize_halal_assessment_evaluation",
     "get_finder",
     "get_rate_limiter",
+    "get_search_rate_limiter",
+    "get_searcher",
+    "MongoPackageSearch",
+    "SearchHit",
+    "SearchPage",
+    "SearchValidationError",
+    "build_search_index",
     "halal_assessment_cache_key_for_record",
     "router",
     "serialize_assessment_evaluation",

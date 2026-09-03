@@ -31,15 +31,24 @@ from lifegoods.package_matches import (
     FindPackageMatches,
     HalalIngredientAssessmentCache,
     HalalIngredientAssessmentEvaluator,
+    MongoPackageSearch,
     PackageMatchRateLimiter,
     PackageMatchSourceUnavailableError,
+    PackageSearch,
     RedisAllergenAssessmentCache,
     RedisHalalIngredientAssessmentCache,
     RedisPackageMatchRateLimiter,
+    SearchValidationError,
     StandardAllergenAssessmentEvaluator,
     StandardHalalIngredientAssessmentEvaluator,
     get_finder,
     get_rate_limiter,
+)
+from lifegoods.package_matches import (
+    get_search_rate_limiter as get_package_match_search_rate_limiter,
+)
+from lifegoods.package_matches import (
+    get_searcher as get_package_match_searcher,
 )
 from lifegoods.package_matches import (
     router as package_matches_router,
@@ -95,6 +104,8 @@ def create_app(
     package_search_limiter: KeyedSlidingWindowLimiter | None = None,
     allergen_evaluator: AllergenAssessmentEvaluator | None = None,
     assessment_cache: AllergenAssessmentCache | None = None,
+    package_search: PackageSearch | None = None,
+    search_rate_limiter: PackageMatchRateLimiter | None = None,
     halal_evaluator: HalalIngredientAssessmentEvaluator | None = None,
     halal_assessment_cache: HalalIngredientAssessmentCache | None = None,
     product_lookup_source: RawProductLookupSource | None = None,
@@ -119,6 +130,8 @@ def create_app(
     if package_match_limiter is None and not isinstance(
         assessment_cache, RedisAllergenAssessmentCache
     ):
+        needs_shared_redis = True
+    if search_rate_limiter is None:
         needs_shared_redis = True
     if resolved_settings.assessment_cache_enabled:
         if assessment_cache is None and not isinstance(
@@ -161,6 +174,17 @@ def create_app(
             resolved_settings.package_match_requests_per_minute,
             fallback_seconds=resolved_settings.package_match_rate_limit_fallback_seconds,
             local_max_keys=resolved_settings.package_match_rate_limit_local_max_keys,
+        )
+    if search_rate_limiter is not None:
+        resolved_search_rate_limiter = search_rate_limiter
+    else:
+        assert shared_redis_client is not None
+        resolved_search_rate_limiter = RedisPackageMatchRateLimiter(
+            shared_redis_client,
+            resolved_settings.package_search_requests_per_minute,
+            fallback_seconds=resolved_settings.package_match_rate_limit_fallback_seconds,
+            local_max_keys=resolved_settings.package_match_rate_limit_local_max_keys,
+            key_prefix="package-matches:search-rate-limit",
         )
     resolved_reference_data = DatabaseAllergenReferenceDataAccess(
         resolved_session_factory
@@ -276,6 +300,11 @@ def create_app(
     resolved_product_lookup_metrics = (
         product_lookup_metrics or NoOpProductLookupMetrics()
     )
+    resolved_package_search = package_search
+    if resolved_package_search is None and isinstance(
+        resolved_source, OpenFoodFactsDatasetSource
+    ):
+        resolved_package_search = MongoPackageSearch(resolved_source)
     if image_source is None:
         image_http_client = httpx.Client()
         owned_http_clients.append(image_http_client)
@@ -326,6 +355,10 @@ def create_app(
 
     app.dependency_overrides[get_finder] = provide_finder
     app.dependency_overrides[get_rate_limiter] = lambda: resolved_package_match_limiter
+    app.dependency_overrides[get_package_match_searcher] = lambda: resolved_package_search
+    app.dependency_overrides[get_package_match_search_rate_limiter] = (
+        lambda: resolved_search_rate_limiter
+    )
     app.dependency_overrides[get_searcher] = provide_searcher
     app.dependency_overrides[get_package_search_rate_limiter] = (
         lambda: resolved_package_search_limiter
@@ -354,6 +387,23 @@ def create_app(
                 )
             )
             return JSONResponse(status_code=422, content=envelope.model_dump())
+        if request.url.path == "/api/v1/package-matches/search":
+            has_missing_query = any(
+                item.get("loc", [None])[-1] == "q" and item.get("type") == "missing"
+                for item in _error.errors()
+            )
+            code = (
+                ErrorCode.SEARCH_QUERY_REQUIRED
+                if has_missing_query
+                else ErrorCode.SEARCH_QUERY_INVALID
+            )
+            message = (
+                "A search value is required."
+                if has_missing_query
+                else "The search value or paging values are invalid."
+            )
+            envelope = ErrorEnvelope(error=ErrorDetail(code=code, message=message))
+            return JSONResponse(status_code=422, content=envelope.model_dump())
         if request.url.path == "/api/v1/package-search":
             envelope = ErrorEnvelope(
                 error=ErrorDetail(
@@ -367,6 +417,15 @@ def create_app(
                 code=ErrorCode.IDENTIFIER_REQUIRED,
                 message=ERROR_MESSAGES[ErrorCode.IDENTIFIER_REQUIRED],
             )
+        )
+        return JSONResponse(status_code=422, content=envelope.model_dump())
+
+    @app.exception_handler(SearchValidationError)
+    async def search_validation_handler(
+        _request: Request, error: SearchValidationError
+    ) -> JSONResponse:
+        envelope = ErrorEnvelope(
+            error=ErrorDetail(code=ErrorCode.SEARCH_QUERY_INVALID, message=str(error))
         )
         return JSONResponse(status_code=422, content=envelope.model_dump())
 

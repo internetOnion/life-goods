@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetExperimentalProductData, GetExperimentalProductErrors, GetExperimentalProductResponses, GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetPackageMatchesData, GetPackageMatchesErrors, GetPackageMatchesResponses, SearchPackagesData, SearchPackagesErrors, SearchPackagesResponses } from './types.gen';
+import type { GetExperimentalProductData, GetExperimentalProductErrors, GetExperimentalProductResponses, GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetPackageMatchesData, GetPackageMatchesErrors, GetPackageMatchesResponses, SearchPackageMatchesData, SearchPackageMatchesErrors, SearchPackageMatchesResponses, SearchPackagesData, SearchPackagesErrors, SearchPackagesResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -46,6 +46,17 @@ export const getOpenFoodFactsImage = <ThrowOnError extends boolean = false>(opti
 export const getPackageMatches = <ThrowOnError extends boolean = false>(options: Options<GetPackageMatchesData, ThrowOnError>) => {
     return (options.client ?? client).get<GetPackageMatchesResponses, GetPackageMatchesErrors, ThrowOnError>({
         url: '/api/v1/package-matches',
+        ...options
+    });
+};
+
+/**
+ * Search Package Match candidates
+ * Searches the active local Open Food Facts Dataset Version by product name, brand, or explicit manufacturing country. Results are external Evidence and do not prove product origin or identity.
+ */
+export const searchPackageMatches = <ThrowOnError extends boolean = false>(options: Options<SearchPackageMatchesData, ThrowOnError>) => {
+    return (options.client ?? client).get<SearchPackageMatchesResponses, SearchPackageMatchesErrors, ThrowOnError>({
+        url: '/api/v1/package-matches/search',
         ...options
     });
 };
