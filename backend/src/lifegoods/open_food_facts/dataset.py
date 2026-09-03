@@ -12,19 +12,13 @@ from pymongo import ASCENDING, TEXT
 from pymongo.database import Database
 from pymongo.errors import PyMongoError
 
-from lifegoods.identifiers import (
-    InvalidIdentifierError,
-    NormalizedIdentifier,
-    normalize_identifier,
-)
+from lifegoods.identifiers import NormalizedIdentifier
 from lifegoods.open_food_facts.models import (
     ExternalDatasetVersion,
     ExternalLookupResult,
     ExternalPackageFound,
     ExternalPackageNotFound,
     ExternalPackageRecord,
-    ExternalPackageSearchPage,
-    ExternalPackageSearchUnavailableError,
     ExternalPackageUnavailable,
     ExternalSelectedImage,
     ExternalSourceMetadata,
@@ -298,107 +292,7 @@ class OpenFoodFactsDatasetSource:
             )
         return tuple(results)
 
-    def search(
-        self,
-        query: str,
-        *,
-        offset: int,
-        limit: int,
-    ) -> ExternalPackageSearchPage:
-        normalized_query = " ".join(query.split())
-        try:
-            pointer = self._database[CONTROL_COLLECTION].find_one(
-                {"_id": ACTIVE_POINTER_ID}
-            )
-            if pointer is None or not isinstance(pointer.get("active_version_id"), str):
-                _log_off_unavailable("search_packages_read_active_pointer", "metadata_invalid")
-                raise ExternalPackageSearchUnavailableError("Active dataset unavailable")
-            version_id = pointer["active_version_id"]
-            resolved = self._cached_manifest(version_id)
-            if resolved is None:
-                resolved = self._resolve_manifest(version_id)
-            if resolved is None:
-                raise ExternalPackageSearchUnavailableError("Active dataset unavailable")
-            dataset_version = resolved.version
-            collection_name = resolved.collection_name
-            collection = self._database[collection_name]
-            available_indexes = collection.index_information()
-            if not {
-                PACKAGE_SEARCH_TEXT_INDEX,
-                PACKAGE_SEARCH_COUNTRY_INDEX,
-            }.issubset(available_indexes):
-                _log_off_unavailable("search_packages_check_indexes", "indexes_missing")
-                raise ExternalPackageSearchUnavailableError(
-                    "Package search indexes unavailable"
-                )
 
-            projection: dict[str, Any] = {
-                "_id": 0,
-                "code": 1,
-                "lang": 1,
-                "brands": 1,
-                "quantity": 1,
-                "manufacturing_places": 1,
-                "selected_images": 1,
-                "images": 1,
-                "image_front_url": 1,
-                "image_front_small_url": 1,
-                "last_modified_t": 1,
-                "score": {"$meta": "textScore"},
-            }
-            projection.update({field: 1 for field, _language in LOCALIZED_NAME_FIELDS})
-            cursor = (
-                collection.find(
-                    {
-                        "countries_tags": PACKAGE_SEARCH_COUNTRY_TAG,
-                        "$text": {"$search": normalized_query},
-                    },
-                    projection,
-                )
-                .sort(
-                    [
-                        ("score", {"$meta": "textScore"}),
-                        ("code", ASCENDING),
-                    ]
-                )
-                .skip(offset)
-                .limit(limit + 1)
-            )
-            documents = list(cursor)
-        except ExternalPackageSearchUnavailableError:
-            raise
-        except (PyMongoError, KeyError, TypeError, ValueError) as error:
-            _log_off_unavailable("search_packages", "dependency_error", error)
-            raise ExternalPackageSearchUnavailableError(
-                "Package search source unavailable"
-            ) from error
-
-        has_more = len(documents) > limit
-        records: list[ExternalPackageRecord] = []
-        for product in documents[:limit]:
-            code = product.get("code")
-            if not isinstance(code, str):
-                continue
-            try:
-                identifier = normalize_identifier(code)
-            except InvalidIdentifierError:
-                continue
-            records.append(
-                _record_from_product(
-                    identifier,
-                    product,
-                    self._source_metadata,
-                    dataset_version,
-                    self._image_base_url,
-                )
-            )
-
-        return ExternalPackageSearchPage(
-            normalized_query=normalized_query,
-            records=tuple(records),
-            dataset_version=dataset_version,
-            next_offset=offset + limit if has_more else None,
-        )
 
     def _cached_manifest(self, version_id: str) -> _ResolvedDataset | None:
         with self._manifest_cache_lock:
