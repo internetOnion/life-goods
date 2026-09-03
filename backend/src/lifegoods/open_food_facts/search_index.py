@@ -3,18 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime
 from typing import Any
 
 from pymongo import ASCENDING
 from pymongo.database import Database
 
-from lifegoods.open_food_facts import (
-    VERSIONS_COLLECTION,
-)
-from lifegoods.open_food_facts.models import ExternalDatasetVersion
-from lifegoods.package_matches.models import PackageMatchSourceUnavailableError
-from lifegoods.package_matches.search_text import (
+from lifegoods.open_food_facts.dataset import VERSIONS_COLLECTION
+from lifegoods.open_food_facts.search_text import (
     brand_values,
     country_display_values,
     country_values,
@@ -104,35 +99,3 @@ def build_search_index(
     finally:
         if not renamed:
             database.drop_collection(temporary_name)
-
-
-def dataset_version_from_manifest(manifest: dict[str, Any]) -> ExternalDatasetVersion:
-    retrieved_at = manifest.get("retrieval_completed_at")
-    activated_at = manifest.get("activated_at")
-    source_url = manifest.get("source_url")
-    sha256 = manifest.get("sha256")
-    version_id = manifest.get("_id")
-    if not isinstance(retrieved_at, datetime) or not isinstance(activated_at, datetime):
-        raise PackageMatchSourceUnavailableError("dataset metadata unavailable")
-    if not all(isinstance(value, str) and value for value in (source_url, sha256, version_id)):
-        raise PackageMatchSourceUnavailableError("dataset metadata unavailable")
-    assert isinstance(source_url, str)
-    assert isinstance(sha256, str)
-    assert isinstance(version_id, str)
-    return ExternalDatasetVersion(
-        id=version_id,
-        source_url=source_url,
-        retrieved_at=retrieved_at,
-        activated_at=activated_at,
-        sha256=sha256,
-    )
-
-
-__all__ = [
-    "SEARCH_SCHEMA_VERSION",
-    "SEARCH_COLLECTION_PREFIX",
-    "build_search_index",
-    "dataset_version_from_manifest",
-    "index_document",
-    "search_collection_name",
-]

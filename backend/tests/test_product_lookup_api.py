@@ -67,7 +67,6 @@ def _client(
     redis_client = redis_client or fakeredis.FakeRedis(decode_responses=True)
     source = OpenFoodFactsDatasetSource(database)
     app = create_app(
-        external_source=source,
         product_lookup_source=source,
         product_lookup_cache=RedisProductLookupCache(redis_client, ttl_seconds=3600),
         product_lookup_limiter=(
@@ -471,7 +470,6 @@ def test_in_memory_cache_expires_at_the_http_seam() -> None:
     redis_client = fakeredis.FakeRedis(decode_responses=True)
     source = OpenFoodFactsDatasetSource(database)
     app = create_app(
-        external_source=source,
         product_lookup_source=source,
         product_lookup_cache=cache,
         product_lookup_limiter=RedisProductLookupRateLimiter(redis_client, 60),

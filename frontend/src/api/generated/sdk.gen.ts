@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetExperimentalProductData, GetExperimentalProductErrors, GetExperimentalProductResponses, GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetPackageMatchesData, GetPackageMatchesErrors, GetPackageMatchesResponses, GetProductData, GetProductErrors, GetProductResponses, SearchPackageMatchesData, SearchPackageMatchesErrors, SearchPackageMatchesResponses, SearchPackagesData, SearchPackagesErrors, SearchPackagesResponses } from './types.gen';
+import type { GetExperimentalProductData, GetExperimentalProductErrors, GetExperimentalProductResponses, GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetProductData, GetProductErrors, GetProductResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -36,38 +36,6 @@ export const getExperimentalProduct = <ThrowOnError extends boolean = false>(opt
 export const getOpenFoodFactsImage = <ThrowOnError extends boolean = false>(options: Options<GetOpenFoodFactsImageData, ThrowOnError>) => {
     return (options.client ?? client).get<GetOpenFoodFactsImageResponses, GetOpenFoodFactsImageErrors, ThrowOnError>({
         url: '/api/v1/open-food-facts-images',
-        ...options
-    });
-};
-
-/**
- * Find Package Match candidates
- * Looks up candidate Package Matches using the active Open Food Facts Dataset Version. Open Food Facts fields are external Evidence, and a returned match does not prove identity with the physical package in a shopper's possession.
- */
-export const getPackageMatches = <ThrowOnError extends boolean = false>(options: Options<GetPackageMatchesData, ThrowOnError>) => {
-    return (options.client ?? client).get<GetPackageMatchesResponses, GetPackageMatchesErrors, ThrowOnError>({
-        url: '/api/v1/package-matches',
-        ...options
-    });
-};
-
-/**
- * Search Package Match candidates
- * Searches the active local Open Food Facts Dataset Version by product name, brand, or explicit manufacturing country. Results are external Evidence and do not prove product origin or identity.
- */
-export const searchPackageMatches = <ThrowOnError extends boolean = false>(options: Options<SearchPackageMatchesData, ThrowOnError>) => {
-    return (options.client ?? client).get<SearchPackageMatchesResponses, SearchPackageMatchesErrors, ThrowOnError>({
-        url: '/api/v1/package-matches/search',
-        ...options
-    });
-};
-
-/**
- * Search Packages
- */
-export const searchPackages = <ThrowOnError extends boolean = false>(options: Options<SearchPackagesData, ThrowOnError>) => {
-    return (options.client ?? client).get<SearchPackagesResponses, SearchPackagesErrors, ThrowOnError>({
-        url: '/api/v1/package-search',
         ...options
     });
 };

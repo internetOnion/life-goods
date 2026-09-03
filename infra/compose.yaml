@@ -1,23 +1,4 @@
 services:
-  postgres:
-    image: postgres:18-alpine
-    environment:
-      POSTGRES_DB: ${LIFEGOODS_POSTGRES_DB:-lifegoods}
-      POSTGRES_USER: ${LIFEGOODS_POSTGRES_USER:-lifegoods}
-      POSTGRES_PASSWORD: ${LIFEGOODS_POSTGRES_PASSWORD:-lifegoods}
-    ports:
-      - "${LIFEGOODS_POSTGRES_PORT:-5433}:5432"
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${LIFEGOODS_POSTGRES_USER:-lifegoods} -d ${LIFEGOODS_POSTGRES_DB:-lifegoods}",
-        ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    volumes:
-      - lifegoods-postgres:/var/lib/postgresql
 
   mongodb:
     image: mongo:8.2
@@ -55,5 +36,4 @@ services:
       retries: 10
 
 volumes:
-  lifegoods-postgres:
   lifegoods-mongodb:

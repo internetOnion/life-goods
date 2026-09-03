@@ -23,7 +23,10 @@ from lifegoods.open_food_facts.dataset import (
     VERSIONS_COLLECTION,
     ensure_package_search_indexes,
 )
-from lifegoods.package_matches.search import build_search_index, search_collection_name
+from lifegoods.open_food_facts.search_index import (
+    build_search_index,
+    search_collection_name,
+)
 
 DEFAULT_EXPORT_URL = (
     "https://static.openfoodfacts.org/data/openfoodfacts-products.jsonl.gz"

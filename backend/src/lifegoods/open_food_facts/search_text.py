@@ -1,4 +1,4 @@
-"""Normalization, indexing-field extraction, and ranking helpers."""
+"""Normalization and indexing-field extraction helpers for OFF dataset."""
 
 from __future__ import annotations
 
@@ -84,44 +84,3 @@ def brand_values(product: dict[str, Any]) -> list[str]:
     if not isinstance(raw, str):
         return []
     return [value for value in (normalize_search_text(item) for item in raw.split(",")) if value]
-
-
-def match_fields(
-    item: dict[str, Any], query: str, query_tokens: tuple[str, ...]
-) -> tuple[tuple[str, ...], int]:
-    names = item.get("name_values", [])
-    brands = item.get("brand_values", [])
-    countries = item.get("country_values", [])
-    name_match = any(field_matches(value, query_tokens) for value in names)
-    brand_match = any(field_matches(value, query_tokens) for value in brands)
-    country_match = query in countries
-    fields = tuple(
-        field
-        for field, matched in (
-            ("name", name_match),
-            ("brand", brand_match),
-            ("manufacturing_country", country_match),
-        )
-        if matched
-    )
-    if not fields:
-        return (), 99
-    if name_match and any(value == query for value in names):
-        rank = 0
-    elif brand_match and any(value == query for value in brands):
-        rank = 1
-    elif country_match:
-        rank = 2
-    elif name_match:
-        rank = 3
-    else:
-        rank = 4
-    return fields, rank
-
-
-def field_matches(value: str, query_tokens: tuple[str, ...]) -> bool:
-    value_tokens = tokens(value)
-    return all(any(token.startswith(query) for token in value_tokens) for query in query_tokens)
-
-
-__all__ = ["normalize_search_text"]

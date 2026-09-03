@@ -4,12 +4,6 @@ Life Goods is becoming a Khmer-first mobile product-information experience for p
 
 Read [PRODUCT.md](PRODUCT.md) for the product boundary, [CONTEXT.md](CONTEXT.md) for canonical language, and [docs/SPEC.md](docs/SPEC.md) for the backend-first contract.
 
-## Repository transition
-
-The documentation describes the new direction. The current implementation still contains catalog, package-match, reference-dataset, allergen, Halal, assessment, package-capture, PostgreSQL, and Alembic code from the previous direction.
-
-Those parts remain temporarily so the repository stays runnable while the backend is simplified in a separate atomic change. Do not treat current feature breadth as the target product.
-
 ## Requirements
 
 The current checkout requires:
@@ -27,16 +21,15 @@ pnpm backend:install
 
 The backend provides local defaults. Copy `backend/.env.example` to `backend/.env` only when you need to override them.
 
-## Start the current infrastructure
+## Start the local infrastructure
 
-Until the backend refactor removes the legacy relational dependency, start PostgreSQL, MongoDB, and Redis and apply the existing migrations:
+Start MongoDB and Redis:
 
 ```bash
 docker compose -f infra/compose.yaml up -d
-pnpm db:migrate
 ```
 
-Host ports are PostgreSQL `5433`, MongoDB `27018`, and Redis `6380`.
+Host ports are MongoDB `27018` and Redis `6380`.
 
 ## Use the local Open Food Facts snapshot
 
