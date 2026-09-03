@@ -1,10 +1,12 @@
-import type { ProductLookupResponse } from "@/api/generated"
-import { getExperimentalProduct } from "@/api/generated"
+import type { ProductProjectionResponse } from "@/api/generated"
+import { getProduct } from "@/api/generated"
 
-export type ProductLookup = (barcode: string) => Promise<ProductLookupResponse>
+export type ProductLookup = (
+    barcode: string,
+) => Promise<ProductProjectionResponse>
 
 export const lookupProduct: ProductLookup = async (barcode) => {
-    const { data } = await getExperimentalProduct({
+    const { data } = await getProduct({
         path: { barcode },
         throwOnError: true,
     })
