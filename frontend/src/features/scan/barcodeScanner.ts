@@ -162,13 +162,22 @@ function startVideoPreview(video: HTMLVideoElement) {
             video.addEventListener(eventName, checkReady),
         )
 
+        const onVideoFrame = () => {
+            checkReady()
+            if (
+                !settled &&
+                "requestVideoFrameCallback" in video &&
+                typeof video.requestVideoFrameCallback === "function"
+            ) {
+                frameCallbackId = video.requestVideoFrameCallback(onVideoFrame)
+            }
+        }
+
         if (
             "requestVideoFrameCallback" in video &&
             typeof video.requestVideoFrameCallback === "function"
         ) {
-            frameCallbackId = video.requestVideoFrameCallback(() => {
-                checkReady()
-            })
+            frameCallbackId = video.requestVideoFrameCallback(onVideoFrame)
         }
 
         const scheduleFrameCheck = () => {
@@ -183,7 +192,8 @@ function startVideoPreview(video: HTMLVideoElement) {
 
         if (typeof requestAnimationFrame === "function") {
             animationFrameId = requestAnimationFrame(scheduleFrameCheck)
-        } else if (typeof setInterval === "function") {
+        }
+        if (typeof setInterval === "function") {
             pollIntervalId = setInterval(checkReady, 50)
         }
 
@@ -219,6 +229,39 @@ function detachStream(video: HTMLVideoElement, stream: MediaStream) {
     if (video.srcObject === stream) video.srcObject = null
 }
 
+const nativeDetectorTimeoutMs = 600
+const nativeDetectFrameTimeoutMs = 250
+
+function withTimeout<T>(
+    promise: Promise<T>,
+    timeoutMs: number,
+    errorMessage: string,
+): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+        let settled = false
+        const timer = setTimeout(() => {
+            if (settled) return
+            settled = true
+            reject(new Error(errorMessage))
+        }, timeoutMs)
+
+        promise.then(
+            (val) => {
+                if (settled) return
+                settled = true
+                clearTimeout(timer)
+                resolve(val)
+            },
+            (err: unknown) => {
+                if (settled) return
+                settled = true
+                clearTimeout(timer)
+                reject(err instanceof Error ? err : new Error(String(err)))
+            },
+        )
+    })
+}
+
 type NativeDetector = {
     detect: (
         source: ImageBitmapSource | HTMLVideoElement | HTMLCanvasElement,
@@ -230,13 +273,19 @@ async function getNativeDetector(): Promise<NativeDetector | null> {
         return null
     }
     try {
-        const formats = await (
+        const formatsPromise = (
             window as unknown as {
                 BarcodeDetector: {
                     getSupportedFormats: () => Promise<string[]>
                 }
             }
         ).BarcodeDetector.getSupportedFormats()
+
+        const formats = await withTimeout(
+            formatsPromise,
+            nativeDetectorTimeoutMs,
+            "BarcodeDetector format detection timed out",
+        )
         if (
             Array.isArray(formats) &&
             (formats.includes("ean_13") ||
@@ -290,11 +339,10 @@ export const barcodeScanner: BarcodeScanner = {
         try {
             await startVideoPreview(video)
             nativeDetector = await getNativeDetector()
-            if (!nativeDetector) {
-                const { BrowserMultiFormatOneDReader } =
-                    await import("@zxing/browser")
-                zxingReader = new BrowserMultiFormatOneDReader()
-            }
+            // Always prepare zxingReader as the universal engine / native fallback
+            const { BrowserMultiFormatOneDReader } =
+                await import("@zxing/browser")
+            zxingReader = new BrowserMultiFormatOneDReader()
         } catch (error) {
             detachStream(video, stream)
             throw error
@@ -332,7 +380,19 @@ export const barcodeScanner: BarcodeScanner = {
                     lastScanTimestamp = now
                     try {
                         if (nativeDetector) {
-                            const barcodes = await nativeDetector.detect(video)
+                            let barcodes: Array<{ rawValue: string }> | null =
+                                null
+                            try {
+                                barcodes = await withTimeout(
+                                    nativeDetector.detect(video),
+                                    nativeDetectFrameTimeoutMs,
+                                    "Native barcode detection frame timeout",
+                                )
+                            } catch {
+                                // Native detection timed out or failed; permanently discard it and fall back to zxing
+                                nativeDetector = null
+                            }
+
                             if (
                                 barcodes &&
                                 barcodes.length > 0 &&
@@ -343,7 +403,7 @@ export const barcodeScanner: BarcodeScanner = {
                             }
                         }
 
-                        if (zxingReader) {
+                        if (!nativeDetector && zxingReader) {
                             if (
                                 canvas.width !== video.videoWidth ||
                                 canvas.height !== video.videoHeight

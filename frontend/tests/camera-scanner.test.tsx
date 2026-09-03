@@ -27,13 +27,18 @@ function renderPage() {
     )
 }
 
+const vibrateMock = vi.fn()
+
 describe("camera Barcode scanner", () => {
     beforeEach(() => {
         sessionStorage.clear()
         startMock.mockReset()
+        vibrateMock.mockReset()
         vi.stubGlobal("navigator", {
             mediaDevices: { getUserMedia: vi.fn() },
+            vibrate: vibrateMock,
         })
+        window.HTMLMediaElement.prototype.pause = vi.fn()
         Object.defineProperty(window, "isSecureContext", {
             configurable: true,
             value: true,
@@ -75,7 +80,42 @@ describe("camera Barcode scanner", () => {
         expect(screen.getByRole("status")).toHaveTextContent("Ready to scan")
     })
 
-    test("opens the Product page for a valid on-device result", async () => {
+    test("does not restart camera while the Android permission prompt is pending", async () => {
+        const user = userEvent.setup()
+        let resolveStart: ((session: { stop: () => void }) => void) | undefined
+        startMock.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    resolveStart = resolve
+                }),
+        )
+        renderPage()
+
+        await user.click(screen.getByRole("button", { name: "Start camera" }))
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
+
+        Object.defineProperty(document, "visibilityState", {
+            configurable: true,
+            value: "hidden",
+        })
+        document.dispatchEvent(new Event("visibilitychange"))
+        Object.defineProperty(document, "visibilityState", {
+            configurable: true,
+            value: "visible",
+        })
+        document.dispatchEvent(new Event("visibilitychange"))
+
+        expect(startMock).toHaveBeenCalledTimes(1)
+
+        resolveStart?.({ stop: vi.fn() })
+        await waitFor(() =>
+            expect(screen.getByRole("status")).toHaveTextContent(
+                "Ready to scan",
+            ),
+        )
+    })
+
+    test("opens the Product page for a valid on-device result with sensory feedback", async () => {
         sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
         startMock.mockResolvedValue({ stop: vi.fn() })
         renderPage()
@@ -83,8 +123,12 @@ describe("camera Barcode scanner", () => {
 
         const onResult = startMock.mock.calls[0]?.[1] as (value: string) => void
         act(() => onResult("4 006381 333931"))
-        expect(screen.getByTestId("location")).toHaveTextContent(
-            "/products/4006381333931",
+        expect(screen.getByRole("status")).toHaveTextContent("Barcode detected")
+        expect(vibrateMock).toHaveBeenCalledWith([40, 30, 40])
+        await waitFor(() =>
+            expect(screen.getByTestId("location")).toHaveTextContent(
+                "/products/4006381333931",
+            ),
         )
     })
 

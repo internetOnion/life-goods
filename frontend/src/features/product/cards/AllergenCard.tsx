@@ -66,9 +66,11 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
     return (
         <Card className="border-neutral-200/90 bg-white shadow-xs">
             <CardHeader className="p-4 pb-2 sm:p-5">
-                <div className="flex items-center gap-2">
-                    <ShieldAlert className="text-warning-600 h-4 w-4" />
-                    <CardTitle className="text-sm font-semibold text-neutral-900">
+                <div className="flex items-center gap-2.5">
+                    <div className="bg-warning-100 text-warning-800 grid size-8 shrink-0 place-items-center rounded-xl">
+                        <ShieldAlert className="h-4 w-4" />
+                    </div>
+                    <CardTitle className="text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
                         Codex Allergen Assessment
                     </CardTitle>
                 </div>
@@ -78,7 +80,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                 {/* Findings Alert Box */}
                 {findings.length > 0 ? (
                     <div className="border-warning-200 bg-warning-50/70 space-y-2 rounded-2xl border p-3">
-                        <div className="text-warning-900 flex items-center gap-2 text-xs font-bold">
+                        <div className="text-warning-900 flex items-center gap-2 text-xs font-bold sm:text-sm">
                             <AlertTriangle className="text-warning-600 h-4 w-4 shrink-0" />
                             <span>
                                 {findings.length} Allergen Declaration
@@ -90,7 +92,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                 <Badge
                                     key={i}
                                     variant="warning"
-                                    className="bg-white font-semibold"
+                                    className="text-warning-950 py-0.2 bg-white px-2 text-[11px] font-bold"
                                 >
                                     "{f.matched_text}" (
                                     {f.relationship_type || "Declared"})
@@ -114,7 +116,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                     <div className="space-y-2 text-xs">
                         {rawAllergenTags.length > 0 && (
                             <div className="space-y-1">
-                                <span className="font-medium text-neutral-600">
+                                <span className="text-[11px] font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                     Declared Allergens:
                                 </span>
                                 <div className="flex flex-wrap gap-1.5">
@@ -122,7 +124,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                         <Badge
                                             key={idx}
                                             variant="warning"
-                                            className="font-medium"
+                                            className="py-0.2 px-2 text-[11px] font-semibold"
                                         >
                                             {tag}
                                         </Badge>
@@ -133,7 +135,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
 
                         {rawTracesTags.length > 0 && (
                             <div className="space-y-1">
-                                <span className="font-medium text-neutral-500">
+                                <span className="text-[11px] font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                     May Contain Traces:
                                 </span>
                                 <div className="flex flex-wrap gap-1.5">
@@ -141,7 +143,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                         <Badge
                                             key={idx}
                                             variant="outline"
-                                            className="text-neutral-600"
+                                            className="py-0.2 px-2 text-[11px] font-medium text-neutral-600"
                                         >
                                             {tag}
                                         </Badge>

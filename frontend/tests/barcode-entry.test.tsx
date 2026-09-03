@@ -91,4 +91,24 @@ describe("search page", () => {
             screen.queryByText("Use the camera scanner"),
         ).not.toBeInTheDocument()
     })
+
+    test("automatically activates the input when navigated with autoFocus state", () => {
+        render(
+            <MemoryRouter
+                initialEntries={[
+                    { pathname: "/search", state: { autoFocus: true } },
+                ]}
+            >
+                <BarcodeEntryPage />
+            </MemoryRouter>,
+        )
+        expect(screen.getByRole("textbox", { name: "Search" })).toHaveFocus()
+    })
+
+    test("displays Manual Product Lookup heading", () => {
+        renderPage()
+        expect(
+            screen.getByRole("heading", { name: "Manual Product Lookup" }),
+        ).toBeVisible()
+    })
 })

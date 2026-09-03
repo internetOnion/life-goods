@@ -829,8 +829,12 @@ export function extractOpenFoodFactsView(
         }
     }
 
-    const nutriscoreScore =
+    const rawNutriScore =
         typeof raw.nutriscore_score === "number" ? raw.nutriscore_score : null
+    const nutriscoreScore =
+        nutriscoreGrade && ["a", "b", "c", "d", "e"].includes(nutriscoreGrade)
+            ? rawNutriScore
+            : null
     const nutriscoreVersion =
         typeof raw.nutriscore_version === "string"
             ? raw.nutriscore_version
@@ -860,12 +864,16 @@ export function extractOpenFoodFactsView(
             ecoscoreGrade = grade as OpenFoodFactsProductView["ecoscoreGrade"]
         }
     }
-    const ecoscoreScore =
+    const rawEcoScore =
         typeof raw.ecoscore_score === "number"
             ? raw.ecoscore_score
             : typeof raw.environmental_score_score === "number"
               ? raw.environmental_score_score
               : null
+    const ecoscoreScore =
+        ecoscoreGrade && ["a", "b", "c", "d", "e"].includes(ecoscoreGrade)
+            ? rawEcoScore
+            : null
 
     // Nutrient Levels
     const rawLevels = (raw.nutrient_levels || {}) as Record<string, string>

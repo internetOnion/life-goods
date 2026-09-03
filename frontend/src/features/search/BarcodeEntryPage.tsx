@@ -8,6 +8,7 @@ import { type FormEvent, useEffect, useRef, useState } from "react"
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router"
 
 import { Button } from "@/components/ui/button"
+import { BarcodeGuideIllustration } from "@/components/illustrations"
 import { Input } from "@/components/ui/input"
 import { validateIdentifier } from "@/features/scan/identifier"
 import { usePageMetadata } from "@/lib/metadata"
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils"
 
 type SearchLocationState = {
     invalidBarcode?: string
+    autoFocus?: boolean
 }
 
 const validationMessages = {
@@ -24,6 +26,13 @@ const validationMessages = {
     checkDigit:
         "That Barcode has an invalid check digit. Check the digits and try again.",
 } as const
+
+const SAMPLE_PRODUCTS = [
+    { code: "3017620422003", name: "Nutella Spread 400g" },
+    { code: "5449000000996", name: "Coca-Cola 330ml Can" },
+    { code: "7622210449283", name: "Prince Chocolat Biscuits" },
+    { code: "8000500310427", name: "Nutella Biscuits" },
+] as const
 
 export function BarcodeEntryPage() {
     const [searchParams] = useSearchParams()
@@ -50,8 +59,17 @@ export function BarcodeEntryPage() {
     })
 
     useEffect(() => {
-        headingRef.current?.focus()
-    }, [])
+        if (locationState?.autoFocus) {
+            inputRef.current?.focus()
+            const bridge = document.getElementById("mobile-keyboard-bridge")
+            bridge?.remove()
+            const id = requestAnimationFrame(() => {
+                inputRef.current?.focus()
+            })
+            return () => cancelAnimationFrame(id)
+        }
+        headingRef.current?.focus({ preventScroll: true })
+    }, [locationState?.autoFocus])
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
@@ -173,6 +191,53 @@ export function BarcodeEntryPage() {
                     <span>{error}</span>
                 </div>
             ) : null}
+
+            {!query && !error && (
+                <div className="mt-10 flex flex-col items-center text-center">
+                    <BarcodeGuideIllustration className="mb-4 drop-shadow-xs" />
+                    <h2 className="text-base font-extrabold text-neutral-900">
+                        Manual Product Lookup
+                    </h2>
+                    <p className="mt-1.5 max-w-[36ch] text-xs leading-relaxed text-neutral-500">
+                        Enter a Barcode, brand, or product name, or choose a
+                        sample Product below to explore.
+                    </p>
+
+                    <div className="mt-6 w-full max-w-sm space-y-2 text-left">
+                        <span className="text-[11px] font-bold tracking-wider text-neutral-500 uppercase">
+                            Sample Snapshot Products
+                        </span>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            {SAMPLE_PRODUCTS.map((s) => (
+                                <Button
+                                    key={s.code}
+                                    variant="outline"
+                                    size="sm"
+                                    type="button"
+                                    onClick={() => {
+                                        void navigate(`/products/${s.code}`, {
+                                            state: { fromBarcodeEntry: true },
+                                        })
+                                    }}
+                                    className="hover:border-primary-500 flex h-auto w-full cursor-pointer items-center justify-between rounded-xl border-neutral-200 bg-white p-2.5 text-left transition-all hover:shadow-2xs"
+                                >
+                                    <div className="min-w-0 pr-2">
+                                        <span className="block truncate text-xs font-semibold text-neutral-900">
+                                            {s.name}
+                                        </span>
+                                        <span className="block font-mono text-[10px] text-neutral-400">
+                                            {s.code}
+                                        </span>
+                                    </div>
+                                    <span className="text-primary-600 shrink-0 text-[11px] font-semibold">
+                                        View →
+                                    </span>
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
         </main>
     )
 }

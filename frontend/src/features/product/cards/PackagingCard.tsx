@@ -63,7 +63,7 @@ export const PackagingCard: React.FC<PackagingCardProps> = ({
             <CardHeader className="p-4 pb-2 sm:p-5">
                 <div className="flex items-center gap-2">
                     <Globe className="h-4 w-4 text-neutral-500" />
-                    <CardTitle className="text-sm font-semibold text-neutral-900">
+                    <CardTitle className="text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
                         Origin & Distribution
                     </CardTitle>
                 </div>
@@ -72,7 +72,7 @@ export const PackagingCard: React.FC<PackagingCardProps> = ({
             <CardContent className="space-y-3.5 p-4 pt-2 sm:p-5">
                 {countries.length > 0 && (
                     <div className="space-y-1.5">
-                        <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-700">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 sm:text-sm">
                             <MapPin className="h-3.5 w-3.5 text-neutral-400" />
                             <span>Countries Sold</span>
                         </div>
@@ -81,7 +81,7 @@ export const PackagingCard: React.FC<PackagingCardProps> = ({
                                 <Badge
                                     key={country}
                                     variant="outline"
-                                    className="text-xs"
+                                    className="text-xs font-medium"
                                 >
                                     {country}
                                 </Badge>
@@ -92,11 +92,11 @@ export const PackagingCard: React.FC<PackagingCardProps> = ({
 
                 {manufacturing && (
                     <div className="space-y-1">
-                        <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-700">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 sm:text-sm">
                             <Warehouse className="h-3.5 w-3.5 text-neutral-400" />
                             <span>Manufacturing Places</span>
                         </div>
-                        <p className="rounded-xl border border-neutral-200/60 bg-neutral-50 p-2.5 text-xs text-neutral-600">
+                        <p className="rounded-xl border border-neutral-200/60 bg-neutral-50 p-2.5 text-xs leading-relaxed text-neutral-700 sm:text-sm">
                             {manufacturing}
                         </p>
                     </div>
@@ -104,11 +104,11 @@ export const PackagingCard: React.FC<PackagingCardProps> = ({
 
                 {storage && (
                     <div className="space-y-1">
-                        <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-700">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 sm:text-sm">
                             <ThermometerSnowflake className="h-3.5 w-3.5 text-neutral-400" />
                             <span>Storage Instructions</span>
                         </div>
-                        <p className="rounded-xl border border-neutral-200/60 bg-neutral-50 p-2.5 text-xs text-neutral-600">
+                        <p className="rounded-xl border border-neutral-200/60 bg-neutral-50 p-2.5 text-xs leading-relaxed text-neutral-700 sm:text-sm">
                             {storage}
                         </p>
                     </div>
@@ -116,17 +116,24 @@ export const PackagingCard: React.FC<PackagingCardProps> = ({
 
                 {languages.length > 0 && (
                     <div className="space-y-1.5 pt-1">
-                        <span className="text-[11px] font-medium text-neutral-500">
+                        <span className="text-[11px] font-bold tracking-[0.06em] text-neutral-500 uppercase">
                             Package Languages:
                         </span>
                         <div className="flex flex-wrap gap-1">
                             {languages.slice(0, 8).map((lang) => (
-                                <Badge key={lang} variant="pill">
+                                <Badge
+                                    key={lang}
+                                    variant="pill"
+                                    className="text-xs font-medium"
+                                >
                                     {lang}
                                 </Badge>
                             ))}
                             {languages.length > 8 && (
-                                <Badge variant="pill">
+                                <Badge
+                                    variant="pill"
+                                    className="text-xs font-medium"
+                                >
                                     +{languages.length - 8} more
                                 </Badge>
                             )}

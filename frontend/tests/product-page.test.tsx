@@ -228,4 +228,48 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(screen.getByText("NOVA not computed")).toBeVisible()
         expect(screen.getByText("Eco-Score not calculated")).toBeVisible()
     })
+
+    test("does not display score badge when Eco-Score or Nutri-Score is not calculated or assessed", async () => {
+        renderProduct(
+            vi.fn<ProductLookup>().mockResolvedValue(
+                productResponse({
+                    code: "4006381333931",
+                    product_name_en: "Unassessed Scores Product",
+                    environmental_score_grade: null,
+                    ecoscore_score: 100,
+                    nutriscore_grade: null,
+                    nutriscore_score: 15,
+                }),
+            ),
+        )
+
+        expect(
+            await screen.findByRole("heading", {
+                name: "Unassessed Scores Product",
+            }),
+        ).toBeVisible()
+        expect(screen.getByText("Eco-Score not calculated")).toBeVisible()
+        expect(screen.queryByText("100/100")).not.toBeInTheDocument()
+        expect(screen.getByText("Not computed")).toBeVisible()
+        expect(screen.queryByText(/Score: 15 pts/)).not.toBeInTheDocument()
+    })
+
+    test("stays at the top of the page on load without scrolling down to nutrition", async () => {
+        const scrollToSpy = vi.spyOn(window, "scrollTo")
+        const focusSpy = vi.spyOn(HTMLElement.prototype, "focus")
+
+        renderProduct(
+            vi.fn<ProductLookup>().mockResolvedValue(productResponse()),
+        )
+
+        const heading = await screen.findByRole("heading", {
+            name: "Dark Chocolate",
+        })
+        expect(heading).toHaveFocus()
+        expect(scrollToSpy).toHaveBeenCalledWith(0, 0)
+        expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true })
+
+        scrollToSpy.mockRestore()
+        focusSpy.mockRestore()
+    })
 })

@@ -154,16 +154,16 @@ export const IngredientsAnalysisCard: React.FC<
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     {/* Palm Oil */}
                     <div
-                        className={`flex items-center gap-3 rounded-2xl border p-3 ${palm.color}`}
+                        className={`flex items-center gap-2.5 rounded-xl border p-2.5 ${palm.color}`}
                     >
                         <PalmTreeIcon
-                            className={`h-5 w-5 shrink-0 ${palm.iconColor}`}
+                            className={`h-4 w-4 shrink-0 ${palm.iconColor}`}
                         />
                         <div className="min-w-0">
                             <span className="block text-[10px] font-bold tracking-wider uppercase opacity-70">
                                 {palm.title}
                             </span>
-                            <span className="block truncate text-xs font-bold">
+                            <span className="block truncate text-xs font-semibold">
                                 {palm.status}
                             </span>
                         </div>
@@ -171,16 +171,16 @@ export const IngredientsAnalysisCard: React.FC<
 
                     {/* Vegan */}
                     <div
-                        className={`flex items-center gap-3 rounded-2xl border p-3 ${vegan.color}`}
+                        className={`flex items-center gap-2.5 rounded-xl border p-2.5 ${vegan.color}`}
                     >
                         <Sprout
-                            className={`h-5 w-5 shrink-0 ${vegan.iconColor}`}
+                            className={`h-4 w-4 shrink-0 ${vegan.iconColor}`}
                         />
                         <div className="min-w-0">
                             <span className="block text-[10px] font-bold tracking-wider uppercase opacity-70">
                                 {vegan.title}
                             </span>
-                            <span className="block truncate text-xs font-bold">
+                            <span className="block truncate text-xs font-semibold">
                                 {vegan.status}
                             </span>
                         </div>
@@ -188,16 +188,16 @@ export const IngredientsAnalysisCard: React.FC<
 
                     {/* Vegetarian */}
                     <div
-                        className={`flex items-center gap-3 rounded-2xl border p-3 ${veg.color}`}
+                        className={`flex items-center gap-2.5 rounded-xl border p-2.5 ${veg.color}`}
                     >
                         <Salad
-                            className={`h-5 w-5 shrink-0 ${veg.iconColor}`}
+                            className={`h-4 w-4 shrink-0 ${veg.iconColor}`}
                         />
                         <div className="min-w-0">
                             <span className="block text-[10px] font-bold tracking-wider uppercase opacity-70">
                                 {veg.title}
                             </span>
-                            <span className="block truncate text-xs font-bold">
+                            <span className="block truncate text-xs font-semibold">
                                 {veg.status}
                             </span>
                         </div>

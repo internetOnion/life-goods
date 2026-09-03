@@ -122,9 +122,11 @@
     --mango: var(--color-primary-500);
 }
 
-* {
-    box-sizing: border-box;
-    border-color: var(--color-border);
+@layer base {
+    * {
+        box-sizing: border-box;
+        border-color: var(--color-border);
+    }
 }
 
 html {
@@ -237,5 +239,32 @@ h2[tabindex="-1"]:focus {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
+    }
+}
+
+@utility no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+@utility scrollbar-subtle {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-neutral-300) transparent;
+    &::-webkit-scrollbar {
+        height: 5px;
+        width: 5px;
+    }
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: var(--color-neutral-300);
+    }
+    &::-webkit-scrollbar-thumb:hover {
+        background: var(--color-neutral-400);
     }
 }

@@ -113,12 +113,12 @@ export const NutriScoreBanner: React.FC<NutriScoreBannerProps> = ({
     return (
         <Card
             className={cn(
-                "flex h-full items-center gap-3.5 rounded-2xl border p-3.5 sm:gap-4 sm:p-4",
+                "flex h-full flex-row items-center gap-3 rounded-2xl border p-3 transition-colors sm:flex-col sm:items-start sm:justify-between sm:gap-2 sm:p-3.5",
                 config.cardBg,
             )}
         >
             {/* Official Nutri-Score Asset */}
-            <div className="flex w-[88px] shrink-0 items-center justify-center select-none sm:w-[96px]">
+            <div className="flex w-[76px] shrink-0 items-center justify-center select-none sm:w-full sm:py-1">
                 <img
                     src={getNutriScoreAsset(grade)}
                     alt={
@@ -126,37 +126,39 @@ export const NutriScoreBanner: React.FC<NutriScoreBannerProps> = ({
                             ? `Nutri-Score Grade ${activeGrade.label}`
                             : "Nutri-Score Not Computed"
                     }
-                    className="drop-shadow-2xs h-11 w-auto max-w-full object-contain sm:h-12"
+                    className="drop-shadow-2xs h-9.5 w-auto max-w-full object-contain sm:h-11"
                     loading="lazy"
                 />
             </div>
 
             {/* Content Side */}
-            <div className="flex min-w-0 flex-1 flex-col justify-between space-y-1 py-0.5">
-                <div className="flex flex-wrap items-center justify-between gap-1.5">
+            <div className="flex min-w-0 flex-1 flex-col justify-between space-y-0.5 sm:w-full sm:space-y-1">
+                <div className="flex items-center justify-between gap-1.5">
                     <span
                         className={cn(
-                            "block truncate text-[11px] font-bold tracking-wider uppercase",
+                            "block truncate text-[11px] font-bold tracking-[0.06em] uppercase",
                             config.pillarColor,
                         )}
                     >
                         Nutri-Score
                     </span>
                     <div className="flex shrink-0 items-center gap-1">
-                        {score !== null && score !== undefined && (
+                        {Boolean(activeGrade) &&
+                            score !== null &&
+                            score !== undefined && (
+                                <span
+                                    className={cn(
+                                        "py-0.2 shrink-0 rounded-full border px-1.5 font-mono text-[11px] font-bold tabular-nums shadow-2xs",
+                                        config.badgeBg,
+                                    )}
+                                >
+                                    Score: {score} pts
+                                </span>
+                            )}
+                        {Boolean(activeGrade) && version && (
                             <span
                                 className={cn(
-                                    "shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold tabular-nums shadow-2xs",
-                                    config.badgeBg,
-                                )}
-                            >
-                                Score: {score} pts
-                            </span>
-                        )}
-                        {version && (
-                            <span
-                                className={cn(
-                                    "hidden shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-medium shadow-2xs sm:inline",
+                                    "py-0.2 hidden shrink-0 rounded-full border px-1.5 font-mono text-[10px] font-semibold tracking-wider shadow-2xs sm:inline",
                                     config.badgeBg,
                                 )}
                             >
@@ -166,25 +168,27 @@ export const NutriScoreBanner: React.FC<NutriScoreBannerProps> = ({
                     </div>
                 </div>
 
-                <span
-                    className={cn(
-                        "block truncate text-base leading-tight font-black tracking-tight sm:text-lg",
-                        config.textColor,
-                    )}
-                >
-                    {activeGrade
-                        ? `Grade ${activeGrade.label}`
-                        : "Not computed"}
-                </span>
+                <div>
+                    <span
+                        className={cn(
+                            "block truncate text-sm leading-tight font-extrabold tracking-[-0.02em] sm:text-base",
+                            config.textColor,
+                        )}
+                    >
+                        {activeGrade
+                            ? `Grade ${activeGrade.label}`
+                            : "Not computed"}
+                    </span>
 
-                <p
-                    className={cn(
-                        "line-clamp-1 text-xs leading-snug font-medium sm:line-clamp-none",
-                        config.secondaryColor,
-                    )}
-                >
-                    {config.desc}
-                </p>
+                    <p
+                        className={cn(
+                            "mt-0.5 line-clamp-1 text-xs leading-normal font-medium sm:line-clamp-2 sm:text-[11px]",
+                            config.secondaryColor,
+                        )}
+                    >
+                        {config.desc}
+                    </p>
+                </div>
             </div>
         </Card>
     )

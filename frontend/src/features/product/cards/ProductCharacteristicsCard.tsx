@@ -34,9 +34,11 @@ export const ProductCharacteristicsCard: React.FC<
     return (
         <Card className="border-neutral-200/90 bg-white shadow-xs">
             <CardHeader className="p-4 pb-2 sm:p-5">
-                <div className="flex items-center gap-2">
-                    <Tag className="h-4 w-4 text-neutral-500" />
-                    <CardTitle className="text-sm font-semibold text-neutral-900">
+                <div className="flex items-center gap-2.5">
+                    <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-neutral-100 text-neutral-700">
+                        <Tag className="h-4 w-4" />
+                    </div>
+                    <CardTitle className="text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
                         Product Characteristics & Classification
                     </CardTitle>
                 </div>
@@ -45,11 +47,8 @@ export const ProductCharacteristicsCard: React.FC<
             <CardContent className="space-y-4 p-4 pt-2 text-xs sm:p-5">
                 {/* Generic Name / Description */}
                 {product.genericName && (
-                    <div className="space-y-0.5 rounded-2xl border border-neutral-200/60 bg-neutral-50 p-3">
-                        <span className="text-[10px] font-semibold tracking-wider text-neutral-400 uppercase">
-                            Generic Description
-                        </span>
-                        <p className="text-xs font-medium text-neutral-900">
+                    <div className="rounded-2xl border border-neutral-200/60 bg-neutral-50 p-3">
+                        <p className="text-xs leading-relaxed font-medium text-neutral-800 italic sm:text-sm">
                             {product.genericName}
                         </p>
                     </div>
@@ -58,7 +57,7 @@ export const ProductCharacteristicsCard: React.FC<
                 {/* Categories */}
                 {product.categories.length > 0 && (
                     <div className="space-y-1.5">
-                        <div className="flex items-center gap-1.5 font-semibold text-neutral-700">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 sm:text-sm">
                             <BookmarkCheck className="h-3.5 w-3.5 text-neutral-400" />
                             <span>
                                 Categories ({product.categories.length})
@@ -69,7 +68,7 @@ export const ProductCharacteristicsCard: React.FC<
                                 <Badge
                                     key={idx}
                                     variant="secondary"
-                                    className="text-xs capitalize"
+                                    className="text-xs font-semibold capitalize"
                                 >
                                     {cat}
                                 </Badge>
@@ -81,7 +80,7 @@ export const ProductCharacteristicsCard: React.FC<
                 {/* Labels & Certifications */}
                 {product.labels.length > 0 && (
                     <div className="space-y-1.5 border-t border-neutral-100 pt-1">
-                        <div className="flex items-center gap-1.5 font-semibold text-neutral-700">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 sm:text-sm">
                             <ShieldCheck className="h-3.5 w-3.5 text-neutral-400" />
                             <span>
                                 Labels, Certifications & Awards (
@@ -93,7 +92,7 @@ export const ProductCharacteristicsCard: React.FC<
                                 <Badge
                                     key={idx}
                                     variant="outline"
-                                    className="bg-neutral-50 text-xs capitalize"
+                                    className="bg-neutral-50 text-xs font-semibold capitalize"
                                 >
                                     {lbl}
                                 </Badge>
@@ -105,13 +104,17 @@ export const ProductCharacteristicsCard: React.FC<
                 {/* Stores / Retailers */}
                 {product.stores.length > 0 && (
                     <div className="space-y-1.5 border-t border-neutral-100 pt-1">
-                        <div className="flex items-center gap-1.5 font-semibold text-neutral-700">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 sm:text-sm">
                             <Store className="h-3.5 w-3.5 text-neutral-400" />
                             <span>Stores / Retailers</span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                             {product.stores.map((s, idx) => (
-                                <Badge key={idx} variant="pill">
+                                <Badge
+                                    key={idx}
+                                    variant="pill"
+                                    className="text-xs font-medium"
+                                >
                                     {s}
                                 </Badge>
                             ))}
@@ -122,7 +125,7 @@ export const ProductCharacteristicsCard: React.FC<
                 {/* EMB / Traceability Codes */}
                 {product.embCodes.length > 0 && (
                     <div className="space-y-1 border-t border-neutral-100 pt-1">
-                        <span className="block text-[11px] font-semibold text-neutral-600">
+                        <span className="block text-[11px] font-bold tracking-[0.06em] text-neutral-500 uppercase">
                             Traceability / EMB Codes:
                         </span>
                         <div className="flex flex-wrap gap-1.5">
@@ -130,7 +133,7 @@ export const ProductCharacteristicsCard: React.FC<
                                 <Badge
                                     key={idx}
                                     variant="subtle"
-                                    className="font-mono text-[10px]"
+                                    className="font-mono text-xs font-semibold tracking-[0.02em] tabular-nums"
                                 >
                                     {code}
                                 </Badge>
@@ -141,7 +144,7 @@ export const ProductCharacteristicsCard: React.FC<
 
                 {/* Customer Service & Website Link */}
                 {(product.customerService || product.link) && (
-                    <div className="flex flex-col justify-between gap-2 border-t border-neutral-100 pt-2 text-[11px] text-neutral-500 sm:flex-row sm:items-center">
+                    <div className="flex flex-col justify-between gap-2 border-t border-neutral-100 pt-2 text-xs font-medium text-neutral-600 sm:flex-row sm:items-center">
                         {product.customerService && (
                             <div className="flex items-center gap-1.5">
                                 <Headphones className="h-3.5 w-3.5 text-neutral-400" />

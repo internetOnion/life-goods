@@ -3,8 +3,8 @@ import { useEffect, useRef } from "react"
 import { Link } from "react-router"
 
 import { Button } from "@/components/ui/button"
+import { SnapshotNotFoundIllustration } from "@/components/illustrations"
 import { usePageMetadata } from "@/lib/metadata"
-import { OpenLabelMark } from "@/ui/OpenLabelMark"
 
 export function NotFoundPage() {
     const headingRef = useRef<HTMLHeadingElement>(null)
@@ -15,16 +15,13 @@ export function NotFoundPage() {
     })
 
     useEffect(() => {
-        headingRef.current?.focus()
+        headingRef.current?.focus({ preventScroll: true })
     }, [])
 
     return (
         <main className="mx-auto grid min-h-[calc(100svh-8rem)] w-full max-w-xl content-center px-4 py-12 sm:px-6">
-            <div
-                className="bg-primary-100 mb-7 grid size-20 place-items-center rounded-2xl"
-                aria-hidden="true"
-            >
-                <OpenLabelMark className="size-12" />
+            <div className="mb-6">
+                <SnapshotNotFoundIllustration size={160} />
             </div>
             <h1
                 className="text-4xl leading-tight font-extrabold tracking-[-0.03em] text-balance text-neutral-950 sm:text-5xl"

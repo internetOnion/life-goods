@@ -64,35 +64,35 @@ export const AdditivesCard: React.FC<AdditivesCardProps> = ({
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2 sm:p-5">
                 <div className="flex items-center gap-2">
                     <FlaskConical className="h-4 w-4 text-neutral-500" />
-                    <CardTitle className="text-sm font-semibold text-neutral-900">
+                    <CardTitle className="text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
                         Food Additives & E-Numbers
                     </CardTitle>
                 </div>
-                <Badge variant="subtle" className="font-mono text-[10px]">
+                <Badge
+                    variant="subtle"
+                    className="py-0.2 px-2 font-mono text-[11px] font-semibold tabular-nums"
+                >
                     {formattedAdditives.length} Listed
                 </Badge>
             </CardHeader>
 
             <CardContent className="space-y-3 p-4 pt-2 sm:p-5">
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                     {formattedAdditives.map((add, idx) => (
                         <div
                             key={idx}
-                            className="flex items-center gap-2.5 rounded-xl border border-neutral-200/70 bg-neutral-50 p-2.5"
+                            className="flex items-center gap-2 rounded-lg border border-neutral-200/70 bg-neutral-50 px-2.5 py-1.5"
                         >
-                            <Badge
-                                variant="pill"
-                                className="bg-neutral-200/80 font-bold text-neutral-800"
-                            >
+                            <span className="py-0.2 rounded bg-neutral-200/80 px-1.5 font-mono text-[11px] font-bold text-neutral-900 tabular-nums">
                                 {add.code}
-                            </Badge>
-                            <span className="min-w-0 truncate text-xs font-medium text-neutral-700">
+                            </span>
+                            <span className="min-w-0 truncate text-xs font-medium text-neutral-800">
                                 {add.name || "Food Additive"}
                             </span>
                         </div>
                     ))}
                 </div>
-                <p className="border-t border-neutral-100 pt-1 text-[11px] text-neutral-400">
+                <p className="border-t border-neutral-100 pt-1 text-xs font-medium text-neutral-500">
                     Source: Regulated food additives declared on the package
                     ingredient list.
                 </p>

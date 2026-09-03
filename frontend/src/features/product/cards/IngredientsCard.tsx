@@ -27,6 +27,7 @@ import {
     parseIngredients,
     tokenizeIngredientText,
 } from "@/lib/ingredientsParser"
+import { cn } from "@/lib/utils"
 
 export interface IngredientsCardProps {
     labelEvidence?: PackageMatchEvidenceResponse[]
@@ -338,7 +339,7 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                         <ScrollText className="text-primary-600 h-4 w-4" />
-                        <CardTitle className="text-sm font-semibold text-neutral-900">
+                        <CardTitle className="text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
                             Ingredients List
                         </CardTitle>
                     </div>
@@ -349,13 +350,13 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                             size="sm"
                             type="button"
                             onClick={handleCopy}
-                            className="inline-flex h-auto cursor-pointer items-center gap-1 rounded-lg bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-200 hover:text-neutral-900"
+                            className="inline-flex h-auto cursor-pointer items-center gap-1 rounded-lg bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-200 hover:text-neutral-900"
                             title="Copy ingredients to clipboard"
                         >
                             {isCopied ? (
                                 <>
                                     <Check className="text-success-600 h-3 w-3" />
-                                    <span className="text-success-700 font-semibold">
+                                    <span className="text-success-700 font-bold">
                                         Copied
                                     </span>
                                 </>
@@ -373,7 +374,7 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                 {ingredientItems.length > 1 && (
                     <div className="pt-0.5">
                         <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="mr-1 flex shrink-0 items-center gap-1 text-[11px] font-semibold tracking-wider text-neutral-400 uppercase">
+                            <span className="mr-1 flex shrink-0 items-center gap-1 text-[11px] font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                 <Languages className="h-3 w-3" />
                                 Languages ({ingredientItems.length}):
                             </span>
@@ -396,11 +397,12 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                                             setShowAllergensOnly(false)
                                             setSearchQuery("")
                                         }}
-                                        className={`h-auto rounded-full px-2.5 py-0.5 text-xs font-medium transition-all ${
+                                        className={cn(
+                                            "h-6.5 rounded-full px-2.5 py-0 text-[11px] font-medium transition-all",
                                             isSelected
                                                 ? "font-semibold shadow-2xs"
-                                                : "hover:text-neutral-900"
-                                        }`}
+                                                : "hover:text-neutral-900",
+                                        )}
                                     >
                                         {langLabel}
                                     </Button>
@@ -411,9 +413,9 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                 )}
 
                 {/* Overview Stats Strip */}
-                <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
-                    <div className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-100/90 px-2.5 py-1 font-medium text-neutral-700">
-                        <Sparkles className="h-3.5 w-3.5 text-neutral-500" />
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-xs">
+                    <div className="inline-flex items-center gap-1 rounded-md bg-neutral-100/90 px-2 py-0.5 text-[11px] font-medium text-neutral-700">
+                        <Sparkles className="h-3 w-3 text-neutral-500" />
                         <span>
                             <strong className="font-semibold text-neutral-900">
                                 {parsed.totalCount}
@@ -423,8 +425,8 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                     </div>
 
                     {parsed.allergensDetected.length > 0 && (
-                        <div className="border-warning-200 bg-warning-50 text-warning-900 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 font-medium">
-                            <AlertTriangle className="text-warning-600 h-3.5 w-3.5 shrink-0" />
+                        <div className="border-warning-200 bg-warning-50 text-warning-900 inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium">
+                            <AlertTriangle className="text-warning-600 h-3 w-3 shrink-0" />
                             <span>
                                 <strong className="font-semibold">
                                     {parsed.allergensDetected.length}
@@ -442,7 +444,7 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                     )}
 
                     {parsed.hasPercentages && (
-                        <div className="border-primary-200/60 bg-primary-50 text-primary-800 inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 font-medium">
+                        <div className="border-primary-200/60 bg-primary-50 text-primary-800 inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium">
                             <Percent className="text-primary-600 h-3 w-3" />
                             <span>Quantified proportions (QUID)</span>
                         </div>
@@ -450,21 +452,22 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                 </div>
 
                 {/* View Mode Switcher and Search/Filter Bar */}
-                <div className="space-y-2.5 border-t border-neutral-100 pt-1">
+                <div className="space-y-2 border-t border-neutral-100 pt-1">
                     {/* View Mode Tabs */}
-                    <div className="grid w-full grid-cols-2 rounded-xl border border-neutral-200/70 bg-neutral-100 p-1">
+                    <div className="grid w-full grid-cols-2 rounded-lg border border-neutral-200/70 bg-neutral-100 p-0.5">
                         <Button
                             variant="ghost"
                             size="sm"
                             type="button"
                             onClick={() => setViewMode("breakdown")}
-                            className={`min-w-0 justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all ${
+                            className={cn(
+                                "h-7 min-w-0 justify-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium whitespace-nowrap transition-all sm:text-xs",
                                 viewMode === "breakdown"
                                     ? "bg-white font-semibold text-neutral-900 shadow-2xs"
-                                    : "text-neutral-500 hover:text-neutral-900"
-                            }`}
+                                    : "text-neutral-500 hover:text-neutral-900",
+                            )}
                         >
-                            <ListOrdered className="h-3.5 w-3.5 shrink-0" />
+                            <ListOrdered className="h-3 w-3 shrink-0" />
                             <span className="truncate">
                                 Structured Breakdown
                             </span>
@@ -475,13 +478,14 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                             size="sm"
                             type="button"
                             onClick={() => setViewMode("text")}
-                            className={`min-w-0 justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all ${
+                            className={cn(
+                                "h-7 min-w-0 justify-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium whitespace-nowrap transition-all sm:text-xs",
                                 viewMode === "text"
                                     ? "bg-white font-semibold text-neutral-900 shadow-2xs"
-                                    : "text-neutral-500 hover:text-neutral-900"
-                            }`}
+                                    : "text-neutral-500 hover:text-neutral-900",
+                            )}
                         >
-                            <AlignLeft className="h-3.5 w-3.5 shrink-0" />
+                            <AlignLeft className="h-3 w-3 shrink-0" />
                             <span className="truncate">
                                 Original Label Text
                             </span>
@@ -489,16 +493,16 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                     </div>
 
                     {/* Search Bar + View Controls */}
-                    <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
-                        <div className="relative min-w-[180px] flex-1">
-                            <Search className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
+                    <div className="flex flex-wrap items-center gap-1.5 sm:flex-nowrap">
+                        <div className="relative min-w-[160px] flex-1">
+                            <Search className="pointer-events-none absolute top-1/2 left-2.5 h-3 w-3 -translate-y-1/2 text-neutral-400" />
                             <Input
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Search ingredients..."
                                 aria-label="Search ingredients"
-                                className="focus:border-primary-500 focus:ring-primary-500/20 h-8 rounded-lg border-neutral-200/80 bg-neutral-50 pr-8 pl-8 text-xs text-neutral-900 transition-all placeholder:text-neutral-400 focus:bg-white focus:ring-2"
+                                className="focus:border-primary-500 focus:ring-primary-500/20 h-7.5 rounded-lg border-neutral-200/80 bg-neutral-50 pr-7 pl-7.5 text-xs text-neutral-900 transition-all placeholder:text-neutral-400 focus:bg-white focus:ring-2"
                             />
                             {searchQuery && (
                                 <Button
@@ -506,11 +510,11 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                                     size="icon-sm"
                                     type="button"
                                     onClick={() => setSearchQuery("")}
-                                    className="absolute top-1/2 right-1.5 h-6 w-6 -translate-y-1/2 rounded p-0 text-neutral-400 hover:text-neutral-600"
+                                    className="absolute top-1/2 right-1 h-5 w-5 -translate-y-1/2 rounded p-0 text-neutral-400 hover:text-neutral-600"
                                     title="Clear search"
                                     aria-label="Clear search"
                                 >
-                                    <X className="h-3.5 w-3.5" />
+                                    <X className="h-3 w-3" />
                                 </Button>
                             )}
                         </div>
@@ -524,14 +528,14 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                                     onClick={() =>
                                         setShowAllergensOnly(!showAllergensOnly)
                                     }
-                                    className={`h-8 shrink-0 rounded-lg px-2.5 text-xs font-medium whitespace-nowrap transition-colors ${
+                                    className={`h-7.5 shrink-0 rounded-lg px-2 text-[11px] font-medium whitespace-nowrap transition-colors ${
                                         showAllergensOnly
                                             ? "bg-warning-500 font-semibold text-white shadow-2xs"
                                             : "border border-neutral-200/60 bg-neutral-100 text-neutral-600 hover:bg-neutral-200 hover:text-neutral-900"
                                     }`}
                                     title="Filter only allergen ingredients"
                                 >
-                                    <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+                                    <ShieldAlert className="h-3 w-3 shrink-0" />
                                     <span>Allergens Only</span>
                                 </Button>
                             )}
@@ -542,7 +546,7 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                                 size="sm"
                                 type="button"
                                 onClick={() => setIsLargeText(!isLargeText)}
-                                className={`h-8 shrink-0 rounded-lg px-2.5 text-xs font-medium whitespace-nowrap transition-colors ${
+                                className={`h-7.5 shrink-0 rounded-lg px-2 text-[11px] font-medium whitespace-nowrap transition-colors ${
                                     isLargeText
                                         ? "border-primary-200 bg-primary-100 text-primary-900 border font-semibold"
                                         : "border border-neutral-200/60 bg-neutral-100 text-neutral-600 hover:bg-neutral-200 hover:text-neutral-900"
@@ -662,11 +666,11 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                                                     : "border-neutral-200/70 bg-neutral-50/70"
                                             }`}
                                         >
-                                            <div className="flex items-start justify-between gap-3">
+                                            <div className="flex items-start justify-between gap-2.5">
                                                 {/* Order index + Name */}
-                                                <div className="flex min-w-0 items-start gap-2.5">
+                                                <div className="flex min-w-0 items-start gap-2">
                                                     <span
-                                                        className={`mt-0.5 flex h-5.5 min-w-5.5 shrink-0 items-center justify-center rounded-md px-1.5 font-mono text-[11px] font-bold ${
+                                                        className={`mt-0.5 flex h-4.5 min-w-4.5 shrink-0 items-center justify-center rounded px-1 font-mono text-[10px] font-bold tabular-nums ${
                                                             hasAllergen
                                                                 ? "bg-warning-200/80 text-warning-900"
                                                                 : "bg-neutral-200/80 text-neutral-700"
@@ -677,12 +681,12 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                                                     </span>
 
                                                     <div className="min-w-0 space-y-1">
-                                                        <div className="flex flex-wrap items-center gap-2">
+                                                        <div className="flex flex-wrap items-center gap-1.5">
                                                             <span
-                                                                className={`text-sm leading-tight font-medium ${
+                                                                className={`text-sm leading-snug ${
                                                                     hasAllergen
-                                                                        ? "font-bold text-neutral-900"
-                                                                        : "text-neutral-800"
+                                                                        ? "font-bold text-neutral-950"
+                                                                        : "font-semibold text-neutral-900"
                                                                 }`}
                                                             >
                                                                 <HighlightMatch
@@ -696,8 +700,8 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                                                             </span>
 
                                                             {hasAllergen && (
-                                                                <span className="border-warning-300/80 bg-warning-100 text-warning-900 inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold">
-                                                                    <AlertTriangle className="text-warning-600 h-3 w-3" />
+                                                                <span className="border-warning-300/80 bg-warning-100 text-warning-900 py-0.2 inline-flex items-center gap-0.5 rounded border px-1.5 text-[10px] font-bold">
+                                                                    <AlertTriangle className="text-warning-600 h-2.5 w-2.5" />
                                                                     <span>
                                                                         {item.allergens.join(
                                                                             ", ",
@@ -712,14 +716,14 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                                                         {item.subIngredients &&
                                                             item.subIngredients
                                                                 .length > 0 && (
-                                                                <div className="space-y-1 pt-1 pl-1">
+                                                                <div className="space-y-1 pt-0.5 pl-0.5">
                                                                     <div className="flex items-center gap-1 text-[11px] font-medium text-neutral-500">
-                                                                        <CornerDownRight className="h-3 w-3 shrink-0 text-neutral-400" />
+                                                                        <CornerDownRight className="h-2.5 w-2.5 shrink-0 text-neutral-400" />
                                                                         <span>
                                                                             Sub-components:
                                                                         </span>
                                                                     </div>
-                                                                    <div className="flex flex-wrap items-center gap-1.5 pl-4">
+                                                                    <div className="flex flex-wrap items-center gap-1 pl-3.5">
                                                                         {item.subIngredients.map(
                                                                             (
                                                                                 sub,
@@ -729,7 +733,7 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                                                                                     key={
                                                                                         sIdx
                                                                                     }
-                                                                                    className="inline-flex items-center rounded-md border border-neutral-200 bg-white px-2 py-0.5 text-xs text-neutral-700 shadow-2xs"
+                                                                                    className="py-0.2 inline-flex items-center rounded bg-neutral-100/90 px-1.5 text-[10px] font-medium text-neutral-700"
                                                                                 >
                                                                                     <HighlightMatch
                                                                                         text={
@@ -750,7 +754,7 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
 
                                                 {/* Percentage badge (QUID) */}
                                                 {item.percentage && (
-                                                    <span className="border-primary-200/80 bg-primary-100/90 text-primary-900 inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 font-mono text-xs font-bold shadow-2xs">
+                                                    <span className="border-primary-200/80 bg-primary-100/90 text-primary-900 py-0.2 inline-flex shrink-0 items-center rounded-full border px-1.5 font-mono text-[10px] font-bold tabular-nums shadow-2xs">
                                                         {item.percentage}
                                                     </span>
                                                 )}
@@ -763,18 +767,18 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
 
                         {/* Packaging Claims & Dietary Declarations */}
                         {filteredClaims.length > 0 && (
-                            <div className="border-success-200/80 bg-success-50/60 mt-4 space-y-1.5 rounded-xl border p-3">
+                            <div className="border-success-200/80 bg-success-50/60 mt-3 space-y-1.5 rounded-xl border p-2.5">
                                 <div className="text-success-900 flex items-center gap-1.5 text-xs font-bold">
-                                    <CheckCircle2 className="text-success-700 h-3.5 w-3.5" />
+                                    <CheckCircle2 className="text-success-700 h-3 w-3" />
                                     <span>
                                         Packaging Declarations & Claims:
                                     </span>
                                 </div>
-                                <div className="flex flex-wrap items-center gap-2 pl-5">
+                                <div className="flex flex-wrap items-center gap-1.5 pl-4">
                                     {filteredClaims.map((claim, cIdx) => (
                                         <span
                                             key={cIdx}
-                                            className="border-success-200 text-success-800 rounded-full border bg-white px-2 py-0.5 text-xs font-semibold shadow-2xs"
+                                            className="border-success-200 text-success-800 py-0.2 rounded-full border bg-white px-2 text-[10px] font-semibold shadow-2xs"
                                         >
                                             <HighlightMatch
                                                 text={claim}
@@ -811,11 +815,13 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
 
                         <div className="rounded-2xl border border-neutral-200/80 bg-neutral-50/90 p-4 shadow-2xs sm:p-5">
                             <p
-                                className={`leading-relaxed font-normal tracking-normal ${
+                                lang={activeItem?.language || "und"}
+                                className={cn(
+                                    "font-normal wrap-anywhere",
                                     isLargeText
-                                        ? "space-y-1 text-base text-neutral-900 sm:text-lg"
-                                        : "text-xs text-neutral-800 sm:text-sm"
-                                }`}
+                                        ? "text-base leading-[1.75] text-neutral-900 sm:text-lg"
+                                        : "text-sm leading-[1.65] text-neutral-800",
+                                )}
                             >
                                 {tokens.map((token, idx) => {
                                     if (token.type === "allergen") {
@@ -837,7 +843,7 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                                         return (
                                             <span
                                                 key={idx}
-                                                className="border-primary-200 bg-primary-100 text-primary-900 mx-0.5 inline-block rounded border px-1.5 py-0.5 font-mono text-xs font-bold"
+                                                className="border-primary-200 bg-primary-100 text-primary-900 mx-0.5 inline-block rounded border px-1.5 py-0.5 font-mono text-xs font-bold tabular-nums"
                                                 title="Characterizing ingredient percentage (QUID)"
                                             >
                                                 <HighlightMatch
@@ -863,11 +869,13 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                 )}
 
                 {/* Card Footer Meta */}
-                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-neutral-100 pt-1 text-[11px] text-neutral-400">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-neutral-100 pt-1 text-xs font-medium text-neutral-500">
                     <span>Source: Package Label Declaration</span>
                     <div className="flex items-center gap-2">
                         {activeItem && activeItem.language && (
-                            <span>Code: {activeItem.language}</span>
+                            <span className="font-mono text-[11px] uppercase">
+                                Code: {activeItem.language}
+                            </span>
                         )}
                         <span>•</span>
                         <span>Legal ordering (descending weight)</span>

@@ -43,7 +43,7 @@ function LearnIndexPage() {
     })
 
     useEffect(() => {
-        headingRef.current?.focus()
+        headingRef.current?.focus({ preventScroll: true })
     }, [])
 
     const normalizedSearch = search.trim().toLowerCase()
@@ -214,7 +214,7 @@ function LearnArticleDetail({ slug }: { slug: string }) {
     })
 
     useEffect(() => {
-        headingRef.current?.focus()
+        headingRef.current?.focus({ preventScroll: true })
     }, [slug])
 
     if (!entry) {

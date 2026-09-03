@@ -10,6 +10,7 @@ import React, { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ScrollContainer } from "@/components/ui/scroll-container"
 import type {
     NutrientLevels,
     PackageMatchEvidenceResponse,
@@ -317,6 +318,9 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
     labelEvidence,
 }) => {
     const [showStandards, setShowStandards] = useState(false)
+    const [expandedMetrics, setExpandedMetrics] = useState<
+        Record<string, boolean>
+    >({})
 
     const hasAnyLevel = Boolean(
         levels.fat || levels.saturatedFat || levels.sugars || levels.salt,
@@ -326,26 +330,55 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
 
     const measuredAmounts = extractAmounts(labelEvidence)
 
+    const allExpanded = METRICS.every((m) => expandedMetrics[m.key])
+
+    const toggleMetric = (key: string) => {
+        setExpandedMetrics((prev) => ({
+            ...prev,
+            [key]: !prev[key],
+        }))
+    }
+
+    const toggleAll = () => {
+        if (allExpanded) {
+            setExpandedMetrics({})
+        } else {
+            const next: Record<string, boolean> = {}
+            for (const m of METRICS) {
+                next[m.key] = true
+            }
+            setExpandedMetrics(next)
+        }
+    }
+
     return (
         <Card className="overflow-hidden rounded-2xl border-neutral-200/80 bg-white shadow-xs">
             {/* Card Header */}
-            <CardHeader className="flex flex-row items-center gap-2.5 space-y-0 border-b border-neutral-100 p-4 pb-3 sm:p-5">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-neutral-100/80 text-neutral-500">
-                    <Activity className="h-4 w-4" />
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 border-b border-neutral-100 p-3.5 pb-2.5 sm:p-4 sm:pb-3">
+                <div className="flex min-w-0 items-center gap-2.5">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-neutral-100/80 text-neutral-500">
+                        <Activity className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                        <CardTitle className="truncate text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
+                            Nutrient Levels
+                        </CardTitle>
+                    </div>
                 </div>
-                <div className="min-w-0">
-                    <CardTitle className="truncate text-sm font-semibold text-neutral-900">
-                        Nutrient Levels
-                    </CardTitle>
-                    <p className="truncate text-[11px] text-neutral-400">
-                        Official UK FSA & WHO Nutritional Benchmarks
-                    </p>
-                </div>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    type="button"
+                    onClick={toggleAll}
+                    className="h-7 shrink-0 px-2.5 text-xs font-semibold text-neutral-600 hover:text-neutral-950"
+                >
+                    {allExpanded ? "Collapse all" : "Expand all"}
+                </Button>
             </CardHeader>
 
-            <CardContent className="space-y-3.5 p-4 sm:p-5">
-                {/* 4-Metric Nutrient List */}
-                <div className="flex flex-col gap-2.5 sm:gap-3">
+            <CardContent className="space-y-2.5 p-3.5 sm:p-4">
+                {/* 4-Metric Nutrient List (Yuka-style collapsible rows) */}
+                <div className="flex flex-col gap-2">
                     {METRICS.map((m) => {
                         const levelVal = levels[m.key]
                         const amount = measuredAmounts[m.matrixKey]
@@ -354,9 +387,7 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
                         const isHigh = levelVal === "high"
                         const isMod = levelVal === "moderate"
                         const isLow = levelVal === "low"
-
-                        // Calm, refined neutral surface; color reserved for accents
-                        const cardBg = "bg-neutral-50/50 border-neutral-200/70"
+                        const isExpanded = Boolean(expandedMetrics[m.key])
 
                         const markerPct = getMarkerPercentage(
                             amount?.value,
@@ -381,272 +412,330 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
                             <div
                                 key={m.key}
                                 className={cn(
-                                    "flex flex-col justify-between rounded-xl border p-3.5 sm:p-4",
-                                    cardBg,
+                                    "group overflow-hidden rounded-xl border transition-all duration-200",
+                                    isExpanded
+                                        ? "border-neutral-300 bg-white shadow-xs"
+                                        : "border-neutral-200/80 bg-neutral-50/50 hover:border-neutral-300 hover:bg-neutral-50",
                                 )}
                             >
-                                {/* Header: Icon + Name + Official Rating Badge */}
-                                <div className="flex items-center justify-between gap-2">
-                                    <div className="flex min-w-0 items-center gap-2">
-                                        <MetricIcon className="h-4 w-4 shrink-0 text-neutral-500" />
-                                        <span className="truncate text-sm font-semibold text-neutral-800">
+                                {/* Collapsible Row Trigger: Dot + Icon + Name + Amount + Exposed Signal Badge + Chevron */}
+                                <Button
+                                    variant="ghost"
+                                    type="button"
+                                    id={`nutrient-header-${m.key}`}
+                                    onClick={() => toggleMetric(m.key)}
+                                    aria-expanded={isExpanded}
+                                    aria-controls={`nutrient-details-${m.key}`}
+                                    className="h-auto w-full cursor-pointer items-center justify-between gap-3 rounded-xl p-2.5 text-left font-normal transition-colors hover:bg-transparent sm:p-3"
+                                >
+                                    {/* Left: Signal Indicator Dot + Icon + Label + Measured Amount */}
+                                    <div className="flex min-w-0 items-center gap-2.5">
+                                        {/* Yuka-inspired colored indicator dot */}
+                                        <span
+                                            className={cn(
+                                                "h-2.5 w-2.5 shrink-0 rounded-full transition-colors",
+                                                isLow &&
+                                                    "bg-emerald-500 ring-2 ring-emerald-100",
+                                                isMod &&
+                                                    "bg-amber-500 ring-2 ring-amber-100",
+                                                isHigh &&
+                                                    "bg-rose-500 ring-2 ring-rose-100",
+                                                !isLow &&
+                                                    !isMod &&
+                                                    !isHigh &&
+                                                    "bg-neutral-300 ring-2 ring-neutral-100",
+                                            )}
+                                            aria-hidden="true"
+                                        />
+                                        <MetricIcon className="h-4 w-4 shrink-0 text-neutral-400 transition-colors group-hover:text-neutral-600" />
+                                        <span className="truncate text-sm font-bold text-neutral-900">
                                             {m.label}
                                         </span>
-                                        <span className="hidden text-[11px] text-neutral-400 sm:inline">
-                                            · {m.category}
-                                        </span>
-                                    </div>
-
-                                    {isHigh ? (
-                                        <span
-                                            data-testid="nutrient-badge"
-                                            className="shrink-0 rounded-full border border-rose-200/70 bg-rose-50 px-2.5 py-0.5 text-[11px] font-medium text-rose-700 sm:text-xs"
-                                        >
-                                            High
-                                        </span>
-                                    ) : isMod ? (
-                                        <span
-                                            data-testid="nutrient-badge"
-                                            className="shrink-0 rounded-full border border-amber-200/70 bg-amber-50 px-2.5 py-0.5 text-[11px] font-medium text-amber-700 sm:text-xs"
-                                        >
-                                            Moderate
-                                        </span>
-                                    ) : isLow ? (
-                                        <span
-                                            data-testid="nutrient-badge"
-                                            className="shrink-0 rounded-full border border-emerald-200/70 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 sm:text-xs"
-                                        >
-                                            Low
-                                        </span>
-                                    ) : (
-                                        <span
-                                            data-testid="nutrient-badge"
-                                            className="shrink-0 rounded-full border border-neutral-200 bg-neutral-100 px-2.5 py-0.5 text-[11px] font-medium text-neutral-500 sm:text-xs"
-                                        >
-                                            Unknown
-                                        </span>
-                                    )}
-                                </div>
-
-                                {/* Quantitative Value or Qualitative Baseline */}
-                                <div className="my-2 sm:my-2.5">
-                                    {amount ? (
-                                        <div className="flex items-baseline gap-1">
-                                            <span className="font-mono text-xl font-bold tracking-tight text-neutral-900 sm:text-2xl">
-                                                {amount.value}
-                                            </span>
-                                            <span className="font-mono text-xs font-medium text-neutral-500">
+                                        {amount && (
+                                            <span className="shrink-0 font-mono text-xs font-semibold text-neutral-600 tabular-nums">
+                                                · {amount.value}
                                                 {amount.unit}
                                             </span>
-                                            <span className="ml-0.5 text-[11px] text-neutral-400">
-                                                / 100g
-                                            </span>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-0.5">
-                                            <span className="block text-xs leading-tight font-medium text-neutral-800 sm:text-sm">
-                                                {isHigh
-                                                    ? m.highDesc
-                                                    : isMod
-                                                      ? m.modDesc
-                                                      : isLow
-                                                        ? m.lowDesc
-                                                        : "Not evaluated"}
-                                            </span>
-                                            <span className="block text-[11px] text-neutral-400">
-                                                Per 100g benchmark
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Benchmark Spectrum Scale Meter */}
-                                <div
-                                    className="space-y-1.5 border-t border-neutral-200/60 pt-2.5"
-                                    aria-label={`${m.label} benchmark scale: Low is up to ${m.lowThreshold}, Moderate is ${m.lowThreshold} to ${m.highThreshold}, High is above ${m.highThreshold}. Current rating: ${levelVal || "unknown"}.`}
-                                >
-                                    {/* 3-Tier Directional Headers (Low -> Moderate -> High) */}
-                                    <div className="grid grid-cols-3 text-xs select-none">
-                                        <div
-                                            className={cn(
-                                                "flex items-center justify-start gap-1 font-medium transition-colors",
-                                                isLow
-                                                    ? "font-bold text-emerald-700"
-                                                    : "text-neutral-400",
-                                            )}
-                                        >
-                                            {isLow && (
-                                                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-600" />
-                                            )}
-                                            <span>Low</span>
-                                        </div>
-                                        <div
-                                            className={cn(
-                                                "flex items-center justify-center gap-1 font-medium transition-colors",
-                                                isMod
-                                                    ? "font-bold text-amber-700"
-                                                    : "text-neutral-400",
-                                            )}
-                                        >
-                                            {isMod && (
-                                                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
-                                            )}
-                                            <span>
-                                                Med
-                                                <span className="hidden sm:inline">
-                                                    erate
-                                                </span>
-                                            </span>
-                                        </div>
-                                        <div
-                                            className={cn(
-                                                "flex items-center justify-end gap-1 font-medium transition-colors",
-                                                isHigh
-                                                    ? "font-bold text-rose-700"
-                                                    : "text-neutral-400",
-                                            )}
-                                        >
-                                            {isHigh && (
-                                                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-rose-600" />
-                                            )}
-                                            <span>High</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Segmented Spectrum Track & Needle Indicator */}
-                                    <div className="relative w-full py-0.5">
-                                        {/* 3-zone color-tinted spectrum track */}
-                                        <div
-                                            data-testid="scale-track"
-                                            className="flex h-2.5 w-full gap-1 overflow-hidden rounded-full border border-neutral-200/80 bg-neutral-100/90 p-0.5 sm:h-3"
-                                        >
-                                            <div
-                                                className={cn(
-                                                    "h-full flex-1 rounded-full transition-all duration-300",
-                                                    isLow
-                                                        ? "bg-emerald-500 shadow-2xs"
-                                                        : "border border-emerald-200/60 bg-emerald-100/90",
-                                                )}
-                                            />
-                                            <div
-                                                className={cn(
-                                                    "h-full flex-1 rounded-full transition-all duration-300",
-                                                    isMod
-                                                        ? "bg-amber-500 shadow-2xs"
-                                                        : "border border-amber-200/60 bg-amber-100/90",
-                                                )}
-                                            />
-                                            <div
-                                                className={cn(
-                                                    "h-full flex-1 rounded-full transition-all duration-300",
-                                                    isHigh
-                                                        ? "bg-rose-500 shadow-2xs"
-                                                        : "border border-rose-200/60 bg-rose-100/90",
-                                                )}
-                                            />
-                                        </div>
-
-                                        {/* Indicator needle pin marking exact or categorical position */}
-                                        {pinPct !== null && (
-                                            <div
-                                                data-testid="scale-needle"
-                                                className={cn(
-                                                    "pointer-events-none absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 transition-all duration-300",
-                                                    getLeftClass(pinPct),
-                                                )}
-                                                title={
-                                                    amount
-                                                        ? `${amount.value} ${amount.unit} / 100g`
-                                                        : `Level: ${levelVal}`
-                                                }
-                                            >
-                                                <div
-                                                    className={cn(
-                                                        "flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 bg-white shadow-xs transition-colors",
-                                                        isLow
-                                                            ? "border-emerald-700"
-                                                            : isMod
-                                                              ? "border-amber-700"
-                                                              : isHigh
-                                                                ? "border-rose-700"
-                                                                : "border-neutral-700",
-                                                    )}
-                                                >
-                                                    <div
-                                                        className={cn(
-                                                            "h-1.5 w-1.5 rounded-full transition-colors",
-                                                            isLow
-                                                                ? "bg-emerald-600"
-                                                                : isMod
-                                                                  ? "bg-amber-500"
-                                                                  : isHigh
-                                                                    ? "bg-rose-600"
-                                                                    : "bg-neutral-600",
-                                                        )}
-                                                    />
-                                                </div>
-                                            </div>
                                         )}
                                     </div>
 
-                                    {/* Cutoff Threshold Range Markers */}
-                                    <div className="grid grid-cols-3 font-mono text-[10px] tracking-tight tabular-nums select-none sm:text-xs">
+                                    {/* Right: Exposed Signal Badge + Dropdown Chevron */}
+                                    <div className="flex shrink-0 items-center gap-2">
+                                        {/* Exposed Signal Badge */}
                                         <span
+                                            data-testid="nutrient-badge"
                                             className={cn(
-                                                "text-left transition-colors",
-                                                isLow
-                                                    ? "font-bold text-neutral-900"
-                                                    : "text-neutral-400",
+                                                "shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-bold tracking-tight shadow-2xs transition-colors",
+                                                isHigh &&
+                                                    "border-rose-200/70 bg-rose-50 text-rose-700",
+                                                isMod &&
+                                                    "border-amber-200/70 bg-amber-50 text-amber-700",
+                                                isLow &&
+                                                    "border-emerald-200/70 bg-emerald-50 text-emerald-700",
+                                                !isHigh &&
+                                                    !isMod &&
+                                                    !isLow &&
+                                                    "border-neutral-200 bg-neutral-100 text-neutral-500",
                                             )}
                                         >
-                                            ≤{m.lowThreshold}
+                                            {isHigh
+                                                ? "High"
+                                                : isMod
+                                                  ? "Moderate"
+                                                  : isLow
+                                                    ? "Low"
+                                                    : "Unknown"}
                                         </span>
-                                        <span
+
+                                        {/* Dropdown Chevron */}
+                                        <ChevronDown
                                             className={cn(
-                                                "text-center transition-colors",
-                                                isMod
-                                                    ? "font-bold text-neutral-900"
-                                                    : "text-neutral-400",
+                                                "h-4 w-4 text-neutral-400 transition-transform duration-200 group-hover:text-neutral-600",
+                                                isExpanded &&
+                                                    "rotate-180 text-neutral-700",
                                             )}
-                                        >
-                                            {m.lowThreshold}–{m.highThreshold}
-                                        </span>
-                                        <span
-                                            className={cn(
-                                                "text-right transition-colors",
-                                                isHigh
-                                                    ? "font-bold text-neutral-900"
-                                                    : "text-neutral-400",
-                                            )}
-                                        >
-                                            &gt;{m.highThreshold}
-                                        </span>
+                                            aria-hidden="true"
+                                        />
                                     </div>
-                                </div>
+                                </Button>
+
+                                {/* Dropdown: Revealed Bar / Level Spectrum Meter & Thresholds */}
+                                {isExpanded && (
+                                    <div
+                                        id={`nutrient-details-${m.key}`}
+                                        role="region"
+                                        aria-labelledby={`nutrient-header-${m.key}`}
+                                        className="animate-in fade-in slide-in-from-top-1 border-t border-neutral-100 bg-white p-3.5 pt-3 duration-200 sm:p-4 sm:pt-3.5"
+                                    >
+                                        {/* Quantitative Value or Qualitative Baseline */}
+                                        <div className="mb-3 flex items-baseline justify-between gap-2">
+                                            {amount ? (
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="font-mono text-2xl font-extrabold tracking-tight text-neutral-950 tabular-nums sm:text-3xl">
+                                                        {amount.value}
+                                                    </span>
+                                                    <span className="font-mono text-xs font-bold text-neutral-600 tabular-nums">
+                                                        {amount.unit}
+                                                    </span>
+                                                    <span className="ml-0.5 text-xs font-medium text-neutral-400">
+                                                        / 100g
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-0.5">
+                                                    <span className="block text-xs leading-tight font-semibold text-neutral-900 sm:text-sm">
+                                                        {isHigh
+                                                            ? m.highDesc
+                                                            : isMod
+                                                              ? m.modDesc
+                                                              : isLow
+                                                                ? m.lowDesc
+                                                                : "Not evaluated"}
+                                                    </span>
+                                                    <span className="block text-[11px] text-neutral-400">
+                                                        Per 100g benchmark
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <span className="text-[11px] text-neutral-400">
+                                                {m.category}
+                                            </span>
+                                        </div>
+
+                                        {/* Benchmark Spectrum Scale Meter */}
+                                        <div
+                                            className="space-y-2 pt-1"
+                                            aria-label={`${m.label} benchmark scale: Low is up to ${m.lowThreshold}, Moderate is ${m.lowThreshold} to ${m.highThreshold}, High is above ${m.highThreshold}. Current rating: ${levelVal || "unknown"}.`}
+                                        >
+                                            {/* 3-Tier Directional Headers (Low -> Moderate -> High) */}
+                                            <div className="grid grid-cols-3 text-xs select-none">
+                                                <div
+                                                    className={cn(
+                                                        "flex items-center justify-start gap-1 font-medium transition-colors",
+                                                        isLow
+                                                            ? "font-bold text-emerald-700"
+                                                            : "text-neutral-400",
+                                                    )}
+                                                >
+                                                    {isLow && (
+                                                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-600" />
+                                                    )}
+                                                    <span>Low</span>
+                                                </div>
+                                                <div
+                                                    className={cn(
+                                                        "flex items-center justify-center gap-1 font-medium transition-colors",
+                                                        isMod
+                                                            ? "font-bold text-amber-700"
+                                                            : "text-neutral-400",
+                                                    )}
+                                                >
+                                                    {isMod && (
+                                                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+                                                    )}
+                                                    <span>Moderate</span>
+                                                </div>
+                                                <div
+                                                    className={cn(
+                                                        "flex items-center justify-end gap-1 font-medium transition-colors",
+                                                        isHigh
+                                                            ? "font-bold text-rose-700"
+                                                            : "text-neutral-400",
+                                                    )}
+                                                >
+                                                    {isHigh && (
+                                                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-rose-600" />
+                                                    )}
+                                                    <span>High</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Continuous Spectrum Track & Yuka-Inspired Slider Thumb Indicator */}
+                                            <div className="relative w-full py-1">
+                                                {/* Single continuous multi-zone spectrum track (goes seamlessly left to right) */}
+                                                <div
+                                                    data-testid="scale-track"
+                                                    className="relative flex h-2.5 w-full overflow-hidden rounded-full border border-black/5 bg-neutral-100 shadow-inner sm:h-3"
+                                                >
+                                                    {/* Low Zone (Green) */}
+                                                    <div
+                                                        className={cn(
+                                                            "h-full flex-1 transition-all duration-300",
+                                                            isLow
+                                                                ? "bg-emerald-500"
+                                                                : "bg-emerald-400/80",
+                                                        )}
+                                                    />
+
+                                                    {/* Seamless Hairline Notch Divider */}
+                                                    <div className="z-1 h-full w-[2px] shrink-0 bg-white" />
+
+                                                    {/* Moderate Zone (Amber / Orange) */}
+                                                    <div
+                                                        className={cn(
+                                                            "h-full flex-1 transition-all duration-300",
+                                                            isMod
+                                                                ? "bg-amber-500"
+                                                                : "bg-amber-400/80",
+                                                        )}
+                                                    />
+
+                                                    {/* Seamless Hairline Notch Divider */}
+                                                    <div className="z-1 h-full w-[2px] shrink-0 bg-white" />
+
+                                                    {/* High Zone (Rose / Red) */}
+                                                    <div
+                                                        className={cn(
+                                                            "h-full flex-1 transition-all duration-300",
+                                                            isHigh
+                                                                ? "bg-rose-500"
+                                                                : "bg-rose-400/80",
+                                                        )}
+                                                    />
+                                                </div>
+
+                                                {/* Tactile Needle/Thumb Indicator Pin */}
+                                                {pinPct !== null && (
+                                                    <div
+                                                        data-testid="scale-needle"
+                                                        className={cn(
+                                                            "pointer-events-none absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 transition-all duration-300",
+                                                            getLeftClass(
+                                                                pinPct,
+                                                            ),
+                                                        )}
+                                                        title={
+                                                            amount
+                                                                ? `${amount.value} ${amount.unit} / 100g`
+                                                                : `Level: ${levelVal}`
+                                                        }
+                                                    >
+                                                        <div
+                                                            className={cn(
+                                                                "flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-white shadow-md ring-1 ring-black/10 transition-all sm:h-4.5 sm:w-4.5",
+                                                            )}
+                                                        >
+                                                            <div
+                                                                className={cn(
+                                                                    "h-2 w-2 rounded-full transition-colors sm:h-2.5 sm:w-2.5",
+                                                                    isLow
+                                                                        ? "bg-emerald-600"
+                                                                        : isMod
+                                                                          ? "bg-amber-500"
+                                                                          : isHigh
+                                                                            ? "bg-rose-600"
+                                                                            : "bg-neutral-600",
+                                                                )}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Cutoff Threshold Range Markers */}
+                                            <div className="grid grid-cols-3 font-mono text-[10px] tracking-tight tabular-nums select-none sm:text-xs">
+                                                <span
+                                                    className={cn(
+                                                        "text-left transition-colors",
+                                                        isLow
+                                                            ? "font-bold text-neutral-900"
+                                                            : "text-neutral-400",
+                                                    )}
+                                                >
+                                                    ≤{m.lowThreshold}
+                                                </span>
+                                                <span
+                                                    className={cn(
+                                                        "text-center transition-colors",
+                                                        isMod
+                                                            ? "font-bold text-neutral-900"
+                                                            : "text-neutral-400",
+                                                    )}
+                                                >
+                                                    {m.lowThreshold}–
+                                                    {m.highThreshold}
+                                                </span>
+                                                <span
+                                                    className={cn(
+                                                        "text-right transition-colors",
+                                                        isHigh
+                                                            ? "font-bold text-neutral-900"
+                                                            : "text-neutral-400",
+                                                    )}
+                                                >
+                                                    &gt;{m.highThreshold}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )
                     })}
                 </div>
 
                 {/* Collapsible Official Standards Reference Table */}
-                <div className="border-t border-neutral-100 pt-3">
+                <div className="border-t border-neutral-100 pt-2.5">
                     <Button
                         variant="ghost"
+                        size="sm"
                         type="button"
                         onClick={() => setShowStandards(!showStandards)}
-                        className="flex h-auto w-full cursor-pointer items-center justify-between p-0 py-0.5 text-xs font-medium text-neutral-500 transition-colors hover:bg-transparent hover:text-neutral-800"
+                        className="flex h-auto w-full cursor-pointer items-center justify-between gap-2 p-0 py-1 text-left text-[11px] font-medium whitespace-normal text-neutral-500 transition-colors hover:bg-transparent hover:text-neutral-800"
                     >
-                        <div className="flex items-center gap-1.5">
-                            <Info className="h-3.5 w-3.5 text-neutral-400" />
-                            <span>
-                                Official Nutritional Standards (UK FSA & WHO per
-                                100g)
+                        <div className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
+                            <Info className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
+                            <span className="min-w-0 text-[11px] leading-snug">
+                                Official Nutritional Standards{" "}
+                                <span className="font-normal text-neutral-400">
+                                    (UK FSA &amp; WHO per 100g)
+                                </span>
                             </span>
                         </div>
                         {showStandards ? (
-                            <ChevronUp className="h-4 w-4 text-neutral-400" />
+                            <ChevronUp className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
                         ) : (
-                            <ChevronDown className="h-4 w-4 text-neutral-400" />
+                            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
                         )}
                     </Button>
 
@@ -660,83 +749,88 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
                                 strictly per 100g of solid food:
                             </p>
 
-                            <div className="overflow-x-auto rounded-lg border border-neutral-200/70 bg-white">
-                                <table className="w-full border-collapse text-left text-xs">
-                                    <thead>
-                                        <tr className="border-b border-neutral-200/70 bg-neutral-50/70 text-[11px] font-medium tracking-wider text-neutral-500 uppercase">
-                                            <th className="px-3 py-2">
-                                                Nutrient
-                                            </th>
-                                            <th className="px-3 py-2 text-emerald-700">
-                                                Low
-                                            </th>
-                                            <th className="px-3 py-2 text-amber-700">
-                                                Moderate
-                                            </th>
-                                            <th className="px-3 py-2 text-rose-700">
-                                                High
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-neutral-100 font-mono text-xs text-neutral-600">
-                                        <tr>
-                                            <td className="px-3 py-2 font-sans font-medium text-neutral-800">
-                                                Total Fat
-                                            </td>
-                                            <td className="px-3 py-2 text-emerald-700">
-                                                ≤ 3.0g
-                                            </td>
-                                            <td className="px-3 py-2 text-amber-700">
-                                                3.0g – 17.5g
-                                            </td>
-                                            <td className="px-3 py-2 font-medium text-rose-700">
-                                                &gt; 17.5g
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td className="px-3 py-2 font-sans font-medium text-neutral-800">
-                                                Saturated Fat
-                                            </td>
-                                            <td className="px-3 py-2 text-emerald-700">
-                                                ≤ 1.5g
-                                            </td>
-                                            <td className="px-3 py-2 text-amber-700">
-                                                1.5g – 5.0g
-                                            </td>
-                                            <td className="px-3 py-2 font-medium text-rose-700">
-                                                &gt; 5.0g
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td className="px-3 py-2 font-sans font-medium text-neutral-800">
-                                                Sugars
-                                            </td>
-                                            <td className="px-3 py-2 text-emerald-700">
-                                                ≤ 5.0g
-                                            </td>
-                                            <td className="px-3 py-2 text-amber-700">
-                                                5.0g – 22.5g
-                                            </td>
-                                            <td className="px-3 py-2 font-medium text-rose-700">
-                                                &gt; 22.5g
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td className="px-3 py-2 font-sans font-medium text-neutral-800">
-                                                Salt
-                                            </td>
-                                            <td className="px-3 py-2 text-emerald-700">
-                                                ≤ 0.3g
-                                            </td>
-                                            <td className="px-3 py-2 text-amber-700">
-                                                0.3g – 1.5g
-                                            </td>
-                                            <td className="px-3 py-2 font-medium text-rose-700">
-                                                &gt; 1.5g
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                            <div className="overflow-hidden rounded-lg border border-neutral-200/70 bg-white">
+                                <ScrollContainer
+                                    fadeColor="white"
+                                    label="Nutritional benchmark standards table"
+                                >
+                                    <table className="w-full min-w-[340px] border-collapse text-left text-xs">
+                                        <thead>
+                                            <tr className="border-b border-neutral-200/70 bg-neutral-50/70 text-[11px] font-medium tracking-wider text-neutral-500 uppercase">
+                                                <th className="px-3 py-2">
+                                                    Nutrient
+                                                </th>
+                                                <th className="px-3 py-2 text-emerald-700">
+                                                    Low
+                                                </th>
+                                                <th className="px-3 py-2 text-amber-700">
+                                                    Moderate
+                                                </th>
+                                                <th className="px-3 py-2 text-rose-700">
+                                                    High
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-neutral-100 font-mono text-xs text-neutral-600">
+                                            <tr>
+                                                <td className="px-3 py-2 font-sans font-medium text-neutral-800">
+                                                    Total Fat
+                                                </td>
+                                                <td className="px-3 py-2 text-emerald-700">
+                                                    ≤ 3.0g
+                                                </td>
+                                                <td className="px-3 py-2 text-amber-700">
+                                                    3.0g – 17.5g
+                                                </td>
+                                                <td className="px-3 py-2 font-medium text-rose-700">
+                                                    &gt; 17.5g
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td className="px-3 py-2 font-sans font-medium text-neutral-800">
+                                                    Saturated Fat
+                                                </td>
+                                                <td className="px-3 py-2 text-emerald-700">
+                                                    ≤ 1.5g
+                                                </td>
+                                                <td className="px-3 py-2 text-amber-700">
+                                                    1.5g – 5.0g
+                                                </td>
+                                                <td className="px-3 py-2 font-medium text-rose-700">
+                                                    &gt; 5.0g
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td className="px-3 py-2 font-sans font-medium text-neutral-800">
+                                                    Sugars
+                                                </td>
+                                                <td className="px-3 py-2 text-emerald-700">
+                                                    ≤ 5.0g
+                                                </td>
+                                                <td className="px-3 py-2 text-amber-700">
+                                                    5.0g – 22.5g
+                                                </td>
+                                                <td className="px-3 py-2 font-medium text-rose-700">
+                                                    &gt; 22.5g
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td className="px-3 py-2 font-sans font-medium text-neutral-800">
+                                                    Salt
+                                                </td>
+                                                <td className="px-3 py-2 text-emerald-700">
+                                                    ≤ 0.3g
+                                                </td>
+                                                <td className="px-3 py-2 text-amber-700">
+                                                    0.3g – 1.5g
+                                                </td>
+                                                <td className="px-3 py-2 font-medium text-rose-700">
+                                                    &gt; 1.5g
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </ScrollContainer>
                             </div>
                         </div>
                     )}

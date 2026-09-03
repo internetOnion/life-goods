@@ -83,13 +83,16 @@ export const HalalCard: React.FC<HalalCardProps> = ({
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2 sm:p-5">
                 <div className="flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-neutral-500" />
-                    <CardTitle className="text-sm font-semibold text-neutral-900">
+                    <CardTitle className="text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
                         Halal & Dietary Assessment
                     </CardTitle>
                 </div>
 
                 {hasHalalClaim && (
-                    <Badge variant="accent" className="font-semibold">
+                    <Badge
+                        variant="accent"
+                        className="py-0.2 px-2 text-[11px] font-semibold"
+                    >
                         Halal Claim on Label
                     </Badge>
                 )}
@@ -124,18 +127,15 @@ export const HalalCard: React.FC<HalalCardProps> = ({
                             {config.title}
                         </h4>
                     </div>
-                    <p className="text-xs leading-relaxed opacity-90">
+                    <p className="text-xs leading-relaxed opacity-95 sm:text-sm">
                         {config.desc}
                     </p>
                 </div>
 
                 {/* Manufacturer Claim */}
                 {hasHalalClaim && (
-                    <div className="space-y-1 rounded-xl border border-neutral-200/70 bg-neutral-50 p-3 text-xs">
-                        <span className="text-[10px] font-semibold tracking-wider text-neutral-400 uppercase">
-                            Manufacturer Label Claim
-                        </span>
-                        <p className="font-medium text-neutral-800">
+                    <div className="rounded-xl border border-neutral-200/70 bg-neutral-50 p-3">
+                        <p className="text-xs leading-relaxed font-medium text-neutral-800 italic sm:text-sm">
                             Package carries an official Halal symbol or claim
                             detected in label metadata.
                         </p>
@@ -145,7 +145,7 @@ export const HalalCard: React.FC<HalalCardProps> = ({
                 {/* Assessed Ingredient Findings */}
                 {findings.length > 0 && (
                     <div className="space-y-2">
-                        <span className="text-xs font-semibold text-neutral-700">
+                        <span className="text-xs font-bold text-neutral-900 sm:text-sm">
                             Evaluated Ingredient Findings ({findings.length}):
                         </span>
                         <div className="space-y-1.5">
@@ -169,7 +169,7 @@ export const HalalCard: React.FC<HalalCardProps> = ({
                                                 ? "error"
                                                 : "warning"
                                         }
-                                        className="shrink-0 self-start sm:self-auto"
+                                        className="py-0.2 shrink-0 self-start px-2 text-[10px] font-bold tracking-wider uppercase sm:self-auto"
                                     >
                                         {f.classification.replace(/_/g, " ")}
                                     </Badge>

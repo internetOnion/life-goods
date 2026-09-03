@@ -1,7 +1,8 @@
-import { PieChart, Table } from "lucide-react"
+import { Table } from "lucide-react"
 import React from "react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ScrollContainer } from "@/components/ui/scroll-container"
 import type { PackageMatchEvidenceResponse } from "@/features/product/types"
 import {
     formatNutritionValue,
@@ -9,6 +10,26 @@ import {
     parseNutritionMatrix,
 } from "@/lib/nutrition"
 import { cn } from "@/lib/utils"
+
+function NutritionTableIcon({ className }: { className?: string }) {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <rect x="3" y="3" width="18" height="18" rx="3" />
+            <line x1="3" y1="9" x2="21" y2="9" />
+            <line x1="3" y1="15" x2="21" y2="15" />
+            <line x1="12" y1="9" x2="12" y2="21" />
+        </svg>
+    )
+}
 
 interface NutritionCardProps {
     labelEvidence?: PackageMatchEvidenceResponse[]
@@ -23,8 +44,10 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
         return (
             <Card className="rounded-2xl border-neutral-200/90 bg-white shadow-xs">
                 <CardHeader className="p-4 pb-2 sm:p-5">
-                    <div className="flex items-center gap-2">
-                        <PieChart className="h-4 w-4 text-neutral-500" />
+                    <div className="flex items-center gap-2.5">
+                        <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-neutral-100 text-neutral-700">
+                            <NutritionTableIcon className="size-4" />
+                        </div>
                         <CardTitle className="text-sm font-semibold text-neutral-900">
                             Nutrition Facts
                         </CardTitle>
@@ -45,13 +68,15 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
     return (
         <Card className="rounded-2xl border-neutral-200/90 bg-white shadow-xs">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2 sm:p-5">
-                <div className="flex items-center gap-2">
-                    <PieChart className="h-4 w-4 text-neutral-500" />
-                    <CardTitle className="text-sm font-semibold text-neutral-900">
+                <div className="flex items-center gap-2.5">
+                    <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-neutral-100 text-neutral-700">
+                        <NutritionTableIcon className="size-4" />
+                    </div>
+                    <CardTitle className="text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
                         Nutrition Facts Table
                     </CardTitle>
                 </div>
-                <span className="flex items-center gap-1 font-mono text-[11px] text-neutral-400">
+                <span className="flex items-center gap-1 font-mono text-xs font-semibold text-neutral-500 tabular-nums">
                     <Table className="h-3 w-3" />
                     {rows.length} Values
                 </span>
@@ -59,17 +84,20 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
 
             <CardContent className="space-y-3 p-4 pt-2 sm:p-5">
                 <div className="overflow-hidden rounded-xl border border-neutral-200/80 bg-neutral-50/50">
-                    <div className="overflow-x-auto sm:overflow-x-visible">
+                    <ScrollContainer
+                        fadeColor="neutral"
+                        label="Nutrition facts table"
+                    >
                         <table className="w-full border-collapse text-left text-xs">
                             <thead>
                                 <tr className="border-b border-neutral-200 bg-neutral-100/70 font-semibold text-neutral-700">
-                                    <th className="min-w-[120px] px-3 py-2.5">
+                                    <th className="min-w-[120px] px-3 py-2.5 text-xs font-bold text-neutral-900">
                                         Nutrient
                                     </th>
                                     {bases.map((basis) => (
                                         <th
                                             key={basis}
-                                            className="px-3 py-2.5 text-right font-medium text-neutral-600"
+                                            className="px-3 py-2.5 text-right text-xs font-bold text-neutral-700"
                                         >
                                             {getBasisLabel(basis)}
                                         </th>
@@ -90,10 +118,10 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
                                         >
                                             <td
                                                 className={cn(
-                                                    "px-3 py-2 text-neutral-800",
+                                                    "px-3 py-2",
                                                     isSubRow
-                                                        ? "pl-6 text-[11px] text-neutral-600"
-                                                        : "font-medium",
+                                                        ? "pl-6 text-xs font-normal text-neutral-600"
+                                                        : "text-xs font-semibold text-neutral-900 sm:text-sm",
                                                 )}
                                             >
                                                 {row.label}
@@ -103,7 +131,7 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
                                                 return (
                                                     <td
                                                         key={basis}
-                                                        className="px-3 py-2 text-right font-mono text-neutral-900 tabular-nums"
+                                                        className="px-3 py-2 text-right font-mono text-xs font-semibold text-neutral-950 tabular-nums sm:text-sm"
                                                     >
                                                         {formatNutritionValue(
                                                             cell,
@@ -116,10 +144,10 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
                                 })}
                             </tbody>
                         </table>
-                    </div>
+                    </ScrollContainer>
                 </div>
 
-                <p className="border-t border-neutral-100 pt-1 text-[11px] text-neutral-400">
+                <p className="border-t border-neutral-100 pt-1 text-xs font-medium text-neutral-500">
                     Source: Nutrition facts table transcribed from the physical
                     product package.
                 </p>

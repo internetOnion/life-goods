@@ -1,6 +1,7 @@
-import { Check, Copy, Package, ZoomIn } from "lucide-react"
+import { Check, Copy, ZoomIn } from "lucide-react"
 import React, { useState } from "react"
 
+import { PackageImagePlaceholder } from "@/components/illustrations"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
@@ -8,6 +9,7 @@ import type {
     PackageMatchCandidateResponse,
     PackageMatchReferenceImageResponse,
 } from "@/features/product/types"
+import { cn } from "@/lib/utils"
 
 interface ProductHeroProps {
     candidate: PackageMatchCandidateResponse
@@ -107,9 +109,12 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                 {/* Product Image Viewer */}
                 <div className="flex w-full shrink-0 flex-col items-center sm:w-44">
                     <div
-                        className={`group relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-2xl border border-neutral-200/80 bg-neutral-100/60 sm:w-44 ${
-                            currentImage && !imageFailed ? "cursor-pointer" : ""
-                        }`}
+                        className={cn(
+                            "group relative flex aspect-4/3 max-h-52 w-full items-center justify-center overflow-hidden rounded-xl border border-neutral-200/80 bg-neutral-100/60 sm:aspect-square sm:max-h-none sm:w-44",
+                            currentImage && !imageFailed
+                                ? "cursor-pointer"
+                                : "",
+                        )}
                         onClick={() =>
                             currentImage && !imageFailed && setIsZoomOpen(true)
                         }
@@ -135,41 +140,41 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                                 </div>
                             </>
                         ) : (
-                            <div className="flex flex-col items-center justify-center p-4 text-neutral-400">
-                                <Package className="h-10 w-10 stroke-[1.5]" />
-                                <span className="mt-1 text-[11px] font-medium">
-                                    No Image
-                                </span>
-                            </div>
+                            <PackageImagePlaceholder />
                         )}
                     </div>
 
                     {/* Thumbnail list if multiple images */}
                     {uniqueImages.length > 1 && (
-                        <div className="mt-2.5 flex max-w-full gap-1.5 overflow-x-auto pb-1">
-                            {uniqueImages.map((img, idx) => (
-                                <Button
-                                    key={img.url + idx}
-                                    variant="ghost"
-                                    size="icon"
-                                    type="button"
-                                    onClick={() => {
-                                        setSelectedImageIndex(idx)
-                                        setImageFailed(false)
-                                    }}
-                                    className={`h-11 w-11 shrink-0 cursor-pointer overflow-hidden rounded-lg border p-0 transition-all ${
-                                        selectedImageIndex === idx
-                                            ? "border-primary-600 ring-primary-500/25 ring-2"
-                                            : "border-neutral-200 opacity-60 hover:opacity-100"
-                                    }`}
-                                >
-                                    <img
-                                        src={img.url}
-                                        alt=""
-                                        className="h-full w-full bg-neutral-50 object-contain p-0.5"
-                                    />
-                                </Button>
-                            ))}
+                        <div className="no-scrollbar -m-1 mt-2 flex max-w-full items-center gap-2 overflow-x-auto p-1">
+                            {uniqueImages.map((img, idx) => {
+                                const isSelected = selectedImageIndex === idx
+                                return (
+                                    <Button
+                                        key={img.url + idx}
+                                        variant="ghost"
+                                        size="icon"
+                                        type="button"
+                                        aria-label={`Select product image ${idx + 1}`}
+                                        aria-pressed={isSelected}
+                                        onClick={() => {
+                                            setSelectedImageIndex(idx)
+                                            setImageFailed(false)
+                                        }}
+                                        className={`focus-visible:ring-primary-500 relative h-10 w-10 shrink-0 cursor-pointer overflow-hidden rounded-lg border transition-all duration-150 focus-visible:ring-2 focus-visible:outline-none sm:h-11 sm:w-11 sm:rounded-xl ${
+                                            isSelected
+                                                ? "border-primary-600 ring-primary-500/30 shadow-xs ring-2"
+                                                : "border-neutral-200/90 opacity-60 hover:border-neutral-300 hover:opacity-100"
+                                        }`}
+                                    >
+                                        <img
+                                            src={img.url}
+                                            alt=""
+                                            className="h-full w-full bg-neutral-50 object-contain p-0.5"
+                                        />
+                                    </Button>
+                                )
+                            })}
                         </div>
                     )}
                 </div>
@@ -180,7 +185,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                         {scheme && (
                             <Badge
                                 variant="secondary"
-                                className="font-mono text-[11px]"
+                                className="font-mono text-[11px] font-semibold tracking-wider uppercase"
                             >
                                 {scheme}
                             </Badge>
@@ -190,7 +195,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                             size="sm"
                             type="button"
                             onClick={handleCopyBarcode}
-                            className="focus-visible:ring-primary-500 inline-flex h-auto cursor-pointer items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-1 font-mono text-[11px] tracking-[0.04em] text-neutral-600 tabular-nums transition-colors hover:bg-neutral-200 hover:text-neutral-950 focus-visible:ring-2"
+                            className="focus-visible:ring-primary-500 inline-flex h-auto cursor-pointer items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-1 font-mono text-xs font-semibold tracking-[0.04em] text-neutral-700 tabular-nums transition-colors hover:bg-neutral-200 hover:text-neutral-950 focus-visible:ring-2"
                             title="Click to copy barcode"
                         >
                             <span>{identifier}</span>
@@ -203,7 +208,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                         {quantity && (
                             <Badge
                                 variant="outline"
-                                className="text-[11px] font-medium text-neutral-600"
+                                className="font-mono text-xs font-medium text-neutral-700 tabular-nums"
                             >
                                 {quantity}
                             </Badge>
@@ -213,19 +218,19 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                     <h1
                         ref={headingRef}
                         tabIndex={-1}
-                        className="text-2xl leading-[1.18] font-extrabold tracking-[-0.035em] wrap-anywhere text-neutral-950 focus:outline-none sm:text-3xl"
+                        className="text-[clamp(1.75rem,6vw,2.5rem)] leading-[1.12] font-extrabold tracking-[-0.03em] text-balance wrap-anywhere text-neutral-950 focus:outline-none"
                     >
                         {productName}
                     </h1>
 
                     {genericName && (
-                        <p className="text-xs font-medium text-neutral-500 italic">
+                        <p className="text-xs leading-relaxed font-medium text-neutral-600 italic sm:text-sm">
                             {genericName}
                         </p>
                     )}
 
                     {brandName && (
-                        <p className="text-sm font-medium text-neutral-600">
+                        <p className="text-sm font-normal text-neutral-600">
                             Brand:{" "}
                             <span className="font-bold text-neutral-950">
                                 {brandName}
@@ -239,13 +244,13 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                                 <Badge
                                     key={i}
                                     variant="outline"
-                                    className="bg-neutral-50 text-[10px] text-neutral-600 capitalize"
+                                    className="bg-neutral-50 text-xs font-medium text-neutral-700 capitalize"
                                 >
                                     {c}
                                 </Badge>
                             ))}
                             {categories.length > 3 && (
-                                <span className="text-[10px] text-neutral-400">
+                                <span className="font-mono text-xs font-medium text-neutral-400 tabular-nums">
                                     +{categories.length - 3} more
                                 </span>
                             )}
@@ -255,10 +260,10 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                     {/* Quick Factual Summary Divider Rows (Neutral) */}
                     <div className="divide-y divide-neutral-100 border-t border-b border-neutral-100 py-0.5 text-xs">
                         <div className="flex items-center justify-between py-2">
-                            <span className="font-medium text-neutral-500">
+                            <span className="text-[11px] font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                 Allergen Findings
                             </span>
-                            <span className="font-semibold text-neutral-900">
+                            <span className="text-xs font-semibold text-neutral-900 sm:text-sm">
                                 {allergensDetected > 0
                                     ? `${allergensDetected} detected`
                                     : "None declared"}
@@ -266,10 +271,10 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                         </div>
 
                         <div className="flex items-center justify-between py-2">
-                            <span className="font-medium text-neutral-500">
+                            <span className="text-[11px] font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                 Additives (E-Nums)
                             </span>
-                            <span className="font-semibold text-neutral-900">
+                            <span className="text-xs font-semibold text-neutral-900 sm:text-sm">
                                 {additivesCount > 0
                                     ? `${additivesCount} listed`
                                     : "0 listed"}
@@ -277,10 +282,10 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                         </div>
 
                         <div className="flex items-center justify-between py-2">
-                            <span className="font-medium text-neutral-500">
+                            <span className="text-[11px] font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                 Halal Status
                             </span>
-                            <span className="max-w-[240px] truncate text-[11px] font-semibold text-neutral-800">
+                            <span className="max-w-[240px] truncate text-xs font-semibold text-neutral-800 sm:text-sm">
                                 {halalOutcome.replace(/_/g, " ")}
                             </span>
                         </div>

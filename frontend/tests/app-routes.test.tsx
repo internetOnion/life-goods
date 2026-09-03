@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen, within } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router"
 import { describe, expect, test, vi } from "vitest"
 
@@ -102,5 +103,13 @@ describe("Life Goods routes", () => {
         expect(
             screen.getByRole("heading", { name: "Page not found" }),
         ).toHaveFocus()
+    })
+
+    test("clicking search bar from scanner navigates to /search and focuses search input", async () => {
+        const user = userEvent.setup()
+        renderRoute("/")
+        const searchLink = screen.getByRole("link", { name: "Search" })
+        await user.click(searchLink)
+        expect(screen.getByRole("textbox", { name: "Search" })).toHaveFocus()
     })
 })

@@ -40,6 +40,15 @@ export function AppShell({ children }: AppShellProps) {
         document.documentElement.lang = "en"
     }, [])
 
+    useEffect(() => {
+        if (
+            typeof window !== "undefined" &&
+            typeof window.scrollTo === "function"
+        ) {
+            window.scrollTo(0, 0)
+        }
+    }, [location.pathname])
+
     return (
         <div className="bg-background text-foreground flex min-h-svh flex-col">
             <div

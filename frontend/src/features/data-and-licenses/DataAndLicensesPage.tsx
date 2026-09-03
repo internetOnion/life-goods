@@ -13,7 +13,7 @@ export function DataAndLicensesPage() {
     })
 
     useEffect(() => {
-        headingRef.current?.focus()
+        headingRef.current?.focus({ preventScroll: true })
     }, [])
 
     return (

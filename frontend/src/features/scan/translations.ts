@@ -14,6 +14,7 @@ export const scanTranslations = {
             starting: "Starting camera...",
             scanning: "Hold the Barcode inside the frame",
             ready: "Ready to scan",
+            detected: "Barcode detected",
             paused: "Camera paused",
             pausedBody: "Resume when you are ready to scan another Barcode.",
             pause: "Pause camera",

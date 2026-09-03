@@ -1,4 +1,4 @@
-import { ExternalLink, Hash } from "lucide-react"
+import { Hash } from "lucide-react"
 import React from "react"
 
 import { Badge } from "@/components/ui/badge"
@@ -66,16 +66,13 @@ export const ProvenanceCard: React.FC<ProvenanceCardProps> = ({
     return (
         <Card className="border-info-200/90 bg-info-50/90 text-info-950 rounded-2xl border shadow-none">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-3 sm:p-5">
-                <div className="flex items-center gap-2">
-                    <OpenFoodFactsLogo className="h-5 w-5 shrink-0" />
-                    <CardTitle className="text-info-950 text-sm font-bold tracking-tight">
-                        Data Source & Citation
-                    </CardTitle>
-                </div>
+                <CardTitle className="text-info-950 text-sm font-bold tracking-[-0.015em] sm:text-base">
+                    Data Source & Citation
+                </CardTitle>
 
                 <Badge
                     variant="subtle"
-                    className="border-info-200 text-info-800 flex items-center gap-1.5 bg-white font-mono text-[10px] shadow-2xs"
+                    className="border-info-200 text-info-900 flex items-center gap-1.5 bg-white text-xs font-semibold shadow-2xs"
                 >
                     <OpenFoodFactsLogo className="h-3.5 w-3.5 shrink-0" />
                     <span>{source?.name || "Open Food Facts"}</span>
@@ -85,53 +82,36 @@ export const ProvenanceCard: React.FC<ProvenanceCardProps> = ({
             <CardContent className="space-y-3 p-4 pt-1 text-xs sm:p-5">
                 <div className="divide-info-200/70 border-info-200/70 divide-y border-t border-b text-xs">
                     <div className="flex flex-col justify-between gap-1 py-2 sm:flex-row sm:items-center">
-                        <span className="text-info-700 text-[11px] font-semibold tracking-wider uppercase">
+                        <span className="text-info-700 text-[11px] font-bold tracking-[0.06em] uppercase">
                             Attribution
                         </span>
-                        <span className="text-info-950 truncate font-medium">
+                        <span className="text-info-950 truncate text-xs font-semibold sm:text-sm">
                             {source?.attribution ||
                                 "Open Food Facts contributors"}
                         </span>
                     </div>
 
                     <div className="flex flex-col justify-between gap-1 py-2 sm:flex-row sm:items-center">
-                        <span className="text-info-700 text-[11px] font-semibold tracking-wider uppercase">
+                        <span className="text-info-700 text-[11px] font-bold tracking-[0.06em] uppercase">
                             Data & Image Licenses
                         </span>
-                        <span className="text-info-950 truncate font-medium">
+                        <span className="text-info-950 truncate text-xs font-semibold sm:text-sm">
                             {licensesStr}
                         </span>
                     </div>
 
                     {datasetVersion?.sha256 && (
                         <div className="flex flex-col justify-between gap-1 py-2 sm:flex-row sm:items-baseline">
-                            <span className="text-info-700 flex items-center gap-1 text-[11px] font-semibold tracking-wider uppercase">
+                            <span className="text-info-700 flex items-center gap-1 text-[11px] font-bold tracking-[0.06em] uppercase">
                                 <Hash className="h-3 w-3" />
                                 Snapshot SHA-256
                             </span>
-                            <span className="text-info-900 font-mono text-[10px] break-all tabular-nums sm:max-w-xs sm:truncate">
+                            <span className="text-info-950 font-mono text-xs break-all tabular-nums sm:max-w-xs sm:truncate">
                                 {datasetVersion.sha256}
                             </span>
                         </div>
                     )}
                 </div>
-
-                {/* Source Citation */}
-                {(source?.record_url || source?.base_url) && (
-                    <div className="text-info-700 flex items-center justify-between pt-1 text-[11px]">
-                        <span>Original Source Document:</span>
-                        <a
-                            href={source.record_url || source.base_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-info-700 hover:text-info-900 inline-flex max-w-[260px] items-center gap-1 truncate font-semibold underline underline-offset-2 transition-colors sm:max-w-xs"
-                            title={source.record_url || source.base_url}
-                        >
-                            <span>{source.name || "Open Food Facts"}</span>
-                            <ExternalLink className="h-3 w-3 shrink-0" />
-                        </a>
-                    </div>
-                )}
             </CardContent>
         </Card>
     )

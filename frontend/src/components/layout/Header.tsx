@@ -1,6 +1,7 @@
 import { ArrowLeft, RotateCcw } from "lucide-react"
 import React from "react"
 
+import { BrandLockup } from "@/components/brand/BrandMark"
 import { Button } from "@/components/ui/button"
 
 interface HeaderProps {
@@ -32,7 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                     <div
                         onClick={showBackButton ? onBack : undefined}
-                        className={`flex items-center gap-2.5 ${showBackButton ? "group cursor-pointer" : ""}`}
+                        className={`flex items-center ${showBackButton ? "group cursor-pointer" : ""}`}
                         role={showBackButton ? "button" : undefined}
                         tabIndex={showBackButton ? 0 : undefined}
                         onKeyDown={
@@ -46,15 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
                                 : undefined
                         }
                     >
-                        <img
-                            src="/branding/lifegoods-mark.svg"
-                            alt="LifeGoods logo"
-                            className="h-9 w-9 shrink-0 object-contain"
-                        />
-
-                        <span className="text-base leading-tight font-bold tracking-tight text-neutral-950">
-                            Life Goods
-                        </span>
+                        <BrandLockup compact />
                     </div>
                 </div>
 

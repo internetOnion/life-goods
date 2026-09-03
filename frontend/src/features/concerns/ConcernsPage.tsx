@@ -87,7 +87,7 @@ export function ConcernsPage() {
     })
 
     useEffect(() => {
-        headingRef.current?.focus()
+        headingRef.current?.focus({ preventScroll: true })
     }, [])
 
     const toggleOption = (id: string) => {

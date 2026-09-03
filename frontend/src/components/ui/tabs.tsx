@@ -61,12 +61,12 @@ const TabsList = React.forwardRef<
 TabsList.displayName = TabsPrimitive.List.displayName
 
 const tabsTriggerVariants = cva(
-    "inline-flex cursor-pointer items-center justify-center whitespace-nowrap text-xs font-medium ring-offset-white transition-all select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 sm:text-sm",
+    "group relative inline-flex min-h-[44px] cursor-pointer items-center justify-center whitespace-nowrap text-xs font-semibold ring-offset-white transition-all select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 sm:text-sm",
     {
         variants: {
             variant: {
-                line: "-mb-px relative border-b-2 border-transparent px-2 py-3 text-neutral-500 hover:border-neutral-300 hover:text-neutral-900 data-[state=active]:border-primary-600 data-[state=active]:font-semibold data-[state=active]:text-primary-700 sm:px-3",
-                pills: "rounded-lg px-3 py-1.5 text-neutral-600 hover:text-neutral-900 data-[state=active]:bg-primary-600 data-[state=active]:font-semibold data-[state=active]:text-white data-[state=active]:shadow-xs",
+                line: "rounded-t-lg px-3.5 py-3 text-neutral-600 hover:bg-neutral-100/60 hover:text-neutral-950 after:absolute after:bottom-0 after:inset-x-1.5 after:h-[2.5px] after:rounded-full after:bg-primary-600 after:opacity-0 after:transition-all hover:after:bg-neutral-400 hover:after:opacity-40 data-[state=active]:font-bold data-[state=active]:text-primary-800 data-[state=active]:after:bg-primary-600 data-[state=active]:after:opacity-100 sm:px-4",
+                pills: "rounded-lg px-3.5 py-1.5 text-neutral-600 hover:text-neutral-900 data-[state=active]:bg-primary-600 data-[state=active]:font-semibold data-[state=active]:text-white data-[state=active]:shadow-xs",
             },
         },
         defaultVariants: {
