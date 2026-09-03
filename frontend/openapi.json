@@ -364,6 +364,56 @@
         "title": "DatasetSnapshotResponse",
         "type": "object"
       },
+      "EnvironmentProjection": {
+        "properties": {
+          "carbon_footprint_100g": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NutritionAmount"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "carbon_footprint_from_known_ingredients_100g": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NutritionAmount"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "carbon_footprint_from_meat_or_fish_100g": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NutritionAmount"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "manufacturing_places": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Manufacturing Places",
+            "type": "array"
+          },
+          "origins": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Origins",
+            "type": "array"
+          }
+        },
+        "title": "EnvironmentProjection",
+        "type": "object"
+      },
       "ErrorCode": {
         "enum": [
           "IDENTIFIER_REQUIRED",
@@ -455,6 +505,51 @@
           "sha256"
         ],
         "title": "ExternalDatasetVersionResponse",
+        "type": "object"
+      },
+      "GradedSourceAssessment": {
+        "properties": {
+          "grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NutritionAmount"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Fields",
+            "type": "array"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "title": "GradedSourceAssessment",
         "type": "object"
       },
       "HalalClassification": {
@@ -802,6 +897,130 @@
           }
         ]
       },
+      "NovaSourceAssessment": {
+        "properties": {
+          "group": {
+            "$ref": "#/components/schemas/NutritionAmount"
+          },
+          "source_field": {
+            "title": "Source Field",
+            "type": "string"
+          }
+        },
+        "required": [
+          "group",
+          "source_field"
+        ],
+        "title": "NovaSourceAssessment",
+        "type": "object"
+      },
+      "NutritionAmount": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "NutritionProjection": {
+        "properties": {
+          "basis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basis"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/NutritionRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "serving_size": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Serving Size"
+          }
+        },
+        "title": "NutritionProjection",
+        "type": "object"
+      },
+      "NutritionRow": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "nutrient": {
+            "title": "Nutrient",
+            "type": "string"
+          },
+          "per_100g": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NutritionAmount"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "per_serving": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NutritionAmount"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NutritionAmount"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "nutrient",
+          "label"
+        ],
+        "title": "NutritionRow",
+        "type": "object"
+      },
       "OpenFoodFactsLookupResponse": {
         "properties": {
           "dataset_version": {
@@ -845,6 +1064,35 @@
         ],
         "title": "OpenFoodFactsLookupStatus",
         "type": "string"
+      },
+      "OriginalText": {
+        "properties": {
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "source_field": {
+            "title": "Source Field",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "source_field"
+        ],
+        "title": "OriginalText",
+        "type": "object"
       },
       "PackageMatchCandidateResponse": {
         "properties": {
@@ -1354,6 +1602,183 @@
         "title": "PackageSearchNameResponse",
         "type": "object"
       },
+      "PackagingComponent": {
+        "properties": {
+          "material": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Material"
+          },
+          "number_of_units": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NutritionAmount"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quantity_per_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity Per Unit"
+          },
+          "recycling": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recycling"
+          },
+          "shape": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shape"
+          },
+          "weight_measured": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NutritionAmount"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "PackagingComponent",
+        "type": "object"
+      },
+      "PackagingProjection": {
+        "properties": {
+          "components": {
+            "items": {
+              "$ref": "#/components/schemas/PackagingComponent"
+            },
+            "title": "Components",
+            "type": "array"
+          },
+          "materials": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Materials",
+            "type": "array"
+          },
+          "recycling": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recycling",
+            "type": "array"
+          },
+          "recycling_instructions": {
+            "items": {
+              "$ref": "#/components/schemas/OriginalText"
+            },
+            "title": "Recycling Instructions",
+            "type": "array"
+          },
+          "shapes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Shapes",
+            "type": "array"
+          },
+          "texts": {
+            "items": {
+              "$ref": "#/components/schemas/OriginalText"
+            },
+            "title": "Texts",
+            "type": "array"
+          }
+        },
+        "title": "PackagingProjection",
+        "type": "object"
+      },
+      "ProductIdentityProjection": {
+        "properties": {
+          "barcode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Barcode"
+          },
+          "brands": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Brands",
+            "type": "array"
+          },
+          "generic_names": {
+            "items": {
+              "$ref": "#/components/schemas/OriginalText"
+            },
+            "title": "Generic Names",
+            "type": "array"
+          },
+          "names": {
+            "items": {
+              "$ref": "#/components/schemas/OriginalText"
+            },
+            "title": "Names",
+            "type": "array"
+          },
+          "preferred_name": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OriginalText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          }
+        },
+        "title": "ProductIdentityProjection",
+        "type": "object"
+      },
       "ProductLookupDataResponse": {
         "properties": {
           "source_record": {
@@ -1481,6 +1906,154 @@
         "title": "ProductLookupResponse",
         "type": "object"
       },
+      "ProductProjection": {
+        "properties": {
+          "additives": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Additives",
+            "type": "array"
+          },
+          "assessments": {
+            "$ref": "#/components/schemas/SourceAssessmentsProjection"
+          },
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
+          "countries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Countries",
+            "type": "array"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/EnvironmentProjection"
+          },
+          "front_image": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceImage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "identity": {
+            "$ref": "#/components/schemas/ProductIdentityProjection"
+          },
+          "ingredients": {
+            "items": {
+              "$ref": "#/components/schemas/OriginalText"
+            },
+            "title": "Ingredients",
+            "type": "array"
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Labels",
+            "type": "array"
+          },
+          "nutrition": {
+            "$ref": "#/components/schemas/NutritionProjection"
+          },
+          "packaging": {
+            "$ref": "#/components/schemas/PackagingProjection"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SourceRecordMetadataProjection"
+          },
+          "storage_instructions": {
+            "items": {
+              "$ref": "#/components/schemas/OriginalText"
+            },
+            "title": "Storage Instructions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "identity",
+          "nutrition",
+          "assessments",
+          "packaging",
+          "environment",
+          "source"
+        ],
+        "title": "ProductProjection",
+        "type": "object"
+      },
+      "ProductProjectionData": {
+        "properties": {
+          "product": {
+            "$ref": "#/components/schemas/ProductProjection"
+          }
+        },
+        "required": [
+          "product"
+        ],
+        "title": "ProductProjectionData",
+        "type": "object"
+      },
+      "ProductProjectionResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ProductProjectionData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ProductLookupMetaResponse"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "ProductProjectionResponse",
+        "type": "object"
+      },
+      "SourceAssessmentsProjection": {
+        "properties": {
+          "green_score": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GradedSourceAssessment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nova": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NovaSourceAssessment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nutri_score": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GradedSourceAssessment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "SourceAssessmentsProjection",
+        "type": "object"
+      },
       "SourceAttributionResponse": {
         "properties": {
           "name": {
@@ -1497,6 +2070,154 @@
           "product_url"
         ],
         "title": "SourceAttributionResponse",
+        "type": "object"
+      },
+      "SourceImage": {
+        "properties": {
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "source_field": {
+            "title": "Source Field",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "source_field"
+        ],
+        "title": "SourceImage",
+        "type": "object"
+      },
+      "SourceRecordMetadataProjection": {
+        "properties": {
+          "completeness": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completeness"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "creator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Creator"
+          },
+          "data_quality_warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Data Quality Warnings",
+            "type": "array"
+          },
+          "dataset_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Version"
+          },
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Languages",
+            "type": "array"
+          },
+          "last_modified_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Modified At"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "product_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Url"
+          },
+          "record_language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Language"
+          },
+          "retrieved_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retrieved At"
+          }
+        },
+        "title": "SourceRecordMetadataProjection",
         "type": "object"
       },
       "lifegoods__package_matches__contracts__PackageSearchResponse": {
@@ -1835,7 +2556,8 @@
   "paths": {
     "/api/experimental/products/{barcode}": {
       "get": {
-        "description": "Looks up a Barcode in the selected local Open Food Facts Dataset Snapshot and returns the raw Source Record. This experimental contract is unstable.",
+        "deprecated": true,
+        "description": "Looks up a Barcode in the selected local Open Food Facts Dataset Snapshot and returns the raw Source Record. This experimental contract is deprecated.",
         "operationId": "getExperimentalProduct",
         "parameters": [
           {
@@ -2265,6 +2987,91 @@
         "summary": "Search Packages",
         "tags": [
           "Package Search"
+        ]
+      }
+    },
+    "/api/v1/products/{barcode}": {
+      "get": {
+        "description": "Looks up a Barcode in the selected local Open Food Facts Dataset Snapshot and returns a stable Product projection.",
+        "operationId": "getProduct",
+        "parameters": [
+          {
+            "description": "GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode.",
+            "in": "path",
+            "name": "barcode",
+            "required": true,
+            "schema": {
+              "description": "GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode.",
+              "title": "Barcode",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductProjectionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductLookupErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductLookupErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductLookupErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductLookupErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductLookupErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Look up a Product",
+        "tags": [
+          "Products"
         ]
       }
     }

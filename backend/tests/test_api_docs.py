@@ -138,6 +138,7 @@ def test_experimental_product_lookup_is_typed_in_openapi(client: TestClient) -> 
 
     operation = specification["paths"]["/api/experimental/products/{barcode}"]["get"]
     assert operation["operationId"] == "getExperimentalProduct"
+    assert operation.get("deprecated") is True
     assert operation["tags"] == ["Products"]
     assert operation["parameters"] == [
         {
@@ -173,3 +174,40 @@ def test_experimental_product_lookup_is_typed_in_openapi(client: TestClient) -> 
         "source_record"
     ]
     assert source_record["type"] == "object"
+
+
+def test_stable_product_lookup_is_typed_in_openapi(client: TestClient) -> None:
+    response = client.get("/openapi.json")
+    assert response.status_code == 200
+    specification = response.json()
+
+    operation = specification["paths"]["/api/v1/products/{barcode}"]["get"]
+    assert operation["operationId"] == "getProduct"
+    assert operation.get("deprecated") is not True
+    assert operation["tags"] == ["Products"]
+    assert operation["parameters"] == [
+        {
+            "name": "barcode",
+            "in": "path",
+            "required": True,
+            "schema": {
+                "type": "string",
+                "description": "GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode.",
+                "title": "Barcode",
+            },
+            "description": "GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode.",
+        }
+    ]
+    assert set(operation["responses"]) == {"200", "404", "422", "429", "500", "503"}
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/ProductProjectionResponse"
+    }
+    for status in ("404", "422", "429", "500", "503"):
+        assert operation["responses"][status]["content"]["application/json"][
+            "schema"
+        ] == {"$ref": "#/components/schemas/ProductLookupErrorResponse"}
+
+    schemas = specification["components"]["schemas"]
+    assert "ProductProjectionResponse" in schemas
+    assert "ProductProjection" in schemas
+    assert "ProductIdentityProjection" in schemas

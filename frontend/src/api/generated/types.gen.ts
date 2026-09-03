@@ -197,6 +197,23 @@ export type DatasetSnapshotResponse = {
 };
 
 /**
+ * EnvironmentProjection
+ */
+export type EnvironmentProjection = {
+    carbon_footprint_100g?: NutritionAmount | null;
+    carbon_footprint_from_known_ingredients_100g?: NutritionAmount | null;
+    carbon_footprint_from_meat_or_fish_100g?: NutritionAmount | null;
+    /**
+     * Manufacturing Places
+     */
+    manufacturing_places?: Array<string>;
+    /**
+     * Origins
+     */
+    origins?: Array<string>;
+};
+
+/**
  * ErrorCode
  */
 export type ErrorCode = 'IDENTIFIER_REQUIRED' | 'IDENTIFIER_CHARACTERS_INVALID' | 'IDENTIFIER_LENGTH_UNSUPPORTED' | 'IDENTIFIER_CHECK_DIGIT_INVALID' | 'PACKAGE_MATCH_SOURCE_UNAVAILABLE' | 'PACKAGE_SEARCH_QUERY_INVALID' | 'REFERENCE_IMAGE_URL_INVALID' | 'REFERENCE_IMAGE_NOT_FOUND' | 'REFERENCE_IMAGE_SOURCE_UNAVAILABLE' | 'RATE_LIMIT_EXCEEDED' | 'SEARCH_QUERY_REQUIRED' | 'SEARCH_QUERY_INVALID' | 'SEARCH_RESULTS_NOT_FOUND';
@@ -248,6 +265,25 @@ export type ExternalDatasetVersionResponse = {
      * Source Url
      */
     source_url: string;
+};
+
+/**
+ * GradedSourceAssessment
+ */
+export type GradedSourceAssessment = {
+    /**
+     * Grade
+     */
+    grade?: string | null;
+    score?: NutritionAmount | null;
+    /**
+     * Source Fields
+     */
+    source_fields?: Array<string>;
+    /**
+     * Version
+     */
+    version?: string | null;
 };
 
 /**
@@ -406,6 +442,58 @@ export type JsonValue = boolean | number | number | string | Array<JsonValue> | 
 } | null;
 
 /**
+ * NovaSourceAssessment
+ */
+export type NovaSourceAssessment = {
+    group: NutritionAmount;
+    /**
+     * Source Field
+     */
+    source_field: string;
+};
+
+export type NutritionAmount = number | number | string;
+
+/**
+ * NutritionProjection
+ */
+export type NutritionProjection = {
+    /**
+     * Basis
+     */
+    basis?: string | null;
+    /**
+     * Rows
+     */
+    rows?: Array<NutritionRow>;
+    /**
+     * Serving Size
+     */
+    serving_size?: string | null;
+};
+
+/**
+ * NutritionRow
+ */
+export type NutritionRow = {
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Nutrient
+     */
+    nutrient: string;
+    per_100g?: NutritionAmount | null;
+    per_serving?: NutritionAmount | null;
+    /**
+     * Unit
+     */
+    unit?: string | null;
+    value?: NutritionAmount | null;
+};
+
+/**
  * OpenFoodFactsLookupResponse
  */
 export type OpenFoodFactsLookupResponse = {
@@ -421,6 +509,24 @@ export type OpenFoodFactsLookupResponse = {
  * OpenFoodFactsLookupStatus
  */
 export type OpenFoodFactsLookupStatus = 'AVAILABLE' | 'NOT_FOUND' | 'UNAVAILABLE';
+
+/**
+ * OriginalText
+ */
+export type OriginalText = {
+    /**
+     * Language
+     */
+    language?: string | null;
+    /**
+     * Source Field
+     */
+    source_field: string;
+    /**
+     * Value
+     */
+    value: string;
+};
 
 /**
  * PackageMatchCandidateResponse
@@ -701,6 +807,87 @@ export type PackageSearchNameResponse = {
 };
 
 /**
+ * PackagingComponent
+ */
+export type PackagingComponent = {
+    /**
+     * Material
+     */
+    material?: string | null;
+    number_of_units?: NutritionAmount | null;
+    /**
+     * Quantity Per Unit
+     */
+    quantity_per_unit?: string | null;
+    /**
+     * Recycling
+     */
+    recycling?: string | null;
+    /**
+     * Shape
+     */
+    shape?: string | null;
+    weight_measured?: NutritionAmount | null;
+};
+
+/**
+ * PackagingProjection
+ */
+export type PackagingProjection = {
+    /**
+     * Components
+     */
+    components?: Array<PackagingComponent>;
+    /**
+     * Materials
+     */
+    materials?: Array<string>;
+    /**
+     * Recycling
+     */
+    recycling?: Array<string>;
+    /**
+     * Recycling Instructions
+     */
+    recycling_instructions?: Array<OriginalText>;
+    /**
+     * Shapes
+     */
+    shapes?: Array<string>;
+    /**
+     * Texts
+     */
+    texts?: Array<OriginalText>;
+};
+
+/**
+ * ProductIdentityProjection
+ */
+export type ProductIdentityProjection = {
+    /**
+     * Barcode
+     */
+    barcode?: string | null;
+    /**
+     * Brands
+     */
+    brands?: Array<string>;
+    /**
+     * Generic Names
+     */
+    generic_names?: Array<OriginalText>;
+    /**
+     * Names
+     */
+    names?: Array<OriginalText>;
+    preferred_name?: OriginalText | null;
+    /**
+     * Quantity
+     */
+    quantity?: string | null;
+};
+
+/**
  * ProductLookupDataResponse
  */
 export type ProductLookupDataResponse = {
@@ -771,6 +958,67 @@ export type ProductLookupResponse = {
 };
 
 /**
+ * ProductProjection
+ */
+export type ProductProjection = {
+    /**
+     * Additives
+     */
+    additives?: Array<string>;
+    assessments: SourceAssessmentsProjection;
+    /**
+     * Categories
+     */
+    categories?: Array<string>;
+    /**
+     * Countries
+     */
+    countries?: Array<string>;
+    environment: EnvironmentProjection;
+    front_image?: SourceImage | null;
+    identity: ProductIdentityProjection;
+    /**
+     * Ingredients
+     */
+    ingredients?: Array<OriginalText>;
+    /**
+     * Labels
+     */
+    labels?: Array<string>;
+    nutrition: NutritionProjection;
+    packaging: PackagingProjection;
+    source: SourceRecordMetadataProjection;
+    /**
+     * Storage Instructions
+     */
+    storage_instructions?: Array<OriginalText>;
+};
+
+/**
+ * ProductProjectionData
+ */
+export type ProductProjectionData = {
+    product: ProductProjection;
+};
+
+/**
+ * ProductProjectionResponse
+ */
+export type ProductProjectionResponse = {
+    data: ProductProjectionData;
+    meta: ProductLookupMetaResponse;
+};
+
+/**
+ * SourceAssessmentsProjection
+ */
+export type SourceAssessmentsProjection = {
+    green_score?: GradedSourceAssessment | null;
+    nova?: NovaSourceAssessment | null;
+    nutri_score?: GradedSourceAssessment | null;
+};
+
+/**
  * SourceAttributionResponse
  */
 export type SourceAttributionResponse = {
@@ -782,6 +1030,74 @@ export type SourceAttributionResponse = {
      * Product Url
      */
     product_url: string;
+};
+
+/**
+ * SourceImage
+ */
+export type SourceImage = {
+    /**
+     * Language
+     */
+    language?: string | null;
+    /**
+     * Source Field
+     */
+    source_field: string;
+    /**
+     * Url
+     */
+    url: string;
+};
+
+/**
+ * SourceRecordMetadataProjection
+ */
+export type SourceRecordMetadataProjection = {
+    /**
+     * Completeness
+     */
+    completeness?: number | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Creator
+     */
+    creator?: string | null;
+    /**
+     * Data Quality Warnings
+     */
+    data_quality_warnings?: Array<string>;
+    /**
+     * Dataset Version
+     */
+    dataset_version?: string | null;
+    /**
+     * Languages
+     */
+    languages?: Array<string>;
+    /**
+     * Last Modified At
+     */
+    last_modified_at?: string | null;
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Product Url
+     */
+    product_url?: string | null;
+    /**
+     * Record Language
+     */
+    record_language?: string | null;
+    /**
+     * Retrieved At
+     */
+    retrieved_at?: string | null;
 };
 
 /**
@@ -1156,3 +1472,50 @@ export type SearchPackagesResponses = {
 };
 
 export type SearchPackagesResponse = SearchPackagesResponses[keyof SearchPackagesResponses];
+
+export type GetProductData = {
+    body?: never;
+    path: {
+        /**
+         * Barcode
+         * GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode.
+         */
+        barcode: string;
+    };
+    query?: never;
+    url: '/api/v1/products/{barcode}';
+};
+
+export type GetProductErrors = {
+    /**
+     * Not Found
+     */
+    404: ProductLookupErrorResponse;
+    /**
+     * Unprocessable Content
+     */
+    422: ProductLookupErrorResponse;
+    /**
+     * Too Many Requests
+     */
+    429: ProductLookupErrorResponse;
+    /**
+     * Internal Server Error
+     */
+    500: ProductLookupErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: ProductLookupErrorResponse;
+};
+
+export type GetProductError = GetProductErrors[keyof GetProductErrors];
+
+export type GetProductResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProductProjectionResponse;
+};
+
+export type GetProductResponse = GetProductResponses[keyof GetProductResponses];

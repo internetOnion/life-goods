@@ -613,6 +613,60 @@ def test_uvicorn_access_log_redacts_product_lookup_path_and_client_address(
     assert "203.0.113.42" not in message
     assert "/api/experimental/products/[redacted]" in message
 
+    with (
+        caplog.at_level("INFO", logger=access_logger.name),
+        _client(database),
+    ):
+        access_logger.info(
+            '%s - "%s %s HTTP/%s" %d',
+            "203.0.113.42:50000",
+            "GET",
+            "/api/v1/products/4006381333931",
+            "1.1",
+            200,
+        )
+
+    message_v1 = caplog.records[-1].getMessage()
+    assert "4006381333931" not in message_v1
+    assert "203.0.113.42" not in message_v1
+    assert "/api/v1/products/[redacted]" in message_v1
+
+
+def test_v1_product_lookup_returns_stable_product_projection_with_provenance() -> None:
+    database = _dataset_database()
+    payload = json.loads((FIXTURES / "complete.json").read_text(encoding="utf-8"))
+    payload["product"]["ecoscore_data"] = {
+        "adjustments": [{"name": "origins_of_ingredients", "value": None}]
+    }
+    database[COLLECTION_NAME].insert_one(payload["product"])
+
+    with _client(database) as client:
+        response = client.get("/api/v1/products/4006381333931")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["data"]["product"]["identity"]["barcode"] == "4006381333931"
+    assert body["data"]["product"]["identity"]["preferred_name"]["value"] == "Dark Chocolate"
+    assert body["meta"]["lookup"]["barcode"] == "4006381333931"
+    assert body["meta"]["source"]["name"] == "Open Food Facts"
+    assert (
+        body["meta"]["source"]["product_url"]
+        == "https://world.openfoodfacts.org/product/4006381333931"
+    )
+    assert body["meta"]["dataset"]["version"] == VERSION_ID
+
+
+def test_v1_product_lookup_unknown_product_returns_404_error_envelope() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].create_index("code")
+
+    with _client(database) as client:
+        response = client.get("/api/v1/products/4006381333931")
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "product_not_found"
+    assert response.json()["meta"]["dataset"]["version"] == VERSION_ID
+
 
 @pytest.mark.parametrize(
     ("scenario", "expected_status"),

@@ -16,6 +16,8 @@ from lifegoods.product_lookup.contracts import (
     ProductLookupMetadataResponse,
     ProductLookupMetaResponse,
     ProductLookupResponse,
+    ProductProjectionData,
+    ProductProjectionResponse,
     SourceAttributionResponse,
 )
 from lifegoods.product_lookup.metrics import ProductLookupMetrics
@@ -23,7 +25,7 @@ from lifegoods.product_lookup.models import DatasetUnavailableError
 from lifegoods.product_lookup.rate_limit import ProductLookupRateLimiter
 from lifegoods.product_lookup.service import LookupProduct
 
-router = APIRouter(prefix="/api/experimental", tags=["Products"])
+router = APIRouter(tags=["Products"])
 logger = logging.getLogger(__name__)
 
 
@@ -40,12 +42,120 @@ def get_product_lookup_metrics() -> ProductLookupMetrics:
 
 
 @router.get(
-    "/products/{barcode}",
+    "/api/v1/products/{barcode}",
+    operation_id="getProduct",
+    summary="Look up a Product",
+    description=(
+        "Looks up a Barcode in the selected local Open Food Facts Dataset Snapshot "
+        "and returns a stable Product projection."
+    ),
+    response_model=ProductProjectionResponse,
+    responses={
+        404: {"model": ProductLookupErrorResponse},
+        422: {"model": ProductLookupErrorResponse},
+        429: {"model": ProductLookupErrorResponse},
+        500: {"model": ProductLookupErrorResponse},
+        503: {"model": ProductLookupErrorResponse},
+    },
+)
+def get_product(
+    request: Request,
+    barcode: Annotated[
+        str,
+        Path(description="GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode."),
+    ],
+    lookup: Annotated[LookupProduct, Depends(get_product_lookup)],
+    limiter: Annotated[
+        ProductLookupRateLimiter, Depends(get_product_lookup_rate_limiter)
+    ],
+    metrics: Annotated[ProductLookupMetrics, Depends(get_product_lookup_metrics)],
+) -> ProductProjectionResponse | JSONResponse:
+    started_at = monotonic()
+    try:
+        allowed, retry_after = limiter.try_acquire(_client_address(request))
+        if not allowed:
+            return _error_response(
+                status_code=429,
+                code=ProductLookupErrorCode.RATE_LIMIT_EXCEEDED,
+                message="Too many requests. Please try again later.",
+                started_at=started_at,
+                metrics=metrics,
+                headers={"Retry-After": str(retry_after)},
+            )
+        try:
+            result = lookup.execute(barcode)
+        except InvalidBarcodeError:
+            return _error_response(
+                status_code=422,
+                code=ProductLookupErrorCode.INVALID_BARCODE,
+                message="Barcode is invalid",
+                started_at=started_at,
+                metrics=metrics,
+            )
+        except DatasetUnavailableError:
+            return _error_response(
+                status_code=503,
+                code=ProductLookupErrorCode.DATASET_UNAVAILABLE,
+                message="Dataset Snapshot is temporarily unavailable",
+                started_at=started_at,
+                metrics=metrics,
+            )
+
+        dataset = DatasetSnapshotResponse(
+            version=result.dataset.version,
+            retrieved_at=result.dataset.retrieved_at,
+        )
+        if result.source_record is None or result.product is None:
+            return _error_response(
+                status_code=404,
+                code=ProductLookupErrorCode.PRODUCT_NOT_FOUND,
+                message="Product not found",
+                started_at=started_at,
+                metrics=metrics,
+                cache_status=result.cache_status,
+                dataset=dataset,
+            )
+
+        latency_ms = round((monotonic() - started_at) * 1000, 3)
+        _record_outcome(
+            outcome="found",
+            latency_ms=latency_ms,
+            cache_status=result.cache_status,
+            dataset_version=result.dataset.version,
+            metrics=metrics,
+        )
+        return ProductProjectionResponse(
+            data=ProductProjectionData(product=result.product),
+            meta=ProductLookupMetaResponse(
+                lookup=ProductLookupMetadataResponse(barcode=result.barcode),
+                source=SourceAttributionResponse(
+                    name="Open Food Facts",
+                    product_url=(
+                        "https://world.openfoodfacts.org/product/" + result.barcode
+                    ),
+                ),
+                dataset=dataset,
+            ),
+        )
+    except Exception as error:
+        logger.error(
+            "Product Lookup failed unexpectedly",
+            extra={
+                "event": "product_lookup_internal_error",
+                "error_category": type(error).__name__,
+            },
+        )
+        return _internal_error_response(started_at=started_at, metrics=metrics)
+
+
+@router.get(
+    "/api/experimental/products/{barcode}",
     operation_id="getExperimentalProduct",
+    deprecated=True,
     summary="Look up an experimental raw Product",
     description=(
         "Looks up a Barcode in the selected local Open Food Facts Dataset Snapshot "
-        "and returns the raw Source Record. This experimental contract is unstable."
+        "and returns the raw Source Record. This experimental contract is deprecated."
     ),
     response_model=ProductLookupResponse,
     responses={
