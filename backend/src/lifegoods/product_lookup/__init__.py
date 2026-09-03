@@ -1,4 +1,8 @@
 from lifegoods.product_lookup.access_log import install_product_lookup_access_log_filter
+from lifegoods.product_lookup.barcode import (
+    InvalidBarcodeError,
+    normalize_barcode,
+)
 from lifegoods.product_lookup.cache import (
     InMemoryProductLookupCache,
     NullProductLookupCache,
@@ -63,6 +67,7 @@ __all__ = [
     "EnvironmentProjection",
     "GradedSourceAssessment",
     "InMemoryProductLookupCache",
+    "InvalidBarcodeError",
     "InvalidSourceRecordError",
     "LookupProduct",
     "NoOpProductLookupMetrics",
@@ -96,11 +101,12 @@ __all__ = [
     "SourceImage",
     "SourceRecord",
     "SourceRecordMetadataProjection",
-    "project_source_record",
     "get_product_lookup",
     "get_product_lookup_metrics",
     "get_product_lookup_rate_limiter",
     "install_product_lookup_access_log_filter",
+    "normalize_barcode",
     "product_lookup_cache_key",
     "product_lookup_router",
+    "project_source_record",
 ]

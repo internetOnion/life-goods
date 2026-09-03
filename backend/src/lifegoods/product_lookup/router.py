@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, Request
 from fastapi.responses import JSONResponse
 
-from lifegoods.identifiers import InvalidIdentifierError
+from lifegoods.product_lookup.barcode import InvalidBarcodeError
 from lifegoods.product_lookup.contracts import (
     DatasetSnapshotResponse,
     ProductLookupDataResponse,
@@ -82,7 +82,7 @@ def get_experimental_product(
             )
         try:
             result = lookup.execute(barcode)
-        except InvalidIdentifierError:
+        except InvalidBarcodeError:
             return _error_response(
                 status_code=422,
                 code=ProductLookupErrorCode.INVALID_BARCODE,
