@@ -1,4 +1,4 @@
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_OPEN_FOOD_FACTS_IMAGE_BASE_URL = "https://images.openfoodfacts.org"
@@ -35,6 +35,7 @@ class Settings(BaseSettings):
         populate_by_name=True,
     )
 
+    environment: str = "development"
     database_url: str = "postgresql+psycopg://lifegoods:lifegoods@localhost:5433/lifegoods"
     allowed_origins: tuple[str, ...] = ("http://localhost:5173",)
     open_food_facts_image_base_url: str = DEFAULT_OPEN_FOOD_FACTS_IMAGE_BASE_URL
@@ -82,3 +83,25 @@ class Settings(BaseSettings):
     product_lookup_requests_per_minute: int = DEFAULT_PRODUCT_LOOKUP_REQUESTS_PER_MINUTE
     # Retained only for configuration compatibility; MVP-1 never consults it.
     project_catalog_enabled: bool = False
+
+    @model_validator(mode="after")
+    def _fail_fast_on_known_defaults_in_production(self) -> "Settings":
+        env = self.environment.strip().lower()
+        if env not in {"production", "prod"}:
+            return self
+        if "lifegoods:lifegoods@" in self.database_url:
+            raise ValueError(
+                "LIFEGOODS_DATABASE_URL must not use the development default "
+                "credentials in the production environment."
+            )
+        if "lifegoods_reader:lifegoods_reader@" in self.off_mongodb_uri:
+            raise ValueError(
+                "LIFEGOODS_OFF_MONGODB_URI must not use the development default "
+                "credentials in the production environment."
+            )
+        if "redis://localhost:6380/0" in self.redis_url:
+            raise ValueError(
+                "LIFEGOODS_REDIS_URL must point at an authenticated Redis instance "
+                "in the production environment."
+            )
+        return self
