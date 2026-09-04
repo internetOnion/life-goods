@@ -38,6 +38,33 @@ class CandidateModelConfig:
 
 
 CANDIDATE_CONFIGS: dict[str, CandidateModelConfig] = {
+    "gemini-3.8-flash": CandidateModelConfig(
+        name="gemini-3.8-flash",
+        provider="google",
+        model_id="gemini-3.8-flash",
+        temperature=0.0,
+        max_output_tokens=2048,
+        input_cost_per_1m=0.75,
+        output_cost_per_1m=3.75,
+    ),
+    "gemini-3.7-flash": CandidateModelConfig(
+        name="gemini-3.7-flash",
+        provider="google",
+        model_id="gemini-3.7-flash",
+        temperature=0.0,
+        max_output_tokens=2048,
+        input_cost_per_1m=1.50,
+        output_cost_per_1m=7.50,
+    ),
+    "gemini-3.1-pro": CandidateModelConfig(
+        name="gemini-3.1-pro",
+        provider="google",
+        model_id="gemini-3.1-pro",
+        temperature=0.0,
+        max_output_tokens=2048,
+        input_cost_per_1m=1.25,
+        output_cost_per_1m=5.00,
+    ),
     "gemini-2.5-flash": CandidateModelConfig(
         name="gemini-2.5-flash",
         provider="google",

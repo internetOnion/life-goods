@@ -28,8 +28,8 @@ def run_benchmark_cli(argv: Sequence[str] | None = None) -> int:
     run_parser.add_argument(
         "--candidate",
         type=str,
-        default="gemini-2.5-flash",
-        help="Stable candidate model name (e.g. gemini-2.5-flash, gemini-2.5-pro)",
+        default="gemini-3.8-flash",
+        help="Stable candidate model name (e.g. gemini-3.8-flash, gemini-2.5-flash)",
     )
     run_parser.add_argument(
         "--version",

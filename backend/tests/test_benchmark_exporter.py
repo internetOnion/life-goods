@@ -14,7 +14,7 @@ from lifegoods.translation.benchmark.scorer import run_and_evaluate_benchmark
 
 def test_export_summary_json(tmp_path: Path) -> None:
     dataset = load_benchmark_dataset("v1")
-    config = get_candidate_config("gemini-2.5-flash")
+    config = get_candidate_config("gemini-3.8-flash")
     runner = OfflineMockCandidateRunner(config)
     _outputs, summary = run_and_evaluate_benchmark(runner, dataset)
 
@@ -23,14 +23,14 @@ def test_export_summary_json(tmp_path: Path) -> None:
 
     assert exported_path.is_file()
     content = exported_path.read_text(encoding="utf-8")
-    assert '"candidate_name": "gemini-2.5-flash"' in content
+    assert '"candidate_name": "gemini-3.8-flash"' in content
     assert '"pass_rate":' in content
     assert '"barcode"' not in content.lower()
 
 
 def test_export_review_packet_markdown(tmp_path: Path) -> None:
     dataset = load_benchmark_dataset("v1")
-    config = get_candidate_config("gemini-2.5-flash")
+    config = get_candidate_config("gemini-3.8-flash")
     runner = OfflineMockCandidateRunner(config)
     outputs, summary = run_and_evaluate_benchmark(runner, dataset)
 
@@ -45,7 +45,7 @@ def test_export_review_packet_markdown(tmp_path: Path) -> None:
         "Product translations are human-reviewed" in content
     )
     # Must include quantitative thresholds and metrics
-    assert "gemini-2.5-flash" in content
+    assert "gemini-3.8-flash" in content
     assert "Pass Rate" in content
     assert "Average Latency" in content
     assert "Estimated Cost" in content

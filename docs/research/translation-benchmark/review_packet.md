@@ -4,8 +4,8 @@
 > **Life Goods Packaged-Food Khmer Translation Benchmark Review Packet**
 > Machine-generated benchmark evaluation for candidate model selection and go/no-go thresholds. Candidate approval establishes the exact provider model and translation-configuration version; it does NOT claim, represent, or imply that individual live Product translations are human-reviewed, verified, or endorsed label text.
 
-**Generated:** 2026-09-04 02:43:52 UTC  
-**Candidate Model:** `gemini-2.5-flash`  
+**Generated:** 2026-09-04 07:44:39 UTC  
+**Candidate Model:** `gemini-3.8-flash`  
 **Benchmark Dataset Version:** `v1`  
 
 ## Quantitative Evaluation Summary
@@ -20,7 +20,7 @@
 | **Khmer Script Validity** | 100.0% | 100.0% |
 | **4-Second Budget Adherence** | 100.0% | 100.0% |
 | **Average Latency** | 109.2 ms | < 2000 ms |
-| **Total Estimated Cost** | $0.000707 USD | < $0.05 / run |
+| **Total Estimated Cost** | $0.003989 USD | < $0.05 / run |
 
 ## Human Decision Review Checklist (Issue #86)
 
@@ -45,7 +45,7 @@ Fluent Khmer reviewer verification checklist:
 - **Source Language**: `en`
 - **Tags**: `en`, `brand`, `e_number`, `units_and_quantities`
 - **Brands**: `Galaxy`
-- **Latency**: 120.1 ms | **Tokens**: in=244, out=83 | **Cost**: $0.000086
+- **Latency**: 120.1 ms | **Tokens**: in=244, out=83 | **Cost**: $0.000494
 
 | Field | Status | Original Text | Khmer Translation | Protected Tokens |
 | :--- | :--- | :--- | :--- | :--- |
@@ -61,7 +61,7 @@ Fluent Khmer reviewer verification checklist:
 - **Source Language**: `fr`
 - **Tags**: `fr`, `brand`, `e_number`, `units_and_quantities`
 - **Brands**: `La Vache qui rit`
-- **Latency**: 120.1 ms | **Tokens**: in=233, out=62 | **Cost**: $0.000072
+- **Latency**: 120.1 ms | **Tokens**: in=233, out=62 | **Cost**: $0.000407
 
 | Field | Status | Original Text | Khmer Translation | Protected Tokens |
 | :--- | :--- | :--- | :--- | :--- |
@@ -77,7 +77,7 @@ Fluent Khmer reviewer verification checklist:
 - **Source Language**: `th`
 - **Tags**: `th`, `brand`, `units_and_quantities`, `e_number`
 - **Brands**: `Mama`, `มาม่า`
-- **Latency**: 120.1 ms | **Tokens**: in=236, out=72 | **Cost**: $0.000079
+- **Latency**: 120.1 ms | **Tokens**: in=236, out=72 | **Cost**: $0.000447
 
 | Field | Status | Original Text | Khmer Translation | Protected Tokens |
 | :--- | :--- | :--- | :--- | :--- |
@@ -93,7 +93,7 @@ Fluent Khmer reviewer verification checklist:
 - **Source Language**: `vi`
 - **Tags**: `vi`, `brand`, `units_and_quantities`
 - **Brands**: `G7`, `Trung Nguyên`
-- **Latency**: 120.1 ms | **Tokens**: in=215, out=53 | **Cost**: $0.000064
+- **Latency**: 120.1 ms | **Tokens**: in=215, out=53 | **Cost**: $0.000360
 
 | Field | Status | Original Text | Khmer Translation | Protected Tokens |
 | :--- | :--- | :--- | :--- | :--- |
@@ -109,7 +109,7 @@ Fluent Khmer reviewer verification checklist:
 - **Source Language**: `und`
 - **Tags**: `und`, `units_and_quantities`, `brand`
 - **Brands**: `Pokka`
-- **Latency**: 120.0 ms | **Tokens**: in=203, out=31 | **Cost**: $0.000049
+- **Latency**: 120.0 ms | **Tokens**: in=203, out=31 | **Cost**: $0.000268
 
 | Field | Status | Original Text | Khmer Translation | Protected Tokens |
 | :--- | :--- | :--- | :--- | :--- |
@@ -125,7 +125,7 @@ Fluent Khmer reviewer verification checklist:
 - **Source Language**: `en`
 - **Tags**: `en`, `long_ingredients`, `e_number`, `units_and_quantities`, `brand`
 - **Brands**: `Kellogg's`
-- **Latency**: 120.1 ms | **Tokens**: in=330, out=174 | **Cost**: $0.000154
+- **Latency**: 120.1 ms | **Tokens**: in=330, out=174 | **Cost**: $0.000900
 
 | Field | Status | Original Text | Khmer Translation | Protected Tokens |
 | :--- | :--- | :--- | :--- | :--- |
@@ -141,7 +141,7 @@ Fluent Khmer reviewer verification checklist:
 - **Source Language**: `en`
 - **Tags**: `en`, `adversarial`, `brand`
 - **Brands**: `SafeBrand`
-- **Latency**: 120.0 ms | **Tokens**: in=217, out=22 | **Cost**: $0.000046
+- **Latency**: 120.0 ms | **Tokens**: in=217, out=22 | **Cost**: $0.000245
 
 | Field | Status | Original Text | Khmer Translation | Protected Tokens |
 | :--- | :--- | :--- | :--- | :--- |
@@ -173,7 +173,7 @@ Fluent Khmer reviewer verification checklist:
 - **Source Language**: `en`
 - **Tags**: `en`, `sparse_missing`, `brand`
 - **Brands**: `Morton`
-- **Latency**: 120.0 ms | **Tokens**: in=170, out=13 | **Cost**: $0.000033
+- **Latency**: 120.0 ms | **Tokens**: in=170, out=13 | **Cost**: $0.000176
 
 | Field | Status | Original Text | Khmer Translation | Protected Tokens |
 | :--- | :--- | :--- | :--- | :--- |
@@ -189,7 +189,7 @@ Fluent Khmer reviewer verification checklist:
 - **Source Language**: `th`
 - **Tags**: `th`, `en`, `mixed_script`, `brand`, `units_and_quantities`
 - **Brands**: `Oishi`, `โออิชิ`
-- **Latency**: 120.1 ms | **Tokens**: in=217, out=38 | **Cost**: $0.000055
+- **Latency**: 120.1 ms | **Tokens**: in=217, out=38 | **Cost**: $0.000305
 
 | Field | Status | Original Text | Khmer Translation | Protected Tokens |
 | :--- | :--- | :--- | :--- | :--- |
@@ -205,7 +205,7 @@ Fluent Khmer reviewer verification checklist:
 - **Source Language**: `en`
 - **Tags**: `en`, `irregular`, `units_and_quantities`, `brand`, `e_number`
 - **Brands**: `TROPIC`
-- **Latency**: 120.0 ms | **Tokens**: in=221, out=59 | **Cost**: $0.000069
+- **Latency**: 120.0 ms | **Tokens**: in=221, out=59 | **Cost**: $0.000387
 
 | Field | Status | Original Text | Khmer Translation | Protected Tokens |
 | :--- | :--- | :--- | :--- | :--- |

@@ -1,5 +1,5 @@
 {
-  "candidate_name": "gemini-2.5-flash",
+  "candidate_name": "gemini-3.8-flash",
   "benchmark_version": "v1",
   "total_items": 11,
   "passed_items": 11,
@@ -11,8 +11,8 @@
   "khmer_script_validity_rate": 1.0,
   "four_second_budget_rate": 1.0,
   "avg_latency_ms": 109.24,
-  "p95_latency_ms": 120.08,
-  "total_estimated_cost_usd": 0.000707,
+  "p95_latency_ms": 120.09,
+  "total_estimated_cost_usd": 0.003989,
   "item_results": [
     {
       "item_id": "bm_en_choc_01",
@@ -23,8 +23,8 @@
       "completeness_valid": true,
       "khmer_script_valid": true,
       "latency_within_budget": true,
-      "latency_ms": 120.08,
-      "estimated_cost_usd": 8.6e-05,
+      "latency_ms": 120.09,
+      "estimated_cost_usd": 0.000494,
       "issues": []
     },
     {
@@ -37,7 +37,7 @@
       "khmer_script_valid": true,
       "latency_within_budget": true,
       "latency_ms": 120.07,
-      "estimated_cost_usd": 7.2e-05,
+      "estimated_cost_usd": 0.000407,
       "issues": []
     },
     {
@@ -49,8 +49,8 @@
       "completeness_valid": true,
       "khmer_script_valid": true,
       "latency_within_budget": true,
-      "latency_ms": 120.08,
-      "estimated_cost_usd": 7.9e-05,
+      "latency_ms": 120.09,
+      "estimated_cost_usd": 0.000447,
       "issues": []
     },
     {
@@ -63,7 +63,7 @@
       "khmer_script_valid": true,
       "latency_within_budget": true,
       "latency_ms": 120.07,
-      "estimated_cost_usd": 6.4e-05,
+      "estimated_cost_usd": 0.00036,
       "issues": []
     },
     {
@@ -76,7 +76,7 @@
       "khmer_script_valid": true,
       "latency_within_budget": true,
       "latency_ms": 120.04,
-      "estimated_cost_usd": 4.9e-05,
+      "estimated_cost_usd": 0.000268,
       "issues": []
     },
     {
@@ -89,7 +89,7 @@
       "khmer_script_valid": true,
       "latency_within_budget": true,
       "latency_ms": 120.08,
-      "estimated_cost_usd": 0.000154,
+      "estimated_cost_usd": 0.0009,
       "issues": []
     },
     {
@@ -101,8 +101,8 @@
       "completeness_valid": true,
       "khmer_script_valid": true,
       "latency_within_budget": true,
-      "latency_ms": 120.05,
-      "estimated_cost_usd": 4.6e-05,
+      "latency_ms": 120.04,
+      "estimated_cost_usd": 0.000245,
       "issues": []
     },
     {
@@ -128,7 +128,7 @@
       "khmer_script_valid": true,
       "latency_within_budget": true,
       "latency_ms": 120.02,
-      "estimated_cost_usd": 3.3e-05,
+      "estimated_cost_usd": 0.000176,
       "issues": []
     },
     {
@@ -141,7 +141,7 @@
       "khmer_script_valid": true,
       "latency_within_budget": true,
       "latency_ms": 120.06,
-      "estimated_cost_usd": 5.5e-05,
+      "estimated_cost_usd": 0.000305,
       "issues": []
     },
     {
@@ -153,8 +153,8 @@
       "completeness_valid": true,
       "khmer_script_valid": true,
       "latency_within_budget": true,
-      "latency_ms": 120.04,
-      "estimated_cost_usd": 6.9e-05,
+      "latency_ms": 120.05,
+      "estimated_cost_usd": 0.000387,
       "issues": []
     }
   ]

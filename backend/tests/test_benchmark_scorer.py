@@ -14,7 +14,7 @@ from lifegoods.translation.benchmark.scorer import (
 
 def test_evaluate_candidate_output_success() -> None:
     dataset = load_benchmark_dataset("v1")
-    config = get_candidate_config("gemini-2.5-flash")
+    config = get_candidate_config("gemini-3.8-flash")
     runner = OfflineMockCandidateRunner(config)
 
     item = dataset.items[0]
@@ -94,7 +94,7 @@ def test_evaluate_candidate_output_rejects_non_provider_translations() -> None:
 
 def test_aggregate_evaluation_summary() -> None:
     dataset = load_benchmark_dataset("v1")
-    config = get_candidate_config("gemini-2.5-flash")
+    config = get_candidate_config("gemini-3.8-flash")
     runner = OfflineMockCandidateRunner(config)
 
     _outputs, summary = run_and_evaluate_benchmark(runner, dataset)

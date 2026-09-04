@@ -26,12 +26,16 @@ def test_candidate_configs_rejects_moving_alias_and_deprecated_models() -> None:
 
 
 def test_get_valid_candidate_config() -> None:
-    config = get_candidate_config("gemini-2.5-flash")
-    assert isinstance(config, CandidateModelConfig)
-    assert config.model_id == "gemini-2.5-flash"
-    assert config.temperature == 0.0
-    assert config.input_cost_per_1m > 0
-    assert config.output_cost_per_1m > 0
+    config_38 = get_candidate_config("gemini-3.8-flash")
+    assert isinstance(config_38, CandidateModelConfig)
+    assert config_38.model_id == "gemini-3.8-flash"
+    assert config_38.temperature == 0.0
+    assert config_38.input_cost_per_1m == 0.75
+    assert config_38.output_cost_per_1m == 3.75
+
+    config_25 = get_candidate_config("gemini-2.5-flash")
+    assert isinstance(config_25, CandidateModelConfig)
+    assert config_25.model_id == "gemini-2.5-flash"
 
 
 def test_build_candidate_prompt_skips_khmer_and_unavailable_fields() -> None:
@@ -55,7 +59,7 @@ def test_build_candidate_prompt_skips_khmer_and_unavailable_fields() -> None:
 
 def test_offline_mock_candidate_runner() -> None:
     dataset = load_benchmark_dataset("v1")
-    config = get_candidate_config("gemini-2.5-flash")
+    config = get_candidate_config("gemini-3.8-flash")
     runner = OfflineMockCandidateRunner(config)
 
     item = dataset.items[0]
