@@ -53,6 +53,14 @@ Importing or updating snapshots is not part of the new MVP workflow. The existin
 pnpm off:dataset -- import-url
 ```
 
+### Develop without MongoDB
+
+For local Product Lookup development without an imported Dataset Snapshot, set
+`LIFEGOODS_PRODUCT_LOOKUP_SOURCE=open_food_facts_api` in `backend/.env`. The
+backend then requests the complete raw Product Record from the Open Food Facts
+barcode API. This is an explicit development mode; the default remains the
+local Dataset Snapshot.
+
 ## Start development servers
 
 Run the backend and frontend in separate terminals:

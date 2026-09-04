@@ -14,7 +14,7 @@ import { Link, useNavigate } from "react-router"
 
 import { Button } from "@/components/ui/button"
 import { PrivacyScannerIllustration } from "@/components/illustrations"
-import { BrandLockup } from "@/components/brand/BrandMark"
+import { BrandLockup, BrandMark } from "@/components/brand/BrandMark"
 import { usePageMetadata } from "@/lib/metadata"
 import { cn } from "@/lib/utils"
 
@@ -411,7 +411,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
 
                 {cameraState === "consent" ? (
                     <div className="relative z-20 grid min-h-[24rem] place-items-center px-6 py-10 text-center sm:min-h-[27rem] sm:px-10">
-                        <div className="max-w-sm">
+                        <div className="max-w-xs">
                             <PrivacyScannerIllustration className="mx-auto mb-2 drop-shadow-md" />
                             <h2 className="mt-5 text-xl font-bold tracking-tight text-white">
                                 {text.privacyTitle}
@@ -420,7 +420,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                                 {text.privacyBody}
                             </p>
                             <Button
-                                className="mt-6 min-h-11 rounded-xl bg-[#995613] px-6 text-sm font-bold text-white transition-all hover:bg-[#7B440D] active:scale-[0.98] active:bg-[#5A320B]"
+                                className="mt-5 min-h-11 rounded-xl bg-[#995613] px-6 text-sm font-bold text-white transition-all hover:bg-[#7B440D] active:scale-[0.98] active:bg-[#5A320B]"
                                 type="button"
                                 onClick={beginFirstCameraSession}
                             >
@@ -431,9 +431,6 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                                 />
                                 <span>{text.start}</span>
                             </Button>
-                            <p className="mt-3.5 text-xs leading-normal text-[#728299]">
-                                {text.privacySession}
-                            </p>
                         </div>
                     </div>
                 ) : null}
@@ -519,7 +516,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                                     state={{ autoFocus: true }}
                                     onPointerDown={prepareSearchBridge}
                                     onClick={handleSearchNavigation}
-                                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white/10 px-5 text-sm font-bold text-white ring-1 ring-white/20 transition-all hover:bg-white/15 active:scale-[0.98]"
+                                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#F3E8DD] px-5 text-sm font-bold text-[#5A320B] shadow-[0_8px_20px_-14px_rgba(90,50,11,0.8)] ring-1 ring-[#E8C9A4] transition-all hover:bg-[#FFF8F0] focus-visible:ring-2 focus-visible:ring-[#F3E8DD] focus-visible:ring-offset-2 focus-visible:ring-offset-[#131519] focus-visible:outline-none active:scale-[0.98]"
                                 >
                                     <span>{text.enterBarcode}</span>
                                 </Link>
@@ -658,7 +655,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                 <BrandLockup />
             </div>
 
-            <div className="w-full">
+            <div className="mx-auto w-full max-w-lg">
                 <Link
                     to="/search"
                     state={{ autoFocus: true }}
@@ -666,7 +663,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                     onClick={handleSearchNavigation}
                     aria-label={text.searchLabel}
                     className={cn(
-                        "group flex h-13 w-full items-center gap-3 rounded-2xl border border-neutral-200/90 bg-white px-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)] transition-all duration-150 select-none",
+                        "group flex h-12 w-full items-center gap-3 rounded-2xl border border-neutral-200/90 bg-white px-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)] transition-all duration-150 select-none",
                         "focus-visible:ring-primary-500 hover:border-neutral-300 hover:shadow-md focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.99]",
                     )}
                 >
@@ -677,9 +674,10 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                             aria-hidden="true"
                         />
                     </span>
-                    <span className="flex-1 truncate text-sm font-medium text-neutral-500 transition-colors group-hover:text-neutral-800">
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-neutral-500 transition-colors group-hover:text-neutral-800">
                         {text.searchPlaceholder}
                     </span>
+                    <BrandMark size={24} />
                 </Link>
             </div>
         </main>

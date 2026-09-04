@@ -3,10 +3,11 @@ import {
     ListChecksIcon,
     ScanIcon,
 } from "@phosphor-icons/react"
-import { type ReactNode, useEffect } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { NavLink, useLocation } from "react-router"
 
 import { appRoutes } from "@/app/routes"
+import { SplashScreen } from "@/components/brand/SplashScreen"
 import { cn } from "@/lib/utils"
 
 type AppShellProps = {
@@ -34,7 +35,22 @@ const navigation = [
 
 export function AppShell({ children }: AppShellProps) {
     const location = useLocation()
+    const [showSplash, setShowSplash] = useState(true)
     const isSearchRoute = location.pathname === appRoutes.search
+
+    useEffect(() => {
+        const prefersReducedMotion =
+            typeof window !== "undefined" &&
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        const splashDuration = prefersReducedMotion ? 250 : 2600
+        const timeoutId = window.setTimeout(
+            () => setShowSplash(false),
+            splashDuration,
+        )
+
+        return () => window.clearTimeout(timeoutId)
+    }, [])
 
     useEffect(() => {
         document.documentElement.lang = "en"
@@ -51,6 +67,7 @@ export function AppShell({ children }: AppShellProps) {
 
     return (
         <div className="bg-background text-foreground flex min-h-svh flex-col">
+            {showSplash && <SplashScreen />}
             <div
                 className={cn(
                     "flex-1 pt-[env(safe-area-inset-top,0px)]",

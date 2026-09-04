@@ -5,11 +5,8 @@ export const scanTranslations = {
             cameraLabel: "Barcode scanner",
             searchPlaceholder: "Search products...",
             searchLabel: "Search",
-            privacyTitle: "Your camera stays private",
-            privacyBody:
-                "Barcode detection happens on this device. Life Goods does not upload, store, or share camera frames.",
-            privacySession:
-                "Your choice to start the camera is remembered for this browser session only.",
+            privacyTitle: "Private camera scanning",
+            privacyBody: "Scanning happens on your device.",
             start: "Start camera",
             starting: "Starting camera...",
             scanning: "Hold the Barcode inside the frame",
@@ -25,21 +22,14 @@ export const scanTranslations = {
             enterBarcode: "Enter a Barcode instead",
             enterBarcodeHint: "Type the digits printed below the bars",
             errorPermission:
-                "Camera access was denied. Allow access in your browser settings, then try again, or enter the Barcode instead.",
-            errorNoDevice:
-                "No camera was found on this device. Enter the Barcode instead.",
-            errorBusy:
-                "Another app is using the camera. Close that app, then try again.",
-            errorPreview:
-                "The camera opened, but its preview did not start. Reload this page and try again, or enter the Barcode instead.",
-            errorGeneric:
-                "The camera could not start. Check your browser settings, then try again, or enter the Barcode instead.",
-            errorInsecure:
-                "Camera access requires HTTPS. Open this page over a secure connection, or enter the Barcode instead.",
-            errorUnsupported:
-                "This browser cannot use the camera scanner. Try a current browser over HTTPS, or enter the Barcode instead.",
-            errorInterrupted:
-                "Camera startup was interrupted. Return to this page and try again, or enter the Barcode instead.",
+                "Allow camera access in your browser settings, then try again.",
+            errorNoDevice: "No camera was found. Enter the Barcode instead.",
+            errorBusy: "Close the other app using the camera, then try again.",
+            errorPreview: "Reload this page, then try again.",
+            errorGeneric: "Check your browser settings, then try again.",
+            errorInsecure: "Open this page over HTTPS to use the camera.",
+            errorUnsupported: "Use a current browser over HTTPS to scan.",
+            errorInterrupted: "Return to this page and try again.",
         },
     },
 } as const

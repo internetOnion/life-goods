@@ -1,5 +1,6 @@
 """Open Food Facts integration: dataset reader, image caching proxy, CLI, and models."""
 
+from lifegoods.open_food_facts.api import OpenFoodFactsApiSource
 from lifegoods.open_food_facts.dataset import (
     ACTIVE_POINTER_ID,
     CONTROL_COLLECTION,
@@ -63,6 +64,7 @@ __all__ = [
     "ExternalSourceUnavailableReason",
     "JsonValue",
     "OpenFoodFactsDatasetSource",
+    "OpenFoodFactsApiSource",
     "OpenFoodFactsImageSource",
     "PRODUCT_COLLECTION_PREFIX",
     "PACKAGE_SEARCH_COUNTRY_INDEX",

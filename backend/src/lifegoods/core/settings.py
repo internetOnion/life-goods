@@ -1,6 +1,10 @@
+from typing import Literal
+
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+DEFAULT_OPEN_FOOD_FACTS_API_BASE_URL = "https://world.openfoodfacts.org/api/v2"
+DEFAULT_OPEN_FOOD_FACTS_API_TIMEOUT_SECONDS = 10.0
 DEFAULT_OPEN_FOOD_FACTS_IMAGE_BASE_URL = "https://images.openfoodfacts.org"
 DEFAULT_OPEN_FOOD_FACTS_IMAGE_TIMEOUT_SECONDS = 2.0
 DEFAULT_OPEN_FOOD_FACTS_USER_AGENT = (
@@ -44,6 +48,11 @@ class Settings(BaseSettings):
     open_food_facts_user_agent: str = DEFAULT_OPEN_FOOD_FACTS_USER_AGENT
     open_food_facts_image_requests_per_minute: int = (
         DEFAULT_OPEN_FOOD_FACTS_IMAGE_REQUESTS_PER_MINUTE
+    )
+    product_lookup_source: Literal["dataset", "open_food_facts_api"] = "dataset"
+    open_food_facts_api_base_url: str = DEFAULT_OPEN_FOOD_FACTS_API_BASE_URL
+    open_food_facts_api_timeout_seconds: float = (
+        DEFAULT_OPEN_FOOD_FACTS_API_TIMEOUT_SECONDS
     )
     package_match_requests_per_minute: int = DEFAULT_PACKAGE_MATCH_REQUESTS_PER_MINUTE
     package_search_requests_per_minute: int = DEFAULT_PACKAGE_SEARCH_REQUESTS_PER_MINUTE

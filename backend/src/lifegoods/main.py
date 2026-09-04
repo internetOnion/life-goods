@@ -20,6 +20,7 @@ from lifegoods.identifiers import InvalidIdentifierError
 from lifegoods.open_food_facts import (
     ExternalImageSource,
     ExternalPackageSource,
+    OpenFoodFactsApiSource,
     OpenFoodFactsDatasetSource,
     OpenFoodFactsImageSource,
     get_image_source,
@@ -273,6 +274,18 @@ def create_app(
         resolved_source = external_source
     if product_lookup_source is not None:
         resolved_product_lookup_source = product_lookup_source
+    elif resolved_settings.product_lookup_source == "open_food_facts_api":
+        product_api_client = httpx.Client(
+            timeout=resolved_settings.open_food_facts_api_timeout_seconds,
+            follow_redirects=True,
+        )
+        owned_http_clients.append(product_api_client)
+        resolved_product_lookup_source = OpenFoodFactsApiSource(
+            product_api_client,
+            base_url=resolved_settings.open_food_facts_api_base_url,
+            timeout_seconds=resolved_settings.open_food_facts_api_timeout_seconds,
+            user_agent=resolved_settings.open_food_facts_user_agent,
+        )
     elif isinstance(resolved_source, OpenFoodFactsDatasetSource):
         resolved_product_lookup_source = resolved_source
     else:

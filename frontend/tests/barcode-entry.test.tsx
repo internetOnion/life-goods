@@ -22,14 +22,18 @@ function renderPage(path = "/search") {
 }
 
 describe("search page", () => {
-    test("validates input and displays recovery", async () => {
+    test("keeps the page and prompts for input when search is submitted empty", async () => {
         const user = userEvent.setup()
         renderPage()
 
         await user.click(screen.getByRole("button", { name: "Search" }))
-        expect(screen.getByRole("alert")).toHaveTextContent(
-            "Enter digits to search",
-        )
+        expect(screen.getByTestId("location")).toHaveTextContent("/search")
+        expect(
+            screen.getByRole("heading", {
+                name: "Please enter the barcode, product name, or brand",
+            }),
+        ).toBeVisible()
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument()
 
         await user.type(screen.getByRole("textbox", { name: "Search" }), "abc")
         await user.click(screen.getByRole("button", { name: "Search" }))
@@ -105,10 +109,11 @@ describe("search page", () => {
         expect(screen.getByRole("textbox", { name: "Search" })).toHaveFocus()
     })
 
-    test("displays Manual Product Lookup heading", () => {
+    test("displays the recent search products with product images", () => {
         renderPage()
+        expect(screen.getByText("Recent search")).toBeVisible()
         expect(
-            screen.getByRole("heading", { name: "Manual Product Lookup" }),
+            screen.getByAltText("Nutella Spread 400g product image"),
         ).toBeVisible()
     })
 })
