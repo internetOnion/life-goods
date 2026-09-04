@@ -11,6 +11,11 @@ DEFAULT_OFF_MONGODB_URI = (
 )
 DEFAULT_OFF_MONGODB_DATABASE = "lifegoods_off"
 DEFAULT_OFF_MONGODB_TIMEOUT_MS = 2_000
+DEFAULT_GENERATED_MONGODB_URI = (
+    "mongodb://lifegoods_generated:lifegoods_generated@localhost:27018/lifegoods_generated"
+)
+DEFAULT_GENERATED_MONGODB_DATABASE = "lifegoods_generated"
+DEFAULT_GENERATED_MONGODB_TIMEOUT_MS = 2_000
 DEFAULT_REDIS_URL = "redis://localhost:6380/0"
 DEFAULT_REDIS_TIMEOUT_SECONDS = 0.5
 DEFAULT_PRODUCT_LOOKUP_CACHE_ENABLED = True
@@ -38,6 +43,9 @@ class Settings(BaseSettings):
     off_mongodb_uri: str = DEFAULT_OFF_MONGODB_URI
     off_mongodb_database: str = DEFAULT_OFF_MONGODB_DATABASE
     off_mongodb_timeout_ms: int = DEFAULT_OFF_MONGODB_TIMEOUT_MS
+    generated_mongodb_uri: str = DEFAULT_GENERATED_MONGODB_URI
+    generated_mongodb_database: str = DEFAULT_GENERATED_MONGODB_DATABASE
+    generated_mongodb_timeout_ms: int = DEFAULT_GENERATED_MONGODB_TIMEOUT_MS
     redis_url: str = DEFAULT_REDIS_URL
     redis_timeout_seconds: float = DEFAULT_REDIS_TIMEOUT_SECONDS
     product_lookup_cache_enabled: bool = DEFAULT_PRODUCT_LOOKUP_CACHE_ENABLED

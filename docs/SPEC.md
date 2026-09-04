@@ -210,3 +210,17 @@ To allow safe incremental migration of the frontend without breaking existing pr
 1. **Deprecated Experimental Route**: `GET /api/experimental/products/{barcode}` is retained with `deprecated=True` in OpenAPI. It returns `ProductLookupResponse` containing the unprojected Open Food Facts `source_record`.
 2. **Dual-Contract Frontend Adapter**: `adaptProductLookup` in `frontend/src/features/product/adapter.ts` accepts either `ProductProjectionResponse` (from the stable `/api/v1/products/{barcode}` endpoint) or `ProductLookupResponse` (from the deprecated experimental route).
 3. **Subsequent Removal Issue**: Once frontend presentation components consume `ProductProjection` directly and no consumers rely on `adaptProductLookup`'s legacy candidate structure, the experimental endpoint and dual-mode adapter will be removed in a dedicated follow-up issue.
+
+## 13. Isolated generated-data persistence (Issue #84)
+
+Durable Khmer Translation artifacts are stored in an isolated MongoDB database (`lifegoods_generated`) separate from the strictly read-only Open Food Facts Dataset Snapshot (`lifegoods_off`):
+
+1. **Storage Isolation**: The application runtime connects to generated storage using dedicated credentials (`lifegoods_generated`) with least-privilege access restricted exclusively to `lifegoods_generated`. The Dataset Snapshot connection (`lifegoods_reader`) remains strictly read-only.
+2. **Collection and Index Requirements**:
+   - `translation_artifacts`: content-addressed immutable bundles (`content_hash + translation_config_fingerprint`), unique `artifact_id`, no automatic TTL.
+   - `translation_leases`: expiring cross-instance single-flight leases with TTL index on `expires_at` (`expireAfterSeconds=0`).
+   - `translation_cooldowns`: expiring temporary complete failure records with TTL index on `expires_at` (`expireAfterSeconds=0`).
+   - `translation_quarantines`: durable withdrawal records for invalid artifacts, no TTL.
+3. **Explicit Operator Initialization**: Web application startup never creates collections or indexes implicitly. Schema is initialized and verified idempotently via `pnpm generated-data:init` and `pnpm generated-data:verify`. Incompatible indexes fail explicitly.
+4. **Operational Specification**: Detailed procedures for credential rotation, backup and restore, and failure diagnosis are documented in [docs/generated-data-persistence.md](generated-data-persistence.md).
+

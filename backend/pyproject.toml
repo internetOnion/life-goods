@@ -31,6 +31,9 @@ dev = [
 addopts = "-q"
 pythonpath = ["src"]
 testpaths = ["tests"]
+markers = [
+  "integration: marks tests requiring real services (run with --run-integration or LIFEGOODS_TEST_INTEGRATION=1)",
+]
 
 [tool.ruff]
 line-length = 100

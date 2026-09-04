@@ -46,6 +46,17 @@ Importing or updating snapshots is not part of the new MVP workflow. The existin
 pnpm off:dataset -- import-url
 ```
 
+## Initialize generated translation storage
+
+Initialize the dedicated generated-data MongoDB collections and indexes:
+
+```bash
+pnpm generated-data:init
+pnpm generated-data:verify
+```
+
+Generated translation artifacts, leases, cooldowns, and quarantines persist in `lifegoods_generated` with isolated credentials separate from the read-only Open Food Facts dataset. See [docs/generated-data-persistence.md](docs/generated-data-persistence.md) for architecture, backup, and operational details.
+
 ## Start development servers
 
 Run the backend and frontend in separate terminals:

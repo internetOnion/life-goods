@@ -16,8 +16,11 @@
         "backend:sync": "uv sync --project backend --dev",
         "backend:dev": "uv run --project backend uvicorn lifegoods.main:app --app-dir backend/src --reload",
         "backend:test": "uv run --project backend pytest backend/tests",
+        "backend:test:integration": "uv run --project backend pytest backend/tests --run-integration",
         "backend:lint": "uv run --project backend ruff check backend/src backend/tests backend/scripts",
         "off:dataset": "uv run --project backend python -m lifegoods.open_food_facts.cli --mongo-uri mongodb://lifegoods_writer:lifegoods_writer@localhost:27018/lifegoods_off",
+        "generated-data:init": "uv run --project backend python -m lifegoods.generated_data.cli init",
+        "generated-data:verify": "uv run --project backend python -m lifegoods.generated_data.cli verify",
         "api:generate": "uv run --project backend python backend/scripts/export_openapi.py && pnpm --dir frontend api:generate",
         "api:check": "pnpm api:generate && git diff --exit-code -- frontend/openapi.json frontend/src/api/generated"
     },
