@@ -4,6 +4,11 @@ from enum import StrEnum
 from pydantic import BaseModel, Field
 
 from lifegoods.core.types import JsonValue
+from lifegoods.translation.contracts import (
+    OriginalText,
+    TranslationFieldStatus,
+    TranslationOverallStatus,
+)
 
 
 class ProductLookupDataResponse(BaseModel):
@@ -24,10 +29,31 @@ class DatasetSnapshotResponse(BaseModel):
     retrieved_at: datetime
 
 
+class TranslationMetadataResponse(BaseModel):
+    machine_generated: bool = True
+    provider: str
+    model: str
+    configuration_version: str
+    generated_at: str
+
+
+class TranslationMetaResponse(BaseModel):
+    status: TranslationOverallStatus
+    metadata: TranslationMetadataResponse | None = None
+
+
 class ProductLookupMetaResponse(BaseModel):
     lookup: ProductLookupMetadataResponse
     source: SourceAttributionResponse
     dataset: DatasetSnapshotResponse
+
+
+class ProductProjectionMetaResponse(ProductLookupMetaResponse):
+    translation: TranslationMetaResponse = Field(
+        default_factory=lambda: TranslationMetaResponse(
+            status=TranslationOverallStatus.NOT_REQUESTED
+        )
+    )
 
 
 class ProductLookupResponse(BaseModel):
@@ -38,10 +64,12 @@ class ProductLookupResponse(BaseModel):
 type NutritionAmount = float | int | str
 
 
-class OriginalText(BaseModel):
-    value: str
-    language: str | None = None
-    source_field: str
+
+class TranslatableField(BaseModel):
+    original_texts: list[OriginalText] = Field(default_factory=list)
+    selected_original_text: OriginalText | None = None
+    translation_status: TranslationFieldStatus = TranslationFieldStatus.NOT_REQUESTED
+    khmer_translation: str | None = None
 
 
 class SourceImage(BaseModel):
@@ -55,6 +83,8 @@ class ProductIdentityProjection(BaseModel):
     preferred_name: OriginalText | None = None
     names: list[OriginalText] = Field(default_factory=list)
     generic_names: list[OriginalText] = Field(default_factory=list)
+    name: TranslatableField = Field(default_factory=TranslatableField)
+    generic_name: TranslatableField = Field(default_factory=TranslatableField)
     brands: list[str] = Field(default_factory=list)
     quantity: str | None = None
 
@@ -136,11 +166,13 @@ class ProductProjection(BaseModel):
     identity: ProductIdentityProjection
     front_image: SourceImage | None = None
     ingredients: list[OriginalText] = Field(default_factory=list)
+    ingredients_text: TranslatableField = Field(default_factory=TranslatableField)
     additives: list[str] = Field(default_factory=list)
     storage_instructions: list[OriginalText] = Field(default_factory=list)
     nutrition: NutritionProjection
     assessments: SourceAssessmentsProjection
     categories: list[str] = Field(default_factory=list)
+    categories_text: TranslatableField = Field(default_factory=TranslatableField)
     labels: list[str] = Field(default_factory=list)
     countries: list[str] = Field(default_factory=list)
     packaging: PackagingProjection
@@ -154,7 +186,7 @@ class ProductProjectionData(BaseModel):
 
 class ProductProjectionResponse(BaseModel):
     data: ProductProjectionData
-    meta: ProductLookupMetaResponse
+    meta: ProductProjectionMetaResponse
 
 
 class ProductLookupErrorCode(StrEnum):
@@ -163,6 +195,7 @@ class ProductLookupErrorCode(StrEnum):
     DATASET_UNAVAILABLE = "dataset_unavailable"
     RATE_LIMIT_EXCEEDED = "rate_limit_exceeded"
     INTERNAL_ERROR = "internal_error"
+    UNSUPPORTED_LANGUAGE = "unsupported_language"
 
 
 class ProductLookupErrorDetail(BaseModel):

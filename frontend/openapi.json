@@ -486,12 +486,18 @@
             "title": "Brands",
             "type": "array"
           },
+          "generic_name": {
+            "$ref": "#/components/schemas/TranslatableField"
+          },
           "generic_names": {
             "items": {
               "$ref": "#/components/schemas/OriginalText"
             },
             "title": "Generic Names",
             "type": "array"
+          },
+          "name": {
+            "$ref": "#/components/schemas/TranslatableField"
           },
           "names": {
             "items": {
@@ -547,7 +553,8 @@
           "product_not_found",
           "dataset_unavailable",
           "rate_limit_exceeded",
-          "internal_error"
+          "internal_error",
+          "unsupported_language"
         ],
         "title": "ProductLookupErrorCode",
         "type": "string"
@@ -671,6 +678,9 @@
             "title": "Categories",
             "type": "array"
           },
+          "categories_text": {
+            "$ref": "#/components/schemas/TranslatableField"
+          },
           "countries": {
             "items": {
               "type": "string"
@@ -700,6 +710,9 @@
             },
             "title": "Ingredients",
             "type": "array"
+          },
+          "ingredients_text": {
+            "$ref": "#/components/schemas/TranslatableField"
           },
           "labels": {
             "items": {
@@ -748,13 +761,36 @@
         "title": "ProductProjectionData",
         "type": "object"
       },
+      "ProductProjectionMetaResponse": {
+        "properties": {
+          "dataset": {
+            "$ref": "#/components/schemas/DatasetSnapshotResponse"
+          },
+          "lookup": {
+            "$ref": "#/components/schemas/ProductLookupMetadataResponse"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SourceAttributionResponse"
+          },
+          "translation": {
+            "$ref": "#/components/schemas/TranslationMetaResponse"
+          }
+        },
+        "required": [
+          "lookup",
+          "source",
+          "dataset"
+        ],
+        "title": "ProductProjectionMetaResponse",
+        "type": "object"
+      },
       "ProductProjectionResponse": {
         "properties": {
           "data": {
             "$ref": "#/components/schemas/ProductProjectionData"
           },
           "meta": {
-            "$ref": "#/components/schemas/ProductLookupMetaResponse"
+            "$ref": "#/components/schemas/ProductProjectionMetaResponse"
           }
         },
         "required": [
@@ -965,6 +1001,121 @@
         },
         "title": "SourceRecordMetadataProjection",
         "type": "object"
+      },
+      "TranslatableField": {
+        "properties": {
+          "khmer_translation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Khmer Translation"
+          },
+          "original_texts": {
+            "items": {
+              "$ref": "#/components/schemas/OriginalText"
+            },
+            "title": "Original Texts",
+            "type": "array"
+          },
+          "selected_original_text": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OriginalText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "translation_status": {
+            "$ref": "#/components/schemas/TranslationFieldStatus",
+            "default": "not_requested"
+          }
+        },
+        "title": "TranslatableField",
+        "type": "object"
+      },
+      "TranslationFieldStatus": {
+        "enum": [
+          "not_requested",
+          "source_khmer_available",
+          "generated",
+          "source_data_unavailable",
+          "translation_unavailable"
+        ],
+        "title": "TranslationFieldStatus",
+        "type": "string"
+      },
+      "TranslationMetaResponse": {
+        "properties": {
+          "metadata": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TranslationMetadataResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/TranslationOverallStatus"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "TranslationMetaResponse",
+        "type": "object"
+      },
+      "TranslationMetadataResponse": {
+        "properties": {
+          "configuration_version": {
+            "title": "Configuration Version",
+            "type": "string"
+          },
+          "generated_at": {
+            "title": "Generated At",
+            "type": "string"
+          },
+          "machine_generated": {
+            "default": true,
+            "title": "Machine Generated",
+            "type": "boolean"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "model",
+          "configuration_version",
+          "generated_at"
+        ],
+        "title": "TranslationMetadataResponse",
+        "type": "object"
+      },
+      "TranslationOverallStatus": {
+        "enum": [
+          "not_requested",
+          "not_needed",
+          "complete",
+          "partial",
+          "unavailable"
+        ],
+        "title": "TranslationOverallStatus",
+        "type": "string"
       }
     }
   },
@@ -1166,6 +1317,24 @@
               "description": "GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode.",
               "title": "Barcode",
               "type": "string"
+            }
+          },
+          {
+            "description": "Optional target language for product translation. Currently only 'km' is supported.",
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional target language for product translation. Currently only 'km' is supported.",
+              "title": "Language"
             }
           }
         ],

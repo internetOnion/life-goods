@@ -217,10 +217,12 @@ export type ProductIdentityProjection = {
      * Brands
      */
     brands?: Array<string>;
+    generic_name?: TranslatableField;
     /**
      * Generic Names
      */
     generic_names?: Array<OriginalText>;
+    name?: TranslatableField;
     /**
      * Names
      */
@@ -247,7 +249,7 @@ export type ProductLookupDataResponse = {
 /**
  * ProductLookupErrorCode
  */
-export type ProductLookupErrorCode = 'invalid_barcode' | 'product_not_found' | 'dataset_unavailable' | 'rate_limit_exceeded' | 'internal_error';
+export type ProductLookupErrorCode = 'invalid_barcode' | 'product_not_found' | 'dataset_unavailable' | 'rate_limit_exceeded' | 'internal_error' | 'unsupported_language';
 
 /**
  * ProductLookupErrorDetail
@@ -315,6 +317,7 @@ export type ProductProjection = {
      * Categories
      */
     categories?: Array<string>;
+    categories_text?: TranslatableField;
     /**
      * Countries
      */
@@ -326,6 +329,7 @@ export type ProductProjection = {
      * Ingredients
      */
     ingredients?: Array<OriginalText>;
+    ingredients_text?: TranslatableField;
     /**
      * Labels
      */
@@ -347,11 +351,21 @@ export type ProductProjectionData = {
 };
 
 /**
+ * ProductProjectionMetaResponse
+ */
+export type ProductProjectionMetaResponse = {
+    dataset: DatasetSnapshotResponse;
+    lookup: ProductLookupMetadataResponse;
+    source: SourceAttributionResponse;
+    translation?: TranslationMetaResponse;
+};
+
+/**
  * ProductProjectionResponse
  */
 export type ProductProjectionResponse = {
     data: ProductProjectionData;
-    meta: ProductLookupMetaResponse;
+    meta: ProductProjectionMetaResponse;
 };
 
 /**
@@ -444,6 +458,66 @@ export type SourceRecordMetadataProjection = {
      */
     retrieved_at?: string | null;
 };
+
+/**
+ * TranslatableField
+ */
+export type TranslatableField = {
+    /**
+     * Khmer Translation
+     */
+    khmer_translation?: string | null;
+    /**
+     * Original Texts
+     */
+    original_texts?: Array<OriginalText>;
+    selected_original_text?: OriginalText | null;
+    translation_status?: TranslationFieldStatus;
+};
+
+/**
+ * TranslationFieldStatus
+ */
+export type TranslationFieldStatus = 'not_requested' | 'source_khmer_available' | 'generated' | 'source_data_unavailable' | 'translation_unavailable';
+
+/**
+ * TranslationMetaResponse
+ */
+export type TranslationMetaResponse = {
+    metadata?: TranslationMetadataResponse | null;
+    status: TranslationOverallStatus;
+};
+
+/**
+ * TranslationMetadataResponse
+ */
+export type TranslationMetadataResponse = {
+    /**
+     * Configuration Version
+     */
+    configuration_version: string;
+    /**
+     * Generated At
+     */
+    generated_at: string;
+    /**
+     * Machine Generated
+     */
+    machine_generated?: boolean;
+    /**
+     * Model
+     */
+    model: string;
+    /**
+     * Provider
+     */
+    provider: string;
+};
+
+/**
+ * TranslationOverallStatus
+ */
+export type TranslationOverallStatus = 'not_requested' | 'not_needed' | 'complete' | 'partial' | 'unavailable';
 
 export type GetExperimentalProductData = {
     body?: never;
@@ -543,7 +617,13 @@ export type GetProductData = {
          */
         barcode: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Language
+         * Optional target language for product translation. Currently only 'km' is supported.
+         */
+        language?: string | null;
+    };
     url: '/api/v1/products/{barcode}';
 };
 

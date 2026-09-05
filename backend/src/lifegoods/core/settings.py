@@ -71,5 +71,6 @@ class Settings(BaseSettings):
     generated_translation_poll_interval_seconds: float = (
         DEFAULT_GENERATED_TRANSLATION_POLL_INTERVAL_SECONDS
     )
+    gemini_api_key: str | None = None
 
 

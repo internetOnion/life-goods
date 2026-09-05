@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 import hashlib
 import json
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
-from lifegoods.product_lookup.contracts import ProductProjection
+if TYPE_CHECKING:
+    from lifegoods.product_lookup.contracts import ProductProjection
 from lifegoods.translation.chunking import chunk_ingredients, join_ingredient_chunks
 from lifegoods.translation.contracts import (
     FieldTranslationOutcome,

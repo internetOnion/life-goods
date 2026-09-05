@@ -421,3 +421,49 @@ def test_projects_data_rich_record_directly() -> None:
     assert product.source.data_quality_warnings == [
         "nutrition value very high for category"
     ]
+
+
+def test_projection_populates_translatable_semantic_fields_with_not_requested_status() -> None:
+    complete = {
+        "code": "4006381333931",
+        "product_name": "Dark Chocolate",
+        "product_name_en": "Dark Chocolate",
+        "product_name_km": "សូកូឡាខ្មៅ",
+        "generic_name": "Chocolate Confectionery",
+        "generic_name_en": "Chocolate Confectionery",
+        "ingredients_text": "Cocoa mass, sugar, cocoa butter",
+        "ingredients_text_en": "Cocoa mass, sugar, cocoa butter",
+        "categories": "Chocolate, Snacks",
+        "categories_tags": ["en:chocolate", "en:snacks"],
+        "lang": "en",
+    }
+
+    product = project_source_record(complete, meta=META)
+
+    # 1. Product name
+    assert product.identity.name.translation_status == "not_requested"
+    assert product.identity.name.khmer_translation is None
+    assert product.identity.name.selected_original_text is not None
+    assert product.identity.name.selected_original_text.value == "សូកូឡាខ្មៅ"  # source Khmer preferred
+    assert len(product.identity.name.original_texts) >= 2
+
+    # 2. Generic name
+    assert product.identity.generic_name.translation_status == "not_requested"
+    assert product.identity.generic_name.khmer_translation is None
+    assert product.identity.generic_name.selected_original_text is not None
+    assert product.identity.generic_name.selected_original_text.value == "Chocolate Confectionery"
+
+    # 3. Ingredients text
+    assert product.ingredients_text.translation_status == "not_requested"
+    assert product.ingredients_text.khmer_translation is None
+    assert product.ingredients_text.selected_original_text is not None
+    assert (
+        product.ingredients_text.selected_original_text.value
+        == "Cocoa mass, sugar, cocoa butter"
+    )
+
+    # 4. Categories
+    assert product.categories_text.translation_status == "not_requested"
+    assert product.categories_text.khmer_translation is None
+    assert product.categories_text.selected_original_text is not None
+    assert "Chocolate" in product.categories_text.selected_original_text.value

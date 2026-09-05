@@ -35,6 +35,11 @@ from lifegoods.product_lookup.contracts import (
     SourceAttributionResponse,
     SourceImage,
     SourceRecordMetadataProjection,
+    TranslatableField,
+    TranslationFieldStatus,
+    TranslationMetadataResponse,
+    TranslationMetaResponse,
+    TranslationOverallStatus,
 )
 from lifegoods.product_lookup.metrics import (
     NoOpProductLookupMetrics,
@@ -56,9 +61,14 @@ from lifegoods.product_lookup.router import (
     get_product_lookup,
     get_product_lookup_metrics,
     get_product_lookup_rate_limiter,
+    get_translation_coordinator,
 )
 from lifegoods.product_lookup.router import router as product_lookup_router
-from lifegoods.product_lookup.service import LookupProduct, ProductLookupResult
+from lifegoods.product_lookup.service import (
+    LookupProduct,
+    ProductLookupResult,
+    apply_translation_to_product,
+)
 
 __all__ = [
     "DatasetSnapshot",
@@ -101,9 +111,16 @@ __all__ = [
     "SourceImage",
     "SourceRecord",
     "SourceRecordMetadataProjection",
+    "TranslatableField",
+    "TranslationFieldStatus",
+    "TranslationMetadataResponse",
+    "TranslationMetaResponse",
+    "TranslationOverallStatus",
+    "apply_translation_to_product",
     "get_product_lookup",
     "get_product_lookup_metrics",
     "get_product_lookup_rate_limiter",
+    "get_translation_coordinator",
     "install_product_lookup_access_log_filter",
     "normalize_barcode",
     "product_lookup_cache_key",

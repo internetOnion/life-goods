@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 import logging
 from time import monotonic
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
-from fastapi import APIRouter, Depends, Path, Request
+from fastapi import APIRouter, Depends, Path, Query, Request
 from fastapi.responses import JSONResponse
 
+if TYPE_CHECKING:
+    from lifegoods.generated_data.coordinator import TranslationCoordinator
 from lifegoods.product_lookup.barcode import InvalidBarcodeError
 from lifegoods.product_lookup.contracts import (
     DatasetSnapshotResponse,
@@ -17,8 +21,11 @@ from lifegoods.product_lookup.contracts import (
     ProductLookupMetaResponse,
     ProductLookupResponse,
     ProductProjectionData,
+    ProductProjectionMetaResponse,
     ProductProjectionResponse,
     SourceAttributionResponse,
+    TranslationMetaResponse,
+    TranslationOverallStatus,
 )
 from lifegoods.product_lookup.metrics import ProductLookupMetrics
 from lifegoods.product_lookup.models import DatasetUnavailableError
@@ -39,6 +46,10 @@ def get_product_lookup_rate_limiter() -> ProductLookupRateLimiter:
 
 def get_product_lookup_metrics() -> ProductLookupMetrics:
     raise RuntimeError("Product Lookup metrics dependency is not configured")
+
+
+def get_translation_coordinator() -> TranslationCoordinator:
+    raise RuntimeError("Translation coordinator application dependency is not configured")
 
 
 @router.get(
@@ -69,6 +80,15 @@ def get_product(
         ProductLookupRateLimiter, Depends(get_product_lookup_rate_limiter)
     ],
     metrics: Annotated[ProductLookupMetrics, Depends(get_product_lookup_metrics)],
+    language: Annotated[
+        str | None,
+        Query(
+            description=(
+                "Optional target language for product translation. "
+                "Currently only 'km' is supported."
+            )
+        ),
+    ] = None,
 ) -> ProductProjectionResponse | JSONResponse:
     started_at = monotonic()
     try:
@@ -82,8 +102,16 @@ def get_product(
                 metrics=metrics,
                 headers={"Retry-After": str(retry_after)},
             )
+        if language is not None and language != "km":
+            return _error_response(
+                status_code=422,
+                code=ProductLookupErrorCode.UNSUPPORTED_LANGUAGE,
+                message=f"Language '{language}' is not supported",
+                started_at=started_at,
+                metrics=metrics,
+            )
         try:
-            result = lookup.execute(barcode)
+            result = lookup.execute(barcode, language=language)
         except InvalidBarcodeError:
             return _error_response(
                 status_code=422,
@@ -126,7 +154,7 @@ def get_product(
         )
         return ProductProjectionResponse(
             data=ProductProjectionData(product=result.product),
-            meta=ProductLookupMetaResponse(
+            meta=ProductProjectionMetaResponse(
                 lookup=ProductLookupMetadataResponse(barcode=result.barcode),
                 source=SourceAttributionResponse(
                     name="Open Food Facts",
@@ -135,6 +163,10 @@ def get_product(
                     ),
                 ),
                 dataset=dataset,
+                translation=result.translation
+                or TranslationMetaResponse(
+                    status=TranslationOverallStatus.NOT_REQUESTED
+                ),
             ),
         )
     except Exception as error:

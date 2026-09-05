@@ -1,7 +1,12 @@
-import re
-from typing import NamedTuple
+from __future__ import annotations
 
-from lifegoods.product_lookup.contracts import OriginalText, ProductProjection
+import re
+from typing import TYPE_CHECKING, NamedTuple
+
+from lifegoods.translation.contracts import OriginalText
+
+if TYPE_CHECKING:
+    from lifegoods.product_lookup.contracts import ProductProjection
 
 KHMER_CHAR_REGEX = re.compile(r"[\u1780-\u17FF\u19E0-\u19FF]")
 WORD_CHAR_REGEX = re.compile(r"[\w]", re.UNICODE)

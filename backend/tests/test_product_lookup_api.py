@@ -9,8 +9,15 @@ import httpx2 as httpx
 import mongomock
 import pytest
 from fastapi.testclient import TestClient
-from pymongo.errors import AutoReconnect
+from pymongo.errors import AutoReconnect, PyMongoError
 
+from lifegoods.generated_data.budget import InMemoryTranslationBudgetLimiter
+from lifegoods.generated_data.cache import InMemoryTranslationHotCache
+from lifegoods.generated_data.coordinator import (
+    TranslationCoordinator,
+    result_to_stored_artifact,
+)
+from lifegoods.generated_data.repository import InMemoryGeneratedDataRepository
 from lifegoods.identifiers import normalize_identifier
 from lifegoods.main import create_app
 from lifegoods.open_food_facts import (
@@ -25,15 +32,24 @@ from lifegoods.product_lookup import (
     RedisProductLookupRateLimiter,
     product_lookup_cache_key,
 )
+from lifegoods.product_lookup.contracts import (
+    EnvironmentProjection,
+    NutritionProjection,
+    OriginalText,
+    PackagingProjection,
+    ProductIdentityProjection,
+    ProductProjection,
+    SourceAssessmentsProjection,
+    SourceRecordMetadataProjection,
+)
+from lifegoods.translation.module import KhmerTranslationModule
+from lifegoods.translation.provider import FakeTranslationProvider
 
 FIXTURES = Path(__file__).parent / "fixtures" / "open_food_facts"
 VERSION_ID = "dataset-2026-08-27"
 COLLECTION_NAME = "off_products_dataset_2026_08_27"
 RETRIEVED_AT = datetime(2026, 8, 27, 8, 0, tzinfo=UTC)
 ACTIVATED_AT = datetime(2026, 8, 27, 9, 0, tzinfo=UTC)
-
-
-
 
 
 def _dataset_database():
@@ -55,6 +71,20 @@ def _dataset_database():
     return database
 
 
+def _make_test_coordinator(
+    provider: FakeTranslationProvider | None = None,
+    repository: InMemoryGeneratedDataRepository | None = None,
+    cache: InMemoryTranslationHotCache | None = None,
+    budget: InMemoryTranslationBudgetLimiter | None = None,
+) -> TranslationCoordinator:
+    p = provider or FakeTranslationProvider()
+    m = KhmerTranslationModule(p)
+    repo = repository or InMemoryGeneratedDataRepository()
+    c = cache or InMemoryTranslationHotCache(ttl_seconds=3600)
+    b = budget or InMemoryTranslationBudgetLimiter(requests_per_minute=60)
+    return TranslationCoordinator(m, repo, c, b)
+
+
 def _client(
     database,
     *,
@@ -62,10 +92,12 @@ def _client(
     redis_client=None,
     metrics=None,
     limiter=None,
+    coordinator: TranslationCoordinator | None = None,
     client_address: tuple[str, int] = ("testclient", 50000),
 ) -> TestClient:
     redis_client = redis_client or fakeredis.FakeRedis(decode_responses=True)
     source = OpenFoodFactsDatasetSource(database)
+    coord = coordinator if coordinator is not None else _make_test_coordinator()
     app = create_app(
         product_lookup_source=source,
         product_lookup_cache=RedisProductLookupCache(redis_client, ttl_seconds=3600),
@@ -75,6 +107,7 @@ def _client(
             else RedisProductLookupRateLimiter(redis_client, requests_per_minute)
         ),
         product_lookup_metrics=metrics,
+        translation_coordinator=coord,
     )
     return TestClient(app, client=client_address)
 
@@ -616,6 +649,25 @@ def test_uvicorn_access_log_redacts_product_lookup_path_and_client_address(
     assert "203.0.113.42" not in message_v1
     assert "/api/v1/products/[redacted]" in message_v1
 
+    with (
+        caplog.at_level("INFO", logger=access_logger.name),
+        _client(database),
+    ):
+        access_logger.info(
+            '%s - "%s %s HTTP/%s" %d',
+            "203.0.113.42:50000",
+            "GET",
+            "/api/v1/products/4006381333931?language=km",
+            "1.1",
+            200,
+        )
+
+    message_km = caplog.records[-1].getMessage()
+    assert "4006381333931" not in message_km
+    assert "203.0.113.42" not in message_km
+    assert "/api/v1/products/[redacted]" in message_km
+    assert "language=km" not in message_km
+
 
 def test_v1_product_lookup_returns_stable_product_projection_with_provenance() -> None:
     database = _dataset_database()
@@ -651,6 +703,503 @@ def test_v1_product_lookup_unknown_product_returns_404_error_envelope() -> None:
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "product_not_found"
     assert response.json()["meta"]["dataset"]["version"] == VERSION_ID
+
+
+def test_v1_product_lookup_unsupported_language_returns_422() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one({"code": "4006381333931"})
+
+    with _client(database) as client:
+        response = client.get("/api/v1/products/4006381333931?language=fr")
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "unsupported_language"
+    assert "not supported" in response.json()["error"]["message"]
+
+
+def test_v1_product_lookup_untranslated_includes_not_requested_meta() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one({
+        "code": "4006381333931",
+        "product_name_en": "Dark Chocolate",
+        "generic_name_en": "Chocolate",
+        "ingredients_text_en": "Cocoa mass, sugar",
+        "categories": "Chocolate, Snacks",
+    })
+
+    with _client(database) as client:
+        response = client.get("/api/v1/products/4006381333931")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["translation"]["status"] == "not_requested"
+    assert body["meta"]["translation"]["metadata"] is None
+
+    product = body["data"]["product"]
+    assert product["identity"]["name"]["translation_status"] == "not_requested"
+    assert product["identity"]["name"]["khmer_translation"] is None
+    assert product["identity"]["name"]["selected_original_text"]["value"] == "Dark Chocolate"
+
+    assert product["identity"]["generic_name"]["translation_status"] == "not_requested"
+    assert product["ingredients_text"]["translation_status"] == "not_requested"
+    assert product["categories_text"]["translation_status"] == "not_requested"
+
+
+def test_v1_product_lookup_with_language_km_generates_translation() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one({
+        "code": "4006381333931",
+        "product_name_en": "Dark Chocolate",
+        "generic_name_en": "Chocolate",
+        "ingredients_text_en": "Cocoa mass, sugar",
+        "categories": "Chocolate, Snacks",
+    })
+
+    provider = FakeTranslationProvider()
+    coord = _make_test_coordinator(provider=provider)
+
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=km")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["translation"]["status"] == "complete"
+    assert body["meta"]["translation"]["metadata"]["machine_generated"] is True
+    assert body["meta"]["translation"]["metadata"]["provider"] == "google"
+    assert body["meta"]["translation"]["metadata"]["model"] == "gemini-3.8-flash"
+    assert body["meta"]["translation"]["metadata"]["configuration_version"] == "v1"
+    assert body["meta"]["translation"]["metadata"]["generated_at"] is not None
+
+    # Source attribution remains unchanged
+    assert body["meta"]["source"]["name"] == "Open Food Facts"
+    assert (
+        body["meta"]["source"]["product_url"]
+        == "https://world.openfoodfacts.org/product/4006381333931"
+    )
+    assert body["meta"]["dataset"]["version"] == VERSION_ID
+
+    product = body["data"]["product"]
+    assert product["identity"]["name"]["translation_status"] == "generated"
+    assert product["identity"]["name"]["khmer_translation"] is not None
+    assert product["identity"]["name"]["selected_original_text"]["value"] == "Dark Chocolate"
+
+    assert product["identity"]["generic_name"]["translation_status"] == "generated"
+    assert product["ingredients_text"]["translation_status"] == "generated"
+    assert product["categories_text"]["translation_status"] == "generated"
+    assert provider.call_count == 1
+
+
+def test_v1_product_lookup_source_khmer_not_needed() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one({
+        "code": "4006381333931",
+        "product_name_km": "សូកូឡាខ្មៅ",
+    })
+
+    provider = FakeTranslationProvider()
+    coord = _make_test_coordinator(provider=provider)
+
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=km")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["translation"]["status"] == "not_needed"
+    assert body["meta"]["translation"]["metadata"] is None
+
+    product = body["data"]["product"]
+    assert product["identity"]["name"]["translation_status"] == "source_khmer_available"
+    assert product["identity"]["name"]["khmer_translation"] is None
+    assert product["identity"]["name"]["selected_original_text"]["value"] == "សូកូឡាខ្មៅ"
+    assert provider.call_count == 0
+
+
+def test_v1_product_lookup_cache_hit() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one({
+        "code": "4006381333931",
+        "product_name_en": "Dark Chocolate",
+    })
+
+    provider = FakeTranslationProvider()
+    coord = _make_test_coordinator(provider=provider)
+
+    with _client(database, coordinator=coord) as client:
+        res1 = client.get("/api/v1/products/4006381333931?language=km")
+        assert res1.status_code == 200
+        assert res1.json()["meta"]["translation"]["status"] == "complete"
+        assert provider.call_count == 1
+
+        res2 = client.get("/api/v1/products/4006381333931?language=km")
+        assert res2.status_code == 200
+        assert res2.json()["meta"]["translation"]["status"] == "complete"
+        assert provider.call_count == 1
+
+
+def test_v1_product_lookup_store_hit() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one({
+        "code": "4006381333931",
+        "product_name_en": "Dark Chocolate",
+    })
+
+    repo = InMemoryGeneratedDataRepository()
+    provider1 = FakeTranslationProvider()
+    coord1 = _make_test_coordinator(provider=provider1, repository=repo)
+
+    with _client(database, coordinator=coord1) as client1:
+        res1 = client1.get("/api/v1/products/4006381333931?language=km")
+        assert res1.status_code == 200
+        assert provider1.call_count == 1
+
+    # Second coordinator shares the same repo, but has its own empty cache and new provider
+    provider2 = FakeTranslationProvider()
+    cache2 = InMemoryTranslationHotCache(ttl_seconds=3600)
+    coord2 = _make_test_coordinator(provider=provider2, repository=repo, cache=cache2)
+
+    with _client(database, coordinator=coord2) as client2:
+        res2 = client2.get("/api/v1/products/4006381333931?language=km")
+        assert res2.status_code == 200
+        assert res2.json()["meta"]["translation"]["status"] == "complete"
+        assert provider2.call_count == 0
+
+
+def test_v1_product_lookup_cooldown_returns_200_with_original_text_and_unavailable_status() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one({
+        "code": "4006381333931",
+        "product_name_en": "Dark Chocolate",
+    })
+
+    provider = FakeTranslationProvider(should_fail=True)
+    repo = InMemoryGeneratedDataRepository()
+    coord = _make_test_coordinator(provider=provider, repository=repo)
+
+    with _client(database, coordinator=coord) as client:
+        # First request triggers failure and enters cooldown
+        res1 = client.get("/api/v1/products/4006381333931?language=km")
+        assert res1.status_code == 200
+        body1 = res1.json()
+        assert body1["meta"]["translation"]["status"] == "unavailable"
+        assert body1["meta"]["translation"]["metadata"] is None
+        assert (
+            body1["data"]["product"]["identity"]["name"]["translation_status"]
+            == "translation_unavailable"
+        )
+        assert (
+            body1["data"]["product"]["identity"]["name"]["selected_original_text"]["value"]
+            == "Dark Chocolate"
+        )
+        assert body1["data"]["product"]["identity"]["name"]["khmer_translation"] is None
+
+        # Second request encounters active cooldown, provider is not called again
+        provider.should_fail = False
+        res2 = client.get("/api/v1/products/4006381333931?language=km")
+        assert res2.status_code == 200
+        body2 = res2.json()
+        assert body2["meta"]["translation"]["status"] == "unavailable"
+        assert provider.call_count == 1
+
+
+def test_v1_product_lookup_store_degraded_returns_original_text() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one({
+        "code": "4006381333931",
+        "product_name_en": "Dark Chocolate",
+    })
+
+    class FailingRepo(InMemoryGeneratedDataRepository):
+        def is_quarantined(self, content_hash: str, config_fingerprint: str) -> bool:
+            raise PyMongoError("MongoDB connection failure")
+
+    coord = _make_test_coordinator(repository=FailingRepo())
+
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=km")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["translation"]["status"] == "unavailable"
+    assert body["meta"]["translation"]["metadata"] is None
+    assert (
+        body["data"]["product"]["identity"]["name"]["translation_status"]
+        == "translation_unavailable"
+    )
+    assert (
+        body["data"]["product"]["identity"]["name"]["selected_original_text"]["value"]
+        == "Dark Chocolate"
+    )
+
+
+def test_v1_product_lookup_budget_exhausted_returns_original_text() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one({
+        "code": "4006381333931",
+        "product_name_en": "Dark Chocolate",
+    })
+
+    budget = InMemoryTranslationBudgetLimiter(requests_per_minute=1)
+    acquired, _ = budget.try_acquire()
+    assert acquired is True
+    provider = FakeTranslationProvider()
+    coord = _make_test_coordinator(provider=provider, budget=budget)
+
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=km")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["translation"]["status"] == "unavailable"
+    assert body["meta"]["translation"]["metadata"] is None
+    assert (
+        body["data"]["product"]["identity"]["name"]["translation_status"]
+        == "translation_unavailable"
+    )
+    assert (
+        body["data"]["product"]["identity"]["name"]["selected_original_text"]["value"]
+        == "Dark Chocolate"
+    )
+    assert provider.call_count == 0
+
+
+def test_v1_product_lookup_competing_lease_timeout_returns_200_unavailable() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one({
+        "code": "4006381333931",
+        "product_name_en": "Dark Chocolate",
+    })
+
+    class CompetitorLeaseRepo(InMemoryGeneratedDataRepository):
+        def acquire_lease(
+            self,
+            content_hash: str,
+            config_fingerprint: str,
+            owner_token: str,
+            ttl_seconds: float,
+        ) -> bool:
+            return False
+
+    provider = FakeTranslationProvider()
+    module = KhmerTranslationModule(provider)
+    repo = CompetitorLeaseRepo()
+    cache = InMemoryTranslationHotCache(ttl_seconds=3600)
+    budget = InMemoryTranslationBudgetLimiter(requests_per_minute=60)
+
+    clock = [0.0]
+
+    def advancing_clock() -> float:
+        clock[0] += 10.0
+        return clock[0]
+
+    coord = TranslationCoordinator(
+        module,
+        repo,
+        cache,
+        budget,
+        monotonic=advancing_clock,
+    )
+
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=km")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["translation"]["status"] == "unavailable"
+    assert (
+        body["data"]["product"]["identity"]["name"]["translation_status"]
+        == "translation_unavailable"
+    )
+    assert (
+        body["data"]["product"]["identity"]["name"]["selected_original_text"]["value"]
+        == "Dark Chocolate"
+    )
+    assert provider.call_count == 0
+
+
+def test_v1_product_lookup_partial_failure_returns_200_with_partial_status() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one({
+        "code": "4006381333931",
+        "product_name_en": "Dark Chocolate",
+        "ingredients_text_en": "Cocoa mass, sugar",
+    })
+
+    provider = FakeTranslationProvider(
+        canned_translations={"ingredients_text": ""}
+    )
+    coord = _make_test_coordinator(provider=provider)
+
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=km")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["translation"]["status"] == "partial"
+    assert body["meta"]["translation"]["metadata"] is not None
+    assert body["meta"]["translation"]["metadata"]["machine_generated"] is True
+
+    product = body["data"]["product"]
+    assert product["identity"]["name"]["translation_status"] == "generated"
+    assert product["identity"]["name"]["khmer_translation"] is not None
+
+    assert product["ingredients_text"]["translation_status"] == "translation_unavailable"
+    assert product["ingredients_text"]["khmer_translation"] is None
+
+
+def test_v1_product_lookup_privacy_metrics_exclude_identifying_data() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one({
+        "code": "4006381333931",
+        "product_name_en": "Secret Chocolate",
+    })
+
+    metrics = RecordingMetrics()
+    provider = FakeTranslationProvider()
+    coord = _make_test_coordinator(provider=provider)
+
+    with _client(database, metrics=metrics, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=km")
+
+    assert response.status_code == 200
+    metrics_str = str(metrics.events)
+    assert "4006381333931" not in metrics_str
+    assert "Secret Chocolate" not in metrics_str
+    assert "testclient" not in metrics_str
+    assert "ការបកប្រែ" not in metrics_str
+
+
+def test_v1_product_lookup_competing_lease_wait_success() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one({
+        "code": "4006381333931",
+        "product_name_en": "Dark Chocolate",
+    })
+
+    sample_prod = ProductProjection(
+        identity=ProductIdentityProjection(
+            names=[
+                OriginalText(
+                    value="Dark Chocolate",
+                    source_field="product_name_en",
+                    language="en",
+                )
+            ]
+        ),
+        nutrition=NutritionProjection(),
+        assessments=SourceAssessmentsProjection(),
+        packaging=PackagingProjection(),
+        environment=EnvironmentProjection(),
+        source=SourceRecordMetadataProjection(),
+    )
+    competitor_provider = FakeTranslationProvider()
+    comp_result = KhmerTranslationModule(competitor_provider).translate_product(
+        sample_prod, target_language="km"
+    )
+    stored_artifact = result_to_stored_artifact(comp_result)
+
+    class CompetitorYieldingRepo(InMemoryGeneratedDataRepository):
+        def acquire_lease(
+            self,
+            content_hash: str,
+            config_fingerprint: str,
+            owner_token: str,
+            ttl_seconds: float,
+        ) -> bool:
+            self.save_artifact(stored_artifact)
+            return False
+
+    provider = FakeTranslationProvider()
+    module = KhmerTranslationModule(provider)
+    cache = InMemoryTranslationHotCache(ttl_seconds=3600)
+    budget = InMemoryTranslationBudgetLimiter(requests_per_minute=60)
+    coord = TranslationCoordinator(
+        module,
+        CompetitorYieldingRepo(),
+        cache,
+        budget,
+        poll_interval_seconds=0.01,
+        fallback_seconds=1.0,
+    )
+
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=km")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["translation"]["status"] == "complete"
+    assert (
+        body["data"]["product"]["identity"]["name"]["translation_status"]
+        == "generated"
+    )
+    assert provider.call_count == 0
+
+
+def test_v1_product_lookup_empty_fields_source_data_unavailable() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one({
+        "code": "4006381333931",
+    })
+
+    provider = FakeTranslationProvider()
+    coord = _make_test_coordinator(provider=provider)
+
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=km")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["translation"]["status"] == "not_needed"
+    product = body["data"]["product"]
+    assert product["identity"]["name"]["translation_status"] == "source_data_unavailable"
+    assert product["identity"]["generic_name"]["translation_status"] == "source_data_unavailable"
+    assert product["ingredients_text"]["translation_status"] == "source_data_unavailable"
+    assert product["categories_text"]["translation_status"] == "source_data_unavailable"
+    assert provider.call_count == 0
+
+
+def test_v1_product_lookup_coordinator_failure_marks_fields_unavailable() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one({
+        "code": "4006381333931",
+        "product_name_en": "Dark Chocolate",
+    })
+
+    class CrashingCoordinator:
+        def get_or_generate_translation(self, *args, **kwargs):
+            raise RuntimeError("Unexpected coordinator crash")
+
+    with _client(database, coordinator=CrashingCoordinator()) as client:  # type: ignore
+        response = client.get("/api/v1/products/4006381333931?language=km")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["translation"]["status"] == "unavailable"
+    product = body["data"]["product"]
+    assert product["identity"]["name"]["translation_status"] == "translation_unavailable"
+    assert product["identity"]["name"]["selected_original_text"]["value"] == "Dark Chocolate"
+
+
+def test_v1_product_lookup_khmer_categories_detected_as_source_khmer() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one({
+        "code": "4006381333931",
+        "categories": "នំស្រួយ, អាហារសម្រន់",
+        "lang": "en",
+    })
+
+    provider = FakeTranslationProvider()
+    coord = _make_test_coordinator(provider=provider)
+
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=km")
+
+    assert response.status_code == 200
+    body = response.json()
+    product = body["data"]["product"]
+    assert product["categories_text"]["translation_status"] == "source_khmer_available"
+    assert product["categories_text"]["selected_original_text"]["language"] == "km"
+    assert product["categories_text"]["khmer_translation"] is None
+
 
 
 @pytest.mark.parametrize(

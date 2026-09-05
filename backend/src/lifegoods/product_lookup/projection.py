@@ -20,6 +20,13 @@ from lifegoods.product_lookup.contracts import (
     SourceAssessmentsProjection,
     SourceImage,
     SourceRecordMetadataProjection,
+    TranslatableField,
+    TranslationFieldStatus,
+)
+from lifegoods.translation.selection import (
+    FieldSelection,
+    is_predominantly_khmer_script,
+    select_field_original_text,
 )
 
 NUTRITION_NUTRIENTS: tuple[tuple[str, str], ...] = (
@@ -590,6 +597,51 @@ def project_source_record(
         for t in _list_values(record, "packaging_recycling", "packaging_recycling_tags")
     )
 
+    def _to_translatable_field(selection: FieldSelection) -> TranslatableField:
+        return TranslatableField(
+            original_texts=selection.all_texts,
+            selected_original_text=selection.selected_text,
+            translation_status=TranslationFieldStatus.NOT_REQUESTED,
+            khmer_translation=None,
+        )
+
+    name_sel = select_field_original_text(names, record_language=record_language)
+    name_field = _to_translatable_field(name_sel)
+
+    generic_sel = select_field_original_text(
+        generic_names, record_language=record_language
+    )
+    generic_field = _to_translatable_field(generic_sel)
+
+    ingredients_texts = _original_texts(record, "ingredients_text", record_language)
+    ingredients_sel = select_field_original_text(
+        ingredients_texts, record_language=record_language
+    )
+    ingredients_field = _to_translatable_field(ingredients_sel)
+
+    categories_list = _list_values(record, "categories", "categories_tags")
+    categories_texts: list[OriginalText] = []
+    if categories_list:
+        non_empty = [c.strip() for c in categories_list if c and c.strip()]
+        if non_empty:
+            cat_text = ", ".join(non_empty)
+            cat_lang = (
+                "km"
+                if is_predominantly_khmer_script(cat_text)
+                else (record_language or "und")
+            )
+            categories_texts.append(
+                OriginalText(
+                    value=cat_text,
+                    language=cat_lang,
+                    source_field="categories",
+                )
+            )
+    categories_sel = select_field_original_text(
+        categories_texts, record_language=record_language
+    )
+    categories_field = _to_translatable_field(categories_sel)
+
     completeness_raw = record.get("completeness")
     completeness = (
         float(completeness_raw)
@@ -607,11 +659,14 @@ def project_source_record(
             preferred_name=preferred_name,
             names=names,
             generic_names=generic_names,
+            name=name_field,
+            generic_name=generic_field,
             brands=_list_values(record, "brands", "brands_tags"),
             quantity=_text_value(record.get("quantity")),
         ),
         front_image=_extract_front_image(record, barcode, record_language),
-        ingredients=_original_texts(record, "ingredients_text", record_language),
+        ingredients=ingredients_texts,
+        ingredients_text=ingredients_field,
         additives=_list_values(record, "additives", "additives_tags"),
         storage_instructions=_merge_original_texts(
             _original_texts(record, "conservation_conditions", record_language),
@@ -619,7 +674,8 @@ def project_source_record(
         ),
         nutrition=_extract_nutrition(record),
         assessments=_extract_assessments(record),
-        categories=_list_values(record, "categories", "categories_tags"),
+        categories=categories_list,
+        categories_text=categories_field,
         labels=_list_values(record, "labels", "labels_tags"),
         countries=_list_values(record, "countries", "countries_tags"),
         packaging=PackagingProjection(

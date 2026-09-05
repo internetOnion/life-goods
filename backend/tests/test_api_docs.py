@@ -78,6 +78,7 @@ def test_experimental_product_lookup_is_typed_in_openapi(client: TestClient) -> 
         "dataset_unavailable",
         "rate_limit_exceeded",
         "internal_error",
+        "unsupported_language",
     ]
     source_record = schemas["ProductLookupDataResponse"]["properties"][
         "source_record"
@@ -105,7 +106,27 @@ def test_stable_product_lookup_is_typed_in_openapi(client: TestClient) -> None:
                 "title": "Barcode",
             },
             "description": "GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode.",
-        }
+        },
+        {
+            "name": "language",
+            "in": "query",
+            "required": False,
+            "schema": {
+                "anyOf": [
+                    {"type": "string"},
+                    {"type": "null"},
+                ],
+                "description": (
+                    "Optional target language for product translation. "
+                    "Currently only 'km' is supported."
+                ),
+                "title": "Language",
+            },
+            "description": (
+                "Optional target language for product translation. "
+                "Currently only 'km' is supported."
+            ),
+        },
     ]
     assert set(operation["responses"]) == {"200", "404", "422", "429", "500", "503"}
     assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
@@ -120,3 +141,5 @@ def test_stable_product_lookup_is_typed_in_openapi(client: TestClient) -> None:
     assert "ProductProjectionResponse" in schemas
     assert "ProductProjection" in schemas
     assert "ProductIdentityProjection" in schemas
+    assert "TranslatableField" in schemas
+    assert "TranslationMetaResponse" in schemas

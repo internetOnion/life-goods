@@ -11,6 +11,10 @@ from scalar_fastapi import get_scalar_api_reference
 
 from lifegoods.core.errors import ErrorCode, ErrorDetail, ErrorEnvelope
 from lifegoods.core.settings import Settings
+from lifegoods.generated_data.budget import RedisTranslationBudgetLimiter
+from lifegoods.generated_data.cache import RedisTranslationHotCache
+from lifegoods.generated_data.coordinator import TranslationCoordinator
+from lifegoods.generated_data.repository import MongoGeneratedDataRepository
 from lifegoods.identifiers import InvalidIdentifierError
 from lifegoods.open_food_facts import (
     ExternalImageSource,
@@ -32,9 +36,16 @@ from lifegoods.product_lookup import (
     get_product_lookup,
     get_product_lookup_metrics,
     get_product_lookup_rate_limiter,
+    get_translation_coordinator,
     install_product_lookup_access_log_filter,
     product_lookup_router,
 )
+from lifegoods.translation.gemini import GeminiTranslationAdapter
+from lifegoods.translation.module import (
+    PRODUCTION_MODEL,
+    KhmerTranslationModule,
+)
+from lifegoods.translation.provider import FakeTranslationProvider, TranslationProvider
 
 ERROR_MESSAGES: dict[ErrorCode, str] = {
     ErrorCode.IDENTIFIER_REQUIRED: "An identifier is required.",
@@ -56,6 +67,7 @@ def create_app(
     product_lookup_cache: ProductLookupCache | None = None,
     product_lookup_limiter: ProductLookupRateLimiter | None = None,
     product_lookup_metrics: ProductLookupMetrics | None = None,
+    translation_coordinator: TranslationCoordinator | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings()
     install_product_lookup_access_log_filter()
@@ -71,6 +83,7 @@ def create_app(
             resolved_settings.product_lookup_cache_enabled
             and product_lookup_cache is None
         )
+        or translation_coordinator is None
     )
 
     if needs_shared_redis:
@@ -149,17 +162,59 @@ def create_app(
             title=f"{app.title} - Scalar Reference",
         )
 
-    for owned_http_client in owned_http_clients:
-        app.router.add_event_handler("shutdown", owned_http_client.close)
-    for owned_mongo_client in owned_mongo_clients:
-        app.router.add_event_handler("shutdown", owned_mongo_client.close)
-    for owned_redis_client in owned_redis_clients:
-        app.router.add_event_handler("shutdown", owned_redis_client.close)
+
+    if translation_coordinator is not None:
+        resolved_translation_coordinator = translation_coordinator
+    else:
+        assert shared_redis_client is not None
+        generated_mongo_client: MongoClient[dict[str, Any]] = MongoClient(
+            resolved_settings.generated_mongodb_uri,
+            serverSelectionTimeoutMS=resolved_settings.generated_mongodb_timeout_ms,
+        )
+        owned_mongo_clients.append(generated_mongo_client)
+        generated_repository = MongoGeneratedDataRepository(
+            generated_mongo_client[resolved_settings.generated_mongodb_database]
+        )
+
+        provider: TranslationProvider
+        if resolved_settings.gemini_api_key:
+            gemini_http_client = httpx.Client()
+            owned_http_clients.append(gemini_http_client)
+            provider = GeminiTranslationAdapter(
+                resolved_settings.gemini_api_key,
+                model=PRODUCTION_MODEL,
+                http_client=gemini_http_client,
+            )
+        else:
+            provider = FakeTranslationProvider()
+
+        translation_module = KhmerTranslationModule(provider=provider)
+        translation_cache = RedisTranslationHotCache(
+            shared_redis_client,
+            ttl_seconds=resolved_settings.generated_translation_cache_ttl_seconds,
+        )
+        translation_budget = RedisTranslationBudgetLimiter(
+            shared_redis_client,
+            requests_per_minute=resolved_settings.generated_translation_budget_per_minute,
+        )
+        resolved_translation_coordinator = TranslationCoordinator(
+            module=translation_module,
+            repository=generated_repository,
+            cache=translation_cache,
+            budget=translation_budget,
+            lease_ttl_seconds=resolved_settings.generated_translation_lease_ttl_seconds,
+            cooldown_seconds=resolved_settings.generated_translation_cooldown_seconds,
+            poll_interval_seconds=resolved_settings.generated_translation_poll_interval_seconds,
+        )
 
     app.dependency_overrides[get_image_source] = lambda: resolved_image_source
+    app.dependency_overrides[get_translation_coordinator] = (
+        lambda: resolved_translation_coordinator
+    )
     app.dependency_overrides[get_product_lookup] = lambda: LookupProduct(
         resolved_product_lookup_source,
         resolved_product_lookup_cache,
+        coordinator=resolved_translation_coordinator,
     )
     app.dependency_overrides[get_product_lookup_rate_limiter] = (
         lambda: resolved_product_lookup_limiter
@@ -191,6 +246,13 @@ def create_app(
             )
         )
         return JSONResponse(status_code=422, content=envelope.model_dump())
+
+    for owned_http_client in owned_http_clients:
+        app.router.add_event_handler("shutdown", owned_http_client.close)
+    for owned_mongo_client in owned_mongo_clients:
+        app.router.add_event_handler("shutdown", owned_mongo_client.close)
+    for owned_redis_client in owned_redis_clients:
+        app.router.add_event_handler("shutdown", owned_redis_client.close)
 
     return app
 

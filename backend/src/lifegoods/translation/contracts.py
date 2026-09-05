@@ -2,7 +2,11 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-from lifegoods.product_lookup.contracts import OriginalText
+
+class OriginalText(BaseModel):
+    value: str
+    language: str | None = None
+    source_field: str
 
 
 class TranslationFieldStatus(StrEnum):
@@ -19,6 +23,7 @@ class TranslationOverallStatus(StrEnum):
     COMPLETE = "complete"
     PARTIAL = "partial"
     UNAVAILABLE = "unavailable"
+
 
 
 class FieldTranslationOutcome(BaseModel):
