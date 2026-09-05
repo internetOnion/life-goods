@@ -6,7 +6,7 @@ from typing import Protocol
 class ProviderTranslationRequest:
     fields: dict[str, str]
     brands: list[str] = field(default_factory=list)
-    target_language: str = "km"
+    target_language: str = "kh"
 
 
 @dataclass(frozen=True)

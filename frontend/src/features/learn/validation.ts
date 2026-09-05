@@ -4,7 +4,7 @@ import { LEARN_SOURCES } from "./sources"
 import type { LocalizedText } from "./types"
 
 function hasBothLanguages(value: LocalizedText) {
-    return value.km.trim().length > 0 && value.en.trim().length > 0
+    return value.kh.trim().length > 0 && value.en.trim().length > 0
 }
 
 function duplicates(values: string[]) {

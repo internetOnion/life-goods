@@ -118,13 +118,13 @@ def test_stable_product_lookup_is_typed_in_openapi(client: TestClient) -> None:
                 ],
                 "description": (
                     "Optional target language for product translation. "
-                    "Currently only 'km' is supported."
+                    "Currently only 'kh' is supported."
                 ),
                 "title": "Language",
             },
             "description": (
                 "Optional target language for product translation. "
-                "Currently only 'km' is supported."
+                "Currently only 'kh' is supported."
             ),
         },
     ]

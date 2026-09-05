@@ -312,7 +312,7 @@ describe("Learn source content and Allergies demos", () => {
 
     test("renders and searches the sourced content in Khmer", async () => {
         const user = userEvent.setup()
-        await i18n.changeLanguage("km")
+        await i18n.changeLanguage("kh")
         renderRoute("/learn", false)
 
         expect(screen.getByRole("heading", { name: "ស្វែងយល់" })).toBeVisible()

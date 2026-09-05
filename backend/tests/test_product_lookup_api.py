@@ -657,16 +657,16 @@ def test_uvicorn_access_log_redacts_product_lookup_path_and_client_address(
             '%s - "%s %s HTTP/%s" %d',
             "203.0.113.42:50000",
             "GET",
-            "/api/v1/products/4006381333931?language=km",
+            "/api/v1/products/4006381333931?language=kh",
             "1.1",
             200,
         )
 
-    message_km = caplog.records[-1].getMessage()
-    assert "4006381333931" not in message_km
-    assert "203.0.113.42" not in message_km
-    assert "/api/v1/products/[redacted]" in message_km
-    assert "language=km" not in message_km
+    message_kh = caplog.records[-1].getMessage()
+    assert "4006381333931" not in message_kh
+    assert "203.0.113.42" not in message_kh
+    assert "/api/v1/products/[redacted]" in message_kh
+    assert "language=kh" not in message_kh
 
 
 def test_v1_product_lookup_returns_stable_product_projection_with_provenance() -> None:
@@ -711,10 +711,13 @@ def test_v1_product_lookup_unsupported_language_returns_422() -> None:
 
     with _client(database) as client:
         response = client.get("/api/v1/products/4006381333931?language=fr")
+        assert response.status_code == 422
+        assert response.json()["error"]["code"] == "unsupported_language"
+        assert "not supported" in response.json()["error"]["message"]
 
-    assert response.status_code == 422
-    assert response.json()["error"]["code"] == "unsupported_language"
-    assert "not supported" in response.json()["error"]["message"]
+        response_km = client.get("/api/v1/products/4006381333931?language=km")
+        assert response_km.status_code == 422
+        assert response_km.json()["error"]["code"] == "unsupported_language"
 
 
 def test_v1_product_lookup_untranslated_includes_not_requested_meta() -> None:
@@ -745,7 +748,7 @@ def test_v1_product_lookup_untranslated_includes_not_requested_meta() -> None:
     assert product["categories_text"]["translation_status"] == "not_requested"
 
 
-def test_v1_product_lookup_with_language_km_generates_translation() -> None:
+def test_v1_product_lookup_with_language_kh_generates_translation() -> None:
     database = _dataset_database()
     database[COLLECTION_NAME].insert_one({
         "code": "4006381333931",
@@ -759,7 +762,7 @@ def test_v1_product_lookup_with_language_km_generates_translation() -> None:
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=km")
+        response = client.get("/api/v1/products/4006381333931?language=kh")
 
     assert response.status_code == 200
     body = response.json()
@@ -800,7 +803,7 @@ def test_v1_product_lookup_source_khmer_not_needed() -> None:
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=km")
+        response = client.get("/api/v1/products/4006381333931?language=kh")
 
     assert response.status_code == 200
     body = response.json()
@@ -825,12 +828,12 @@ def test_v1_product_lookup_cache_hit() -> None:
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        res1 = client.get("/api/v1/products/4006381333931?language=km")
+        res1 = client.get("/api/v1/products/4006381333931?language=kh")
         assert res1.status_code == 200
         assert res1.json()["meta"]["translation"]["status"] == "complete"
         assert provider.call_count == 1
 
-        res2 = client.get("/api/v1/products/4006381333931?language=km")
+        res2 = client.get("/api/v1/products/4006381333931?language=kh")
         assert res2.status_code == 200
         assert res2.json()["meta"]["translation"]["status"] == "complete"
         assert provider.call_count == 1
@@ -848,7 +851,7 @@ def test_v1_product_lookup_store_hit() -> None:
     coord1 = _make_test_coordinator(provider=provider1, repository=repo)
 
     with _client(database, coordinator=coord1) as client1:
-        res1 = client1.get("/api/v1/products/4006381333931?language=km")
+        res1 = client1.get("/api/v1/products/4006381333931?language=kh")
         assert res1.status_code == 200
         assert provider1.call_count == 1
 
@@ -858,7 +861,7 @@ def test_v1_product_lookup_store_hit() -> None:
     coord2 = _make_test_coordinator(provider=provider2, repository=repo, cache=cache2)
 
     with _client(database, coordinator=coord2) as client2:
-        res2 = client2.get("/api/v1/products/4006381333931?language=km")
+        res2 = client2.get("/api/v1/products/4006381333931?language=kh")
         assert res2.status_code == 200
         assert res2.json()["meta"]["translation"]["status"] == "complete"
         assert provider2.call_count == 0
@@ -877,7 +880,7 @@ def test_v1_product_lookup_cooldown_returns_200_with_original_text_and_unavailab
 
     with _client(database, coordinator=coord) as client:
         # First request triggers failure and enters cooldown
-        res1 = client.get("/api/v1/products/4006381333931?language=km")
+        res1 = client.get("/api/v1/products/4006381333931?language=kh")
         assert res1.status_code == 200
         body1 = res1.json()
         assert body1["meta"]["translation"]["status"] == "unavailable"
@@ -894,7 +897,7 @@ def test_v1_product_lookup_cooldown_returns_200_with_original_text_and_unavailab
 
         # Second request encounters active cooldown, provider is not called again
         provider.should_fail = False
-        res2 = client.get("/api/v1/products/4006381333931?language=km")
+        res2 = client.get("/api/v1/products/4006381333931?language=kh")
         assert res2.status_code == 200
         body2 = res2.json()
         assert body2["meta"]["translation"]["status"] == "unavailable"
@@ -915,7 +918,7 @@ def test_v1_product_lookup_store_degraded_returns_original_text() -> None:
     coord = _make_test_coordinator(repository=FailingRepo())
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=km")
+        response = client.get("/api/v1/products/4006381333931?language=kh")
 
     assert response.status_code == 200
     body = response.json()
@@ -945,7 +948,7 @@ def test_v1_product_lookup_budget_exhausted_returns_original_text() -> None:
     coord = _make_test_coordinator(provider=provider, budget=budget)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=km")
+        response = client.get("/api/v1/products/4006381333931?language=kh")
 
     assert response.status_code == 200
     body = response.json()
@@ -1000,7 +1003,7 @@ def test_v1_product_lookup_competing_lease_timeout_returns_200_unavailable() -> 
     )
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=km")
+        response = client.get("/api/v1/products/4006381333931?language=kh")
 
     assert response.status_code == 200
     body = response.json()
@@ -1030,7 +1033,7 @@ def test_v1_product_lookup_partial_failure_returns_200_with_partial_status() -> 
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=km")
+        response = client.get("/api/v1/products/4006381333931?language=kh")
 
     assert response.status_code == 200
     body = response.json()
@@ -1058,7 +1061,7 @@ def test_v1_product_lookup_privacy_metrics_exclude_identifying_data() -> None:
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, metrics=metrics, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=km")
+        response = client.get("/api/v1/products/4006381333931?language=kh")
 
     assert response.status_code == 200
     metrics_str = str(metrics.events)
@@ -1093,7 +1096,7 @@ def test_v1_product_lookup_competing_lease_wait_success() -> None:
     )
     competitor_provider = FakeTranslationProvider()
     comp_result = KhmerTranslationModule(competitor_provider).translate_product(
-        sample_prod, target_language="km"
+        sample_prod, target_language="kh"
     )
     stored_artifact = result_to_stored_artifact(comp_result)
 
@@ -1122,7 +1125,7 @@ def test_v1_product_lookup_competing_lease_wait_success() -> None:
     )
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=km")
+        response = client.get("/api/v1/products/4006381333931?language=kh")
 
     assert response.status_code == 200
     body = response.json()
@@ -1144,7 +1147,7 @@ def test_v1_product_lookup_empty_fields_source_data_unavailable() -> None:
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=km")
+        response = client.get("/api/v1/products/4006381333931?language=kh")
 
     assert response.status_code == 200
     body = response.json()
@@ -1169,7 +1172,7 @@ def test_v1_product_lookup_coordinator_failure_marks_fields_unavailable() -> Non
             raise RuntimeError("Unexpected coordinator crash")
 
     with _client(database, coordinator=CrashingCoordinator()) as client:  # type: ignore
-        response = client.get("/api/v1/products/4006381333931?language=km")
+        response = client.get("/api/v1/products/4006381333931?language=kh")
 
     assert response.status_code == 200
     body = response.json()
@@ -1191,13 +1194,13 @@ def test_v1_product_lookup_khmer_categories_detected_as_source_khmer() -> None:
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=km")
+        response = client.get("/api/v1/products/4006381333931?language=kh")
 
     assert response.status_code == 200
     body = response.json()
     product = body["data"]["product"]
     assert product["categories_text"]["translation_status"] == "source_khmer_available"
-    assert product["categories_text"]["selected_original_text"]["language"] == "km"
+    assert product["categories_text"]["selected_original_text"]["language"] == "kh"
     assert product["categories_text"]["khmer_translation"] is None
 
 

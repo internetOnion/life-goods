@@ -241,7 +241,7 @@ The translation domain is encapsulated behind the deep `KhmerTranslationModule` 
 1. **Eligible Fields & Selection**:
    - Translations are generated strictly for `product_name`, `generic_name`, `ingredients_text`, and human-readable `categories`.
    - Localized Original Text values are preserved with source field and language.
-   - Deterministic preference order: Source-provided Khmer (`km`), declared record language, English (`en`), and deterministic localized fallback.
+   - Deterministic preference order: Source-provided Khmer (`kh`, normalizing `km`), declared record language, English (`en`), and deterministic localized fallback.
    - Conservative Khmer Unicode script recognition preserves `und` when language metadata is absent without claiming authoritative language tags.
    - Source-provided Khmer yields `source_khmer_available` and missing fields yield `source_data_unavailable` without invoking the provider.
 
@@ -288,5 +288,33 @@ Durable translation storage and multi-instance concurrency are coordinated throu
 
 6. **Operator CLI Observability**:
    - The operator CLI (`pnpm generated-data:status`) inspects aggregate counts (artifacts, active leases, cooldowns, quarantines) and database health without printing Product text or Shopper data.
+
+## 17. Stable Product Lookup with integrated Khmer Translation (Issue #89)
+
+The stable Product Lookup endpoint integrates optional on-demand Khmer Translation co-located with semantic fields:
+
+1. **Request & Contract**:
+   - `GET /api/v1/products/{barcode}?language=kh`
+   - Requests without `language=kh` return the stable Product projection and Original Text without generating translation (`meta.translation.status="not_requested"`).
+   - The platform standardizes on `kh` as the Khmer language code while normalizing legacy or source `km` tags. Any other unsupported language parameter value returns HTTP 422 with stable error code `unsupported_language`.
+   - The experimental endpoint `/api/experimental/products/{barcode}` remains functional but is formally deprecated in OpenAPI documentation.
+
+2. **Field-Level Co-Location**:
+   - Semantic fields eligible for translation (`identity.name`, `identity.generic_name`, `ingredients_text`, `categories_text`) carry individual translation states: `not_requested`, `source_khmer_available`, `generated`, `source_data_unavailable`, or `translation_unavailable`.
+   - When translation is generated, `khmer_translation` holds the translated string alongside `original_texts` and `selected_original_text`.
+   - Source-provided Khmer is treated as `OriginalText` (`source_khmer_available`) and never receives machine-generated metadata. Empty fields yield `source_data_unavailable` without invoking generation.
+
+3. **Top-Level Translation Provenance**:
+   - The top-level response envelope includes `meta.translation` with statuses: `not_requested`, `not_needed`, `complete`, `partial`, and `unavailable`.
+   - Machine-generated metadata (`provider`, `model`, `configuration_version`, `generated_at`) is populated only when translation is generated.
+   - Source Attribution (`meta.source` and `meta.dataset`) remains unchanged between translated and untranslated requests.
+
+4. **Graceful Degradation & Availability**:
+   - Translation failures, validation errors, database degradation, cooldown periods, lease timeouts, and generation-budget exhaustion return HTTP 200 with complete Original Text whenever the Product exists in the Dataset Snapshot.
+   - Core Product Lookup errors remain distinct: invalid Barcode (422), missing Product (404), unavailable Dataset Snapshot (503), Shopper-facing rate limit (429), and internal server error (500).
+
+5. **Operational Privacy & Independent Limiting**:
+   - Per-IP Shopper Product Lookup rate limiting (fail-open) and project-wide translation generation budgeting (fail-closed) operate completely independently.
+   - Access logs and metrics strictly exclude Barcode, IP address, Original Text, Khmer Translation, translation prompts, and raw provider payloads.
 
 

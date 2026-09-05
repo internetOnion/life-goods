@@ -56,7 +56,7 @@ const LEGACY_ENTRY_ALIASES = new Map([
 ])
 
 function currentLocale(language: string | undefined): LearnLocale {
-    return language === "en" ? "en" : "km"
+    return language === "en" ? "en" : "kh"
 }
 
 function localized(value: LocalizedText | undefined, locale: LearnLocale) {
@@ -450,7 +450,7 @@ function LearnIndexPage({ locale }: LearnIndexPageProps) {
                                         </div>
                                         <span className="text-muted-foreground shrink-0 text-xs leading-relaxed tabular-nums">
                                             {categoryEntryCount}{" "}
-                                            {locale === "km"
+                                            {locale === "kh"
                                                 ? "មេរៀន"
                                                 : "lessons"}
                                         </span>
@@ -563,9 +563,9 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
     const matchedEntry = KNOWLEDGE_ENTRIES.find((item) => item.slug === slug)
     const entry =
         matchedEntry?.kind === "sourced" || demoMode ? matchedEntry : undefined
-    const contentLocale = entry && entry.title.km ? locale : "en"
+    const contentLocale = entry && entry.title.kh ? locale : "en"
     const hasLanguageFallback = Boolean(
-        entry && locale === "km" && !entry.title.km,
+        entry && locale === "kh" && !entry.title.kh,
     )
     usePageMetadata({
         title:
@@ -1414,7 +1414,7 @@ function LearnGuideTile({
                 </span>
                 <span className="text-primary mt-3 block text-xs leading-relaxed font-bold">
                     {guide.entryIds.length}{" "}
-                    {locale === "km" ? "មេរៀន" : "lessons"}
+                    {locale === "kh" ? "មេរៀន" : "lessons"}
                 </span>
             </span>
         </Link>

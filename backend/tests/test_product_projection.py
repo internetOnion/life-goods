@@ -92,7 +92,7 @@ def test_projects_complete_source_record_without_inference() -> None:
         ),
         OriginalText(
             value="ម៉ាសកាកាវ ស្ករ ប៊ឺកាកាវ",
-            language="km",
+            language="kh",
             source_field="ingredients_text_km",
         ),
     ]
@@ -235,7 +235,7 @@ def test_keeps_multilingual_names_and_ingredients_distinct() -> None:
     assert [(name.value, name.language) for name in product.identity.names] == [
         ("Pâte à tartiner", "fr"),
         ("Hazelnut spread", "en"),
-        ("ក្រែមហាសែលណាត់", "km"),
+        ("ក្រែមហាសែលណាត់", "kh"),
     ]
     assert len(product.identity.generic_names) == 2
     assert [item.language for item in product.ingredients] == ["fr", "en"]

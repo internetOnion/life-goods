@@ -620,7 +620,7 @@ export type GetProductData = {
     query?: {
         /**
          * Language
-         * Optional target language for product translation. Currently only 'km' is supported.
+         * Optional target language for product translation. Currently only 'kh' is supported.
          */
         language?: string | null;
     };

@@ -56,7 +56,7 @@ def mark_product_translation_unavailable(
 ) -> tuple[ProductProjection, TranslationMetaResponse]:
     for _, field in _translatable_fields(product):
         if field.selected_original_text is not None:
-            if (field.selected_original_text.language or "").lower() == "km":
+            if (field.selected_original_text.language or "").lower() in ("kh", "km"):
                 field.translation_status = TranslationFieldStatus.SOURCE_KHMER_AVAILABLE
             else:
                 field.translation_status = TranslationFieldStatus.TRANSLATION_UNAVAILABLE
@@ -146,11 +146,11 @@ class LookupProduct:
             )
             product = project_source_record(source_record, meta=meta)
 
-            if language == "km":
+            if language == "kh":
                 if self._coordinator is not None:
                     try:
                         translation_result = self._coordinator.get_or_generate_translation(
-                            product, target_language="km"
+                            product, target_language="kh"
                         )
                         product, translation_meta = apply_translation_to_product(
                             product, translation_result

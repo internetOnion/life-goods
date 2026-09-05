@@ -39,10 +39,10 @@ def select_field_original_text(
     if not valid_texts:
         return FieldSelection(selected_text=None, all_texts=[], is_source_khmer=False)
 
-    # 1. Check for explicit language == "km"
+    # 1. Check for explicit language == "kh" or "km"
     for t in valid_texts:
         lang = (t.language or "").lower()
-        if lang == "km" or lang.startswith("km-"):
+        if lang in ("kh", "km") or lang.startswith("kh-") or lang.startswith("km-"):
             return FieldSelection(selected_text=t, all_texts=valid_texts, is_source_khmer=True)
 
     # 2. Check for text with predominantly Khmer script
@@ -110,7 +110,7 @@ def extract_eligible_fields(
                 source_field="categories",
             )
             is_khmer = is_predominantly_khmer_script(cat_text) or (
-                (record_language or "").lower().startswith("km")
+                (record_language or "").lower().startswith(("kh", "km"))
             )
             categories_selection = FieldSelection(
                 selected_text=cat_orig,

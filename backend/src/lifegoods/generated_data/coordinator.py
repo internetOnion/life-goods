@@ -197,7 +197,7 @@ class TranslationCoordinator:
         self,
         product: ProductProjection,
         *,
-        target_language: str = "km",
+        target_language: str = "kh",
         deadline_seconds: float = 4.0,
     ) -> ProductTranslationResult:
         content_hash, config_fp, needs_gen = self._module.compute_translation_identity(

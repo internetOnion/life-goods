@@ -1,10 +1,10 @@
 import type { LearnGuide } from "./types"
 
 const commonTableHeadings = {
-    itemHeading: { km: "អ្វីដែលត្រូវមើល", en: "What to look for" },
-    meaningHeading: { km: "អត្ថន័យ", en: "What it means" },
+    itemHeading: { kh: "អ្វីដែលត្រូវមើល", en: "What to look for" },
+    meaningHeading: { kh: "អត្ថន័យ", en: "What it means" },
     boundaryHeading: {
-        km: "អ្វីដែលវាមិនបញ្ជាក់",
+        kh: "អ្វីដែលវាមិនបញ្ជាក់",
         en: "What it does not prove",
     },
 }
@@ -13,9 +13,9 @@ export const LEARN_GUIDES: LearnGuide[] = [
     {
         slug: "how-to-read-a-label",
         category: "label",
-        title: { km: "របៀបអានស្លាកអាហារ", en: "How to read a food label" },
+        title: { kh: "របៀបអានស្លាកអាហារ", en: "How to read a food label" },
         intro: {
-            km: "ស្វែងយល់ពីព័ត៌មានសំខាន់ៗដែលស្លាកអាហារវេចខ្ចប់អាចបង្ហាញ និងដែនកំណត់របស់ព័ត៌មាននីមួយៗ។",
+            kh: "ស្វែងយល់ពីព័ត៌មានសំខាន់ៗដែលស្លាកអាហារវេចខ្ចប់អាចបង្ហាញ និងដែនកំណត់របស់ព័ត៌មាននីមួយៗ។",
             en: "Understand the main information a pre-packaged food label can show—and the limits of each item.",
         },
         entryIds: Array.from(
@@ -25,7 +25,7 @@ export const LEARN_GUIDES: LearnGuide[] = [
         featured: true,
         table: {
             caption: {
-                km: "បញ្ជីពិនិត្យព័ត៌មានលើស្លាក",
+                kh: "បញ្ជីពិនិត្យព័ត៌មានលើស្លាក",
                 en: "Food-label information checklist",
             },
             ...commonTableHeadings,
@@ -35,11 +35,11 @@ export const LEARN_GUIDES: LearnGuide[] = [
         slug: "ingredients-and-additives",
         category: "ingredients",
         title: {
-            km: "គ្រឿងផ្សំ និងសារធាតុបន្ថែម",
+            kh: "គ្រឿងផ្សំ និងសារធាតុបន្ថែម",
             en: "Ingredients and additives",
         },
         intro: {
-            km: "សម្គាល់ភាពខុសគ្នារវាងគ្រឿងផ្សំ សារធាតុបន្ថែម មុខងារ និងលេខ INS ឬ E-number។",
+            kh: "សម្គាល់ភាពខុសគ្នារវាងគ្រឿងផ្សំ សារធាតុបន្ថែម មុខងារ និងលេខ INS ឬ E-number។",
             en: "Separate ingredients, additives, functional classes, and INS or E-number identifiers.",
         },
         entryIds: [
@@ -51,7 +51,7 @@ export const LEARN_GUIDES: LearnGuide[] = [
         featured: false,
         table: {
             caption: {
-                km: "ពាក្យគន្លឹះសម្រាប់គ្រឿងផ្សំ និងសារធាតុបន្ថែម",
+                kh: "ពាក្យគន្លឹះសម្រាប់គ្រឿងផ្សំ និងសារធាតុបន្ថែម",
                 en: "Ingredient and additive terms",
             },
             ...commonTableHeadings,
@@ -61,11 +61,11 @@ export const LEARN_GUIDES: LearnGuide[] = [
         slug: "allergen-declarations",
         category: "allergens",
         title: {
-            km: "អាលែហ្សែន និងការប្រកាស",
+            kh: "អាលែហ្សែន និងការប្រកាស",
             en: "Allergens and declarations",
         },
         intro: {
-            km: "អានបញ្ជីអាលែហ្សែន Codex ស្នូល ដាច់ដោយឡែកពីអាលែហ្សែនបន្ថែមដែលអាចអាស្រ័យលើប្រទេស ឬតំបន់។",
+            kh: "អានបញ្ជីអាលែហ្សែន Codex ស្នូល ដាច់ដោយឡែកពីអាលែហ្សែនបន្ថែមដែលអាចអាស្រ័យលើប្រទេស ឬតំបន់។",
             en: "Read the core Codex allergen list separately from additional allergens that may depend on a country or region.",
         },
         entryIds: Array.from(
@@ -76,7 +76,7 @@ export const LEARN_GUIDES: LearnGuide[] = [
         featured: true,
         table: {
             caption: {
-                km: "ការប្រកាសអាលែហ្សែន និងដែនកំណត់",
+                kh: "ការប្រកាសអាលែហ្សែន និងដែនកំណត់",
                 en: "Allergen declarations and their limits",
             },
             ...commonTableHeadings,
@@ -86,11 +86,11 @@ export const LEARN_GUIDES: LearnGuide[] = [
         slug: "halal-information",
         category: "halal",
         title: {
-            km: "ព័ត៌មានពាក់ព័ន្ធហាឡាល់",
+            kh: "ព័ត៌មានពាក់ព័ន្ធហាឡាល់",
             en: "Halal-related information",
         },
         intro: {
-            km: "រក្សាការពិនិត្យគ្រឿងផ្សំ ការមើលឃើញសញ្ញា និងការផ្ទៀងផ្ទាត់វិញ្ញាបនបត្រឱ្យនៅដាច់ពីគ្នា។",
+            kh: "រក្សាការពិនិត្យគ្រឿងផ្សំ ការមើលឃើញសញ្ញា និងការផ្ទៀងផ្ទាត់វិញ្ញាបនបត្រឱ្យនៅដាច់ពីគ្នា។",
             en: "Keep ingredient screening, visible label claims, and certificate verification separate.",
         },
         entryIds: Array.from(
@@ -100,7 +100,7 @@ export const LEARN_GUIDES: LearnGuide[] = [
         featured: false,
         table: {
             caption: {
-                km: "ប្រភេទភស្តុតាងពាក់ព័ន្ធហាឡាល់",
+                kh: "ប្រភេទភស្តុតាងពាក់ព័ន្ធហាឡាល់",
                 en: "Types of Halal-related evidence",
             },
             ...commonTableHeadings,
@@ -110,11 +110,11 @@ export const LEARN_GUIDES: LearnGuide[] = [
         slug: "package-marks",
         category: "marks",
         title: {
-            km: "កាលបរិច្ឆេទ និងសញ្ញាលើកញ្ចប់",
+            kh: "កាលបរិច្ឆេទ និងសញ្ញាលើកញ្ចប់",
             en: "Dates and package marks",
         },
         intro: {
-            km: "សម្គាល់បាកូដ លេខឡូត កាលបរិច្ឆេទ ការរក្សាទុក និងសញ្ញាសម្ភារៈ ដោយមិនបន្ថែមការសន្និដ្ឋាន។",
+            kh: "សម្គាល់បាកូដ លេខឡូត កាលបរិច្ឆេទ ការរក្សាទុក និងសញ្ញាសម្ភារៈ ដោយមិនបន្ថែមការសន្និដ្ឋាន។",
             en: "Identify barcodes, lot codes, date marks, storage instructions, and material symbols without adding conclusions.",
         },
         entryIds: Array.from(
@@ -124,7 +124,7 @@ export const LEARN_GUIDES: LearnGuide[] = [
         featured: false,
         table: {
             caption: {
-                km: "សញ្ញាលើកញ្ចប់ និងអត្ថន័យរបស់វា",
+                kh: "សញ្ញាលើកញ្ចប់ និងអត្ថន័យរបស់វា",
                 en: "Package marks and what they indicate",
             },
             ...commonTableHeadings,

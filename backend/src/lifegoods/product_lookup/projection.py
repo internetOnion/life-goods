@@ -107,7 +107,10 @@ def _http_url(value: Any) -> str | None:
 
 def _source_language(record: dict[str, Any]) -> str | None:
     lang = _text_value(record.get("lang"))
-    return lang.lower().replace("_", "-") if lang else None
+    if not lang:
+        return None
+    normalized = lang.lower().replace("_", "-")
+    return "kh" if normalized == "km" or normalized.startswith("km-") else normalized
 
 
 def _language_from_field(field: str, base_field: str) -> str | None:
@@ -117,7 +120,8 @@ def _language_from_field(field: str, base_field: str) -> str | None:
     suffix = field[len(prefix) :]
     if not LANGUAGE_CODE_PATTERN.match(suffix):
         return None
-    return suffix.lower().replace("_", "-")
+    normalized = suffix.lower().replace("_", "-")
+    return "kh" if normalized == "km" or normalized.startswith("km-") else normalized
 
 
 def _original_texts(
@@ -399,7 +403,12 @@ def _selected_image(
     source_field: str,
     preferred_language: str | None,
 ) -> SourceImage | None:
-    languages = [preferred_language, "en"] if preferred_language else ["en"]
+    languages: list[str] = []
+    if preferred_language:
+        languages.append(preferred_language)
+        if preferred_language == "kh":
+            languages.append("km")
+    languages.append("en")
     checked: set[str] = set()
 
     for lang in languages:
@@ -408,15 +417,17 @@ def _selected_image(
         checked.add(lang)
         url = _http_url(values.get(lang))
         if url:
+            resolved_lang = "kh" if lang == "km" else lang
             return SourceImage(
-                url=url, language=lang, source_field=f"{source_field}.{lang}"
+                url=url, language=resolved_lang, source_field=f"{source_field}.{lang}"
             )
 
     for lang, val in values.items():
         url = _http_url(val)
         if url:
+            resolved_lang = "kh" if lang == "km" else lang
             return SourceImage(
-                url=url, language=lang, source_field=f"{source_field}.{lang}"
+                url=url, language=resolved_lang, source_field=f"{source_field}.{lang}"
             )
     return None
 
@@ -626,7 +637,7 @@ def project_source_record(
         if non_empty:
             cat_text = ", ".join(non_empty)
             cat_lang = (
-                "km"
+                "kh"
                 if is_predominantly_khmer_script(cat_text)
                 else (record_language or "und")
             )

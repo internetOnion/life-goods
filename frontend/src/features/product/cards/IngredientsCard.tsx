@@ -36,6 +36,7 @@ export interface IngredientsCardProps {
 
 const LANGUAGE_NAMES: Record<string, string> = {
     en: "English",
+    kh: "Khmer",
     fr: "French",
     de: "German",
     es: "Spanish",

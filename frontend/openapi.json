@@ -1320,7 +1320,7 @@
             }
           },
           {
-            "description": "Optional target language for product translation. Currently only 'km' is supported.",
+            "description": "Optional target language for product translation. Currently only 'kh' is supported.",
             "in": "query",
             "name": "language",
             "required": false,
@@ -1333,7 +1333,7 @@
                   "type": "null"
                 }
               ],
-              "description": "Optional target language for product translation. Currently only 'km' is supported.",
+              "description": "Optional target language for product translation. Currently only 'kh' is supported.",
               "title": "Language"
             }
           }
