@@ -21,6 +21,11 @@ DEFAULT_REDIS_TIMEOUT_SECONDS = 0.5
 DEFAULT_PRODUCT_LOOKUP_CACHE_ENABLED = True
 DEFAULT_PRODUCT_LOOKUP_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60
 DEFAULT_PRODUCT_LOOKUP_REQUESTS_PER_MINUTE = 60
+DEFAULT_GENERATED_TRANSLATION_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60
+DEFAULT_GENERATED_TRANSLATION_LEASE_TTL_SECONDS = 5.0
+DEFAULT_GENERATED_TRANSLATION_COOLDOWN_SECONDS = 60
+DEFAULT_GENERATED_TRANSLATION_BUDGET_PER_MINUTE = 60
+DEFAULT_GENERATED_TRANSLATION_POLL_INTERVAL_SECONDS = 0.05
 
 
 class Settings(BaseSettings):
@@ -51,5 +56,20 @@ class Settings(BaseSettings):
     product_lookup_cache_enabled: bool = DEFAULT_PRODUCT_LOOKUP_CACHE_ENABLED
     product_lookup_cache_ttl_seconds: int = DEFAULT_PRODUCT_LOOKUP_CACHE_TTL_SECONDS
     product_lookup_requests_per_minute: int = DEFAULT_PRODUCT_LOOKUP_REQUESTS_PER_MINUTE
+    generated_translation_cache_ttl_seconds: int = (
+        DEFAULT_GENERATED_TRANSLATION_CACHE_TTL_SECONDS
+    )
+    generated_translation_lease_ttl_seconds: float = (
+        DEFAULT_GENERATED_TRANSLATION_LEASE_TTL_SECONDS
+    )
+    generated_translation_cooldown_seconds: int = (
+        DEFAULT_GENERATED_TRANSLATION_COOLDOWN_SECONDS
+    )
+    generated_translation_budget_per_minute: int = (
+        DEFAULT_GENERATED_TRANSLATION_BUDGET_PER_MINUTE
+    )
+    generated_translation_poll_interval_seconds: float = (
+        DEFAULT_GENERATED_TRANSLATION_POLL_INTERVAL_SECONDS
+    )
 
 

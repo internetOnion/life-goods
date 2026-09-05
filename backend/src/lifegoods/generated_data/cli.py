@@ -16,6 +16,25 @@ from lifegoods.generated_data.schema import (
 )
 
 
+def _parse_artifact_identity(
+    artifact_id: str | None,
+    content_hash: str | None,
+    config_fingerprint: str | None,
+) -> tuple[str, str, str]:
+    if artifact_id:
+        parts = artifact_id.split(":", 1)
+        if len(parts) == 2 and parts[0] and parts[1]:
+            return artifact_id, parts[0], parts[1]
+        raise ValueError(
+            "Invalid --artifact-id: expected format <content_hash>:<config_fingerprint>"
+        )
+    if content_hash and config_fingerprint:
+        return f"{content_hash}:{config_fingerprint}", content_hash, config_fingerprint
+    raise ValueError(
+        "Must provide either --artifact-id or both --content-hash and --config-fingerprint"
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     settings = Settings()
     common_parser = argparse.ArgumentParser(add_help=False)
@@ -51,6 +70,34 @@ def main(argv: list[str] | None = None) -> int:
         parents=[common_parser],
         help="Verify that required collections and indexes exist and are compatible",
     )
+    subparsers.add_parser(
+        "status",
+        parents=[common_parser],
+        help="Inspect aggregate storage stats and health without printing Product text",
+    )
+
+    quarantine_parser = subparsers.add_parser(
+        "quarantine",
+        parents=[common_parser],
+        help="Quarantine a translation artifact by artifact identity",
+    )
+    quarantine_parser.add_argument(
+        "--artifact-id",
+        help="Artifact ID (in format content_hash:config_fingerprint)",
+    )
+    quarantine_parser.add_argument(
+        "--content-hash",
+        help="Content hash of the artifact",
+    )
+    quarantine_parser.add_argument(
+        "--config-fingerprint",
+        help="Translation configuration fingerprint",
+    )
+    quarantine_parser.add_argument(
+        "--reason",
+        default="Administrative withdrawal",
+        help="Reason for quarantine",
+    )
 
     args = parser.parse_args(argv)
 
@@ -65,6 +112,48 @@ def main(argv: list[str] | None = None) -> int:
             output = ensure_generated_data_schema(database)
         elif args.command == "verify":
             output = verify_generated_data_schema(database)
+        elif args.command == "status":
+            from lifegoods.generated_data.repository import MongoGeneratedDataRepository
+
+            repo = MongoGeneratedDataRepository(database)
+            stats = repo.get_aggregate_stats()
+            output = {
+                "status": "HEALTHY",
+                "database": args.database,
+                "aggregate_stats": {
+                    "artifacts_count": stats.artifacts_count,
+                    "active_leases_count": stats.active_leases_count,
+                    "active_cooldowns_count": stats.active_cooldowns_count,
+                    "quarantines_count": stats.quarantines_count,
+                },
+            }
+        elif args.command == "quarantine":
+            from contextlib import suppress
+
+            import redis
+
+            from lifegoods.generated_data.cache import translation_cache_key
+            from lifegoods.generated_data.repository import MongoGeneratedDataRepository
+
+            artifact_id, content_hash, config_fingerprint = _parse_artifact_identity(
+                args.artifact_id, args.content_hash, args.config_fingerprint
+            )
+            repo = MongoGeneratedDataRepository(database)
+            repo.quarantine_artifact(content_hash, config_fingerprint, reason=args.reason)
+
+            # Evict from hot cache if Redis is accessible
+            with suppress(Exception):
+                redis_client = redis.Redis.from_url(settings.redis_url)
+                redis_client.delete(translation_cache_key(content_hash, config_fingerprint))
+                redis_client.close()
+
+            output = {
+                "status": "QUARANTINED",
+                "artifact_id": artifact_id,
+                "content_hash": content_hash,
+                "translation_config_fingerprint": config_fingerprint,
+                "reason": args.reason,
+            }
         else:
             raise ValueError(f"Unknown command: {args.command}")
 

@@ -43,15 +43,35 @@ Verify schema and index compliance without modifying the database:
 pnpm generated-data:verify
 ```
 
+Inspect aggregate storage health and statistics (without printing Product text):
+
+```bash
+pnpm generated-data:status
+```
+
+Quarantine a corrupted or invalid artifact administratively:
+
+```bash
+pnpm generated-data:quarantine -- --artifact-id "<content_hash>:<config_fingerprint>" --reason "Administrative audit withdrawal"
+```
+
 Custom database configurations can be provided via options:
 
 ```bash
 pnpm generated-data:init -- --mongo-uri "mongodb://user:pass@host:27017/lifegoods_generated" --database "lifegoods_generated"
 ```
 
-The command reports structured JSON to stdout and exits with `0` on success. On incompatible indexes, it outputs a descriptive error to stderr and exits with `1`.
+The command reports structured JSON to stdout and exits with `0` on success. On incompatible indexes or errors, it outputs a descriptive error to stderr and exits with `1`.
 
-## 4. Credential Rotation
+## 4. Cross-Instance Single Flight and Hot Caching
+
+- **Hot Cache (`Redis`)**: Keyed strictly by `translation:artifact:v1:{content_hash}:{config_fingerprint}` without Barcode or Shopper data. Cache miss or Redis outage gracefully falls through to MongoDB.
+- **Single-Flight Leases (`translation_leases`)**: Expiring atomic MongoDB leases (`owner_token`, TTL index on `expires_at`). Only one instance generates an artifact while competing requests poll up to their deadline.
+- **Failure Cooldowns (`translation_cooldowns`)**: Complete generation failures (`UNAVAILABLE`) write temporary expiring cooldown records, preventing provider hammer.
+- **Administrative Quarantine (`translation_quarantines`)**: Corrupted artifacts are withdrawn via quarantine records without mutating original artifact bundles.
+- **Fail-Closed Generation Budget**: Project-wide provider rate limiting fails closed on Redis failure, ensuring external quotas and cost bounds are strictly preserved while Product Lookup remains available.
+
+## 5. Credential Rotation
 
 The runtime identity `lifegoods_generated` requires only `readWrite` on `lifegoods_generated`.
 

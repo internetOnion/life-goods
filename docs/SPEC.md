@@ -260,4 +260,33 @@ The translation domain is encapsulated behind the deep `KhmerTranslationModule` 
    - Strictly enforces that Barcodes, IP addresses, Dataset Snapshot identifiers, and Shopper data are never included in provider payloads.
    - Standardizes on approved stable model `gemini-3.8-flash`; explicitly rejects moving aliases (e.g. `gemini-latest`) and deprecated models (`gemini-2.0-flash`).
 
+## 16. Translation artifact persistence and cross-instance coordination (Issue #88)
+
+Durable translation storage and multi-instance concurrency are coordinated through content-addressed artifacts, single-flight leases, and fail-closed budgeting:
+
+1. **Content Addressing & Storage Identity**:
+   - Durable artifacts are keyed strictly by `content_hash + translation_config_fingerprint`.
+   - Stored documents and Redis entries retain no Barcodes, Snapshot versions, or Shopper identifiers. Identical canonical Product text across snapshots reuses existing artifacts automatically.
+   - Valid partial artifacts (`overall_status=partial`) are durably stored to prevent repeatedly generating failing fields on subsequent lookups.
+
+2. **Cross-Instance Single Flight & Recovery**:
+   - Instances coordinate on-demand generation using expiring MongoDB leases (`translation_leases`) containing unique owner tokens.
+   - A single worker wins the lease and generates the artifact. Competing concurrent requests poll for the completed artifact within the 4-second deadline and fall back gracefully to Original Text upon timeout.
+   - If an instance crashes mid-generation, expired leases (`expires_at <= now`) are safely taken over by subsequent requests or automatically pruned by MongoDB TTL background threads.
+
+3. **Failure Cooldown & Graceful Degradation**:
+   - Complete provider or validation failures (`overall_status=unavailable`) write temporary expiring cooldown records to `translation_cooldowns` (default 60s), suppressing duplicate failing provider calls.
+   - If the generated-data store becomes unavailable, new provider calls are held. If a write fails after successful generation, the result is returned to the current request and subsequent generation is held until store recovery.
+
+4. **Project-Wide Generation Budgeting**:
+   - Shared Redis sliding-window budgeting enforces an authoritative generation quota across all backend instances.
+   - Unlike Product Lookup rate limiting which fails open to local limiting for Shopper availability, the translation generation budget fails closed on Redis outage to prevent unbounded external model costs.
+
+5. **Administrative Quarantine**:
+   - Corrupted or compromised artifacts are withdrawn administratively by recording an entry in `translation_quarantines` via the operator CLI (`pnpm generated-data:quarantine`).
+   - Quarantined artifacts are immediately excluded from serving without mutating original immutable bundles.
+
+6. **Operator CLI Observability**:
+   - The operator CLI (`pnpm generated-data:status`) inspects aggregate counts (artifacts, active leases, cooldowns, quarantines) and database health without printing Product text or Shopper data.
+
 

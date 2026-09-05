@@ -21,6 +21,8 @@
         "off:dataset": "uv run --project backend python -m lifegoods.open_food_facts.cli --mongo-uri mongodb://lifegoods_writer:lifegoods_writer@localhost:27018/lifegoods_off",
         "generated-data:init": "uv run --project backend python -m lifegoods.generated_data.cli init",
         "generated-data:verify": "uv run --project backend python -m lifegoods.generated_data.cli verify",
+        "generated-data:status": "uv run --project backend python -m lifegoods.generated_data.cli status",
+        "generated-data:quarantine": "uv run --project backend python -m lifegoods.generated_data.cli quarantine",
         "benchmark:run": "uv run --project backend python -m lifegoods.translation.benchmark.cli run --mode offline",
         "benchmark:live": "uv run --project backend python -m lifegoods.translation.benchmark.cli run --mode live",
         "api:generate": "uv run --project backend python backend/scripts/export_openapi.py && pnpm --dir frontend api:generate",

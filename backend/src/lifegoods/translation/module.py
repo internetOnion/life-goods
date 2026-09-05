@@ -97,6 +97,59 @@ class KhmerTranslationModule:
         self._provider_name = provider_name
         self._max_ingredient_chunk_chars = max_ingredient_chunk_chars
 
+    def compute_translation_identity(
+        self,
+        product: ProductProjection,
+        *,
+        target_language: str = "km",
+    ) -> tuple[str, str, bool]:
+        selections = extract_eligible_fields(product)
+        brands = [b.strip() for b in product.identity.brands if b and b.strip()]
+        has_translatable = False
+        for field_name in ELIGIBLE_FIELDS:
+            sel = selections[field_name]
+            if sel.selected_text is not None and not sel.is_source_khmer:
+                has_translatable = True
+                break
+
+        canonical_content = {
+            "fields": {
+                name: {
+                    "value": sel.selected_text.value if sel.selected_text else None,
+                    "source_field": (
+                        sel.selected_text.source_field if sel.selected_text else None
+                    ),
+                    "language": (
+                        sel.selected_text.language if sel.selected_text else None
+                    ),
+                }
+                for name, sel in selections.items()
+            },
+            "brands": sorted(brands),
+        }
+        content_hash = hashlib.sha256(
+            json.dumps(canonical_content, sort_keys=True, ensure_ascii=False).encode("utf-8")
+        ).hexdigest()
+
+        canonical_config = {
+            "target_language": target_language,
+            "config_version": self._config_version,
+            "provider": self._provider_name,
+            "model": self._model,
+            "selection_version": "v1",
+            "chunking_version": "v1",
+            "protection_version": "v1",
+            "prompt_version": "v1",
+            "schema_version": "v1",
+            "validator_version": "v1",
+            "temperature": 0.0,
+        }
+        config_fingerprint = hashlib.sha256(
+            json.dumps(canonical_config, sort_keys=True, ensure_ascii=False).encode("utf-8")
+        ).hexdigest()
+
+        return content_hash, config_fingerprint, has_translatable
+
     def translate_product(
         self,
         product: ProductProjection,
@@ -151,43 +204,9 @@ class KhmerTranslationModule:
                 masked_inputs[field_name] = prot.masked_text
                 token_maps[field_name] = prot.token_map
 
-        # Canonical content identity covering text, source metadata, and brands
-        canonical_content = {
-            "fields": {
-                name: {
-                    "value": sel.selected_text.value if sel.selected_text else None,
-                    "source_field": (
-                        sel.selected_text.source_field if sel.selected_text else None
-                    ),
-                    "language": (
-                        sel.selected_text.language if sel.selected_text else None
-                    ),
-                }
-                for name, sel in selections.items()
-            },
-            "brands": sorted(brands),
-        }
-        content_hash = hashlib.sha256(
-            json.dumps(canonical_content, sort_keys=True, ensure_ascii=False).encode("utf-8")
-        ).hexdigest()
-
-        # Granular configuration identity
-        canonical_config = {
-            "target_language": target_language,
-            "config_version": self._config_version,
-            "provider": self._provider_name,
-            "model": self._model,
-            "selection_version": "v1",
-            "chunking_version": "v1",
-            "protection_version": "v1",
-            "prompt_version": "v1",
-            "schema_version": "v1",
-            "validator_version": "v1",
-            "temperature": 0.0,
-        }
-        config_fingerprint = hashlib.sha256(
-            json.dumps(canonical_config, sort_keys=True, ensure_ascii=False).encode("utf-8")
-        ).hexdigest()
+        content_hash, config_fingerprint, _ = self.compute_translation_identity(
+            product, target_language=target_language
+        )
 
         if not masked_inputs:
             return ProductTranslationResult(
