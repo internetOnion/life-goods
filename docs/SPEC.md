@@ -234,3 +234,30 @@ To establish empirical evidence for production model selection and quantitative 
 4. **Zero-Network CI Verification**: Normal CI exercises the harness through deterministic offline fixtures via `pnpm benchmark:run`. Live execution against candidate APIs is an explicit operator action requiring credentials via `pnpm benchmark:live` (or `--mode live --api-key`).
 5. **Machine Scoring & Exported Review Packets**: Outputs are automatically evaluated for schema compliance, token preservation, placeholder integrity, Khmer script validity, 4-second budget adherence, and estimated costs. Results export to machine-readable `summary.json` and a sanitized Markdown `review_packet.md` structured for the fluent Khmer human reviewer checklist in Issue #86, carrying the prominent boundary disclaimer that benchmark candidate approval does not claim or imply individual Product translations are human-reviewed.
 
+## 15. Khmer Translation Module and Gemini Adapter (Issue #87)
+
+The translation domain is encapsulated behind the deep `KhmerTranslationModule` and provider adapters:
+
+1. **Eligible Fields & Selection**:
+   - Translations are generated strictly for `product_name`, `generic_name`, `ingredients_text`, and human-readable `categories`.
+   - Localized Original Text values are preserved with source field and language.
+   - Deterministic preference order: Source-provided Khmer (`km`), declared record language, English (`en`), and deterministic localized fallback.
+   - Conservative Khmer Unicode script recognition preserves `und` when language metadata is absent without claiming authoritative language tags.
+   - Source-provided Khmer yields `source_khmer_available` and missing fields yield `source_data_unavailable` without invoking the provider.
+
+2. **Deterministic Token & Placeholder Protection**:
+   - Brand names, numerical tokens, decimal separators, percentages, quantities, units, E-numbers, and INS codes are masked with opaque `__LG_TOK_n__` placeholders before provider requests and verified upon restoration.
+
+3. **Safe Ingredient Chunking**:
+   - Oversized ingredient lists are deterministically chunked at safe top-level punctuation delimiters (`[,;]`) without splitting nested parentheses `(...)` or brackets `[...]`. Chunks are translated and safely rejoined with no silent truncation.
+
+4. **Independent Field Validation & Partial Outcomes**:
+   - Returned fields are validated independently for schema correctness, expected identifiers, placeholder integrity, output bounds, and valid Khmer script.
+   - If one field fails validation, valid fields survive as `generated` while the failed field transitions to `translation_unavailable`, yielding a `partial` overall status.
+
+5. **Gemini HTTP Adapter**:
+   - Bounded within an overall 4-second budget; retries at most once for transient network errors, HTTP 408, 429, and 5xx using backoff.
+   - Strictly enforces that Barcodes, IP addresses, Dataset Snapshot identifiers, and Shopper data are never included in provider payloads.
+   - Standardizes on approved stable model `gemini-3.8-flash`; explicitly rejects moving aliases (e.g. `gemini-latest`) and deprecated models (`gemini-2.0-flash`).
+
+

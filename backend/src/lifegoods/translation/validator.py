@@ -1,0 +1,62 @@
+from lifegoods.translation.protection import (
+    validate_token_preservation,
+)
+from lifegoods.translation.selection import KHMER_CHAR_REGEX
+
+
+def validate_field_translation(
+    input_text: str,
+    raw_response_text: str,
+    restored_text: str,
+    token_map: dict[str, str],
+    *,
+    target_language: str = "km",
+) -> list[str]:
+    reasons: list[str] = []
+
+    if not restored_text or not restored_text.strip():
+        reasons.append("Output is empty")
+        return reasons
+
+    # 1. 1:1 Placeholder presence in raw provider response
+    for placeholder in token_map:
+        count_raw = raw_response_text.count(placeholder)
+        if count_raw == 0:
+            reasons.append(f"Missing placeholder in provider output: {placeholder}")
+        elif count_raw > 1:
+            reasons.append(
+                f"Duplicated placeholder in provider output: {placeholder} ({count_raw} times)"
+            )
+
+    # 2. Token preservation & lingering placeholder check in restored text
+    token_res = validate_token_preservation(restored_text, token_map)
+    if not token_res.is_valid:
+        if token_res.missing_tokens:
+            reasons.append(f"Missing tokens: {', '.join(token_res.missing_tokens)}")
+        if token_res.lingering_placeholders:
+            reasons.append(
+                f"Lingering placeholders: {', '.join(token_res.lingering_placeholders)}"
+            )
+
+    # 3. Bounds check against input text length
+    in_len = len(input_text.strip())
+    out_len = len(restored_text.strip())
+    max_allowed = max(300, in_len * 5)
+    if out_len > max_allowed or out_len > 4000:
+        reasons.append(
+            f"Output length ({out_len}) exceeds reasonable bounds for input length ({in_len})"
+        )
+
+    # 4. Script validation for target language
+    if target_language == "km":
+        # Remove known protected tokens from text before checking script
+        text_without_tokens = restored_text
+        for tok in token_map.values():
+            if tok:
+                text_without_tokens = text_without_tokens.replace(tok, "")
+
+        # Check if remaining text contains Khmer characters
+        if not KHMER_CHAR_REGEX.search(text_without_tokens):
+            reasons.append("Output does not contain valid Khmer script")
+
+    return reasons
