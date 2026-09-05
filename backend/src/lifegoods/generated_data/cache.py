@@ -27,7 +27,9 @@ class TranslationHotCacheProtocol(Protocol):
         self, content_hash: str, config_fingerprint: str
     ) -> StoredTranslationArtifact | None: ...
 
-    def put(self, artifact: StoredTranslationArtifact) -> None: ...
+    def put(
+        self, artifact: StoredTranslationArtifact, *, ttl_seconds: int | None = None
+    ) -> None: ...
 
     def delete(self, content_hash: str, config_fingerprint: str) -> None: ...
 
@@ -58,13 +60,18 @@ class RedisTranslationHotCache:
             _log_cache_failure("read", error)
             return None
 
-    def put(self, artifact: StoredTranslationArtifact) -> None:
+    def put(
+        self, artifact: StoredTranslationArtifact, *, ttl_seconds: int | None = None
+    ) -> None:
         key = translation_cache_key(
             artifact.content_hash, artifact.translation_config_fingerprint
         )
         try:
             payload = _serialize_artifact(artifact)
-            self._client.set(key, payload, ex=self._ttl_seconds)
+            ttl = self._ttl_seconds if ttl_seconds is None else ttl_seconds
+            if ttl <= 0:
+                raise ValueError("Translation cache lifetime must be greater than zero")
+            self._client.set(key, payload, ex=ttl)
         except (RedisError, TypeError, ValueError) as error:
             _log_cache_failure("write", error)
 
@@ -104,11 +111,16 @@ class InMemoryTranslationHotCache:
                 return None
             return artifact
 
-    def put(self, artifact: StoredTranslationArtifact) -> None:
+    def put(
+        self, artifact: StoredTranslationArtifact, *, ttl_seconds: int | None = None
+    ) -> None:
+        ttl = self._ttl_seconds if ttl_seconds is None else ttl_seconds
+        if ttl <= 0:
+            raise ValueError("Translation cache lifetime must be greater than zero")
         key = (artifact.content_hash, artifact.translation_config_fingerprint)
         with self._lock:
             self._entries[key] = (
-                self._monotonic() + self._ttl_seconds,
+                self._monotonic() + ttl,
                 artifact,
             )
 
@@ -124,7 +136,9 @@ class NullTranslationHotCache:
     ) -> StoredTranslationArtifact | None:
         return None
 
-    def put(self, artifact: StoredTranslationArtifact) -> None:
+    def put(
+        self, artifact: StoredTranslationArtifact, *, ttl_seconds: int | None = None
+    ) -> None:
         pass
 
     def delete(self, content_hash: str, config_fingerprint: str) -> None:

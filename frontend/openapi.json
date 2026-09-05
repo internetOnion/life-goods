@@ -1044,6 +1044,7 @@
         "enum": [
           "not_requested",
           "source_khmer_available",
+          "original_text_preserved",
           "generated",
           "source_data_unavailable",
           "translation_unavailable"

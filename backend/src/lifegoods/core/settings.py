@@ -1,3 +1,4 @@
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_OPEN_FOOD_FACTS_IMAGE_BASE_URL = "https://images.openfoodfacts.org"
@@ -26,6 +27,7 @@ DEFAULT_GENERATED_TRANSLATION_LEASE_TTL_SECONDS = 5.0
 DEFAULT_GENERATED_TRANSLATION_COOLDOWN_SECONDS = 60
 DEFAULT_GENERATED_TRANSLATION_BUDGET_PER_MINUTE = 60
 DEFAULT_GENERATED_TRANSLATION_POLL_INTERVAL_SECONDS = 0.05
+DEFAULT_GEMINI_TRANSLATION_TIMEOUT_SECONDS = 12.0
 
 
 class Settings(BaseSettings):
@@ -71,6 +73,13 @@ class Settings(BaseSettings):
     generated_translation_poll_interval_seconds: float = (
         DEFAULT_GENERATED_TRANSLATION_POLL_INTERVAL_SECONDS
     )
-    gemini_api_key: str | None = None
-
+    gemini_translation_timeout_seconds: float = DEFAULT_GEMINI_TRANSLATION_TIMEOUT_SECONDS
+    gemini_api_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "LIFEGOODS_GEMINI_API_KEY",
+            "GEMINI_API_KEY",
+            "gemini_api_key",
+        ),
+    )
 

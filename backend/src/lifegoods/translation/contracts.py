@@ -12,6 +12,7 @@ class OriginalText(BaseModel):
 class TranslationFieldStatus(StrEnum):
     NOT_REQUESTED = "not_requested"
     SOURCE_KHMER_AVAILABLE = "source_khmer_available"
+    ORIGINAL_TEXT_PRESERVED = "original_text_preserved"
     GENERATED = "generated"
     SOURCE_DATA_UNAVAILABLE = "source_data_unavailable"
     TRANSLATION_UNAVAILABLE = "translation_unavailable"
@@ -52,4 +53,3 @@ class ProductTranslationResult(BaseModel):
     raw_input: dict[str, str] = Field(default_factory=dict)
     masked_input: dict[str, str] = Field(default_factory=dict)
     token_maps: dict[str, dict[str, str]] = Field(default_factory=dict)
-

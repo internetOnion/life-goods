@@ -55,3 +55,31 @@ def test_generated_mongodb_settings_environment_overrides(
     # OFF settings remain unaffected
     assert settings.off_mongodb_database == "lifegoods_off"
 
+
+def test_gemini_api_key_settings_from_lifegoods_prefix(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("LIFEGOODS_GEMINI_API_KEY", "test-key-prefixed")
+    settings = settings_from_environment()
+    assert settings.gemini_api_key == "test-key-prefixed"
+
+
+def test_gemini_api_key_settings_from_standard_gemini_prefix(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key-standard")
+    settings = settings_from_environment()
+    assert settings.gemini_api_key == "test-key-standard"
+
+
+def test_gemini_translation_timeout_defaults_to_twelve_seconds() -> None:
+    settings = settings_from_environment()
+    assert settings.gemini_translation_timeout_seconds == 12.0
+
+
+def test_gemini_translation_timeout_can_be_overridden(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("LIFEGOODS_GEMINI_TRANSLATION_TIMEOUT_SECONDS", "18.5")
+    settings = settings_from_environment()
+    assert settings.gemini_translation_timeout_seconds == 18.5

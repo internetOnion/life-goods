@@ -232,7 +232,7 @@ def test_coordinator_expired_crashed_lease_recovery() -> None:
     assert provider.call_count == 1
 
 
-def test_coordinator_persists_valid_partial_artifacts() -> None:
+def test_coordinator_retries_partial_translation_after_short_cache() -> None:
     # Provider returns invalid translation for generic_name (no Khmer script)
     provider = FakeTranslationProvider(
         canned_translations={
@@ -241,7 +241,8 @@ def test_coordinator_persists_valid_partial_artifacts() -> None:
     )
     module = KhmerTranslationModule(provider)
     repo = InMemoryGeneratedDataRepository()
-    cache = InMemoryTranslationHotCache(ttl_seconds=100)
+    clock = [0.0]
+    cache = InMemoryTranslationHotCache(ttl_seconds=100, monotonic=lambda: clock[0])
     budget = InMemoryTranslationBudgetLimiter(requests_per_minute=10)
 
     coordinator = TranslationCoordinator(
@@ -255,14 +256,22 @@ def test_coordinator_persists_valid_partial_artifacts() -> None:
     result1 = coordinator.get_or_generate_translation(product)
 
     assert result1.overall_status == TranslationOverallStatus.PARTIAL
-    # The partial artifact is saved to MongoDB
+    # Partial results are useful to the current Shopper but are not durable.
     stats = repo.get_aggregate_stats()
-    assert stats.artifacts_count == 1
+    assert stats.artifacts_count == 0
 
-    # Next lookup reuses the stored artifact without calling provider again
+    # The short-lived cache prevents duplicate calls during the retry interval.
     result2 = coordinator.get_or_generate_translation(product)
     assert result2.overall_status == TranslationOverallStatus.PARTIAL
     assert provider.call_count == 1
+
+    # After the interval, the failed field is retried and can complete.
+    provider.canned_translations.pop("generic_name")
+    clock[0] = 61.0
+    result3 = coordinator.get_or_generate_translation(product)
+    assert result3.overall_status == TranslationOverallStatus.COMPLETE
+    assert provider.call_count == 2
+    assert repo.get_aggregate_stats().artifacts_count == 1
 
 
 def test_coordinator_stores_complete_failure_as_temporary_cooldown() -> None:

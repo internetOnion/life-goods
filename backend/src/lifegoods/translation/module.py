@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
@@ -16,6 +17,7 @@ from lifegoods.translation.contracts import (
     TranslationProvenance,
 )
 from lifegoods.translation.protection import (
+    PLACEHOLDER_REGEX,
     protect_tokens,
     restore_tokens,
 )
@@ -24,10 +26,33 @@ from lifegoods.translation.selection import FieldSelection, extract_eligible_fie
 from lifegoods.translation.validator import validate_field_translation
 
 ELIGIBLE_FIELDS = ("product_name", "generic_name", "ingredients_text", "categories")
-TRANSLATION_CONFIG_VERSION = "v1"
+TRANSLATION_CONFIG_VERSION = "v2"
 PRODUCTION_PROVIDER = "google"
 PRODUCTION_MODEL = "gemini-3.8-flash"
 DEFAULT_MAX_INGREDIENT_CHUNK_CHARS = 800
+
+
+def _contains_descriptive_text(masked_text: str) -> bool:
+    without_placeholders = PLACEHOLDER_REGEX.sub("", masked_text)
+    return bool(re.search(r"[\w\u1780-\u17ff]", without_placeholders, re.UNICODE))
+
+
+def _is_original_text_preserved_field(
+    field_name: str,
+    masked_text: str,
+) -> bool:
+    return field_name == "product_name" and not _contains_descriptive_text(masked_text)
+
+
+def is_original_text_preserved(
+    field_name: str,
+    raw_text: str,
+    brands: list[str],
+) -> bool:
+    return _is_original_text_preserved_field(
+        field_name,
+        protect_tokens(raw_text, brands).masked_text,
+    )
 
 
 def _evaluate_field_outcome(
@@ -112,6 +137,12 @@ class KhmerTranslationModule:
         has_translatable = False
         for field_name in ELIGIBLE_FIELDS:
             sel = selections[field_name]
+            if sel.selected_text is None or sel.is_source_khmer:
+                continue
+            if field_name == "product_name" and is_original_text_preserved(
+                field_name, sel.selected_text.value, brands
+            ):
+                continue
             if sel.selected_text is not None and not sel.is_source_khmer:
                 has_translatable = True
                 break
@@ -143,8 +174,8 @@ class KhmerTranslationModule:
             "selection_version": "v1",
             "chunking_version": "v1",
             "protection_version": "v1",
-            "prompt_version": "v1",
-            "schema_version": "v1",
+            "prompt_version": "v2",
+            "schema_version": "v2",
             "validator_version": "v1",
             "temperature": 0.0,
         }
@@ -205,6 +236,15 @@ class KhmerTranslationModule:
                         continue
 
                 prot = protect_tokens(raw_text, brands)
+                if is_original_text_preserved(field_name, raw_text, brands):
+                    fields[field_name] = FieldTranslationOutcome(
+                        field_name=field_name,
+                        status=TranslationFieldStatus.ORIGINAL_TEXT_PRESERVED,
+                        selected_original_text=sel.selected_text,
+                        original_texts=sel.all_texts,
+                        khmer_translation=None,
+                    )
+                    continue
                 masked_inputs[field_name] = prot.masked_text
                 token_maps[field_name] = prot.token_map
 
@@ -349,6 +389,8 @@ class KhmerTranslationModule:
             overall = TranslationOverallStatus.COMPLETE
         elif generated_count > 0 and unavailable_count > 0:
             overall = TranslationOverallStatus.PARTIAL
+        elif unavailable_count == 0:
+            overall = TranslationOverallStatus.NOT_NEEDED
         else:
             overall = TranslationOverallStatus.UNAVAILABLE
 

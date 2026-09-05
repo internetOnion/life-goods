@@ -770,7 +770,7 @@ def test_v1_product_lookup_with_language_kh_generates_translation() -> None:
     assert body["meta"]["translation"]["metadata"]["machine_generated"] is True
     assert body["meta"]["translation"]["metadata"]["provider"] == "google"
     assert body["meta"]["translation"]["metadata"]["model"] == "gemini-3.8-flash"
-    assert body["meta"]["translation"]["metadata"]["configuration_version"] == "v1"
+    assert body["meta"]["translation"]["metadata"]["configuration_version"] == "v2"
     assert body["meta"]["translation"]["metadata"]["generated_at"] is not None
 
     # Source attribution remains unchanged
@@ -814,6 +814,32 @@ def test_v1_product_lookup_source_khmer_not_needed() -> None:
     assert product["identity"]["name"]["translation_status"] == "source_khmer_available"
     assert product["identity"]["name"]["khmer_translation"] is None
     assert product["identity"]["name"]["selected_original_text"]["value"] == "សូកូឡាខ្មៅ"
+    assert provider.call_count == 0
+
+
+def test_v1_product_lookup_preserves_brand_only_name_without_translation_call() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "product_name_en": "Coca-Cola 330ml",
+            "brands": "Coca-Cola",
+        }
+    )
+
+    provider = FakeTranslationProvider()
+    coord = _make_test_coordinator(provider=provider)
+
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=kh")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["translation"]["status"] == "not_needed"
+    name = body["data"]["product"]["identity"]["name"]
+    assert name["translation_status"] == "original_text_preserved"
+    assert name["khmer_translation"] is None
+    assert name["selected_original_text"]["value"] == "Coca-Cola 330ml"
     assert provider.call_count == 0
 
 

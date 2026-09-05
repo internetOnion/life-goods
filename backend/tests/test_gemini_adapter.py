@@ -177,6 +177,36 @@ def test_gemini_adapter_handles_timeout_gracefully() -> None:
     assert "timed out" in (response.error_message or "").lower()
 
 
+def test_gemini_adapter_preserves_timeout_error_when_retry_budget_is_exhausted() -> None:
+    attempts = 0
+
+    def handle_request(request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        raise httpx.ReadTimeout("Request timed out", request=request)
+
+    client = httpx.Client(transport=httpx.MockTransport(handle_request))
+    adapter = GeminiTranslationAdapter(
+        api_key="test-key",
+        http_client=client,
+        timeout_seconds=0.1,
+        backoff_seconds=0.01,
+    )
+
+    response = adapter.translate(
+        ProviderTranslationRequest(
+            fields={"product_name": "Chocolate"},
+            brands=[],
+            target_language="km",
+        )
+    )
+
+    assert response.status == "error"
+    assert attempts == 1
+    assert "timed out" in (response.error_message or "").lower()
+    assert "budget exhausted" not in (response.error_message or "").lower()
+
+
 def test_gemini_adapter_handles_safety_blocked_response() -> None:
     def handle_request(request: httpx.Request) -> httpx.Response:
         return httpx.Response(

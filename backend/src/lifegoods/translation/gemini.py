@@ -15,14 +15,18 @@ Translate the provided food Product fields into natural, clear, accurate Khmer.
 Rules:
 1. Preserve all placeholders formatted as __LG_TOK_n__ EXACTLY as they appear.
    Do not translate, drop, or alter placeholders.
-2. Keep Product and brand names in their intended form.
+2. Placeholders represent official brand names, quantities, units, codes, or other text
+   that must remain in its intended form. Translate every remaining descriptive word
+   into natural Khmer; do not return English-only descriptive text.
 3. Keep ingredient lists natural, preserving comma separation and ingredient hierarchy.
-4. Return a JSON object with a 'translations' object mapping each field_name to its Khmer text.
+4. If a field contains only placeholders and punctuation, return those placeholders
+   unchanged because there is no descriptive text to translate.
+5. Return a JSON object with a 'translations' object mapping each field_name to its Khmer text.
 """
 
 DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 DEFAULT_MODEL = "gemini-3.8-flash"
-DEFAULT_TIMEOUT_SECONDS = 4.0
+DEFAULT_TIMEOUT_SECONDS = 12.0
 RETRYABLE_STATUS_CODES = {408, 429, 500, 502, 503, 504}
 
 
@@ -57,8 +61,8 @@ class GeminiTranslationAdapter:
         url = f"{self._base_url}/models/{self._model}:generateContent?key={self._api_key}"
         headers = {"Content-Type": "application/json"}
 
+        properties_schema = {field: {"type": "STRING"} for field in request.fields}
         payload = {
-
             "contents": [
                 {
                     "parts": [
@@ -76,7 +80,8 @@ class GeminiTranslationAdapter:
                     "properties": {
                         "translations": {
                             "type": "OBJECT",
-                            "additionalProperties": {"type": "STRING"},
+                            "properties": properties_schema,
+                            "required": list(request.fields.keys()),
                         }
                     },
                     "required": ["translations"],
@@ -93,7 +98,6 @@ class GeminiTranslationAdapter:
             elapsed_so_far = time.perf_counter() - start_time
             remaining_timeout = max(0.1, self._timeout_seconds - elapsed_so_far)
             if remaining_timeout <= 0.1 and attempt > 0:
-                last_error = "Translation budget exhausted before retry"
                 break
 
             try:
@@ -208,4 +212,3 @@ class GeminiTranslationAdapter:
             status="error",
             error_message=last_error or "Translation request failed after retries",
         )
-

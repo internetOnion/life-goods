@@ -237,6 +237,24 @@ def test_non_khmer_output_fails_validation() -> None:
     assert "Khmer script" in (result.fields["product_name"].failure_reason or "")
 
 
+def test_brand_only_product_name_preserves_original_text_without_provider_call() -> None:
+    from lifegoods.product_lookup.contracts import OriginalText
+
+    product = _empty_product()
+    product.identity.brands = ["Coca-Cola"]
+    product.identity.names = [
+        OriginalText(value="Coca-Cola 330ml", language="en", source_field="product_name_en"),
+    ]
+
+    provider = FakeTranslationProvider()
+    result = KhmerTranslationModule(provider).translate_product(product, target_language="km")
+
+    assert result.overall_status == TranslationOverallStatus.NOT_NEEDED
+    assert result.fields["product_name"].status == TranslationFieldStatus.ORIGINAL_TEXT_PRESERVED
+    assert result.fields["product_name"].khmer_translation is None
+    assert provider.call_count == 0
+
+
 def test_oversized_output_fails_bounds_check() -> None:
     from lifegoods.product_lookup.contracts import OriginalText
 
@@ -354,7 +372,6 @@ def test_khmer_translation_module_end_to_end_with_gemini_adapter() -> None:
     req_body = captured_requests[0].content.decode("utf-8")
     assert "8850123456789" not in req_body
     assert "off-2026-09-01" not in req_body
-
 
 
 

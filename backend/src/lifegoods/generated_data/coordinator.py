@@ -26,7 +26,10 @@ from lifegoods.translation.contracts import (
     TranslationOverallStatus,
     TranslationProvenance,
 )
-from lifegoods.translation.module import KhmerTranslationModule
+from lifegoods.translation.module import (
+    KhmerTranslationModule,
+    is_original_text_preserved,
+)
 from lifegoods.translation.selection import FieldSelection, extract_eligible_fields
 
 logger = logging.getLogger(__name__)
@@ -117,9 +120,15 @@ def _make_unavailable_result(
     reason: str,
 ) -> ProductTranslationResult:
     selections = extract_eligible_fields(product)
+    brands = [b.strip() for b in product.identity.brands if b and b.strip()]
     fields: dict[str, FieldTranslationOutcome] = {}
     for fname, sel in selections.items():
         status = _selection_fallback_status(sel)
+        if (
+            sel.selected_text is not None
+            and is_original_text_preserved(fname, sel.selected_text.value, brands)
+        ):
+            status = TranslationFieldStatus.ORIGINAL_TEXT_PRESERVED
         fields[fname] = FieldTranslationOutcome(
             field_name=fname,
             status=status,
@@ -269,10 +278,24 @@ class TranslationCoordinator:
                 result = self._module.translate_product(
                     product, target_language=target_language
                 )
-                if result.overall_status in (
-                    TranslationOverallStatus.COMPLETE,
-                    TranslationOverallStatus.PARTIAL,
-                ):
+                logger.info(
+                    "Translation generation completed",
+                    extra={
+                        "event": "translation_generation_completed",
+                        "status": result.overall_status.value,
+                        "generated_fields": sorted(
+                            field_name
+                            for field_name, field in result.fields.items()
+                            if field.status == TranslationFieldStatus.GENERATED
+                        ),
+                        "unavailable_fields": sorted(
+                            field_name
+                            for field_name, field in result.fields.items()
+                            if field.status == TranslationFieldStatus.TRANSLATION_UNAVAILABLE
+                        ),
+                    },
+                )
+                if result.overall_status == TranslationOverallStatus.COMPLETE:
                     stored_art = result_to_stored_artifact(result)
                     try:
                         self._repository.save_artifact(stored_art)
@@ -280,6 +303,13 @@ class TranslationCoordinator:
                     except PyMongoError as error:
                         self._record_store_degradation(error)
                         # Result still returned to current request!
+                elif result.overall_status == TranslationOverallStatus.PARTIAL:
+                    # Keep useful fields available briefly, but do not make an
+                    # incomplete translation durable. A later lookup retries it.
+                    self._cache.put(
+                        result_to_stored_artifact(result),
+                        ttl_seconds=max(1, int(self._cooldown_seconds)),
+                    )
                 elif result.overall_status == TranslationOverallStatus.UNAVAILABLE:
                     try:
                         reason = "Generation unavailable"

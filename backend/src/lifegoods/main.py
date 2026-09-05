@@ -183,6 +183,7 @@ def create_app(
             provider = GeminiTranslationAdapter(
                 resolved_settings.gemini_api_key,
                 model=PRODUCTION_MODEL,
+                timeout_seconds=resolved_settings.gemini_translation_timeout_seconds,
                 http_client=gemini_http_client,
             )
         else:

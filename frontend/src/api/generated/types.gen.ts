@@ -478,7 +478,7 @@ export type TranslatableField = {
 /**
  * TranslationFieldStatus
  */
-export type TranslationFieldStatus = 'not_requested' | 'source_khmer_available' | 'generated' | 'source_data_unavailable' | 'translation_unavailable';
+export type TranslationFieldStatus = 'not_requested' | 'source_khmer_available' | 'original_text_preserved' | 'generated' | 'source_data_unavailable' | 'translation_unavailable';
 
 /**
  * TranslationMetaResponse
