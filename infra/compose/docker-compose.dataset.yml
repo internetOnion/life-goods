@@ -1,0 +1,44 @@
+# Dataset-only deployment for a shared Open Food Facts MongoDB.
+#
+# The default bind address is localhost. Set LIFEGOODS_MONGO_BIND_IP to the VPS
+# Tailscale address to allow team members onto the private network only. Never
+# bind this service to the public VPS address.
+#
+# Usage:
+#   docker compose --env-file infra/secrets/dataset/.env \
+#     -f infra/compose/docker-compose.dataset.yml up -d
+
+services:
+  mongodb:
+    image: mongo:8.2
+    restart: unless-stopped
+    command: ["mongod", "--auth", "--bind_ip_all"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${LIFEGOODS_MONGO_ROOT_USER:?Set LIFEGOODS_MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${LIFEGOODS_MONGO_ROOT_PASSWORD:?Set LIFEGOODS_MONGO_ROOT_PASSWORD}
+      LIFEGOODS_OFF_DATABASE: ${LIFEGOODS_OFF_DATABASE:-lifegoods_off}
+      LIFEGOODS_OFF_READER_USERNAME: ${LIFEGOODS_OFF_READER_USER:?Set LIFEGOODS_OFF_READER_USER}
+      LIFEGOODS_OFF_READER_PASSWORD: ${LIFEGOODS_OFF_READER_PASSWORD:?Set LIFEGOODS_OFF_READER_PASSWORD}
+      LIFEGOODS_OFF_WRITER_USERNAME: ${LIFEGOODS_OFF_WRITER_USER:?Set LIFEGOODS_OFF_WRITER_USER}
+      LIFEGOODS_OFF_WRITER_PASSWORD: ${LIFEGOODS_OFF_WRITER_PASSWORD:?Set LIFEGOODS_OFF_WRITER_PASSWORD}
+    ports:
+      - "${LIFEGOODS_MONGO_BIND_IP:-127.0.0.1}:27017:27017"
+    volumes:
+      - ${LIFEGOODS_MONGO_DATA_DIR:-/srv/lifegoods/mongodb}:/data/db
+      - ../../infra/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --quiet --username $$MONGO_INITDB_ROOT_USERNAME --password $$MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval 'db.adminCommand({ ping: 1 })'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+    mem_limit: ${LIFEGOODS_MONGO_MEMORY_LIMIT:-4g}
+    pids_limit: 1024

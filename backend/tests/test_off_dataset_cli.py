@@ -15,9 +15,11 @@ from lifegoods.open_food_facts import (
     VERSIONS_COLLECTION,
 )
 from lifegoods.open_food_facts.cli import (
+    DEFAULT_EXPORT_URL,
     DatasetImportError,
     activate_version,
     delete_version,
+    import_file,
     import_url,
     list_versions,
     prune_versions,
@@ -31,6 +33,39 @@ NUTELLA_CODE = "3017620422003"
 SAMPLE_DATASET = (
     Path(__file__).parent / "fixtures" / "open_food_facts" / "dataset-sample.jsonl"
 )
+
+
+def test_explicit_source_issue_acceptance_preserves_checks_and_records() -> None:
+    database = mongomock.MongoClient().lifegoods_off
+    records = [product(PROBE_CODE), product(PROBE_CODE), {"code": "123"}, {}]
+    with pytest.raises(DatasetImportError, match="Malformed documents"):
+        import_url(
+            database, SOURCE_URL, client=http_client(export_bytes(records)),
+            probe_codes=(PROBE_CODE,), include_search=False,
+        )
+    manifest = list_versions(database)[0]
+    version = manifest["_id"]
+    with pytest.raises(DatasetImportError):
+        revalidate_version(database, version)
+    accepted = revalidate_version(database, version, accept_source_issues=True)
+    assert accepted["status"] == "READY"
+    assert len(accepted["validation_warnings"]) == 3
+    assert accepted["validation_errors"] == []
+    assert accepted["sha256"] == manifest["sha256"]
+    assert accepted["inserted_count"] == 2
+    assert accepted["validation_history"][-1]["accept_source_issues"] is True
+    assert activate_version(database, version)["status"] == "ACTIVE"
+    database[accepted["collection_name"]].delete_one({"code": PROBE_CODE})
+    with pytest.raises(DatasetImportError, match="MongoDB document count"):
+        revalidate_version(database, version, accept_source_issues=True)
+
+
+@pytest.mark.parametrize("status", ["IMPORTING", "FAILED"])
+def test_source_issue_acceptance_rejects_incomplete_import(status: str) -> None:
+    database = mongomock.MongoClient().lifegoods_off
+    database[VERSIONS_COLLECTION].insert_one({"_id": "partial", "status": status})
+    with pytest.raises(ValueError):
+        revalidate_version(database, "partial", accept_source_issues=True)
 
 
 def clock(start: datetime):
@@ -84,6 +119,7 @@ def test_import_streams_hashes_validates_and_preserves_full_documents() -> None:
     )
 
     assert manifest["status"] == "READY"
+    assert manifest["source_url"] == SOURCE_URL
     assert manifest["byte_count"] == len(compressed)
     assert manifest["document_count"] == manifest["inserted_count"] == 3
     assert manifest["malformed_count"] == manifest["duplicate_count"] == 0
@@ -106,6 +142,34 @@ def test_import_streams_hashes_validates_and_preserves_full_documents() -> None:
     assert progress[-1]["byte_count"] == len(compressed)
     assert progress[-1]["document_count"] == 3
     assert progress[-1]["inserted_count"] == 3
+
+
+def test_lookup_only_import_keeps_barcode_index_without_search_indexes(tmp_path: Path) -> None:
+    database = mongomock.MongoClient().lifegoods_off
+    source = tmp_path / "products.jsonl.gz"
+    source.write_bytes(export_bytes([product(PROBE_CODE)]))
+
+    manifest = import_file(
+        database,
+        source,
+        probe_codes=(PROBE_CODE,),
+        include_search=False,
+    )
+
+    assert manifest["status"] == "READY"
+    assert manifest["source_url"] == DEFAULT_EXPORT_URL
+    assert manifest["search_enabled"] is False
+    assert "search_index" not in manifest
+    indexes = database[manifest["collection_name"]].index_information()
+    assert "uq_off_code" in indexes
+    assert PACKAGE_SEARCH_TEXT_INDEX not in indexes
+    assert PACKAGE_SEARCH_COUNTRY_INDEX not in indexes
+
+    activated = activate_version(database, manifest["_id"])
+    assert activated["status"] == "ACTIVE"
+    pointer = database[CONTROL_COLLECTION].find_one({"_id": ACTIVE_POINTER_ID})
+    assert pointer is not None
+    assert pointer["active_version_id"] == manifest["_id"]
 
 
 def test_import_rejects_and_records_duplicate_barcodes() -> None:

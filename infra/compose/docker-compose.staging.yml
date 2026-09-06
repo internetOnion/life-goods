@@ -1,0 +1,100 @@
+# LifeGoods STAGING stack — identical secure topology to production, tagged
+# separately so staging can never collide with prod images, and staging DBs are
+# isolated by their own named volumes + secrets.
+#
+# See docker-compose.prod.yml for the full security model. Staging keeps the same
+# guarantees: nginx is the only public edge, all datastores internal and authed.
+
+services:
+  nginx:
+    build:
+      context: ../..
+      dockerfile: infra/deploy/frontend.Dockerfile
+      args:
+        VITE_MVP_DEMO_MODE: "true"
+    image: lifegoods/frontend:staging
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./tls:/etc/nginx/tls:ro
+      - certbot-webroot:/var/www/certbot
+    depends_on:
+      - backend
+    mem_limit: 256m
+    pids_limit: 256
+
+  backend:
+    build:
+      context: ../..
+      dockerfile: infra/deploy/backend.Dockerfile
+    image: lifegoods/backend:staging
+    restart: unless-stopped
+    environment:
+      LIFEGOODS_ENVIRONMENT: staging
+      LIFEGOODS_DATABASE_URL: postgresql+psycopg://${LIFEGOODS_POSTGRES_USER}:${LIFEGOODS_POSTGRES_PASSWORD}@postgres:5432/${LIFEGOODS_POSTGRES_DB}
+      LIFEGOODS_OFF_MONGODB_URI: mongodb://${LIFEGOODS_OFF_READER_USER}:${LIFEGOODS_OFF_READER_PASSWORD}@mongodb:27017/${LIFEGOODS_OFF_DATABASE}?authSource=admin
+      LIFEGOODS_OFF_MONGODB_DATABASE: ${LIFEGOODS_OFF_DATABASE}
+      LIFEGOODS_REDIS_URL: redis://:${LIFEGOODS_REDIS_PASSWORD}@redis:6379/0
+      LIFEGOODS_ALLOWED_ORIGINS: ${LIFEGOODS_ALLOWED_ORIGINS}
+      LIFEGOODS_OPEN_FOOD_FACTS_IMAGE_BASE_URL: ${LIFEGOODS_OPEN_FOOD_FACTS_IMAGE_BASE_URL}
+    depends_on:
+      - postgres
+      - mongodb
+      - redis
+    mem_limit: 1024m
+    pids_limit: 512
+
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${LIFEGOODS_POSTGRES_DB}
+      POSTGRES_USER: ${LIFEGOODS_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${LIFEGOODS_POSTGRES_PASSWORD}
+    volumes:
+      - lifegoods-postgres:/var/lib/postgresql/data
+    mem_limit: 512m
+    pids_limit: 512
+
+  mongodb:
+    image: mongo:8.2
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${LIFEGOODS_MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${LIFEGOODS_MONGO_ROOT_PASSWORD}
+      LIFEGOODS_OFF_DATABASE: ${LIFEGOODS_OFF_DATABASE}
+      LIFEGOODS_OFF_READER_USERNAME: ${LIFEGOODS_OFF_READER_USER}
+      LIFEGOODS_OFF_READER_PASSWORD: ${LIFEGOODS_OFF_READER_PASSWORD}
+      LIFEGOODS_OFF_WRITER_USERNAME: ${LIFEGOODS_OFF_WRITER_USER}
+      LIFEGOODS_OFF_WRITER_PASSWORD: ${LIFEGOODS_OFF_WRITER_PASSWORD}
+    volumes:
+      - lifegoods-mongodb:/data/db
+      - ../../infra/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    mem_limit: 1024m
+    pids_limit: 1024
+
+  redis:
+    image: redis:8.2-alpine
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --requirepass
+      - ${LIFEGOODS_REDIS_PASSWORD}
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - 256mb
+      - --maxmemory-policy
+      - allkeys-lru
+    volumes:
+      - lifegoods-redis:/data
+    mem_limit: 256m
+    pids_limit: 256
+
+volumes:
+  lifegoods-postgres:
+  lifegoods-mongodb:
+  lifegoods-redis:
+  certbot-webroot:
