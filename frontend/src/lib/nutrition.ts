@@ -165,6 +165,21 @@ export function formatNutritionValue(cell: NutritionCell | undefined): string {
     return cell.unit ? `${valStr} ${cell.unit}` : String(valStr)
 }
 
+export function formatNutritionAmount(
+    value: number | string | null | undefined,
+): string {
+    if (value === null || value === undefined) return "—"
+
+    if (typeof value === "number") {
+        return Number.isFinite(value) ? value.toFixed(2) : String(value)
+    }
+
+    const numericValue = Number(value)
+    return value.trim() !== "" && Number.isFinite(numericValue)
+        ? numericValue.toFixed(2)
+        : value
+}
+
 export function getBasisLabel(basis: NutritionBasis): string {
     switch (basis) {
         case "declared":

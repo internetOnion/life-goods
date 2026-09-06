@@ -57,7 +57,7 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
                     <p className="text-xs font-semibold text-neutral-700">
                         Source Data Unavailable
                     </p>
-                    <p className="text-[11px] text-neutral-500">
+                    <p className="text-caption text-neutral-500">
                         No nutrition facts declared in the source record.
                     </p>
                 </CardContent>

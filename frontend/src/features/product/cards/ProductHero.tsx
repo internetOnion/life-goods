@@ -14,18 +14,16 @@ import { cn } from "@/lib/utils"
 interface ProductHeroProps {
     candidate: PackageMatchCandidateResponse
     identifier: string
-    scheme?: string
     genericName?: string | null
-    categories?: string[]
+    origin?: string | null
     headingRef?: React.Ref<HTMLHeadingElement>
 }
 
 export const ProductHero: React.FC<ProductHeroProps> = ({
     candidate,
     identifier,
-    scheme,
     genericName,
-    categories,
+    origin,
     headingRef,
 }) => {
     const [selectedImageIndex, setSelectedImageIndex] = useState(0)
@@ -133,7 +131,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                                 <div className="absolute top-2 left-2">
                                     <Badge
                                         variant="subtle"
-                                        className="bg-white/95 text-[10px] font-semibold tracking-wider text-neutral-800 uppercase shadow-2xs backdrop-blur-xs"
+                                        className="text-micro bg-white/95 font-semibold tracking-wider text-neutral-800 uppercase shadow-2xs backdrop-blur-xs"
                                     >
                                         {currentImage.role}
                                     </Badge>
@@ -180,45 +178,11 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                 </div>
 
                 {/* Product Details Header */}
-                <div className="min-w-0 flex-1 space-y-2.5">
-                    <div className="flex flex-wrap items-center gap-2">
-                        {scheme && (
-                            <Badge
-                                variant="secondary"
-                                className="font-mono text-[11px] font-semibold tracking-wider uppercase"
-                            >
-                                {scheme}
-                            </Badge>
-                        )}
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            type="button"
-                            onClick={handleCopyBarcode}
-                            className="focus-visible:ring-primary-500 inline-flex h-auto cursor-pointer items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-1 font-mono text-xs font-semibold tracking-[0.04em] text-neutral-700 tabular-nums transition-colors hover:bg-neutral-200 hover:text-neutral-950 focus-visible:ring-2"
-                            title="Click to copy barcode"
-                        >
-                            <span>{identifier}</span>
-                            {isCopied ? (
-                                <Check className="text-primary-700 h-3 w-3" />
-                            ) : (
-                                <Copy className="h-3 w-3 text-neutral-400" />
-                            )}
-                        </Button>
-                        {quantity && (
-                            <Badge
-                                variant="outline"
-                                className="font-mono text-xs font-medium text-neutral-700 tabular-nums"
-                            >
-                                {quantity}
-                            </Badge>
-                        )}
-                    </div>
-
+                <div className="w-full min-w-0 flex-1 space-y-2.5 sm:w-auto">
                     <h1
                         ref={headingRef}
                         tabIndex={-1}
-                        className="text-[clamp(1.75rem,6vw,2.5rem)] leading-[1.12] font-extrabold tracking-[-0.03em] text-balance wrap-anywhere text-neutral-950 focus:outline-none"
+                        className="text-display-product leading-[1.12] font-extrabold tracking-[-0.03em] text-balance wrap-anywhere text-neutral-950 focus:outline-none"
                     >
                         {productName}
                     </h1>
@@ -238,54 +202,79 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                         </p>
                     )}
 
-                    {categories && categories.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                            {categories.slice(0, 3).map((c, i) => (
-                                <Badge
-                                    key={i}
-                                    variant="outline"
-                                    className="bg-neutral-50 text-xs font-medium text-neutral-700 capitalize"
-                                >
-                                    {c}
-                                </Badge>
-                            ))}
-                            {categories.length > 3 && (
-                                <span className="font-mono text-xs font-medium text-neutral-400 tabular-nums">
-                                    +{categories.length - 3} more
-                                </span>
-                            )}
-                        </div>
-                    )}
-
                     {/* Quick Factual Summary Divider Rows (Neutral) */}
                     <div className="divide-y divide-neutral-100 border-t border-b border-neutral-100 py-0.5 text-xs">
-                        <div className="flex items-center justify-between py-2">
-                            <span className="text-[11px] font-bold tracking-[0.06em] text-neutral-500 uppercase">
+                        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,60%)] items-center gap-4 py-2">
+                            <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
+                                Barcode
+                            </span>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                type="button"
+                                onClick={handleCopyBarcode}
+                                aria-label={
+                                    isCopied ? "Barcode copied" : "Copy barcode"
+                                }
+                                className="focus-visible:ring-primary-500 inline-flex h-auto w-full min-w-0 cursor-pointer items-center justify-end gap-1.5 rounded-md px-1.5 py-0.5 text-right font-mono text-xs font-semibold tracking-[0.04em] text-neutral-900 tabular-nums transition-colors hover:bg-neutral-100 focus-visible:ring-2 sm:text-sm"
+                                title="Click to copy barcode"
+                            >
+                                <span className="min-w-0 truncate">
+                                    {identifier}
+                                </span>
+                                {isCopied ? (
+                                    <Check className="text-primary-700 h-3 w-3 shrink-0" />
+                                ) : (
+                                    <Copy className="h-3 w-3 shrink-0 text-neutral-400" />
+                                )}
+                            </Button>
+                        </div>
+
+                        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,60%)] items-center gap-4 py-2">
+                            <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
+                                Quantity
+                            </span>
+                            <span className="min-w-0 text-right font-mono text-xs font-semibold text-neutral-900 tabular-nums sm:text-sm">
+                                {quantity || "Source Data Unavailable"}
+                            </span>
+                        </div>
+
+                        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,60%)] items-center gap-4 py-2">
+                            <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
+                                Origin
+                            </span>
+                            <span className="min-w-0 text-right text-xs font-semibold wrap-anywhere text-neutral-900 sm:text-sm">
+                                {origin || "Source Data Unavailable"}
+                            </span>
+                        </div>
+
+                        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,60%)] items-center gap-4 py-2">
+                            <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                 Allergen Findings
                             </span>
-                            <span className="text-xs font-semibold text-neutral-900 sm:text-sm">
+                            <span className="min-w-0 text-right text-xs font-semibold wrap-anywhere text-neutral-900 sm:text-sm">
                                 {allergensDetected > 0
                                     ? `${allergensDetected} detected`
-                                    : "None declared"}
+                                    : "Source Data Unavailable"}
                             </span>
                         </div>
 
-                        <div className="flex items-center justify-between py-2">
-                            <span className="text-[11px] font-bold tracking-[0.06em] text-neutral-500 uppercase">
+                        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,60%)] items-center gap-4 py-2">
+                            <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                 Additives (E-Nums)
                             </span>
-                            <span className="text-xs font-semibold text-neutral-900 sm:text-sm">
+                            <span className="min-w-0 text-right text-xs font-semibold wrap-anywhere text-neutral-900 sm:text-sm">
                                 {additivesCount > 0
                                     ? `${additivesCount} listed`
-                                    : "0 listed"}
+                                    : "Source Data Unavailable"}
                             </span>
                         </div>
 
-                        <div className="flex items-center justify-between py-2">
-                            <span className="text-[11px] font-bold tracking-[0.06em] text-neutral-500 uppercase">
+                        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,60%)] items-center gap-4 py-2">
+                            <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                 Halal Status
                             </span>
-                            <span className="max-w-[240px] truncate text-xs font-semibold text-neutral-800 sm:text-sm">
+                            <span className="min-w-0 text-right text-xs font-semibold wrap-anywhere text-neutral-800 sm:text-sm">
                                 {halalOutcome.replace(/_/g, " ")}
                             </span>
                         </div>
@@ -308,7 +297,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                             />
                         </div>
                         {currentImage.attribution && (
-                            <p className="text-center text-[11px] text-neutral-400">
+                            <p className="text-caption text-center text-neutral-400">
                                 Photo attribution: {currentImage.attribution} (
                                 {currentImage.license_name || "CC BY-SA"})
                             </p>

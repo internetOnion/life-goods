@@ -2,7 +2,6 @@ import {
     ArrowLeftIcon,
     InfoIcon,
     MagnifyingGlassIcon,
-    XCircleIcon,
 } from "@phosphor-icons/react"
 import { type FormEvent, useEffect, useRef, useState } from "react"
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router"
@@ -144,13 +143,6 @@ export function BarcodeEntryPage() {
         })
     }
 
-    const clearInput = () => {
-        setQuery("")
-        setError(null)
-        setEmptyQuerySubmitted(false)
-        inputRef.current?.focus()
-    }
-
     return (
         <main className="mx-auto min-h-svh w-full max-w-xl px-4 pt-3 pb-8 sm:px-6 sm:pt-4">
             <h1 ref={headingRef} tabIndex={-1} className="sr-only">
@@ -178,7 +170,7 @@ export function BarcodeEntryPage() {
             </div>
 
             <form
-                className="mx-auto mt-3 flex w-full max-w-lg items-center gap-2.5"
+                className="relative mx-auto mt-3 w-full max-w-lg [view-transition-name:search-bar]"
                 onSubmit={submit}
                 noValidate
             >
@@ -191,7 +183,7 @@ export function BarcodeEntryPage() {
                         ref={inputRef}
                         aria-label="Search"
                         className={cn(
-                            "h-12 rounded-full border-neutral-200/90 bg-white pr-11 pl-[3.25rem] text-base shadow-[0_6px_14px_-10px_rgba(19,21,25,0.55)]",
+                            "h-[60px] rounded-full border-neutral-200/90 bg-white pr-24 pl-[3.25rem] text-base shadow-[0_6px_14px_-10px_rgba(19,21,25,0.55)] placeholder:text-neutral-400",
                             error &&
                                 "border-error-500 focus-visible:ring-error-500/25",
                         )}
@@ -208,28 +200,10 @@ export function BarcodeEntryPage() {
                         aria-describedby={error ? "search-error" : undefined}
                         placeholder="Search products..."
                     />
-                    {query ? (
-                        <div className="absolute inset-y-0 right-1.5 flex items-center">
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="size-8 rounded-full text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
-                                aria-label="Clear search"
-                                onClick={clearInput}
-                            >
-                                <XCircleIcon
-                                    size={18}
-                                    weight="fill"
-                                    aria-hidden="true"
-                                />
-                            </Button>
-                        </div>
-                    ) : null}
                 </div>
 
                 <Button
-                    className="size-12 shrink-0 rounded-full bg-neutral-800 p-0 text-white shadow-[0_6px_14px_-10px_rgba(19,21,25,0.75)] hover:bg-neutral-900 active:bg-neutral-950"
+                    className="absolute top-1/2 right-1.5 size-[52px] -translate-y-1/2 rounded-full bg-neutral-800 p-0 text-white shadow-[0_6px_14px_-10px_rgba(19,21,25,0.75)] hover:bg-neutral-900 active:bg-neutral-950"
                     type="submit"
                     aria-label="Search"
                 >
@@ -260,23 +234,28 @@ export function BarcodeEntryPage() {
             {!query && !error && (
                 <div className="mt-10 flex flex-col items-center text-center">
                     <BarcodeGuideIllustration className="mb-4 drop-shadow-xs" />
-                    <h2 className="text-base font-extrabold text-neutral-900">
-                        {emptyQuerySubmitted
-                            ? "Please enter the barcode, product name, or brand"
-                            : "Manual Product Lookup"}
-                    </h2>
-                    {!emptyQuerySubmitted ? (
-                        <p className="mt-1.5 max-w-[36ch] text-xs leading-relaxed text-neutral-500">
+                    <div className="min-h-[69px]">
+                        <h2 className="text-base font-extrabold text-neutral-900">
+                            {emptyQuerySubmitted
+                                ? "Please enter the barcode, product name, or brand"
+                                : "Manual Product Lookup"}
+                        </h2>
+                        <p
+                            className={cn(
+                                "mt-1.5 max-w-[36ch] text-xs leading-relaxed text-neutral-500",
+                                emptyQuerySubmitted && "invisible",
+                            )}
+                        >
                             Enter a Barcode, brand, or product name, or choose a
                             sample Product below to explore.
                         </p>
-                    ) : null}
+                    </div>
 
-                    <div className="mt-6 w-full max-w-sm space-y-2 text-left">
-                        <span className="text-[11px] font-bold tracking-wider text-neutral-500 uppercase">
+                    <div className="mt-6 w-full max-w-lg space-y-2 text-left">
+                        <span className="text-caption font-bold tracking-wider text-neutral-500 uppercase">
                             Recent search
                         </span>
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-2">
                             {SAMPLE_PRODUCTS.map((s) => (
                                 <Button
                                     key={s.code}
@@ -298,11 +277,11 @@ export function BarcodeEntryPage() {
                                         <span className="block truncate text-xs font-semibold text-neutral-900 sm:text-sm">
                                             {s.name}
                                         </span>
-                                        <span className="block font-mono text-[10px] text-neutral-400 sm:text-xs">
+                                        <span className="text-micro block font-mono text-neutral-400 sm:text-xs">
                                             {s.code}
                                         </span>
                                     </div>
-                                    <span className="text-primary-600 shrink-0 text-[11px] font-semibold">
+                                    <span className="text-primary-600 text-caption shrink-0 font-semibold">
                                         View →
                                     </span>
                                 </Button>

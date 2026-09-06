@@ -270,11 +270,11 @@ function LearnIndexPage({ locale }: LearnIndexPageProps) {
                 <h1
                     ref={headingRef}
                     tabIndex={-1}
-                    className="text-[clamp(2.1rem,7vw,3.35rem)] leading-[1.55] font-black tracking-tight text-balance"
+                    className="text-display-learn leading-[1.55] font-black tracking-tight text-balance"
                 >
                     {t("learn.title")}
                 </h1>
-                <p className="text-muted-foreground mt-3 max-w-[62ch] text-[1.06rem] leading-loose">
+                <p className="text-muted-foreground text-body-lg mt-3 max-w-[62ch] leading-loose">
                     {t("learn.intro")}
                 </p>
             </div>
@@ -618,7 +618,7 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
                         <h1
                             ref={headingRef}
                             tabIndex={-1}
-                            className="mt-2 text-[clamp(2rem,7vw,3.15rem)] leading-[1.55] tracking-tight text-balance"
+                            className="text-display mt-2 leading-[1.55] tracking-tight text-balance"
                         >
                             {localized(entry.title, contentLocale)}
                         </h1>
@@ -628,7 +628,7 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
                                 {t("learn.englishContent")}
                             </p>
                         ) : null}
-                        <p className="text-muted-foreground mt-4 max-w-[65ch] text-[1.08rem] leading-loose">
+                        <p className="text-muted-foreground text-body-lg mt-4 max-w-[65ch] leading-loose">
                             {localized(entry.summary, contentLocale)}
                         </p>
 
@@ -662,7 +662,7 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
                             >
                                 {t("learn.explanationTitle")}
                             </h2>
-                            <p className="mt-3 max-w-[70ch] text-[1.05rem] leading-loose break-words">
+                            <p className="text-body-lg mt-3 max-w-[70ch] leading-loose break-words">
                                 {localized(entry.body, contentLocale)}
                             </p>
                             {entry.kind === "sourced" &&
@@ -671,7 +671,7 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
                                     <h3 className="mt-7 text-lg leading-relaxed font-bold">
                                         {t("learn.keyPointsTitle")}
                                     </h3>
-                                    <ul className="marker:text-primary mt-3 max-w-[70ch] list-disc space-y-3 pl-6 text-[1.05rem] leading-loose break-words">
+                                    <ul className="marker:text-primary text-body-lg mt-3 max-w-[70ch] list-disc space-y-3 pl-6 leading-loose break-words">
                                         {(entry.keyPoints ?? []).map(
                                             (point, index) => (
                                                 <li
@@ -868,11 +868,11 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
                             id="missing-article"
                             ref={headingRef}
                             tabIndex={-1}
-                            className="text-[clamp(2rem,7vw,3.15rem)] leading-[1.6] tracking-tight text-balance"
+                            className="text-display leading-[1.6] tracking-tight text-balance"
                         >
                             {t("learn.unavailableTitle")}
                         </h1>
-                        <p className="text-muted-foreground mt-3 max-w-[62ch] text-[1.05rem] leading-loose">
+                        <p className="text-muted-foreground text-body-lg mt-3 max-w-[62ch] leading-loose">
                             {t("learn.unavailableBody")}
                         </p>
                     </section>
@@ -912,11 +912,11 @@ export function LearnGuidePage() {
                         <h1
                             ref={headingRef}
                             tabIndex={-1}
-                            className="text-[clamp(2rem,7vw,3.15rem)] leading-[1.55] tracking-tight text-balance"
+                            className="text-display leading-[1.55] tracking-tight text-balance"
                         >
                             {localized(guide.title, locale)}
                         </h1>
-                        <p className="text-muted-foreground mt-4 max-w-[65ch] text-[1.08rem] leading-loose">
+                        <p className="text-muted-foreground text-body-lg mt-4 max-w-[65ch] leading-loose">
                             {localized(guide.intro, locale)}
                         </p>
                     </div>
@@ -955,11 +955,11 @@ export function LearnGuidePage() {
                         id="missing-guide"
                         ref={headingRef}
                         tabIndex={-1}
-                        className="text-[clamp(2rem,7vw,3.15rem)] leading-[1.6] tracking-tight text-balance"
+                        className="text-display leading-[1.6] tracking-tight text-balance"
                     >
                         {t("learn.unavailableGuideTitle")}
                     </h1>
-                    <p className="text-muted-foreground mt-3 max-w-[62ch] text-[1.05rem] leading-loose">
+                    <p className="text-muted-foreground text-body-lg mt-3 max-w-[62ch] leading-loose">
                         {t("learn.unavailableBody")}
                     </p>
                 </section>
@@ -1146,11 +1146,11 @@ function StructuredLearnArticle({
                 <h1
                     ref={headingRef}
                     tabIndex={-1}
-                    className="mt-2 text-[clamp(2rem,7vw,3.15rem)] leading-[1.55] tracking-tight text-balance"
+                    className="text-display mt-2 leading-[1.55] tracking-tight text-balance"
                 >
                     {localized(entry.title, locale)}
                 </h1>
-                <p className="text-muted-foreground mt-4 max-w-[65ch] text-[1.08rem] leading-loose">
+                <p className="text-muted-foreground text-body-lg mt-4 max-w-[65ch] leading-loose">
                     {localized(entry.summary, locale)}
                 </p>
                 {guide && stepIndex >= 0 ? (
@@ -1172,7 +1172,7 @@ function StructuredLearnArticle({
                     >
                         {t("learn.explanationTitle")}
                     </h2>
-                    <p className="mt-3 max-w-[70ch] text-[1.05rem] leading-loose">
+                    <p className="text-body-lg mt-3 max-w-[70ch] leading-loose">
                         {localized(entry.body, locale)}
                     </p>
                     {entry.facts?.length ? (

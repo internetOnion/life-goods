@@ -12,7 +12,6 @@ import { Header } from "@/components/layout/Header"
 import { saveScanItem } from "@/lib/history"
 import { validateIdentifier } from "@/lib/identifier"
 import { usePageMetadata } from "@/lib/metadata"
-import { cn } from "@/lib/utils"
 
 import { lookupProduct, type ProductLookup } from "./api"
 import { adaptProductLookup } from "./adapter"
@@ -26,7 +25,6 @@ import { NotFoundCard } from "./cards/NotFoundCard"
 import { NutritionCard } from "./cards/NutritionCard"
 import { PackagingCard } from "./cards/PackagingCard"
 import { PackagingsTableCard } from "./cards/PackagingsTableCard"
-import { PhotosGalleryCard } from "./cards/PhotosGalleryCard"
 import { ProductCharacteristicsCard } from "./cards/ProductCharacteristicsCard"
 import { ProductHero } from "./cards/ProductHero"
 import { ProvenanceCard } from "./cards/ProvenanceCard"
@@ -47,19 +45,10 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
     const validation = useMemo(() => validateIdentifier(barcode), [barcode])
     const normalizedBarcode = validation.valid ? validation.value : ""
 
-    const [activeTab, setActiveTab] = useState("overview")
+    const [activeTab, setActiveTab] = useState("ingredients")
     const [viewMode, setViewMode] = useState<"tabs" | "stream">("tabs")
 
     const tabScrollRef = useRef<HTMLDivElement>(null)
-    const [canScrollLeft, setCanScrollLeft] = useState(false)
-    const [canScrollRight, setCanScrollRight] = useState(false)
-
-    const checkTabScroll = () => {
-        const el = tabScrollRef.current
-        if (!el) return
-        setCanScrollLeft(el.scrollLeft > 6)
-        setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 6)
-    }
 
     useEffect(() => {
         if (!validation.valid && barcode) {
@@ -84,13 +73,25 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
     const candidate = adapted?.candidate
     const offView = adapted?.offView
     const labelEvidence = candidate?.label_evidence || []
-
-    useEffect(() => {
-        checkTabScroll()
-        const handleResize = () => checkTabScroll()
-        window.addEventListener("resize", handleResize)
-        return () => window.removeEventListener("resize", handleResize)
-    }, [adapted, viewMode])
+    const hasNutriScore = Boolean(
+        offView?.nutriscoreGrade && offView.nutriscoreGrade !== "unknown",
+    )
+    const hasNovaGroup = Boolean(offView?.novaGroup)
+    const hasEcoScore = Boolean(
+        offView?.ecoscoreGrade && offView.ecoscoreGrade !== "unknown",
+    )
+    const sourceAssessmentCount = [
+        hasNutriScore,
+        hasNovaGroup,
+        hasEcoScore,
+    ].filter(Boolean).length
+    const hasSourceAssessments = sourceAssessmentCount > 0
+    const assessmentGridClass =
+        sourceAssessmentCount === 1
+            ? "sm:mx-auto sm:max-w-[18rem]"
+            : sourceAssessmentCount === 2
+              ? "sm:mx-auto sm:max-w-[30rem] sm:grid-cols-2"
+              : "sm:grid-cols-3"
 
     useEffect(() => {
         if (
@@ -120,7 +121,6 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                 container.scrollLeft = Math.max(0, scrollTarget)
             }
         }
-        checkTabScroll()
     }, [activeTab])
 
     const headingRef = useRef<HTMLHeadingElement>(null)
@@ -272,48 +272,45 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                         <ProductHero
                             candidate={candidate}
                             identifier={adapted.normalizedIdentifier || barcode}
-                            scheme={adapted.scheme}
                             genericName={offView.genericName}
-                            categories={offView.categories}
+                            origin={offView.origins}
                             headingRef={headingRef}
                         />
 
                         {/* Open Food Facts Top Score Pillars */}
-                        <div className="space-y-2 pt-1">
-                            <div className="flex items-center justify-between gap-2">
-                                <h2 className="text-xs font-bold tracking-[0.06em] text-neutral-500 uppercase">
-                                    Source Assessments
-                                </h2>
-                                <span className="text-[11px] font-medium text-neutral-400">
-                                    Open Food Facts
-                                </span>
+                        {hasSourceAssessments && (
+                            <div className="space-y-2 pt-1">
+                                <div className="flex items-center justify-between gap-2">
+                                    <h2 className="text-xs font-bold tracking-[0.06em] text-neutral-500 uppercase">
+                                        Source Assessments
+                                    </h2>
+                                    <span className="text-caption font-medium text-neutral-400">
+                                        Open Food Facts
+                                    </span>
+                                </div>
+                                <p className="text-xs leading-normal text-neutral-600">
+                                    Attributed source calculations; not Life
+                                    Goods verdicts or purchase recommendations.
+                                </p>
+                                <div
+                                    className={`grid grid-cols-1 gap-2.5 sm:gap-3 ${assessmentGridClass}`}
+                                >
+                                    <NutriScoreBanner
+                                        grade={offView.nutriscoreGrade}
+                                        score={offView.nutriscoreScore}
+                                        version={offView.nutriscoreVersion}
+                                    />
+                                    <NovaGroupBanner
+                                        group={offView.novaGroup}
+                                        markers={offView.novaGroupsMarkers}
+                                    />
+                                    <EcoScoreBanner
+                                        grade={offView.ecoscoreGrade}
+                                        score={offView.ecoscoreScore}
+                                    />
+                                </div>
                             </div>
-                            <p className="text-xs leading-normal text-neutral-600">
-                                Attributed source calculations; not Life Goods
-                                verdicts or purchase recommendations.
-                            </p>
-                            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3">
-                                <NutriScoreBanner
-                                    grade={offView.nutriscoreGrade}
-                                    score={offView.nutriscoreScore}
-                                    version={offView.nutriscoreVersion}
-                                />
-                                <NovaGroupBanner
-                                    group={offView.novaGroup}
-                                    markers={offView.novaGroupsMarkers}
-                                />
-                                <EcoScoreBanner
-                                    grade={offView.ecoscoreGrade}
-                                    score={offView.ecoscoreScore}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Nutrient Levels Card */}
-                        <NutrientLevelsCard
-                            levels={offView.nutrientLevels}
-                            labelEvidence={labelEvidence}
-                        />
+                        )}
 
                         {/* Navigation View Mode Toggle & Tab Bar */}
                         <div className="flex items-center justify-between gap-3 pt-2">
@@ -360,72 +357,37 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                 variant="line"
                                 className="w-full"
                             >
-                                <div className="sticky top-16 z-20 -mx-4 border-b border-neutral-200/80 bg-white/95 backdrop-blur-md sm:-mx-6">
-                                    <div className="relative">
-                                        {canScrollLeft && (
-                                            <div
-                                                aria-hidden="true"
-                                                className="pointer-events-none absolute top-0 bottom-0 left-0 z-10 w-6 bg-gradient-to-r from-white via-white/80 to-transparent"
-                                            />
-                                        )}
-                                        <div
-                                            ref={tabScrollRef}
-                                            onScroll={checkTabScroll}
-                                            className="no-scrollbar flex items-center overflow-x-auto overscroll-x-contain scroll-smooth px-4 sm:px-6"
-                                        >
-                                            <TabsList className="flex h-auto w-max min-w-full items-center justify-start gap-1 border-none bg-transparent p-0 sm:gap-2">
-                                                <TabsTrigger
-                                                    value="overview"
-                                                    className="shrink-0"
-                                                >
-                                                    Overview
-                                                </TabsTrigger>
-                                                <TabsTrigger
-                                                    value="ingredients"
-                                                    className="shrink-0"
-                                                >
-                                                    Ingredients
-                                                </TabsTrigger>
-                                                <TabsTrigger
-                                                    value="nutrition"
-                                                    className="shrink-0"
-                                                >
-                                                    Nutrition
-                                                </TabsTrigger>
-                                                <TabsTrigger
-                                                    value="photos"
-                                                    className="shrink-0 gap-1.5"
-                                                >
-                                                    <span>Photos</span>
-                                                    <span
-                                                        className={cn(
-                                                            "inline-flex items-center justify-center rounded-full px-2 py-0.5 font-mono text-xs font-bold tabular-nums transition-colors",
-                                                            activeTab ===
-                                                                "photos"
-                                                                ? "bg-primary-100 text-primary-800 ring-primary-500/20 ring-1"
-                                                                : "bg-neutral-100 text-neutral-600 group-hover:bg-neutral-200/80",
-                                                        )}
-                                                    >
-                                                        {
-                                                            offView.allImages
-                                                                .length
-                                                        }
-                                                    </span>
-                                                </TabsTrigger>
-                                                <TabsTrigger
-                                                    value="data"
-                                                    className="shrink-0"
-                                                >
-                                                    Data & Raw
-                                                </TabsTrigger>
-                                            </TabsList>
-                                        </div>
-                                        {canScrollRight && (
-                                            <div
-                                                aria-hidden="true"
-                                                className="pointer-events-none absolute top-0 right-0 bottom-0 z-10 w-8 bg-gradient-to-l from-white via-white/80 to-transparent"
-                                            />
-                                        )}
+                                <div className="sticky top-16 z-20 -mx-4 border-b border-neutral-200/80 bg-white sm:-mx-6">
+                                    <div
+                                        ref={tabScrollRef}
+                                        className="no-scrollbar flex items-center overflow-x-auto overscroll-x-contain scroll-smooth px-4 sm:px-6"
+                                    >
+                                        <TabsList className="flex h-auto w-max min-w-full items-center justify-start gap-0 border-none bg-transparent p-0">
+                                            <TabsTrigger
+                                                value="ingredients"
+                                                className="shrink-0"
+                                            >
+                                                Ingredients
+                                            </TabsTrigger>
+                                            <TabsTrigger
+                                                value="nutrition"
+                                                className="shrink-0"
+                                            >
+                                                Nutrition
+                                            </TabsTrigger>
+                                            <TabsTrigger
+                                                value="data"
+                                                className="shrink-0"
+                                            >
+                                                Data & Raw
+                                            </TabsTrigger>
+                                            <TabsTrigger
+                                                value="overview"
+                                                className="shrink-0"
+                                            >
+                                                Overview
+                                            </TabsTrigger>
+                                        </TabsList>
                                     </div>
                                 </div>
 
@@ -492,18 +454,7 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                     />
                                 </TabsContent>
 
-                                {/* Tab 4: Photos */}
-                                <TabsContent
-                                    value="photos"
-                                    className="space-y-4 pt-2"
-                                >
-                                    <PhotosGalleryCard
-                                        photos={offView.allImages}
-                                        productName={offView.productName}
-                                    />
-                                </TabsContent>
-
-                                {/* Tab 5: Data Quality & Raw Record */}
+                                {/* Tab 4: Data Quality & Raw Record */}
                                 <TabsContent
                                     value="data"
                                     className="space-y-4 pt-2"
@@ -552,10 +503,6 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                     labelEvidence={labelEvidence}
                                 />
                                 <NutritionCard labelEvidence={labelEvidence} />
-                                <PhotosGalleryCard
-                                    photos={offView.allImages}
-                                    productName={offView.productName}
-                                />
                                 <DataQualityCard
                                     completeness={offView.completeness}
                                     statesTags={offView.statesTags}

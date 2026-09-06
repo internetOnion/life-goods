@@ -819,6 +819,30 @@ export function extractOpenFoodFactsView(
             .filter(Boolean)
     }
 
+    // Product Origin
+    const origins =
+        typeof raw.origins === "string" && raw.origins.trim()
+            ? raw.origins.trim()
+            : Array.isArray(raw.origins_tags)
+              ? (raw.origins_tags as unknown[])
+                    .filter(
+                        (origin): origin is string =>
+                            typeof origin === "string" &&
+                            Boolean(origin.trim()),
+                    )
+                    .map((origin) =>
+                        origin
+                            .replace(/^[a-z]{2}:/, "")
+                            .replace(/[_-]/g, " ")
+                            .trim()
+                            .replace(/^\w/, (character) =>
+                                character.toUpperCase(),
+                            ),
+                    )
+                    .filter(Boolean)
+                    .join(", ") || null
+              : null
+
     // Scores
     let nutriscoreGrade: OpenFoodFactsProductView["nutriscoreGrade"] = null
     if (typeof raw.nutriscore_grade === "string") {
@@ -1062,7 +1086,7 @@ export function extractOpenFoodFactsView(
         categories,
         labels,
         stores,
-        origins: typeof raw.origins === "string" ? raw.origins : null,
+        origins,
         manufacturingPlaces:
             typeof raw.manufacturing_places === "string"
                 ? raw.manufacturing_places

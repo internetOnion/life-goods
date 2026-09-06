@@ -70,7 +70,7 @@ export const AdditivesCard: React.FC<AdditivesCardProps> = ({
                 </div>
                 <Badge
                     variant="subtle"
-                    className="py-0.2 px-2 font-mono text-[11px] font-semibold tabular-nums"
+                    className="py-0.2 text-caption px-2 font-mono font-semibold tabular-nums"
                 >
                     {formattedAdditives.length} Listed
                 </Badge>
@@ -83,7 +83,7 @@ export const AdditivesCard: React.FC<AdditivesCardProps> = ({
                             key={idx}
                             className="flex items-center gap-2 rounded-lg border border-neutral-200/70 bg-neutral-50 px-2.5 py-1.5"
                         >
-                            <span className="py-0.2 rounded bg-neutral-200/80 px-1.5 font-mono text-[11px] font-bold text-neutral-900 tabular-nums">
+                            <span className="py-0.2 text-caption rounded bg-neutral-200/80 px-1.5 font-mono font-bold text-neutral-900 tabular-nums">
                                 {add.code}
                             </span>
                             <span className="min-w-0 truncate text-xs font-medium text-neutral-800">

@@ -91,7 +91,7 @@ export const HalalCard: React.FC<HalalCardProps> = ({
                 {hasHalalClaim && (
                     <Badge
                         variant="accent"
-                        className="py-0.2 px-2 text-[11px] font-semibold"
+                        className="py-0.2 text-caption px-2 font-semibold"
                     >
                         Halal Claim on Label
                     </Badge>
@@ -158,7 +158,7 @@ export const HalalCard: React.FC<HalalCardProps> = ({
                                         <span className="font-bold text-neutral-900">
                                             "{f.matched_text}"
                                         </span>
-                                        <span className="ml-1.5 text-[11px] text-neutral-500">
+                                        <span className="text-caption ml-1.5 text-neutral-500">
                                             ({f.relationship_type})
                                         </span>
                                     </div>
@@ -169,7 +169,7 @@ export const HalalCard: React.FC<HalalCardProps> = ({
                                                 ? "error"
                                                 : "warning"
                                         }
-                                        className="py-0.2 shrink-0 self-start px-2 text-[10px] font-bold tracking-wider uppercase sm:self-auto"
+                                        className="py-0.2 text-micro shrink-0 self-start px-2 font-bold tracking-wider uppercase sm:self-auto"
                                     >
                                         {f.classification.replace(/_/g, " ")}
                                     </Badge>
@@ -181,7 +181,7 @@ export const HalalCard: React.FC<HalalCardProps> = ({
 
                 {/* Citations Reference */}
                 {assessment?.reference_dataset_version && (
-                    <div className="flex items-center gap-1.5 border-t border-neutral-100 pt-1 text-[11px] text-neutral-400">
+                    <div className="text-caption flex items-center gap-1.5 border-t border-neutral-100 pt-1 text-neutral-400">
                         <BookOpen className="h-3 w-3 shrink-0" />
                         <span>
                             Jurisprudence ruleset:{" "}

@@ -107,6 +107,8 @@ export const EcoScoreBanner: React.FC<EcoScoreBannerProps> = ({
 }) => {
     const normalizedGrade = grade ? grade.toLowerCase() : null
     const activeGrade = ECO_GRADES.find((g) => g.key === normalizedGrade)
+    if (!activeGrade) return null
+
     const config = activeGrade || FALLBACK_CONFIG
 
     return (
@@ -135,7 +137,7 @@ export const EcoScoreBanner: React.FC<EcoScoreBannerProps> = ({
                 <div className="flex items-center justify-between gap-1.5">
                     <span
                         className={cn(
-                            "block truncate text-[11px] font-bold tracking-[0.06em] uppercase",
+                            "text-caption block truncate font-bold tracking-[0.06em] uppercase",
                             config.pillarColor,
                         )}
                     >
@@ -146,7 +148,7 @@ export const EcoScoreBanner: React.FC<EcoScoreBannerProps> = ({
                         score !== undefined && (
                             <span
                                 className={cn(
-                                    "py-0.2 shrink-0 rounded-full border px-1.5 font-mono text-[11px] font-bold tabular-nums shadow-2xs",
+                                    "py-0.2 text-caption shrink-0 rounded-full border px-1.5 font-mono font-bold tabular-nums shadow-2xs",
                                     config.badgeBg,
                                 )}
                             >
@@ -169,7 +171,7 @@ export const EcoScoreBanner: React.FC<EcoScoreBannerProps> = ({
 
                     <p
                         className={cn(
-                            "mt-0.5 line-clamp-1 text-xs leading-normal font-medium sm:line-clamp-2 sm:text-[11px]",
+                            "sm:text-caption mt-0.5 line-clamp-1 text-xs leading-normal font-medium sm:line-clamp-2",
                             config.secondaryColor,
                         )}
                     >

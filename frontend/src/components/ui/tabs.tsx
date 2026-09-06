@@ -61,12 +61,12 @@ const TabsList = React.forwardRef<
 TabsList.displayName = TabsPrimitive.List.displayName
 
 const tabsTriggerVariants = cva(
-    "group relative inline-flex min-h-[44px] cursor-pointer items-center justify-center whitespace-nowrap text-xs font-semibold ring-offset-white transition-all select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 sm:text-sm",
+    "group relative inline-flex min-h-[44px] cursor-pointer items-center justify-center whitespace-nowrap ring-offset-white transition-all select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
     {
         variants: {
             variant: {
-                line: "rounded-t-lg px-3.5 py-3 text-neutral-600 hover:bg-neutral-100/60 hover:text-neutral-950 after:absolute after:bottom-0 after:inset-x-1.5 after:h-[2.5px] after:rounded-full after:bg-primary-600 after:opacity-0 after:transition-all hover:after:bg-neutral-400 hover:after:opacity-40 data-[state=active]:font-bold data-[state=active]:text-primary-800 data-[state=active]:after:bg-primary-600 data-[state=active]:after:opacity-100 sm:px-4",
-                pills: "rounded-lg px-3.5 py-1.5 text-neutral-600 hover:text-neutral-900 data-[state=active]:bg-primary-600 data-[state=active]:font-semibold data-[state=active]:text-white data-[state=active]:shadow-xs",
+                line: "min-h-16 rounded-none px-5 py-3 text-lg font-medium text-neutral-600 hover:bg-transparent hover:text-neutral-950 after:absolute after:right-0 after:bottom-0 after:left-0 after:h-1 after:bg-primary-600 after:opacity-0 after:transition-opacity data-[state=active]:text-neutral-950 data-[state=active]:after:opacity-100",
+                pills: "rounded-lg px-3.5 py-1.5 text-sm font-semibold text-neutral-600 hover:text-neutral-900 data-[state=active]:bg-primary-600 data-[state=active]:text-white data-[state=active]:shadow-xs",
             },
         },
         defaultVariants: {

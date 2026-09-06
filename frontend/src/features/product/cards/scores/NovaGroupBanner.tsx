@@ -84,6 +84,8 @@ export const NovaGroupBanner: React.FC<NovaGroupBannerProps> = ({
     markers,
 }) => {
     const activeGroup = NOVA_GROUPS.find((n) => n.group === group)
+    if (!activeGroup) return null
+
     const config = activeGroup || FALLBACK_CONFIG
 
     // Extract any specific markers that triggered group 4 or 3
@@ -129,7 +131,7 @@ export const NovaGroupBanner: React.FC<NovaGroupBannerProps> = ({
                 <div className="flex items-center justify-between gap-1.5">
                     <span
                         className={cn(
-                            "block truncate text-[11px] font-bold tracking-[0.06em] uppercase",
+                            "text-caption block truncate font-bold tracking-[0.06em] uppercase",
                             config.pillarColor,
                         )}
                     >
@@ -138,7 +140,7 @@ export const NovaGroupBanner: React.FC<NovaGroupBannerProps> = ({
                     {markerList.length > 0 && (
                         <span
                             className={cn(
-                                "py-0.2 max-w-[120px] shrink-0 truncate rounded-full border px-1.5 text-[10px] font-semibold tracking-tight shadow-2xs",
+                                "py-0.2 text-micro max-w-[120px] shrink-0 truncate rounded-full border px-1.5 font-semibold tracking-tight shadow-2xs",
                                 config.badgeBg,
                             )}
                         >
@@ -159,7 +161,7 @@ export const NovaGroupBanner: React.FC<NovaGroupBannerProps> = ({
 
                     <p
                         className={cn(
-                            "mt-0.5 line-clamp-1 text-xs leading-normal font-medium sm:line-clamp-2 sm:text-[11px]",
+                            "sm:text-caption mt-0.5 line-clamp-1 text-xs leading-normal font-medium sm:line-clamp-2",
                             config.secondaryColor,
                         )}
                     >

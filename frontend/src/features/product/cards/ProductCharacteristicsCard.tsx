@@ -125,7 +125,7 @@ export const ProductCharacteristicsCard: React.FC<
                 {/* EMB / Traceability Codes */}
                 {product.embCodes.length > 0 && (
                     <div className="space-y-1 border-t border-neutral-100 pt-1">
-                        <span className="block text-[11px] font-bold tracking-[0.06em] text-neutral-500 uppercase">
+                        <span className="text-caption block font-bold tracking-[0.06em] text-neutral-500 uppercase">
                             Traceability / EMB Codes:
                         </span>
                         <div className="flex flex-wrap gap-1.5">

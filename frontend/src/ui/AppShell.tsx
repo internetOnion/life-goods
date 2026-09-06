@@ -126,7 +126,7 @@ export function AppShell({ children }: AppShellProps) {
                                                 </span>
                                                 <span
                                                     className={cn(
-                                                        "mt-0.5 max-w-full truncate text-[0.6875rem] leading-none transition-colors",
+                                                        "text-caption mt-0.5 max-w-full truncate leading-none transition-colors",
                                                         isActive
                                                             ? "text-primary-800 font-extrabold"
                                                             : "font-semibold text-neutral-500 group-hover:text-neutral-900",

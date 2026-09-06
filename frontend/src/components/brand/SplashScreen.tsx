@@ -12,7 +12,7 @@ export function SplashScreen() {
                     size="clamp(5rem, 23vw, 9rem)"
                     variant="primary"
                 />
-                <span className="animate-splash-wordmark-entrance motion-reduce:animate-splash-wordmark-reduced relative z-[1] text-[clamp(2rem,9vw,4.75rem)] leading-none font-extrabold tracking-[-0.04em] whitespace-nowrap text-neutral-950">
+                <span className="animate-splash-wordmark-entrance motion-reduce:animate-splash-wordmark-reduced text-display-splash relative z-[1] leading-none font-extrabold tracking-[-0.04em] whitespace-nowrap text-neutral-950">
                     Life Goods
                 </span>
             </div>

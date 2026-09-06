@@ -160,7 +160,7 @@ export const IngredientsAnalysisCard: React.FC<
                             className={`h-4 w-4 shrink-0 ${palm.iconColor}`}
                         />
                         <div className="min-w-0">
-                            <span className="block text-[10px] font-bold tracking-wider uppercase opacity-70">
+                            <span className="text-micro block font-bold tracking-wider uppercase opacity-70">
                                 {palm.title}
                             </span>
                             <span className="block truncate text-xs font-semibold">
@@ -177,7 +177,7 @@ export const IngredientsAnalysisCard: React.FC<
                             className={`h-4 w-4 shrink-0 ${vegan.iconColor}`}
                         />
                         <div className="min-w-0">
-                            <span className="block text-[10px] font-bold tracking-wider uppercase opacity-70">
+                            <span className="text-micro block font-bold tracking-wider uppercase opacity-70">
                                 {vegan.title}
                             </span>
                             <span className="block truncate text-xs font-semibold">
@@ -194,7 +194,7 @@ export const IngredientsAnalysisCard: React.FC<
                             className={`h-4 w-4 shrink-0 ${veg.iconColor}`}
                         />
                         <div className="min-w-0">
-                            <span className="block text-[10px] font-bold tracking-wider uppercase opacity-70">
+                            <span className="text-micro block font-bold tracking-wider uppercase opacity-70">
                                 {veg.title}
                             </span>
                             <span className="block truncate text-xs font-semibold">

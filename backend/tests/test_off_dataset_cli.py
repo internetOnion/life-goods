@@ -27,6 +27,7 @@ from lifegoods.open_food_facts.cli import (
 
 SOURCE_URL = "https://static.openfoodfacts.test/products.jsonl.gz"
 PROBE_CODE = "4006381333931"
+NUTELLA_CODE = "3017620422003"
 SAMPLE_DATASET = (
     Path(__file__).parent / "fixtures" / "open_food_facts" / "dataset-sample.jsonl"
 )
@@ -84,22 +85,27 @@ def test_import_streams_hashes_validates_and_preserves_full_documents() -> None:
 
     assert manifest["status"] == "READY"
     assert manifest["byte_count"] == len(compressed)
-    assert manifest["document_count"] == manifest["inserted_count"] == 2
+    assert manifest["document_count"] == manifest["inserted_count"] == 3
     assert manifest["malformed_count"] == manifest["duplicate_count"] == 0
     assert manifest["schema_versions"] == [1003]
     assert manifest["search_index"]["status"] == "READY"
-    assert manifest["search_index"]["document_count"] == 2
+    assert manifest["search_index"]["document_count"] == 3
     assert len(manifest["sha256"]) == 64
     stored = database[manifest["collection_name"]].find_one({"code": PROBE_CODE})
     assert stored is not None
     assert stored["brands"] == "LifeGoods fixture"
+    nutella = database[manifest["collection_name"]].find_one({"code": NUTELLA_CODE})
+    assert nutella is not None
+    assert nutella["product_name"] == "Nutella"
+    assert nutella["generic_name"] == "Pâte à tartiner aux noisettes et au cacao"
+    assert nutella["brands"] == "Nutella, Ferrero, Yum yum"
     indexes = database[manifest["collection_name"]].index_information()
     assert "uq_off_code" in indexes
     assert PACKAGE_SEARCH_TEXT_INDEX in indexes
     assert PACKAGE_SEARCH_COUNTRY_INDEX in indexes
     assert progress[-1]["byte_count"] == len(compressed)
-    assert progress[-1]["document_count"] == 2
-    assert progress[-1]["inserted_count"] == 2
+    assert progress[-1]["document_count"] == 3
+    assert progress[-1]["inserted_count"] == 3
 
 
 def test_import_rejects_and_records_duplicate_barcodes() -> None:

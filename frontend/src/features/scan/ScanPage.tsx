@@ -130,6 +130,10 @@ function prepareSearchBridge() {
     }
 }
 
+type SearchViewTransitionDocument = Document & {
+    startViewTransition?: (update: () => void | Promise<void>) => unknown
+}
+
 export function ScanPage({ onBarcodeChange }: ScanPageProps) {
     const navigate = useNavigate()
     usePageMetadata()
@@ -168,9 +172,18 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
             releaseCamera()
             prepareSearchBridge()
 
-            flushSync(() => {
-                void navigate("/search", { state: { autoFocus: true } })
-            })
+            const updateSearchRoute = () => {
+                flushSync(() => {
+                    void navigate("/search", { state: { autoFocus: true } })
+                })
+            }
+            const transitionDocument = document as SearchViewTransitionDocument
+
+            if (transitionDocument.startViewTransition) {
+                transitionDocument.startViewTransition(updateSearchRoute)
+            } else {
+                updateSearchRoute()
+            }
 
             const searchInput = document.getElementById(
                 "search",
@@ -181,6 +194,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                 bridge?.remove()
             } else {
                 setTimeout(() => {
+                    if (typeof document === "undefined") return
                     const target = document.getElementById(
                         "search",
                     ) as HTMLInputElement | null
@@ -652,7 +666,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
             </section>
 
             <div className="mt-5 mb-3.5 flex items-center justify-center">
-                <BrandLockup />
+                <BrandLockup animated />
             </div>
 
             <div className="mx-auto w-full max-w-lg">
@@ -663,11 +677,11 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                     onClick={handleSearchNavigation}
                     aria-label={text.searchLabel}
                     className={cn(
-                        "group flex h-12 w-full items-center gap-3 rounded-2xl border border-neutral-200/90 bg-white px-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)] transition-all duration-150 select-none",
+                        "group flex h-[60px] w-full items-center gap-3 rounded-2xl border border-neutral-200/90 bg-white px-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)] transition-all duration-150 select-none [view-transition-name:search-bar]",
                         "focus-visible:ring-primary-500 hover:border-neutral-300 hover:shadow-md focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.99]",
                     )}
                 >
-                    <span className="group-hover:bg-primary-50 group-hover:text-primary-700 grid size-8 place-items-center rounded-xl bg-neutral-100 text-neutral-500 transition-colors">
+                    <span className="group-hover:bg-primary-50 group-hover:text-primary-700 grid size-10 place-items-center rounded-xl bg-neutral-100 text-neutral-500 transition-colors">
                         <MagnifyingGlassIcon
                             size={18}
                             weight="bold"

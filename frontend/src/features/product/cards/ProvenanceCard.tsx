@@ -82,7 +82,7 @@ export const ProvenanceCard: React.FC<ProvenanceCardProps> = ({
             <CardContent className="space-y-3 p-4 pt-1 text-xs sm:p-5">
                 <div className="divide-info-200/70 border-info-200/70 divide-y border-t border-b text-xs">
                     <div className="flex flex-col justify-between gap-1 py-2 sm:flex-row sm:items-center">
-                        <span className="text-info-700 text-[11px] font-bold tracking-[0.06em] uppercase">
+                        <span className="text-info-700 text-caption font-bold tracking-[0.06em] uppercase">
                             Attribution
                         </span>
                         <span className="text-info-950 truncate text-xs font-semibold sm:text-sm">
@@ -92,7 +92,7 @@ export const ProvenanceCard: React.FC<ProvenanceCardProps> = ({
                     </div>
 
                     <div className="flex flex-col justify-between gap-1 py-2 sm:flex-row sm:items-center">
-                        <span className="text-info-700 text-[11px] font-bold tracking-[0.06em] uppercase">
+                        <span className="text-info-700 text-caption font-bold tracking-[0.06em] uppercase">
                             Data & Image Licenses
                         </span>
                         <span className="text-info-950 truncate text-xs font-semibold sm:text-sm">
@@ -102,7 +102,7 @@ export const ProvenanceCard: React.FC<ProvenanceCardProps> = ({
 
                     {datasetVersion?.sha256 && (
                         <div className="flex flex-col justify-between gap-1 py-2 sm:flex-row sm:items-baseline">
-                            <span className="text-info-700 flex items-center gap-1 text-[11px] font-bold tracking-[0.06em] uppercase">
+                            <span className="text-info-700 text-caption flex items-center gap-1 font-bold tracking-[0.06em] uppercase">
                                 <Hash className="h-3 w-3" />
                                 Snapshot SHA-256
                             </span>
