@@ -695,6 +695,13 @@
           "categories_text": {
             "$ref": "#/components/schemas/TranslatableField"
           },
+          "category_items": {
+            "items": {
+              "$ref": "#/components/schemas/TranslatableTextItem"
+            },
+            "title": "Category Items",
+            "type": "array"
+          },
           "countries": {
             "items": {
               "type": "string"

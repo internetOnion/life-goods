@@ -83,6 +83,8 @@ def _make_test_coordinator(
             "generic_name": "សូកូឡា",
             "ingredients_text": "កាកាវ, ស្ករ",
             "categories": "សូកូឡា, អាហារសម្រន់",
+            "category_0": "សូកូឡា",
+            "category_1": "អាហារសម្រន់",
         }
     )
     m = KhmerTranslationModule(p)
@@ -753,6 +755,8 @@ def test_v1_product_lookup_with_language_kh_generates_translation() -> None:
             "generic_name": "សូកូឡា",
             "ingredients_text": "កាកាវ, ស្ករ",
             "categories": "សូកូឡា, អាហារសម្រន់",
+            "category_0": "សូកូឡា",
+            "category_1": "អាហារសម្រន់",
         }
     )
     coord = _make_test_coordinator(provider=provider)
@@ -766,7 +770,7 @@ def test_v1_product_lookup_with_language_kh_generates_translation() -> None:
     assert body["meta"]["translation"]["metadata"]["machine_generated"] is True
     assert body["meta"]["translation"]["metadata"]["provider"] == "test-fake"
     assert body["meta"]["translation"]["metadata"]["model"] == "canned-translations"
-    assert body["meta"]["translation"]["metadata"]["configuration_version"] == "v5"
+    assert body["meta"]["translation"]["metadata"]["configuration_version"] == "v6"
     assert body["meta"]["translation"]["metadata"]["generated_at"] is not None
 
     # Source attribution remains unchanged
@@ -785,6 +789,14 @@ def test_v1_product_lookup_with_language_kh_generates_translation() -> None:
     assert product["identity"]["generic_name"]["translation_status"] == "generated"
     assert product["ingredients_text"]["translation_status"] == "generated"
     assert product["categories_text"]["translation_status"] == "generated"
+    assert product["categories_text"]["khmer_translation"] == "សូកូឡា, អាហារសម្រន់"
+    assert len(product["category_items"]) == 2
+    assert product["category_items"][0]["key"] == "category_0"
+    assert product["category_items"][0]["translation_status"] == "generated"
+    assert product["category_items"][0]["khmer_translation"] == "សូកូឡា"
+    assert product["category_items"][1]["key"] == "category_1"
+    assert product["category_items"][1]["translation_status"] == "generated"
+    assert product["category_items"][1]["khmer_translation"] == "អាហារសម្រន់"
     assert provider.call_count == 1
 
 
@@ -1547,7 +1559,7 @@ def test_startup_without_credentials_only_reuses_compatible_generated_artifacts(
         else:
             module = KhmerTranslationModule(
                 provider,
-                config_version="v4" if artifact_kind == "old" else "v5",
+                config_version="v5" if artifact_kind == "old" else "v6",
             )
         artifact = result_to_stored_artifact(
             module.translate_product(project_source_record(record))
@@ -2616,3 +2628,272 @@ def test_packaging_preserves_material_codes_without_numbers(drops_code: bool) ->
     item = body["data"]["product"]["packaging"]["description_items"][0]
     assert item["translation_status"] == ("translation_unavailable" if drops_code else "generated")
     assert item["khmer_translation"] == (None if drops_code else "ដប PET មានគម្រប HDPE")
+
+
+def test_v1_product_lookup_multiple_ordered_categories() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "categories": "Dark Chocolate, Sweet Snacks, Confectionery",
+            "lang": "en",
+        }
+    )
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "category_0": "សូកូឡាខ្មៅ",
+            "category_1": "អាហារសម្រន់ផ្អែម",
+            "category_2": "បង្អែម",
+        }
+    )
+    coord = _make_test_coordinator(provider=provider)
+
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=kh")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["translation"]["status"] == "complete"
+
+    product = body["data"]["product"]
+    items = product["category_items"]
+    assert len(items) == 3
+
+    assert items[0]["key"] == "category_0"
+    assert items[0]["selected_original_text"]["value"] == "Dark Chocolate"
+    assert items[0]["translation_status"] == "generated"
+    assert items[0]["khmer_translation"] == "សូកូឡាខ្មៅ"
+
+    assert items[1]["key"] == "category_1"
+    assert items[1]["selected_original_text"]["value"] == "Sweet Snacks"
+    assert items[1]["translation_status"] == "generated"
+    assert items[1]["khmer_translation"] == "អាហារសម្រន់ផ្អែម"
+
+    assert items[2]["key"] == "category_2"
+    assert items[2]["selected_original_text"]["value"] == "Confectionery"
+    assert items[2]["translation_status"] == "generated"
+    assert items[2]["khmer_translation"] == "បង្អែម"
+
+    # Legacy fields
+    assert product["categories"] == ["Dark Chocolate", "Sweet Snacks", "Confectionery"]
+    assert product["categories_text"]["translation_status"] == "generated"
+    assert product["categories_text"]["khmer_translation"] == "សូកូឡាខ្មៅ, អាហារសម្រន់ផ្អែម, បង្អែម"
+
+
+def test_v1_product_lookup_punctuation_bearing_category_items() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "categories": "Dark Chocolate (70%), Snacks & Confectionery, Ready-to-eat / canned",
+            "lang": "en",
+        }
+    )
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "category_0": "សូកូឡាខ្មៅ (__LG_TOK_0__)",
+            "category_1": "អាហារសម្រន់ & បង្អែម",
+            "category_2": "រួចជាស្រេចដើម្បីបរិភោគ / កំប៉ុង",
+        }
+    )
+    coord = _make_test_coordinator(provider=provider)
+
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=kh")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["translation"]["status"] == "complete"
+
+    product = body["data"]["product"]
+    items = product["category_items"]
+    assert len(items) == 3
+
+    assert items[0]["selected_original_text"]["value"] == "Dark Chocolate (70%)"
+    assert items[0]["translation_status"] == "generated"
+    assert items[0]["khmer_translation"] == "សូកូឡាខ្មៅ (70%)"
+
+    assert items[1]["selected_original_text"]["value"] == "Snacks & Confectionery"
+    assert items[1]["translation_status"] == "generated"
+    assert items[1]["khmer_translation"] == "អាហារសម្រន់ & បង្អែម"
+
+    assert items[2]["selected_original_text"]["value"] == "Ready-to-eat / canned"
+    assert items[2]["translation_status"] == "generated"
+    assert items[2]["khmer_translation"] == "រួចជាស្រេចដើម្បីបរិភោគ / កំប៉ុង"
+
+    assert (
+        product["categories_text"]["khmer_translation"]
+        == "សូកូឡាខ្មៅ (70%), អាហារសម្រន់ & បង្អែម, រួចជាស្រេចដើម្បីបរិភោគ / កំប៉ុង"
+    )
+
+
+def test_v1_product_lookup_partial_category_translation_survives() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "categories": "Chocolate, Snacks",
+            "lang": "en",
+        }
+    )
+    # Provider returns translation for category_0, but category_1 is missing
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "category_0": "សូកូឡា",
+        }
+    )
+    coord = _make_test_coordinator(provider=provider)
+
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=kh")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["translation"]["status"] == "partial"
+
+    product = body["data"]["product"]
+    items = product["category_items"]
+    assert len(items) == 2
+
+    # Successful item survives
+    assert items[0]["key"] == "category_0"
+    assert items[0]["translation_status"] == "generated"
+    assert items[0]["khmer_translation"] == "សូកូឡា"
+
+    # Failed item retains unavailable status
+    assert items[1]["key"] == "category_1"
+    assert items[1]["translation_status"] == "translation_unavailable"
+    assert items[1]["khmer_translation"] is None
+
+    # Legacy field is unavailable because not every required item has usable Khmer text
+    assert product["categories_text"]["translation_status"] == "translation_unavailable"
+    assert product["categories_text"]["khmer_translation"] is None
+
+
+def test_v1_product_lookup_source_khmer_categories() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "categories": "សូកូឡា, អាហារសម្រន់",
+            "lang": "km",
+        }
+    )
+    provider = FakeTranslationProvider()
+    coord = _make_test_coordinator(provider=provider)
+
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=kh")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["translation"]["status"] == "not_needed"
+    assert provider.call_count == 0
+
+    product = body["data"]["product"]
+    items = product["category_items"]
+    assert len(items) == 2
+
+    assert items[0]["translation_status"] == "source_khmer_available"
+    assert items[0]["selected_original_text"]["value"] == "សូកូឡា"
+    assert items[0]["khmer_translation"] is None
+
+    assert items[1]["translation_status"] == "source_khmer_available"
+    assert items[1]["selected_original_text"]["value"] == "អាហារសម្រន់"
+    assert items[1]["khmer_translation"] is None
+
+    assert product["categories_text"]["translation_status"] == "source_khmer_available"
+    assert product["categories_text"]["khmer_translation"] is None
+
+
+def test_v1_product_lookup_missing_human_readable_categories() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "product_name_en": "Plain Water",
+        }
+    )
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "product_name": "ទឹកបរិសុទ្ធ",
+        }
+    )
+    coord = _make_test_coordinator(provider=provider)
+
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=kh")
+
+    assert response.status_code == 200
+    body = response.json()
+    product = body["data"]["product"]
+    assert product["category_items"] == []
+    assert product["categories"] == []
+    assert product["categories_text"]["translation_status"] == "source_data_unavailable"
+    assert product["categories_text"]["khmer_translation"] is None
+
+
+def test_v1_product_lookup_taxonomy_only_categories_produces_no_fabricated_translations() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "categories_tags": ["en:chocolate", "en:snacks"],
+        }
+    )
+    provider = FakeTranslationProvider()
+    coord = _make_test_coordinator(provider=provider)
+
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=kh")
+
+    assert response.status_code == 200
+    body = response.json()
+    product = body["data"]["product"]
+    # No human-readable category translations fabricated from slugs
+    assert product["category_items"] == []
+    assert product["categories_text"]["translation_status"] == "source_data_unavailable"
+    assert product["categories_text"]["khmer_translation"] is None
+    # Legacy categories list retains display labels
+    assert product["categories"] == ["chocolate", "snacks"]
+    assert provider.call_count == 0
+
+
+def test_v1_product_lookup_category_items_cache_reuse() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "categories": "Chocolate, Snacks",
+            "lang": "en",
+        }
+    )
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "category_0": "សូកូឡា",
+            "category_1": "អាហារសម្រន់",
+        }
+    )
+    coord = _make_test_coordinator(provider=provider)
+
+    with _client(database, coordinator=coord) as client:
+        resp1 = client.get("/api/v1/products/4006381333931?language=kh")
+        assert resp1.status_code == 200
+        assert provider.call_count == 1
+        body1 = resp1.json()
+        assert body1["meta"]["translation"]["status"] == "complete"
+        assert body1["data"]["product"]["categories_text"]["translation_status"] == "generated"
+        assert body1["data"]["product"]["categories_text"]["khmer_translation"] == "សូកូឡា, អាហារសម្រន់"
+        assert body1["data"]["product"]["category_items"][0]["khmer_translation"] == "សូកូឡា"
+
+        # Second request should be a cache hit without invoking the provider
+        resp2 = client.get("/api/v1/products/4006381333931?language=kh")
+        assert resp2.status_code == 200
+        assert provider.call_count == 1
+        body2 = resp2.json()
+        assert body2["meta"]["translation"]["status"] == "complete"
+        assert body2["data"]["product"]["categories_text"]["translation_status"] == "generated"
+        assert body2["data"]["product"]["categories_text"]["khmer_translation"] == "សូកូឡា, អាហារសម្រន់"
+        assert body2["data"]["product"]["category_items"][0]["khmer_translation"] == "សូកូឡា"
+        assert body2["data"]["product"]["category_items"][1]["khmer_translation"] == "អាហារសម្រន់"
+

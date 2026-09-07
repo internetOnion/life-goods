@@ -564,3 +564,81 @@ For a complete response, the recycling item can instead carry
 `meta.translation.status` is `complete` when all required fields succeed. Missing
 packaging prose returns `"description_items": []` and
 `"recycling_instruction_items": []`, even when packaging taxonomy data is present.
+
+## 22. Individually translated category items (Issue #98)
+
+`product.category_items` uses the shared `TranslatableTextItem` envelope. Keys are deterministic within each projected Source Record: `category_0`, `category_1`, etc. They represent ordered, human-readable category segments extracted from the Source Record (`categories`, `categories_<lang>`), preserving source order, boundaries, exact duplicate provenance collapse, and punctuation. Similar wording or fuzzy correspondence across languages does not infer equivalence.
+
+Taxonomy slugs and normalized taxonomy tags (`categories_tags`, `categories_hierarchy`) never manufacture human-readable Original Text. When a Source Record contains taxonomy tags but no human-readable category strings, `product.category_items` is empty (`[]`), while the legacy `product.categories` array preserves the taxonomy tag strings for display. In this scenario, `product.categories_text.translation_status` is `"source_data_unavailable"`.
+
+The monolithic `"categories"` field is removed from translation provider payloads. Instead, individual translatable category items (`category_0`, `category_1`, ...) are submitted within the single structured provider request, undergoing independent validation, token protection, and caching. Provider outputs are never split by commas or delimiters.
+
+Legacy translation compatibility:
+- `product.categories` (`list[str]`) and `product.categories_text` (`TranslatableField`) remain present in the response envelope.
+- `product.categories_text` is assembled post-provider from `category_items`:
+  - When every required category item possesses usable Khmer text (generated, source Khmer, or Original Text preserved), `product.categories_text.khmer_translation` is assembled by joining the items in order with `", "`, and `product.categories_text.translation_status` reflects the outcome (`"generated"` if any item was generated).
+  - When one or more required category items have `translation_unavailable`, `product.categories_text.translation_status` becomes `"translation_unavailable"` with `khmer_translation: null`, while successful individual `category_items` retain their translations.
+  - Reconstructed cache hits deterministically re-assemble `product.categories_text` using the same semantics.
+
+Configuration **v6** advances `selection_version` to **v5** and `schema_version` to **v5**, keeping `protection_version="v3"`, `prompt_version="v3"`, and `payload_policy_version="v1"`. Older artifacts cannot satisfy v6 requests.
+
+Example category items fragment for a partial response (`meta.translation.status` is `partial`):
+
+```json
+{
+  "categories": ["Snacks", "Chocolates"],
+  "categories_text": {
+    "translation_status": "translation_unavailable",
+    "khmer_translation": null,
+    "original_texts": [
+      {
+        "value": "Snacks, Chocolates",
+        "language": "en",
+        "source_field": "categories"
+      }
+    ],
+    "selected_original_text": {
+      "value": "Snacks, Chocolates",
+      "language": "en",
+      "source_field": "categories"
+    }
+  },
+  "category_items": [
+    {
+      "key": "category_0",
+      "original_texts": [
+        {
+          "value": "Snacks",
+          "language": "en",
+          "source_field": "categories"
+        }
+      ],
+      "selected_original_text": {
+        "value": "Snacks",
+        "language": "en",
+        "source_field": "categories"
+      },
+      "translation_status": "generated",
+      "khmer_translation": "អាហារសម្រន់"
+    },
+    {
+      "key": "category_1",
+      "original_texts": [
+        {
+          "value": "Chocolates",
+          "language": "en",
+          "source_field": "categories"
+        }
+      ],
+      "selected_original_text": {
+        "value": "Chocolates",
+        "language": "en",
+        "source_field": "categories"
+      },
+      "translation_status": "translation_unavailable",
+      "khmer_translation": null
+    }
+  ]
+}
+```
+

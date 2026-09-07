@@ -35,7 +35,12 @@ from lifegoods.translation.deadline import (
 from lifegoods.translation.module import (
     KhmerTranslationModule,
 )
-from lifegoods.translation.selection import classify_fields, overall_status, unavailable_result
+from lifegoods.translation.selection import (
+    assemble_legacy_categories_outcome,
+    classify_fields,
+    overall_status,
+    unavailable_result,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +82,8 @@ def reconstruct_result_from_artifact(
             if stored_f.get("status") == "generated" and isinstance(text, str) and text.strip():
                 field.status = TranslationFieldStatus.GENERATED
                 field.khmer_translation = text
+
+    fields["categories"] = assemble_legacy_categories_outcome(product, fields)
 
     provenance = (
         TranslationProvenance(**artifact.provenance)

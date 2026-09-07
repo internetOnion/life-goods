@@ -535,3 +535,137 @@ def test_projection_populates_storage_instruction_items_with_grouping_and_dedupl
     assert "conservation_conditions" in source_fields
     assert "storage_conditions" in source_fields
 
+
+def test_projection_populates_category_items_with_item_boundaries_and_provenance() -> None:
+    # 1. Missing categories -> empty category_items
+    empty_product = project_source_record({}, meta=META)
+    assert empty_product.category_items == []
+    assert empty_product.categories == []
+    assert empty_product.categories_text.original_texts == []
+
+    # 2. Taxonomy-only record -> empty category_items, but legacy categories list preserved
+    taxonomy_only_record = {
+        "code": "4006381333931",
+        "categories_tags": ["en:chocolate", "en:snacks"],
+    }
+    tax_product = project_source_record(taxonomy_only_record, meta=META)
+    assert tax_product.category_items == []
+    assert tax_product.categories == ["chocolate", "snacks"]
+    assert tax_product.categories_text.original_texts == []
+
+    # 3. Human-readable categories -> ordered items with deterministic keys
+    record = {
+        "code": "4006381333931",
+        "categories": "Chocolate, Snacks",
+        "categories_tags": ["en:chocolate", "en:snacks"],
+        "lang": "en",
+    }
+    product = project_source_record(record, meta=META)
+    assert len(product.category_items) == 2
+
+    item0 = product.category_items[0]
+    assert item0.key == "category_0"
+    assert item0.translation_status == "not_requested"
+    assert item0.khmer_translation is None
+    assert item0.selected_original_text is not None
+    assert item0.selected_original_text.value == "Chocolate"
+    assert item0.selected_original_text.language == "en"
+    assert item0.selected_original_text.source_field == "categories"
+
+    item1 = product.category_items[1]
+    assert item1.key == "category_1"
+    assert item1.translation_status == "not_requested"
+    assert item1.khmer_translation is None
+    assert item1.selected_original_text is not None
+    assert item1.selected_original_text.value == "Snacks"
+    assert item1.selected_original_text.language == "en"
+    assert item1.selected_original_text.source_field == "categories"
+
+    # Legacy fields preserved
+    assert product.categories == ["Chocolate", "Snacks"]
+    assert len(product.categories_text.original_texts) >= 1
+
+    # 4. Punctuation inside items preserved intact
+    punct_record = {
+        "code": "4006381333931",
+        "categories": "Dark Chocolate (70%), Snacks & Confectionery, Ready-to-eat / canned",
+        "lang": "en",
+    }
+    punct_product = project_source_record(punct_record, meta=META)
+    assert len(punct_product.category_items) == 3
+    assert punct_product.category_items[0].selected_original_text is not None
+    assert punct_product.category_items[0].selected_original_text.value == "Dark Chocolate (70%)"
+    assert punct_product.category_items[1].selected_original_text is not None
+    assert punct_product.category_items[1].selected_original_text.value == "Snacks & Confectionery"
+    assert punct_product.category_items[2].selected_original_text is not None
+    assert punct_product.category_items[2].selected_original_text.value == "Ready-to-eat / canned"
+
+    # 5. Source Khmer categories
+    khmer_record = {
+        "code": "4006381333931",
+        "categories": "សូកូឡា, អាហារសម្រន់",
+        "lang": "km",
+    }
+    khmer_product = project_source_record(khmer_record, meta=META)
+    assert len(khmer_product.category_items) == 2
+    assert khmer_product.category_items[0].selected_original_text is not None
+    assert khmer_product.category_items[0].selected_original_text.value == "សូកូឡា"
+    assert khmer_product.category_items[1].selected_original_text is not None
+    assert khmer_product.category_items[1].selected_original_text.value == "អាហារសម្រន់"
+
+
+def test_category_items_multi_language_extraction_and_exact_duplicate_collapse() -> None:
+    record = {
+        "code": "4006381333931",
+        "categories": "Chocolate, Snacks",
+        "categories_en": "Chocolate, Snacks",
+        "categories_fr": "Chocolats, Snacks, Biscuits",
+        "categories_km": "សូកូឡា",
+        "lang": "en",
+    }
+    product = project_source_record(record, meta=META)
+
+    # 5 distinct items:
+    # category_0: "Chocolate" (from categories & categories_en)
+    # category_1: "Snacks" (from categories, categories_en & categories_fr - collapsed)
+    # category_2: "Chocolats" (from categories_fr - distinct from Chocolate)
+    # category_3: "Biscuits" (from categories_fr)
+    # category_4: "សូកូឡា" (from categories_km - distinct, no inferred equivalence)
+    assert len(product.category_items) == 5
+
+    cat0 = product.category_items[0]
+    assert cat0.key == "category_0"
+    assert cat0.selected_original_text is not None
+    assert cat0.selected_original_text.value == "Chocolate"
+    assert len(cat0.original_texts) == 2
+    source_fields_0 = {t.source_field for t in cat0.original_texts}
+    assert source_fields_0 == {"categories", "categories_en"}
+
+    cat1 = product.category_items[1]
+    assert cat1.key == "category_1"
+    assert cat1.selected_original_text is not None
+    assert cat1.selected_original_text.value == "Snacks"
+    assert len(cat1.original_texts) == 3
+    source_fields_1 = {t.source_field for t in cat1.original_texts}
+    assert source_fields_1 == {"categories", "categories_en", "categories_fr"}
+
+    cat2 = product.category_items[2]
+    assert cat2.key == "category_2"
+    assert cat2.selected_original_text is not None
+    assert cat2.selected_original_text.value == "Chocolats"
+    assert cat2.selected_original_text.language == "fr"
+
+    cat3 = product.category_items[3]
+    assert cat3.key == "category_3"
+    assert cat3.selected_original_text is not None
+    assert cat3.selected_original_text.value == "Biscuits"
+    assert cat3.selected_original_text.language == "fr"
+
+    cat4 = product.category_items[4]
+    assert cat4.key == "category_4"
+    assert cat4.selected_original_text is not None
+    assert cat4.selected_original_text.value == "សូកូឡា"
+    assert cat4.selected_original_text.language == "km"
+
+
+

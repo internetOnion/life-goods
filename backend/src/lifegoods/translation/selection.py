@@ -94,9 +94,6 @@ ELIGIBLE_FIELDS = (
         "generic_name", lambda p: p.identity.generic_names, lambda p: p.identity.generic_name
     ),
     EligibleField("ingredients_text", lambda p: p.ingredients, lambda p: p.ingredients_text),
-    EligibleField(
-        "categories", lambda p: p.categories_text.original_texts, lambda p: p.categories_text
-    ),
 )
 
 
@@ -105,6 +102,7 @@ def translatable_items(product: ProductProjection):
         product.storage_instruction_items,
         product.packaging.description_items,
         product.packaging.recycling_instruction_items,
+        product.category_items,
     )
 
 
@@ -127,6 +125,78 @@ def is_original_text_preserved(field_name: str, raw_text: str, brands: list[str]
     return field_name == "product_name" and not re.search(r"\w", without_placeholders)
 
 
+def assemble_legacy_categories_outcome(
+    product: ProductProjection,
+    fields: dict[str, FieldTranslationOutcome],
+) -> FieldTranslationOutcome:
+    categories_selection = select_field_original_text(
+        product.categories_text.original_texts,
+        record_language=product.source.record_language,
+    )
+    if not product.category_items:
+        return FieldTranslationOutcome(
+            field_name="categories",
+            status=TranslationFieldStatus.SOURCE_DATA_UNAVAILABLE,
+            selected_original_text=categories_selection.selected_text,
+            original_texts=product.categories_text.original_texts,
+            khmer_translation=None,
+        )
+
+    usable_texts: list[str] = []
+    has_generated = False
+    has_source_khmer = False
+    has_unavailable = False
+
+    for item in product.category_items:
+        outcome = fields.get(item.key)
+        status = outcome.status if outcome is not None else item.translation_status
+        if status == TranslationFieldStatus.GENERATED and outcome and outcome.khmer_translation:
+            usable_texts.append(outcome.khmer_translation)
+            has_generated = True
+        elif status in (
+            TranslationFieldStatus.SOURCE_KHMER_AVAILABLE,
+            TranslationFieldStatus.ORIGINAL_TEXT_PRESERVED,
+        ):
+            val = item.selected_original_text.value if item.selected_original_text else ""
+            if val:
+                usable_texts.append(val)
+                if status == TranslationFieldStatus.SOURCE_KHMER_AVAILABLE:
+                    has_source_khmer = True
+            else:
+                has_unavailable = True
+        else:
+            has_unavailable = True
+
+    if not has_unavailable and len(usable_texts) == len(product.category_items):
+        assembled = ", ".join(usable_texts)
+        if has_generated:
+            status = TranslationFieldStatus.GENERATED
+            khmer_translation = assembled
+        elif has_source_khmer:
+            status = TranslationFieldStatus.SOURCE_KHMER_AVAILABLE
+            khmer_translation = None
+        else:
+            status = TranslationFieldStatus.ORIGINAL_TEXT_PRESERVED
+            khmer_translation = None
+
+        return FieldTranslationOutcome(
+            field_name="categories",
+            status=status,
+            selected_original_text=categories_selection.selected_text,
+            original_texts=product.categories_text.original_texts,
+            khmer_translation=khmer_translation,
+        )
+    else:
+        return FieldTranslationOutcome(
+            field_name="categories",
+            status=TranslationFieldStatus.TRANSLATION_UNAVAILABLE,
+            selected_original_text=categories_selection.selected_text,
+            original_texts=product.categories_text.original_texts,
+            khmer_translation=None,
+            failure_reason="One or more category items failed translation",
+        )
+
+
 def classify_fields(product: ProductProjection) -> dict[str, FieldTranslationOutcome]:
     fields = {}
     for name, selection in extract_eligible_fields(product).items():
@@ -145,6 +215,7 @@ def classify_fields(product: ProductProjection) -> dict[str, FieldTranslationOut
             selected_original_text=selected,
             original_texts=selection.all_texts,
         )
+    fields["categories"] = assemble_legacy_categories_outcome(product, fields)
     return fields
 
 

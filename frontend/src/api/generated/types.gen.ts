@@ -327,6 +327,10 @@ export type ProductProjection = {
     categories?: Array<string>;
     categories_text?: TranslatableField;
     /**
+     * Category Items
+     */
+    category_items?: Array<TranslatableTextItem>;
+    /**
      * Countries
      */
     countries?: Array<string>;

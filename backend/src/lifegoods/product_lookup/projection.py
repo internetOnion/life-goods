@@ -24,6 +24,7 @@ from lifegoods.product_lookup.contracts import (
     TranslatableField,
     TranslatableTextItem,
 )
+from lifegoods.translation.contracts import TranslationFieldStatus
 from lifegoods.translation.selection import (
     ELIGIBLE_FIELDS,
     extract_eligible_fields,
@@ -604,6 +605,71 @@ def _group_text_items[T: TranslatableTextItem](
     return items
 
 
+def _extract_category_items(
+    record: dict[str, Any],
+    record_language: str | None = None,
+) -> list[TranslatableTextItem]:
+    candidate_fields: list[tuple[str, str | None, list[str]]] = []
+    seen_fields: set[str] = set()
+
+    for field_name, raw_value in record.items():
+        if field_name == "categories":
+            language = record_language
+        else:
+            language = _language_from_field(field_name, "categories")
+            if (
+                language is None
+                or field_name in ("categories_tags", "categories_hierarchy", "categories_lc")
+            ):
+                continue
+
+        category_values: list[str] = []
+        if isinstance(raw_value, str):
+            category_values = [part.strip() for part in raw_value.split(",") if part.strip()]
+        elif isinstance(raw_value, list):
+            for element in raw_value:
+                if isinstance(element, str):
+                    for part in element.split(","):
+                        trimmed = part.strip()
+                        if trimmed:
+                            category_values.append(trimmed)
+
+        if category_values and field_name not in seen_fields:
+            seen_fields.add(field_name)
+            candidate_fields.append((field_name, language, category_values))
+
+    if not candidate_fields:
+        return []
+
+    items: list[TranslatableTextItem] = []
+    items_by_exact_value: dict[str, TranslatableTextItem] = {}
+
+    for field_name, language, category_values in candidate_fields:
+        for category_value in category_values:
+            original_text = OriginalText(
+                value=category_value,
+                language=language,
+                source_field=field_name,
+            )
+            if category_value in items_by_exact_value:
+                existing_item = items_by_exact_value[category_value]
+                _append_unique_original_texts(existing_item.original_texts, [original_text])
+            else:
+                new_item = TranslatableTextItem(
+                    key=f"category_{len(items)}",
+                    original_texts=[original_text],
+                    translation_status=TranslationFieldStatus.NOT_REQUESTED,
+                )
+                items.append(new_item)
+                items_by_exact_value[category_value] = new_item
+
+    for item in items:
+        selection = select_field_original_text(item.original_texts, record_language=record_language)
+        item.selected_original_text = selection.selected_text
+
+    return items
+
+
 def project_source_record(
     source_record: dict[str, Any] | None,
     *,
@@ -664,8 +730,13 @@ def project_source_record(
 
     ingredients_texts = _original_texts(record, "ingredients_text", record_language)
     categories_list = _list_values(record, "categories", "categories_tags")
+    categories_texts = _original_texts(record, "categories", record_language)
+    categories_selection = select_field_original_text(
+        categories_texts, record_language=record_language
+    )
     categories_field = TranslatableField(
-        original_texts=_original_texts(record, "categories", record_language)
+        original_texts=categories_texts,
+        selected_original_text=categories_selection.selected_text,
     )
 
     completeness_raw = record.get("completeness")
@@ -708,6 +779,7 @@ def project_source_record(
         assessments=_extract_assessments(record),
         categories=categories_list,
         categories_text=categories_field,
+        category_items=_extract_category_items(record, record_language=record_language),
         labels=_list_values(record, "labels", "labels_tags"),
         countries=_list_values(record, "countries", "countries_tags"),
         packaging=PackagingProjection(

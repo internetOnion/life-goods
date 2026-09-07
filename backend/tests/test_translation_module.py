@@ -112,6 +112,27 @@ def test_translate_fields_with_token_protection_and_restoration() -> None:
     product.categories_text.original_texts = [
         OriginalText(value="Snacks, Chocolates", language="en", source_field="categories"),
     ]
+    from lifegoods.product_lookup.contracts import TranslatableTextItem
+    product.category_items = [
+        TranslatableTextItem(
+            key="category_0",
+            original_texts=[
+                OriginalText(value="Snacks", language="en", source_field="categories")
+            ],
+            selected_original_text=OriginalText(
+                value="Snacks", language="en", source_field="categories"
+            ),
+        ),
+        TranslatableTextItem(
+            key="category_1",
+            original_texts=[
+                OriginalText(value="Chocolates", language="en", source_field="categories")
+            ],
+            selected_original_text=OriginalText(
+                value="Chocolates", language="en", source_field="categories"
+            ),
+        ),
+    ]
 
     # Provide canned response that includes the placeholders
     provider = FakeTranslationProvider(
@@ -122,7 +143,8 @@ def test_translate_fields_with_token_protection_and_restoration() -> None:
                 "ស្ករ ម្សៅទឹកដោះគោគ្មានជាតិខ្លាញ់ (__LG_TOK_0__) "
                 "សារធាតុ emulsifier (__LG_TOK_1__, __LG_TOK_2__)។"
             ),
-            "categories": "អាហារសម្រន់, សូកូឡា",
+            "category_0": "អាហារសម្រន់",
+            "category_1": "សូកូឡា",
         }
     )
 
@@ -429,4 +451,108 @@ def test_storage_instruction_items_translation_and_partial_survival() -> None:
         == TranslationFieldStatus.TRANSLATION_UNAVAILABLE
     )
     assert result.fields["storage_instruction_1"].khmer_translation is None
+
+
+def test_category_items_translated_and_legacy_categories_assembled_on_complete() -> None:
+    from lifegoods.product_lookup.contracts import OriginalText, TranslatableTextItem
+
+    product = _empty_product()
+    product.category_items = [
+        TranslatableTextItem(
+            key="category_0",
+            original_texts=[
+                OriginalText(value="Chocolate", language="en", source_field="categories"),
+            ],
+            selected_original_text=OriginalText(
+                value="Chocolate", language="en", source_field="categories"
+            ),
+        ),
+        TranslatableTextItem(
+            key="category_1",
+            original_texts=[
+                OriginalText(value="Snacks", language="en", source_field="categories"),
+            ],
+            selected_original_text=OriginalText(
+                value="Snacks", language="en", source_field="categories"
+            ),
+        ),
+    ]
+    product.categories_text.original_texts = [
+        OriginalText(value="Chocolate, Snacks", language="en", source_field="categories"),
+    ]
+
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "category_0": "សូកូឡា",
+            "category_1": "អាហារសម្រន់",
+        }
+    )
+    module = KhmerTranslationModule(provider=provider)
+    result = module.translate_product(product, target_language="kh")
+
+    assert result.overall_status == TranslationOverallStatus.COMPLETE
+    assert result.fields["category_0"].status == TranslationFieldStatus.GENERATED
+    assert result.fields["category_0"].khmer_translation == "សូកូឡា"
+
+    assert result.fields["category_1"].status == TranslationFieldStatus.GENERATED
+    assert result.fields["category_1"].khmer_translation == "អាហារសម្រន់"
+
+    # Legacy field assembled
+    assert result.fields["categories"].status == TranslationFieldStatus.GENERATED
+    assert result.fields["categories"].khmer_translation == "សូកូឡា, អាហារសម្រន់"
+
+
+def test_category_items_partial_leaves_legacy_categories_unavailable() -> None:
+    from lifegoods.product_lookup.contracts import OriginalText, TranslatableTextItem
+
+    product = _empty_product()
+    product.category_items = [
+        TranslatableTextItem(
+            key="category_0",
+            original_texts=[
+                OriginalText(value="Chocolate", language="en", source_field="categories"),
+            ],
+            selected_original_text=OriginalText(
+                value="Chocolate", language="en", source_field="categories"
+            ),
+        ),
+        TranslatableTextItem(
+            key="category_1",
+            original_texts=[
+                OriginalText(value="Snacks", language="en", source_field="categories"),
+            ],
+            selected_original_text=OriginalText(
+                value="Snacks", language="en", source_field="categories"
+            ),
+        ),
+    ]
+    product.categories_text.original_texts = [
+        OriginalText(value="Chocolate, Snacks", language="en", source_field="categories"),
+    ]
+
+    # Provider translates category_0 but drops category_1
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "category_0": "សូកូឡា",
+        }
+    )
+    module = KhmerTranslationModule(provider=provider)
+    result = module.translate_product(product, target_language="kh")
+
+    assert result.overall_status == TranslationOverallStatus.PARTIAL
+    assert result.fields["category_0"].status == TranslationFieldStatus.GENERATED
+    assert result.fields["category_0"].khmer_translation == "សូកូឡា"
+
+    assert result.fields["category_1"].status == TranslationFieldStatus.TRANSLATION_UNAVAILABLE
+    assert result.fields["category_1"].khmer_translation is None
+
+    # Legacy field is unavailable because not every required item has usable Khmer text
+    assert result.fields["categories"].status == TranslationFieldStatus.TRANSLATION_UNAVAILABLE
+    assert result.fields["categories"].khmer_translation is None
+
+
+def test_configuration_version_v6() -> None:
+    module = KhmerTranslationModule(provider=None)
+    assert module._config_version == "v6"
+
 

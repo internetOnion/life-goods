@@ -73,6 +73,8 @@ def apply_translation_to_product(
     for item in translatable_items(product):
         _apply_field_outcome(item, translation.fields.get(item.key))
 
+    _apply_field_outcome(product.categories_text, translation.fields.get("categories"))
+
     meta_metadata: TranslationMetadataResponse | None = None
     if translation.provenance is not None and any(
         f.status == TranslationFieldStatus.GENERATED and f.khmer_translation

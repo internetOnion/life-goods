@@ -191,6 +191,7 @@ class ProductProjection(BaseModel):
     assessments: SourceAssessmentsProjection
     categories: list[str] = Field(default_factory=list)
     categories_text: TranslatableField = Field(default_factory=TranslatableField)
+    category_items: list[TranslatableTextItem] = Field(default_factory=list)
     labels: list[str] = Field(default_factory=list)
     countries: list[str] = Field(default_factory=list)
     packaging: PackagingProjection
