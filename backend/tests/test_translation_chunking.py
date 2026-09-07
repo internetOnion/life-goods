@@ -1,4 +1,3 @@
-
 from lifegoods.translation.chunking import chunk_ingredients, join_ingredient_chunks
 
 
@@ -63,7 +62,6 @@ def test_module_chunks_long_ingredients_deterministically() -> None:
                 language="en",
                 source_field="ingredients_text_en",
             )
-
         ],
         additives=[],
         storage_instructions=[],
@@ -77,14 +75,22 @@ def test_module_chunks_long_ingredients_deterministically() -> None:
         source=SourceRecordMetadataProjection(),
     )
 
-    provider = FakeTranslationProvider()
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "product_name": "ធញ្ញជាតិ",
+            "ingredients_text_chunk_0": "ស្រូវសាលី (__LG_TOK_0__), ស្រូវអូត (__LG_TOK_1__), "
+            "ទំពាំងបាយជូរក្រៀម (__LG_TOK_2__) [ទំពាំងបាយជូរក្រៀម, ប្រេងគ្រាប់កប្បាស],",
+            "ingredients_text_chunk_1": "ផ្លែឈើក្រៀម (__LG_TOK_0__) [ផ្លែឈើ, ស្ករ, ប្រេងផ្កាឈូករ័ត្ន], "
+            "គ្រាប់ផ្កាឈូករ័ត្ន (__LG_TOK_1__)",
+            "ingredients_text_chunk_2": "គ្រាប់ល្ពៅ (__LG_TOK_0__), អំបិល, វីតាមីន (B1, B2, B6, B12).",
+        }
+    )
     # Configure module with low max_ingredient_chunk_chars to force chunking
     module = KhmerTranslationModule(provider=provider, max_ingredient_chunk_chars=120)
 
-    result = module.translate_product(product, target_language="km")
+    result = module.translate_product(product, target_language="kh")
 
     assert result.overall_status == TranslationOverallStatus.COMPLETE
     assert result.fields["ingredients_text"].status == TranslationFieldStatus.GENERATED
     assert "B1" in (result.fields["ingredients_text"].khmer_translation or "")
     assert "B12" in (result.fields["ingredients_text"].khmer_translation or "")
-

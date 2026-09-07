@@ -15,7 +15,6 @@ def test_gemini_adapter_rejects_deprecated_or_moving_model_aliases() -> None:
         GeminiTranslationAdapter(api_key="test-key", model="gemini-latest")
 
 
-
 def test_gemini_adapter_successful_translation() -> None:
     captured_requests: list[httpx.Request] = []
 
@@ -54,7 +53,7 @@ def test_gemini_adapter_successful_translation() -> None:
     request = ProviderTranslationRequest(
         fields={"product_name": "__LG_TOK_0__ Chocolate"},
         brands=["Galaxy"],
-        target_language="km",
+        target_language="kh",
     )
 
     response = adapter.translate(request)
@@ -117,7 +116,7 @@ def test_gemini_adapter_retries_transient_503_and_succeeds() -> None:
     request = ProviderTranslationRequest(
         fields={"product_name": "Chocolate"},
         brands=[],
-        target_language="km",
+        target_language="kh",
     )
 
     response = adapter.translate(request)
@@ -144,7 +143,7 @@ def test_gemini_adapter_fails_fast_on_400_without_retrying() -> None:
     request = ProviderTranslationRequest(
         fields={"product_name": "Chocolate"},
         brands=[],
-        target_language="km",
+        target_language="kh",
     )
 
     response = adapter.translate(request)
@@ -168,7 +167,7 @@ def test_gemini_adapter_handles_timeout_gracefully() -> None:
     request = ProviderTranslationRequest(
         fields={"product_name": "Chocolate"},
         brands=[],
-        target_language="km",
+        target_language="kh",
     )
 
     response = adapter.translate(request)
@@ -197,7 +196,7 @@ def test_gemini_adapter_preserves_timeout_error_when_retry_budget_is_exhausted()
         ProviderTranslationRequest(
             fields={"product_name": "Chocolate"},
             brands=[],
-            target_language="km",
+            target_language="kh",
         )
     )
 
@@ -229,10 +228,41 @@ def test_gemini_adapter_handles_safety_blocked_response() -> None:
     request = ProviderTranslationRequest(
         fields={"product_name": "Chocolate"},
         brands=[],
-        target_language="km",
+        target_language="kh",
     )
 
     response = adapter.translate(request)
 
     assert response.status == "error"
     assert "safety" in (response.error_message or "").lower()
+
+
+@pytest.mark.parametrize(
+    "payload,finish_reason",
+    [
+        ({"translations": {"product_name": "សូកូឡា"}}, "MAX_TOKENS"),
+        ({"product_name": "សូកូឡា"}, "STOP"),
+        ({"translations": ["សូកូឡា"]}, "STOP"),
+    ],
+)
+def test_gemini_adapter_rejects_incomplete_or_malformed_envelope(payload, finish_reason) -> None:
+    def respond(request):
+        return httpx.Response(
+            200,
+            json={
+                "candidates": [
+                    {
+                        "finishReason": finish_reason,
+                        "content": {"parts": [{"text": json.dumps(payload)}]},
+                    }
+                ]
+            },
+        )
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        adapter = GeminiTranslationAdapter("offline-key", http_client=client)
+        response = adapter.translate(
+            ProviderTranslationRequest(fields={"product_name": "Chocolate"})
+        )
+    assert response.status == "error"
+    assert response.translations == {}

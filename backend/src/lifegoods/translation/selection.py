@@ -1,12 +1,20 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from typing import TYPE_CHECKING, NamedTuple
 
-from lifegoods.translation.contracts import OriginalText
+from lifegoods.translation.contracts import (
+    FieldTranslationOutcome,
+    OriginalText,
+    ProductTranslationResult,
+    TranslationFieldStatus,
+    TranslationOverallStatus,
+)
+from lifegoods.translation.protection import PLACEHOLDER_REGEX, protect_tokens
 
 if TYPE_CHECKING:
-    from lifegoods.product_lookup.contracts import ProductProjection
+    from lifegoods.product_lookup.contracts import ProductProjection, TranslatableField
 
 KHMER_CHAR_REGEX = re.compile(r"[\u1780-\u17FF\u19E0-\u19FF]")
 WORD_CHAR_REGEX = re.compile(r"[\w]", re.UNICODE)
@@ -22,7 +30,6 @@ def is_predominantly_khmer_script(text: str) -> bool:
     if word_count == 0:
         return True
     return (khmer_count / word_count) >= 0.5
-
 
 
 class FieldSelection(NamedTuple):
@@ -41,7 +48,7 @@ def select_field_original_text(
 
     # 1. Check for explicit language == "kh" or "km"
     for t in valid_texts:
-        lang = (t.language or "").lower()
+        lang = (t.language or "").lower().replace("_", "-")
         if lang in ("kh", "km") or lang.startswith("kh-") or lang.startswith("km-"):
             return FieldSelection(selected_text=t, all_texts=valid_texts, is_source_khmer=True)
 
@@ -52,15 +59,15 @@ def select_field_original_text(
 
     # 3. Prefer record's declared language
     if record_language:
-        rec_lang_lower = record_language.lower()
+        rec_lang_lower = record_language.lower().replace("_", "-")
         for t in valid_texts:
-            lang = (t.language or "").lower()
+            lang = (t.language or "").lower().replace("_", "-")
             if lang == rec_lang_lower:
                 return FieldSelection(selected_text=t, all_texts=valid_texts, is_source_khmer=False)
 
     # 4. Prefer English
     for t in valid_texts:
-        lang = (t.language or "").lower()
+        lang = (t.language or "").lower().replace("_", "-")
         if lang == "en" or lang.startswith("en-"):
             return FieldSelection(selected_text=t, all_texts=valid_texts, is_source_khmer=False)
 
@@ -74,61 +81,86 @@ def select_field_original_text(
     )
 
 
+class EligibleField(NamedTuple):
+    name: str
+    originals: Callable[[ProductProjection], list[OriginalText]]
+    target: Callable[[ProductProjection], TranslatableField]
 
-def extract_eligible_fields(
-    product: ProductProjection,
-) -> dict[str, FieldSelection]:
-    record_language = product.source.record_language if product.source else None
 
-    # 1. Product name
-    name_selection = select_field_original_text(
-        product.identity.names,
-        record_language=record_language,
-    )
+ELIGIBLE_FIELDS = (
+    EligibleField("product_name", lambda p: p.identity.names, lambda p: p.identity.name),
+    EligibleField(
+        "generic_name", lambda p: p.identity.generic_names, lambda p: p.identity.generic_name
+    ),
+    EligibleField("ingredients_text", lambda p: p.ingredients, lambda p: p.ingredients_text),
+    EligibleField(
+        "categories", lambda p: p.categories_text.original_texts, lambda p: p.categories_text
+    ),
+)
 
-    # 2. Generic name
-    generic_selection = select_field_original_text(
-        product.identity.generic_names,
-        record_language=record_language,
-    )
 
-    # 3. Ingredients text
-    ingredients_selection = select_field_original_text(
-        product.ingredients,
-        record_language=record_language,
-    )
-
-    # 4. Categories (from human-readable categories)
-    categories_selection: FieldSelection
-    if product.categories:
-        non_empty = [c.strip() for c in product.categories if c and c.strip()]
-        if non_empty:
-            cat_text = ", ".join(non_empty)
-            cat_orig = OriginalText(
-                value=cat_text,
-                language=record_language or "und",
-                source_field="categories",
-            )
-            is_khmer = is_predominantly_khmer_script(cat_text) or (
-                (record_language or "").lower().startswith(("kh", "km"))
-            )
-            categories_selection = FieldSelection(
-                selected_text=cat_orig,
-                all_texts=[cat_orig],
-                is_source_khmer=is_khmer,
-            )
-        else:
-            categories_selection = FieldSelection(
-                selected_text=None, all_texts=[], is_source_khmer=False
-            )
-    else:
-        categories_selection = FieldSelection(
-            selected_text=None, all_texts=[], is_source_khmer=False
-        )
-
+def extract_eligible_fields(product: ProductProjection) -> dict[str, FieldSelection]:
     return {
-        "product_name": name_selection,
-        "generic_name": generic_selection,
-        "ingredients_text": ingredients_selection,
-        "categories": categories_selection,
+        field.name: select_field_original_text(
+            field.originals(product), record_language=product.source.record_language
+        )
+        for field in ELIGIBLE_FIELDS
     }
+
+
+def is_original_text_preserved(field_name: str, raw_text: str, brands: list[str]) -> bool:
+    without_placeholders = PLACEHOLDER_REGEX.sub("", protect_tokens(raw_text, brands).masked_text)
+    return field_name == "product_name" and not re.search(r"\w", without_placeholders)
+
+
+def classify_fields(product: ProductProjection) -> dict[str, FieldTranslationOutcome]:
+    fields = {}
+    for name, selection in extract_eligible_fields(product).items():
+        selected = selection.selected_text
+        if selected is None:
+            status = TranslationFieldStatus.SOURCE_DATA_UNAVAILABLE
+        elif selection.is_source_khmer:
+            status = TranslationFieldStatus.SOURCE_KHMER_AVAILABLE
+        elif is_original_text_preserved(name, selected.value, product.identity.brands):
+            status = TranslationFieldStatus.ORIGINAL_TEXT_PRESERVED
+        else:
+            status = TranslationFieldStatus.TRANSLATION_UNAVAILABLE
+        fields[name] = FieldTranslationOutcome(
+            field_name=name,
+            status=status,
+            selected_original_text=selected,
+            original_texts=selection.all_texts,
+        )
+    return fields
+
+
+def overall_status(fields: dict[str, FieldTranslationOutcome]) -> TranslationOverallStatus:
+    generated = any(f.status == TranslationFieldStatus.GENERATED for f in fields.values())
+    unavailable = any(
+        f.status == TranslationFieldStatus.TRANSLATION_UNAVAILABLE for f in fields.values()
+    )
+    if generated:
+        return (
+            TranslationOverallStatus.PARTIAL if unavailable else TranslationOverallStatus.COMPLETE
+        )
+    return (
+        TranslationOverallStatus.UNAVAILABLE if unavailable else TranslationOverallStatus.NOT_NEEDED
+    )
+
+
+def unavailable_result(
+    product: ProductProjection,
+    content_hash: str = "",
+    config_fingerprint: str = "",
+    reason: str = "Translation unavailable",
+) -> ProductTranslationResult:
+    fields = classify_fields(product)
+    for field in fields.values():
+        if field.status == TranslationFieldStatus.TRANSLATION_UNAVAILABLE:
+            field.failure_reason = reason
+    return ProductTranslationResult(
+        overall_status=overall_status(fields),
+        fields=fields,
+        content_hash=content_hash,
+        config_fingerprint=config_fingerprint,
+    )

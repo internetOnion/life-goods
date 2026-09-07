@@ -76,16 +76,15 @@ def get_product(
         Path(description="GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode."),
     ],
     lookup: Annotated[LookupProduct, Depends(get_product_lookup)],
-    limiter: Annotated[
-        ProductLookupRateLimiter, Depends(get_product_lookup_rate_limiter)
-    ],
+    limiter: Annotated[ProductLookupRateLimiter, Depends(get_product_lookup_rate_limiter)],
     metrics: Annotated[ProductLookupMetrics, Depends(get_product_lookup_metrics)],
     language: Annotated[
         str | None,
         Query(
             description=(
                 "Optional target language for product translation. "
-                "Currently only 'kh' is supported."
+                "Only 'kh' is supported; 'km' returns unsupported_language. "
+                "Omit to skip generation. External source language tags remain unchanged."
             )
         ),
     ] = None,
@@ -158,15 +157,11 @@ def get_product(
                 lookup=ProductLookupMetadataResponse(barcode=result.barcode),
                 source=SourceAttributionResponse(
                     name="Open Food Facts",
-                    product_url=(
-                        "https://world.openfoodfacts.org/product/" + result.barcode
-                    ),
+                    product_url=("https://world.openfoodfacts.org/product/" + result.barcode),
                 ),
                 dataset=dataset,
                 translation=result.translation
-                or TranslationMetaResponse(
-                    status=TranslationOverallStatus.NOT_REQUESTED
-                ),
+                or TranslationMetaResponse(status=TranslationOverallStatus.NOT_REQUESTED),
             ),
         )
     except Exception as error:
@@ -205,9 +200,7 @@ def get_experimental_product(
         Path(description="GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode."),
     ],
     lookup: Annotated[LookupProduct, Depends(get_product_lookup)],
-    limiter: Annotated[
-        ProductLookupRateLimiter, Depends(get_product_lookup_rate_limiter)
-    ],
+    limiter: Annotated[ProductLookupRateLimiter, Depends(get_product_lookup_rate_limiter)],
     metrics: Annotated[ProductLookupMetrics, Depends(get_product_lookup_metrics)],
 ) -> ProductLookupResponse | JSONResponse:
     started_at = monotonic()
@@ -270,9 +263,7 @@ def get_experimental_product(
                 lookup=ProductLookupMetadataResponse(barcode=result.barcode),
                 source=SourceAttributionResponse(
                     name="Open Food Facts",
-                    product_url=(
-                        "https://world.openfoodfacts.org/product/" + result.barcode
-                    ),
+                    product_url=("https://world.openfoodfacts.org/product/" + result.barcode),
                 ),
                 dataset=dataset,
             ),
@@ -360,11 +351,7 @@ def _build_error_response(
 ) -> JSONResponse:
     envelope = ProductLookupErrorResponse(
         error=ProductLookupErrorDetail(code=code, message=message),
-        meta=(
-            ProductLookupErrorMetaResponse(dataset=dataset)
-            if dataset is not None
-            else None
-        ),
+        meta=(ProductLookupErrorMetaResponse(dataset=dataset) if dataset is not None else None),
     )
     return JSONResponse(
         status_code=status_code,

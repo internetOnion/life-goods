@@ -28,6 +28,7 @@ from lifegoods.product_lookup.models import (
 )
 from lifegoods.product_lookup.projection import project_source_record
 from lifegoods.translation.contracts import ProductTranslationResult
+from lifegoods.translation.selection import ELIGIBLE_FIELDS, unavailable_result
 
 type CacheStatus = Literal["hit", "miss"]
 
@@ -42,46 +43,29 @@ class ProductLookupResult:
     translation: TranslationMetaResponse | None = None
 
 
-def _translatable_fields(product: ProductProjection):
-    return (
-        ("product_name", product.identity.name),
-        ("generic_name", product.identity.generic_name),
-        ("ingredients_text", product.ingredients_text),
-        ("categories", product.categories_text),
-    )
-
-
 def mark_product_translation_unavailable(
     product: ProductProjection,
 ) -> tuple[ProductProjection, TranslationMetaResponse]:
-    for _, field in _translatable_fields(product):
-        if field.selected_original_text is not None:
-            if (field.selected_original_text.language or "").lower() in ("kh", "km"):
-                field.translation_status = TranslationFieldStatus.SOURCE_KHMER_AVAILABLE
-            else:
-                field.translation_status = TranslationFieldStatus.TRANSLATION_UNAVAILABLE
-        else:
-            field.translation_status = TranslationFieldStatus.SOURCE_DATA_UNAVAILABLE
-    return product, TranslationMetaResponse(
-        status=TranslationOverallStatus.UNAVAILABLE
-    )
+    return apply_translation_to_product(product, unavailable_result(product))
 
 
 def apply_translation_to_product(
     product: ProductProjection,
     translation: ProductTranslationResult,
 ) -> tuple[ProductProjection, TranslationMetaResponse]:
-    for result_key, target in _translatable_fields(product):
-        outcome = translation.fields.get(result_key)
+    for field in ELIGIBLE_FIELDS:
+        target = field.target(product)
+        outcome = translation.fields.get(field.name)
         if outcome:
+            target.original_texts = outcome.original_texts
+            target.selected_original_text = outcome.selected_original_text
             target.translation_status = outcome.status
             target.khmer_translation = outcome.khmer_translation
 
     meta_metadata: TranslationMetadataResponse | None = None
-    if (
-        translation.provenance is not None
-        and translation.overall_status
-        in (TranslationOverallStatus.COMPLETE, TranslationOverallStatus.PARTIAL)
+    if translation.provenance is not None and any(
+        f.status == TranslationFieldStatus.GENERATED and f.khmer_translation
+        for f in translation.fields.values()
     ):
         meta_metadata = TranslationMetadataResponse(
             machine_generated=translation.provenance.machine_generated,

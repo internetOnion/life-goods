@@ -21,10 +21,19 @@ class ProviderTranslationResponse:
 
 
 class TranslationProvider(Protocol):
+    @property
+    def provider_name(self) -> str: ...
+
+    @property
+    def model(self) -> str: ...
+
     def translate(self, request: ProviderTranslationRequest) -> ProviderTranslationResponse: ...
 
 
 class FakeTranslationProvider:
+    provider_name = "test-fake"
+    model = "canned-translations"
+
     def __init__(
         self,
         canned_translations: dict[str, str] | None = None,
@@ -48,13 +57,9 @@ class FakeTranslationProvider:
                 error_message=self.error_message or "Fake provider simulated failure",
             )
 
-        translations: dict[str, str] = {}
-        for field_name, masked_text in request.fields.items():
-            if field_name in self.canned_translations:
-                translations[field_name] = self.canned_translations[field_name]
-            else:
-                # Default behavior preserves the masked text prefixed with Khmer marker
-                translations[field_name] = f"ការបកប្រែ: {masked_text}"
+        translations = {
+            key: value for key, value in self.canned_translations.items() if key in request.fields
+        }
 
         return ProviderTranslationResponse(
             translations=translations,

@@ -1,4 +1,3 @@
-
 from lifegoods.product_lookup.contracts import (
     EnvironmentProjection,
     NutritionProjection,
@@ -38,28 +37,18 @@ def test_empty_product_returns_source_data_unavailable_without_provider_calls() 
     provider = FakeTranslationProvider()
     module = KhmerTranslationModule(provider=provider)
 
-    result = module.translate_product(_empty_product(), target_language="km")
+    result = module.translate_product(_empty_product(), target_language="kh")
 
     assert result.overall_status == TranslationOverallStatus.NOT_NEEDED
     assert provider.call_count == 0
 
-    assert (
-        result.fields["product_name"].status
-        == TranslationFieldStatus.SOURCE_DATA_UNAVAILABLE
-    )
+    assert result.fields["product_name"].status == TranslationFieldStatus.SOURCE_DATA_UNAVAILABLE
     assert result.fields["product_name"].khmer_translation is None
+    assert result.fields["generic_name"].status == TranslationFieldStatus.SOURCE_DATA_UNAVAILABLE
     assert (
-        result.fields["generic_name"].status
-        == TranslationFieldStatus.SOURCE_DATA_UNAVAILABLE
+        result.fields["ingredients_text"].status == TranslationFieldStatus.SOURCE_DATA_UNAVAILABLE
     )
-    assert (
-        result.fields["ingredients_text"].status
-        == TranslationFieldStatus.SOURCE_DATA_UNAVAILABLE
-    )
-    assert (
-        result.fields["categories"].status
-        == TranslationFieldStatus.SOURCE_DATA_UNAVAILABLE
-    )
+    assert result.fields["categories"].status == TranslationFieldStatus.SOURCE_DATA_UNAVAILABLE
 
 
 def test_source_provided_khmer_bypasses_provider() -> None:
@@ -77,7 +66,7 @@ def test_source_provided_khmer_bypasses_provider() -> None:
     provider = FakeTranslationProvider()
     module = KhmerTranslationModule(provider=provider)
 
-    result = module.translate_product(product, target_language="km")
+    result = module.translate_product(product, target_language="kh")
 
     assert result.overall_status == TranslationOverallStatus.NOT_NEEDED
     assert provider.call_count == 0
@@ -120,14 +109,15 @@ def test_translate_fields_with_token_protection_and_restoration() -> None:
         ),
     ]
     product.categories = ["Snacks", "Chocolates"]
+    product.categories_text.original_texts = [
+        OriginalText(value="Snacks, Chocolates", language="en", source_field="categories"),
+    ]
 
     # Provide canned response that includes the placeholders
     provider = FakeTranslationProvider(
         canned_translations={
             "product_name": "__LG_TOK_0__ របារសូកូឡាទឹកដោះគោរលោង",
-            "generic_name": (
-                "សូកូឡាទឹកដោះគោជាមួយការ៉ាមែល (__LG_TOK_0__) និងអំបិលសមុទ្រ (__LG_TOK_1__)"
-            ),
+            "generic_name": ("សូកូឡាទឹកដោះគោជាមួយការ៉ាមែល (__LG_TOK_0__) និងអំបិលសមុទ្រ (__LG_TOK_1__)"),
             "ingredients_text": (
                 "ស្ករ ម្សៅទឹកដោះគោគ្មានជាតិខ្លាញ់ (__LG_TOK_0__) "
                 "សារធាតុ emulsifier (__LG_TOK_1__, __LG_TOK_2__)។"
@@ -138,7 +128,7 @@ def test_translate_fields_with_token_protection_and_restoration() -> None:
 
     module = KhmerTranslationModule(provider=provider)
 
-    result = module.translate_product(product, target_language="km")
+    result = module.translate_product(product, target_language="kh")
 
     assert result.overall_status == TranslationOverallStatus.COMPLETE
     assert provider.call_count == 1
@@ -197,7 +187,7 @@ def test_partial_translation_survives_when_one_field_fails_validation() -> None:
     )
     module = KhmerTranslationModule(provider=provider)
 
-    result = module.translate_product(product, target_language="km")
+    result = module.translate_product(product, target_language="kh")
 
     assert result.overall_status == TranslationOverallStatus.PARTIAL
 
@@ -230,7 +220,7 @@ def test_non_khmer_output_fails_validation() -> None:
     )
     module = KhmerTranslationModule(provider=provider)
 
-    result = module.translate_product(product, target_language="km")
+    result = module.translate_product(product, target_language="kh")
 
     assert result.overall_status == TranslationOverallStatus.UNAVAILABLE
     assert result.fields["product_name"].status == TranslationFieldStatus.TRANSLATION_UNAVAILABLE
@@ -247,7 +237,7 @@ def test_brand_only_product_name_preserves_original_text_without_provider_call()
     ]
 
     provider = FakeTranslationProvider()
-    result = KhmerTranslationModule(provider).translate_product(product, target_language="km")
+    result = KhmerTranslationModule(provider).translate_product(product, target_language="kh")
 
     assert result.overall_status == TranslationOverallStatus.NOT_NEEDED
     assert result.fields["product_name"].status == TranslationFieldStatus.ORIGINAL_TEXT_PRESERVED
@@ -272,7 +262,7 @@ def test_oversized_output_fails_bounds_check() -> None:
     )
     module = KhmerTranslationModule(provider=provider)
 
-    result = module.translate_product(product, target_language="km")
+    result = module.translate_product(product, target_language="kh")
 
     assert result.overall_status == TranslationOverallStatus.UNAVAILABLE
     assert result.fields["product_name"].status == TranslationFieldStatus.TRANSLATION_UNAVAILABLE
@@ -336,7 +326,6 @@ def test_khmer_translation_module_end_to_end_with_gemini_adapter() -> None:
                     "finishReason": "STOP",
                 }
             ],
-
             "usageMetadata": {
                 "promptTokenCount": 65,
                 "candidatesTokenCount": 35,
@@ -352,7 +341,7 @@ def test_khmer_translation_module_end_to_end_with_gemini_adapter() -> None:
     )
 
     module = KhmerTranslationModule(provider=adapter)
-    result = module.translate_product(product, target_language="km")
+    result = module.translate_product(product, target_language="kh")
 
     assert result.overall_status == TranslationOverallStatus.COMPLETE
     assert result.fields["product_name"].status == TranslationFieldStatus.GENERATED
@@ -372,7 +361,3 @@ def test_khmer_translation_module_end_to_end_with_gemini_adapter() -> None:
     req_body = captured_requests[0].content.decode("utf-8")
     assert "8850123456789" not in req_body
     assert "off-2026-09-01" not in req_body
-
-
-
-

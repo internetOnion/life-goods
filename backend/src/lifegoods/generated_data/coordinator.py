@@ -20,7 +20,6 @@ from lifegoods.generated_data.repository import (
 )
 from lifegoods.product_lookup.contracts import ProductProjection
 from lifegoods.translation.contracts import (
-    FieldTranslationOutcome,
     ProductTranslationResult,
     TranslationFieldStatus,
     TranslationOverallStatus,
@@ -28,19 +27,10 @@ from lifegoods.translation.contracts import (
 )
 from lifegoods.translation.module import (
     KhmerTranslationModule,
-    is_original_text_preserved,
 )
-from lifegoods.translation.selection import FieldSelection, extract_eligible_fields
+from lifegoods.translation.selection import classify_fields, overall_status, unavailable_result
 
 logger = logging.getLogger(__name__)
-
-
-def _selection_fallback_status(selection: FieldSelection) -> TranslationFieldStatus:
-    if selection.selected_text is None:
-        return TranslationFieldStatus.SOURCE_DATA_UNAVAILABLE
-    if selection.is_source_khmer:
-        return TranslationFieldStatus.SOURCE_KHMER_AVAILABLE
-    return TranslationFieldStatus.TRANSLATION_UNAVAILABLE
 
 
 def result_to_stored_artifact(result: ProductTranslationResult) -> StoredTranslationArtifact:
@@ -72,37 +62,24 @@ def reconstruct_result_from_artifact(
     artifact: StoredTranslationArtifact,
     product: ProductProjection,
 ) -> ProductTranslationResult:
-    selections = extract_eligible_fields(product)
-    fields: dict[str, FieldTranslationOutcome] = {}
-
-    for fname, sel in selections.items():
+    fields = classify_fields(product)
+    for fname, field in fields.items():
         stored_f = artifact.fields.get(fname)
-        if stored_f is not None:
-            fields[fname] = FieldTranslationOutcome(
-                field_name=fname,
-                status=TranslationFieldStatus(stored_f["status"]),
-                selected_original_text=sel.selected_text,
-                original_texts=sel.all_texts,
-                khmer_translation=stored_f.get("khmer_translation"),
-                failure_reason=stored_f.get("failure_reason"),
-            )
-        else:
-            fields[fname] = FieldTranslationOutcome(
-                field_name=fname,
-                status=_selection_fallback_status(sel),
-                selected_original_text=sel.selected_text,
-                original_texts=sel.all_texts,
-                khmer_translation=None,
-            )
+        if field.status == TranslationFieldStatus.TRANSLATION_UNAVAILABLE and stored_f:
+            text = stored_f.get("khmer_translation")
+            if stored_f.get("status") == "generated" and isinstance(text, str) and text.strip():
+                field.status = TranslationFieldStatus.GENERATED
+                field.khmer_translation = text
 
     provenance = (
         TranslationProvenance(**artifact.provenance)
         if artifact.provenance
+        and any(f.status == TranslationFieldStatus.GENERATED for f in fields.values())
         else None
     )
 
     return ProductTranslationResult(
-        overall_status=TranslationOverallStatus(artifact.overall_status),
+        overall_status=overall_status(fields),
         fields=fields,
         content_hash=artifact.content_hash,
         config_fingerprint=artifact.translation_config_fingerprint,
@@ -110,42 +87,6 @@ def reconstruct_result_from_artifact(
         raw_input=artifact.raw_input,
         masked_input=artifact.masked_input,
         token_maps=artifact.token_maps,
-    )
-
-
-def _make_unavailable_result(
-    product: ProductProjection,
-    content_hash: str,
-    config_fingerprint: str,
-    reason: str,
-) -> ProductTranslationResult:
-    selections = extract_eligible_fields(product)
-    brands = [b.strip() for b in product.identity.brands if b and b.strip()]
-    fields: dict[str, FieldTranslationOutcome] = {}
-    for fname, sel in selections.items():
-        status = _selection_fallback_status(sel)
-        if (
-            sel.selected_text is not None
-            and is_original_text_preserved(fname, sel.selected_text.value, brands)
-        ):
-            status = TranslationFieldStatus.ORIGINAL_TEXT_PRESERVED
-        fields[fname] = FieldTranslationOutcome(
-            field_name=fname,
-            status=status,
-            selected_original_text=sel.selected_text,
-            original_texts=sel.all_texts,
-            khmer_translation=None,
-            failure_reason=(
-                reason if status == TranslationFieldStatus.TRANSLATION_UNAVAILABLE else None
-            ),
-        )
-
-    return ProductTranslationResult(
-        overall_status=TranslationOverallStatus.UNAVAILABLE,
-        fields=fields,
-        content_hash=content_hash,
-        config_fingerprint=config_fingerprint,
-        provenance=None,
     )
 
 
@@ -224,12 +165,12 @@ class TranslationCoordinator:
         # 2. Check quarantine in durable store
         try:
             if self._repository.is_quarantined(content_hash, config_fp):
-                return _make_unavailable_result(
+                return unavailable_result(
                     product, content_hash, config_fp, "Artifact is quarantined"
                 )
         except PyMongoError as error:
             self._record_store_degradation(error)
-            return _make_unavailable_result(
+            return unavailable_result(
                 product, content_hash, config_fp, "Generated store unavailable"
             )
 
@@ -241,15 +182,20 @@ class TranslationCoordinator:
                     self._cache.put(stored)
                     return reconstruct_result_from_artifact(stored, product)
                 if self._repository.is_cooling_down(content_hash, config_fp):
-                    return _make_unavailable_result(
+                    return unavailable_result(
                         product, content_hash, config_fp, "Generation cooled down"
                     )
             except PyMongoError as error:
                 self._record_store_degradation(error)
 
         if self._is_store_degraded():
-            return _make_unavailable_result(
+            return unavailable_result(
                 product, content_hash, config_fp, "Generated store unavailable"
+            )
+
+        if not self._module.generation_enabled:
+            return unavailable_result(
+                product, content_hash, config_fp, "Provider is not configured"
             )
 
         # 4. Single flight via MongoDB lease
@@ -260,7 +206,7 @@ class TranslationCoordinator:
             )
         except PyMongoError as error:
             self._record_store_degradation(error)
-            return _make_unavailable_result(
+            return unavailable_result(
                 product, content_hash, config_fp, "Could not acquire generation lease"
             )
 
@@ -270,14 +216,12 @@ class TranslationCoordinator:
             if not budget_ok:
                 with suppress(Exception):
                     self._repository.release_lease(content_hash, config_fp, owner_token)
-                return _make_unavailable_result(
+                return unavailable_result(
                     product, content_hash, config_fp, "Generation budget exhausted"
                 )
 
             try:
-                result = self._module.translate_product(
-                    product, target_language=target_language
-                )
+                result = self._module.translate_product(product, target_language=target_language)
                 logger.info(
                     "Translation generation completed",
                     extra={
@@ -349,7 +293,7 @@ class TranslationCoordinator:
                             self._cache.put(stored)
                             return reconstruct_result_from_artifact(stored, product)
                         if self._repository.is_cooling_down(content_hash, config_fp):
-                            return _make_unavailable_result(
+                            return unavailable_result(
                                 product,
                                 content_hash,
                                 config_fp,
@@ -358,6 +302,4 @@ class TranslationCoordinator:
                     except PyMongoError as error:
                         self._record_store_degradation(error)
 
-            return _make_unavailable_result(
-                product, content_hash, config_fp, "Translation timeout"
-            )
+            return unavailable_result(product, content_hash, config_fp, "Translation timeout")

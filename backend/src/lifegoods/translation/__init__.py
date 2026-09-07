@@ -10,7 +10,6 @@ from lifegoods.translation.contracts import (
 )
 from lifegoods.translation.gemini import GeminiTranslationAdapter
 from lifegoods.translation.module import (
-    ELIGIBLE_FIELDS,
     PRODUCTION_MODEL,
     PRODUCTION_PROVIDER,
     TRANSLATION_CONFIG_VERSION,
@@ -30,6 +29,7 @@ from lifegoods.translation.provider import (
     TranslationProvider,
 )
 from lifegoods.translation.selection import (
+    ELIGIBLE_FIELDS,
     FieldSelection,
     extract_eligible_fields,
     is_predominantly_khmer_script,

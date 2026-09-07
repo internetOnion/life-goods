@@ -64,8 +64,15 @@ class ProductLookupResponse(BaseModel):
 type NutritionAmount = float | int | str
 
 
-
 class TranslatableField(BaseModel):
+    """Original Text and its independent Khmer Translation outcome.
+
+    generated selects khmer_translation. source_khmer_available selects Khmer
+    Original Text; original_text_preserved selects intentionally unchanged text.
+    translation_unavailable and not_requested retain Original Text.
+    source_data_unavailable has no source text to display.
+    """
+
     original_texts: list[OriginalText] = Field(default_factory=list)
     selected_original_text: OriginalText | None = None
     translation_status: TranslationFieldStatus = TranslationFieldStatus.NOT_REQUESTED

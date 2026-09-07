@@ -21,12 +21,10 @@ from lifegoods.product_lookup.contracts import (
     SourceImage,
     SourceRecordMetadataProjection,
     TranslatableField,
-    TranslationFieldStatus,
 )
 from lifegoods.translation.selection import (
-    FieldSelection,
-    is_predominantly_khmer_script,
-    select_field_original_text,
+    ELIGIBLE_FIELDS,
+    extract_eligible_fields,
 )
 
 NUTRITION_NUTRIENTS: tuple[tuple[str, str], ...] = (
@@ -69,7 +67,7 @@ NUTRITION_NUTRIENTS: tuple[tuple[str, str], ...] = (
     ("taurine", "Taurine"),
 )
 
-LANGUAGE_CODE_PATTERN = re.compile(r"^[a-z]{2,3}(?:_[a-z0-9]{2,8})*$", re.IGNORECASE)
+LANGUAGE_CODE_PATTERN = re.compile(r"^[a-z]{2,3}(?:[-_][a-z0-9]{2,8})*$", re.IGNORECASE)
 TAXONOMY_TAG_PREFIX = re.compile(r"^[a-z]{2,3}:", re.IGNORECASE)
 TAXONOMY_TAG_SEPARATORS = re.compile(r"[-_]+")
 BARCODE_SPLIT_PATTERN = re.compile(r"^(\d{3})(\d{3})(\d{3})(\d+)$")
@@ -109,8 +107,7 @@ def _source_language(record: dict[str, Any]) -> str | None:
     lang = _text_value(record.get("lang"))
     if not lang:
         return None
-    normalized = lang.lower().replace("_", "-")
-    return "kh" if normalized == "km" or normalized.startswith("km-") else normalized
+    return lang
 
 
 def _language_from_field(field: str, base_field: str) -> str | None:
@@ -120,8 +117,7 @@ def _language_from_field(field: str, base_field: str) -> str | None:
     suffix = field[len(prefix) :]
     if not LANGUAGE_CODE_PATTERN.match(suffix):
         return None
-    normalized = suffix.lower().replace("_", "-")
-    return "kh" if normalized == "km" or normalized.startswith("km-") else normalized
+    return suffix
 
 
 def _original_texts(
@@ -140,9 +136,7 @@ def _original_texts(
         if key in seen:
             return
         seen.add(key)
-        result.append(
-            OriginalText(value=text, language=language, source_field=source_field)
-        )
+        result.append(OriginalText(value=text, language=language, source_field=source_field))
 
     add(record.get(base_field), record_language, base_field)
     for field, val in record.items():
@@ -205,9 +199,7 @@ def _unique_values(values: Iterable[str | None]) -> list[str]:
     return result
 
 
-def _list_values(
-    record: dict[str, Any], field: str, tag_field: str | None = None
-) -> list[str]:
+def _list_values(record: dict[str, Any], field: str, tag_field: str | None = None) -> list[str]:
     direct = _split_values(record.get(field))
     if direct or not tag_field:
         return direct
@@ -231,9 +223,7 @@ def _first_field_amount(
     return None
 
 
-def _first_field_text(
-    record: dict[str, Any], fields: list[str]
-) -> tuple[str, str] | None:
+def _first_field_text(record: dict[str, Any], fields: list[str]) -> tuple[str, str] | None:
     for source_field in fields:
         val = _text_value(record.get(source_field))
         if val is not None:
@@ -243,12 +233,8 @@ def _first_field_text(
 
 def _extract_nutrition(record: dict[str, Any]) -> NutritionProjection:
     raw_nutriments = record.get("nutriments")
-    nutriments: dict[str, Any] = (
-        raw_nutriments if isinstance(raw_nutriments, dict) else {}
-    )
-    nutrition = (
-        record.get("nutrition") if _is_record(record.get("nutrition")) else None
-    )
+    nutriments: dict[str, Any] = raw_nutriments if isinstance(raw_nutriments, dict) else {}
+    nutrition = record.get("nutrition") if _is_record(record.get("nutrition")) else None
     aggregated_set = (
         nutrition.get("aggregated_set")
         if nutrition and _is_record(nutrition.get("aggregated_set"))
@@ -263,9 +249,7 @@ def _extract_nutrition(record: dict[str, Any]) -> NutritionProjection:
     rows: list[NutritionRow] = []
     for key, label in NUTRITION_NUTRIENTS:
         aggregated_nutrient = (
-            aggregated_nutrients.get(key)
-            if _is_record(aggregated_nutrients.get(key))
-            else None
+            aggregated_nutrients.get(key) if _is_record(aggregated_nutrients.get(key)) else None
         )
         per_100g = _amount_value(nutriments.get(f"{key}_100g"))
         if per_100g is None and aggregated_nutrient:
@@ -298,9 +282,7 @@ def _extract_nutrition(record: dict[str, Any]) -> NutritionProjection:
     return NutritionProjection(basis=basis, serving_size=serving_size, rows=rows)
 
 
-def _assessment_grade(
-    record: dict[str, Any], fields: list[str]
-) -> tuple[str, str] | None:
+def _assessment_grade(record: dict[str, Any], fields: list[str]) -> tuple[str, str] | None:
     found = _first_field_text(record, fields)
     if not found:
         return None
@@ -312,9 +294,7 @@ def _assessment_grade(
 
 def _extract_assessments(record: dict[str, Any]) -> SourceAssessmentsProjection:
     raw_nutriments = record.get("nutriments")
-    nutriments: dict[str, Any] = (
-        raw_nutriments if isinstance(raw_nutriments, dict) else {}
-    )
+    nutriments: dict[str, Any] = raw_nutriments if isinstance(raw_nutriments, dict) else {}
     nutri_grade = _assessment_grade(record, ["nutriscore_grade"])
     nutri_score = _first_field_amount(record, ["nutriscore_score"]) or (
         _first_field_amount(nutriments, ["nutrition-score-fr_100g"])
@@ -341,9 +321,7 @@ def _extract_assessments(record: dict[str, Any]) -> SourceAssessmentsProjection:
     nutri_proj: GradedSourceAssessment | None = None
     if nutri_grade or nutri_score:
         nutri_source_fields = [
-            item[1]
-            for item in (nutri_grade, nutri_score, nutri_version)
-            if item is not None
+            item[1] for item in (nutri_grade, nutri_score, nutri_version) if item is not None
         ]
         nutri_proj = GradedSourceAssessment(
             grade=nutri_grade[0] if nutri_grade else None,
@@ -359,9 +337,7 @@ def _extract_assessments(record: dict[str, Any]) -> SourceAssessmentsProjection:
     green_proj: GradedSourceAssessment | None = None
     if green_grade or green_score:
         green_source_fields = [
-            item[1]
-            for item in (green_grade, green_score, green_version)
-            if item is not None
+            item[1] for item in (green_grade, green_score, green_version) if item is not None
         ]
         green_proj = GradedSourceAssessment(
             grade=green_grade[0] if green_grade else None,
@@ -417,7 +393,7 @@ def _selected_image(
         checked.add(lang)
         url = _http_url(values.get(lang))
         if url:
-            resolved_lang = "kh" if lang == "km" else lang
+            resolved_lang = lang
             return SourceImage(
                 url=url, language=resolved_lang, source_field=f"{source_field}.{lang}"
             )
@@ -425,7 +401,7 @@ def _selected_image(
     for lang, val in values.items():
         url = _http_url(val)
         if url:
-            resolved_lang = "kh" if lang == "km" else lang
+            resolved_lang = lang
             return SourceImage(
                 url=url, language=resolved_lang, source_field=f"{source_field}.{lang}"
             )
@@ -438,9 +414,7 @@ def _extract_front_image(
     preferred_language: str | None,
 ) -> SourceImage | None:
     selected_images = (
-        record.get("selected_images")
-        if _is_record(record.get("selected_images"))
-        else None
+        record.get("selected_images") if _is_record(record.get("selected_images")) else None
     )
     front = (
         selected_images.get("front")
@@ -449,24 +423,18 @@ def _extract_front_image(
     )
     display = front.get("display") if front and _is_record(front.get("display")) else None
     if display:
-        selected = _selected_image(
-            display, "selected_images.front.display", preferred_language
-        )
+        selected = _selected_image(display, "selected_images.front.display", preferred_language)
         if selected:
             return selected
 
     for source_field in ("image_front_url", "image_url"):
         url = _http_url(record.get(source_field))
         if url:
-            return SourceImage(
-                url=url, language=preferred_language, source_field=source_field
-            )
+            return SourceImage(url=url, language=preferred_language, source_field=source_field)
 
     images = record.get("images") if _is_record(record.get("images")) else None
     sel = images.get("selected") if images and _is_record(images.get("selected")) else None
-    sel_front = (
-        sel.get("front") if sel and _is_record(sel.get("front")) else None
-    )
+    sel_front = sel.get("front") if sel and _is_record(sel.get("front")) else None
     if not sel_front or not barcode:
         return None
 
@@ -582,9 +550,7 @@ def project_source_record(
         _original_texts(record, "packaging_text", record_language),
     )
     recycling_instructions = _merge_original_texts(
-        _original_texts(
-            record, "recycling_instructions_to_discard", record_language
-        ),
+        _original_texts(record, "recycling_instructions_to_discard", record_language),
         _original_texts(record, "recycling_instructions", record_language),
     )
 
@@ -592,9 +558,7 @@ def project_source_record(
         [
             *(
                 _display_taxonomy_tag(t)
-                for t in _list_values(
-                    record, "packaging_materials", "packaging_materials_tags"
-                )
+                for t in _list_values(record, "packaging_materials", "packaging_materials_tags")
             ),
             *_taxonomy_object_keys(record, "packagings_materials"),
         ]
@@ -608,50 +572,11 @@ def project_source_record(
         for t in _list_values(record, "packaging_recycling", "packaging_recycling_tags")
     )
 
-    def _to_translatable_field(selection: FieldSelection) -> TranslatableField:
-        return TranslatableField(
-            original_texts=selection.all_texts,
-            selected_original_text=selection.selected_text,
-            translation_status=TranslationFieldStatus.NOT_REQUESTED,
-            khmer_translation=None,
-        )
-
-    name_sel = select_field_original_text(names, record_language=record_language)
-    name_field = _to_translatable_field(name_sel)
-
-    generic_sel = select_field_original_text(
-        generic_names, record_language=record_language
-    )
-    generic_field = _to_translatable_field(generic_sel)
-
     ingredients_texts = _original_texts(record, "ingredients_text", record_language)
-    ingredients_sel = select_field_original_text(
-        ingredients_texts, record_language=record_language
-    )
-    ingredients_field = _to_translatable_field(ingredients_sel)
-
     categories_list = _list_values(record, "categories", "categories_tags")
-    categories_texts: list[OriginalText] = []
-    if categories_list:
-        non_empty = [c.strip() for c in categories_list if c and c.strip()]
-        if non_empty:
-            cat_text = ", ".join(non_empty)
-            cat_lang = (
-                "kh"
-                if is_predominantly_khmer_script(cat_text)
-                else (record_language or "und")
-            )
-            categories_texts.append(
-                OriginalText(
-                    value=cat_text,
-                    language=cat_lang,
-                    source_field="categories",
-                )
-            )
-    categories_sel = select_field_original_text(
-        categories_texts, record_language=record_language
+    categories_field = TranslatableField(
+        original_texts=_original_texts(record, "categories", record_language)
     )
-    categories_field = _to_translatable_field(categories_sel)
 
     completeness_raw = record.get("completeness")
     completeness = (
@@ -664,20 +589,17 @@ def project_source_record(
         record.get("last_modified_t")
     )
 
-    return ProductProjection(
+    product = ProductProjection(
         identity=ProductIdentityProjection(
             barcode=barcode,
             preferred_name=preferred_name,
             names=names,
             generic_names=generic_names,
-            name=name_field,
-            generic_name=generic_field,
             brands=_list_values(record, "brands", "brands_tags"),
             quantity=_text_value(record.get("quantity")),
         ),
         front_image=_extract_front_image(record, barcode, record_language),
         ingredients=ingredients_texts,
-        ingredients_text=ingredients_field,
         additives=_list_values(record, "additives", "additives_tags"),
         storage_instructions=_merge_original_texts(
             _original_texts(record, "conservation_conditions", record_language),
@@ -717,7 +639,9 @@ def project_source_record(
             retrieved_at=(
                 meta.dataset.retrieved_at.isoformat().replace("+00:00", "Z")
                 if meta and meta.dataset and isinstance(meta.dataset.retrieved_at, datetime)
-                else _text_value(meta.dataset.retrieved_at) if meta and meta.dataset else None
+                else _text_value(meta.dataset.retrieved_at)
+                if meta and meta.dataset
+                else None
             ),
             record_language=record_language,
             languages=_list_values(record, "languages", "languages_tags"),
@@ -730,3 +654,11 @@ def project_source_record(
             ),
         ),
     )
+
+    selections = extract_eligible_fields(product)
+    for field in ELIGIBLE_FIELDS:
+        selection = selections[field.name]
+        target = field.target(product)
+        target.original_texts = selection.all_texts
+        target.selected_original_text = selection.selected_text
+    return product

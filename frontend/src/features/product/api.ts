@@ -8,6 +8,7 @@ export type ProductLookup = (
 export const lookupProduct: ProductLookup = async (barcode) => {
     const { data } = await getProduct({
         path: { barcode },
+        query: { language: "kh" },
         throwOnError: true,
     })
     return data

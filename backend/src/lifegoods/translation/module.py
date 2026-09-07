@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
@@ -17,42 +16,23 @@ from lifegoods.translation.contracts import (
     TranslationProvenance,
 )
 from lifegoods.translation.protection import (
-    PLACEHOLDER_REGEX,
     protect_tokens,
     restore_tokens,
 )
 from lifegoods.translation.provider import ProviderTranslationRequest, TranslationProvider
-from lifegoods.translation.selection import FieldSelection, extract_eligible_fields
+from lifegoods.translation.selection import (
+    FieldSelection,
+    classify_fields,
+    extract_eligible_fields,
+    overall_status,
+    unavailable_result,
+)
 from lifegoods.translation.validator import validate_field_translation
 
-ELIGIBLE_FIELDS = ("product_name", "generic_name", "ingredients_text", "categories")
-TRANSLATION_CONFIG_VERSION = "v2"
+TRANSLATION_CONFIG_VERSION = "v3"
 PRODUCTION_PROVIDER = "google"
 PRODUCTION_MODEL = "gemini-3.8-flash"
 DEFAULT_MAX_INGREDIENT_CHUNK_CHARS = 800
-
-
-def _contains_descriptive_text(masked_text: str) -> bool:
-    without_placeholders = PLACEHOLDER_REGEX.sub("", masked_text)
-    return bool(re.search(r"[\w\u1780-\u17ff]", without_placeholders, re.UNICODE))
-
-
-def _is_original_text_preserved_field(
-    field_name: str,
-    masked_text: str,
-) -> bool:
-    return field_name == "product_name" and not _contains_descriptive_text(masked_text)
-
-
-def is_original_text_preserved(
-    field_name: str,
-    raw_text: str,
-    brands: list[str],
-) -> bool:
-    return _is_original_text_preserved_field(
-        field_name,
-        protect_tokens(raw_text, brands).masked_text,
-    )
 
 
 def _evaluate_field_outcome(
@@ -63,7 +43,7 @@ def _evaluate_field_outcome(
     t_map: dict[str, str],
     target_language: str,
 ) -> tuple[FieldTranslationOutcome, bool]:
-    if not raw_translation:
+    if not isinstance(raw_translation, str) or not raw_translation:
         return (
             FieldTranslationOutcome(
                 field_name=field_name,
@@ -113,18 +93,20 @@ def _evaluate_field_outcome(
 class KhmerTranslationModule:
     def __init__(
         self,
-        provider: TranslationProvider,
+        provider: TranslationProvider | None,
         *,
         config_version: str = TRANSLATION_CONFIG_VERSION,
-        model: str = PRODUCTION_MODEL,
-        provider_name: str = PRODUCTION_PROVIDER,
         max_ingredient_chunk_chars: int = DEFAULT_MAX_INGREDIENT_CHUNK_CHARS,
     ) -> None:
         self._provider = provider
         self._config_version = config_version
-        self._model = model
-        self._provider_name = provider_name
+        self._model = provider.model if provider else PRODUCTION_MODEL
+        self._provider_name = provider.provider_name if provider else PRODUCTION_PROVIDER
         self._max_ingredient_chunk_chars = max_ingredient_chunk_chars
+
+    @property
+    def generation_enabled(self) -> bool:
+        return self._provider is not None
 
     def compute_translation_identity(
         self,
@@ -134,29 +116,17 @@ class KhmerTranslationModule:
     ) -> tuple[str, str, bool]:
         selections = extract_eligible_fields(product)
         brands = [b.strip() for b in product.identity.brands if b and b.strip()]
-        has_translatable = False
-        for field_name in ELIGIBLE_FIELDS:
-            sel = selections[field_name]
-            if sel.selected_text is None or sel.is_source_khmer:
-                continue
-            if field_name == "product_name" and is_original_text_preserved(
-                field_name, sel.selected_text.value, brands
-            ):
-                continue
-            if sel.selected_text is not None and not sel.is_source_khmer:
-                has_translatable = True
-                break
+        has_translatable = any(
+            field.status == TranslationFieldStatus.TRANSLATION_UNAVAILABLE
+            for field in classify_fields(product).values()
+        )
 
         canonical_content = {
             "fields": {
                 name: {
                     "value": sel.selected_text.value if sel.selected_text else None,
-                    "source_field": (
-                        sel.selected_text.source_field if sel.selected_text else None
-                    ),
-                    "language": (
-                        sel.selected_text.language if sel.selected_text else None
-                    ),
+                    "source_field": (sel.selected_text.source_field if sel.selected_text else None),
+                    "language": (sel.selected_text.language if sel.selected_text else None),
                 }
                 for name, sel in selections.items()
             },
@@ -171,12 +141,13 @@ class KhmerTranslationModule:
             "config_version": self._config_version,
             "provider": self._provider_name,
             "model": self._model,
-            "selection_version": "v1",
+            "selection_version": "v2",
             "chunking_version": "v1",
+            "max_ingredient_chunk_chars": self._max_ingredient_chunk_chars,
             "protection_version": "v1",
             "prompt_version": "v2",
             "schema_version": "v2",
-            "validator_version": "v1",
+            "validator_version": "v2",
             "temperature": 0.0,
         }
         config_fingerprint = hashlib.sha256(
@@ -191,7 +162,7 @@ class KhmerTranslationModule:
         *,
         target_language: str = "kh",
     ) -> ProductTranslationResult:
-        fields: dict[str, FieldTranslationOutcome] = {}
+        fields = classify_fields(product)
         selections = extract_eligible_fields(product)
         brands = [b.strip() for b in product.identity.brands if b and b.strip()]
 
@@ -201,25 +172,10 @@ class KhmerTranslationModule:
         ingredient_chunk_keys: list[str] = []
         ingredient_chunks_raw: list[str] = []
 
-        for field_name in ELIGIBLE_FIELDS:
+        for field_name in selections:
             sel = selections[field_name]
-            if sel.selected_text is None:
-                fields[field_name] = FieldTranslationOutcome(
-                    field_name=field_name,
-                    status=TranslationFieldStatus.SOURCE_DATA_UNAVAILABLE,
-                    selected_original_text=None,
-                    original_texts=sel.all_texts,
-                    khmer_translation=None,
-                )
-            elif sel.is_source_khmer:
-                fields[field_name] = FieldTranslationOutcome(
-                    field_name=field_name,
-                    status=TranslationFieldStatus.SOURCE_KHMER_AVAILABLE,
-                    selected_original_text=sel.selected_text,
-                    original_texts=sel.all_texts,
-                    khmer_translation=None,
-                )
-            else:
+            if fields[field_name].status == TranslationFieldStatus.TRANSLATION_UNAVAILABLE:
+                assert sel.selected_text is not None
                 raw_text = sel.selected_text.value
                 raw_inputs[field_name] = raw_text
 
@@ -236,15 +192,6 @@ class KhmerTranslationModule:
                         continue
 
                 prot = protect_tokens(raw_text, brands)
-                if is_original_text_preserved(field_name, raw_text, brands):
-                    fields[field_name] = FieldTranslationOutcome(
-                        field_name=field_name,
-                        status=TranslationFieldStatus.ORIGINAL_TEXT_PRESERVED,
-                        selected_original_text=sel.selected_text,
-                        original_texts=sel.all_texts,
-                        khmer_translation=None,
-                    )
-                    continue
                 masked_inputs[field_name] = prot.masked_text
                 token_maps[field_name] = prot.token_map
 
@@ -264,6 +211,11 @@ class KhmerTranslationModule:
                 token_maps={},
             )
 
+        if self._provider is None:
+            return unavailable_result(
+                product, content_hash, config_fingerprint, "Provider is not configured"
+            )
+
         # Call provider
         request = ProviderTranslationRequest(
             fields=masked_inputs,
@@ -280,35 +232,16 @@ class KhmerTranslationModule:
             generated_at=now_iso,
         )
 
-        if response.status != "success":
-            for field_name in ELIGIBLE_FIELDS:
-                if field_name in raw_inputs:
-                    sel = selections[field_name]
-                    fields[field_name] = FieldTranslationOutcome(
-                        field_name=field_name,
-                        status=TranslationFieldStatus.TRANSLATION_UNAVAILABLE,
-                        selected_original_text=sel.selected_text,
-                        original_texts=sel.all_texts,
-                        khmer_translation=None,
-                        failure_reason=response.error_message or "Provider translation error",
-                    )
-            return ProductTranslationResult(
-                overall_status=TranslationOverallStatus.UNAVAILABLE,
-                fields=fields,
-                content_hash=content_hash,
-                config_fingerprint=config_fingerprint,
-                provenance=provenance,
-                raw_input=raw_inputs,
-                masked_input=masked_inputs,
-                token_maps=token_maps,
+        if response.status != "success" or not isinstance(response.translations, dict):
+            return unavailable_result(
+                product, content_hash, config_fingerprint, "Provider translation error"
             )
 
         generated_count = 0
-        unavailable_count = 0
 
         # Handle non-chunked fields
-        for field_name in ("product_name", "generic_name", "categories"):
-            if field_name not in masked_inputs:
+        for field_name in selections:
+            if field_name == "ingredients_text" or field_name not in masked_inputs:
                 continue
             outcome, is_gen = _evaluate_field_outcome(
                 field_name=field_name,
@@ -321,8 +254,6 @@ class KhmerTranslationModule:
             fields[field_name] = outcome
             if is_gen:
                 generated_count += 1
-            else:
-                unavailable_count += 1
 
         # Handle ingredients_text (single or chunked)
         if "ingredients_text" in raw_inputs:
@@ -339,8 +270,6 @@ class KhmerTranslationModule:
                 fields["ingredients_text"] = outcome
                 if is_gen:
                     generated_count += 1
-                else:
-                    unavailable_count += 1
             else:
                 restored_chunks: list[str] = []
                 chunk_errors: list[str] = []
@@ -348,7 +277,7 @@ class KhmerTranslationModule:
                     raw_chunk = response.translations.get(chunk_key)
                     t_map = token_maps[chunk_key]
                     chunk_raw_text = ingredient_chunks_raw[idx]
-                    if not raw_chunk:
+                    if not isinstance(raw_chunk, str) or not raw_chunk:
                         chunk_errors.append(f"Missing translation for {chunk_key}")
                         continue
                     restored_c = restore_tokens(raw_chunk, t_map)
@@ -373,7 +302,6 @@ class KhmerTranslationModule:
                         khmer_translation=None,
                         failure_reason="; ".join(chunk_errors) or "Failed chunk validation",
                     )
-                    unavailable_count += 1
                 else:
                     joined = join_ingredient_chunks(restored_chunks)
                     fields["ingredients_text"] = FieldTranslationOutcome(
@@ -385,21 +313,12 @@ class KhmerTranslationModule:
                     )
                     generated_count += 1
 
-        if generated_count > 0 and unavailable_count == 0:
-            overall = TranslationOverallStatus.COMPLETE
-        elif generated_count > 0 and unavailable_count > 0:
-            overall = TranslationOverallStatus.PARTIAL
-        elif unavailable_count == 0:
-            overall = TranslationOverallStatus.NOT_NEEDED
-        else:
-            overall = TranslationOverallStatus.UNAVAILABLE
-
         return ProductTranslationResult(
-            overall_status=overall,
+            overall_status=overall_status(fields),
             fields=fields,
             content_hash=content_hash,
             config_fingerprint=config_fingerprint,
-            provenance=provenance,
+            provenance=provenance if generated_count else None,
             raw_input=raw_inputs,
             masked_input=masked_inputs,
             token_maps=token_maps,

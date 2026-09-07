@@ -241,7 +241,7 @@ The translation domain is encapsulated behind the deep `KhmerTranslationModule` 
 1. **Eligible Fields & Selection**:
    - Translations are generated strictly for `product_name`, `generic_name`, `ingredients_text`, and human-readable `categories`.
    - Localized Original Text values are preserved with source field and language.
-   - Deterministic preference order: Source-provided Khmer (`kh`, normalizing `km`), declared record language, English (`en`), and deterministic localized fallback.
+   - Deterministic preference order: Source-provided Khmer (`kh`, `km`, and recognized variants, retaining source metadata), declared record language, English (`en`), and deterministic localized fallback.
    - Conservative Khmer Unicode script recognition preserves `und` when language metadata is absent without claiming authoritative language tags.
    - Source-provided Khmer yields `source_khmer_available` and missing fields yield `source_data_unavailable` without invoking the provider.
 
@@ -256,7 +256,7 @@ The translation domain is encapsulated behind the deep `KhmerTranslationModule` 
    - If one field fails validation, valid fields survive as `generated` while the failed field transitions to `translation_unavailable`, yielding a `partial` overall status.
 
 5. **Gemini HTTP Adapter**:
-   - Bounded within an overall 4-second budget; retries at most once for transient network errors, HTTP 408, 429, and 5xx using backoff.
+   - The provider timeout defaults to 12 seconds; retries at most once for transient network errors, HTTP 408, 429, and 5xx using backoff.
    - Strictly enforces that Barcodes, IP addresses, Dataset Snapshot identifiers, and Shopper data are never included in provider payloads.
    - Standardizes on approved stable model `gemini-3.8-flash`; explicitly rejects moving aliases (e.g. `gemini-latest`) and deprecated models (`gemini-2.0-flash`).
 
@@ -267,7 +267,7 @@ Durable translation storage and multi-instance concurrency are coordinated throu
 1. **Content Addressing & Storage Identity**:
    - Durable artifacts are keyed strictly by `content_hash + translation_config_fingerprint`.
    - Stored documents and Redis entries retain no Barcodes, Snapshot versions, or Shopper identifiers. Identical canonical Product text across snapshots reuses existing artifacts automatically.
-   - Valid partial artifacts (`overall_status=partial`) are durably stored to prevent repeatedly generating failing fields on subsequent lookups.
+   - Complete artifacts are durable. Valid partial results use a short-lived hot cache (the configured cooldown duration), after which generation may retry.
 
 2. **Cross-Instance Single Flight & Recovery**:
    - Instances coordinate on-demand generation using expiring MongoDB leases (`translation_leases`) containing unique owner tokens.
@@ -296,11 +296,11 @@ The stable Product Lookup endpoint integrates optional on-demand Khmer Translati
 1. **Request & Contract**:
    - `GET /api/v1/products/{barcode}?language=kh`
    - Requests without `language=kh` return the stable Product projection and Original Text without generating translation (`meta.translation.status="not_requested"`).
-   - The platform standardizes on `kh` as the Khmer language code while normalizing legacy or source `km` tags. Any other unsupported language parameter value returns HTTP 422 with stable error code `unsupported_language`.
+   - The application request and locale value is `kh`. External Source Record language tags, including `km`, retain their original metadata. Any other unsupported language parameter value returns HTTP 422 with stable error code `unsupported_language`.
    - The experimental endpoint `/api/experimental/products/{barcode}` remains functional but is formally deprecated in OpenAPI documentation.
 
 2. **Field-Level Co-Location**:
-   - Semantic fields eligible for translation (`identity.name`, `identity.generic_name`, `ingredients_text`, `categories_text`) carry individual translation states: `not_requested`, `source_khmer_available`, `generated`, `source_data_unavailable`, or `translation_unavailable`.
+   - Semantic fields eligible for translation (`identity.name`, `identity.generic_name`, `ingredients_text`, `categories_text`) carry individual translation states: `not_requested`, `source_khmer_available`, `original_text_preserved`, `generated`, `source_data_unavailable`, or `translation_unavailable`.
    - When translation is generated, `khmer_translation` holds the translated string alongside `original_texts` and `selected_original_text`.
    - Source-provided Khmer is treated as `OriginalText` (`source_khmer_available`) and never receives machine-generated metadata. Empty fields yield `source_data_unavailable` without invoking generation.
 
@@ -318,3 +318,28 @@ The stable Product Lookup endpoint integrates optional on-demand Khmer Translati
    - Access logs and metrics strictly exclude Barcode, IP address, Original Text, Khmer Translation, translation prompts, and raw provider payloads.
 
 
+
+## 18. Trustworthy existing Khmer Translation fields (Issue #94)
+
+The frontend Product Lookup request sends `language=kh`. Application locale state uses `kh`; standards-based document language tags and external identifiers remain unchanged. `language=km` is unsupported. Omitting the language returns `not_requested` without generation.
+
+The four existing field envelopes share selection and classification across generation, cache reuse, provider failure, coordination failure, and emergency fallback. Selection prefers source-provided Khmer (including recognized language variants or conservative script detection), then the Source Record language, English, and deterministic fallback. Script detection does not manufacture language metadata. Human-readable category Original Text retains its source wording and language; taxonomy identifiers are not translation prose.
+
+| Field status | Text available for display |
+| --- | --- |
+| `generated` | `khmer_translation` |
+| `source_khmer_available` | Khmer `selected_original_text` |
+| `original_text_preserved` | Intentionally unchanged `selected_original_text`, such as a brand-only Product name |
+| `translation_unavailable` | Available `selected_original_text` |
+| `not_requested` | Available `selected_original_text` |
+| `source_data_unavailable` | No source text; the frontend supplies missing-state copy |
+
+With a translation request, the overall status is `not_needed` when no field requires generation, `complete` when all required fields succeed, `partial` when some succeed, and `unavailable` when none succeed. Source-provided Khmer, preserved names, and missing fields do not count as failed generation. Provenance is present only with generated output and records the actual provider, exact model, configuration version, and generation time. Source Attribution and Dataset Snapshot metadata remain separate.
+
+Without Gemini credentials, startup disables generation and writes no new generated artifacts. Compatible existing Google/Gemini artifacts may still be read. Fake providers require explicit injection and canned translations; their `test-fake` / `canned-translations` identity cannot collide with production configuration.
+
+Configuration `v3` advances selection and validation semantics and includes the ingredient chunk limit in its fingerprint. Earlier and test-provider artifacts remain stored but cannot satisfy production requests. First use is therefore cold and can regenerate all eligible fields on demand; no automatic deletion or backfill runs.
+
+Validation rejects wrong types, missing outputs, malformed envelopes, incomplete provider responses, broken placeholders, altered protected values, excessive output, and unchanged source prose with a Khmer prefix. Independently valid fields survive. Deterministic tests establish structural behavior, not semantic accuracy or human review. Barcode and Shopper information never enter provider input or artifact identity.
+
+A single translation-stage deadline and additional structured fields belong to subsequent slices of #93. The current provider timeout and coordinator waiting limit are separate; they do not establish a total translation-stage deadline.

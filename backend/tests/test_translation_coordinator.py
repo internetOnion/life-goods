@@ -55,9 +55,7 @@ def _make_product(
     p = _empty_product()
     p.identity.barcode = barcode
     p.identity.brands = ["Oishi"]
-    p.identity.names = [
-        OriginalText(value=name, source_field="product_name_en", language="en")
-    ]
+    p.identity.names = [OriginalText(value=name, source_field="product_name_en", language="en")]
     p.identity.generic_names = [
         OriginalText(value="Beverage", source_field="generic_name_en", language="en")
     ]
@@ -70,7 +68,13 @@ def _make_product(
 
 
 def test_coordinator_fast_path_when_not_needed() -> None:
-    provider = FakeTranslationProvider()
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "product_name": "តែបៃតង",
+            "generic_name": "ភេសជ្ជៈ",
+            "ingredients_text": "តែបៃតង, ទឹក",
+        }
+    )
     module = KhmerTranslationModule(provider)
     repo = InMemoryGeneratedDataRepository()
     cache = InMemoryTranslationHotCache(ttl_seconds=100)
@@ -98,7 +102,13 @@ def test_coordinator_fast_path_when_not_needed() -> None:
 
 
 def test_coordinator_cache_hit_returns_without_calling_provider_or_store() -> None:
-    provider = FakeTranslationProvider()
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "product_name": "តែបៃតង",
+            "generic_name": "ភេសជ្ជៈ",
+            "ingredients_text": "តែបៃតង, ទឹក",
+        }
+    )
     module = KhmerTranslationModule(provider)
     repo = InMemoryGeneratedDataRepository()
     cache = InMemoryTranslationHotCache(ttl_seconds=100)
@@ -117,17 +127,23 @@ def test_coordinator_cache_hit_returns_without_calling_provider_or_store() -> No
     result1 = coordinator.get_or_generate_translation(product)
     assert result1.overall_status == TranslationOverallStatus.COMPLETE
     assert provider.call_count == 1
-    assert result1.fields["product_name"].khmer_translation == "ការបកប្រែ: Green Tea"
+    assert result1.fields["product_name"].khmer_translation == "តែបៃតង"
 
     # 2nd call: Hits Redis hot cache -> provider NOT called again
     result2 = coordinator.get_or_generate_translation(product)
     assert result2.overall_status == TranslationOverallStatus.COMPLETE
     assert provider.call_count == 1
-    assert result2.fields["product_name"].khmer_translation == "ការបកប្រែ: Green Tea"
+    assert result2.fields["product_name"].khmer_translation == "តែបៃតង"
 
 
 def test_coordinator_store_hit_populates_hot_cache_and_returns() -> None:
-    provider = FakeTranslationProvider()
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "product_name": "តែបៃតង",
+            "generic_name": "ភេសជ្ជៈ",
+            "ingredients_text": "តែបៃតង, ទឹក",
+        }
+    )
     module = KhmerTranslationModule(provider)
     repo = InMemoryGeneratedDataRepository()
     cache = InMemoryTranslationHotCache(ttl_seconds=100)
@@ -159,7 +175,13 @@ def test_coordinator_store_hit_populates_hot_cache_and_returns() -> None:
 
 
 def test_coordinator_single_flight_cross_instance_coordination() -> None:
-    provider = FakeTranslationProvider()
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "product_name": "តែបៃតង",
+            "generic_name": "ភេសជ្ជៈ",
+            "ingredients_text": "តែបៃតង, ទឹក",
+        }
+    )
     module = KhmerTranslationModule(provider)
     repo = InMemoryGeneratedDataRepository()
     cache = InMemoryTranslationHotCache(ttl_seconds=100)
@@ -191,7 +213,7 @@ def test_coordinator_single_flight_cross_instance_coordination() -> None:
     # Worker 2 now runs get_or_generate_translation
     worker2_res = coordinator.get_or_generate_translation(product, deadline_seconds=1.0)
     assert worker2_res.overall_status == TranslationOverallStatus.COMPLETE
-    assert worker2_res.fields["product_name"].khmer_translation == "ការបកប្រែ: Green Tea"
+    assert worker2_res.fields["product_name"].khmer_translation == "តែបៃតង"
     # Provider was called only by Worker 1, not Worker 2
     assert provider.call_count == 1
 
@@ -201,7 +223,13 @@ def test_coordinator_expired_crashed_lease_recovery() -> None:
     current_time = [now]
     clock = [100.0]
 
-    provider = FakeTranslationProvider()
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "product_name": "តែបៃតង",
+            "generic_name": "ភេសជ្ជៈ",
+            "ingredients_text": "តែបៃតង, ទឹក",
+        }
+    )
     module = KhmerTranslationModule(provider)
     repo = InMemoryGeneratedDataRepository(datetime_provider=lambda: current_time[0])
     cache = InMemoryTranslationHotCache(ttl_seconds=100, monotonic=lambda: clock[0])
@@ -237,6 +265,8 @@ def test_coordinator_retries_partial_translation_after_short_cache() -> None:
     provider = FakeTranslationProvider(
         canned_translations={
             "generic_name": "invalid_english_only",
+            "product_name": "តែបៃតង",
+            "ingredients_text": "តែបៃតង, ទឹក",
         }
     )
     module = KhmerTranslationModule(provider)
@@ -266,7 +296,7 @@ def test_coordinator_retries_partial_translation_after_short_cache() -> None:
     assert provider.call_count == 1
 
     # After the interval, the failed field is retried and can complete.
-    provider.canned_translations.pop("generic_name")
+    provider.canned_translations["generic_name"] = "ភេសជ្ជៈ"
     clock[0] = 61.0
     result3 = coordinator.get_or_generate_translation(product)
     assert result3.overall_status == TranslationOverallStatus.COMPLETE
@@ -316,13 +346,24 @@ def test_coordinator_stores_complete_failure_as_temporary_cooldown() -> None:
 
     # Provider is fixed now
     provider.should_fail = False
+    provider.canned_translations = {
+        "product_name": "តែបៃតង",
+        "generic_name": "ភេសជ្ជៈ",
+        "ingredients_text": "តែបៃតង, ទឹក",
+    }
     result3 = coordinator.get_or_generate_translation(product)
     assert result3.overall_status == TranslationOverallStatus.COMPLETE
     assert provider.call_count == 2
 
 
 def test_coordinator_quarantined_artifact_is_withdrawn() -> None:
-    provider = FakeTranslationProvider()
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "product_name": "តែបៃតង",
+            "generic_name": "ភេសជ្ជៈ",
+            "ingredients_text": "តែបៃតង, ទឹក",
+        }
+    )
     module = KhmerTranslationModule(provider)
     repo = InMemoryGeneratedDataRepository()
     cache = InMemoryTranslationHotCache(ttl_seconds=100)
@@ -352,7 +393,13 @@ def test_coordinator_quarantined_artifact_is_withdrawn() -> None:
 
 
 def test_coordinator_shared_generation_budget_fails_closed() -> None:
-    provider = FakeTranslationProvider()
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "product_name": "តែបៃតង",
+            "generic_name": "ភេសជ្ជៈ",
+            "ingredients_text": "តែបៃតង, ទឹក",
+        }
+    )
     module = KhmerTranslationModule(provider)
     repo = InMemoryGeneratedDataRepository()
     cache = InMemoryTranslationHotCache(ttl_seconds=100)
@@ -366,6 +413,7 @@ def test_coordinator_shared_generation_budget_fails_closed() -> None:
         budget=budget,
     )
 
+    provider.canned_translations["product_name"] = "ផលិតផល __LG_TOK_0__"
     # 1st call uses budget
     res1 = coordinator.get_or_generate_translation(_make_product(name="Product 1"))
     assert res1.overall_status == TranslationOverallStatus.COMPLETE
@@ -378,7 +426,13 @@ def test_coordinator_shared_generation_budget_fails_closed() -> None:
 
 
 def test_coordinator_identical_canonical_input_reused_across_dataset_snapshots() -> None:
-    provider = FakeTranslationProvider()
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "product_name": "តែបៃតង",
+            "generic_name": "ភេសជ្ជៈ",
+            "ingredients_text": "តែបៃតង, ទឹក",
+        }
+    )
     module = KhmerTranslationModule(provider)
     repo = InMemoryGeneratedDataRepository()
     cache = InMemoryTranslationHotCache(ttl_seconds=100)
@@ -406,7 +460,13 @@ def test_coordinator_identical_canonical_input_reused_across_dataset_snapshots()
 
 
 def test_coordinator_changed_content_or_config_never_reuses_incompatible_artifact() -> None:
-    provider = FakeTranslationProvider()
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "product_name": "តែបៃតង",
+            "generic_name": "ភេសជ្ជៈ",
+            "ingredients_text": "តែបៃតង, ទឹក",
+        }
+    )
     module_v1 = KhmerTranslationModule(provider, config_version="v1")
     repo = InMemoryGeneratedDataRepository()
     cache = InMemoryTranslationHotCache(ttl_seconds=100)
@@ -449,7 +509,13 @@ class FailingWriteRepo(InMemoryGeneratedDataRepository):
 
 
 def test_coordinator_generated_result_returned_even_if_write_fails() -> None:
-    provider = FakeTranslationProvider()
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "product_name": "តែបៃតង",
+            "generic_name": "ភេសជ្ជៈ",
+            "ingredients_text": "តែបៃតង, ទឹក",
+        }
+    )
     module = KhmerTranslationModule(provider)
     repo = FailingWriteRepo(fail_on_save=True)
     cache = InMemoryTranslationHotCache(ttl_seconds=100)
@@ -462,11 +528,12 @@ def test_coordinator_generated_result_returned_even_if_write_fails() -> None:
         budget=budget,
     )
 
+    provider.canned_translations["product_name"] = "ផលិតផល __LG_TOK_0__"
     product1 = _make_product(name="Product 1")
     # 1st call: Translation succeeds, write fails. Result is still returned to the current request!
     res1 = coordinator.get_or_generate_translation(product1)
     assert res1.overall_status == TranslationOverallStatus.COMPLETE
-    assert res1.fields["product_name"].khmer_translation == "ការបកប្រែ: Product 1"
+    assert res1.fields["product_name"].khmer_translation == "ផលិតផល 1"
     assert provider.call_count == 1
 
     # But store degradation is now active -> subsequent requests do not start new provider calls!
@@ -478,7 +545,13 @@ def test_coordinator_generated_result_returned_even_if_write_fails() -> None:
 
 
 def test_coordinator_store_unavailability_before_lease_prevents_provider_calls() -> None:
-    provider = FakeTranslationProvider()
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "product_name": "តែបៃតង",
+            "generic_name": "ភេសជ្ជៈ",
+            "ingredients_text": "តែបៃតង, ទឹក",
+        }
+    )
     module = KhmerTranslationModule(provider)
     repo = FailingWriteRepo(fail_on_acquire=True)
     cache = InMemoryTranslationHotCache(ttl_seconds=100)

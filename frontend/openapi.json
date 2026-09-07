@@ -1003,6 +1003,7 @@
         "type": "object"
       },
       "TranslatableField": {
+        "description": "Original Text and its independent Khmer Translation outcome.\n\ngenerated selects khmer_translation. source_khmer_available selects Khmer\nOriginal Text; original_text_preserved selects intentionally unchanged text.\ntranslation_unavailable and not_requested retain Original Text.\nsource_data_unavailable has no source text to display.",
         "properties": {
           "khmer_translation": {
             "anyOf": [
@@ -1321,7 +1322,7 @@
             }
           },
           {
-            "description": "Optional target language for product translation. Currently only 'kh' is supported.",
+            "description": "Optional target language for product translation. Only 'kh' is supported; 'km' returns unsupported_language. Omit to skip generation. External source language tags remain unchanged.",
             "in": "query",
             "name": "language",
             "required": false,
@@ -1334,7 +1335,7 @@
                   "type": "null"
                 }
               ],
-              "description": "Optional target language for product translation. Currently only 'kh' is supported.",
+              "description": "Optional target language for product translation. Only 'kh' is supported; 'km' returns unsupported_language. Omit to skip generation. External source language tags remain unchanged.",
               "title": "Language"
             }
           }

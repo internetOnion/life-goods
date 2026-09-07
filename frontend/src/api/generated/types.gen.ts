@@ -461,6 +461,12 @@ export type SourceRecordMetadataProjection = {
 
 /**
  * TranslatableField
+ * Original Text and its independent Khmer Translation outcome.
+ *
+ * generated selects khmer_translation. source_khmer_available selects Khmer
+ * Original Text; original_text_preserved selects intentionally unchanged text.
+ * translation_unavailable and not_requested retain Original Text.
+ * source_data_unavailable has no source text to display.
  */
 export type TranslatableField = {
     /**
@@ -620,7 +626,7 @@ export type GetProductData = {
     query?: {
         /**
          * Language
-         * Optional target language for product translation. Currently only 'kh' is supported.
+         * Optional target language for product translation. Only 'kh' is supported; 'km' returns unsupported_language. Omit to skip generation. External source language tags remain unchanged.
          */
         language?: string | null;
     };

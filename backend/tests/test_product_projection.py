@@ -92,7 +92,7 @@ def test_projects_complete_source_record_without_inference() -> None:
         ),
         OriginalText(
             value="ម៉ាសកាកាវ ស្ករ ប៊ឺកាកាវ",
-            language="kh",
+            language="km",
             source_field="ingredients_text_km",
         ),
     ]
@@ -235,7 +235,7 @@ def test_keeps_multilingual_names_and_ingredients_distinct() -> None:
     assert [(name.value, name.language) for name in product.identity.names] == [
         ("Pâte à tartiner", "fr"),
         ("Hazelnut spread", "en"),
-        ("ក្រែមហាសែលណាត់", "kh"),
+        ("ក្រែមហាសែលណាត់", "km"),
     ]
     assert len(product.identity.generic_names) == 2
     assert [item.language for item in product.ingredients] == ["fr", "en"]
@@ -418,9 +418,7 @@ def test_projects_data_rich_record_directly() -> None:
     assert product.source.creator == "off-contributor"
     assert product.source.created_at == "2024-01-01T00:00:00Z"
     assert product.source.completeness == 0.82
-    assert product.source.data_quality_warnings == [
-        "nutrition value very high for category"
-    ]
+    assert product.source.data_quality_warnings == ["nutrition value very high for category"]
 
 
 def test_projection_populates_translatable_semantic_fields_with_not_requested_status() -> None:
@@ -458,8 +456,7 @@ def test_projection_populates_translatable_semantic_fields_with_not_requested_st
     assert product.ingredients_text.khmer_translation is None
     assert product.ingredients_text.selected_original_text is not None
     assert (
-        product.ingredients_text.selected_original_text.value
-        == "Cocoa mass, sugar, cocoa butter"
+        product.ingredients_text.selected_original_text.value == "Cocoa mass, sugar, cocoa butter"
     )
 
     # 4. Categories

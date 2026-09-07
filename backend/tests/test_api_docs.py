@@ -67,9 +67,9 @@ def test_experimental_product_lookup_is_typed_in_openapi(client: TestClient) -> 
         "$ref": "#/components/schemas/ProductLookupResponse"
     }
     for status in ("404", "422", "429", "500", "503"):
-        assert operation["responses"][status]["content"]["application/json"][
-            "schema"
-        ] == {"$ref": "#/components/schemas/ProductLookupErrorResponse"}
+        assert operation["responses"][status]["content"]["application/json"]["schema"] == {
+            "$ref": "#/components/schemas/ProductLookupErrorResponse"
+        }
 
     schemas = specification["components"]["schemas"]
     assert schemas["ProductLookupErrorCode"]["enum"] == [
@@ -80,9 +80,7 @@ def test_experimental_product_lookup_is_typed_in_openapi(client: TestClient) -> 
         "internal_error",
         "unsupported_language",
     ]
-    source_record = schemas["ProductLookupDataResponse"]["properties"][
-        "source_record"
-    ]
+    source_record = schemas["ProductLookupDataResponse"]["properties"]["source_record"]
     assert source_record["type"] == "object"
 
 
@@ -118,13 +116,15 @@ def test_stable_product_lookup_is_typed_in_openapi(client: TestClient) -> None:
                 ],
                 "description": (
                     "Optional target language for product translation. "
-                    "Currently only 'kh' is supported."
+                    "Only 'kh' is supported; 'km' returns unsupported_language. "
+                    "Omit to skip generation. External source language tags remain unchanged."
                 ),
                 "title": "Language",
             },
             "description": (
                 "Optional target language for product translation. "
-                "Currently only 'kh' is supported."
+                "Only 'kh' is supported; 'km' returns unsupported_language. "
+                "Omit to skip generation. External source language tags remain unchanged."
             ),
         },
     ]
@@ -133,9 +133,9 @@ def test_stable_product_lookup_is_typed_in_openapi(client: TestClient) -> None:
         "$ref": "#/components/schemas/ProductProjectionResponse"
     }
     for status in ("404", "422", "429", "500", "503"):
-        assert operation["responses"][status]["content"]["application/json"][
-            "schema"
-        ] == {"$ref": "#/components/schemas/ProductLookupErrorResponse"}
+        assert operation["responses"][status]["content"]["application/json"]["schema"] == {
+            "$ref": "#/components/schemas/ProductLookupErrorResponse"
+        }
 
     schemas = specification["components"]["schemas"]
     assert "ProductProjectionResponse" in schemas

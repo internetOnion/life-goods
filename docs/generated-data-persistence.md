@@ -115,3 +115,9 @@ To rotate credentials without application downtime:
 | `OperationFailure: not authorized on lifegoods_generated` | Runtime application identity lacks `readWrite` role on the target database, or is using the `lifegoods_reader` URI. | Check `LIFEGOODS_GENERATED_MONGODB_URI` environment variable. Ensure the user has role `readWrite` on `lifegoods_generated`. |
 | `OperationFailure: not authorized on lifegoods_off` | Generated data process attempted to query or write to the snapshot database. | Normal security boundary behavior. Generated storage must not interact with `lifegoods_off`. |
 | Leases or cooldowns not expiring | MongoDB TTL background monitor thread is disabled or running on a long sleep interval. | Verify MongoDB server parameters (`ttlMonitorSleepSecs`). Verify index has `expireAfterSeconds: 0`. |
+
+## Translation configuration and isolated tests
+
+The production translation configuration is `v3`, with exact provider/model identity in its fingerprint. It excludes previous configurations and `test-fake` artifacts without deleting them. Complete results are durable; partial results use only the short-lived hot cache. Missing credentials disable generation while allowing compatible stored results to be read.
+
+Real coordinator integration tests require `LIFEGOODS_TEST_GENERATED_MONGODB_URI` with access to the dedicated `lifegoods_generated_test` database and `LIFEGOODS_TEST_REDIS_URL` pointing to a disposable test Redis database. These tests clear their collections and Redis database. They skip without explicit test connections and never default to the application's generated-data store. Run them with `pnpm backend:test:integration`.

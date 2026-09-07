@@ -45,7 +45,7 @@ from lifegoods.translation.module import (
     PRODUCTION_MODEL,
     KhmerTranslationModule,
 )
-from lifegoods.translation.provider import FakeTranslationProvider, TranslationProvider
+from lifegoods.translation.provider import TranslationProvider
 
 ERROR_MESSAGES: dict[ErrorCode, str] = {
     ErrorCode.IDENTIFIER_REQUIRED: "An identifier is required.",
@@ -79,10 +79,7 @@ def create_app(
 
     needs_shared_redis = (
         product_lookup_limiter is None
-        or (
-            resolved_settings.product_lookup_cache_enabled
-            and product_lookup_cache is None
-        )
+        or (resolved_settings.product_lookup_cache_enabled and product_lookup_cache is None)
         or translation_coordinator is None
     )
 
@@ -128,9 +125,7 @@ def create_app(
             resolved_settings.product_lookup_requests_per_minute,
         )
 
-    resolved_product_lookup_metrics = (
-        product_lookup_metrics or NoOpProductLookupMetrics()
-    )
+    resolved_product_lookup_metrics = product_lookup_metrics or NoOpProductLookupMetrics()
 
     if image_source is None:
         image_http_client = httpx.Client()
@@ -162,7 +157,6 @@ def create_app(
             title=f"{app.title} - Scalar Reference",
         )
 
-
     if translation_coordinator is not None:
         resolved_translation_coordinator = translation_coordinator
     else:
@@ -176,7 +170,7 @@ def create_app(
             generated_mongo_client[resolved_settings.generated_mongodb_database]
         )
 
-        provider: TranslationProvider
+        provider: TranslationProvider | None
         if resolved_settings.gemini_api_key:
             gemini_http_client = httpx.Client()
             owned_http_clients.append(gemini_http_client)
@@ -187,7 +181,7 @@ def create_app(
                 http_client=gemini_http_client,
             )
         else:
-            provider = FakeTranslationProvider()
+            provider = None
 
         translation_module = KhmerTranslationModule(provider=provider)
         translation_cache = RedisTranslationHotCache(
@@ -209,20 +203,16 @@ def create_app(
         )
 
     app.dependency_overrides[get_image_source] = lambda: resolved_image_source
-    app.dependency_overrides[get_translation_coordinator] = (
-        lambda: resolved_translation_coordinator
-    )
+    app.dependency_overrides[get_translation_coordinator] = lambda: resolved_translation_coordinator
     app.dependency_overrides[get_product_lookup] = lambda: LookupProduct(
         resolved_product_lookup_source,
         resolved_product_lookup_cache,
         coordinator=resolved_translation_coordinator,
     )
-    app.dependency_overrides[get_product_lookup_rate_limiter] = (
-        lambda: resolved_product_lookup_limiter
+    app.dependency_overrides[get_product_lookup_rate_limiter] = lambda: (
+        resolved_product_lookup_limiter
     )
-    app.dependency_overrides[get_product_lookup_metrics] = (
-        lambda: resolved_product_lookup_metrics
-    )
+    app.dependency_overrides[get_product_lookup_metrics] = lambda: resolved_product_lookup_metrics
 
     @app.exception_handler(RequestValidationError)
     async def request_validation_handler(

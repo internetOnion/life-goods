@@ -1,4 +1,8 @@
+import re
+from collections import Counter
+
 from lifegoods.translation.protection import (
+    protect_tokens,
     validate_token_preservation,
 )
 from lifegoods.translation.selection import KHMER_CHAR_REGEX
@@ -34,9 +38,7 @@ def validate_field_translation(
         if token_res.missing_tokens:
             reasons.append(f"Missing tokens: {', '.join(token_res.missing_tokens)}")
         if token_res.lingering_placeholders:
-            reasons.append(
-                f"Lingering placeholders: {', '.join(token_res.lingering_placeholders)}"
-            )
+            reasons.append(f"Lingering placeholders: {', '.join(token_res.lingering_placeholders)}")
 
     # 3. Bounds check against input text length
     in_len = len(input_text.strip())
@@ -58,5 +60,35 @@ def validate_field_translation(
         # Check if remaining text contains Khmer characters
         if not KHMER_CHAR_REGEX.search(text_without_tokens):
             reasons.append("Output does not contain valid Khmer script")
+
+    source_prose = input_text
+    output_prose = restored_text
+    for token in token_map.values():
+        source_prose = source_prose.replace(token, "")
+        output_prose = output_prose.replace(token, "")
+    source_words = re.sub(r"[\W_]+", "", KHMER_CHAR_REGEX.sub("", source_prose)).casefold()
+    output_words = re.sub(r"[\W_]+", "", KHMER_CHAR_REGEX.sub("", output_prose)).casefold()
+    if source_words and source_words in output_words:
+        reasons.append("Output retains unchanged source prose")
+
+    # Khmer does not require word-separating spaces. Normalize script boundaries
+    # for numeric/code comparison without changing the returned translation.
+    if Counter(
+        protect_tokens(KHMER_CHAR_REGEX.sub(" ", restored_text)).protected_tokens
+    ) != Counter(protect_tokens(KHMER_CHAR_REGEX.sub(" ", input_text)).protected_tokens):
+        reasons.append("Output alters protected values")
+
+    # Appending Latin letters/digits can turn an intact placeholder into a
+    # different brand or unit (for example, 5 g + allons). Khmer adjacency is valid.
+    for placeholder, token in token_map.items():
+        escaped = re.escape(placeholder)
+        if (
+            re.match(r"[A-Za-z0-9]", token)
+            and re.search(rf"[A-Za-z0-9]{escaped}", raw_response_text)
+        ) or (
+            re.search(r"[A-Za-z0-9]$", token)
+            and re.search(rf"{escaped}[A-Za-z0-9]", raw_response_text)
+        ):
+            reasons.append("Output alters a protected token boundary")
 
     return reasons

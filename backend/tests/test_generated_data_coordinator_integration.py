@@ -45,7 +45,19 @@ pytestmark = pytest.mark.integration
 
 @pytest.fixture(scope="module")
 def settings() -> Settings:
-    return Settings()
+    import os
+
+    mongo_uri = os.getenv("LIFEGOODS_TEST_GENERATED_MONGODB_URI")
+    redis_url = os.getenv("LIFEGOODS_TEST_REDIS_URL")
+    if not mongo_uri or not redis_url:
+        pytest.skip(
+            "Set dedicated LIFEGOODS_TEST_GENERATED_MONGODB_URI and LIFEGOODS_TEST_REDIS_URL"
+        )
+    return Settings(
+        generated_mongodb_uri=mongo_uri,
+        generated_mongodb_database="lifegoods_generated_test",
+        redis_url=redis_url,
+    )
 
 
 @pytest.fixture(scope="module")
@@ -117,6 +129,9 @@ def _make_integration_product(
 
 
 class SlowFakeProvider:
+    provider_name = "test-fake"
+    model = "canned-translations"
+
     def __init__(self, delay_seconds: float = 0.1) -> None:
         self.delay_seconds = delay_seconds
         self.call_count = 0
@@ -126,7 +141,11 @@ class SlowFakeProvider:
         with self._lock:
             self.call_count += 1
         time.sleep(self.delay_seconds)
-        translations = {k: f"ការបកប្រែ: {v}" for k, v in request.fields.items()}
+        translations = {
+            "product_name": "ទឹកដូងសរីរាង្គ",
+            "generic_name": "ទឹកដូង",
+            "ingredients_text": "ទឹកដូង __LG_TOK_0__",
+        }
         return ProviderTranslationResponse(
             translations=translations,
             status="success",
@@ -207,7 +226,7 @@ def test_concurrent_single_flight_on_real_services(
     for res in results:
         assert res is not None
         assert res.overall_status == TranslationOverallStatus.COMPLETE
-        assert "ការបកប្រែ" in res.fields["product_name"].khmer_translation
+        assert "ទឹកដូង" in res.fields["product_name"].khmer_translation
 
 
 def test_privacy_no_barcode_or_shopper_id_stored(
@@ -296,25 +315,16 @@ def test_expired_lease_recovery_on_real_mongodb(
     config_fp = "expire_test_fp"
 
     # Worker 1 acquires lease with a short TTL (0.15 seconds)
-    assert (
-        repo.acquire_lease(content_hash, config_fp, "worker_1", ttl_seconds=0.15)
-        is True
-    )
+    assert repo.acquire_lease(content_hash, config_fp, "worker_1", ttl_seconds=0.15) is True
 
     # Worker 2 immediately attempts to acquire: should fail
-    assert (
-        repo.acquire_lease(content_hash, config_fp, "worker_2", ttl_seconds=5.0)
-        is False
-    )
+    assert repo.acquire_lease(content_hash, config_fp, "worker_2", ttl_seconds=5.0) is False
 
     # Wait for lease to expire
     time.sleep(0.2)
 
     # Worker 2 attempts again: takes over the expired lease atomically
-    assert (
-        repo.acquire_lease(content_hash, config_fp, "worker_2", ttl_seconds=5.0)
-        is True
-    )
+    assert repo.acquire_lease(content_hash, config_fp, "worker_2", ttl_seconds=5.0) is True
 
     lease_doc = db[TRANSLATION_LEASES_COLLECTION].find_one(
         {"content_hash": content_hash, "translation_config_fingerprint": config_fp}
