@@ -176,34 +176,27 @@ def test_gemini_adapter_handles_timeout_gracefully() -> None:
     assert "timed out" in (response.error_message or "").lower()
 
 
-def test_gemini_adapter_preserves_timeout_error_when_retry_budget_is_exhausted() -> None:
-    attempts = 0
+def test_gemini_adapter_does_not_retry_after_deadline() -> None:
+    from lifegoods.translation.deadline import TranslationDeadline
 
-    def handle_request(request: httpx.Request) -> httpx.Response:
-        nonlocal attempts
-        attempts += 1
-        raise httpx.ReadTimeout("Request timed out", request=request)
+    clock = [0.0]
+    attempts = []
 
-    client = httpx.Client(transport=httpx.MockTransport(handle_request))
-    adapter = GeminiTranslationAdapter(
-        api_key="test-key",
-        http_client=client,
-        timeout_seconds=0.1,
-        backoff_seconds=0.01,
-    )
+    def handle_request(request):
+        attempts.append(request)
+        clock[0] = 1
+        raise httpx.ReadTimeout("sensitive provider URL", request=request)
 
-    response = adapter.translate(
-        ProviderTranslationRequest(
-            fields={"product_name": "Chocolate"},
-            brands=[],
-            target_language="kh",
+    with httpx.Client(transport=httpx.MockTransport(handle_request)) as client:
+        response = GeminiTranslationAdapter("offline", http_client=client).translate(
+            ProviderTranslationRequest(
+                fields={"product_name": "Chocolate"},
+                deadline=TranslationDeadline(1, clock=lambda: clock[0]),
+            )
         )
-    )
-
     assert response.status == "error"
-    assert attempts == 1
-    assert "timed out" in (response.error_message or "").lower()
-    assert "budget exhausted" not in (response.error_message or "").lower()
+    assert len(attempts) == 1
+    assert response.error_message == "Translation deadline exceeded"
 
 
 def test_gemini_adapter_handles_safety_blocked_response() -> None:
@@ -266,3 +259,111 @@ def test_gemini_adapter_rejects_incomplete_or_malformed_envelope(payload, finish
         )
     assert response.status == "error"
     assert response.translations == {}
+
+
+@pytest.mark.parametrize("first_status", [408, 429, 500, 501, 599])
+def test_retry_uses_only_remaining_translation_deadline(first_status) -> None:
+    from lifegoods.translation.deadline import TranslationDeadline
+
+    clock = [0.0]
+    timeouts = []
+
+    def respond(request):
+        timeouts.append(request.extensions["timeout"]["read"])
+        clock[0] += 0.4
+        if len(timeouts) == 1:
+            return httpx.Response(first_status)
+        return httpx.Response(
+            200,
+            json={
+                "candidates": [
+                    {
+                        "finishReason": "STOP",
+                        "content": {
+                            "parts": [
+                                {"text": json.dumps({"translations": {"product_name": "សូកូឡា"}})}
+                            ]
+                        },
+                    }
+                ]
+            },
+        )
+
+    def sleep(seconds):
+        clock[0] += seconds
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        adapter = GeminiTranslationAdapter("offline", http_client=client, sleep_func=sleep)
+        response = adapter.translate(
+            ProviderTranslationRequest(
+                fields={"product_name": "Chocolate"},
+                deadline=TranslationDeadline(1, clock=lambda: clock[0]),
+            )
+        )
+    assert response.status == "success"
+    assert len(timeouts) == 2
+    assert timeouts[0] == 1
+    assert 0.47 <= timeouts[1] <= 0.53
+    assert clock[0] < 1
+
+
+def test_total_deadline_bounds_transport_that_does_not_honor_timeouts() -> None:
+    from threading import Event
+
+    from lifegoods.translation.deadline import TranslationDeadline
+
+    release = Event()
+    completed = Event()
+
+    def respond(request):
+        try:
+            assert release.wait(2), "Test did not release the transport"
+            return httpx.Response(503)
+        finally:
+            completed.set()
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        try:
+            result = GeminiTranslationAdapter("offline", http_client=client).translate(
+                ProviderTranslationRequest(
+                    fields={"product_name": "Chocolate"},
+                    deadline=TranslationDeadline(0.05),
+                )
+            )
+            assert not release.is_set()
+            assert result.status == "error"
+            assert result.error_message == "Translation deadline exceeded"
+        finally:
+            release.set()
+            assert completed.wait(2)
+
+
+@pytest.mark.parametrize("delay", [0.95, 1.0])
+def test_retry_backoff_cannot_extend_deadline(delay) -> None:
+    from lifegoods.translation.deadline import TranslationDeadline
+
+    clock = [0.0]
+    attempts = []
+
+    def respond(request):
+        attempts.append(request)
+        clock[0] += delay
+        raise httpx.ConnectError("sensitive URL and credential")
+
+    def sleep(seconds):
+        clock[0] += seconds
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        response = GeminiTranslationAdapter(
+            "offline",
+            http_client=client,
+            sleep_func=sleep,
+        ).translate(
+            ProviderTranslationRequest(
+                fields={"product_name": "Chocolate"},
+                deadline=TranslationDeadline(1, clock=lambda: clock[0]),
+            )
+        )
+    assert len(attempts) == 1
+    assert clock[0] == 1
+    assert response.error_message == "Translation deadline exceeded"

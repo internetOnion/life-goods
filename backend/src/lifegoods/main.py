@@ -194,6 +194,7 @@ def create_app(
         )
         resolved_translation_coordinator = TranslationCoordinator(
             module=translation_module,
+            deadline_seconds=resolved_settings.translation_deadline_seconds,
             repository=generated_repository,
             cache=translation_cache,
             budget=translation_budget,

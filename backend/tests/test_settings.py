@@ -83,3 +83,19 @@ def test_gemini_translation_timeout_can_be_overridden(
     monkeypatch.setenv("LIFEGOODS_GEMINI_TRANSLATION_TIMEOUT_SECONDS", "18.5")
     settings = settings_from_environment()
     assert settings.gemini_translation_timeout_seconds == 18.5
+
+
+def test_translation_stage_deadline_defaults_and_environment_override(monkeypatch) -> None:
+    monkeypatch.delenv("LIFEGOODS_TRANSLATION_DEADLINE_SECONDS", raising=False)
+    assert settings_from_environment().translation_deadline_seconds == 12
+    monkeypatch.setenv("LIFEGOODS_TRANSLATION_DEADLINE_SECONDS", "2.5")
+    assert settings_from_environment().translation_deadline_seconds == 2.5
+
+
+@pytest.mark.parametrize("value", ["0", "-1", "nan", "inf", "-inf", "invalid"])
+def test_translation_stage_deadline_rejects_invalid_values(monkeypatch, value) -> None:
+    from pydantic import ValidationError
+
+    monkeypatch.setenv("LIFEGOODS_TRANSLATION_DEADLINE_SECONDS", value)
+    with pytest.raises(ValidationError):
+        settings_from_environment()

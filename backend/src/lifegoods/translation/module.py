@@ -15,6 +15,7 @@ from lifegoods.translation.contracts import (
     TranslationOverallStatus,
     TranslationProvenance,
 )
+from lifegoods.translation.deadline import TranslationDeadline
 from lifegoods.translation.protection import (
     protect_tokens,
     restore_tokens,
@@ -161,6 +162,7 @@ class KhmerTranslationModule:
         product: ProductProjection,
         *,
         target_language: str = "kh",
+        deadline: TranslationDeadline | None = None,
     ) -> ProductTranslationResult:
         fields = classify_fields(product)
         selections = extract_eligible_fields(product)
@@ -216,12 +218,16 @@ class KhmerTranslationModule:
                 product, content_hash, config_fingerprint, "Provider is not configured"
             )
 
+        deadline = deadline or TranslationDeadline()
+        deadline.remaining()
         # Call provider
         request = ProviderTranslationRequest(
+            deadline=deadline,
             fields=masked_inputs,
             target_language=target_language,
         )
-        response = self._provider.translate(request)
+        provider = self._provider
+        response = deadline.run(lambda: provider.translate(request))
 
         now_iso = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         provenance = TranslationProvenance(
@@ -234,7 +240,10 @@ class KhmerTranslationModule:
 
         if response.status != "success" or not isinstance(response.translations, dict):
             return unavailable_result(
-                product, content_hash, config_fingerprint, "Provider translation error"
+                product,
+                content_hash,
+                config_fingerprint,
+                response.error_message or "Provider translation error",
             )
 
         generated_count = 0

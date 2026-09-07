@@ -1,12 +1,15 @@
 from dataclasses import dataclass, field
 from typing import Protocol
 
+from lifegoods.translation.deadline import TranslationDeadline
+
 
 @dataclass(frozen=True)
 class ProviderTranslationRequest:
     fields: dict[str, str]
     brands: list[str] = field(default_factory=list)
     target_language: str = "kh"
+    deadline: TranslationDeadline | None = field(default=None, repr=False, compare=False)
 
 
 @dataclass(frozen=True)

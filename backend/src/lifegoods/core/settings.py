@@ -1,6 +1,8 @@
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from lifegoods.translation.deadline import DEFAULT_TRANSLATION_DEADLINE_SECONDS
+
 DEFAULT_OPEN_FOOD_FACTS_IMAGE_BASE_URL = "https://images.openfoodfacts.org"
 DEFAULT_OPEN_FOOD_FACTS_IMAGE_TIMEOUT_SECONDS = 2.0
 DEFAULT_OPEN_FOOD_FACTS_USER_AGENT = (
@@ -73,7 +75,17 @@ class Settings(BaseSettings):
     generated_translation_poll_interval_seconds: float = (
         DEFAULT_GENERATED_TRANSLATION_POLL_INTERVAL_SECONDS
     )
-    gemini_translation_timeout_seconds: float = DEFAULT_GEMINI_TRANSLATION_TIMEOUT_SECONDS
+    translation_deadline_seconds: float = Field(
+        default=DEFAULT_TRANSLATION_DEADLINE_SECONDS,
+        gt=0,
+        allow_inf_nan=False,
+        description="Total translation-stage budget in seconds",
+    )
+    gemini_translation_timeout_seconds: float = Field(
+        default=DEFAULT_GEMINI_TRANSLATION_TIMEOUT_SECONDS,
+        gt=0,
+        allow_inf_nan=False,
+    )
     gemini_api_key: str | None = Field(
         default=None,
         validation_alias=AliasChoices(

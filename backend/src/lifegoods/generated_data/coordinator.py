@@ -5,6 +5,7 @@ import time
 from collections.abc import Callable
 from contextlib import suppress
 from datetime import UTC, datetime
+from functools import partial
 from threading import Lock
 from time import monotonic as system_monotonic
 from typing import Any
@@ -24,6 +25,12 @@ from lifegoods.translation.contracts import (
     TranslationFieldStatus,
     TranslationOverallStatus,
     TranslationProvenance,
+)
+from lifegoods.translation.deadline import (
+    DEFAULT_TRANSLATION_DEADLINE_SECONDS,
+    TranslationDeadline,
+    TranslationDeadlineExceeded,
+    TranslationIOBusy,
 )
 from lifegoods.translation.module import (
     KhmerTranslationModule,
@@ -98,6 +105,7 @@ class TranslationCoordinator:
         cache: TranslationHotCacheProtocol,
         budget: TranslationBudgetLimiterProtocol,
         *,
+        deadline_seconds: float = DEFAULT_TRANSLATION_DEADLINE_SECONDS,
         lease_ttl_seconds: float = 5.0,
         cooldown_seconds: float = 60.0,
         poll_interval_seconds: float = 0.05,
@@ -105,6 +113,8 @@ class TranslationCoordinator:
         monotonic: Callable[[], float] = system_monotonic,
         sleep_func: Callable[[float], None] = time.sleep,
     ) -> None:
+        TranslationDeadline(deadline_seconds)  # Validate configuration before serving requests.
+        self._deadline_seconds = deadline_seconds
         self._module = module
         self._repository = repository
         self._cache = cache
@@ -148,23 +158,49 @@ class TranslationCoordinator:
         product: ProductProjection,
         *,
         target_language: str = "kh",
-        deadline_seconds: float = 4.0,
+        deadline_seconds: float | None = None,
+    ) -> ProductTranslationResult:
+        deadline = TranslationDeadline(
+            self._deadline_seconds if deadline_seconds is None else deadline_seconds,
+            clock=self._monotonic,
+        )
+        try:
+            result = self._get_or_generate_translation(product, target_language, deadline)
+            deadline.remaining()
+            return result
+        except (TranslationDeadlineExceeded, TranslationIOBusy) as error:
+            logger.info(
+                "Translation stage unavailable",
+                extra={
+                    "event": "translation_stage_unavailable",
+                    "failure_category": type(error).__name__,
+                },
+            )
+            return unavailable_result(product, reason="Translation deadline or capacity exhausted")
+
+    def _get_or_generate_translation(
+        self,
+        product: ProductProjection,
+        target_language: str,
+        deadline: TranslationDeadline,
     ) -> ProductTranslationResult:
         content_hash, config_fp, needs_gen = self._module.compute_translation_identity(
             product, target_language=target_language
         )
 
         if not needs_gen:
-            return self._module.translate_product(product, target_language=target_language)
+            return self._module.translate_product(
+                product, target_language=target_language, deadline=deadline
+            )
 
         # 1. Hot cache fast path (Redis)
-        cached = self._cache.get(content_hash, config_fp)
+        cached = deadline.run(lambda: self._cache.get(content_hash, config_fp))
         if cached is not None:
             return reconstruct_result_from_artifact(cached, product)
 
         # 2. Check quarantine in durable store
         try:
-            if self._repository.is_quarantined(content_hash, config_fp):
+            if deadline.run(lambda: self._repository.is_quarantined(content_hash, config_fp)):
                 return unavailable_result(
                     product, content_hash, config_fp, "Artifact is quarantined"
                 )
@@ -177,11 +213,13 @@ class TranslationCoordinator:
         # 3. Check durable store (MongoDB)
         if not self._is_store_degraded():
             try:
-                stored = self._repository.get_artifact(content_hash, config_fp)
+                stored = deadline.run(
+                    lambda: self._repository.get_artifact(content_hash, config_fp)
+                )
                 if stored is not None:
-                    self._cache.put(stored)
+                    deadline.run(partial(self._cache.put, stored))
                     return reconstruct_result_from_artifact(stored, product)
-                if self._repository.is_cooling_down(content_hash, config_fp):
+                if deadline.run(lambda: self._repository.is_cooling_down(content_hash, config_fp)):
                     return unavailable_result(
                         product, content_hash, config_fp, "Generation cooled down"
                     )
@@ -201,8 +239,16 @@ class TranslationCoordinator:
         # 4. Single flight via MongoDB lease
         owner_token = uuid4().hex
         try:
-            acquired = self._repository.acquire_lease(
-                content_hash, config_fp, owner_token, ttl_seconds=self._lease_ttl_seconds
+            acquired = deadline.run(
+                lambda: self._repository.acquire_lease(
+                    content_hash,
+                    config_fp,
+                    owner_token,
+                    ttl_seconds=max(
+                        self._lease_ttl_seconds,
+                        deadline.remaining() + self._cooldown_seconds,
+                    ),
+                )
             )
         except PyMongoError as error:
             self._record_store_degradation(error)
@@ -211,17 +257,17 @@ class TranslationCoordinator:
             )
 
         if acquired:
-            # Won the lease: check project-wide generation budget (fail-closed)
-            budget_ok, _ = self._budget.try_acquire()
-            if not budget_ok:
-                with suppress(Exception):
-                    self._repository.release_lease(content_hash, config_fp, owner_token)
-                return unavailable_result(
-                    product, content_hash, config_fp, "Generation budget exhausted"
-                )
-
             try:
-                result = self._module.translate_product(product, target_language=target_language)
+                # Won the lease: check project-wide generation budget (fail-closed).
+                budget_ok, _ = deadline.run(self._budget.try_acquire)
+                if not budget_ok:
+                    return unavailable_result(
+                        product, content_hash, config_fp, "Generation budget exhausted"
+                    )
+
+                result = self._module.translate_product(
+                    product, target_language=target_language, deadline=deadline
+                )
                 logger.info(
                     "Translation generation completed",
                     extra={
@@ -242,17 +288,19 @@ class TranslationCoordinator:
                 if result.overall_status == TranslationOverallStatus.COMPLETE:
                     stored_art = result_to_stored_artifact(result)
                     try:
-                        self._repository.save_artifact(stored_art)
-                        self._cache.put(stored_art)
+                        deadline.run(lambda: self._repository.save_artifact(stored_art))
+                        deadline.run(lambda: self._cache.put(stored_art))
                     except PyMongoError as error:
                         self._record_store_degradation(error)
                         # Result still returned to current request!
                 elif result.overall_status == TranslationOverallStatus.PARTIAL:
                     # Keep useful fields available briefly, but do not make an
                     # incomplete translation durable. A later lookup retries it.
-                    self._cache.put(
-                        result_to_stored_artifact(result),
-                        ttl_seconds=max(1, int(self._cooldown_seconds)),
+                    deadline.run(
+                        lambda: self._cache.put(
+                            result_to_stored_artifact(result),
+                            ttl_seconds=max(1, int(self._cooldown_seconds)),
+                        )
                     )
                 elif result.overall_status == TranslationOverallStatus.UNAVAILABLE:
                     try:
@@ -261,11 +309,13 @@ class TranslationCoordinator:
                             if f.failure_reason:
                                 reason = f.failure_reason
                                 break
-                        self._repository.record_cooldown(
-                            content_hash,
-                            config_fp,
-                            reason,
-                            ttl_seconds=self._cooldown_seconds,
+                        deadline.run(
+                            lambda: self._repository.record_cooldown(
+                                content_hash,
+                                config_fp,
+                                reason,
+                                ttl_seconds=self._cooldown_seconds,
+                            )
                         )
                     except PyMongoError as error:
                         self._record_store_degradation(error)
@@ -273,26 +323,31 @@ class TranslationCoordinator:
                 return result
             finally:
                 with suppress(Exception):
-                    self._repository.release_lease(content_hash, config_fp, owner_token)
+                    deadline.run(
+                        lambda: self._repository.release_lease(content_hash, config_fp, owner_token)
+                    )
         else:
             # Competing request polling
-            start_time = self._monotonic()
-            while (self._monotonic() - start_time) < deadline_seconds:
-                self._sleep_func(self._poll_interval_seconds)
+            while True:
+                deadline.sleep(self._poll_interval_seconds, self._sleep_func)
 
                 # Check cache
-                cached = self._cache.get(content_hash, config_fp)
+                cached = deadline.run(lambda: self._cache.get(content_hash, config_fp))
                 if cached is not None:
                     return reconstruct_result_from_artifact(cached, product)
 
                 # Check store
                 if not self._is_store_degraded():
                     try:
-                        stored = self._repository.get_artifact(content_hash, config_fp)
+                        stored = deadline.run(
+                            lambda: self._repository.get_artifact(content_hash, config_fp)
+                        )
                         if stored is not None:
-                            self._cache.put(stored)
+                            deadline.run(partial(self._cache.put, stored))
                             return reconstruct_result_from_artifact(stored, product)
-                        if self._repository.is_cooling_down(content_hash, config_fp):
+                        if deadline.run(
+                            lambda: self._repository.is_cooling_down(content_hash, config_fp)
+                        ):
                             return unavailable_result(
                                 product,
                                 content_hash,
@@ -301,5 +356,3 @@ class TranslationCoordinator:
                             )
                     except PyMongoError as error:
                         self._record_store_degradation(error)
-
-            return unavailable_result(product, content_hash, config_fp, "Translation timeout")

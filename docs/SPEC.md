@@ -256,7 +256,7 @@ The translation domain is encapsulated behind the deep `KhmerTranslationModule` 
    - If one field fails validation, valid fields survive as `generated` while the failed field transitions to `translation_unavailable`, yielding a `partial` overall status.
 
 5. **Gemini HTTP Adapter**:
-   - The provider timeout defaults to 12 seconds; retries at most once for transient network errors, HTTP 408, 429, and 5xx using backoff.
+   - The provider transport timeout cap defaults to 12 seconds; retries at most once for transient network errors, HTTP 408, 429, and all 5xx responses using backoff. Both attempts and backoff share the remaining translation-stage budget (section 19).
    - Strictly enforces that Barcodes, IP addresses, Dataset Snapshot identifiers, and Shopper data are never included in provider payloads.
    - Standardizes on approved stable model `gemini-3.8-flash`; explicitly rejects moving aliases (e.g. `gemini-latest`) and deprecated models (`gemini-2.0-flash`).
 
@@ -271,7 +271,7 @@ Durable translation storage and multi-instance concurrency are coordinated throu
 
 2. **Cross-Instance Single Flight & Recovery**:
    - Instances coordinate on-demand generation using expiring MongoDB leases (`translation_leases`) containing unique owner tokens.
-   - A single worker wins the lease and generates the artifact. Competing concurrent requests poll for the completed artifact within the 4-second deadline and fall back gracefully to Original Text upon timeout.
+   - A single worker wins the lease and generates the artifact. Competing concurrent requests poll for the completed artifact within the shared translation-stage deadline (initially 12 seconds) and fall back gracefully to Original Text upon timeout.
    - If an instance crashes mid-generation, expired leases (`expires_at <= now`) are safely taken over by subsequent requests or automatically pruned by MongoDB TTL background threads.
 
 3. **Failure Cooldown & Graceful Degradation**:
@@ -342,4 +342,17 @@ Configuration `v3` advances selection and validation semantics and includes the 
 
 Validation rejects wrong types, missing outputs, malformed envelopes, incomplete provider responses, broken placeholders, altered protected values, excessive output, and unchanged source prose with a Khmer prefix. Independently valid fields survive. Deterministic tests establish structural behavior, not semantic accuracy or human review. Barcode and Shopper information never enter provider input or artifact identity.
 
-A single translation-stage deadline and additional structured fields belong to subsequent slices of #93. The current provider timeout and coordinator waiting limit are separate; they do not establish a total translation-stage deadline.
+Additional structured fields belong to subsequent slices of #93. Section 19 defines the shared translation-stage deadline.
+
+
+## 19. Configurable translation-stage deadline (Issue #95)
+
+`LIFEGOODS_TRANSLATION_DEADLINE_SECONDS` sets the total translation-stage budget in seconds, initially **12**. Deployment values must be finite and greater than zero; invalid values fail settings validation. This is an initial default, not a measured completion guarantee or a total Product Lookup/network SLA. Barcode validation, Dataset Snapshot lookup, projection, HTTP transport to the Shopper, and response serialization are outside this stage.
+
+One monotonic deadline starts on entry to translation coordination, before identity calculation, cache reads, or generated-data store access. Hot-cache reads, quarantine checks, durable reads/writes, lease acquisition and polling, generation-budget access, provider attempts, validation, retry backoff, cooldown writes, and lease release share its remaining time. `LIFEGOODS_GEMINI_TRANSLATION_TIMEOUT_SECONDS` remains a positive, finite per-transport cap; it cannot extend the stage. Cached artifacts call no provider. No work starts after expiry, and late provider output is discarded before it can be presented or persisted. Partial output remains short-lived cache data, never a complete durable artifact.
+
+Synchronous dependency I/O uses a bounded pool of 16 workers with no waiting backlog. Caller waiting is limited by the remaining deadline even if a driver's connect/read timeouts are independent. MongoDB additionally receives the remaining client-side operation timeout. An already-started I/O operation may finish in its driver after the caller stops waiting; its result cannot continue the translation workflow. A write of an already validated artifact that was submitted before expiry can have an uncertain acknowledgement. This does not permit late provider output to be stored. There are no scheduled jobs, deferred generation, or follow-up writes. Pool saturation falls back to Original Text.
+
+A held lease lasts at least the remaining stage budget plus the configured cooldown, even when the configured lease minimum is shorter. Normal completion and failure release the owner-token lease within the same deadline; complete failures record the existing cooldown when time remains. If expiry prevents cleanup, the expiring lease suppresses immediate duplicate generation through the cooldown and is then the recovery mechanism. No fresh cleanup timeout extends the stage. Store failures continue to hold new provider calls, and generation budgeting remains fail-closed.
+
+Expiry returns HTTP 200 with available Original Text and field-level translation outcomes when Product Lookup otherwise succeeds. Source-provided Khmer, intentionally preserved names, and missing fields retain their classification. Invalid Barcode, not-found, Dataset Snapshot, and Product Lookup rate-limit errors remain unchanged. Deadline, capacity, transport, HTTP, and structural failure details remain internal; provider error bodies, credentials, prompts, and token maps are absent from the public response. No endpoint, polling contract, or public retry field is added.

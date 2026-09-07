@@ -1701,3 +1701,205 @@ def test_unchanged_protected_quantity_can_touch_khmer_text(output, expected):
         body = client.get("/api/v1/products/4006381333931?language=kh").json()
     assert body["meta"]["translation"]["status"] == "complete"
     assert body["data"]["product"]["identity"]["name"]["khmer_translation"] == expected
+
+
+def test_translation_deadline_discards_late_provider_output() -> None:
+    import httpx2 as httpx
+
+    from lifegoods.translation.gemini import GeminiTranslationAdapter
+
+    clock = [0.0]
+    attempts = []
+
+    def respond(request):
+        attempts.append(request)
+        clock[0] += 12.1
+        return httpx.Response(
+            200,
+            json={
+                "candidates": [
+                    {
+                        "finishReason": "STOP",
+                        "content": {
+                            "parts": [
+                                {"text": json.dumps({"translations": {"product_name": "សូកូឡា"}})}
+                            ]
+                        },
+                    }
+                ]
+            },
+        )
+
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one({"code": "3017620422003", "product_name": "Chocolate"})
+    with httpx.Client(transport=httpx.MockTransport(respond)) as transport:
+        coordinator = TranslationCoordinator(
+            KhmerTranslationModule(GeminiTranslationAdapter("offline", http_client=transport)),
+            InMemoryGeneratedDataRepository(),
+            InMemoryTranslationHotCache(ttl_seconds=3600),
+            InMemoryTranslationBudgetLimiter(requests_per_minute=60),
+            monotonic=lambda: clock[0],
+        )
+        with _client(database, coordinator=coordinator) as client:
+            body = client.get("/api/v1/products/3017620422003?language=kh").json()
+    assert body["meta"]["translation"] == {"status": "unavailable", "metadata": None}
+    name = body["data"]["product"]["identity"]["name"]
+    assert name["selected_original_text"]["value"] == "Chocolate"
+    assert name["khmer_translation"] is None
+    assert len(attempts) == 1
+
+
+@pytest.mark.parametrize(
+    "budget,elapsed,expected",
+    [
+        (12, 11.99, "complete"),
+        (0.5, 0.49, "complete"),
+        (0.5, 0.5, "unavailable"),
+    ],
+)
+def test_translation_stage_budget_and_fast_cache_reuse(budget, elapsed, expected) -> None:
+    from datetime import timedelta
+
+    import httpx2 as httpx
+
+    from lifegoods.translation.gemini import GeminiTranslationAdapter
+
+    clock = [0.0]
+    attempts = []
+
+    def respond(request):
+        attempts.append(request)
+        clock[0] += elapsed
+        return httpx.Response(
+            200,
+            json={
+                "candidates": [
+                    {
+                        "finishReason": "STOP",
+                        "content": {
+                            "parts": [
+                                {"text": json.dumps({"translations": {"product_name": "សូកូឡា"}})}
+                            ]
+                        },
+                    }
+                ]
+            },
+        )
+
+    def sleep(seconds):
+        clock[0] += seconds
+
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one({"code": "3017620422003", "product_name": "Chocolate"})
+    with httpx.Client(transport=httpx.MockTransport(respond)) as transport:
+        coordinator = TranslationCoordinator(
+            KhmerTranslationModule(GeminiTranslationAdapter("offline", http_client=transport)),
+            InMemoryGeneratedDataRepository(
+                datetime_provider=lambda: RETRIEVED_AT + timedelta(seconds=clock[0]),
+            ),
+            InMemoryTranslationHotCache(ttl_seconds=3600),
+            InMemoryTranslationBudgetLimiter(requests_per_minute=60),
+            deadline_seconds=budget,
+            lease_ttl_seconds=budget,
+            monotonic=lambda: clock[0],
+            sleep_func=sleep,
+        )
+        with _client(database, coordinator=coordinator) as client:
+            for _ in range(2):
+                response = client.get("/api/v1/products/3017620422003?language=kh")
+                assert response.status_code == 200
+                body = response.json()
+                assert body["meta"]["translation"]["status"] == expected
+                assert (
+                    body["data"]["product"]["identity"]["name"]["selected_original_text"]["value"]
+                    == "Chocolate"
+                )
+    # Successful output is cached; expired output cannot become a successful cache hit.
+    assert len(attempts) == 1
+
+
+@pytest.mark.parametrize("slow_operation", ["cache", "store", "lease", "budget"])
+def test_translation_storage_waits_share_deadline(slow_operation) -> None:
+    clock = [0.0]
+    provider = FakeTranslationProvider(canned_translations={"product_name": "សូកូឡា"})
+
+    class SlowCache(InMemoryTranslationHotCache):
+        def get(self, content_hash, config_fingerprint):
+            if slow_operation == "cache":
+                clock[0] += 1
+            return super().get(content_hash, config_fingerprint)
+
+    class SlowRepository(InMemoryGeneratedDataRepository):
+        def get_artifact(self, content_hash, config_fingerprint):
+            if slow_operation == "store":
+                clock[0] += 1
+            return super().get_artifact(content_hash, config_fingerprint)
+
+        def acquire_lease(self, content_hash, config_fingerprint, owner_token, ttl_seconds):
+            if slow_operation == "lease":
+                clock[0] += 0.8
+                return False
+            return super().acquire_lease(content_hash, config_fingerprint, owner_token, ttl_seconds)
+
+    class SlowBudget(InMemoryTranslationBudgetLimiter):
+        def try_acquire(self):
+            if slow_operation == "budget":
+                clock[0] += 1
+            return super().try_acquire()
+
+    def sleep(seconds):
+        clock[0] += seconds
+
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one({"code": "3017620422003", "product_name": "Chocolate"})
+    coordinator = TranslationCoordinator(
+        KhmerTranslationModule(provider),
+        SlowRepository(),
+        SlowCache(ttl_seconds=3600),
+        SlowBudget(requests_per_minute=60),
+        deadline_seconds=1,
+        monotonic=lambda: clock[0],
+        sleep_func=sleep,
+    )
+    with _client(database, coordinator=coordinator) as client:
+        response = client.get("/api/v1/products/3017620422003?language=kh")
+    assert response.status_code == 200
+    assert response.json()["meta"]["translation"] == {"status": "unavailable", "metadata": None}
+    assert clock[0] == pytest.approx(1)
+    assert provider.call_count == 0
+
+
+def test_translation_deadline_bounds_blocked_storage_without_late_generation() -> None:
+    from threading import Event
+
+    release = Event()
+    completed = Event()
+    provider = FakeTranslationProvider(canned_translations={"product_name": "សូកូឡា"})
+
+    class BlockedRepository(InMemoryGeneratedDataRepository):
+        def is_quarantined(self, content_hash, config_fingerprint):
+            try:
+                assert release.wait(2), "Test did not release storage"
+                return False
+            finally:
+                completed.set()
+
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one({"code": "3017620422003", "product_name": "Chocolate"})
+    coordinator = TranslationCoordinator(
+        KhmerTranslationModule(provider),
+        BlockedRepository(),
+        InMemoryTranslationHotCache(ttl_seconds=3600),
+        InMemoryTranslationBudgetLimiter(requests_per_minute=60),
+        deadline_seconds=0.1,
+    )
+    with _client(database, coordinator=coordinator) as client:
+        try:
+            response = client.get("/api/v1/products/3017620422003?language=kh")
+            assert not release.is_set()
+            assert response.status_code == 200
+            assert response.json()["meta"]["translation"]["status"] == "unavailable"
+        finally:
+            release.set()
+            assert completed.wait(2)
+    assert provider.call_count == 0
