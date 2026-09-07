@@ -22,6 +22,7 @@ from lifegoods.product_lookup.contracts import (
     SourceRecordMetadataProjection,
     StorageInstructionItem,
     TranslatableField,
+    TranslatableTextItem,
 )
 from lifegoods.translation.selection import (
     ELIGIBLE_FIELDS,
@@ -527,15 +528,42 @@ def _append_unique_original_texts(
             target.append(t)
 
 
-def _group_storage_instruction_items(
+def _statement_text_groups(
+    record: dict[str, Any],
+    families: tuple[str, ...],
+    record_language: str | None,
+) -> list[list[OriginalText]]:
+    groups: list[list[OriginalText]] = []
+    for family in families:
+        texts: list[OriginalText] = []
+        for field, value in record.items():
+            # A longer known family is a separate statement, not a language suffix.
+            if any(
+                other != family
+                and other.startswith(f"{family}_")
+                and (field == other or field.startswith(f"{other}_"))
+                for other in families
+            ):
+                continue
+            language = record_language if field == family else _language_from_field(field, family)
+            text = _text_value(value)
+            if text and (field == family or language is not None):
+                texts.append(OriginalText(value=text, language=language, source_field=field))
+        groups.append(texts)
+    return groups
+
+
+def _group_text_items[T: TranslatableTextItem](
     groups: list[list[OriginalText]],
+    key_prefix: str,
+    item_type: type[T],
     record_language: str | None = None,
-) -> list[StorageInstructionItem]:
+) -> list[T]:
     valid_groups = [g for g in groups if g]
     if not valid_groups:
         return []
 
-    items: list[StorageInstructionItem] = []
+    items: list[T] = []
     item_values: list[set[str]] = []
 
     for group in valid_groups:
@@ -558,11 +586,11 @@ def _group_storage_instruction_items(
         if matched_idx is not None:
             _append_unique_original_texts(items[matched_idx].original_texts, group)
         else:
-            item_key = f"storage_instruction_{len(items)}"
+            item_key = f"{key_prefix}_{len(items)}"
             item_texts: list[OriginalText] = []
             _append_unique_original_texts(item_texts, group)
             items.append(
-                StorageInstructionItem(
+                item_type(
                     key=item_key,
                     original_texts=item_texts,
                 )
@@ -670,8 +698,10 @@ def project_source_record(
             conservation_texts,
             storage_texts,
         ),
-        storage_instruction_items=_group_storage_instruction_items(
+        storage_instruction_items=_group_text_items(
             [conservation_texts, storage_texts],
+            "storage_instruction",
+            StorageInstructionItem,
             record_language=record_language,
         ),
         nutrition=_extract_nutrition(record),
@@ -681,6 +711,22 @@ def project_source_record(
         labels=_list_values(record, "labels", "labels_tags"),
         countries=_list_values(record, "countries", "countries_tags"),
         packaging=PackagingProjection(
+            description_items=_group_text_items(
+                _statement_text_groups(record, ("packaging", "packaging_text"), record_language),
+                "packaging_description",
+                TranslatableTextItem,
+                record_language=record_language,
+            ),
+            recycling_instruction_items=_group_text_items(
+                _statement_text_groups(
+                    record,
+                    ("recycling_instructions_to_discard", "recycling_instructions"),
+                    record_language,
+                ),
+                "recycling_instruction",
+                TranslatableTextItem,
+                record_language=record_language,
+            ),
             texts=packaging_texts,
             recycling_instructions=recycling_instructions,
             components=_packaging_components(record),

@@ -12,7 +12,6 @@ from lifegoods.translation.contracts import (
     FieldTranslationOutcome,
     ProductTranslationResult,
     TranslationFieldStatus,
-    TranslationOverallStatus,
     TranslationProvenance,
 )
 from lifegoods.translation.deadline import TranslationDeadline
@@ -20,7 +19,12 @@ from lifegoods.translation.protection import (
     protect_tokens,
     restore_tokens,
 )
-from lifegoods.translation.provider import ProviderTranslationRequest, TranslationProvider
+from lifegoods.translation.provider import (
+    MAX_TRANSLATION_FIELDS_BYTES,
+    MAX_TRANSLATION_OUTPUT_TOKENS,
+    ProviderTranslationRequest,
+    TranslationProvider,
+)
 from lifegoods.translation.selection import (
     FieldSelection,
     classify_fields,
@@ -30,7 +34,7 @@ from lifegoods.translation.selection import (
 )
 from lifegoods.translation.validator import validate_field_translation
 
-TRANSLATION_CONFIG_VERSION = "v4"
+TRANSLATION_CONFIG_VERSION = "v5"
 PRODUCTION_PROVIDER = "google"
 PRODUCTION_MODEL = "gemini-3.8-flash"
 DEFAULT_MAX_INGREDIENT_CHUNK_CHARS = 800
@@ -142,14 +146,17 @@ class KhmerTranslationModule:
             "config_version": self._config_version,
             "provider": self._provider_name,
             "model": self._model,
-            "selection_version": "v3",
+            "selection_version": "v4",
             "chunking_version": "v1",
             "max_ingredient_chunk_chars": self._max_ingredient_chunk_chars,
-            "protection_version": "v2",
-            "prompt_version": "v2",
-            "schema_version": "v3",
+            "protection_version": "v3",
+            "prompt_version": "v3",
+            "schema_version": "v4",
             "validator_version": "v2",
             "temperature": 0.0,
+            "payload_version": "v1",
+            "max_fields_bytes": MAX_TRANSLATION_FIELDS_BYTES,
+            "max_output_tokens": MAX_TRANSLATION_OUTPUT_TOKENS,
         }
         config_fingerprint = hashlib.sha256(
             json.dumps(canonical_config, sort_keys=True, ensure_ascii=False).encode("utf-8")
@@ -197,13 +204,41 @@ class KhmerTranslationModule:
                 masked_inputs[field_name] = prot.masked_text
                 token_maps[field_name] = prot.token_map
 
+        # Admit whole semantic fields in selection order. Ingredient chunks are
+        # indivisible as a group; omission never produces a truncated instruction.
+        admitted: dict[str, str] = {}
+        for field_name in selections:
+            keys = (
+                ingredient_chunk_keys
+                if field_name == "ingredients_text" and ingredient_chunk_keys
+                else [field_name]
+            )
+            additions = {key: masked_inputs[key] for key in keys if key in masked_inputs}
+            if not additions:
+                continue
+            candidate = {**admitted, **additions}
+            if (
+                len(json.dumps(candidate, ensure_ascii=False).encode("utf-8"))
+                <= MAX_TRANSLATION_FIELDS_BYTES
+            ):
+                admitted = candidate
+            else:
+                raw_inputs.pop(field_name, None)
+                for key in keys:
+                    token_maps.pop(key, None)
+                if field_name == "ingredients_text":
+                    ingredient_chunk_keys = []
+                    ingredient_chunks_raw = []
+                fields[field_name].failure_reason = "Translation payload limit exceeded"
+        masked_inputs = admitted
+
         content_hash, config_fingerprint, _ = self.compute_translation_identity(
             product, target_language=target_language
         )
 
         if not masked_inputs:
             return ProductTranslationResult(
-                overall_status=TranslationOverallStatus.NOT_NEEDED,
+                overall_status=overall_status(fields),
                 fields=fields,
                 content_hash=content_hash,
                 config_fingerprint=config_fingerprint,

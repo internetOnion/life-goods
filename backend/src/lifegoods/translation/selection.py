@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
+from itertools import chain
 from typing import TYPE_CHECKING, NamedTuple
 
 from lifegoods.translation.contracts import (
@@ -99,6 +100,14 @@ ELIGIBLE_FIELDS = (
 )
 
 
+def translatable_items(product: ProductProjection):
+    return chain(
+        product.storage_instruction_items,
+        product.packaging.description_items,
+        product.packaging.recycling_instruction_items,
+    )
+
+
 def extract_eligible_fields(product: ProductProjection) -> dict[str, FieldSelection]:
     result = {
         field.name: select_field_original_text(
@@ -106,7 +115,7 @@ def extract_eligible_fields(product: ProductProjection) -> dict[str, FieldSelect
         )
         for field in ELIGIBLE_FIELDS
     }
-    for item in product.storage_instruction_items:
+    for item in translatable_items(product):
         result[item.key] = select_field_original_text(
             item.original_texts, record_language=product.source.record_language
         )

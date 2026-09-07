@@ -22,6 +22,15 @@ DURATION_REGEX = re.compile(
     r"\b\d+(?:[\.,]\d+)?\s*(?:days?|hours?|hrs?|minutes?|mins?|seconds?|secs?|months?|weeks?|years?)\b",
     re.IGNORECASE,
 )
+PACKAGING_CODE_REGEX = re.compile(
+    r"\b(?:C/)?(?:PETE?|HDPE|PVC|LDPE|PP|PS|OTHER|PAP|FE|ALU|FOR|TEX|GL)\s*\d{1,3}\b"
+    r"|\b\d{1,3}\s*(?:PETE?|HDPE|PVC|LDPE|PP|PS|OTHER|PAP|FE|ALU|FOR|TEX|GL)\b",
+    re.IGNORECASE,
+)
+# Uppercase distinguishes source material codes from ordinary words such as "pet".
+PACKAGING_MATERIAL_CODE_REGEX = re.compile(
+    r"\b(?:C/)?(?:PETE?|HDPE|PVC|LDPE|PP|PS|PAP|FE|ALU|FOR|TEX|GL)\b"
+)
 RATIO_MULTIPLIER_REGEX = re.compile(r"\b\d+\s*[xX]\s*\d+\b")
 NUMERICAL_CODE_REGEX = re.compile(r"\b\d+[a-zA-Z]+\d*\b")
 STANDALONE_NUMBER_REGEX = re.compile(r"\b\d+(?:[\.,]\d+)?\b")
@@ -60,6 +69,8 @@ def _collect_spans(
         TEMPERATURE_REGEX,
         DURATION_REGEX,
         INS_CODE_REGEX,
+        PACKAGING_CODE_REGEX,
+        PACKAGING_MATERIAL_CODE_REGEX,
         E_NUMBER_REGEX,
         PERCENTAGE_REGEX,
         UNIT_QUANTITY_REGEX,

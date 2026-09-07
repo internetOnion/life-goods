@@ -79,9 +79,12 @@ class TranslatableField(BaseModel):
     khmer_translation: str | None = None
 
 
-class StorageInstructionItem(TranslatableField):
+class TranslatableTextItem(TranslatableField):
     key: str
 
+
+class StorageInstructionItem(TranslatableTextItem):
+    pass
 
 
 class SourceImage(BaseModel):
@@ -144,6 +147,8 @@ class PackagingComponent(BaseModel):
 
 
 class PackagingProjection(BaseModel):
+    description_items: list[TranslatableTextItem] = Field(default_factory=list)
+    recycling_instruction_items: list[TranslatableTextItem] = Field(default_factory=list)
     texts: list[OriginalText] = Field(default_factory=list)
     recycling_instructions: list[OriginalText] = Field(default_factory=list)
     components: list[PackagingComponent] = Field(default_factory=list)

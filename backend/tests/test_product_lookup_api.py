@@ -766,7 +766,7 @@ def test_v1_product_lookup_with_language_kh_generates_translation() -> None:
     assert body["meta"]["translation"]["metadata"]["machine_generated"] is True
     assert body["meta"]["translation"]["metadata"]["provider"] == "test-fake"
     assert body["meta"]["translation"]["metadata"]["model"] == "canned-translations"
-    assert body["meta"]["translation"]["metadata"]["configuration_version"] == "v4"
+    assert body["meta"]["translation"]["metadata"]["configuration_version"] == "v5"
     assert body["meta"]["translation"]["metadata"]["generated_at"] is not None
 
     # Source attribution remains unchanged
@@ -1547,7 +1547,7 @@ def test_startup_without_credentials_only_reuses_compatible_generated_artifacts(
         else:
             module = KhmerTranslationModule(
                 provider,
-                config_version="v3" if artifact_kind == "old" else "v4",
+                config_version="v4" if artifact_kind == "old" else "v5",
             )
         artifact = result_to_stored_artifact(
             module.translate_product(project_source_record(record))
@@ -2001,9 +2001,7 @@ def test_product_lookup_storage_instructions_source_khmer_and_unknown_language()
             "storage_conditions": "សូមរក្សាទុកក្នុងម្លប់",  # Khmer script without explicit language tag
         }
     )
-    provider = FakeTranslationProvider(
-        canned_translations={"product_name": "ទឹកបរិសុទ្ធ"}
-    )
+    provider = FakeTranslationProvider(canned_translations={"product_name": "ទឹកបរិសុទ្ធ"})
     coord = _make_test_coordinator(provider=provider)
     with _client(database, coordinator=coord) as client:
         response = client.get("/api/v1/products/4006381333931?language=kh")
@@ -2028,9 +2026,7 @@ def test_product_lookup_missing_storage_instructions() -> None:
             "lang": "en",
         }
     )
-    provider = FakeTranslationProvider(
-        canned_translations={"product_name": "នំប្រៃ"}
-    )
+    provider = FakeTranslationProvider(canned_translations={"product_name": "នំប្រៃ"})
     coord = _make_test_coordinator(provider=provider)
     with _client(database, coordinator=coord) as client:
         response = client.get("/api/v1/products/4006381333931?language=kh")
@@ -2241,4 +2237,382 @@ def test_product_lookup_storage_instructions_long_statements() -> None:
     assert "5 days" in item["khmer_translation"]
 
 
+def test_product_lookup_translates_packaging_items_and_preserves_legacy_fields() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "lang": "en",
+            "packaging": "Glass bottle",
+            "packaging_text": "Paper sleeve",
+            "recycling_instructions_to_discard": "Remove the lid",
+            "recycling_instructions": "Flatten the sleeve",
+            "packaging_materials_tags": ["en:glass"],
+        }
+    )
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "packaging_description_0": "ដបកែវ",
+            "packaging_description_1": "ស្រោមក្រដាស",
+            "recycling_instruction_0": "ដោះគម្របចេញ",
+            "recycling_instruction_1": "បត់ស្រោមឱ្យរាបស្មើ",
+        }
+    )
+    with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
+        original = client.get("/api/v1/products/4006381333931").json()
+        response = client.get("/api/v1/products/4006381333931?language=kh")
+    assert response.status_code == 200
+    body = response.json()
+    packaging = body["data"]["product"]["packaging"]
+    before = original["data"]["product"]["packaging"]
+    assert [i["selected_original_text"]["value"] for i in packaging["description_items"]] == [
+        "Glass bottle",
+        "Paper sleeve",
+    ]
+    assert [
+        i["selected_original_text"]["value"] for i in packaging["recycling_instruction_items"]
+    ] == [
+        "Remove the lid",
+        "Flatten the sleeve",
+    ]
+    for collection in ("description_items", "recycling_instruction_items"):
+        for item in packaging[collection]:
+            assert item["translation_status"] == "generated"
+            assert item["khmer_translation"] == provider.canned_translations[item["key"]]
+        assert all(i["translation_status"] == "not_requested" for i in before[collection])
+    for field in (
+        "texts",
+        "recycling_instructions",
+        "components",
+        "materials",
+        "shapes",
+        "recycling",
+    ):
+        assert packaging[field] == before[field]
+    assert body["meta"]["source"] == original["meta"]["source"]
+    assert body["meta"]["dataset"] == original["meta"]["dataset"]
+    assert body["meta"]["translation"]["status"] == "complete"
+    assert provider.call_count == 1
 
+
+@pytest.mark.parametrize(
+    "family,alternate,collection",
+    [
+        ("packaging", "packaging_text", "description_items"),
+        (
+            "recycling_instructions_to_discard",
+            "recycling_instructions",
+            "recycling_instruction_items",
+        ),
+    ],
+)
+def test_packaging_language_alternatives_keep_exact_duplicate_provenance(
+    family: str,
+    alternate: str,
+    collection: str,
+) -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "lang": "en",
+            family: "Glass bottle",
+            f"{family}_en": "Glass bottle",
+            f"{family}_fr": "Bouteille en verre",
+            alternate: "Glass bottle",
+        }
+    )
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "packaging_description_0": "ដបកែវ",
+            "recycling_instruction_0": "ដបកែវ",
+        }
+    )
+    with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
+        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+    items = body["data"]["product"]["packaging"][collection]
+    assert len(items) == 1
+    assert {t["source_field"] for t in items[0]["original_texts"]} == {
+        family,
+        f"{family}_en",
+        f"{family}_fr",
+        alternate,
+    }
+    assert items[0]["selected_original_text"]["value"] == "Glass bottle"
+    assert items[0]["translation_status"] == "generated"
+
+
+@pytest.mark.parametrize("language", ["km", "kh", "und"])
+def test_packaging_source_khmer_bypasses_generation(language: str) -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "lang": "en",
+            "packaging_text_en": "Glass bottle",
+            f"packaging_text_{language}": "ដបកែវ",
+            f"recycling_instructions_{language}": "ដោះគម្របចេញ",
+        }
+    )
+    provider = FakeTranslationProvider(should_fail=True)
+    with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
+        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+    packaging = body["data"]["product"]["packaging"]
+    for collection in ("description_items", "recycling_instruction_items"):
+        item = packaging[collection][0]
+        assert item["translation_status"] == "source_khmer_available"
+        assert item["selected_original_text"]["language"] == language
+        assert item["khmer_translation"] is None
+    assert body["meta"]["translation"]["status"] == "not_needed"
+    assert provider.call_count == 0
+
+
+def test_packaging_taxonomy_only_record_has_no_translation_items() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "packaging_tags": ["en:bottle"],
+            "packaging_materials_tags": ["en:glass"],
+            "packagings": [{"shape": {"id": "en:bottle"}, "recycling": {"id": "en:recycle"}}],
+        }
+    )
+    provider = FakeTranslationProvider(should_fail=True)
+    with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
+        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+    packaging = body["data"]["product"]["packaging"]
+    assert packaging["description_items"] == []
+    assert packaging["recycling_instruction_items"] == []
+    assert packaging["texts"] == []
+    assert packaging["recycling_instructions"] == []
+    assert provider.call_count == 0
+
+
+def test_packaging_preserves_brands_recycling_codes_and_quantities() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "lang": "en",
+            "brands": "Acme",
+            "packaging_text": "Acme bottle 500 ml with 30% recycled material",
+            "recycling_instructions": "Sort sleeve marked PAP 21 separately",
+        }
+    )
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "packaging_description_0": (
+                "ដប __LG_TOK_0__ ចំណុះ __LG_TOK_1__ មានវត្ថុធាតុកែច្នៃ __LG_TOK_2__"
+            ),
+            "recycling_instruction_0": "បែងចែកស្រោមដែលមានសញ្ញា __LG_TOK_0__ ដោយឡែក",
+        }
+    )
+    with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
+        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+    packaging = body["data"]["product"]["packaging"]
+    assert packaging["description_items"][0]["khmer_translation"] == (
+        "ដប Acme ចំណុះ 500 ml មានវត្ថុធាតុកែច្នៃ 30%"
+    )
+    assert packaging["recycling_instruction_items"][0]["khmer_translation"] == (
+        "បែងចែកស្រោមដែលមានសញ្ញា PAP 21 ដោយឡែក"
+    )
+    assert body["meta"]["translation"]["status"] == "complete"
+
+
+def test_packaging_combined_payload_limit_preserves_whole_instructions_and_valid_siblings() -> None:
+    database = _dataset_database()
+    first = "Fold the outer carton carefully. " * 220
+    second = "Remove all packaging before use. " * 300
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "lang": "en",
+            "packaging": first,
+            "packaging_text": second,
+            "recycling_instructions": "Remove the lid",
+        }
+    )
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "packaging_description_0": "បត់ប្រអប់ខាងក្រៅដោយប្រុងប្រយ័ត្ន។ " * 30,
+            "packaging_description_1": "យកវេចខ្ចប់ចេញមុនប្រើ",
+            "recycling_instruction_0": "ដោះគម្របចេញ",
+        }
+    )
+    with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
+        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+    packaging = body["data"]["product"]["packaging"]
+    assert provider.last_request is not None
+    assert provider.last_request.fields == {
+        "packaging_description_0": first.strip(),
+        "recycling_instruction_0": "Remove the lid",
+    }
+    assert packaging["description_items"][0]["translation_status"] == "generated"
+    omitted = packaging["description_items"][1]
+    assert omitted["translation_status"] == "translation_unavailable"
+    assert omitted["selected_original_text"]["value"] == second.strip()
+    assert omitted["khmer_translation"] is None
+    assert packaging["recycling_instruction_items"][0]["translation_status"] == "generated"
+    assert body["meta"]["translation"]["status"] == "partial"
+
+
+@pytest.mark.parametrize("invalid", [None, 42, ["កែវ"], "Glass bottle", "__LG_TOK_9__ កែវ"])
+def test_packaging_invalid_item_keeps_valid_siblings_and_partial_cache_is_not_durable(
+    invalid,
+) -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "lang": "en",
+            "packaging": "Glass bottle",
+            "recycling_instructions": "Remove the lid",
+        }
+    )
+    translations = {"recycling_instruction_0": "ដោះគម្របចេញ"}
+    if invalid is not None:
+        translations["packaging_description_0"] = invalid
+    provider = FakeTranslationProvider(canned_translations=translations)
+    repo = InMemoryGeneratedDataRepository()
+    coord = _make_test_coordinator(provider=provider, repository=repo)
+    with _client(database, coordinator=coord) as client:
+        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+        cached = client.get("/api/v1/products/4006381333931?language=kh").json()
+    packaging = body["data"]["product"]["packaging"]
+    assert body["meta"]["translation"]["status"] == "partial"
+    assert packaging["description_items"][0]["translation_status"] == "translation_unavailable"
+    assert packaging["description_items"][0]["selected_original_text"]["value"] == "Glass bottle"
+    assert packaging["recycling_instruction_items"][0]["khmer_translation"] == "ដោះគម្របចេញ"
+    assert cached["data"]["product"]["packaging"] == packaging
+    assert provider.call_count == 1
+    provider.canned_translations["packaging_description_0"] = "ដបកែវ"
+    with _client(
+        database, coordinator=_make_test_coordinator(provider=provider, repository=repo)
+    ) as client:
+        recovered = client.get("/api/v1/products/4006381333931?language=kh").json()
+    assert recovered["meta"]["translation"]["status"] == "complete"
+    assert provider.call_count == 2
+
+
+def test_packaging_long_prose_is_translated_whole_and_oversized_text_falls_back_whole() -> None:
+    database = _dataset_database()
+    long_text = "Remove the outer paper sleeve before washing the glass bottle. " * 35
+    translated = "ដោះស្រោមក្រដាសខាងក្រៅចេញមុនពេលលាងដបកែវ។ " * 35
+    oversized = "Remove the outer sleeve. " * 800
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "recycling_instructions_en": long_text,
+        }
+    )
+    provider = FakeTranslationProvider(canned_translations={"recycling_instruction_0": translated})
+    with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
+        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+    item = body["data"]["product"]["packaging"]["recycling_instruction_items"][0]
+    assert item["selected_original_text"]["value"] == long_text.strip()
+    assert item["khmer_translation"] == translated
+    assert provider.last_request is not None
+    assert provider.last_request.fields == {"recycling_instruction_0": long_text.strip()}
+    database[COLLECTION_NAME].update_one(
+        {"code": "4006381333931"},
+        {
+            "$set": {"recycling_instructions_en": oversized},
+        },
+    )
+    with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
+        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+    item = body["data"]["product"]["packaging"]["recycling_instruction_items"][0]
+    assert item["selected_original_text"]["value"] == oversized.strip()
+    assert item["translation_status"] == "translation_unavailable"
+    assert item["khmer_translation"] is None
+    assert body["meta"]["translation"] == {"status": "unavailable", "metadata": None}
+    assert provider.call_count == 1
+
+
+@pytest.mark.parametrize("changed_family", ["packaging_text", "recycling_instructions"])
+def test_packaging_durable_reuse_across_snapshots_and_changed_item_identity(
+    changed_family: str,
+) -> None:
+    database = _dataset_database()
+    record = {
+        "code": "4006381333931",
+        "lang": "en",
+        "packaging_text": "Glass bottle",
+        "recycling_instructions": "Remove the lid",
+    }
+    database[COLLECTION_NAME].insert_one(record)
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "packaging_description_0": "ដបកែវ",
+            "recycling_instruction_0": "ដោះគម្របចេញ",
+        }
+    )
+    repo = InMemoryGeneratedDataRepository()
+    with _client(
+        database, coordinator=_make_test_coordinator(provider=provider, repository=repo)
+    ) as client:
+        first = client.get("/api/v1/products/4006381333931?language=kh").json()
+        hot = client.get("/api/v1/products/4006381333931?language=kh").json()
+    assert first["data"]["product"]["packaging"] == hot["data"]["product"]["packaging"]
+    assert provider.call_count == 1
+    database[VERSIONS_COLLECTION].update_one({"_id": VERSION_ID}, {"$set": {"status": "READY"}})
+    database[VERSIONS_COLLECTION].insert_one(
+        {
+            "_id": "next-snapshot",
+            "collection_name": "next_products",
+            "status": "ACTIVE",
+            "source_url": "https://static.openfoodfacts.org/data/export.jsonl.gz",
+            "sha256": "b" * 64,
+            "retrieval_completed_at": RETRIEVED_AT,
+            "activated_at": ACTIVATED_AT,
+        }
+    )
+    database[CONTROL_COLLECTION].update_one(
+        {"_id": ACTIVE_POINTER_ID},
+        {
+            "$set": {"active_version_id": "next-snapshot"},
+        },
+    )
+    database.next_products.insert_one({**record, "packaging_text_fr": "Bouteille en verre"})
+    provider.should_fail = True
+    with _client(
+        database, coordinator=_make_test_coordinator(provider=provider, repository=repo)
+    ) as client:
+        reused = client.get("/api/v1/products/4006381333931?language=kh").json()
+    assert reused["meta"]["dataset"]["version"] == "next-snapshot"
+    assert reused["meta"]["translation"]["status"] == "complete"
+    texts = reused["data"]["product"]["packaging"]["description_items"][0]["original_texts"]
+    assert any(t["value"] == "Bouteille en verre" for t in texts)
+    assert provider.call_count == 1
+    database.next_products.update_one(
+        {"code": record["code"]}, {"$set": {changed_family: "New wording"}}
+    )
+    with _client(
+        database, coordinator=_make_test_coordinator(provider=provider, repository=repo)
+    ) as client:
+        changed = client.get("/api/v1/products/4006381333931?language=kh").json()
+    assert changed["meta"]["translation"]["status"] == "unavailable"
+    assert provider.call_count == 2
+
+
+@pytest.mark.parametrize("drops_code", [False, True])
+def test_packaging_preserves_material_codes_without_numbers(drops_code: bool) -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "packaging_text_en": "PET bottle with HDPE cap",
+        }
+    )
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "packaging_description_0": (
+                "ដបប្លាស្ទិក" if drops_code else "ដប __LG_TOK_0__ មានគម្រប __LG_TOK_1__"
+            ),
+        }
+    )
+    with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
+        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+    item = body["data"]["product"]["packaging"]["description_items"][0]
+    assert item["translation_status"] == ("translation_unavailable" if drops_code else "generated")
+    assert item["khmer_translation"] == (None if drops_code else "ដប PET មានគម្រប HDPE")

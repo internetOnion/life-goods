@@ -184,6 +184,10 @@ export type PackagingProjection = {
      */
     components?: Array<PackagingComponent>;
     /**
+     * Description Items
+     */
+    description_items?: Array<TranslatableTextItem>;
+    /**
      * Materials
      */
     materials?: Array<string>;
@@ -191,6 +195,10 @@ export type PackagingProjection = {
      * Recycling
      */
     recycling?: Array<string>;
+    /**
+     * Recycling Instruction Items
+     */
+    recycling_instruction_items?: Array<TranslatableTextItem>;
     /**
      * Recycling Instructions
      */
@@ -493,6 +501,26 @@ export type StorageInstructionItem = {
  * source_data_unavailable has no source text to display.
  */
 export type TranslatableField = {
+    /**
+     * Khmer Translation
+     */
+    khmer_translation?: string | null;
+    /**
+     * Original Texts
+     */
+    original_texts?: Array<OriginalText>;
+    selected_original_text?: OriginalText | null;
+    translation_status?: TranslationFieldStatus;
+};
+
+/**
+ * TranslatableTextItem
+ */
+export type TranslatableTextItem = {
+    /**
+     * Key
+     */
+    key: string;
     /**
      * Khmer Translation
      */

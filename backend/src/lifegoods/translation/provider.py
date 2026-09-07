@@ -3,6 +3,9 @@ from typing import Protocol
 
 from lifegoods.translation.deadline import TranslationDeadline
 
+MAX_TRANSLATION_FIELDS_BYTES = 16_000
+MAX_TRANSLATION_OUTPUT_TOKENS = 8192
+
 
 @dataclass(frozen=True)
 class ProviderTranslationRequest:

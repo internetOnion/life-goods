@@ -32,7 +32,7 @@ from lifegoods.translation.contracts import (
     FieldTranslationOutcome,
     ProductTranslationResult,
 )
-from lifegoods.translation.selection import ELIGIBLE_FIELDS, unavailable_result
+from lifegoods.translation.selection import ELIGIBLE_FIELDS, translatable_items, unavailable_result
 
 type CacheStatus = Literal["hit", "miss"]
 
@@ -70,7 +70,7 @@ def apply_translation_to_product(
     for field in ELIGIBLE_FIELDS:
         _apply_field_outcome(field.target(product), translation.fields.get(field.name))
 
-    for item in product.storage_instruction_items:
+    for item in translatable_items(product):
         _apply_field_outcome(item, translation.fields.get(item.key))
 
     meta_metadata: TranslationMetadataResponse | None = None

@@ -427,6 +427,13 @@
             "title": "Components",
             "type": "array"
           },
+          "description_items": {
+            "items": {
+              "$ref": "#/components/schemas/TranslatableTextItem"
+            },
+            "title": "Description Items",
+            "type": "array"
+          },
           "materials": {
             "items": {
               "type": "string"
@@ -439,6 +446,13 @@
               "type": "string"
             },
             "title": "Recycling",
+            "type": "array"
+          },
+          "recycling_instruction_items": {
+            "items": {
+              "$ref": "#/components/schemas/TranslatableTextItem"
+            },
+            "title": "Recycling Instruction Items",
             "type": "array"
           },
           "recycling_instructions": {
@@ -1091,6 +1105,51 @@
           }
         },
         "title": "TranslatableField",
+        "type": "object"
+      },
+      "TranslatableTextItem": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "khmer_translation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Khmer Translation"
+          },
+          "original_texts": {
+            "items": {
+              "$ref": "#/components/schemas/OriginalText"
+            },
+            "title": "Original Texts",
+            "type": "array"
+          },
+          "selected_original_text": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OriginalText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "translation_status": {
+            "$ref": "#/components/schemas/TranslationFieldStatus",
+            "default": "not_requested"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "title": "TranslatableTextItem",
         "type": "object"
       },
       "TranslationFieldStatus": {

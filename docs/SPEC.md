@@ -480,3 +480,87 @@ Expiry returns HTTP 200 with available Original Text and field-level translation
      ```
 
 
+
+## 21. Packaging descriptions and recycling instructions (Issue #97)
+
+`product.packaging.description_items` and `product.packaging.recycling_instruction_items`
+use the shared `TranslatableTextItem` envelope. Keys are `packaging_description_0`,
+`packaging_description_1`, etc., and `recycling_instruction_0`,
+`recycling_instruction_1`, etc. They are deterministic within each projected Source
+Record, not persistent identifiers across changed source content.
+
+Descriptions use the existing `packaging` and `packaging_text` source field families,
+in that order. Recycling instructions use `recycling_instructions_to_discard` and
+`recycling_instructions`, in that order. Language alternatives within each family
+belong to one statement. The longer recycling field family is never interpreted as
+a language suffix of the shorter family. Exact duplicate statements collapse when
+one family's text values equal or are a subset of the other's; similar wording does
+not establish equivalence. Every contributing Original Text retains its language
+and source-field provenance, including identical base and localized values.
+
+Legacy `packaging.texts`, `packaging.recycling_instructions`, components, materials,
+shapes, and recycling values remain unchanged. Taxonomy fields and component
+identifiers do not supply generated prose. Missing prose yields empty item arrays.
+Without `language=kh`, populated items retain `not_requested` and selected Original
+Text. With `language=kh`, the storage pipeline's selection, source-provided Khmer
+preference, independent validation, and response mapping also apply to packaging.
+
+Brands, quantities, percentages, units, and codes remain protected. Protection now
+also covers material codes paired with numbers, such as `PAP 21`, `PET 1`, and
+`C/PAP 81`, and standalone uppercase material codes such as `PET` and `HDPE`. Provider instructions require the source wording and all conditions to
+be retained without adding Cambodian disposal facilities, infrastructure,
+regulations, local recommendations, Product properties, or verification claims.
+Structural checks do not establish translation accuracy or human review.
+
+One structured provider request contains the admitted fields from the existing
+fields, storage items, description items, and recycling items, in that order.
+The combined masked fields JSON has a **16,000 UTF-8 byte** limit, including field
+keys and JSON syntax; transport/schema overhead is separate. A field that cannot
+fit is omitted in full and remains `translation_unavailable`, while later fields
+that fit may still translate. Ingredient chunks are admitted or omitted together.
+Long packaging prose is sent whole; no instruction is sliced, summarized, or
+silently truncated by the application. If every eligible field exceeds the limit,
+no provider call occurs and the result is `unavailable`, with all Original Text
+preserved. Gemini's output allowance is **8,192 tokens**; the existing per-field
+validation bounds (at most 4,000 characters and the source-relative bound) remain.
+An incomplete provider response is rejected; missing or malformed items in an
+otherwise valid response do not discard independently valid siblings. These limits
+can cause Original Text fallback for long instructions, not shortened translations.
+
+Configuration **v5** includes the new selected source items in content identity and
+advances selection/schema to v4, protection/prompt to v3, and payload policy to v1.
+Both payload and output limits participate in the configuration fingerprint. Older
+artifacts cannot satisfy v5 requests. Complete artifacts remain durable, partial
+results remain short-lived hot-cache data, and compatible selected text can be
+reused across Dataset Snapshots while current Original Text provenance is rebuilt.
+The shared translation deadline, generation budget, failure behavior, Source
+Attribution, and Barcode/Shopper privacy boundaries remain in force. No backfill,
+automatic artifact deletion, or frontend packaging display is introduced.
+
+Example packaging fragment for a partial response (`meta.translation.status` is
+`partial`; machine-generated provenance remains in `meta.translation.metadata`):
+
+```json
+{
+  "description_items": [{
+    "key": "packaging_description_0",
+    "original_texts": [{"value": "Glass bottle", "language": "en", "source_field": "packaging_text_en"}],
+    "selected_original_text": {"value": "Glass bottle", "language": "en", "source_field": "packaging_text_en"},
+    "translation_status": "generated",
+    "khmer_translation": "ដបកែវ"
+  }],
+  "recycling_instruction_items": [{
+    "key": "recycling_instruction_0",
+    "original_texts": [{"value": "Remove the lid", "language": "en", "source_field": "recycling_instructions_en"}],
+    "selected_original_text": {"value": "Remove the lid", "language": "en", "source_field": "recycling_instructions_en"},
+    "translation_status": "translation_unavailable",
+    "khmer_translation": null
+  }]
+}
+```
+
+For a complete response, the recycling item can instead carry
+`"translation_status": "generated"` and `"khmer_translation": "ដោះគម្របចេញ"`;
+`meta.translation.status` is `complete` when all required fields succeed. Missing
+packaging prose returns `"description_items": []` and
+`"recycling_instruction_items": []`, even when packaging taxonomy data is present.
