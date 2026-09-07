@@ -2897,3 +2897,165 @@ def test_v1_product_lookup_category_items_cache_reuse() -> None:
         assert body2["data"]["product"]["category_items"][0]["khmer_translation"] == "សូកូឡា"
         assert body2["data"]["product"]["category_items"][1]["khmer_translation"] == "អាហារសម្រន់"
 
+
+def test_v1_product_lookup_taxonomy_references_all_groups_and_sources() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "product_name_en": "Chocolate Bar",
+            "categories_tags": ["en:chocolates"],
+            "categories_hierarchy": ["en:snacks", "en:chocolates"],
+            "additives_tags": ["en:e330"],
+            "additives_hierarchy": ["en:e330", "en:e322"],
+            "labels_tags": ["en:organic", "fr:agriculture-biologique"],
+            "countries_tags": ["en:cambodia", "en:france"],
+            "packaging_materials_tags": ["en:paperboard"],
+            "packagings_materials": {"en:plastic": 1, "all": 2},
+            "packaging_shapes_tags": ["en:box"],
+            "packaging_recycling_tags": ["en:recycle"],
+            "packagings": [
+                {
+                    "material": "en:glass",
+                    "shape": "en:bottle",
+                    "recycling": "en:recycle-glass",
+                }
+            ],
+            "lang": "en",
+        }
+    )
+    provider = FakeTranslationProvider(canned_translations={"product_name": "ដុំសូកូឡា"})
+    coord = _make_test_coordinator(provider=provider)
+
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=kh")
+        assert response.status_code == 200
+        body = response.json()
+
+        # Source attribution preserved
+        assert body["meta"]["source"]["name"] == "Open Food Facts"
+        assert body["meta"]["source"]["product_url"] == "https://world.openfoodfacts.org/product/4006381333931"
+
+        tax = body["data"]["product"]["taxonomy_references"]
+
+        # Categories
+        assert tax["categories"] == [
+            {"id": "en:chocolates", "source_field": "categories_tags"},
+            {"id": "en:snacks", "source_field": "categories_hierarchy"},
+        ]
+
+        # Additives
+        assert tax["additives"] == [
+            {"id": "en:e330", "source_field": "additives_tags"},
+            {"id": "en:e322", "source_field": "additives_hierarchy"},
+        ]
+
+        # Labels
+        assert tax["labels"] == [
+            {"id": "en:organic", "source_field": "labels_tags"},
+            {"id": "fr:agriculture-biologique", "source_field": "labels_tags"},
+        ]
+
+        # Countries
+        assert tax["countries"] == [
+            {"id": "en:cambodia", "source_field": "countries_tags"},
+            {"id": "en:france", "source_field": "countries_tags"},
+        ]
+
+        # Packaging materials
+        assert tax["packaging_materials"] == [
+            {"id": "en:paperboard", "source_field": "packaging_materials_tags"},
+            {"id": "en:plastic", "source_field": "packagings_materials"},
+            {"id": "en:glass", "source_field": "packagings.material"},
+        ]
+
+        # Packaging shapes
+        assert tax["packaging_shapes"] == [
+            {"id": "en:box", "source_field": "packaging_shapes_tags"},
+            {"id": "en:bottle", "source_field": "packagings.shape"},
+        ]
+
+        # Packaging recycling terms
+        assert tax["packaging_recycling_terms"] == [
+            {"id": "en:recycle", "source_field": "packaging_recycling_tags"},
+            {"id": "en:recycle-glass", "source_field": "packagings.recycling"},
+        ]
+
+        # No provider translation was requested or called for taxonomy references
+        if provider.last_request is not None:
+            assert "categories" not in provider.last_request.fields
+            assert "additives" not in provider.last_request.fields
+            assert "labels" not in provider.last_request.fields
+            assert "countries" not in provider.last_request.fields
+
+
+def test_v1_product_lookup_taxonomy_only_record() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "categories_tags": ["en:chocolate", "en:snacks"],
+            "labels_tags": ["en:organic"],
+        }
+    )
+    provider = FakeTranslationProvider()
+    coord = _make_test_coordinator(provider=provider)
+
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=kh")
+        assert response.status_code == 200
+        body = response.json()
+        product = body["data"]["product"]
+
+        # Taxonomy references populated
+        assert product["taxonomy_references"]["categories"] == [
+            {"id": "en:chocolate", "source_field": "categories_tags"},
+            {"id": "en:snacks", "source_field": "categories_tags"},
+        ]
+        assert product["taxonomy_references"]["labels"] == [
+            {"id": "en:organic", "source_field": "labels_tags"},
+        ]
+
+        # Category items remain empty; translation is source_data_unavailable;
+        # legacy list retains display labels
+        assert product["category_items"] == []
+        assert product["categories_text"]["translation_status"] == "source_data_unavailable"
+        assert product["categories"] == ["chocolate", "snacks"]
+        assert provider.call_count == 0
+
+
+def test_v1_product_lookup_sparse_and_no_slugification() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "product_name_en": "Organic Milk",
+            "categories": "Dairy, Milk",
+            "labels": "Organic, Local",
+            "countries": "Cambodia",
+            "additives": "E330",
+            "lang": "en",
+        }
+    )
+    with _client(database) as client:
+        response = client.get("/api/v1/products/4006381333931")
+        assert response.status_code == 200
+        body = response.json()
+        product = body["data"]["product"]
+
+        # Presentation fields are populated from human-readable text
+        assert product["categories"] == ["Dairy", "Milk"]
+        assert product["labels"] == ["Organic", "Local"]
+        assert product["countries"] == ["Cambodia"]
+        assert product["additives"] == ["E330"]
+
+        # Taxonomy references are empty because no taxonomy tags exist in source
+        tax = product["taxonomy_references"]
+        assert tax["categories"] == []
+        assert tax["additives"] == []
+        assert tax["labels"] == []
+        assert tax["countries"] == []
+        assert tax["packaging_materials"] == []
+        assert tax["packaging_shapes"] == []
+        assert tax["packaging_recycling_terms"] == []
+

@@ -764,6 +764,9 @@
             },
             "title": "Storage Instructions",
             "type": "array"
+          },
+          "taxonomy_references": {
+            "$ref": "#/components/schemas/TaxonomyReferencesProjection"
           }
         },
         "required": [
@@ -1073,6 +1076,79 @@
           "key"
         ],
         "title": "StorageInstructionItem",
+        "type": "object"
+      },
+      "TaxonomyReference": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "source_field": {
+            "title": "Source Field",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "source_field"
+        ],
+        "title": "TaxonomyReference",
+        "type": "object"
+      },
+      "TaxonomyReferencesProjection": {
+        "properties": {
+          "additives": {
+            "items": {
+              "$ref": "#/components/schemas/TaxonomyReference"
+            },
+            "title": "Additives",
+            "type": "array"
+          },
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/TaxonomyReference"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
+          "countries": {
+            "items": {
+              "$ref": "#/components/schemas/TaxonomyReference"
+            },
+            "title": "Countries",
+            "type": "array"
+          },
+          "labels": {
+            "items": {
+              "$ref": "#/components/schemas/TaxonomyReference"
+            },
+            "title": "Labels",
+            "type": "array"
+          },
+          "packaging_materials": {
+            "items": {
+              "$ref": "#/components/schemas/TaxonomyReference"
+            },
+            "title": "Packaging Materials",
+            "type": "array"
+          },
+          "packaging_recycling_terms": {
+            "items": {
+              "$ref": "#/components/schemas/TaxonomyReference"
+            },
+            "title": "Packaging Recycling Terms",
+            "type": "array"
+          },
+          "packaging_shapes": {
+            "items": {
+              "$ref": "#/components/schemas/TaxonomyReference"
+            },
+            "title": "Packaging Shapes",
+            "type": "array"
+          }
+        },
+        "title": "TaxonomyReferencesProjection",
         "type": "object"
       },
       "TranslatableField": {

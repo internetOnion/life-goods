@@ -668,4 +668,260 @@ def test_category_items_multi_language_extraction_and_exact_duplicate_collapse()
     assert cat4.selected_original_text.language == "km"
 
 
+def test_taxonomy_references_empty_and_default() -> None:
+    product = project_source_record({}, meta=META)
+    assert hasattr(product, "taxonomy_references")
+    tax = product.taxonomy_references
+    assert tax.categories == []
+    assert tax.additives == []
+    assert tax.labels == []
+    assert tax.countries == []
+    assert tax.packaging_materials == []
+    assert tax.packaging_shapes == []
+    assert tax.packaging_recycling_terms == []
+    assert tax.packaging_recycling == []
 
+
+def test_taxonomy_references_all_groups_and_namespaces() -> None:
+    record = {
+        "code": "737628064502",
+        "categories_tags": [
+            "en:plant-based-beverages",
+            "fr:boissons-vegetales",
+            "de:pflanzliche-getranke",
+        ],
+        "additives_tags": ["en:e330", "en:e322"],
+        "labels_tags": ["en:organic", "fr:agriculture-biologique", "km:សរីរាង្គ"],
+        "countries_tags": ["en:cambodia", "en:france", "th:ประเทศไทย"],
+        "packaging_materials_tags": ["en:paperboard", "en:plastic"],
+        "packaging_shapes_tags": ["en:carton", "en:bottle"],
+        "packaging_recycling_tags": ["en:recycle", "fr:a-recycler"],
+    }
+    product = project_source_record(record, meta=META)
+    tax = product.taxonomy_references
+
+    # Categories
+    assert len(tax.categories) == 3
+    assert tax.categories[0].id == "en:plant-based-beverages"
+    assert tax.categories[0].identifier == "en:plant-based-beverages"
+    assert tax.categories[0].source_field == "categories_tags"
+    assert tax.categories[1].id == "fr:boissons-vegetales"
+    assert tax.categories[1].source_field == "categories_tags"
+    assert tax.categories[2].id == "de:pflanzliche-getranke"
+    assert tax.categories[2].source_field == "categories_tags"
+
+    # Additives
+    assert len(tax.additives) == 2
+    assert tax.additives[0].id == "en:e330"
+    assert tax.additives[0].source_field == "additives_tags"
+    assert tax.additives[1].id == "en:e322"
+    assert tax.additives[1].source_field == "additives_tags"
+
+    # Labels
+    assert len(tax.labels) == 3
+    assert tax.labels[0].id == "en:organic"
+    assert tax.labels[0].source_field == "labels_tags"
+    assert tax.labels[1].id == "fr:agriculture-biologique"
+    assert tax.labels[1].source_field == "labels_tags"
+    assert tax.labels[2].id == "km:សរីរាង្គ"
+    assert tax.labels[2].source_field == "labels_tags"
+
+    # Countries
+    assert len(tax.countries) == 3
+    assert tax.countries[0].id == "en:cambodia"
+    assert tax.countries[0].source_field == "countries_tags"
+    assert tax.countries[1].id == "en:france"
+    assert tax.countries[1].source_field == "countries_tags"
+    assert tax.countries[2].id == "th:ประเทศไทย"
+    assert tax.countries[2].source_field == "countries_tags"
+
+    # Packaging materials
+    assert len(tax.packaging_materials) == 2
+    assert tax.packaging_materials[0].id == "en:paperboard"
+    assert tax.packaging_materials[0].source_field == "packaging_materials_tags"
+    assert tax.packaging_materials[1].id == "en:plastic"
+    assert tax.packaging_materials[1].source_field == "packaging_materials_tags"
+
+    # Packaging shapes
+    assert len(tax.packaging_shapes) == 2
+    assert tax.packaging_shapes[0].id == "en:carton"
+    assert tax.packaging_shapes[0].source_field == "packaging_shapes_tags"
+    assert tax.packaging_shapes[1].id == "en:bottle"
+    assert tax.packaging_shapes[1].source_field == "packaging_shapes_tags"
+
+    # Packaging recycling terms
+    assert len(tax.packaging_recycling_terms) == 2
+    assert tax.packaging_recycling_terms[0].id == "en:recycle"
+    assert tax.packaging_recycling_terms[0].source_field == "packaging_recycling_tags"
+    assert tax.packaging_recycling_terms[1].id == "fr:a-recycler"
+    assert tax.packaging_recycling_terms[1].source_field == "packaging_recycling_tags"
+    # Alias
+    assert tax.packaging_recycling == tax.packaging_recycling_terms
+
+
+def test_taxonomy_references_multiple_source_fields_and_deduplication() -> None:
+    record = {
+        "code": "737628064502",
+        # categories: tags has primary, hierarchy adds broader tag and has duplicates
+        "categories_tags": ["en:oat-drinks"],
+        "categories_hierarchy": ["en:beverages", "en:plant-based-beverages", "en:oat-drinks"],
+        # additives: tags and hierarchy and original_tags
+        "additives_tags": ["en:e330"],
+        "additives_hierarchy": ["en:e330", "en:e322"],
+        "additives_original_tags": ["en:e300"],
+        # labels: tags and hierarchy
+        "labels_tags": ["en:organic"],
+        "labels_hierarchy": ["en:organic", "en:fair-trade"],
+        # countries: tags and hierarchy
+        "countries_tags": ["en:cambodia"],
+        "countries_hierarchy": ["en:cambodia", "en:france"],
+        # packaging materials: tags + packagings_materials (dict) + packagings list
+        "packaging_materials_tags": ["en:paperboard"],
+        "packagings_materials": {"en:plastic": 1, "all": 2},
+        "packagings": [
+            {
+                "material": "en:glass",
+                "shape": "en:bottle",
+                "recycling": "en:recycle-glass",
+            },
+            {
+                "material": "en:paperboard",  # duplicate from packaging_materials_tags
+                "shape": "en:box",
+                "recycling": "en:recycle",
+            },
+        ],
+        "packaging_shapes_tags": ["en:carton"],
+        "packaging_recycling_tags": ["en:recycle"],
+    }
+    product = project_source_record(record, meta=META)
+    tax = product.taxonomy_references
+
+    # Categories: oat-drinks from tags, then beverages and plant-based from hierarchy
+    cat_ids = [(r.id, r.source_field) for r in tax.categories]
+    assert cat_ids == [
+        ("en:oat-drinks", "categories_tags"),
+        ("en:beverages", "categories_hierarchy"),
+        ("en:plant-based-beverages", "categories_hierarchy"),
+    ]
+
+    # Additives: e330 from tags, e322 from hierarchy, e300 from original_tags
+    add_ids = [(r.id, r.source_field) for r in tax.additives]
+    assert add_ids == [
+        ("en:e330", "additives_tags"),
+        ("en:e322", "additives_hierarchy"),
+        ("en:e300", "additives_original_tags"),
+    ]
+
+    # Labels: organic from tags, fair-trade from hierarchy
+    lbl_ids = [(r.id, r.source_field) for r in tax.labels]
+    assert lbl_ids == [
+        ("en:organic", "labels_tags"),
+        ("en:fair-trade", "labels_hierarchy"),
+    ]
+
+    # Countries: cambodia from tags, france from hierarchy
+    cnt_ids = [(r.id, r.source_field) for r in tax.countries]
+    assert cnt_ids == [
+        ("en:cambodia", "countries_tags"),
+        ("en:france", "countries_hierarchy"),
+    ]
+
+    # Packaging materials: paperboard from tags, plastic from packagings_materials,
+    # and glass from packagings.material
+    mat_ids = [(r.id, r.source_field) for r in tax.packaging_materials]
+    assert mat_ids == [
+        ("en:paperboard", "packaging_materials_tags"),
+        ("en:plastic", "packagings_materials"),
+        ("en:glass", "packagings.material"),
+    ]
+
+    # Packaging shapes: carton from tags, bottle from packagings.shape, box from packagings.shape
+    shp_ids = [(r.id, r.source_field) for r in tax.packaging_shapes]
+    assert shp_ids == [
+        ("en:carton", "packaging_shapes_tags"),
+        ("en:bottle", "packagings.shape"),
+        ("en:box", "packagings.shape"),
+    ]
+
+    # Packaging recycling terms: recycle from tags, recycle-glass from packagings.recycling
+    rec_ids = [(r.id, r.source_field) for r in tax.packaging_recycling_terms]
+    assert rec_ids == [
+        ("en:recycle", "packaging_recycling_tags"),
+        ("en:recycle-glass", "packagings.recycling"),
+    ]
+
+
+def test_taxonomy_references_no_slugification_from_display_labels() -> None:
+    # A record with human-readable presentation labels but NO taxonomy tags
+    record = {
+        "code": "1234567890128",
+        "categories": "Snacks, Chocolates",
+        "labels": "Organic, Fair Trade",
+        "countries": "Cambodia, France",
+        "additives": "Citric acid",
+        "packaging": "Plastic bottle",
+    }
+    product = project_source_record(record, meta=META)
+    tax = product.taxonomy_references
+
+    # Existing fields are populated
+    assert product.categories == ["Snacks", "Chocolates"]
+    assert product.labels == ["Organic", "Fair Trade"]
+    assert product.countries == ["Cambodia", "France"]
+    assert product.additives == ["Citric acid"]
+
+    # Taxonomy references are NOT invented by slugifying display labels
+    assert tax.categories == []
+    assert tax.labels == []
+    assert tax.countries == []
+    assert tax.additives == []
+    assert tax.packaging_materials == []
+    assert tax.packaging_shapes == []
+    assert tax.packaging_recycling_terms == []
+
+
+def test_taxonomy_references_taxonomy_only_record() -> None:
+    # A record containing ONLY taxonomy tags and no human-readable category strings
+    record = {
+        "code": "4006381333931",
+        "categories_tags": ["en:chocolate", "en:snacks"],
+        "labels_tags": ["en:organic"],
+    }
+    product = project_source_record(record, meta=META)
+
+    # Taxonomy references preserve exact identifiers
+    assert len(product.taxonomy_references.categories) == 2
+    assert product.taxonomy_references.categories[0].id == "en:chocolate"
+    assert product.taxonomy_references.categories[0].source_field == "categories_tags"
+    assert product.taxonomy_references.categories[1].id == "en:snacks"
+    assert product.taxonomy_references.categories[1].source_field == "categories_tags"
+
+    # Category items remain empty and no original texts for categories_text
+    assert product.category_items == []
+    assert product.categories_text.original_texts == []
+    assert product.categories_text.translation_status == "not_requested"
+    assert product.categories == ["chocolate", "snacks"]
+
+
+def test_taxonomy_references_irregular_and_sparse_records() -> None:
+    record = {
+        "code": "987654321098",
+        # comma-separated string in tags
+        "categories_tags": "en:beverages, fr:boissons , , en:sodas",
+        # unprefixed identifier and weird casing / whitespace
+        "additives_tags": ["  E330  ", "e322", None, ""],
+        # packaging with None fields and irregular types
+        "packagings": [
+            {"material": None, "shape": "en:can", "recycling": ""},
+            {"material": "en:aluminium", "shape": "", "recycling": "en:recycle"},
+            "not-a-dict",
+        ],
+    }
+    product = project_source_record(record, meta=META)
+    tax = product.taxonomy_references
+
+    assert [r.id for r in tax.categories] == ["en:beverages", "fr:boissons", "en:sodas"]
+    assert [r.id for r in tax.additives] == ["E330", "e322"]
+    assert [r.id for r in tax.packaging_shapes] == ["en:can"]
+    assert [r.id for r in tax.packaging_materials] == ["en:aluminium"]
+    assert [r.id for r in tax.packaging_recycling_terms] == ["en:recycle"]

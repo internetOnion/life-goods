@@ -1,7 +1,8 @@
 from datetime import datetime
 from enum import StrEnum
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from lifegoods.core.types import JsonValue
 from lifegoods.translation.contracts import (
@@ -179,6 +180,47 @@ class SourceRecordMetadataProjection(BaseModel):
     data_quality_warnings: list[str] = Field(default_factory=list)
 
 
+class TaxonomyReference(BaseModel):
+    id: str
+    source_field: str
+
+    @model_validator(mode="before")
+    @classmethod
+    def _resolve_id(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "id" not in data and "identifier" in data:
+            data = {**data, "id": data["identifier"]}
+        return data
+
+    @property
+    def identifier(self) -> str:
+        return self.id
+
+
+class TaxonomyReferencesProjection(BaseModel):
+    categories: list[TaxonomyReference] = Field(default_factory=list)
+    additives: list[TaxonomyReference] = Field(default_factory=list)
+    labels: list[TaxonomyReference] = Field(default_factory=list)
+    countries: list[TaxonomyReference] = Field(default_factory=list)
+    packaging_materials: list[TaxonomyReference] = Field(default_factory=list)
+    packaging_shapes: list[TaxonomyReference] = Field(default_factory=list)
+    packaging_recycling_terms: list[TaxonomyReference] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _resolve_aliases(cls, data: Any) -> Any:
+        if (
+            isinstance(data, dict)
+            and "packaging_recycling_terms" not in data
+            and "packaging_recycling" in data
+        ):
+            data = {**data, "packaging_recycling_terms": data["packaging_recycling"]}
+        return data
+
+    @property
+    def packaging_recycling(self) -> list[TaxonomyReference]:
+        return self.packaging_recycling_terms
+
+
 class ProductProjection(BaseModel):
     identity: ProductIdentityProjection
     front_image: SourceImage | None = None
@@ -197,6 +239,9 @@ class ProductProjection(BaseModel):
     packaging: PackagingProjection
     environment: EnvironmentProjection
     source: SourceRecordMetadataProjection
+    taxonomy_references: TaxonomyReferencesProjection = Field(
+        default_factory=TaxonomyReferencesProjection
+    )
 
 
 class ProductProjectionData(BaseModel):

@@ -357,6 +357,7 @@ export type ProductProjection = {
      * Storage Instructions
      */
     storage_instructions?: Array<OriginalText>;
+    taxonomy_references?: TaxonomyReferencesProjection;
 };
 
 /**
@@ -493,6 +494,54 @@ export type StorageInstructionItem = {
     original_texts?: Array<OriginalText>;
     selected_original_text?: OriginalText | null;
     translation_status?: TranslationFieldStatus;
+};
+
+/**
+ * TaxonomyReference
+ */
+export type TaxonomyReference = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Source Field
+     */
+    source_field: string;
+};
+
+/**
+ * TaxonomyReferencesProjection
+ */
+export type TaxonomyReferencesProjection = {
+    /**
+     * Additives
+     */
+    additives?: Array<TaxonomyReference>;
+    /**
+     * Categories
+     */
+    categories?: Array<TaxonomyReference>;
+    /**
+     * Countries
+     */
+    countries?: Array<TaxonomyReference>;
+    /**
+     * Labels
+     */
+    labels?: Array<TaxonomyReference>;
+    /**
+     * Packaging Materials
+     */
+    packaging_materials?: Array<TaxonomyReference>;
+    /**
+     * Packaging Recycling Terms
+     */
+    packaging_recycling_terms?: Array<TaxonomyReference>;
+    /**
+     * Packaging Shapes
+     */
+    packaging_shapes?: Array<TaxonomyReference>;
 };
 
 /**

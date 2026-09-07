@@ -637,3 +637,96 @@ Example category items fragment for a partial response (`meta.translation.status
 }
 ```
 
+## 23. Exact taxonomy references (Issue #99)
+
+Stable Product Lookup exposes exact Open Food Facts taxonomy references under `product.taxonomy_references` so frontend terminology dictionaries can map terms without guessing identifiers from displayed English text. This capability performs no new Khmer Translation.
+
+1. **Groups and Schema**:
+   - `taxonomy_references` groups identifiers into seven categories:
+     - `categories`: `list[TaxonomyReference]` (from `categories_tags`, `categories_hierarchy`)
+     - `additives`: `list[TaxonomyReference]` (from `additives_tags`, `additives_hierarchy`, `additives_original_tags`)
+     - `labels`: `list[TaxonomyReference]` (from `labels_tags`, `labels_hierarchy`)
+     - `countries`: `list[TaxonomyReference]` (from `countries_tags`, `countries_hierarchy`)
+     - `packaging_materials`: `list[TaxonomyReference]` (from `packaging_materials_tags`, `packagings_materials`, `packagings[].material`)
+     - `packaging_shapes`: `list[TaxonomyReference]` (from `packaging_shapes_tags`, `packagings[].shape`)
+     - `packaging_recycling_terms`: `list[TaxonomyReference]` (from `packaging_recycling_tags`, `packagings[].recycling`; aliased as `packaging_recycling`)
+   - Each `TaxonomyReference` consists of:
+     - `id`: exact source identifier including namespace (e.g. `en:plant-based-beverages`, `fr:boissons-vegetales`, `en:e330`, `en:organic`, `en:cambodia`, `en:paperboard`, `en:carton`, `en:recycle`).
+     - `source_field`: provenance indicating which source field provided the tag (e.g. `categories_tags`, `categories_hierarchy`, `packagings_materials`, `packagings.material`).
+
+2. **Source Reading and Provenance**:
+   - Source identifiers are read directly as declared in the Source Record. Identifiers are never synthesized by slugifying display labels or human-readable names.
+   - Multiple source fields within a group are processed in canonical order; duplicates are collapsed to retain the first encountered provenance.
+   - Missing groups remain empty arrays (`[]`), rather than being populated with guessed or defaulted taxonomy references.
+
+3. **Taxonomy and Translation Independence**:
+   - Human-readable categories (`categories`, `category_items`, `categories_text`) and taxonomy references (`taxonomy_references.categories`) remain distinct. No correspondence is claimed between a human-readable category item and a taxonomy identifier without explicit source association.
+   - Records containing only taxonomy tags (and no human-readable category prose) expose their taxonomy identifiers in `taxonomy_references.categories`, while `category_items` remains `[]` and `categories_text.translation_status` evaluates to `source_data_unavailable`. No Khmer Translation provider call or generated-data persistence is invoked for taxonomy identifiers.
+   - The Open Food Facts Dataset Snapshot remains read-only. No new provider calls, external taxonomy fetches, generated-data writes, or Barcode-level analytics are introduced.
+
+4. **Example API Fragment**:
+
+```json
+{
+  "taxonomy_references": {
+    "categories": [
+      {
+        "id": "en:plant-based-beverages",
+        "source_field": "categories_tags"
+      },
+      {
+        "id": "en:oat-drinks",
+        "source_field": "categories_tags"
+      },
+      {
+        "id": "en:beverages",
+        "source_field": "categories_hierarchy"
+      }
+    ],
+    "additives": [
+      {
+        "id": "en:e330",
+        "source_field": "additives_tags"
+      }
+    ],
+    "labels": [
+      {
+        "id": "en:organic",
+        "source_field": "labels_tags"
+      },
+      {
+        "id": "fr:agriculture-biologique",
+        "source_field": "labels_tags"
+      }
+    ],
+    "countries": [
+      {
+        "id": "en:cambodia",
+        "source_field": "countries_tags"
+      }
+    ],
+    "packaging_materials": [
+      {
+        "id": "en:paperboard",
+        "source_field": "packaging_materials_tags"
+      },
+      {
+        "id": "en:plastic",
+        "source_field": "packagings_materials"
+      }
+    ],
+    "packaging_shapes": [
+      {
+        "id": "en:carton",
+        "source_field": "packaging_shapes_tags"
+      }
+    ],
+    "packaging_recycling_terms": [
+      {
+        "id": "en:recycle",
+        "source_field": "packaging_recycling_tags"
+      }
+    ]
+  }
+}
+```

@@ -21,6 +21,8 @@ from lifegoods.product_lookup.contracts import (
     SourceImage,
     SourceRecordMetadataProjection,
     StorageInstructionItem,
+    TaxonomyReference,
+    TaxonomyReferencesProjection,
     TranslatableField,
     TranslatableTextItem,
 )
@@ -670,6 +672,115 @@ def _extract_category_items(
     return items
 
 
+def _collect_taxonomy_references(
+    record: dict[str, Any],
+    source_fields: tuple[str, ...],
+) -> list[TaxonomyReference]:
+    references: list[TaxonomyReference] = []
+    seen_ids: set[str] = set()
+
+    for field in source_fields:
+        raw_val = record.get(field)
+        if raw_val is None:
+            continue
+        for tag in _split_values(raw_val):
+            if tag not in seen_ids:
+                seen_ids.add(tag)
+                references.append(TaxonomyReference(id=tag, source_field=field))
+    return references
+
+
+def _extract_packaging_component_references(
+    record: dict[str, Any],
+    tag_field: str,
+    component_key: str,
+) -> list[TaxonomyReference]:
+    references: list[TaxonomyReference] = []
+    seen_ids: set[str] = set()
+
+    for tag in _split_values(record.get(tag_field)):
+        if tag not in seen_ids:
+            seen_ids.add(tag)
+            references.append(TaxonomyReference(id=tag, source_field=tag_field))
+
+    packagings = record.get("packagings")
+    if isinstance(packagings, list):
+        for item in packagings:
+            if isinstance(item, dict):
+                val = item.get(component_key)
+                if isinstance(val, str):
+                    for tag in _split_values(val):
+                        if tag not in seen_ids:
+                            seen_ids.add(tag)
+                            references.append(
+                                TaxonomyReference(
+                                    id=tag, source_field=f"packagings.{component_key}"
+                                )
+                            )
+
+    return references
+
+
+def _extract_packaging_materials_references(
+    record: dict[str, Any],
+) -> list[TaxonomyReference]:
+    references: list[TaxonomyReference] = []
+    seen_ids: set[str] = set()
+
+    for tag in _split_values(record.get("packaging_materials_tags")):
+        if tag not in seen_ids:
+            seen_ids.add(tag)
+            references.append(
+                TaxonomyReference(id=tag, source_field="packaging_materials_tags")
+            )
+
+    pk_materials = record.get("packagings_materials")
+    if isinstance(pk_materials, dict):
+        for k in pk_materials:
+            if k != "all":
+                tag = str(k).strip()
+                if tag and tag not in seen_ids:
+                    seen_ids.add(tag)
+                    references.append(
+                        TaxonomyReference(id=tag, source_field="packagings_materials")
+                    )
+
+    packagings = record.get("packagings")
+    if isinstance(packagings, list):
+        for item in packagings:
+            if isinstance(item, dict):
+                mat = item.get("material")
+                if isinstance(mat, str):
+                    for tag in _split_values(mat):
+                        if tag not in seen_ids:
+                            seen_ids.add(tag)
+                            references.append(
+                                TaxonomyReference(id=tag, source_field="packagings.material")
+                            )
+
+    return references
+
+
+def _extract_taxonomy_references(record: dict[str, Any]) -> TaxonomyReferencesProjection:
+    return TaxonomyReferencesProjection(
+        categories=_collect_taxonomy_references(
+            record, ("categories_tags", "categories_hierarchy")
+        ),
+        additives=_collect_taxonomy_references(
+            record, ("additives_tags", "additives_hierarchy", "additives_original_tags")
+        ),
+        labels=_collect_taxonomy_references(record, ("labels_tags", "labels_hierarchy")),
+        countries=_collect_taxonomy_references(record, ("countries_tags", "countries_hierarchy")),
+        packaging_materials=_extract_packaging_materials_references(record),
+        packaging_shapes=_extract_packaging_component_references(
+            record, "packaging_shapes_tags", "shape"
+        ),
+        packaging_recycling_terms=_extract_packaging_component_references(
+            record, "packaging_recycling_tags", "recycling"
+        ),
+    )
+
+
 def project_source_record(
     source_record: dict[str, Any] | None,
     *,
@@ -840,6 +951,7 @@ def project_source_record(
                 record, "data_quality_warnings", "data_quality_warnings_tags"
             ),
         ),
+        taxonomy_references=_extract_taxonomy_references(record),
     )
 
     selections = extract_eligible_fields(product)
