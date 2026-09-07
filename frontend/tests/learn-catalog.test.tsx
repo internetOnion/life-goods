@@ -24,14 +24,18 @@ describe("structured Learn catalog", () => {
         await i18n.changeLanguage("en")
     })
 
-    test("has a valid bilingual 27-entry catalog in five guides", () => {
+    test("has a valid bilingual 30-entry catalog in six guides", () => {
         expect(learnCatalogErrors()).toEqual([])
-        expect(LEARN_ENTRIES).toHaveLength(27)
+        expect(LEARN_ENTRIES).toHaveLength(30)
         expect(LEARN_GUIDES.map((guide) => guide.entryIds.length)).toEqual([
-            8, 4, 4, 4, 7,
+            8, 3, 4, 4, 4, 7,
         ])
         expect(
-            LEARN_SOURCES.every((source) => source.url.startsWith("https://")),
+            LEARN_SOURCES.every(
+                (source) =>
+                    source.url === undefined ||
+                    source.url.startsWith("https://"),
+            ),
         ).toBe(true)
         expect(
             LEARN_SOURCES.find((source) => source.id === "codex-label-2026")
@@ -66,6 +70,11 @@ describe("structured Learn catalog", () => {
             expect(
                 screen.getByRole("columnheader", {
                     name: guide.table.itemHeading.en,
+                }),
+            ).toBeVisible()
+            expect(
+                screen.getByRole("columnheader", {
+                    name: guide.table.sourceHeading.en,
                 }),
             ).toBeVisible()
             expect(screen.getAllByRole("row")).toHaveLength(
@@ -114,6 +123,39 @@ describe("structured Learn catalog", () => {
         )
     })
 
+    test("keeps Food Scores sources as underlined plain text", () => {
+        renderRoute("/learn/nutri-score")
+
+        const sources = screen.getAllByText(
+            "Santé publique France — Nutri-Score (official source)",
+        )
+        expect(
+            sources.every((source) => source.classList.contains("underline")),
+        ).toBe(true)
+        expect(sources.every((source) => source.closest("a") === null)).toBe(
+            true,
+        )
+    })
+
+    test("keeps the colored reference table on every Food Scores lesson", () => {
+        for (const entry of LEARN_ENTRIES.filter(
+            (candidate) => candidate.category === "food-scores",
+        )) {
+            const { unmount } = renderRoute(`/learn/${entry.slug}`)
+            const table = screen.getByRole("table", {
+                name: `${entry.title.en} — Score levels and meaning`,
+            })
+
+            expect(table).toBeVisible()
+            expect(within(table).getAllByRole("row")).toHaveLength(
+                (entry.facts?.length ?? 0) + 1,
+            )
+            expect(table.querySelector("tbody th")).toHaveClass("bg-[#e8f2eb]")
+
+            unmount()
+        }
+    })
+
     test("renders every coded entry at a stable deep link with source metadata", () => {
         for (const entry of LEARN_ENTRIES) {
             const { unmount } = renderRoute(`/learn/${entry.slug}`)
@@ -128,7 +170,12 @@ describe("structured Learn catalog", () => {
                 }),
             ).toBeVisible()
             expect(
-                screen.getByText("Source version", { exact: false }),
+                screen.getByRole("heading", {
+                    name: "Summary from the source",
+                }),
+            ).toBeVisible()
+            expect(
+                screen.getAllByText("Source version", { exact: false })[0],
             ).toBeVisible()
 
             unmount()

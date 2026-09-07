@@ -6,16 +6,17 @@ export type LocalizedText = {
 }
 
 export type LearnCategory =
-    "label" | "ingredients" | "allergens" | "halal" | "marks"
+    "label" | "food-scores" | "ingredients" | "allergens" | "halal" | "marks"
 
 export type LearnSource = {
     id: string
     name: LocalizedText
-    url: string
+    url?: string
     publisher: LocalizedText
     jurisdiction: LocalizedText
     version: string
     retrievedAt: string
+    plainText?: boolean
 }
 
 export type LearnSourceReference = {
@@ -54,6 +55,7 @@ export type LearnGuide = {
         itemHeading: LocalizedText
         meaningHeading: LocalizedText
         boundaryHeading: LocalizedText
+        sourceHeading: LocalizedText
     }
 }
 

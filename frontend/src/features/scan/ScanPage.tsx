@@ -9,7 +9,6 @@ import {
     WarningCircleIcon,
 } from "@phosphor-icons/react"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { flushSync } from "react-dom"
 import { Link, useNavigate } from "react-router"
 
 import { Button } from "@/components/ui/button"
@@ -106,30 +105,6 @@ function canUseCamera(video: HTMLVideoElement | null) {
     )
 }
 
-function prepareSearchBridge() {
-    if (typeof document === "undefined") return
-    let bridge = document.getElementById(
-        "mobile-keyboard-bridge",
-    ) as HTMLInputElement | null
-    if (!bridge) {
-        bridge = document.createElement("input")
-        bridge.id = "mobile-keyboard-bridge"
-        bridge.type = "text"
-        bridge.inputMode = "search"
-        bridge.autocomplete = "off"
-        bridge.setAttribute("aria-hidden", "true")
-        bridge.tabIndex = -1
-        bridge.className =
-            "fixed -top-96 left-0 opacity-0 pointer-events-none text-base"
-        document.body.appendChild(bridge)
-    }
-    try {
-        bridge.focus()
-    } catch {
-        // ignore
-    }
-}
-
 export function ScanPage({ onBarcodeChange }: ScanPageProps) {
     const navigate = useNavigate()
     usePageMetadata()
@@ -166,31 +141,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
         (e: React.MouseEvent<HTMLAnchorElement>) => {
             e.preventDefault()
             releaseCamera()
-            prepareSearchBridge()
-
-            flushSync(() => {
-                void navigate("/search", { state: { autoFocus: true } })
-            })
-
-            const searchInput = document.getElementById(
-                "search",
-            ) as HTMLInputElement | null
-            if (searchInput) {
-                searchInput.focus()
-                const bridge = document.getElementById("mobile-keyboard-bridge")
-                bridge?.remove()
-            } else {
-                setTimeout(() => {
-                    const target = document.getElementById(
-                        "search",
-                    ) as HTMLInputElement | null
-                    target?.focus()
-                    const bridge = document.getElementById(
-                        "mobile-keyboard-bridge",
-                    )
-                    bridge?.remove()
-                }, 50)
-            }
+            void navigate("/search")
         },
         [navigate, releaseCamera],
     )
@@ -516,8 +467,6 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                                 </Button>
                                 <Link
                                     to="/search"
-                                    state={{ autoFocus: true }}
-                                    onPointerDown={prepareSearchBridge}
                                     onClick={handleSearchNavigation}
                                     className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white/10 px-5 text-sm font-bold text-white ring-1 ring-white/20 transition-all hover:bg-white/15 active:scale-[0.98]"
                                 >
@@ -661,8 +610,6 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
             <div className="w-full">
                 <Link
                     to="/search"
-                    state={{ autoFocus: true }}
-                    onPointerDown={prepareSearchBridge}
                     onClick={handleSearchNavigation}
                     aria-label={text.searchLabel}
                     className={cn(

@@ -7,7 +7,6 @@ import {
     GrainsIcon,
     GrainsSlashIcon,
     InfoIcon,
-    ListChecksIcon,
     ShrimpIcon,
     TestTubeIcon,
     XIcon,
@@ -111,27 +110,17 @@ export function ConcernsPage() {
 
     return (
         <main className="mx-auto w-full max-w-xl px-4 py-8 sm:px-6 sm:py-12">
-            <div className="flex items-start gap-3.5">
-                <div
-                    className="bg-primary-100 text-primary-700 grid size-12 shrink-0 place-items-center rounded-xl"
-                    aria-hidden="true"
-                >
-                    <ListChecksIcon size={26} weight="bold" />
-                </div>
-                <div>
-                    <h1
-                        ref={headingRef}
-                        tabIndex={-1}
-                        className="text-3xl leading-tight font-extrabold tracking-[-0.03em] text-neutral-950 sm:text-4xl"
-                    >
-                        Dietary & Allergy Concerns
-                    </h1>
-                    <p className="mt-2 text-sm leading-relaxed text-neutral-600 sm:text-base">
-                        Select ingredients or allergens you want to be mindful
-                        of when reviewing Product labels.
-                    </p>
-                </div>
-            </div>
+            <h1
+                ref={headingRef}
+                tabIndex={-1}
+                className="text-3xl leading-tight font-extrabold tracking-[-0.03em] text-neutral-950 sm:text-4xl"
+            >
+                Dietary & Allergy Concerns
+            </h1>
+            <p className="mt-2 text-sm leading-relaxed text-neutral-600 sm:text-base">
+                Select ingredients or allergens you want to be mindful of when
+                reviewing Product labels.
+            </p>
 
             <section
                 className="mt-8 rounded-2xl border border-neutral-200 bg-white p-4 shadow-xs sm:p-5"
