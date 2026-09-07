@@ -88,10 +88,10 @@ class Settings(BaseSettings):
     )
     gemini_api_key: str | None = Field(
         default=None,
+        repr=False,
         validation_alias=AliasChoices(
             "LIFEGOODS_GEMINI_API_KEY",
             "GEMINI_API_KEY",
             "gemini_api_key",
         ),
     )
-

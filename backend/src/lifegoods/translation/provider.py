@@ -19,9 +19,13 @@ class ProviderTranslationRequest:
 class ProviderTranslationResponse:
     translations: dict[str, str]
     raw_response: str = "{}"
-    input_tokens: int = 0
-    output_tokens: int = 0
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    thinking_tokens: int | None = None
+    total_tokens: int | None = None
     latency_ms: float = 0.0
+    attempts: int = 1
+    timed_out: bool = False
     status: str = "success"
     error_message: str | None = None
 

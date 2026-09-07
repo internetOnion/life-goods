@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-FieldType = Literal["product_name", "generic_name", "ingredients_text", "categories"]
+FieldType = str
 TranslationFieldStatus = Literal[
     "generated",
     "source_khmer_available",
+    "original_text_preserved",
+    "translation_unavailable",
     "source_data_unavailable",
 ]
 
@@ -30,6 +32,13 @@ class BenchmarkItem(BaseModel):
     tags: list[str] = Field(default_factory=list)
     fields: list[BenchmarkField] = Field(default_factory=list)
     brands: list[str] = Field(default_factory=list)
+    source_record: dict[str, Any] = Field(default_factory=dict)
+    offline_provider_behavior: Literal["normal", "partial", "unavailable"] = "normal"
+    expected_offline_overall_status: str | None = None
+    expected_structured_field_statuses: dict[str, TranslationFieldStatus] = Field(
+        default_factory=dict
+    )
+    expected_taxonomy_reference_counts: dict[str, int] = Field(default_factory=dict)
 
 
 class BenchmarkDataset(BaseModel):

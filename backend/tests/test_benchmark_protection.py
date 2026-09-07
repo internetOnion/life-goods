@@ -28,6 +28,13 @@ def test_protect_tokens_percentages_and_numbers() -> None:
     assert "0.5%" in result.protected_tokens
 
 
+def test_protect_tokens_preserves_thai_quantity_unit_as_one_token() -> None:
+    result = protect_tokens("ขนาด 55 กรัม")
+
+    assert "55 กรัม" in result.protected_tokens
+    assert "55 กรัม" not in result.masked_text
+
+
 def test_protect_tokens_brands() -> None:
     text = "Galaxy Smooth Milk Chocolate Bar by Nestlé"
     result = protect_tokens(text, brand_names=["Galaxy", "Nestlé"])

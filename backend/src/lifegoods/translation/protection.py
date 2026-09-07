@@ -11,7 +11,7 @@ E_NUMBER_REGEX = re.compile(r"\bE\s*\d{3,4}[a-z]?\b", re.IGNORECASE)
 INS_CODE_REGEX = re.compile(r"\bINS\s*\d{3,4}[a-z]?(?:\([a-zA-Z0-9]+\))?(?!\w)", re.IGNORECASE)
 PERCENTAGE_REGEX = re.compile(r"\b\d+(?:[\.,]\d+)?\s*%")
 UNIT_QUANTITY_REGEX = re.compile(
-    r"\b\d+(?:[\.,]\d+)?\s*(?:g|kg|mg|ml|cl|l|មល\.|ក្រัม|oz|fl\s*oz|kcal|kj)\b",
+    r"\b\d+(?:[\.,]\d+)?\s*(?:g|kg|mg|ml|cl|l|មល\.|ក្រัม|กรัม|oz|fl\s*oz|kcal|kj)\b",
     re.IGNORECASE,
 )
 TEMPERATURE_REGEX = re.compile(

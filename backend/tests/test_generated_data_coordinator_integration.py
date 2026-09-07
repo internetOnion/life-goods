@@ -8,6 +8,7 @@ from typing import Any, cast
 import pytest
 import redis
 from pymongo import MongoClient
+from pymongo.errors import PyMongoError
 
 from lifegoods.core.settings import Settings
 from lifegoods.generated_data.budget import RedisTranslationBudgetLimiter
@@ -15,6 +16,7 @@ from lifegoods.generated_data.cache import RedisTranslationHotCache
 from lifegoods.generated_data.coordinator import TranslationCoordinator
 from lifegoods.generated_data.repository import (
     MongoGeneratedDataRepository,
+    StoredTranslationArtifact,
 )
 from lifegoods.generated_data.schema import (
     TRANSLATION_ARTIFACTS_COLLECTION,
@@ -348,3 +350,103 @@ def test_expired_lease_recovery_on_real_mongodb(
     result = coordinator.get_or_generate_translation(product)
     assert result.overall_status == TranslationOverallStatus.COMPLETE
     assert slow_provider.call_count == 1
+
+
+def test_cross_snapshot_reuse_on_real_services(
+    mongo_client: MongoClient[dict[str, Any]],
+    redis_client: redis.Redis,
+    settings: Settings,
+) -> None:
+    repository = MongoGeneratedDataRepository(
+        mongo_client[settings.generated_mongodb_database]
+    )
+    product_v1 = _make_integration_product()
+    product_v2 = product_v1.model_copy(deep=True)
+    product_v2.source.dataset_version = "v2"
+
+    provider_v1 = SlowFakeProvider(delay_seconds=0.01)
+    module_v1 = KhmerTranslationModule(provider_v1)
+    coordinator_v1 = TranslationCoordinator(
+        module=module_v1,
+        repository=repository,
+        cache=RedisTranslationHotCache(redis_client, ttl_seconds=3600),  # type: ignore[arg-type]
+        budget=RedisTranslationBudgetLimiter(redis_client, requests_per_minute=100),
+    )
+    first = coordinator_v1.get_or_generate_translation(product_v1)
+    assert first.overall_status == TranslationOverallStatus.COMPLETE
+    assert provider_v1.call_count == 1
+
+    content_hash, config_fingerprint, _ = module_v1.compute_translation_identity(product_v1)
+    RedisTranslationHotCache(redis_client, ttl_seconds=3600).delete(  # type: ignore[arg-type]
+        content_hash, config_fingerprint
+    )
+    provider_v2 = SlowFakeProvider(delay_seconds=0.01)
+    coordinator_v2 = TranslationCoordinator(
+        module=KhmerTranslationModule(provider_v2),
+        repository=repository,
+        cache=RedisTranslationHotCache(redis_client, ttl_seconds=3600),  # type: ignore[arg-type]
+        budget=RedisTranslationBudgetLimiter(redis_client, requests_per_minute=100),
+    )
+
+    second = coordinator_v2.get_or_generate_translation(product_v2)
+
+    assert second.overall_status == TranslationOverallStatus.COMPLETE
+    assert provider_v2.call_count == 0
+
+
+def test_configuration_isolation_on_real_services(
+    mongo_client: MongoClient[dict[str, Any]],
+    redis_client: redis.Redis,
+    settings: Settings,
+) -> None:
+    repository = MongoGeneratedDataRepository(
+        mongo_client[settings.generated_mongodb_database]
+    )
+    product = _make_integration_product()
+    providers = [SlowFakeProvider(delay_seconds=0.01), SlowFakeProvider(delay_seconds=0.01)]
+
+    for config_version, provider in zip(("legacy-v0", "v1"), providers, strict=True):
+        coordinator = TranslationCoordinator(
+            module=KhmerTranslationModule(provider, config_version=config_version),
+            repository=repository,
+            cache=RedisTranslationHotCache(redis_client, ttl_seconds=3600),  # type: ignore[arg-type]
+            budget=RedisTranslationBudgetLimiter(redis_client, requests_per_minute=100),
+        )
+        result = coordinator.get_or_generate_translation(product)
+        assert result.overall_status == TranslationOverallStatus.COMPLETE
+
+    assert [provider.call_count for provider in providers] == [1, 1]
+    assert (
+        mongo_client[settings.generated_mongodb_database][
+            TRANSLATION_ARTIFACTS_COLLECTION
+        ].count_documents({})
+        == 2
+    )
+
+
+def test_store_write_failure_on_real_services(
+    mongo_client: MongoClient[dict[str, Any]],
+    redis_client: redis.Redis,
+    settings: Settings,
+) -> None:
+    class SaveFailingRepository(MongoGeneratedDataRepository):
+        def save_artifact(self, artifact: StoredTranslationArtifact) -> None:
+            raise PyMongoError("simulated write failure")
+
+    provider = SlowFakeProvider(delay_seconds=0.01)
+    coordinator = TranslationCoordinator(
+        module=KhmerTranslationModule(provider),
+        repository=SaveFailingRepository(
+            mongo_client[settings.generated_mongodb_database]
+        ),
+        cache=RedisTranslationHotCache(redis_client, ttl_seconds=3600),  # type: ignore[arg-type]
+        budget=RedisTranslationBudgetLimiter(redis_client, requests_per_minute=100),
+    )
+    product = _make_integration_product()
+
+    first = coordinator.get_or_generate_translation(product)
+    second = coordinator.get_or_generate_translation(product)
+
+    assert first.overall_status == TranslationOverallStatus.COMPLETE
+    assert second.overall_status == TranslationOverallStatus.UNAVAILABLE
+    assert provider.call_count == 1

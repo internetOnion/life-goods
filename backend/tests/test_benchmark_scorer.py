@@ -63,13 +63,41 @@ def test_evaluate_candidate_output_detects_budget_timeout() -> None:
         item_id=item.item_id,
         candidate_name="test-candidate",
         translations={},
-        latency_ms=4500.0,  # exceeds 4000ms budget
+        latency_ms=12_500.0,
+        timed_out=True,
         status="success",
     )
 
     eval_res = evaluate_candidate_output(item, slow_output)
     assert eval_res.latency_within_budget is False
-    assert any("4000" in issue for issue in eval_res.issues)
+    assert any("12000" in issue for issue in eval_res.issues)
+
+
+def test_evaluate_candidate_output_checks_generated_structured_fields() -> None:
+    dataset = load_benchmark_dataset("v1")
+    item = dataset.items[0]
+    runner = OfflineMockCandidateRunner(get_candidate_config("gemini-3.8-flash"))
+    output = runner.run_item(item)
+    output.translations.pop("storage_instruction_0")
+    output.field_statuses.pop("storage_instruction_0")
+
+    result = evaluate_candidate_output(item, output)
+
+    assert result.status == "fail"
+    assert any("storage_instruction_0" in issue for issue in result.issues)
+
+
+def test_evaluate_candidate_output_checks_source_khmer_status() -> None:
+    dataset = load_benchmark_dataset("v1")
+    item = next(entry for entry in dataset.items if entry.item_id == "bm_km_local_08")
+    runner = OfflineMockCandidateRunner(get_candidate_config("gemini-3.8-flash"))
+    output = runner.run_item(item)
+    output.field_statuses["product_name"] = "original_text_preserved"
+
+    result = evaluate_candidate_output(item, output)
+
+    assert result.status == "fail"
+    assert any("source_khmer_available" in issue for issue in result.issues)
 
 
 def test_evaluate_candidate_output_rejects_non_provider_translations() -> None:
@@ -103,5 +131,10 @@ def test_aggregate_evaluation_summary() -> None:
     assert summary.benchmark_version == dataset.version
     assert summary.total_items == len(dataset.items)
     assert summary.pass_rate > 0.8
-    assert summary.four_second_budget_rate == 1.0
-    assert summary.total_estimated_cost_usd > 0
+    assert summary.twelve_second_budget_rate == 1.0
+    assert summary.measurement_mode == "offline"
+    assert summary.total_input_tokens is None
+    assert summary.total_output_tokens is None
+    assert summary.total_thinking_tokens is None
+    assert summary.total_estimated_cost_usd is None
+    assert summary.p95_latency_ms is None

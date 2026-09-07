@@ -8,6 +8,36 @@
       "language": "en",
       "tags": ["en", "brand", "e_number", "units_and_quantities"],
       "brands": ["Galaxy"],
+      "expected_structured_field_statuses": {
+        "storage_instruction_0": "generated",
+        "packaging_description_0": "generated",
+        "recycling_instruction_0": "generated",
+        "category_0": "generated",
+        "category_1": "generated",
+        "category_2": "generated",
+        "category_3": "generated"
+      },
+      "expected_taxonomy_reference_counts": {
+        "categories": 2,
+        "additives": 2,
+        "labels": 1,
+        "countries": 1,
+        "packaging_materials": 2,
+        "packaging_shapes": 1,
+        "packaging_recycling_terms": 1
+      },
+      "source_record": {
+        "storage_conditions_en": "Store below 25°C and consume within 3 days after opening.",
+        "packaging_text_en": "PET 1 bottle with a paper sleeve.",
+        "recycling_instructions_en": "Remove the cap before recycling where facilities exist.",
+        "categories_tags": ["en:snacks", "en:chocolates"],
+        "additives_tags": ["en:e322", "en:e476"],
+        "labels_tags": ["en:vegetarian"],
+        "countries_tags": ["en:cambodia"],
+        "packaging_materials_tags": ["en:pet", "en:paper"],
+        "packaging_shapes_tags": ["en:bottle"],
+        "packaging_recycling_tags": ["en:recycle"]
+      },
       "fields": [
         {
           "field_name": "product_name",
@@ -405,6 +435,103 @@
           "original_text": "Snacks ; Dried fruits // Plant-based",
           "source_language": "en",
           "expected_status": "generated",
+          "protected_tokens": []
+        }
+      ]
+    },
+    {
+      "item_id": "bm_zh_soy_12",
+      "title": "Chinese Soy Drink",
+      "language": "zh",
+      "tags": ["zh", "multilingual", "brand", "units_and_quantities"],
+      "brands": ["维他奶", "Vitasoy"],
+      "fields": [
+        {
+          "field_name": "product_name",
+          "original_text": "维他奶 原味豆奶 250ml",
+          "source_language": "zh",
+          "expected_status": "generated",
+          "protected_tokens": ["维他奶", "250ml"]
+        },
+        {
+          "field_name": "generic_name",
+          "original_text": "原味大豆饮料",
+          "source_language": "zh",
+          "expected_status": "generated",
+          "protected_tokens": []
+        },
+        {
+          "field_name": "ingredients_text",
+          "original_text": "水，大豆 8%，糖，盐。",
+          "source_language": "zh",
+          "expected_status": "generated",
+          "protected_tokens": ["8%"]
+        },
+        {
+          "field_name": "categories",
+          "original_text": "饮料, 豆奶",
+          "source_language": "zh",
+          "expected_status": "generated",
+          "protected_tokens": []
+        }
+      ]
+    },
+    {
+      "item_id": "bm_brand_only_13",
+      "title": "Brand-only Product name",
+      "language": "en",
+      "tags": ["en", "brand_only"],
+      "brands": ["Coca-Cola"],
+      "expected_offline_overall_status": "not_needed",
+      "fields": [
+        {
+          "field_name": "product_name",
+          "original_text": "Coca-Cola",
+          "source_language": "en",
+          "expected_status": "original_text_preserved",
+          "protected_tokens": ["Coca-Cola"]
+        }
+      ]
+    },
+    {
+      "item_id": "bm_partial_14",
+      "title": "Independent field partial result",
+      "language": "en",
+      "tags": ["en", "partial"],
+      "brands": [],
+      "offline_provider_behavior": "partial",
+      "expected_offline_overall_status": "partial",
+      "fields": [
+        {
+          "field_name": "product_name",
+          "original_text": "Rice Crackers",
+          "source_language": "en",
+          "expected_status": "generated",
+          "protected_tokens": []
+        },
+        {
+          "field_name": "generic_name",
+          "original_text": "Crispy rice snack",
+          "source_language": "en",
+          "expected_status": "translation_unavailable",
+          "protected_tokens": []
+        }
+      ]
+    },
+    {
+      "item_id": "bm_unavailable_15",
+      "title": "Provider-unavailable Original Text fallback",
+      "language": "en",
+      "tags": ["en", "unavailable"],
+      "brands": [],
+      "offline_provider_behavior": "unavailable",
+      "expected_offline_overall_status": "unavailable",
+      "fields": [
+        {
+          "field_name": "generic_name",
+          "original_text": "Coconut drink",
+          "source_language": "en",
+          "expected_status": "translation_unavailable",
           "protected_tokens": []
         }
       ]

@@ -39,6 +39,8 @@ def test_gemini_adapter_successful_translation() -> None:
             "usageMetadata": {
                 "promptTokenCount": 50,
                 "candidatesTokenCount": 20,
+                "thoughtsTokenCount": 7,
+                "totalTokenCount": 77,
             },
         }
         return httpx.Response(200, json=resp_body)
@@ -62,6 +64,8 @@ def test_gemini_adapter_successful_translation() -> None:
     assert response.translations["product_name"] == "Galaxy សូកូឡា"
     assert response.input_tokens == 50
     assert response.output_tokens == 20
+    assert response.thinking_tokens == 7
+    assert response.total_tokens == 77
 
     # Verify HTTP request details
     assert len(captured_requests) == 1
@@ -75,6 +79,33 @@ def test_gemini_adapter_successful_translation() -> None:
     assert body["generationConfig"]["temperature"] == 0.0
     assert body["generationConfig"]["responseMimeType"] == "application/json"
     assert "barcode" not in sent_req.content.decode("utf-8").lower()
+
+
+def test_gemini_adapter_distinguishes_missing_usage_from_zero() -> None:
+    response_body = {
+        "candidates": [
+            {
+                "content": {
+                    "parts": [
+                        {"text": json.dumps({"translations": {"product_name": "សូកូឡា"}})}
+                    ]
+                },
+                "finishReason": "STOP",
+            }
+        ],
+        "usageMetadata": {},
+    }
+    client = httpx.Client(
+        transport=httpx.MockTransport(
+            lambda _request: httpx.Response(200, json=response_body)
+        )
+    )
+    adapter = GeminiTranslationAdapter(api_key="test", http_client=client)
+
+    response = adapter.translate(ProviderTranslationRequest(fields={"product_name": "Chocolate"}))
+
+    assert response.input_tokens is None
+    assert response.output_tokens is None
 
 
 def test_gemini_adapter_retries_transient_503_and_succeeds() -> None:
@@ -122,6 +153,7 @@ def test_gemini_adapter_retries_transient_503_and_succeeds() -> None:
     response = adapter.translate(request)
 
     assert response.status == "success"
+    assert response.attempts == 2
     assert attempts == 2
     assert response.translations["product_name"] == "សូកូឡា"
 

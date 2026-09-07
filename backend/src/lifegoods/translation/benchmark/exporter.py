@@ -9,15 +9,9 @@ from lifegoods.translation.benchmark.candidate import CandidateOutput
 from lifegoods.translation.benchmark.dataset import BenchmarkDataset
 from lifegoods.translation.benchmark.scorer import BenchmarkEvaluationSummary
 
-DISCLAIMER_NOTICE = (
-    "> [!IMPORTANT]\n"
-    "> **Life Goods Packaged-Food Khmer Translation Benchmark Review Packet**\n"
-    "> Machine-generated benchmark evaluation for candidate model selection and "
-    "go/no-go thresholds. Candidate approval establishes the exact provider model and "
-    "translation-configuration version; it does NOT claim, represent, or imply that "
-    "individual live Product translations are human-reviewed, verified, or endorsed label text.\n"
-)
 
+def _value_or_unavailable(value: int | None) -> str:
+    return str(value) if value is not None else "unavailable"
 
 def export_summary_json(
     summary: BenchmarkEvaluationSummary,
@@ -25,136 +19,136 @@ def export_summary_json(
 ) -> Path:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     data = asdict(summary)
+    data.update(
+        {
+            "provider": "google",
+            "model": summary.candidate_name,
+            "translation_configuration_version": "v1",
+            "deadline_seconds": 12.0,
+            "pricing_source": "https://ai.google.dev/gemini-api/docs/pricing",
+        }
+    )
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
     return output_path
 
 
-def export_review_packet(
+def export_measurements_json(outputs: list[CandidateOutput], output_path: Path) -> Path:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    measurements = [
+        {
+            "fixture_id": output.item_id,
+            "mode": output.measurement_mode,
+            "overall_status": output.overall_status,
+            "field_statuses": output.field_statuses,
+            "taxonomy_reference_counts": output.taxonomy_reference_counts,
+            "cold_latency_ms": output.latency_ms,
+            "cached_latency_ms": output.cached_latency_ms,
+            "deadline_seconds": output.deadline_seconds,
+            "timed_out": output.timed_out,
+            "provider_calls": output.provider_calls,
+            "provider_attempts": output.provider_attempts,
+            "cached_provider_calls": output.cached_provider_calls,
+            "prompt_tokens": output.input_tokens,
+            "visible_output_tokens": output.output_tokens,
+            "thinking_tokens": output.thinking_tokens,
+            "billed_output_tokens": output.billed_output_tokens,
+            "total_tokens": output.total_tokens,
+            "estimated_cost_usd": output.estimated_cost_usd,
+        }
+        for output in outputs
+    ]
+    with open(output_path, "w", encoding="utf-8") as output_file:
+        json.dump(measurements, output_file, indent=2, ensure_ascii=False)
+    return output_path
+
+
+def export_evaluation_report(
     summary: BenchmarkEvaluationSummary,
     dataset: BenchmarkDataset,
     outputs: list[CandidateOutput],
     output_path: Path,
 ) -> Path:
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    outputs_by_id = {o.item_id: o for o in outputs}
-    results_by_id = {r.item_id: r for r in summary.item_results}
-
     now_iso = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
-
+    evidence_label = (
+        "Live provider measurements"
+        if summary.measurement_mode == "live"
+        else "Deterministic offline verification"
+    )
+    evidence_boundary = (
+        "These values are observed from live Gemini requests."
+        if summary.measurement_mode == "live"
+        else (
+            "Offline latency and fixture outputs are structural test evidence only; they are "
+            "not observed provider performance or charges. Token usage and cost remain unavailable."
+        )
+    )
+    p95 = (
+        f"{summary.p95_latency_ms:.1f} ms"
+        if summary.p95_latency_ms is not None
+        else f"not reported (requires at least 20 samples; n={summary.total_items})"
+    )
+    cost = (
+        f"${summary.total_estimated_cost_usd:.6f} USD"
+        if summary.total_estimated_cost_usd is not None
+        else "unavailable"
+    )
     lines: list[str] = [
-        "# Packaged-Food Khmer Translation Benchmark: Review Packet",
+        "# Khmer Translation automated evaluation",
         "",
-        DISCLAIMER_NOTICE,
-        f"**Generated:** {now_iso}  ",
-        f"**Candidate Model:** `{summary.candidate_name}`  ",
-        f"**Benchmark Dataset Version:** `{summary.benchmark_version}`  ",
+        f"Generated: {now_iso}",
+        f"Evidence: **{evidence_label}**",
+        f"Candidate: `{summary.candidate_name}`",
+        "Translation configuration: `v1`",
+        f"Dataset: `{summary.benchmark_version}`",
         "",
-        "## Quantitative Evaluation Summary",
+        evidence_boundary,
+        "Automated checks establish structural behavior only; they do not claim semantic "
+        "verification or human-reviewed Product translations. Human review is not required "
+        "for this evaluation or production activation.",
         "",
-        "| Metric | Result | Target Gate |",
-        "| :--- | :--- | :--- |",
-        f"| **Total Benchmark Items** | {summary.total_items} | All items evaluated |",
-        f"| **Overall Pass Rate** | {summary.pass_rate * 100:.1f}% "
-        f"({summary.passed_items}/{summary.total_items}) | >= 90.0% |",
-        f"| **Schema & Completeness Validity** | {summary.schema_validity_rate * 100:.1f}% "
-        "| 100.0% |",
-        f"| **Protected Token Preservation** | {summary.token_preservation_rate * 100:.1f}% "
-        "| 100.0% |",
-        f"| **Placeholder Integrity** | {summary.placeholder_integrity_rate * 100:.1f}% "
-        "| 100.0% |",
-        f"| **Khmer Script Validity** | {summary.khmer_script_validity_rate * 100:.1f}% "
-        "| 100.0% |",
-        f"| **4-Second Budget Adherence** | {summary.four_second_budget_rate * 100:.1f}% "
-        "| 100.0% |",
-        f"| **Average Latency** | {summary.avg_latency_ms:.1f} ms | < 2000 ms |",
-        f"| **Total Estimated Cost** | ${summary.total_estimated_cost_usd:.6f} USD "
-        "| < $0.05 / run |",
+        "## Results",
         "",
-        "## Human Decision Review Checklist (Issue #86)",
+        "| Metric | Result |",
+        "| :--- | :--- |",
+        f"| Items | {summary.total_items} |",
+        f"| Pass Rate | {summary.pass_rate * 100:.1f}% "
+        f"({summary.passed_items}/{summary.total_items}) |",
+        f"| 12-second deadline adherence | {summary.twelve_second_budget_rate * 100:.1f}% |",
+        f"| Average cold latency | {summary.avg_latency_ms:.1f} ms |",
+        f"| P95 cold latency | {p95} |",
+        f"| Completion statuses | `{json.dumps(summary.status_counts, sort_keys=True)}` |",
+        f"| Timeouts | {summary.timeout_count} |",
+        f"| Cached provider calls | {summary.cached_provider_call_count} |",
+        f"| Usage samples | {summary.usage_sample_count}/{summary.total_items} |",
+        f"| Prompt tokens | {_value_or_unavailable(summary.total_input_tokens)} |",
+        f"| Visible output tokens | {_value_or_unavailable(summary.total_output_tokens)} |",
+        f"| Thinking tokens | {_value_or_unavailable(summary.total_thinking_tokens)} |",
+        f"| Billed output tokens | {_value_or_unavailable(summary.total_billed_output_tokens)} |",
+        f"| Estimated cost | {cost} |",
         "",
-        "Fluent Khmer reviewer verification checklist:",
-        "- [ ] Khmer meaning is faithful across English, French, Thai, Vietnamese, "
-        "mixed, and unknown-language inputs.",
-        "- [ ] Khmer wording is natural and useful to a Shopper in Cambodia.",
-        "- [ ] Product and brand names remain in their intended original form.",
-        "- [ ] E-numbers, INS codes, numerical tokens, decimal separators, percentages, "
-        "quantities, and units remain exact.",
-        "- [ ] Ingredient list structure remains understandable and complete.",
-        "- [ ] Missing data is not turned into an assertion.",
-        "- [ ] Source-provided Khmer is not mislabeled as machine-generated.",
-        "- [ ] The exact provider and stable model are approved; no moving alias is used.",
-        "- [ ] Cold-generation completion, validation, provider-error, latency, and "
-        "estimated-cost thresholds are accepted.",
-        "- [ ] Rollback triggers are accepted.",
+        "Cost uses Google Gemini 3.8 Flash standard pricing effective through "
+        "2026-12-31: $0.75 per million input tokens and $3.75 per million output tokens, "
+        "including thinking tokens. Retries are included in provider attempt counts. A retried "
+        "request reports cost as unavailable because the final response cannot establish usage "
+        "for every attempt. Other usage is costed only when the API reports enough metadata to "
+        "avoid treating missing data as zero. Pricing source: "
+        "https://ai.google.dev/gemini-api/docs/pricing",
         "",
-        "---",
-        "",
-        "## Benchmark Test Cases & Candidate Translations",
+        "## Scenario outcomes",
         "",
     ]
-
-    for item in dataset.items:
-        out = outputs_by_id.get(item.item_id)
-        res = results_by_id.get(item.item_id)
-
-        status_badge = "✅ PASS" if res and res.status == "pass" else "❌ FAIL"
-        tags_str = ", ".join(f"`{t}`" for t in item.tags)
-        brands_str = ", ".join(f"`{b}`" for b in item.brands) if item.brands else "_None_"
-        lines.extend(
-            [
-                f"### `{item.item_id}`: {item.title}",
-                f"- **Status**: {status_badge}",
-                f"- **Source Language**: `{item.language or 'unknown'}`",
-                f"- **Tags**: {tags_str}",
-                f"- **Brands**: {brands_str}",
-            ]
+    results_by_id = {result.item_id: result for result in summary.item_results}
+    for item, output in zip(dataset.items, outputs, strict=True):
+        result = results_by_id[output.item_id]
+        lines.append(
+            f"- `{item.item_id}` ({', '.join(item.tags)}): {result.status}; "
+            f"overall `{output.overall_status}`; cold {output.latency_ms:.1f} ms; "
+            f"cached {output.cached_latency_ms or 0:.1f} ms; "
+            f"provider calls cold/cached {output.provider_calls}/{output.cached_provider_calls}; "
+            f"provider attempts {output.provider_attempts}."
         )
-
-        if out:
-            lines.append(
-                f"- **Latency**: {out.latency_ms:.1f} ms | "
-                f"**Tokens**: in={out.input_tokens}, out={out.output_tokens} | "
-                f"**Cost**: ${out.estimated_cost_usd:.6f}"
-            )
-
-        if res and res.issues:
-            lines.extend(
-                ["- **Issues Identified**:", *(f"  - ⚠️ {issue}" for issue in res.issues)]
-            )
-
-        lines.extend(
-            [
-                "",
-                "| Field | Status | Original Text | Khmer Translation | Protected Tokens |",
-                "| :--- | :--- | :--- | :--- | :--- |",
-            ]
-        )
-
-        for f in item.fields:
-            orig = (
-                (f.original_text or "_Source Data Unavailable_")
-                .replace("|", "\\|")
-                .replace("\n", " ")
-            )
-            status = f"`{f.expected_status}`"
-            toks = (
-                ", ".join(f"`{t}`" for t in f.protected_tokens) if f.protected_tokens else "_None_"
-            )
-
-            if f.expected_status == "source_khmer_available":
-                trans = "_[Bypassed: Source-provided Khmer]_"
-            elif f.expected_status == "source_data_unavailable":
-                trans = "_[Source Data Unavailable]_"
-            else:
-                raw_trans = (
-                    out.translations.get(f.field_name, "_[Missing]_") if out else "_[Missing]_"
-                )
-                trans = raw_trans.replace("|", "\\|").replace("\n", " ")
-
-            lines.append(f"| `{f.field_name}` | {status} | {orig} | {trans} | {toks} |")
-
-        lines.extend(["", "---", ""])
 
     content = "\n".join(lines) + "\n"
     with open(output_path, "w", encoding="utf-8") as f:

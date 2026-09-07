@@ -72,6 +72,14 @@ def test_gemini_api_key_settings_from_standard_gemini_prefix(
     assert settings.gemini_api_key == "test-key-standard"
 
 
+def test_gemini_api_key_is_redacted_from_settings_representation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GEMINI_API_KEY", "secret-value-that-must-not-render")
+
+    assert "secret-value-that-must-not-render" not in repr(settings_from_environment())
+
+
 def test_gemini_translation_timeout_defaults_to_twelve_seconds() -> None:
     settings = settings_from_environment()
     assert settings.gemini_translation_timeout_seconds == 12.0

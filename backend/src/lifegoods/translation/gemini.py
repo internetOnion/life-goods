@@ -79,7 +79,11 @@ class GeminiTranslationAdapter:
             return self._translate(request, deadline)
         except TranslationDeadlineExceeded:
             return ProviderTranslationResponse(
-                translations={}, status="error", error_message="Translation deadline exceeded"
+                translations={},
+                status="error",
+                error_message="Translation deadline exceeded",
+                timed_out=True,
+                attempts=0,
             )
 
     def _translate(
@@ -140,6 +144,7 @@ class GeminiTranslationAdapter:
                             translations={},
                             raw_response=resp.text,
                             latency_ms=elapsed_ms,
+                            attempts=attempt + 1,
                             status="error",
                             error_message="No candidates returned from Gemini API",
                         )
@@ -151,6 +156,7 @@ class GeminiTranslationAdapter:
                             translations={},
                             raw_response=resp.text,
                             latency_ms=elapsed_ms,
+                            attempts=attempt + 1,
                             status="error",
                             error_message=(
                                 "Content generation blocked by safety filters"
@@ -165,6 +171,7 @@ class GeminiTranslationAdapter:
                             translations={},
                             raw_response=resp.text,
                             latency_ms=elapsed_ms,
+                            attempts=attempt + 1,
                             status="error",
                             error_message="Empty candidate text in Gemini response",
                         )
@@ -177,6 +184,7 @@ class GeminiTranslationAdapter:
                             translations={},
                             raw_response=content_text,
                             latency_ms=elapsed_ms,
+                            attempts=attempt + 1,
                             status="error",
                             error_message="Invalid JSON returned from model",
                         )
@@ -188,19 +196,27 @@ class GeminiTranslationAdapter:
                             translations={},
                             status="error",
                             latency_ms=elapsed_ms,
+                            attempts=attempt + 1,
                             error_message="Invalid translation response envelope",
                         )
 
                     usage = res_json.get("usageMetadata", {})
-                    in_tokens = usage.get("promptTokenCount", 0)
-                    out_tokens = usage.get("candidatesTokenCount", 0)
+                    in_tokens = usage.get("promptTokenCount")
+                    out_tokens = usage.get("candidatesTokenCount")
+                    thinking_tokens = usage.get("thoughtsTokenCount")
+                    total_tokens = usage.get("totalTokenCount")
 
                     return ProviderTranslationResponse(
                         translations=raw_dict,
                         raw_response=content_text,
-                        input_tokens=in_tokens,
-                        output_tokens=out_tokens,
+                        input_tokens=in_tokens if isinstance(in_tokens, int) else None,
+                        output_tokens=out_tokens if isinstance(out_tokens, int) else None,
+                        thinking_tokens=(
+                            thinking_tokens if isinstance(thinking_tokens, int) else None
+                        ),
+                        total_tokens=total_tokens if isinstance(total_tokens, int) else None,
                         latency_ms=elapsed_ms,
+                        attempts=attempt + 1,
                         status="success",
                     )
 
@@ -215,12 +231,22 @@ class GeminiTranslationAdapter:
                     translations={},
                     raw_response=resp.text,
                     latency_ms=elapsed_ms,
+                    attempts=attempt + 1,
                     status="error",
                     error_message=f"HTTP {resp.status_code}",
+                    timed_out=resp.status_code == 408,
                 )
 
             except TranslationDeadlineExceeded:
-                raise
+                elapsed_ms = round((time.perf_counter() - start_time) * 1000.0, 2)
+                return ProviderTranslationResponse(
+                    translations={},
+                    latency_ms=elapsed_ms,
+                    attempts=attempt + 1,
+                    timed_out=True,
+                    status="error",
+                    error_message="Translation deadline exceeded",
+                )
             except (httpx.TimeoutException, httpx.NetworkError) as e:
                 last_error = (
                     "Provider timed out"
@@ -236,6 +262,7 @@ class GeminiTranslationAdapter:
                 return ProviderTranslationResponse(
                     translations={},
                     latency_ms=elapsed_ms,
+                    attempts=attempt + 1,
                     status="error",
                     error_message="Invalid provider response",
                 )
@@ -244,6 +271,8 @@ class GeminiTranslationAdapter:
         return ProviderTranslationResponse(
             translations={},
             latency_ms=elapsed_ms,
+            attempts=2,
             status="error",
             error_message=last_error or "Translation request failed after retries",
+            timed_out=last_error == "Provider timed out",
         )

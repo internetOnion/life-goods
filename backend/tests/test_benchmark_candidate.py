@@ -5,7 +5,6 @@ from lifegoods.translation.benchmark.candidate import (
     CandidateModelConfig,
     CandidateOutput,
     OfflineMockCandidateRunner,
-    build_candidate_prompt,
     get_candidate_config,
 )
 from lifegoods.translation.benchmark.dataset import load_benchmark_dataset
@@ -33,28 +32,8 @@ def test_get_valid_candidate_config() -> None:
     assert config_38.input_cost_per_1m == 0.75
     assert config_38.output_cost_per_1m == 3.75
 
-    config_25 = get_candidate_config("gemini-2.5-flash")
-    assert isinstance(config_25, CandidateModelConfig)
-    assert config_25.model_id == "gemini-2.5-flash"
-
-
-def test_build_candidate_prompt_skips_khmer_and_unavailable_fields() -> None:
-    dataset = load_benchmark_dataset("v1")
-    # Item 8 is source-provided Khmer
-    item_km = next(it for it in dataset.items if it.item_id == "bm_km_local_08")
-    prompt_km = build_candidate_prompt(item_km)
-    # Since all fields are source Khmer, no fields should be included for translation
-    assert len(prompt_km["fields_to_translate"]) == 0
-
-    # Item 9 is sparse missing fields
-    item_sparse = next(it for it in dataset.items if it.item_id == "bm_sparse_salt_09")
-    prompt_sparse = build_candidate_prompt(item_sparse)
-    # Only product_name and categories should be translated;
-    # generic_name and ingredients_text are missing
-    field_names = [f["field_name"] for f in prompt_sparse["fields_to_translate"]]
-    assert "generic_name" not in field_names
-    assert "ingredients_text" not in field_names
-    assert "product_name" in field_names
+    with pytest.raises(KeyError, match="Unknown candidate model"):
+        get_candidate_config("gemini-2.5-flash")
 
 
 def test_offline_mock_candidate_runner() -> None:
@@ -68,7 +47,48 @@ def test_offline_mock_candidate_runner() -> None:
     assert output.item_id == item.item_id
     assert output.status == "success"
     assert output.latency_ms > 0
-    assert output.input_tokens > 0
-    assert output.output_tokens > 0
-    assert output.estimated_cost_usd > 0
+    assert output.measurement_mode == "offline"
+    assert output.input_tokens is None
+    assert output.output_tokens is None
+    assert output.thinking_tokens is None
+    assert output.estimated_cost_usd is None
+    assert output.provider_calls == 1
+    assert output.cached_provider_calls == 0
+    assert output.cached_latency_ms is not None
     assert len(output.translations) > 0
+
+
+def test_offline_runner_exercises_expanded_production_payload() -> None:
+    dataset = load_benchmark_dataset("v1")
+    config = get_candidate_config("gemini-3.8-flash")
+    runner = OfflineMockCandidateRunner(config)
+
+    item = dataset.items[0].model_copy(
+        update={
+            "source_record": {
+                "storage_conditions_en": "Keep chilled at 4°C",
+                "packaging_text_en": "PET 1 bottle",
+                "recycling_instructions_en": "Remove the cap",
+                "categories_tags": ["en:snacks"],
+                "labels_tags": ["en:organic"],
+                "countries_tags": ["en:cambodia"],
+            }
+        }
+    )
+
+    output = runner.run_item(item)
+
+    assert output.overall_status == "complete"
+    assert output.field_statuses["storage_instruction_0"] == "generated"
+    assert output.field_statuses["packaging_description_0"] == "generated"
+    assert output.field_statuses["recycling_instruction_0"] == "generated"
+    assert any(name.startswith("category_") for name in output.field_statuses)
+    assert output.taxonomy_reference_counts == {
+        "categories": 1,
+        "additives": 0,
+        "labels": 1,
+        "countries": 1,
+        "packaging_materials": 0,
+        "packaging_shapes": 0,
+        "packaging_recycling_terms": 0,
+    }

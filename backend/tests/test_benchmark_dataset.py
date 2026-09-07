@@ -14,7 +14,7 @@ def test_load_v1_benchmark_dataset() -> None:
 def test_benchmark_dataset_contains_required_languages() -> None:
     dataset = load_benchmark_dataset("v1")
     languages = {item.language for item in dataset.items if item.language is not None}
-    assert {"en", "fr", "th", "vi", "und"}.issubset(languages)
+    assert {"en", "fr", "th", "vi", "zh", "km", "und"}.issubset(languages)
 
 
 def test_benchmark_dataset_contains_required_fields() -> None:
@@ -24,6 +24,12 @@ def test_benchmark_dataset_contains_required_fields() -> None:
         for field in item.fields:
             all_fields.add(field.field_name)
     assert {"product_name", "generic_name", "ingredients_text", "categories"}.issubset(all_fields)
+
+    expanded_records = [item.source_record for item in dataset.items if item.source_record]
+    assert any("storage_conditions_en" in record for record in expanded_records)
+    assert any("packaging_text_en" in record for record in expanded_records)
+    assert any("recycling_instructions_en" in record for record in expanded_records)
+    assert any("categories_tags" in record for record in expanded_records)
 
 
 def test_benchmark_dataset_contains_edge_cases() -> None:
@@ -38,6 +44,9 @@ def test_benchmark_dataset_contains_edge_cases() -> None:
     assert "sparse_missing" in tags
     assert "mixed_script" in tags
     assert "irregular" in tags
+    assert "brand_only" in tags
+    assert "partial" in tags
+    assert "unavailable" in tags
 
 
 def test_benchmark_dataset_is_sanitized_no_barcodes_or_pii() -> None:
