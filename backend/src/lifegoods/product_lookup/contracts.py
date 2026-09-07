@@ -79,6 +79,11 @@ class TranslatableField(BaseModel):
     khmer_translation: str | None = None
 
 
+class StorageInstructionItem(TranslatableField):
+    key: str
+
+
+
 class SourceImage(BaseModel):
     url: str
     language: str | None = None
@@ -176,6 +181,7 @@ class ProductProjection(BaseModel):
     ingredients_text: TranslatableField = Field(default_factory=TranslatableField)
     additives: list[str] = Field(default_factory=list)
     storage_instructions: list[OriginalText] = Field(default_factory=list)
+    storage_instruction_items: list[StorageInstructionItem] = Field(default_factory=list)
     nutrition: NutritionProjection
     assessments: SourceAssessmentsProjection
     categories: list[str] = Field(default_factory=list)

@@ -142,4 +142,5 @@ def test_stable_product_lookup_is_typed_in_openapi(client: TestClient) -> None:
     assert "ProductProjection" in schemas
     assert "ProductIdentityProjection" in schemas
     assert "TranslatableField" in schemas
+    assert "StorageInstructionItem" in schemas
     assert "TranslationMetaResponse" in schemas

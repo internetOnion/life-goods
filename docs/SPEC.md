@@ -356,3 +356,127 @@ Synchronous dependency I/O uses a bounded pool of 16 workers with no waiting bac
 A held lease lasts at least the remaining stage budget plus the configured cooldown, even when the configured lease minimum is shorter. Normal completion and failure release the owner-token lease within the same deadline; complete failures record the existing cooldown when time remains. If expiry prevents cleanup, the expiring lease suppresses immediate duplicate generation through the cooldown and is then the recovery mechanism. No fresh cleanup timeout extends the stage. Store failures continue to hold new provider calls, and generation budgeting remains fail-closed.
 
 Expiry returns HTTP 200 with available Original Text and field-level translation outcomes when Product Lookup otherwise succeeds. Source-provided Khmer, intentionally preserved names, and missing fields retain their classification. Invalid Barcode, not-found, Dataset Snapshot, and Product Lookup rate-limit errors remain unchanged. Deadline, capacity, transport, HTTP, and structural failure details remain internal; provider error bodies, credentials, prompts, and token maps are absent from the public response. No endpoint, polling contract, or public retry field is added.
+
+
+## 20. Structured storage instructions (Issue #96)
+
+`ProductProjection` provides structured storage instructions in `storage_instruction_items`. Each item exposes a deterministic item key (`storage_instruction_0`, `storage_instruction_1`, etc.) and the shared `TranslatableField` envelope (`original_texts`, `selected_original_text`, `translation_status`, and `khmer_translation`). The legacy `storage_instructions: list[OriginalText]` array remains preserved for backward compatibility.
+
+1. **Source Grouping and Deduplication**:
+   - `conservation_conditions` and `storage_conditions` source field families (including language-specific variants like `_en`, `_fr`, `_km`) are projected into statement items.
+   - Localized variants of the same statement are grouped together in `original_texts`.
+   - Distinct source-field statements remain separate items preserving source order.
+   - Exact duplicate statements across source fields collapse into a single statement item while retaining their `OriginalText` provenance from both fields in `original_texts`. Equivalence is never inferred from merely similar wording.
+
+2. **Source Selection & Field States**:
+   - Shared source selection applies per item: source-provided Khmer (explicit `kh`/`km` tags or script detection) bypasses Khmer Translation generation and receives `source_khmer_available`.
+   - Missing storage instructions yield an empty list (`[]`) without inventing text or ghost entries.
+   - Without `language=kh`, each item receives `not_requested`.
+
+3. **Protection & Validation**:
+   - Token protection covers temperatures (e.g. `4°C`, `-18°C`) and durations (e.g. `3 days`) in addition to brands, INS codes, E-numbers, percentages, and units.
+   - Each statement item undergoes independent validation. If one item fails, valid sibling items survive as `generated`, setting the overall translation status to `partial`.
+
+4. **Cache & Fingerprint Advance**:
+   - Production configuration fingerprint is advanced to `v4` with updated selection (`v3`), schema (`v3`), and protection (`v2`) versions. Incompatible earlier bundles cannot be reused.
+
+5. **API Response Examples**:
+
+   - **Complete (all storage items translated)**:
+     ```json
+     {
+       "data": {
+         "product": {
+           "storage_instruction_items": [
+             {
+               "key": "storage_instruction_0",
+               "original_texts": [
+                 {
+                   "value": "Keep frozen at -18°C",
+                   "language": "en",
+                   "source_field": "conservation_conditions"
+                 }
+               ],
+               "selected_original_text": {
+                 "value": "Keep frozen at -18°C",
+                 "language": "en",
+                 "source_field": "conservation_conditions"
+               },
+               "translation_status": "generated",
+               "khmer_translation": "រក្សាទុកឱ្យកកនៅ -18°C"
+             }
+           ]
+         }
+       },
+       "meta": {
+         "translation": {
+           "status": "complete"
+         }
+       }
+     }
+     ```
+
+   - **Partial (one item valid, one failed validation)**:
+     ```json
+     {
+       "data": {
+         "product": {
+           "storage_instruction_items": [
+             {
+               "key": "storage_instruction_0",
+               "original_texts": [
+                 {
+                   "value": "Keep at 4°C",
+                   "language": "en",
+                   "source_field": "conservation_conditions"
+                 }
+               ],
+               "selected_original_text": {
+                 "value": "Keep at 4°C",
+                 "language": "en",
+                 "source_field": "conservation_conditions"
+               },
+               "translation_status": "generated",
+               "khmer_translation": "រក្សាទុកនៅ 4°C"
+             },
+             {
+               "key": "storage_instruction_1",
+               "original_texts": [
+                 {
+                   "value": "Consume quickly after opening",
+                   "language": "en",
+                   "source_field": "storage_conditions"
+                 }
+               ],
+               "selected_original_text": {
+                 "value": "Consume quickly after opening",
+                 "language": "en",
+                 "source_field": "storage_conditions"
+               },
+               "translation_status": "translation_unavailable",
+               "khmer_translation": null
+             }
+           ]
+         }
+       },
+       "meta": {
+         "translation": {
+           "status": "partial"
+         }
+       }
+     }
+     ```
+
+   - **Missing (no storage conditions in source record)**:
+     ```json
+     {
+       "data": {
+         "product": {
+           "storage_instructions": [],
+           "storage_instruction_items": []
+         }
+       }
+     }
+     ```
+
+

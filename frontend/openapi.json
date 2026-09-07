@@ -730,6 +730,13 @@
           "source": {
             "$ref": "#/components/schemas/SourceRecordMetadataProjection"
           },
+          "storage_instruction_items": {
+            "items": {
+              "$ref": "#/components/schemas/StorageInstructionItem"
+            },
+            "title": "Storage Instruction Items",
+            "type": "array"
+          },
           "storage_instructions": {
             "items": {
               "$ref": "#/components/schemas/OriginalText"
@@ -1000,6 +1007,51 @@
           }
         },
         "title": "SourceRecordMetadataProjection",
+        "type": "object"
+      },
+      "StorageInstructionItem": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "khmer_translation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Khmer Translation"
+          },
+          "original_texts": {
+            "items": {
+              "$ref": "#/components/schemas/OriginalText"
+            },
+            "title": "Original Texts",
+            "type": "array"
+          },
+          "selected_original_text": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OriginalText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "translation_status": {
+            "$ref": "#/components/schemas/TranslationFieldStatus",
+            "default": "not_requested"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "title": "StorageInstructionItem",
         "type": "object"
       },
       "TranslatableField": {

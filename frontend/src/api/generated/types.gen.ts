@@ -338,6 +338,10 @@ export type ProductProjection = {
     packaging: PackagingProjection;
     source: SourceRecordMetadataProjection;
     /**
+     * Storage Instruction Items
+     */
+    storage_instruction_items?: Array<StorageInstructionItem>;
+    /**
      * Storage Instructions
      */
     storage_instructions?: Array<OriginalText>;
@@ -457,6 +461,26 @@ export type SourceRecordMetadataProjection = {
      * Retrieved At
      */
     retrieved_at?: string | null;
+};
+
+/**
+ * StorageInstructionItem
+ */
+export type StorageInstructionItem = {
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Khmer Translation
+     */
+    khmer_translation?: string | null;
+    /**
+     * Original Texts
+     */
+    original_texts?: Array<OriginalText>;
+    selected_original_text?: OriginalText | null;
+    translation_status?: TranslationFieldStatus;
 };
 
 /**

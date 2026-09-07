@@ -118,6 +118,6 @@ To rotate credentials without application downtime:
 
 ## Translation configuration and isolated tests
 
-The production translation configuration is `v3`, with exact provider/model identity in its fingerprint. It excludes previous configurations and `test-fake` artifacts without deleting them. Complete results are durable; partial results use only the short-lived hot cache. Missing credentials disable generation while allowing compatible stored results to be read.
+The production translation configuration is `v4`, with exact provider/model identity in its fingerprint. It excludes previous configurations and `test-fake` artifacts without deleting them. Complete results are durable; partial results use only the short-lived hot cache. Missing credentials disable generation while allowing compatible stored results to be read.
 
 Real coordinator integration tests require `LIFEGOODS_TEST_GENERATED_MONGODB_URI` with access to the dedicated `lifegoods_generated_test` database and `LIFEGOODS_TEST_REDIS_URL` pointing to a disposable test Redis database. These tests clear their collections and Redis database. They skip without explicit test connections and never default to the application's generated-data store. Run them with `pnpm backend:test:integration`.

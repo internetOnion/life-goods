@@ -766,7 +766,7 @@ def test_v1_product_lookup_with_language_kh_generates_translation() -> None:
     assert body["meta"]["translation"]["metadata"]["machine_generated"] is True
     assert body["meta"]["translation"]["metadata"]["provider"] == "test-fake"
     assert body["meta"]["translation"]["metadata"]["model"] == "canned-translations"
-    assert body["meta"]["translation"]["metadata"]["configuration_version"] == "v3"
+    assert body["meta"]["translation"]["metadata"]["configuration_version"] == "v4"
     assert body["meta"]["translation"]["metadata"]["generated_at"] is not None
 
     # Source attribution remains unchanged
@@ -1547,7 +1547,7 @@ def test_startup_without_credentials_only_reuses_compatible_generated_artifacts(
         else:
             module = KhmerTranslationModule(
                 provider,
-                config_version="v2" if artifact_kind == "old" else "v3",
+                config_version="v3" if artifact_kind == "old" else "v4",
             )
         artifact = result_to_stored_artifact(
             module.translate_product(project_source_record(record))
@@ -1903,3 +1903,342 @@ def test_translation_deadline_bounds_blocked_storage_without_late_generation() -
             release.set()
             assert completed.wait(2)
     assert provider.call_count == 0
+
+
+def test_product_lookup_translates_multiple_distinct_storage_instructions() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "product_name": "Iced Tea",
+            "conservation_conditions": "Keep in a cool, dry place",
+            "storage_conditions": "Refrigerate after opening",
+            "lang": "en",
+        }
+    )
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "product_name": "តែទឹកកក",
+            "storage_instruction_0": "រក្សាទុកនៅកន្លែងត្រជាក់ និងស្ងួត",
+            "storage_instruction_1": "រក្សាទុកក្នុងទូរទឹកកកបន្ទាប់ពីបើក",
+        }
+    )
+    coord = _make_test_coordinator(provider=provider)
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=kh")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["translation"]["status"] == "complete"
+    assert body["meta"]["translation"]["metadata"]["provider"] == "test-fake"
+
+    product = body["data"]["product"]
+    assert len(product["storage_instruction_items"]) == 2
+
+    item0 = product["storage_instruction_items"][0]
+    assert item0["key"] == "storage_instruction_0"
+    assert item0["translation_status"] == "generated"
+    assert item0["khmer_translation"] == "រក្សាទុកនៅកន្លែងត្រជាក់ និងស្ងួត"
+    assert item0["selected_original_text"]["value"] == "Keep in a cool, dry place"
+
+    item1 = product["storage_instruction_items"][1]
+    assert item1["key"] == "storage_instruction_1"
+    assert item1["translation_status"] == "generated"
+    assert item1["khmer_translation"] == "រក្សាទុកក្នុងទូរទឹកកកបន្ទាប់ពីបើក"
+    assert item1["selected_original_text"]["value"] == "Refrigerate after opening"
+
+    # Legacy field preserved
+    assert len(product["storage_instructions"]) == 2
+
+
+def test_product_lookup_groups_localized_alternatives_and_collapses_exact_duplicates() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "product_name": "Orange Juice",
+            "conservation_conditions": "Keep cool",
+            "conservation_conditions_fr": "Conserver au frais",
+            "storage_conditions": "Keep cool",
+            "lang": "en",
+        }
+    )
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "product_name": "ទឹកក្រូច",
+            "storage_instruction_0": "រក្សាទុកនៅកន្លែងត្រជាក់",
+        }
+    )
+    coord = _make_test_coordinator(provider=provider)
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=kh")
+
+    assert response.status_code == 200
+    body = response.json()
+    product = body["data"]["product"]
+
+    # Collapsed into single item
+    assert len(product["storage_instruction_items"]) == 1
+    item0 = product["storage_instruction_items"][0]
+    assert item0["key"] == "storage_instruction_0"
+    assert item0["translation_status"] == "generated"
+    assert item0["khmer_translation"] == "រក្សាទុកនៅកន្លែងត្រជាក់"
+
+    # Retains provenance from both conservation_conditions and storage_conditions
+    source_fields = {t["source_field"] for t in item0["original_texts"]}
+    assert "conservation_conditions" in source_fields
+    assert "storage_conditions" in source_fields
+    assert "conservation_conditions_fr" in source_fields
+
+
+def test_product_lookup_storage_instructions_source_khmer_and_unknown_language() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "product_name": "Mineral Water",
+            "conservation_conditions_km": "រក្សាទុកនៅកន្លែងត្រជាក់",
+            "storage_conditions": "សូមរក្សាទុកក្នុងម្លប់",  # Khmer script without explicit language tag
+        }
+    )
+    provider = FakeTranslationProvider(
+        canned_translations={"product_name": "ទឹកបរិសុទ្ធ"}
+    )
+    coord = _make_test_coordinator(provider=provider)
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=kh")
+
+    assert response.status_code == 200
+    body = response.json()
+    product = body["data"]["product"]
+
+    assert len(product["storage_instruction_items"]) == 2
+    for item in product["storage_instruction_items"]:
+        assert item["translation_status"] == "source_khmer_available"
+        assert item["khmer_translation"] is None
+        assert item["selected_original_text"] is not None
+
+
+def test_product_lookup_missing_storage_instructions() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "product_name": "Simple Biscuits",
+            "lang": "en",
+        }
+    )
+    provider = FakeTranslationProvider(
+        canned_translations={"product_name": "នំប្រៃ"}
+    )
+    coord = _make_test_coordinator(provider=provider)
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=kh")
+
+    assert response.status_code == 200
+    body = response.json()
+    product = body["data"]["product"]
+
+    assert product["storage_instruction_items"] == []
+    assert product["storage_instructions"] == []
+    assert body["meta"]["translation"]["status"] == "complete"
+
+
+def test_product_lookup_storage_instructions_preserves_protected_values() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "product_name": "Ice Cream",
+            "conservation_conditions": (
+                "Keep frozen at -18°C. Once defrosted, keep at 4°C and consume within 3 days."
+            ),
+            "lang": "en",
+        }
+    )
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "product_name": "ការ៉េម",
+            "storage_instruction_0": (
+                "រក្សាទុកឱ្យកកនៅ __LG_TOK_0__។ នៅពេលរលាយរួច រក្សាទុកនៅ __LG_TOK_1__ "
+                "ហើយទទួលទានក្នុងរយៈពេល __LG_TOK_2__។"
+            ),
+        }
+    )
+    coord = _make_test_coordinator(provider=provider)
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=kh")
+
+    assert response.status_code == 200
+    body = response.json()
+    product = body["data"]["product"]
+    item = product["storage_instruction_items"][0]
+
+    assert item["translation_status"] == "generated"
+    assert "-18°C" in item["khmer_translation"]
+    assert "4°C" in item["khmer_translation"]
+    assert "3 days" in item["khmer_translation"]
+
+
+def test_product_lookup_storage_instructions_partial_failure_survives() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "product_name": "Yogurt",
+            "conservation_conditions": "Keep at 4°C",
+            "storage_conditions": "Consume quickly after opening",
+            "lang": "en",
+        }
+    )
+    # storage_instruction_1 returns English only (invalid script)
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "product_name": "យ៉ាអួ",
+            "storage_instruction_0": "រក្សាទុកនៅ __LG_TOK_0__",
+            "storage_instruction_1": "Consume quickly English Only",
+        }
+    )
+    coord = _make_test_coordinator(provider=provider)
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=kh")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["translation"]["status"] == "partial"
+
+    product = body["data"]["product"]
+    item0 = product["storage_instruction_items"][0]
+    assert item0["translation_status"] == "generated"
+    assert item0["khmer_translation"] == "រក្សាទុកនៅ 4°C"
+
+    item1 = product["storage_instruction_items"][1]
+    assert item1["translation_status"] == "translation_unavailable"
+    assert item1["khmer_translation"] is None
+    assert item1["selected_original_text"]["value"] == "Consume quickly after opening"
+
+
+def test_product_lookup_storage_instructions_cache_reuse_and_identity() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "product_name": "Milk",
+            "conservation_conditions": "Keep cool at 4°C",
+            "lang": "en",
+        }
+    )
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "product_name": "ទឹកដោះគោ",
+            "storage_instruction_0": "រក្សាទុកនៅកន្លែងត្រជាក់នៅ __LG_TOK_0__",
+        }
+    )
+    repo = InMemoryGeneratedDataRepository()
+    cache = InMemoryTranslationHotCache(ttl_seconds=3600)
+    coord = _make_test_coordinator(provider=provider, repository=repo, cache=cache)
+
+    with _client(database, coordinator=coord) as client:
+        # First request: generates and caches
+        res1 = client.get("/api/v1/products/4006381333931?language=kh")
+        assert res1.status_code == 200
+        assert provider.call_count == 1
+
+        # Second request: cache hit, no provider call
+        res2 = client.get("/api/v1/products/4006381333931?language=kh")
+        assert res2.status_code == 200
+        assert provider.call_count == 1
+
+        p1 = res1.json()["data"]["product"]
+        p2 = res2.json()["data"]["product"]
+        assert p1["storage_instruction_items"] == p2["storage_instruction_items"]
+
+
+def test_product_lookup_storage_instructions_provider_and_store_failure() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "product_name": "Milk",
+            "conservation_conditions": "Keep cool at 4°C",
+            "lang": "en",
+        }
+    )
+
+    # 1. Provider failure
+    provider_fail = FakeTranslationProvider(should_fail=True)
+    coord_fail = _make_test_coordinator(provider=provider_fail)
+    with _client(database, coordinator=coord_fail) as client:
+        res = client.get("/api/v1/products/4006381333931?language=kh")
+        assert res.status_code == 200
+        data = res.json()
+        assert data["meta"]["translation"]["status"] == "unavailable"
+        item = data["data"]["product"]["storage_instruction_items"][0]
+        assert item["translation_status"] == "translation_unavailable"
+        assert item["selected_original_text"]["value"] == "Keep cool at 4°C"
+
+    # 2. Store failure (repository fails)
+    class BrokenRepo(InMemoryGeneratedDataRepository):
+        def find_artifact(self, content_hash, config_fingerprint):
+            raise RuntimeError("storage unreachable")
+
+    coord_store_fail = _make_test_coordinator(
+        provider=FakeTranslationProvider(canned_translations={"storage_instruction_0": "រក្សាទុក"}),
+        repository=BrokenRepo(),
+    )
+    with _client(database, coordinator=coord_store_fail) as client:
+        res = client.get("/api/v1/products/4006381333931?language=kh")
+        assert res.status_code == 200
+        data = res.json()
+        assert data["meta"]["translation"]["status"] == "unavailable"
+        item = data["data"]["product"]["storage_instruction_items"][0]
+        assert item["translation_status"] == "translation_unavailable"
+        assert item["selected_original_text"]["value"] == "Keep cool at 4°C"
+
+
+def test_product_lookup_storage_instructions_long_statements() -> None:
+    database = _dataset_database()
+    long_instruction = (
+        "Store in a dry, cool and well-ventilated area away from direct sunlight, "
+        "heat, and moisture. Maintain temperature strictly at -18°C or lower before opening. "
+        "Once opened, seal packaging tightly, store in the refrigerator at 4°C, and consume "
+        "entirely within 5 days for optimal freshness and safety. Do not refreeze once thawed. "
+        "Dispose of packaging responsibly according to local recycling regulations."
+    )
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "product_name": "Premium Frozen Pastry",
+            "conservation_conditions": long_instruction,
+            "lang": "en",
+        }
+    )
+    canned_khmer = (
+        "រក្សាទុកនៅកន្លែងស្ងួត ត្រជាក់ និងមានខ្យល់ចេញចូលល្អ ឆ្ងាយពីពន្លឺព្រះអាទិត្យផ្ទាល់ កម្តៅ និងសំណើម។ "
+        "រក្សាសីតុណ្ហភាពឱ្យនៅ __LG_TOK_0__ ឬទាបជាងនេះមុនពេលបើក។ នៅពេលបើកហើយ សូមបិទកញ្ចប់ឱ្យជិត "
+        "រក្សាទុកក្នុងទូរទឹកកកនៅ __LG_TOK_1__ ហើយទទួលទានឱ្យអស់ក្នុងរយៈពេល __LG_TOK_2__ "
+        "ដើម្បីភាពស្រស់ និងសុវត្ថិភាពល្អបំផុត។ "
+        "កុំបង្កកម្តងទៀតបន្ទាប់ពីរលាយ។ បោះចោលវេចខ្ចប់ដោយការទទួលខុសត្រូវស្របតាមបទប្បញ្ញត្តិការកែច្នៃក្នុងស្រុក។"
+    )
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "product_name": "នំក្លាសេពិសេស",
+            "storage_instruction_0": canned_khmer,
+        }
+    )
+    coord = _make_test_coordinator(provider=provider)
+    with _client(database, coordinator=coord) as client:
+        response = client.get("/api/v1/products/4006381333931?language=kh")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["translation"]["status"] == "complete"
+    item = body["data"]["product"]["storage_instruction_items"][0]
+    assert item["translation_status"] == "generated"
+    assert item["selected_original_text"]["value"] == long_instruction
+    assert "-18°C" in item["khmer_translation"]
+    assert "4°C" in item["khmer_translation"]
+    assert "5 days" in item["khmer_translation"]
+
+
+

@@ -16,6 +16,7 @@ from lifegoods.product_lookup.contracts import (
     ProductLookupMetaResponse,
     ProductProjection,
     SourceAttributionResponse,
+    TranslatableField,
     TranslationFieldStatus,
     TranslationMetadataResponse,
     TranslationMetaResponse,
@@ -27,7 +28,10 @@ from lifegoods.product_lookup.models import (
     SourceRecord,
 )
 from lifegoods.product_lookup.projection import project_source_record
-from lifegoods.translation.contracts import ProductTranslationResult
+from lifegoods.translation.contracts import (
+    FieldTranslationOutcome,
+    ProductTranslationResult,
+)
 from lifegoods.translation.selection import ELIGIBLE_FIELDS, unavailable_result
 
 type CacheStatus = Literal["hit", "miss"]
@@ -49,18 +53,25 @@ def mark_product_translation_unavailable(
     return apply_translation_to_product(product, unavailable_result(product))
 
 
+def _apply_field_outcome(
+    target: TranslatableField, outcome: FieldTranslationOutcome | None
+) -> None:
+    if outcome:
+        target.original_texts = outcome.original_texts
+        target.selected_original_text = outcome.selected_original_text
+        target.translation_status = outcome.status
+        target.khmer_translation = outcome.khmer_translation
+
+
 def apply_translation_to_product(
     product: ProductProjection,
     translation: ProductTranslationResult,
 ) -> tuple[ProductProjection, TranslationMetaResponse]:
     for field in ELIGIBLE_FIELDS:
-        target = field.target(product)
-        outcome = translation.fields.get(field.name)
-        if outcome:
-            target.original_texts = outcome.original_texts
-            target.selected_original_text = outcome.selected_original_text
-            target.translation_status = outcome.status
-            target.khmer_translation = outcome.khmer_translation
+        _apply_field_outcome(field.target(product), translation.fields.get(field.name))
+
+    for item in product.storage_instruction_items:
+        _apply_field_outcome(item, translation.fields.get(item.key))
 
     meta_metadata: TranslationMetadataResponse | None = None
     if translation.provenance is not None and any(

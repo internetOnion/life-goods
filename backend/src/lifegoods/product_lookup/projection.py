@@ -20,11 +20,13 @@ from lifegoods.product_lookup.contracts import (
     SourceAssessmentsProjection,
     SourceImage,
     SourceRecordMetadataProjection,
+    StorageInstructionItem,
     TranslatableField,
 )
 from lifegoods.translation.selection import (
     ELIGIBLE_FIELDS,
     extract_eligible_fields,
+    select_field_original_text,
 )
 
 NUTRITION_NUTRIENTS: tuple[tuple[str, str], ...] = (
@@ -514,6 +516,66 @@ def _unix_timestamp(value: Any) -> str | None:
         return None
 
 
+def _append_unique_original_texts(
+    target: list[OriginalText], additions: list[OriginalText]
+) -> None:
+    seen = {(t.source_field, t.language, t.value) for t in target}
+    for t in additions:
+        key = (t.source_field, t.language, t.value)
+        if key not in seen:
+            seen.add(key)
+            target.append(t)
+
+
+def _group_storage_instruction_items(
+    groups: list[list[OriginalText]],
+    record_language: str | None = None,
+) -> list[StorageInstructionItem]:
+    valid_groups = [g for g in groups if g]
+    if not valid_groups:
+        return []
+
+    items: list[StorageInstructionItem] = []
+    item_values: list[set[str]] = []
+
+    for group in valid_groups:
+        vals = {t.value.strip() for t in group if t.value and t.value.strip()}
+        if not vals:
+            continue
+
+        matched_idx: int | None = None
+        for idx, existing_vals in enumerate(item_values):
+            # Collapse if identical statement, including when one field has a
+            # subset of localized language translations
+            if (
+                vals == existing_vals
+                or vals.issubset(existing_vals)
+                or existing_vals.issubset(vals)
+            ):
+                matched_idx = idx
+                break
+
+        if matched_idx is not None:
+            _append_unique_original_texts(items[matched_idx].original_texts, group)
+        else:
+            item_key = f"storage_instruction_{len(items)}"
+            item_texts: list[OriginalText] = []
+            _append_unique_original_texts(item_texts, group)
+            items.append(
+                StorageInstructionItem(
+                    key=item_key,
+                    original_texts=item_texts,
+                )
+            )
+            item_values.append(vals)
+
+    for item in items:
+        selection = select_field_original_text(item.original_texts, record_language=record_language)
+        item.selected_original_text = selection.selected_text
+
+    return items
+
+
 def project_source_record(
     source_record: dict[str, Any] | None,
     *,
@@ -589,6 +651,9 @@ def project_source_record(
         record.get("last_modified_t")
     )
 
+    conservation_texts = _original_texts(record, "conservation_conditions", record_language)
+    storage_texts = _original_texts(record, "storage_conditions", record_language)
+
     product = ProductProjection(
         identity=ProductIdentityProjection(
             barcode=barcode,
@@ -602,8 +667,12 @@ def project_source_record(
         ingredients=ingredients_texts,
         additives=_list_values(record, "additives", "additives_tags"),
         storage_instructions=_merge_original_texts(
-            _original_texts(record, "conservation_conditions", record_language),
-            _original_texts(record, "storage_conditions", record_language),
+            conservation_texts,
+            storage_texts,
+        ),
+        storage_instruction_items=_group_storage_instruction_items(
+            [conservation_texts, storage_texts],
+            record_language=record_language,
         ),
         nutrition=_extract_nutrition(record),
         assessments=_extract_assessments(record),

@@ -464,3 +464,74 @@ def test_projection_populates_translatable_semantic_fields_with_not_requested_st
     assert product.categories_text.khmer_translation is None
     assert product.categories_text.selected_original_text is not None
     assert "Chocolate" in product.categories_text.selected_original_text.value
+
+
+def test_projection_populates_storage_instruction_items_with_grouping_and_deduplication() -> None:
+    # 1. Missing storage conditions -> empty items
+    empty_record = {"code": "4006381333931"}
+    empty_product = project_source_record(empty_record, meta=META)
+    assert empty_product.storage_instruction_items == []
+    assert empty_product.storage_instructions == []
+
+    # 2. Localized variants of the same statement grouped into one item
+    localized_record = {
+        "code": "4006381333931",
+        "conservation_conditions": "Keep in a cool, dry place",
+        "conservation_conditions_en": "Keep in a cool, dry place",
+        "conservation_conditions_km": "រក្សាទុកកន្លែងត្រជាក់ និងស្ងួត",
+        "conservation_conditions_fr": "Conserver dans un endroit frais et sec",
+        "lang": "en",
+    }
+    localized_product = project_source_record(localized_record, meta=META)
+    assert len(localized_product.storage_instruction_items) == 1
+    item = localized_product.storage_instruction_items[0]
+    assert item.key == "storage_instruction_0"
+    assert item.translation_status == "not_requested"
+    assert item.khmer_translation is None
+    # Source Khmer preferred
+    assert item.selected_original_text is not None
+    assert item.selected_original_text.value == "រក្សាទុកកន្លែងត្រជាក់ និងស្ងួត"
+    assert item.selected_original_text.source_field == "conservation_conditions_km"
+    # Legacy field preserved
+    assert len(localized_product.storage_instructions) >= 3
+
+    # 3. Distinct statements kept separate
+    distinct_record = {
+        "code": "4006381333931",
+        "conservation_conditions": "Keep in a cool, dry place",
+        "storage_conditions": "Refrigerate after opening",
+        "lang": "en",
+    }
+    distinct_product = project_source_record(distinct_record, meta=META)
+    assert len(distinct_product.storage_instruction_items) == 2
+    assert distinct_product.storage_instruction_items[0].key == "storage_instruction_0"
+    assert distinct_product.storage_instruction_items[0].selected_original_text is not None
+    assert (
+        distinct_product.storage_instruction_items[0].selected_original_text.value
+        == "Keep in a cool, dry place"
+    )
+    assert distinct_product.storage_instruction_items[1].key == "storage_instruction_1"
+    assert distinct_product.storage_instruction_items[1].selected_original_text is not None
+    assert (
+        distinct_product.storage_instruction_items[1].selected_original_text.value
+        == "Refrigerate after opening"
+    )
+
+    # 4. Exact duplicates across source fields collapsed into one item while retaining provenance
+    duplicate_record = {
+        "code": "4006381333931",
+        "conservation_conditions": "Keep in a cool, dry place",
+        "storage_conditions": "Keep in a cool, dry place",
+        "lang": "en",
+    }
+    dup_product = project_source_record(duplicate_record, meta=META)
+    assert len(dup_product.storage_instruction_items) == 1
+    dup_item = dup_product.storage_instruction_items[0]
+    assert dup_item.key == "storage_instruction_0"
+    assert dup_item.selected_original_text is not None
+    assert dup_item.selected_original_text.value == "Keep in a cool, dry place"
+    # Provenance retained from both fields
+    source_fields = {t.source_field for t in dup_item.original_texts}
+    assert "conservation_conditions" in source_fields
+    assert "storage_conditions" in source_fields
+

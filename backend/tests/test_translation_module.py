@@ -361,3 +361,72 @@ def test_khmer_translation_module_end_to_end_with_gemini_adapter() -> None:
     req_body = captured_requests[0].content.decode("utf-8")
     assert "8850123456789" not in req_body
     assert "off-2026-09-01" not in req_body
+
+
+def test_storage_instruction_items_translation_and_partial_survival() -> None:
+    from lifegoods.product_lookup.contracts import OriginalText, StorageInstructionItem
+
+    product = _empty_product()
+    product.identity.names = [
+        OriginalText(value="Milk", language="en", source_field="product_name_en"),
+    ]
+    product.storage_instruction_items = [
+        StorageInstructionItem(
+            key="storage_instruction_0",
+            original_texts=[
+                OriginalText(
+                    value="Keep refrigerated at 4°C",
+                    language="en",
+                    source_field="conservation_conditions_en",
+                ),
+            ],
+            selected_original_text=OriginalText(
+                value="Keep refrigerated at 4°C",
+                language="en",
+                source_field="conservation_conditions_en",
+            ),
+        ),
+        StorageInstructionItem(
+            key="storage_instruction_1",
+            original_texts=[
+                OriginalText(
+                    value="Consume within 3 days",
+                    language="en",
+                    source_field="storage_conditions_en",
+                ),
+            ],
+            selected_original_text=OriginalText(
+                value="Consume within 3 days",
+                language="en",
+                source_field="storage_conditions_en",
+            ),
+        ),
+    ]
+
+    # Provider translates product_name and storage_instruction_0, but drops storage_instruction_1
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "product_name": "ទឹកដោះគោ",
+            "storage_instruction_0": "រក្សាទុកក្នុងទូរទឹកកកនៅសីតុណ្ហភាព __LG_TOK_0__",
+        }
+    )
+    module = KhmerTranslationModule(provider=provider)
+    result = module.translate_product(product, target_language="kh")
+
+    assert result.overall_status == TranslationOverallStatus.PARTIAL
+
+    assert result.fields["product_name"].status == TranslationFieldStatus.GENERATED
+    assert result.fields["product_name"].khmer_translation == "ទឹកដោះគោ"
+
+    assert result.fields["storage_instruction_0"].status == TranslationFieldStatus.GENERATED
+    assert (
+        result.fields["storage_instruction_0"].khmer_translation
+        == "រក្សាទុកក្នុងទូរទឹកកកនៅសីតុណ្ហភាព 4°C"
+    )
+
+    assert (
+        result.fields["storage_instruction_1"].status
+        == TranslationFieldStatus.TRANSLATION_UNAVAILABLE
+    )
+    assert result.fields["storage_instruction_1"].khmer_translation is None
+

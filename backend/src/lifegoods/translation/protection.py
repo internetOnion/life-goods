@@ -14,6 +14,14 @@ UNIT_QUANTITY_REGEX = re.compile(
     r"\b\d+(?:[\.,]\d+)?\s*(?:g|kg|mg|ml|cl|l|មល\.|ក្រัม|oz|fl\s*oz|kcal|kj)\b",
     re.IGNORECASE,
 )
+TEMPERATURE_REGEX = re.compile(
+    r"(?:[-+]\s*)?\b\d+(?:[\.,]\d+)?\s*°\s*[CFcf]?\b|(?:[-+]\s*)?\d+(?:[\.,]\d+)?\s*°[CFcf]?",
+    re.IGNORECASE,
+)
+DURATION_REGEX = re.compile(
+    r"\b\d+(?:[\.,]\d+)?\s*(?:days?|hours?|hrs?|minutes?|mins?|seconds?|secs?|months?|weeks?|years?)\b",
+    re.IGNORECASE,
+)
 RATIO_MULTIPLIER_REGEX = re.compile(r"\b\d+\s*[xX]\s*\d+\b")
 NUMERICAL_CODE_REGEX = re.compile(r"\b\d+[a-zA-Z]+\d*\b")
 STANDALONE_NUMBER_REGEX = re.compile(r"\b\d+(?:[\.,]\d+)?\b")
@@ -47,8 +55,10 @@ def _collect_spans(
             for match in re.finditer(re.escape(brand), text):
                 spans.append((match.start(), match.end(), match.group()))
 
-    # 2. INS codes, E-numbers, percentages, units, numbers
+    # 2. INS codes, E-numbers, percentages, units, temperatures, durations, numbers
     for regex in (
+        TEMPERATURE_REGEX,
+        DURATION_REGEX,
         INS_CODE_REGEX,
         E_NUMBER_REGEX,
         PERCENTAGE_REGEX,

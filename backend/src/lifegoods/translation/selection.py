@@ -100,12 +100,17 @@ ELIGIBLE_FIELDS = (
 
 
 def extract_eligible_fields(product: ProductProjection) -> dict[str, FieldSelection]:
-    return {
+    result = {
         field.name: select_field_original_text(
             field.originals(product), record_language=product.source.record_language
         )
         for field in ELIGIBLE_FIELDS
     }
+    for item in product.storage_instruction_items:
+        result[item.key] = select_field_original_text(
+            item.original_texts, record_language=product.source.record_language
+        )
+    return result
 
 
 def is_original_text_preserved(field_name: str, raw_text: str, brands: list[str]) -> bool:
