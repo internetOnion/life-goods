@@ -551,8 +551,8 @@ def test_category_items_partial_leaves_legacy_categories_unavailable() -> None:
     assert result.fields["categories"].khmer_translation is None
 
 
-def test_configuration_version_v6() -> None:
+def test_configuration_version_v1() -> None:
     module = KhmerTranslationModule(provider=None)
-    assert module._config_version == "v6"
+    assert module._config_version == "v1"
 
 

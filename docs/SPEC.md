@@ -338,7 +338,7 @@ With a translation request, the overall status is `not_needed` when no field req
 
 Without Gemini credentials, startup disables generation and writes no new generated artifacts. Compatible existing Google/Gemini artifacts may still be read. Fake providers require explicit injection and canned translations; their `test-fake` / `canned-translations` identity cannot collide with production configuration.
 
-Configuration `v3` advances selection and validation semantics and includes the ingredient chunk limit in its fingerprint. Earlier and test-provider artifacts remain stored but cannot satisfy production requests. First use is therefore cold and can regenerate all eligible fields on demand; no automatic deletion or backfill runs.
+The production translation configuration is `v1`, which includes selection, validation, token protection, and the ingredient chunk limit in its fingerprint. Incompatible and test-provider artifacts cannot satisfy production requests. First use is therefore cold and can regenerate all eligible fields on demand; no automatic deletion or backfill runs.
 
 Validation rejects wrong types, missing outputs, malformed envelopes, incomplete provider responses, broken placeholders, altered protected values, excessive output, and unchanged source prose with a Khmer prefix. Independently valid fields survive. Deterministic tests establish structural behavior, not semantic accuracy or human review. Barcode and Shopper information never enter provider input or artifact identity.
 
@@ -377,8 +377,8 @@ Expiry returns HTTP 200 with available Original Text and field-level translation
    - Token protection covers temperatures (e.g. `4°C`, `-18°C`) and durations (e.g. `3 days`) in addition to brands, INS codes, E-numbers, percentages, and units.
    - Each statement item undergoes independent validation. If one item fails, valid sibling items survive as `generated`, setting the overall translation status to `partial`.
 
-4. **Cache & Fingerprint Advance**:
-   - Production configuration fingerprint is advanced to `v4` with updated selection (`v3`), schema (`v3`), and protection (`v2`) versions. Incompatible earlier bundles cannot be reused.
+4. **Cache & Fingerprint**:
+   - Storage instruction items participate in the `v1` configuration fingerprint with item selection, schema, and token protection. Incompatible earlier bundles cannot be reused.
 
 5. **API Response Examples**:
 
@@ -527,12 +527,7 @@ An incomplete provider response is rejected; missing or malformed items in an
 otherwise valid response do not discard independently valid siblings. These limits
 can cause Original Text fallback for long instructions, not shortened translations.
 
-Configuration **v5** includes the new selected source items in content identity and
-advances selection/schema to v4, protection/prompt to v3, and payload policy to v1.
-Both payload and output limits participate in the configuration fingerprint. Older
-artifacts cannot satisfy v5 requests. Complete artifacts remain durable, partial
-results remain short-lived hot-cache data, and compatible selected text can be
-reused across Dataset Snapshots while current Original Text provenance is rebuilt.
+Packaging items participate in the **v1** configuration fingerprint, including item selection, schema, token protection, and payload/output limits. Complete artifacts remain durable, partial results remain short-lived hot-cache data, and compatible selected text can be reused across Dataset Snapshots while current Original Text provenance is rebuilt.
 The shared translation deadline, generation budget, failure behavior, Source
 Attribution, and Barcode/Shopper privacy boundaries remain in force. No backfill,
 automatic artifact deletion, or frontend packaging display is introduced.
@@ -580,7 +575,7 @@ Legacy translation compatibility:
   - When one or more required category items have `translation_unavailable`, `product.categories_text.translation_status` becomes `"translation_unavailable"` with `khmer_translation: null`, while successful individual `category_items` retain their translations.
   - Reconstructed cache hits deterministically re-assemble `product.categories_text` using the same semantics.
 
-Configuration **v6** advances `selection_version` to **v5** and `schema_version` to **v5**, keeping `protection_version="v3"`, `prompt_version="v3"`, and `payload_policy_version="v1"`. Older artifacts cannot satisfy v6 requests.
+Category items participate in the unified initial release baseline at configuration **v1**, with all internal sub-component versions normalized to **v1**.
 
 Example category items fragment for a partial response (`meta.translation.status` is `partial`):
 

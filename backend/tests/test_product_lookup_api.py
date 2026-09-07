@@ -770,7 +770,7 @@ def test_v1_product_lookup_with_language_kh_generates_translation() -> None:
     assert body["meta"]["translation"]["metadata"]["machine_generated"] is True
     assert body["meta"]["translation"]["metadata"]["provider"] == "test-fake"
     assert body["meta"]["translation"]["metadata"]["model"] == "canned-translations"
-    assert body["meta"]["translation"]["metadata"]["configuration_version"] == "v6"
+    assert body["meta"]["translation"]["metadata"]["configuration_version"] == "v1"
     assert body["meta"]["translation"]["metadata"]["generated_at"] is not None
 
     # Source attribution remains unchanged
@@ -1559,7 +1559,7 @@ def test_startup_without_credentials_only_reuses_compatible_generated_artifacts(
         else:
             module = KhmerTranslationModule(
                 provider,
-                config_version="v5" if artifact_kind == "old" else "v6",
+                config_version="v0" if artifact_kind == "old" else "v1",
             )
         artifact = result_to_stored_artifact(
             module.translate_product(project_source_record(record))
