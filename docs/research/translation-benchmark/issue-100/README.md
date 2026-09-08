@@ -12,10 +12,10 @@ All 15 fixtures passed structural validation and token preservation. Cached repl
 
 The 15 generated-data integration checks passed against local MongoDB 8.2 and Redis 8.2. They covered database permission isolation, schema and index verification, atomic leases, cross-instance single flight, cache reuse, configuration isolation, cross-snapshot reuse, store-write failure, quarantine, expired-lease recovery, and absence of Barcode or Shopper associations in generated storage.
 
-## Live evidence limitation
+## Live benchmark scope decision
 
-Live Gemini execution was not performed. The run requires explicit approval to send the repository's synthetic fixture text to Google Gemini using the configured credential. No fixture content was sent and no provider charge was incurred. Live uncached latency, completion/timeout rates, reported token usage, retry cost, and estimated provider cost therefore remain outstanding evidence.
+Live Gemini execution was not performed. On 2026-09-08, the project owner decided that a live provider benchmark was not required to complete issue #100 because production uses the already-approved exact Gemini model rather than selecting among candidate models. No fixture content was sent and no provider charge was incurred.
 
-When explicitly authorized, run `pnpm benchmark:live`. The command uses the exact production model and writes sanitized output under `docs/research/translation-benchmark/issue-100/live/`; it never exports prompts or raw provider payloads.
+This means the repository makes no measured claims about live uncached provider latency, completion or timeout rates, reported token usage, retry cost, or estimated provider cost. The deterministic contract evidence and real MongoDB/Redis integration evidence remain the completion basis. `pnpm benchmark:live` remains available as an optional operator diagnostic; it uses the exact production model and writes sanitized output under `docs/research/translation-benchmark/issue-100/live/` without exporting prompts or raw provider payloads.
 
 Pricing calculations use Google's Gemini 3.8 Flash standard rates effective through 2026-12-31: $0.75 per million input tokens and $3.75 per million output tokens, including thinking tokens. Source: [Gemini Developer API pricing](https://ai.google.dev/gemini-api/docs/pricing).
