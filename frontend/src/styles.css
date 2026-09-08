@@ -292,6 +292,7 @@ body {
     margin: 0;
     background: var(--color-background);
     color: var(--color-foreground);
+    cursor: default;
     font-family: var(--font-sans);
     font-synthesis: none;
     font-size: var(--text-base);

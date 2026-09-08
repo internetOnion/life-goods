@@ -533,8 +533,6 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                                 </Button>
                                 <Link
                                     to="/search"
-                                    state={{ autoFocus: true }}
-                                    onPointerDown={prepareSearchBridge}
                                     onClick={handleSearchNavigation}
                                     className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#F3E8DD] px-5 text-sm font-bold text-[#5A320B] shadow-[0_8px_20px_-14px_rgba(90,50,11,0.8)] ring-1 ring-[#E8C9A4] transition-all hover:bg-[#FFF8F0] focus-visible:ring-2 focus-visible:ring-[#F3E8DD] focus-visible:ring-offset-2 focus-visible:ring-offset-[#131519] focus-visible:outline-none active:scale-[0.98]"
                                 >
@@ -678,8 +676,6 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
             <div className="mx-auto w-full max-w-lg">
                 <Link
                     to="/search"
-                    state={{ autoFocus: true }}
-                    onPointerDown={prepareSearchBridge}
                     onClick={handleSearchNavigation}
                     aria-label={text.searchLabel}
                     className={cn(

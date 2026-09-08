@@ -1,4 +1,3 @@
-import { ArrowSquareOutIcon, DatabaseIcon } from "@phosphor-icons/react"
 import { useEffect, useRef } from "react"
 
 import { usePageMetadata } from "@/lib/metadata"
@@ -18,16 +17,10 @@ export function DataAndLicensesPage() {
 
     return (
         <main className="mx-auto min-h-[calc(100svh-8rem)] w-full max-w-xl px-4 py-10 sm:px-6 sm:py-14">
-            <div
-                className="bg-info-100 text-info-700 grid size-14 place-items-center rounded-2xl"
-                aria-hidden="true"
-            >
-                <DatabaseIcon size={29} weight="bold" />
-            </div>
             <h1
                 ref={headingRef}
                 tabIndex={-1}
-                className="mt-5 text-4xl leading-tight font-extrabold tracking-[-0.03em] text-balance text-neutral-950"
+                className="text-4xl leading-tight font-extrabold tracking-[-0.03em] text-balance text-neutral-950"
             >
                 Data and licenses
             </h1>
@@ -46,19 +39,24 @@ export function DataAndLicensesPage() {
                     remain external community data. They may be incomplete,
                     inconsistent, outdated, or incorrect.
                 </p>
-                <a
-                    className="text-info-700 mt-5 inline-flex min-h-11 items-center gap-2 font-extrabold"
-                    href="https://world.openfoodfacts.org/data"
-                    target="_blank"
-                    rel="noreferrer"
-                >
-                    Open Food Facts conditions for reuse
-                    <ArrowSquareOutIcon
-                        aria-hidden="true"
-                        size={18}
-                        weight="bold"
-                    />
-                </a>
+                <dl className="divide-info-200/70 border-info-200/70 mt-5 divide-y border-y">
+                    <div className="grid gap-1 py-3 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-5">
+                        <dt className="text-info-700 text-xs font-bold tracking-[0.06em] uppercase">
+                            Source
+                        </dt>
+                        <dd className="text-info-950 font-extrabold">
+                            Open Food Facts
+                        </dd>
+                    </div>
+                    <div className="grid gap-1 py-3 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-5">
+                        <dt className="text-info-700 text-xs font-bold tracking-[0.06em] uppercase">
+                            Source URL
+                        </dt>
+                        <dd className="text-info-950 font-mono text-sm font-bold break-all">
+                            https://world.openfoodfacts.org/data
+                        </dd>
+                    </div>
+                </dl>
             </section>
 
             <section className="mt-10 border-t border-neutral-200 pt-8">

@@ -78,10 +78,13 @@ describe("Life Goods routes", () => {
             screen.getByRole("heading", { name: "Data and licenses" }),
         ).toHaveFocus()
         expect(
-            screen.getByRole("link", {
-                name: "Open Food Facts conditions for reuse",
+            screen.getByText("https://world.openfoodfacts.org/data"),
+        ).toHaveClass("font-bold")
+        expect(
+            screen.queryByRole("link", {
+                name: "https://world.openfoodfacts.org/data",
             }),
-        ).toHaveAttribute("href", "https://world.openfoodfacts.org/data")
+        ).not.toBeInTheDocument()
     })
 
     test("loads the Product route through Product Lookup", async () => {
@@ -103,11 +106,29 @@ describe("Life Goods routes", () => {
         ).toHaveFocus()
     })
 
-    test("clicking search bar from scanner navigates to /search and focuses search input", async () => {
+    test("clicking search bar from scanner navigates without activating text entry", async () => {
         const user = userEvent.setup()
         renderRoute("/")
         const searchLink = screen.getByRole("link", { name: "Search" })
         await user.click(searchLink)
-        expect(screen.getByRole("textbox", { name: "Search" })).toHaveFocus()
+        expect(screen.getByRole("textbox", { name: "Search" })).not.toHaveFocus()
+    })
+
+    test("clicking Learn in the bottom navigation opens the guide grid", async () => {
+        const user = userEvent.setup()
+        renderRoute("/")
+
+        await user.click(screen.getByRole("link", { name: "Learn" }))
+
+        expect(
+            screen.getByRole("heading", { name: "Label-reading guides" }),
+        ).toBeVisible()
+        expect(
+            screen.getByRole("link", { name: /How to read a food label/ }),
+        ).toBeVisible()
+        expect(screen.getByRole("link", { name: "Learn" })).toHaveAttribute(
+            "aria-current",
+            "page",
+        )
     })
 })

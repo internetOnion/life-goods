@@ -20,7 +20,6 @@ import { cn } from "@/lib/utils"
 
 type SearchLocationState = {
     invalidBarcode?: string
-    autoFocus?: boolean
 }
 
 const validationMessages = {
@@ -110,17 +109,8 @@ export function BarcodeEntryPage() {
     })
 
     useEffect(() => {
-        if (locationState?.autoFocus) {
-            inputRef.current?.focus()
-            const bridge = document.getElementById("mobile-keyboard-bridge")
-            bridge?.remove()
-            const id = requestAnimationFrame(() => {
-                inputRef.current?.focus()
-            })
-            return () => cancelAnimationFrame(id)
-        }
         headingRef.current?.focus({ preventScroll: true })
-    }, [locationState?.autoFocus])
+    }, [])
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
@@ -194,7 +184,6 @@ export function BarcodeEntryPage() {
                             if (error) setError(null)
                         }}
                         autoComplete="off"
-                        autoFocus
                         spellCheck={false}
                         aria-invalid={error ? true : undefined}
                         aria-describedby={error ? "search-error" : undefined}
