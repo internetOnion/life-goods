@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, NamedTuple, Protocol, runtime_checkable
 
 from lifegoods.open_food_facts.search_index import (
     SearchIndexIncompatibleError,
@@ -67,7 +67,11 @@ def select_matching_name(
     earlier_terms = set(query_terms[:-1])
     final_term = query_terms[-1] if query_terms else None
 
-    scores: list[tuple[int, int]] = []
+    class _NameScore(NamedTuple):
+        total: int
+        complete: int
+
+    scores: list[_NameScore] = []
     for item in names:
         val = item.get("value", "")
         item_terms = set(extract_terms(val))
@@ -83,15 +87,15 @@ def select_matching_name(
                 prefix_matches += 1
 
         total_matches = complete_matches + prefix_matches
-        scores.append((total_matches, complete_matches))
+        scores.append(_NameScore(total=total_matches, complete=complete_matches))
 
-    max_total = max((s[0] for s in scores), default=0)
+    max_total = max((score.total for score in scores), default=0)
     if max_total > 0:
         top_candidates = [
-            (names[i], scores[i]) for i, s in enumerate(scores) if s[0] == max_total
+            (names[i], scores[i]) for i, score in enumerate(scores) if score.total == max_total
         ]
-        max_complete = max(s[1] for _, s in top_candidates)
-        candidates = [c for c, s in top_candidates if s[1] == max_complete]
+        max_complete = max(score.complete for _, score in top_candidates)
+        candidates = [c for c, score in top_candidates if score.complete == max_complete]
     else:
         candidates = names
 

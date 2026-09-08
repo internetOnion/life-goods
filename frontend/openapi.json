@@ -1686,7 +1686,7 @@
                 "value": "4006381333931"
               },
               "brand_and_name": {
-                "description": "Search matching source brand and complete product name tokens.",
+                "description": "Search matching source brand and complete Product name tokens.",
                 "summary": "Brand and complete name terms",
                 "value": "coca cola"
               },

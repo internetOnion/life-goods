@@ -85,7 +85,7 @@ def search_products(
                 },
                 "brand_and_name": {
                     "summary": "Brand and complete name terms",
-                    "description": "Search matching source brand and complete product name tokens.",
+                    "description": "Search matching source brand and complete Product name tokens.",
                     "value": "coca cola",
                 },
                 "final_word_prefix": {
