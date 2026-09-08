@@ -784,6 +784,16 @@ def _extract_taxonomy_references(record: dict[str, Any]) -> TaxonomyReferencesPr
     )
 
 
+def extract_product_names(
+    record: dict[str, Any],
+    record_language: str | None = None,
+) -> list[OriginalText]:
+    resolved_record_language = (
+        record_language if record_language is not None else _source_language(record)
+    )
+    return _original_texts(record, "product_name", resolved_record_language)
+
+
 def extract_preferred_name(
     record: dict[str, Any],
     record_language: str | None = None,

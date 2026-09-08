@@ -38,6 +38,7 @@ class ProductSearchErrorCode(StrEnum):
     INVALID_BARCODE = "invalid_barcode"
     INVALID_CURSOR = "invalid_cursor"
     SEARCH_UNAVAILABLE = "search_unavailable"
+    SEARCH_TIMEOUT = "search_timeout"
     DATASET_UNAVAILABLE = "dataset_unavailable"
     RATE_LIMIT_EXCEEDED = "rate_limit_exceeded"
     INTERNAL_ERROR = "internal_error"

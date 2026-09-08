@@ -36,6 +36,15 @@ from lifegoods.open_food_facts.models import (
     JsonValue,
     SourcedValue,
 )
+from lifegoods.open_food_facts.search_index import (
+    SEARCH_SCHEMA_VERSION,
+    SearchIndexError,
+    SearchIndexIncompatibleError,
+    SearchIndexUnavailableError,
+    build_search_index,
+    search_collection_name,
+    validate_search_index_readiness,
+)
 
 __all__ = [
     "ACTIVE_POINTER_ID",
@@ -61,9 +70,16 @@ __all__ = [
     "PRODUCT_COLLECTION_PREFIX",
     "PACKAGE_SEARCH_COUNTRY_INDEX",
     "PACKAGE_SEARCH_TEXT_INDEX",
+    "SEARCH_SCHEMA_VERSION",
+    "SearchIndexError",
+    "SearchIndexIncompatibleError",
+    "SearchIndexUnavailableError",
     "SourcedValue",
     "VERSIONS_COLLECTION",
+    "build_search_index",
     "get_image_source",
     "ensure_package_search_indexes",
     "open_food_facts_image_router",
+    "search_collection_name",
+    "validate_search_index_readiness",
 ]

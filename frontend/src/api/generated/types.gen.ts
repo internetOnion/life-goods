@@ -398,7 +398,7 @@ export type ProductSearchDataResponse = {
 /**
  * ProductSearchErrorCode
  */
-export type ProductSearchErrorCode = 'invalid_query' | 'invalid_barcode' | 'invalid_cursor' | 'search_unavailable' | 'dataset_unavailable' | 'rate_limit_exceeded' | 'internal_error';
+export type ProductSearchErrorCode = 'invalid_query' | 'invalid_barcode' | 'invalid_cursor' | 'search_unavailable' | 'search_timeout' | 'dataset_unavailable' | 'rate_limit_exceeded' | 'internal_error';
 
 /**
  * ProductSearchErrorDetail

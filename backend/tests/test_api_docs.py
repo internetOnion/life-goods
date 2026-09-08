@@ -186,6 +186,7 @@ def test_product_search_is_typed_in_openapi(client: TestClient) -> None:
         "invalid_barcode",
         "invalid_cursor",
         "search_unavailable",
+        "search_timeout",
         "dataset_unavailable",
         "rate_limit_exceeded",
         "internal_error",

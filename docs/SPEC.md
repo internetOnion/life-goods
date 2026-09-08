@@ -739,15 +739,16 @@ The stable Product Lookup HTTP suite is the acceptance boundary for `language=kh
 
 The benchmark described in section 14 measures the production translation path and records cold and cached results separately under `docs/research/translation-benchmark/issue-100/`. Real MongoDB/Redis integration checks remain separate from the zero-network suite and require dedicated disposable test connections. On 2026-09-08, the project owner waived live-provider execution as an issue-completion requirement because production retains the already-approved exact Gemini model. Consequently, no claims are made about measured live provider latency, completion, timeout, usage, or cost, and simulated measurements are not substituted. The live command remains available as an optional operator diagnostic. This scope decision does not alter the 12-second default.
 
-## 25. Product Search API and attributed Product summaries (Issue #104)
+## 25. Product Search API, text matching, and paginated summaries (Issues #104, #105)
 
-The first Product Search milestone exposes `GET /api/v1/products/search` for Barcode search and attributed Product summaries before text-based retrieval is introduced:
+The Product Search endpoint `GET /api/v1/products/search` provides Barcode search and complete-word text search across source Product names and brands over a single static Dataset Snapshot:
 
 1. **Request & Contract**:
    - `GET /api/v1/products/search?q={query}&cursor={cursor}`
    - Registered before the parameterized Product Lookup route (`GET /api/v1/products/{barcode}`).
-   - `q` is required and must contain between 2 and 200 characters and at most 10 normalized terms. Empty or punctuation-only input returns HTTP 422 with error code `invalid_query`. Term extraction normalizes text while preserving Unicode combining marks (such as Khmer vowels and diacritics) attached to letters and numbers.
-   - `cursor` is accepted in the contract as an optional query parameter but rejected with HTTP 422 `invalid_cursor` until pagination is implemented. Barcode results never require continuation.
+   - `q` is required and must contain between 2 and 200 characters and at most 10 normalized terms. Empty or punctuation-only input returns HTTP 422 with error code `invalid_query`. Term extraction normalizes text using NFKC casefolding while preserving Unicode combining marks (such as Khmer vowels and diacritics) attached to letters and numbers.
+   - `cursor` is an optional continuation token for paginated text searches. Cursors are opaque, URL-safe base64 tokens containing the sort position (`rank`, bounded `name_sort`, `code`) and a HMAC-verified SHA-256 fingerprint of the normalized query terms.
+   - Tampered cursors, malformed base64, cursors issued for different query terms, or cursors supplied with Barcode searches return HTTP 422 with error code `invalid_cursor`.
 
 2. **Numeric Input & Barcode Classification**:
    - Numeric inputs at supported Barcode lengths (8, 12, 13, 14) are validated using standard Barcode check-digit and normalization logic (stripping outer whitespace and internal spaces or hyphens, preserving leading zeros).
@@ -758,13 +759,33 @@ The first Product Search milestone exposes `GET /api/v1/products/search` for Bar
    - Valid Barcodes look up zero or one Product summary from the Dataset Snapshot independently of text index readiness.
    - If the Product is absent from the Dataset Snapshot, HTTP 200 is returned with an empty products list (`data.products: []`).
    - If the Product is found, HTTP 200 is returned with a single `ProductSummary` item.
-   - `ProductSummary` includes `barcode`, selected `name` (`OriginalText` provenance), `brands`, `quantity`, `thumbnail` (`SourceImage` provenance), and individual `source` attribution (`https://world.openfoodfacts.org/product/{barcode}`). It does not calculate full Product details or invoke translation.
-   - Top-level `meta` provides `source` attribution for Open Food Facts (`https://world.openfoodfacts.org`), `dataset` metadata, and nullable `pagination.next_cursor` (`null`).
+   - `ProductSummary` includes `barcode`, selected `name` (`OriginalText` provenance), `brands`, `quantity`, `thumbnail` (`SourceImage` provenance), and individual `Source Attribution` (`https://world.openfoodfacts.org/product/{barcode}`). It does not calculate full Product details or invoke `Khmer Translation`.
+   - Top-level `meta` provides `Source Attribution` for Open Food Facts (`https://world.openfoodfacts.org`), `Dataset Snapshot` metadata, and nullable `pagination.next_cursor` (`null` for Barcode queries).
 
-4. **Intermediate Text Retrieval Availability**:
-   - Valid text queries (names, brands, short numbers) return HTTP 503 with error code `search_unavailable` pending the text-search index and ranking slice (#105).
+4. **Text Search Indexing & Readiness**:
+   - Search index lifecycle creates a schema version 2 compound index collection per active Dataset Snapshot.
+   - Indexes include `ix_search_name_tokens` (`name_tokens: 1`), `ix_search_brand_tokens` (`brand_tokens: 1`), and `ix_search_sort` (`name_sort: 1, code: 1`).
+   - Only records with valid Barcodes (`normalize_identifier`) are indexed; invalid `Source Records` increment `excluded_count`.
+   - Manifest metadata (`search_index`) tracks `status: "READY"`, `schema_version: 2`, `document_count`, and `excluded_count`.
+   - If the search index is missing, incompatible, or not ready, text searches return HTTP 503 with error code `search_unavailable`, while Barcode searches continue to operate without degradation.
 
-5. **Rate Limiting & Privacy**:
+5. **Text Ranking & Localized Name Selection**:
+   - Results are ranked across three strict tiers:
+     - Exact brand match (`rank: 0`): the normalized query matches an entry in `brand_values`.
+     - Exact name match (`rank: 1`): the normalized query matches an entry in `name_values`.
+     - Complete-word token match (`rank: 2`): all query terms are present across `name_tokens` and/or `brand_tokens`.
+   - Compound ordering strictly follows `{"rank": 1, "name_sort": 1, "code": 1}`.
+   - Localized name display selection (`select_matching_name`) prioritizes the source name candidate matching the highest count of query terms. Ties are broken by `record_language` -> `"en"` -> first listed name. If zero name terms match (e.g. pure brand match), standard Product Lookup name preference applies.
+
+6. **Keyset Pagination & Timeout**:
+   - Page continuation uses keyset evaluation against the compound sort key without offset skipping:
+     `{"$or": [{"rank": {"$gt": r0}}, {"rank": r0, "name_sort": {"$gt": n0}}, {"rank": r0, "name_sort": n0, "code": {"$gt": c0}}]}`.
+   - Each page retrieves up to 20 products. Keyset queries fetch 21 records to generate `next_cursor` without secondary count queries.
+   - When no subsequent results remain, `pagination.next_cursor` is `null`.
+   - Text search aggregation enforces a 2,000 ms execution deadline (`maxTimeMS=2000`). Database timeouts return HTTP 503 with error code `search_timeout`.
+
+7. **Rate Limiting & Privacy**:
    - Anonymous per-IP rate limiting operates independently under `LIFEGOODS_PRODUCT_SEARCH_REQUESTS_PER_MINUTE` (default 60), returning HTTP 429 `rate_limit_exceeded`.
    - Search queries, Barcodes, and client IP addresses are redacted from access logs and omitted from operational metrics.
+
 

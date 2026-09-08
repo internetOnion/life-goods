@@ -24,12 +24,14 @@ from lifegoods.product_search.contracts import (
 )
 from lifegoods.product_search.metrics import ProductSearchMetrics
 from lifegoods.product_search.query import (
+    InvalidCursorError,
     QueryValidationError,
     parse_and_validate_query,
 )
 from lifegoods.product_search.rate_limit import ProductSearchRateLimiter
 from lifegoods.product_search.service import (
     SearchProducts,
+    SearchTimeoutError,
     SearchUnavailableError,
 )
 
@@ -96,15 +98,6 @@ def search_products(
                 headers={"Retry-After": str(retry_after)},
             )
 
-        if cursor is not None:
-            return _error_response(
-                status_code=422,
-                code=ProductSearchErrorCode.INVALID_CURSOR,
-                message="Pagination cursor is invalid",
-                started_at=started_at,
-                metrics=metrics,
-            )
-
         try:
             parsed_query = parse_and_validate_query(q)
         except QueryValidationError as error:
@@ -117,7 +110,32 @@ def search_products(
             )
 
         try:
-            result = search.execute(parsed_query)
+            result = search.execute(parsed_query, cursor=cursor)
+        except InvalidCursorError as error:
+            return _error_response(
+                status_code=422,
+                code=ProductSearchErrorCode.INVALID_CURSOR,
+                message=error.message,
+                started_at=started_at,
+                metrics=metrics,
+            )
+        except SearchTimeoutError as error:
+            dataset_response = (
+                DatasetSnapshotResponse(
+                    version=error.dataset.version,
+                    retrieved_at=error.dataset.retrieved_at,
+                )
+                if error.dataset is not None
+                else None
+            )
+            return _error_response(
+                status_code=503,
+                code=ProductSearchErrorCode.SEARCH_TIMEOUT,
+                message=error.message,
+                started_at=started_at,
+                metrics=metrics,
+                dataset=dataset_response,
+            )
         except SearchUnavailableError as error:
             dataset_response = (
                 DatasetSnapshotResponse(
@@ -163,7 +181,7 @@ def search_products(
                     product_url="https://world.openfoodfacts.org",
                 ),
                 dataset=dataset,
-                pagination=SearchPaginationMetaResponse(next_cursor=None),
+                pagination=SearchPaginationMetaResponse(next_cursor=result.next_cursor),
             ),
         )
     except Exception as error:

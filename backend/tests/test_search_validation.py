@@ -43,12 +43,15 @@ def test_cross_field_matching_exact_ranking_ties_and_limit():
         {"code": "4", "product_name": "Other", "brands": "Acme Milk"},
         {"code": "5", "product_name": "Acme", "brands": "Unrelated"},
     ]
-    database.products.insert_many([index_document(r) for r in records])
+    database.products.insert_many([index_document(r, validate_barcode=False) for r in records])
     assert [r["code"] for r in search(database, "acme milk")] == ["3", "4", "1", "2"]
     assert search(database, "no such source") == []
     database.products.insert_many(
         [
-            index_document({"code": f"extra{i}", "product_name": "Milk", "brands": "Acme"})
+            index_document(
+                {"code": f"extra{i}", "product_name": "Milk", "brands": "Acme"},
+                validate_barcode=False,
+            )
             for i in range(30)
         ]
     )

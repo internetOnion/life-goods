@@ -10,7 +10,7 @@ from typing import Any, cast
 
 from pymongo import ASCENDING, TEXT
 from pymongo.database import Database
-from pymongo.errors import PyMongoError
+from pymongo.errors import ExecutionTimeout, PyMongoError
 
 from lifegoods.identifiers import NormalizedIdentifier
 from lifegoods.open_food_facts.models import (
@@ -25,6 +25,12 @@ from lifegoods.open_food_facts.models import (
     ExternalSourceUnavailableReason,
     JsonValue,
     SourcedValue,
+)
+from lifegoods.open_food_facts.search_index import (
+    SearchCursor,
+    SearchIndexError,
+    SearchIndexTimeoutError,
+    validate_search_index_readiness,
 )
 from lifegoods.product_lookup.models import (
     DatasetSnapshot,
@@ -237,6 +243,84 @@ class OpenFoodFactsDatasetSource:
                 "Source Record contains a non-JSON storage value"
             ) from error
         return cast(SourceRecord, source_record)
+
+    def search_text(
+        self,
+        snapshot: DatasetSnapshot,
+        terms: tuple[str, ...],
+        normalized_query: str,
+        cursor: SearchCursor | None = None,
+        limit: int = 20,
+    ) -> list[dict[str, Any]]:
+        try:
+            search_col_name = validate_search_index_readiness(
+                self._database, snapshot.version
+            )
+        except SearchIndexError:
+            raise
+        except (PyMongoError, KeyError, TypeError, ValueError) as error:
+            raise DatasetUnavailableError("Dataset Snapshot unavailable") from error
+
+        pipeline: list[dict[str, Any]] = [
+            {
+                "$match": {
+                    "$and": [
+                        {"$or": [{"name_tokens": t}, {"brand_tokens": t}]}
+                        for t in dict.fromkeys(terms)
+                    ]
+                }
+            },
+            {
+                "$set": {
+                    "rank": {
+                        "$switch": {
+                            "branches": [
+                                {
+                                    "case": {"$in": [normalized_query, "$brand_values"]},
+                                    "then": 0,
+                                },
+                                {
+                                    "case": {"$in": [normalized_query, "$name_values"]},
+                                    "then": 1,
+                                },
+                            ],
+                            "default": 2,
+                        }
+                    }
+                }
+            },
+        ]
+
+        if cursor is not None:
+            pipeline.append(
+                {
+                    "$match": {
+                        "$or": [
+                            {"rank": {"$gt": cursor.rank}},
+                            {"rank": cursor.rank, "name_sort": {"$gt": cursor.name_sort}},
+                            {
+                                "rank": cursor.rank,
+                                "name_sort": cursor.name_sort,
+                                "code": {"$gt": cursor.code},
+                            },
+                        ]
+                    }
+                }
+            )
+
+        pipeline.append({"$sort": {"rank": 1, "name_sort": 1, "code": 1}})
+        pipeline.append({"$limit": limit + 1})
+
+        try:
+            return list(
+                self._database[search_col_name].aggregate(pipeline, maxTimeMS=2000)
+            )
+        except ExecutionTimeout as error:
+            raise SearchIndexTimeoutError(
+                "Search request timed out. Please try again."
+            ) from error
+        except (PyMongoError, KeyError, TypeError, ValueError) as error:
+            raise DatasetUnavailableError("Dataset Snapshot unavailable") from error
 
     def fetch_many(
         self,
