@@ -763,10 +763,10 @@ The Product Search endpoint `GET /api/v1/products/search` provides Barcode searc
    - Top-level `meta` provides `Source Attribution` for Open Food Facts (`https://world.openfoodfacts.org`), `Dataset Snapshot` metadata, and nullable `pagination.next_cursor` (`null` for Barcode queries).
 
 4. **Text Search Indexing & Readiness**:
-   - Search index lifecycle creates a schema version 2 compound index collection per active Dataset Snapshot.
+   - Search index lifecycle creates a schema version 1 compound index collection per active Dataset Snapshot.
    - Indexes include `ix_search_name_tokens` (`name_tokens: 1`), `ix_search_brand_tokens` (`brand_tokens: 1`), and `ix_search_sort` (`name_sort: 1, code: 1`).
    - Only records with valid Barcodes (`normalize_identifier`) are indexed; invalid `Source Records` increment `excluded_count`.
-   - Manifest metadata (`search_index`) tracks `status: "READY"`, `schema_version: 2`, `document_count`, and `excluded_count`.
+   - Manifest metadata (`search_index`) tracks `status: "READY"`, `schema_version: 1`, `document_count`, and `excluded_count`.
    - If the search index is missing, incompatible, or not ready, text searches return HTTP 503 with error code `search_unavailable`, while Barcode searches continue to operate without degradation.
 
 5. **Text Ranking & Localized Name Selection**:

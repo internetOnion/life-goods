@@ -60,7 +60,7 @@ def _dataset_database_with_search_index():
                 "search_index": {
                     "collection_name": SEARCH_COLLECTION_NAME,
                     "status": "READY",
-                    "schema_version": 2,
+                    "schema_version": 1,
                 }
             }
         },
@@ -68,9 +68,7 @@ def _dataset_database_with_search_index():
     search_col = database[SEARCH_COLLECTION_NAME]
     search_col.create_index([("name_tokens", 1)], name="ix_search_name_tokens")
     search_col.create_index([("brand_tokens", 1)], name="ix_search_brand_tokens")
-    search_col.create_index(
-        [("rank", 1), ("name_sort", 1), ("code", 1)], name="ix_search_sort"
-    )
+    search_col.create_index([("name_sort", 1), ("code", 1)], name="ix_search_sort")
     return database
 
 

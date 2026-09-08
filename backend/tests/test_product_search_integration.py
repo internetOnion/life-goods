@@ -145,7 +145,7 @@ def test_build_search_index_lifecycle(
     assert version_doc["search_index"] == {
         "collection_name": search_col_name,
         "status": "READY",
-        "schema_version": 2,
+        "schema_version": 1,
         "document_count": 5,
         "excluded_count": 2,
     }

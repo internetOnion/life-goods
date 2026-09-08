@@ -116,7 +116,7 @@ def test_validate_search_index_readiness_failures() -> None:
     # Incompatible schema version
     database[VERSIONS_COLLECTION].update_one(
         {"_id": version_id},
-        {"$set": {"search_index": {"status": "READY", "schema_version": 1}}},
+        {"$set": {"search_index": {"status": "READY", "schema_version": 999}}},
     )
     with pytest.raises(SearchIndexIncompatibleError, match="schema version"):
         validate_search_index_readiness(database, version_id)

@@ -20,7 +20,7 @@ from lifegoods.product_lookup.projection import (
 )
 
 SEARCH_COLLECTION_PREFIX = "off_product_search_"
-SEARCH_SCHEMA_VERSION = 2
+SEARCH_SCHEMA_VERSION = 1
 VERSIONS_COLLECTION = "off_dataset_versions"
 REQUIRED_SEARCH_INDEXES = frozenset(
     {"ix_search_name_tokens", "ix_search_brand_tokens", "ix_search_sort"}
