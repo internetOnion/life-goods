@@ -92,17 +92,15 @@ describe("search page", () => {
         ).not.toBeInTheDocument()
     })
 
-    test("automatically activates the input when navigated with autoFocus state", () => {
+    test("does not activate the input when the route is opened", () => {
         render(
             <MemoryRouter
-                initialEntries={[
-                    { pathname: "/search", state: { autoFocus: true } },
-                ]}
+                initialEntries={["/search"]}
             >
                 <BarcodeEntryPage />
             </MemoryRouter>,
         )
-        expect(screen.getByRole("textbox", { name: "Search" })).toHaveFocus()
+        expect(screen.getByRole("textbox", { name: "Search" })).not.toHaveFocus()
     })
 
     test("displays Manual Product Lookup heading", () => {
