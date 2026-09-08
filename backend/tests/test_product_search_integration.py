@@ -245,3 +245,129 @@ def test_search_ranking_and_keyset_pagination_on_real_mongodb(
         # Pass page1 cursor from "chocolate" to "vanilla" query
         query_vanilla = parse_and_validate_query("vanilla")
         service.execute(query_vanilla, cursor=page1.next_cursor)
+
+
+def test_search_prefix_retrieval_and_execution_plan_on_real_mongodb(
+    writer_client: MongoClient[dict[str, Any]],
+    reader_client: MongoClient[dict[str, Any]],
+    settings: Settings,
+    test_dataset: tuple[str, str, str],
+) -> None:
+    version_id, source_col_name, search_col_name = test_dataset
+    writer_db = writer_client[settings.off_mongodb_database]
+    reader_db = reader_client[settings.off_mongodb_database]
+
+    code_exact_brand = _make_valid_code(300)
+    code_exact_name = _make_valid_code(301)
+    code_complete_token = _make_valid_code(302)
+    code_prefix_match = _make_valid_code(303)
+    code_khmer = _make_valid_code(304)
+
+    docs: list[dict[str, Any]] = [
+        # Rank 0: exact brand "coca col"
+        {
+            "code": code_exact_brand,
+            "product_name": "Sparkling Water",
+            "brands": "Coca Col",
+        },
+        # Rank 1: exact name "coca col"
+        {
+            "code": code_exact_name,
+            "product_name": "Coca Col",
+            "brands": "Other Beverage",
+        },
+        # Rank 2: complete tokens "coca", "col"
+        {
+            "code": code_complete_token,
+            "product_name": "Coca Col Soda",
+            "brands": "Other Beverage",
+        },
+        # Rank 3: prefix match on "col" ("cold")
+        {
+            "code": code_prefix_match,
+            "product_name": "Coca Cold Brew",
+            "brands": "Other Beverage",
+        },
+        # Khmer product for prefix test
+        {
+            "code": code_khmer,
+            "product_name": "តែបៃតង ទឹកដោះគោ",
+            "brands": "Khmer Brand",
+        },
+    ]
+    # Add 25 prefix matching products for prefix pagination
+    for i in range(25):
+        docs.append(
+            {
+                "code": _make_valid_code(400 + i),
+                "product_name": f"Vanilla Cold Drink {i:02d}",
+                "brands": "Drink Factory",
+            }
+        )
+
+    writer_db[source_col_name].insert_many(docs)
+    build_search_index(writer_db, version_id=version_id)
+
+    # Verify execution plan uses IXSCAN on the token indexes rather than COLLSCAN
+    prefix_pipeline = [
+        {
+            "$match": {
+                "$or": [
+                    {"name_tokens": {"$regex": "^col"}},
+                    {"brand_tokens": {"$regex": "^col"}},
+                ]
+            }
+        }
+    ]
+    explain_output = reader_db.command(
+        "explain",
+        {"aggregate": search_col_name, "pipeline": prefix_pipeline, "cursor": {}},
+        verbosity="queryPlanner",
+    )
+    stages_or_planner = explain_output.get("stages", explain_output.get("queryPlanner", {}))
+    explain_str = str(stages_or_planner)
+    assert "IXSCAN" in explain_str
+    assert "COLLSCAN" not in explain_str
+    assert "ix_search_name_tokens" in explain_str or "ix_search_brand_tokens" in explain_str
+
+    source = OpenFoodFactsDatasetSource(reader_db)
+    service = SearchProducts(source)
+
+    # 1. Test ranking tiers: 0 (exact brand) -> 1 (exact name) -> 2 (complete token) -> 3 (prefix)
+    query_prefix = parse_and_validate_query("coca col")
+    result = service.execute(query_prefix)
+    barcodes = [p.barcode for p in result.products]
+    assert barcodes == [
+        code_exact_brand,
+        code_exact_name,
+        code_complete_token,
+        code_prefix_match,
+    ]
+    # Verify selected summary name on prefix match uses complete-match preference
+    assert result.products[2].name is not None
+    assert result.products[2].name.value == "Coca Col Soda"
+    assert result.products[3].name is not None
+    assert result.products[3].name.value == "Coca Cold Brew"
+
+    # 2. Test Khmer prefix matching
+    query_khmer = parse_and_validate_query("តែបៃ")
+    result_khmer = service.execute(query_khmer)
+    assert len(result_khmer.products) == 1
+    assert result_khmer.products[0].barcode == code_khmer
+
+    # 3. Test pagination across 25 prefix matches for "vanilla col"
+    query_paged = parse_and_validate_query("vanilla col")
+    p1 = service.execute(query_paged)
+    assert len(p1.products) == 20
+    assert p1.next_cursor is not None
+
+    p2 = service.execute(query_paged, cursor=p1.next_cursor)
+    assert len(p2.products) == 5
+    assert p2.next_cursor is None
+
+    p1_codes = [p.barcode for p in p1.products]
+    p2_codes = [p.barcode for p in p2.products]
+    combined_codes = p1_codes + p2_codes
+    assert len(combined_codes) == 25
+    assert len(set(combined_codes)) == 25
+

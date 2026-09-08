@@ -57,7 +57,8 @@ def get_product_search_metrics() -> ProductSearchMetrics:
     summary="Search Products",
     description=(
         "Searches Products in the selected local Open Food Facts Dataset Snapshot "
-        "by Barcode, name, or brand."
+        "by Barcode, name, or brand. Earlier terms require complete tokens; "
+        "the final term supports an unfinished prefix."
     ),
     response_model=ProductSearchResponse,
     responses={
@@ -72,7 +73,30 @@ def search_products(
     q: Annotated[
         str,
         Query(
-            description="Search query: Barcode, product name, or brand.",
+            description=(
+                "Search query: Barcode, product name, or brand "
+                "(complete words and optional final-word prefix)."
+            ),
+            openapi_examples={
+                "barcode": {
+                    "summary": "Complete Barcode",
+                    "description": "Lookup by valid complete GTIN/EAN/UPC identifier.",
+                    "value": "4006381333931",
+                },
+                "brand_and_name": {
+                    "summary": "Brand and complete name terms",
+                    "description": "Search matching source brand and complete product name tokens.",
+                    "value": "coca cola",
+                },
+                "final_word_prefix": {
+                    "summary": "Final-word prefix",
+                    "description": (
+                        "Earlier terms match complete tokens; "
+                        "the final term matches an anchored prefix."
+                    ),
+                    "value": "coca col",
+                },
+            },
         ),
     ],
     search: Annotated[SearchProducts, Depends(get_product_search)],

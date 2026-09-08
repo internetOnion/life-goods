@@ -1674,16 +1674,33 @@
     },
     "/api/v1/products/search": {
       "get": {
-        "description": "Searches Products in the selected local Open Food Facts Dataset Snapshot by Barcode, name, or brand.",
+        "description": "Searches Products in the selected local Open Food Facts Dataset Snapshot by Barcode, name, or brand. Earlier terms require complete tokens; the final term supports an unfinished prefix.",
         "operationId": "searchProducts",
         "parameters": [
           {
-            "description": "Search query: Barcode, product name, or brand.",
+            "description": "Search query: Barcode, product name, or brand (complete words and optional final-word prefix).",
+            "examples": {
+              "barcode": {
+                "description": "Lookup by valid complete GTIN/EAN/UPC identifier.",
+                "summary": "Complete Barcode",
+                "value": "4006381333931"
+              },
+              "brand_and_name": {
+                "description": "Search matching source brand and complete product name tokens.",
+                "summary": "Brand and complete name terms",
+                "value": "coca cola"
+              },
+              "final_word_prefix": {
+                "description": "Earlier terms match complete tokens; the final term matches an anchored prefix.",
+                "summary": "Final-word prefix",
+                "value": "coca col"
+              }
+            },
             "in": "query",
             "name": "q",
             "required": true,
             "schema": {
-              "description": "Search query: Barcode, product name, or brand.",
+              "description": "Search query: Barcode, product name, or brand (complete words and optional final-word prefix).",
               "title": "Q",
               "type": "string"
             }

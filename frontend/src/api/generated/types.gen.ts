@@ -807,7 +807,7 @@ export type SearchProductsData = {
     query: {
         /**
          * Q
-         * Search query: Barcode, product name, or brand.
+         * Search query: Barcode, product name, or brand (complete words and optional final-word prefix).
          */
         q: string;
         /**

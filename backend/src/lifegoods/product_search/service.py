@@ -64,18 +64,34 @@ def select_matching_name(
     if not names:
         return None
 
-    terms_set = set(query_terms)
-    match_counts: list[int] = []
+    earlier_terms = set(query_terms[:-1])
+    final_term = query_terms[-1] if query_terms else None
+
+    scores: list[tuple[int, int]] = []
     for item in names:
         val = item.get("value", "")
         item_terms = set(extract_terms(val))
-        match_counts.append(len(terms_set.intersection(item_terms)))
 
-    max_matches = max(match_counts, default=0)
-    if max_matches > 0:
-        candidates = [
-            names[i] for i, count in enumerate(match_counts) if count == max_matches
+        complete_matches = len({t for t in earlier_terms if t in item_terms})
+        prefix_matches = 0
+
+        if final_term is not None:
+            if final_term in item_terms:
+                if final_term not in earlier_terms:
+                    complete_matches += 1
+            elif any(tok.startswith(final_term) for tok in item_terms):
+                prefix_matches += 1
+
+        total_matches = complete_matches + prefix_matches
+        scores.append((total_matches, complete_matches))
+
+    max_total = max((s[0] for s in scores), default=0)
+    if max_total > 0:
+        top_candidates = [
+            (names[i], scores[i]) for i, s in enumerate(scores) if s[0] == max_total
         ]
+        max_complete = max(s[1] for _, s in top_candidates)
+        candidates = [c for c, s in top_candidates if s[1] == max_complete]
     else:
         candidates = names
 

@@ -42,7 +42,7 @@ export const getOpenFoodFactsImage = <ThrowOnError extends boolean = false>(opti
 
 /**
  * Search Products
- * Searches Products in the selected local Open Food Facts Dataset Snapshot by Barcode, name, or brand.
+ * Searches Products in the selected local Open Food Facts Dataset Snapshot by Barcode, name, or brand. Earlier terms require complete tokens; the final term supports an unfinished prefix.
  */
 export const searchProducts = <ThrowOnError extends boolean = false>(options: Options<SearchProductsData, ThrowOnError>) => {
     return (options.client ?? client).get<SearchProductsResponses, SearchProductsErrors, ThrowOnError>({

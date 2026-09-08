@@ -59,6 +59,65 @@ def test_select_matching_name_logic() -> None:
     assert select_matching_name([], ("dark",)) is None
 
 
+def test_select_matching_name_prefix_preferences() -> None:
+    # 1. Prefers complete token match over prefix match when query-term count ties
+    candidates = [
+        {"value": "Coca Cola", "language": "en", "source_field": "product_name_en"},
+        {"value": "Coca Col", "language": "en", "source_field": "product_name"},
+    ]
+    # Query: ("coca", "col") - both candidates match 2 terms,
+    # but "Coca Col" has 2 complete token matches
+    selected = select_matching_name(candidates, ("coca", "col"))
+    assert selected == OriginalText(
+        value="Coca Col", language="en", source_field="product_name"
+    )
+
+    # 2. More query-term matches beats fewer complete matches
+    candidates_more_matches = [
+        {"value": "Coca Cold Drink", "language": "en", "source_field": "product_name_en"},
+        {"value": "Coca", "language": "en", "source_field": "product_name"},
+    ]
+    # Query: ("coca", "col") - "Coca Cold Drink" matches 2 terms (1 complete + 1 prefix),
+    # while "Coca" matches 1 term (1 complete)
+    selected_more = select_matching_name(candidates_more_matches, ("coca", "col"))
+    assert selected_more == OriginalText(
+        value="Coca Cold Drink", language="en", source_field="product_name_en"
+    )
+
+    # 3. Single term: complete beats prefix
+    single_term_candidates = [
+        {"value": "Cola Drink", "language": "en", "source_field": "product_name_en"},
+        {"value": "Col Drink", "language": "en", "source_field": "product_name"},
+    ]
+    selected_single = select_matching_name(single_term_candidates, ("col",))
+    assert selected_single == OriginalText(
+        value="Col Drink", language="en", source_field="product_name"
+    )
+
+    # 4. Khmer prefix matching
+    khmer_candidates = [
+        {"value": "សូកូឡាខ្មៅ", "language": "km", "source_field": "product_name_km"},
+        {"value": "Chocolat", "language": "fr", "source_field": "product_name_fr"},
+    ]
+    selected_kh_prefix = select_matching_name(khmer_candidates, ("សូកូ",), record_language="fr")
+    assert selected_kh_prefix == OriginalText(
+        value="សូកូឡាខ្មៅ", language="km", source_field="product_name_km"
+    )
+
+    # 5. Earlier terms require complete tokens, only final term supports prefix
+    earlier_prefix_candidates = [
+        {"value": "Dark Chocolate", "language": "en", "source_field": "product_name_en"},
+        {"value": "Dar Chocolate", "language": "en", "source_field": "product_name"},
+    ]
+    # Query: ("dar", "chocolate") -> "dar" is an earlier term. "Dar" is complete match for "dar".
+    # "Dark" does NOT match "dar" because "dar" is not the final term.
+    selected_earlier = select_matching_name(earlier_prefix_candidates, ("dar", "chocolate"))
+    assert selected_earlier == OriginalText(
+        value="Dar Chocolate", language="en", source_field="product_name"
+    )
+
+
+
 def _setup_search_database():
     database = mongomock.MongoClient().lifegoods_off
     version_id = "dataset-service-test"
@@ -254,3 +313,186 @@ def test_search_service_timeout_raises_search_timeout(monkeypatch: pytest.Monkey
 
     with pytest.raises(SearchTimeoutError, match="timed out"):
         service.execute(query)
+
+
+def test_search_service_ranking_four_tiers_with_prefix() -> None:
+    database, version_id, search_col_name = _setup_search_database()
+    search_col = database[search_col_name]
+
+    # For query: "coca col"
+    # Rank 0: Exact full-query brand match ("coca col")
+    # Rank 1: Exact full-query name match ("coca col")
+    # Rank 2: Complete-token match (all terms "coca", "col" present as complete tokens)
+    # Rank 3: Prefix match (earlier term "coca" complete, final term "col" matches "cold" prefix)
+    search_col.insert_many(
+        [
+            {
+                "_id": "5449000000003",
+                "code": "5449000000003",
+                "name_values": ["coca cold"],
+                "name_tokens": ["coca", "cold"],
+                "brand_values": ["other beverage"],
+                "brand_tokens": ["beverage", "other"],
+                "names": [{"value": "Coca Cold", "language": "en", "source_field": "product_name"}],
+                "name_sort": "coca cold",
+                "brands": ["Other Beverage"],
+            },
+            {
+                "_id": "5449000000001",
+                "code": "5449000000001",
+                "name_values": ["coca col"],
+                "name_tokens": ["coca", "col"],
+                "brand_values": ["some brand"],
+                "brand_tokens": ["brand", "some"],
+                "names": [{"value": "Coca Col", "language": "en", "source_field": "product_name"}],
+                "name_sort": "coca col",
+                "brands": ["Some Brand"],
+            },
+            {
+                "_id": "5449000000000",
+                "code": "5449000000000",
+                "name_values": ["classic can"],
+                "name_tokens": ["can", "classic"],
+                "brand_values": ["coca col"],
+                "brand_tokens": ["coca", "col"],
+                "names": [
+                    {
+                        "value": "Classic Can",
+                        "language": "en",
+                        "source_field": "product_name",
+                    }
+                ],
+                "name_sort": "classic can",
+                "brands": ["Coca Col"],
+            },
+            {
+                "_id": "5449000000002",
+                "code": "5449000000002",
+                "name_values": ["coca col soda"],
+                "name_tokens": ["coca", "col", "soda"],
+                "brand_values": ["soda brand"],
+                "brand_tokens": ["brand", "soda"],
+                "names": [
+                    {
+                        "value": "Coca Col Soda",
+                        "language": "en",
+                        "source_field": "product_name",
+                    }
+                ],
+                "name_sort": "coca col soda",
+                "brands": ["Soda Brand"],
+            },
+        ]
+    )
+
+    source = OpenFoodFactsDatasetSource(database)
+    service = SearchProducts(source)
+    query = parse_and_validate_query("coca col")
+
+    result = service.execute(query)
+    barcodes = [p.barcode for p in result.products]
+
+    # Rank 0 -> Rank 1 -> Rank 2 -> Rank 3
+    assert barcodes == [
+        "5449000000000",
+        "5449000000001",
+        "5449000000002",
+        "5449000000003",
+    ]
+
+
+def test_search_service_earlier_terms_require_complete_tokens() -> None:
+    database, version_id, search_col_name = _setup_search_database()
+    search_col = database[search_col_name]
+
+    search_col.insert_many(
+        [
+            # Match: "coca" complete token, "cold" prefix match on "col"
+            {
+                "_id": "5449000000010",
+                "code": "5449000000010",
+                "name_values": ["coca cold"],
+                "name_tokens": ["coca", "cold"],
+                "brand_values": ["drink"],
+                "brand_tokens": ["drink"],
+                "names": [{"value": "Coca Cold", "language": "en", "source_field": "product_name"}],
+                "name_sort": "coca cold",
+                "brands": ["Drink"],
+            },
+            # Non-match: "cocacola" has "coca" only as a prefix, not a complete token!
+            {
+                "_id": "5449000000011",
+                "code": "5449000000011",
+                "name_values": ["cocacola cold"],
+                "name_tokens": ["cocacola", "cold"],
+                "brand_values": ["drink"],
+                "brand_tokens": ["drink"],
+                "names": [
+                    {
+                        "value": "Cocacola Cold",
+                        "language": "en",
+                        "source_field": "product_name",
+                    }
+                ],
+                "name_sort": "cocacola cold",
+                "brands": ["Drink"],
+            },
+        ]
+    )
+
+    source = OpenFoodFactsDatasetSource(database)
+    service = SearchProducts(source)
+    query = parse_and_validate_query("coca col")
+
+    result = service.execute(query)
+    barcodes = [p.barcode for p in result.products]
+    assert barcodes == ["5449000000010"]
+
+
+def test_search_service_prefix_pagination_continuation() -> None:
+    database, version_id, search_col_name = _setup_search_database()
+    search_col = database[search_col_name]
+
+    # Insert 25 prefix-only matching products (rank 3)
+    # Query "choc" -> all match prefix "^choc" on "chocolate"
+    docs = [
+        {
+            "_id": f"40063813339{i:02d}",
+            "code": f"40063813339{i:02d}",
+            "name_values": [f"chocolate bar {i:02d}"],
+            "name_tokens": ["bar", "chocolate"],
+            "brand_values": ["sweet co"],
+            "brand_tokens": ["co", "sweet"],
+            "names": [
+                {
+                    "value": f"Chocolate Bar {i:02d}",
+                    "language": "en",
+                    "source_field": "product_name",
+                }
+            ],
+            "name_sort": f"chocolate bar {i:02d}",
+            "brands": ["Sweet Co"],
+        }
+        for i in range(25)
+    ]
+    search_col.insert_many(docs)
+
+    source = OpenFoodFactsDatasetSource(database)
+    service = SearchProducts(source)
+    query = parse_and_validate_query("choc")
+
+    page1 = service.execute(query)
+    assert len(page1.products) == 20
+    assert page1.next_cursor is not None
+    page1_codes = [p.barcode for p in page1.products]
+
+    page2 = service.execute(query, cursor=page1.next_cursor)
+    assert len(page2.products) == 5
+    assert page2.next_cursor is None
+    page2_codes = [p.barcode for p in page2.products]
+
+    all_codes = page1_codes + page2_codes
+    assert len(all_codes) == 25
+    assert len(set(all_codes)) == 25
+
+

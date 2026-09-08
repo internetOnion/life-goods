@@ -708,3 +708,308 @@ def test_barcode_search_unaffected_by_search_index_state() -> None:
         assert len(res_barcode.json()["data"]["products"]) == 1
 
 
+def test_search_http_prefix_matching_and_ranking_tiers() -> None:
+    database = _dataset_database_with_search_index()
+    search_col = database[SEARCH_COLLECTION_NAME]
+
+    # Insert 4 products for query "coca col":
+    # 0. exact brand "coca col"
+    # 1. exact name "coca col"
+    # 2. complete tokens "coca", "col"
+    # 3. prefix match on "col" ("cold")
+    search_col.insert_many(
+        [
+            {
+                "_id": "5449000000003",
+                "code": "5449000000003",
+                "name_values": ["coca cold"],
+                "name_tokens": ["coca", "cold"],
+                "brand_values": ["beverage co"],
+                "brand_tokens": ["beverage", "co"],
+                "names": [{"value": "Coca Cold", "language": "en", "source_field": "product_name"}],
+                "name_sort": "coca cold",
+                "brands": ["Beverage Co"],
+            },
+            {
+                "_id": "5449000000001",
+                "code": "5449000000001",
+                "name_values": ["coca col"],
+                "name_tokens": ["coca", "col"],
+                "brand_values": ["other co"],
+                "brand_tokens": ["co", "other"],
+                "names": [{"value": "Coca Col", "language": "en", "source_field": "product_name"}],
+                "name_sort": "coca col",
+                "brands": ["Other Co"],
+            },
+            {
+                "_id": "5449000000000",
+                "code": "5449000000000",
+                "name_values": ["classic drink"],
+                "name_tokens": ["classic", "drink"],
+                "brand_values": ["coca col"],
+                "brand_tokens": ["coca", "col"],
+                "names": [
+                    {
+                        "value": "Classic Drink",
+                        "language": "en",
+                        "source_field": "product_name",
+                    }
+                ],
+                "name_sort": "classic drink",
+                "brands": ["Coca Col"],
+            },
+            {
+                "_id": "5449000000002",
+                "code": "5449000000002",
+                "name_values": ["coca col soda"],
+                "name_tokens": ["coca", "col", "soda"],
+                "brand_values": ["soda brand"],
+                "brand_tokens": ["brand", "soda"],
+                "names": [
+                    {
+                        "value": "Coca Col Soda",
+                        "language": "en",
+                        "source_field": "product_name",
+                    }
+                ],
+                "name_sort": "coca col soda",
+                "brands": ["Soda Brand"],
+            },
+        ]
+    )
+
+    with _client(database) as client:
+        response = client.get("/api/v1/products/search?q=coca col")
+        assert response.status_code == 200
+        data = response.json()
+        products = data["data"]["products"]
+        assert len(products) == 4
+        # Exact brand (0) -> Exact name (1) -> Complete token (2) -> Prefix match (3)
+        assert [p["barcode"] for p in products] == [
+            "5449000000000",
+            "5449000000001",
+            "5449000000002",
+            "5449000000003",
+        ]
+        # Metadata and attribution present
+        assert data["meta"]["source"]["name"] == "Open Food Facts"
+        assert data["meta"]["dataset"]["version"] == VERSION_ID
+
+
+def test_search_http_earlier_terms_require_complete_tokens() -> None:
+    database = _dataset_database_with_search_index()
+    search_col = database[SEARCH_COLLECTION_NAME]
+
+    search_col.insert_many(
+        [
+            # Match: "coca" complete token, "cold" prefix match on "col"
+            {
+                "_id": "5449000000010",
+                "code": "5449000000010",
+                "name_values": ["coca cold"],
+                "name_tokens": ["coca", "cold"],
+                "brand_values": ["drink"],
+                "brand_tokens": ["drink"],
+                "names": [{"value": "Coca Cold", "language": "en", "source_field": "product_name"}],
+                "name_sort": "coca cold",
+                "brands": ["Drink"],
+            },
+            # Non-match: "cocacola" has "coca" only as prefix, not complete token!
+            {
+                "_id": "5449000000011",
+                "code": "5449000000011",
+                "name_values": ["cocacola cold"],
+                "name_tokens": ["cocacola", "cold"],
+                "brand_values": ["drink"],
+                "brand_tokens": ["drink"],
+                "names": [
+                    {
+                        "value": "Cocacola Cold",
+                        "language": "en",
+                        "source_field": "product_name",
+                    }
+                ],
+                "name_sort": "cocacola cold",
+                "brands": ["Drink"],
+            },
+        ]
+    )
+
+    with _client(database) as client:
+        response = client.get("/api/v1/products/search?q=coca col")
+        assert response.status_code == 200
+        products = response.json()["data"]["products"]
+        assert len(products) == 1
+        assert products[0]["barcode"] == "5449000000010"
+
+
+def test_search_http_prefix_no_matches_returns_empty() -> None:
+    database = _dataset_database_with_search_index()
+
+    with _client(database) as client:
+        response = client.get("/api/v1/products/search?q=nonexistentprefixxyz")
+        assert response.status_code == 200
+        assert response.json()["data"]["products"] == []
+
+
+def test_search_http_punctuation_normalization_and_escaping() -> None:
+    database = _dataset_database_with_search_index()
+    search_col = database[SEARCH_COLLECTION_NAME]
+
+    search_col.insert_one(
+        {
+            "_id": "5449000000020",
+            "code": "5449000000020",
+            "name_values": ["coca cold"],
+            "name_tokens": ["coca", "cold"],
+            "brand_values": ["drink"],
+            "brand_tokens": ["drink"],
+            "names": [{"value": "Coca Cold", "language": "en", "source_field": "product_name"}],
+            "name_sort": "coca cold",
+            "brands": ["Drink"],
+        }
+    )
+
+    with _client(database) as client:
+        # Hyphenated query
+        res_hyphen = client.get("/api/v1/products/search?q=coca-col")
+        assert res_hyphen.status_code == 200
+        assert len(res_hyphen.json()["data"]["products"]) == 1
+        assert res_hyphen.json()["data"]["products"][0]["barcode"] == "5449000000020"
+
+        # Punctuation with question mark / period
+        res_punct = client.get("/api/v1/products/search?q=coca.%20col?")
+        assert res_punct.status_code == 200
+        assert len(res_punct.json()["data"]["products"]) == 1
+        assert res_punct.json()["data"]["products"][0]["barcode"] == "5449000000020"
+
+
+def test_search_http_prefix_localized_name_selection() -> None:
+    database = _dataset_database_with_search_index()
+    search_col = database[SEARCH_COLLECTION_NAME]
+
+    search_col.insert_one(
+        {
+            "_id": "5449000000030",
+            "code": "5449000000030",
+            "name_values": ["coca cold drink", "coca col"],
+            "name_tokens": ["coca", "col", "cold", "drink"],
+            "brand_values": ["beverage"],
+            "brand_tokens": ["beverage"],
+            "names": [
+                {
+                    "value": "Coca Cold Drink",
+                    "language": "en",
+                    "source_field": "product_name_en",
+                },
+                {
+                    "value": "Coca Col",
+                    "language": "fr",
+                    "source_field": "product_name_fr",
+                },
+            ],
+            "name_sort": "coca cold drink",
+            "brands": ["Beverage"],
+        }
+    )
+
+    with _client(database) as client:
+        # Query "coca col": "Coca Col" (fr) has 2 complete token matches vs
+        # "Coca Cold Drink" (en) which has 1 complete + 1 prefix.
+        # Complete token matches tiebreaker prefers "Coca Col" despite "en" language!
+        response = client.get("/api/v1/products/search?q=coca col")
+        assert response.status_code == 200
+        name = response.json()["data"]["products"][0]["name"]
+        assert name["value"] == "Coca Col"
+        assert name["language"] == "fr"
+
+
+def test_search_http_khmer_prefix_matching() -> None:
+    database = _dataset_database_with_search_index()
+    search_col = database[SEARCH_COLLECTION_NAME]
+
+    search_col.insert_one(
+        {
+            "_id": "5449000000040",
+            "code": "5449000000040",
+            "name_values": ["តែបៃតង ទឹកដោះគោ"],
+            "name_tokens": ["តែបៃតង", "ទឹកដោះគោ"],
+            "brand_values": ["ម៉ាកខ្មែរ"],
+            "brand_tokens": ["ម៉ាកខ្មែរ"],
+            "names": [
+                {
+                    "value": "តែបៃតង ទឹកដោះគោ",
+                    "language": "km",
+                    "source_field": "product_name_km",
+                }
+            ],
+            "name_sort": "តែបៃតង ទឹកដោះគោ",
+            "brands": ["ម៉ាកខ្មែរ"],
+        }
+    )
+
+    with _client(database) as client:
+        # Search using Khmer prefix "តែបៃ"
+        res_match = client.get("/api/v1/products/search?q=តែបៃ")
+        assert res_match.status_code == 200
+        assert len(res_match.json()["data"]["products"]) == 1
+        assert res_match.json()["data"]["products"][0]["barcode"] == "5449000000040"
+
+        # Search using different Khmer word "តែក្រ" -> no match
+        res_no_match = client.get("/api/v1/products/search?q=តែក្រ")
+        assert res_no_match.status_code == 200
+        assert res_no_match.json()["data"]["products"] == []
+
+
+def test_search_http_prefix_pagination_continuation() -> None:
+    database = _dataset_database_with_search_index()
+    search_col = database[SEARCH_COLLECTION_NAME]
+
+    # Insert 25 prefix matching items
+    docs = [
+        {
+            "_id": f"40063813339{i:02d}",
+            "code": f"40063813339{i:02d}",
+            "name_values": [f"chocolate bar {i:02d}"],
+            "name_tokens": ["bar", "chocolate"],
+            "brand_values": ["sweet co"],
+            "brand_tokens": ["co", "sweet"],
+            "names": [
+                {
+                    "value": f"Chocolate Bar {i:02d}",
+                    "language": "en",
+                    "source_field": "product_name",
+                }
+            ],
+            "name_sort": f"chocolate bar {i:02d}",
+            "brands": ["Sweet Co"],
+        }
+        for i in range(25)
+    ]
+    search_col.insert_many(docs)
+
+    with _client(database) as client:
+        # Page 1 for prefix query "choc"
+        page1 = client.get("/api/v1/products/search?q=choc")
+        assert page1.status_code == 200
+        p1_data = page1.json()
+        assert len(p1_data["data"]["products"]) == 20
+        cursor = p1_data["meta"]["pagination"]["next_cursor"]
+        assert cursor is not None
+
+        # Page 2
+        page2 = client.get(f"/api/v1/products/search?q=choc&cursor={cursor}")
+        assert page2.status_code == 200
+        p2_data = page2.json()
+        assert len(p2_data["data"]["products"]) == 5
+        assert p2_data["meta"]["pagination"]["next_cursor"] is None
+
+        # Ensure all 25 barcodes received without duplicates or omissions
+        codes1 = [p["barcode"] for p in p1_data["data"]["products"]]
+        codes2 = [p["barcode"] for p in p2_data["data"]["products"]]
+        all_codes = codes1 + codes2
+        assert len(all_codes) == 25
+        assert len(set(all_codes)) == 25
+
+
+

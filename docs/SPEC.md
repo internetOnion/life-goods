@@ -770,15 +770,17 @@ The Product Search endpoint `GET /api/v1/products/search` provides Barcode searc
    - If the search index is missing, incompatible, or not ready, text searches return HTTP 503 with error code `search_unavailable`, while Barcode searches continue to operate without degradation.
 
 5. **Text Ranking & Localized Name Selection**:
-   - Results are ranked across three strict tiers:
+   - Earlier terms strictly require complete tokens; the final term supports an escaped, anchored prefix. Typo tolerance, substring-anywhere matching, fuzzy retrieval, and cross-language retrieval are not supported.
+   - Results are ranked across four strict tiers:
      - Exact brand match (`rank: 0`): the normalized query matches an entry in `brand_values`.
      - Exact name match (`rank: 1`): the normalized query matches an entry in `name_values`.
-     - Complete-word token match (`rank: 2`): all query terms are present across `name_tokens` and/or `brand_tokens`.
+     - Complete-word token match (`rank: 2`): all query terms are present as complete tokens across `name_tokens` and/or `brand_tokens`.
+     - Remaining prefix match (`rank: 3`): earlier query terms match complete tokens, and the final query term matches as an anchored prefix (`^term`) on a token in `name_tokens` or `brand_tokens`.
    - Compound ordering strictly follows `{"rank": 1, "name_sort": 1, "code": 1}`.
-   - Localized name display selection (`select_matching_name`) prioritizes the source name candidate matching the highest count of query terms. Ties are broken by `record_language` -> `"en"` -> first listed name. If zero name terms match (e.g. pure brand match), standard Product Lookup name preference applies.
+   - Localized name display selection (`select_matching_name`) prioritizes the source name candidate matching the highest count of query terms. When query-term match counts tie, complete-token matches are preferred over prefix matches. Subsequent ties are broken by `record_language` -> `"en"` -> first listed name. If zero name terms match (e.g. pure brand match), standard Product Lookup name preference applies.
 
 6. **Keyset Pagination & Timeout**:
-   - Page continuation uses keyset evaluation against the compound sort key without offset skipping:
+   - Page continuation uses keyset evaluation against the compound sort key across all ranking tiers (`rank: 0, 1, 2, 3`) without offset skipping:
      `{"$or": [{"rank": {"$gt": r0}}, {"rank": r0, "name_sort": {"$gt": n0}}, {"rank": r0, "name_sort": n0, "code": {"$gt": c0}}]}`.
    - Each page retrieves up to 20 products. Keyset queries fetch 21 records to generate `next_cursor` without secondary count queries.
    - When no subsequent results remain, `pagination.next_cursor` is `null`.

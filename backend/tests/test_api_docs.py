@@ -165,6 +165,10 @@ def test_product_search_is_typed_in_openapi(client: TestClient) -> None:
     assert param_names["cursor"]["required"] is False
     assert param_names["cursor"]["in"] == "query"
 
+    assert "examples" in param_names["q"]
+    assert "final_word_prefix" in param_names["q"]["examples"]
+    assert param_names["q"]["examples"]["final_word_prefix"]["value"] == "coca col"
+
     assert set(operation["responses"]) == {"200", "422", "429", "500", "503"}
     assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/ProductSearchResponse"

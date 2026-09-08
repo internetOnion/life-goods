@@ -59,6 +59,23 @@ def test_cursor_rejects_query_mismatch() -> None:
         decode_and_validate_cursor(cursor, expected_terms=("pepsi", "cola"))
 
 
+def test_cursor_round_trip_rank_3_prefix() -> None:
+    terms = ("coca", "col")
+    cursor = encode_cursor(
+        terms=terms,
+        rank=3,
+        name_sort="coca cold",
+        code="5449000000996",
+    )
+    assert isinstance(cursor, str)
+    decoded = decode_and_validate_cursor(cursor, expected_terms=terms)
+    assert decoded == SearchCursor(
+        rank=3,
+        name_sort="coca cold",
+        code="5449000000996",
+    )
+
+
 @pytest.mark.parametrize(
     "corrupted_cursor",
     [
@@ -67,6 +84,8 @@ def test_cursor_rejects_query_mismatch() -> None:
         "e30",  # '{}' in base64 - missing required keys
         # rank=9 out of bounds
         "eyJmIjogInRlc3QiLCAiciI6IDksICJuIjogIiIsICJjIjogIjEyMyJ9",
+        # rank=4 out of bounds
+        "eyJmIjogInRlc3QiLCAiciI6IDQsICJuIjogIiIsICJjIjogIjEyMyJ9",
         # invalid code or extra keys
         "eyJmIjogInRlc3QiLCAiciI6IDAsICJuIjogIiIsICJjIjogIm5vdC1kaWdpdHMiLCB4IjogMX0",
     ],
@@ -74,3 +93,4 @@ def test_cursor_rejects_query_mismatch() -> None:
 def test_cursor_rejects_malformed_and_tampered_input(corrupted_cursor: str) -> None:
     with pytest.raises(InvalidCursorError):
         decode_and_validate_cursor(corrupted_cursor, expected_terms=("coca", "cola"))
+

@@ -122,7 +122,7 @@ def decode_and_validate_cursor(
         raise InvalidCursorError("Pagination cursor is invalid")
     if not isinstance(rank, int) or isinstance(rank, bool):
         raise InvalidCursorError("Pagination cursor is invalid")
-    if rank not in (0, 1, 2):
+    if rank not in (0, 1, 2, 3):
         raise InvalidCursorError("Pagination cursor is invalid")
     if len(name_sort) > MAX_NAME_SORT_LENGTH:
         raise InvalidCursorError("Pagination cursor is invalid")

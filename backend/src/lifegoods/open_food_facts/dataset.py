@@ -261,15 +261,25 @@ class OpenFoodFactsDatasetSource:
         except (PyMongoError, KeyError, TypeError, ValueError) as error:
             raise DatasetUnavailableError("Dataset Snapshot unavailable") from error
 
-        pipeline: list[dict[str, Any]] = [
+        earlier_terms = list(dict.fromkeys(terms[:-1]))
+        final_term = terms[-1]
+        escaped_final_term = re.escape(final_term)
+
+        match_conditions: list[dict[str, Any]] = [
+            {"$or": [{"name_tokens": t}, {"brand_tokens": t}]}
+            for t in earlier_terms
+        ]
+        match_conditions.append(
             {
-                "$match": {
-                    "$and": [
-                        {"$or": [{"name_tokens": t}, {"brand_tokens": t}]}
-                        for t in dict.fromkeys(terms)
-                    ]
-                }
-            },
+                "$or": [
+                    {"name_tokens": {"$regex": f"^{escaped_final_term}"}},
+                    {"brand_tokens": {"$regex": f"^{escaped_final_term}"}},
+                ]
+            }
+        )
+
+        pipeline: list[dict[str, Any]] = [
+            {"$match": {"$and": match_conditions}},
             {
                 "$set": {
                     "rank": {
@@ -283,8 +293,17 @@ class OpenFoodFactsDatasetSource:
                                     "case": {"$in": [normalized_query, "$name_values"]},
                                     "then": 1,
                                 },
+                                {
+                                    "case": {
+                                        "$or": [
+                                            {"$in": [final_term, "$name_tokens"]},
+                                            {"$in": [final_term, "$brand_tokens"]},
+                                        ]
+                                    },
+                                    "then": 2,
+                                },
                             ],
-                            "default": 2,
+                            "default": 3,
                         }
                     }
                 }
