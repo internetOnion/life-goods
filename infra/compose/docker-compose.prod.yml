@@ -1,0 +1,121 @@
+# LifeGoods PRODUCTION stack — hardened single-VPS topology (Netcup).
+#
+# Security model:
+#   * Only `nginx` publishes ports (80/443). The backend and ALL databases are on
+#     an internal Docker network with NO published ports — unreachable from outside.
+#   * Every datastore uses strong, per-deploy credentials from infra/secrets/<env>/.env.
+#   * Redis is authenticated and runs appendonly (disposable lookup and translation cache).
+#   * Memory/pids limits keep the stack within the Netcup VPS 500 G12 (4 GB).
+#
+# Usage (from repo root, after deploy.sh has provisioned the host):
+#   docker compose --env-file infra/secrets/prod/.env \
+#     -f infra/compose/docker-compose.prod.yml up -d --build
+#
+# Required secrets in the env file (see infra/secrets/prod/.env.example).
+
+services:
+  nginx:
+    build:
+      context: ../..
+      dockerfile: infra/deploy/frontend.Dockerfile
+      args:
+        VITE_MVP_DEMO_MODE: "false"
+    image: lifegoods/frontend:prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./tls:/etc/nginx/tls:ro
+      - certbot-webroot:/var/www/certbot
+    depends_on:
+      - backend
+    mem_limit: 256m
+    pids_limit: 256
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  backend:
+    build:
+      context: ../..
+      dockerfile: infra/deploy/backend.Dockerfile
+    image: lifegoods/backend:prod
+    restart: unless-stopped
+    environment:
+      LIFEGOODS_ENVIRONMENT: production
+      LIFEGOODS_OFF_MONGODB_URI: mongodb://${LIFEGOODS_OFF_READER_USER}:${LIFEGOODS_OFF_READER_PASSWORD}@mongodb:27017/${LIFEGOODS_OFF_DATABASE}?authSource=${LIFEGOODS_OFF_DATABASE}
+      LIFEGOODS_OFF_MONGODB_DATABASE: ${LIFEGOODS_OFF_DATABASE}
+      LIFEGOODS_GENERATED_MONGODB_URI: mongodb://${LIFEGOODS_GENERATED_USER}:${LIFEGOODS_GENERATED_PASSWORD}@mongodb:27017/${LIFEGOODS_GENERATED_DATABASE}?authSource=${LIFEGOODS_GENERATED_DATABASE}
+      LIFEGOODS_GENERATED_MONGODB_DATABASE: ${LIFEGOODS_GENERATED_DATABASE}
+      LIFEGOODS_GEMINI_API_KEY: ${LIFEGOODS_GEMINI_API_KEY:-}
+      LIFEGOODS_REDIS_URL: redis://:${LIFEGOODS_REDIS_PASSWORD}@redis:6379/0
+      LIFEGOODS_ALLOWED_ORIGINS: ${LIFEGOODS_ALLOWED_ORIGINS}
+      LIFEGOODS_OPEN_FOOD_FACTS_IMAGE_BASE_URL: ${LIFEGOODS_OPEN_FOOD_FACTS_IMAGE_BASE_URL}
+    depends_on:
+      - mongodb
+      - redis
+    mem_limit: 1024m
+    pids_limit: 512
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  mongodb:
+    image: mongo:8.2
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${LIFEGOODS_MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${LIFEGOODS_MONGO_ROOT_PASSWORD}
+      LIFEGOODS_OFF_DATABASE: ${LIFEGOODS_OFF_DATABASE}
+      LIFEGOODS_OFF_READER_USERNAME: ${LIFEGOODS_OFF_READER_USER}
+      LIFEGOODS_OFF_READER_PASSWORD: ${LIFEGOODS_OFF_READER_PASSWORD}
+      LIFEGOODS_OFF_WRITER_USERNAME: ${LIFEGOODS_OFF_WRITER_USER}
+      LIFEGOODS_OFF_WRITER_PASSWORD: ${LIFEGOODS_OFF_WRITER_PASSWORD}
+      LIFEGOODS_GENERATED_DATABASE: ${LIFEGOODS_GENERATED_DATABASE}
+      LIFEGOODS_GENERATED_USERNAME: ${LIFEGOODS_GENERATED_USER}
+      LIFEGOODS_GENERATED_PASSWORD: ${LIFEGOODS_GENERATED_PASSWORD}
+    volumes:
+      - lifegoods-mongodb:/data/db
+      - ../../infra/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    # No ports published: DB is internal-only.
+    mem_limit: 1024m
+    pids_limit: 1024
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    image: redis:8.2-alpine
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --requirepass
+      - ${LIFEGOODS_REDIS_PASSWORD}
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - 256mb
+      - --maxmemory-policy
+      - allkeys-lru
+    volumes:
+      - lifegoods-redis:/data
+    # No ports published: cache is internal-only.
+    mem_limit: 256m
+    pids_limit: 256
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  lifegoods-mongodb:
+  lifegoods-redis:
+  certbot-webroot:

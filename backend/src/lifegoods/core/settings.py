@@ -1,4 +1,4 @@
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from lifegoods.translation.deadline import DEFAULT_TRANSLATION_DEADLINE_SECONDS
@@ -40,6 +40,7 @@ class Settings(BaseSettings):
         populate_by_name=True,
     )
 
+    environment: str = "development"
     allowed_origins: tuple[str, ...] = ("http://localhost:5173",)
     open_food_facts_image_base_url: str = DEFAULT_OPEN_FOOD_FACTS_IMAGE_BASE_URL
     open_food_facts_image_timeout_seconds: float = (
@@ -95,3 +96,25 @@ class Settings(BaseSettings):
             "gemini_api_key",
         ),
     )
+
+    @model_validator(mode="after")
+    def _fail_fast_on_known_defaults_in_production(self) -> "Settings":
+        env = self.environment.strip().lower()
+        if env not in {"production", "prod"}:
+            return self
+        if "lifegoods_reader:lifegoods_reader@" in self.off_mongodb_uri:
+            raise ValueError(
+                "LIFEGOODS_OFF_MONGODB_URI must not use the development default "
+                "credentials in the production environment."
+            )
+        if "lifegoods_generated:lifegoods_generated@" in self.generated_mongodb_uri:
+            raise ValueError(
+                "LIFEGOODS_GENERATED_MONGODB_URI must not use development credentials "
+                "in the production environment."
+            )
+        if "redis://localhost:6380/0" in self.redis_url:
+            raise ValueError(
+                "LIFEGOODS_REDIS_URL must point at an authenticated Redis instance "
+                "in the production environment."
+            )
+        return self

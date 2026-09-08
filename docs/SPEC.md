@@ -209,6 +209,8 @@ To allow safe incremental migration of the frontend without breaking existing pr
 
 1. **Deprecated Experimental Route**: `GET /api/experimental/products/{barcode}` is retained with `deprecated=True` in OpenAPI. It returns `ProductLookupResponse` containing the unprojected Open Food Facts `source_record`.
 2. **Dual-Contract Frontend Adapter**: `adaptProductLookup` in `frontend/src/features/product/adapter.ts` accepts either `ProductProjectionResponse` (from the stable `/api/v1/products/{barcode}` endpoint) or `ProductLookupResponse` (from the deprecated experimental route).
+The default frontend Product Lookup currently reads the checked-in Dataset Snapshot without an API request. Its raw response uses a frontend-owned compatibility type, independent of the generated FastAPI types. The adapter preserves Source Attribution for both that static response and the stable API response. Connecting the default frontend to `language=kh` and implementing translated-field display remain deferred to #90.
+
 3. **Subsequent Removal Issue**: Once frontend presentation components consume `ProductProjection` directly and no consumers rely on `adaptProductLookup`'s legacy candidate structure, the experimental endpoint and dual-mode adapter will be removed in a dedicated follow-up issue.
 
 ## 13. Isolated generated-data persistence (Issue #84)

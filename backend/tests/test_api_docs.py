@@ -144,3 +144,11 @@ def test_stable_product_lookup_is_typed_in_openapi(client: TestClient) -> None:
     assert "TranslatableField" in schemas
     assert "StorageInstructionItem" in schemas
     assert "TranslationMetaResponse" in schemas
+
+
+def test_product_lookup_errors_keep_security_headers(client: TestClient) -> None:
+    response = client.get("/api/v1/products/invalid")
+    assert response.status_code == 422
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert response.headers["Referrer-Policy"] == "no-referrer"
+    assert response.headers["Cache-Control"] == "no-store"

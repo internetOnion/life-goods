@@ -10,6 +10,7 @@ from pymongo import MongoClient
 from scalar_fastapi import get_scalar_api_reference
 
 from lifegoods.core.errors import ErrorCode, ErrorDetail, ErrorEnvelope
+from lifegoods.core.security import SecurityHeadersMiddleware
 from lifegoods.core.settings import Settings
 from lifegoods.generated_data.budget import RedisTranslationBudgetLimiter
 from lifegoods.generated_data.cache import RedisTranslationHotCache
@@ -141,6 +142,7 @@ def create_app(
         resolved_image_source = image_source
 
     app = FastAPI(title="Life Goods API", version="0.1.0")
+    app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(resolved_settings.allowed_origins),

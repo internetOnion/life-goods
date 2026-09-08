@@ -7,6 +7,7 @@ const commonTableHeadings = {
         kh: "អ្វីដែលវាមិនបញ្ជាក់",
         en: "What it does not prove",
     },
+    sourceHeading: { kh: "ប្រភព", en: "Source" },
 }
 
 export const LEARN_GUIDES: LearnGuide[] = [
@@ -27,6 +28,24 @@ export const LEARN_GUIDES: LearnGuide[] = [
             caption: {
                 kh: "បញ្ជីពិនិត្យព័ត៌មានលើស្លាក",
                 en: "Food-label information checklist",
+            },
+            ...commonTableHeadings,
+        },
+    },
+    {
+        slug: "food-scores",
+        category: "food-scores",
+        title: { kh: "ពិន្ទុអាហារ", en: "Food Scores" },
+        intro: {
+            kh: "ស្វែងយល់ពី Nutri-Score, NOVA និង Green-Score និងអ្វីដែលពិន្ទុនីមួយៗអាច ឬមិនអាចប្រាប់អំពីផលិតផលបាន។",
+            en: "Understand Nutri-Score, NOVA, and Green-Score—and what each can and cannot tell you about a product.",
+        },
+        entryIds: ["FOOD_SCORE_001", "FOOD_SCORE_002", "FOOD_SCORE_003"],
+        featured: false,
+        table: {
+            caption: {
+                kh: "ពិន្ទុអាហារ និងដែនកំណត់របស់វា",
+                en: "Food scores and their limits",
             },
             ...commonTableHeadings,
         },

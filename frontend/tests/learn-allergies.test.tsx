@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter, useLocation } from "react-router"
 import { beforeEach, describe, expect, test, vi } from "vitest"
@@ -40,17 +40,21 @@ describe("Learn source content and Allergies demos", () => {
         const { unmount } = renderRoute("/learn", false)
 
         expect(screen.getByRole("heading", { name: "Learn" })).toHaveClass(
-            "font-black",
+            "font-extrabold",
         )
-        expect(screen.getByText("Law on Food Safety")).toBeVisible()
-        expect(
-            screen.getByRole("heading", { name: "Label-reading guides" }),
-        ).toHaveClass("font-bold")
         expect(
             screen.getAllByRole("link", {
                 name: /How to read a food label/,
             })[0],
         ).toHaveAttribute("href", "/learn/guides/how-to-read-a-label")
+        fireEvent.change(
+            screen.getByRole("searchbox", { name: "Search topics" }),
+            { target: { value: "Law on Food Safety" } },
+        )
+        expect(screen.getByText("Law on Food Safety")).toBeVisible()
+        expect(
+            screen.getByRole("heading", { name: "Lessons by category" }),
+        ).toHaveClass("font-bold")
         expect(
             screen.queryByRole("status", { name: "Demo data is active" }),
         ).not.toBeInTheDocument()
@@ -60,11 +64,15 @@ describe("Learn source content and Allergies demos", () => {
 
         unmount()
         renderRoute("/learn", true)
+        fireEvent.change(
+            screen.getByRole("searchbox", { name: "Search topics" }),
+            { target: { value: "Law on Food Safety" } },
+        )
         expect(screen.getByText("Law on Food Safety")).toBeVisible()
         expect(
             screen.queryByText("Contains and may contain"),
         ).not.toBeInTheDocument()
-        expect(screen.getByText(/Search by entry ID/)).toBeVisible()
+        expect(screen.getByText("Showing 1 lessons")).toBeVisible()
         expect(
             screen.queryByRole("status", { name: "Demo data is active" }),
         ).not.toBeInTheDocument()
@@ -88,6 +96,10 @@ describe("Learn source content and Allergies demos", () => {
 
     test("renders sourced content inside its category", () => {
         renderRoute("/learn", true)
+        fireEvent.change(
+            screen.getByRole("searchbox", { name: "Search topics" }),
+            { target: { value: "Law on Food Safety" } },
+        )
 
         const card = screen.getByRole("link", {
             name: /Law on Food Safety/,
@@ -146,9 +158,14 @@ describe("Learn source content and Allergies demos", () => {
         expect(screen.getByText("No topics match your search.")).toBeVisible()
     }, 30000)
 
-    test("opens the article with factual metadata and external sources", async () => {
+    test("opens the article with factual metadata and visible source URLs", async () => {
         const user = userEvent.setup()
         renderRoute("/learn", false)
+
+        await user.type(
+            screen.getByRole("searchbox", { name: "Search topics" }),
+            "Law on Food Safety",
+        )
 
         await user.click(
             screen.getByRole("link", { name: /Law on Food Safety/ }),
@@ -181,22 +198,24 @@ describe("Learn source content and Allergies demos", () => {
             screen.getByText(/not independently verified or interpreted/),
         ).toBeVisible()
 
-        const sourceLinks = [
+        const sourceUrls = [
             ["Open Development Cambodia law record", recordUrl],
             ["Khmer PDF resource", khmerResourceUrl],
             ["English PDF resource", englishResourceUrl],
         ] as const
 
-        for (const [name, href] of sourceLinks) {
-            const link = screen.getByRole("link", { name })
-            expect(link).toHaveAttribute("href", href)
-            expect(link).toHaveAttribute("target", "_blank")
-            expect(link).toHaveAttribute("rel", "noopener noreferrer")
-            expect(link).toHaveClass("learn-source-link")
+        for (const [, url] of sourceUrls) {
+            const sourceTexts = screen.getAllByText(url)
+            expect(sourceTexts.length).toBeGreaterThan(0)
+            expect(
+                sourceTexts.every(
+                    (sourceText) => sourceText.closest("a") === null,
+                ),
+            ).toBe(true)
         }
     })
 
-    test("opens the new source-backed articles with their exact source links", async () => {
+    test("opens the new source-backed articles with their exact source URLs", async () => {
         const user = userEvent.setup()
         const articles = [
             {
@@ -253,10 +272,12 @@ describe("Learn source content and Allergies demos", () => {
                 ).toBeVisible()
             }
             for (const url of article.urls) {
+                const sourceTexts = screen.getAllByText(url)
+                expect(sourceTexts.length).toBeGreaterThan(0)
                 expect(
-                    screen
-                        .getAllByRole("link")
-                        .some((link) => link.getAttribute("href") === url),
+                    sourceTexts.every(
+                        (sourceText) => sourceText.closest("a") === null,
+                    ),
                 ).toBe(true)
             }
             await user.click(screen.getAllByRole("link")[0]!)
@@ -316,9 +337,6 @@ describe("Learn source content and Allergies demos", () => {
         renderRoute("/learn", false)
 
         expect(screen.getByRole("heading", { name: "ស្វែងយល់" })).toBeVisible()
-        expect(
-            screen.getByText("ច្បាប់ស្ដីពីសុវត្ថិភាពម្ហូបអាហារ"),
-        ).toBeVisible()
         expect(screen.getAllByText("ព័ត៌មានពាក់ព័ន្ធហាឡាល់")[0]).toBeVisible()
 
         await user.type(

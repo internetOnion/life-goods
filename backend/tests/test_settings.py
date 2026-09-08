@@ -107,3 +107,34 @@ def test_translation_stage_deadline_rejects_invalid_values(monkeypatch, value) -
     monkeypatch.setenv("LIFEGOODS_TRANSLATION_DEADLINE_SECONDS", value)
     with pytest.raises(ValidationError):
         settings_from_environment()
+
+
+def test_production_settings_need_no_relational_database() -> None:
+    settings = Settings(
+        _env_file=None,  # pyright: ignore[reportCallIssue]
+        environment="production",
+        off_mongodb_uri="mongodb://reader:secret@mongo/off",
+        generated_mongodb_uri="mongodb://generated:secret@mongo/generated",
+        redis_url="redis://:secret@redis:6379/0",
+    )
+    assert not hasattr(settings, "database_url")
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("off_mongodb_uri", "mongodb://lifegoods_reader:lifegoods_reader@mongo/off"),
+        ("generated_mongodb_uri", "mongodb://lifegoods_generated:lifegoods_generated@mongo/generated"),
+        ("redis_url", "redis://localhost:6380/0"),
+    ],
+)
+def test_production_rejects_development_datastore_settings(field, value) -> None:
+    values = {
+        "environment": "production",
+        "off_mongodb_uri": "mongodb://reader:secret@mongo/off",
+        "generated_mongodb_uri": "mongodb://generated:secret@mongo/generated",
+        "redis_url": "redis://:secret@redis:6379/0",
+        field: value,
+    }
+    with pytest.raises(ValueError):
+        Settings(_env_file=None, **values)  # pyright: ignore[reportCallIssue]

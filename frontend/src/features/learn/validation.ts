@@ -35,7 +35,7 @@ export function learnCatalogErrors(): string[] {
         errors.push(`Duplicate Learn guide slug: ${duplicate}`)
 
     for (const source of LEARN_SOURCES) {
-        if (!source.url.startsWith("https://"))
+        if (source.url && !source.url.startsWith("https://"))
             errors.push(`Learn source ${source.id} must use HTTPS`)
         if (
             !hasBothLanguages(source.name) ||

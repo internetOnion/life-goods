@@ -25,11 +25,11 @@ export const learnTranslations = {
                 "មេរៀនដែលមានប្រភពត្រូវបានរៀបចំតាមប្រធានបទ ដើម្បីងាយស្វែងរក។",
             startHere: "ចាប់ផ្តើមនៅទីនេះ",
             startHereHint: "មូលដ្ឋានសម្រាប់អានស្លាក និងពិនិត្យប្រភព។",
-            searchHint: "ស្វែងរកតាមលេខកូដ ប្រធានបទ ពាក្យលើស្លាក ឬប្រភព។",
+            searchHint: "ចុចប្រអប់ស្វែងរក ដើម្បីមើលមេរៀនទាំងអស់តាមប្រភេទ។",
             matchingHint: "លទ្ធផលពីមគ្គុទ្ទេសក៍ និងឯកសារគាំទ្រ។",
             supportingTitle: "ប្រភព និងស្តង់ដារ",
             supportingHint:
-                "ឯកសារច្បាប់ ស្តង់ដារ និងមេរៀនអំពីប្រភពដែលរក្សាទុកដាច់ដោយឡែក។",
+                "ឯកសារច្បាប់ ស្តង់ដារ និងមេរៀនអំពីប្រភពដែលរក្សាទុកដាច់ដោយឡែកពីមគ្គុទ្ទេសក៍អានស្លាក។",
             guideLessonsTitle: "មេរៀនក្នុងមគ្គុទ្ទេសក៍នេះ",
             stepProgress: "ជំហាន {{current}} នៃ {{total}}",
             lessonNavigationLabel: "ការរុករកមេរៀន",
@@ -45,6 +45,9 @@ export const learnTranslations = {
             simulatedDisclosure:
                 "អត្ថបទនេះជាគំរូសាកល្បងសម្រាប់បង្ហាញរបៀបរៀបចំមាតិកាសិក្សា ហើយមិនទាន់មានប្រភពឯកសារយោងទេ។",
             explanationTitle: "សេចក្ដីសង្ខេប",
+            sourceSummaryTitle: "សេចក្ដីសង្ខេបពីប្រភព",
+            sourceSummaryHint:
+                "ចំណុចខាងក្រោមត្រូវបានសង្ខេបពីឯកសារប្រភពដែលបានរាយខាងក្រោមសម្រាប់មេរៀននេះ។",
             keyPointsTitle: "ចំណុចសំខាន់ៗពីប្រភព",
             unavailableTitle: "រកមិនឃើញអត្ថបទនេះទេ",
             unavailableBody:
@@ -98,12 +101,13 @@ export const learnTranslations = {
             startHere: "Start here",
             startHereHint:
                 "A short path into labels, identifiers, and source evidence.",
-            searchHint: "Search by entry ID, topic, label term, or source.",
+            searchHint:
+                "Click the search field to browse every lesson by category.",
             matchingHint:
                 "Results from the guides and supporting source library.",
             supportingTitle: "Sources and standards",
             supportingHint:
-                "Legal documents, standards, and source-literacy lessons kept separate from the five practical guides.",
+                "Legal documents, standards, and source-literacy lessons kept separate from the practical guides.",
             guideLessonsTitle: "Lessons in this guide",
             stepProgress: "Step {{current}} of {{total}}",
             lessonNavigationLabel: "Lesson navigation",
@@ -119,6 +123,9 @@ export const learnTranslations = {
             simulatedDisclosure:
                 "This article is a simulated fixture that demonstrates the learning-content format. It does not yet have a supporting source.",
             explanationTitle: "Summary",
+            sourceSummaryTitle: "Summary from the source",
+            sourceSummaryHint:
+                "The points below are summarized from the source document listed below for this lesson.",
             keyPointsTitle: "Key points from the source",
             unavailableTitle: "Article not found",
             unavailableBody:

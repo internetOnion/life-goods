@@ -70,8 +70,8 @@ export const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
             en: "Cambodia’s framework for food safety, quality, and hygiene across the food-production chain.",
         },
         body: {
-            kh: "Open Development Cambodia បង្ហាញច្បាប់នេះជាក្របខណ្ឌថ្នាក់ជាតិ មិនមែនជាសេចក្ដីសន្និដ្ឋានអំពី Product ណាមួយទេ។ ចំណុចសំខាន់ៗខាងក្រោមសង្ខេបតាមកំណត់ត្រារបស់ ODC។ សូមអានឯកសារប្រភពភាសាខ្មែរ ឬអង់គ្លេសដែលបានភ្ជាប់សម្រាប់បទប្បញ្ញត្តិពេញលេញ។",
-            en: "Open Development Cambodia presents this law as a national framework, not as a conclusion about any Product. The points below reflect ODC’s record. Consult the linked Khmer or English source text for the complete provisions.",
+            kh: "Open Development Cambodia បង្ហាញច្បាប់នេះជាក្របខណ្ឌថ្នាក់ជាតិ មិនមែនជាសេចក្ដីសន្និដ្ឋានអំពី Product ណាមួយទេ។ ចំណុចសំខាន់ៗខាងក្រោមសង្ខេបតាមកំណត់ត្រារបស់ ODC។ សូមអានឯកសារប្រភពភាសាខ្មែរ ឬអង់គ្លេសដែលបានរាយខាងក្រោមសម្រាប់បទប្បញ្ញត្តិពេញលេញ។",
+            en: "Open Development Cambodia presents this law as a national framework, not as a conclusion about any Product. The points below reflect ODC’s record. Consult the Khmer or English source text listed below for the complete provisions.",
         },
         keyPoints: [
             {
@@ -359,7 +359,7 @@ export const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
         },
         body: {
             kh: "កំណត់ត្រារបស់ Open Development Cambodia បង្ហាញថា ប្រកាសលេខ ០០៥៩ កំណត់ព័ត៌មានអាហារូបត្ថម្ភដែលត្រូវបង្ហាញលើស្លាកអាហារវេចខ្ចប់មុន។ គោលបំណងដែលបានសរសេរគឺកុំឲ្យអាហារត្រូវបានចែកចាយដោយបោកបញ្ឆោត និងដើម្បីការពារសុខុមាលភាពអ្នកប្រើប្រាស់ និងការធ្វើពាណិជ្ជកម្មដោយស្មោះត្រង់។ សូមអានកំណត់ត្រា និងឯកសារ PDF ភាសាខ្មែរ ឬអង់គ្លេសសម្រាប់តម្រូវការពេញលេញ។",
-            en: "Open Development Cambodia’s record describes Prakas No. 0059 as setting nutrition-information requirements for prepackaged-food labels. Its stated purpose is to prevent fraudulent or deceptive circulation of food, protect consumer welfare, and promote fair food trade. Consult the record and linked Khmer or English PDFs for the complete requirements.",
+            en: "Open Development Cambodia’s record describes Prakas No. 0059 as setting nutrition-information requirements for prepackaged-food labels. Its stated purpose is to prevent fraudulent or deceptive circulation of food, protect consumer welfare, and promote fair food trade. Consult the record and the Khmer or English PDFs listed below for the complete requirements.",
         },
         keyPoints: [
             {

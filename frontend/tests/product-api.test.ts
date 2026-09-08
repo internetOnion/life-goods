@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest"
 import { client } from "@/api/generated/client.gen"
-import { lookupProduct } from "@/features/product/api"
+import { getProduct } from "@/api/generated"
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -13,7 +13,11 @@ it("requests Khmer Translation using language=kh", async () => {
         }),
     )
     vi.stubGlobal("fetch", fetchMock)
-    await lookupProduct("4006381333931")
+    await getProduct({
+        path: { barcode: "4006381333931" },
+        query: { language: "kh" },
+        throwOnError: true,
+    })
     const request = fetchMock.mock.calls[0]?.[0] as Request
     const url = new URL(request.url)
     expect(url.pathname).toBe("/api/v1/products/4006381333931")
