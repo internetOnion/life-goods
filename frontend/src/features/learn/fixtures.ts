@@ -1,11 +1,11 @@
-export type LearnLocale = "km" | "en"
+export type LearnLocale = "kh" | "en"
 
 export type LearnTopic =
     "laws" | "declarations" | "halal" | "evidence" | "ingredients" | "dates"
 
 export type LocalizedText = {
     en: string
-    km?: string
+    kh?: string
 }
 
 export type KnowledgeImage = {
@@ -58,82 +58,82 @@ export const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
         slug: "law-on-food-safety",
         topic: "laws",
         title: {
-            km: "ច្បាប់ស្ដីពីសុវត្ថិភាពម្ហូបអាហារ",
+            kh: "ច្បាប់ស្ដីពីសុវត្ថិភាពម្ហូបអាហារ",
             en: "Law on Food Safety",
         },
         summary: {
-            km: "ច្បាប់នេះបង្កើតក្របខណ្ឌ និងយន្តការសម្រាប់គ្រប់គ្រង និងធានាសុវត្ថិភាព គុណភាព អនាម័យ និងភាពស្របច្បាប់នៃម្ហូបអាហារនៅគ្រប់ដំណាក់កាលនៃខ្សែចង្វាក់ផលិតកម្ម។ គោលបំណងដែលបានបញ្ជាក់គឺការពារសុខភាព និងសុវត្ថិភាពម្ហូបអាហាររបស់អ្នកប្រើប្រាស់ និងគាំទ្រពាណិជ្ជកម្មម្ហូបអាហារដោយស្មោះត្រង់។",
+            kh: "ច្បាប់នេះបង្កើតក្របខណ្ឌ និងយន្តការសម្រាប់គ្រប់គ្រង និងធានាសុវត្ថិភាព គុណភាព អនាម័យ និងភាពស្របច្បាប់នៃម្ហូបអាហារនៅគ្រប់ដំណាក់កាលនៃខ្សែចង្វាក់ផលិតកម្ម។ គោលបំណងដែលបានបញ្ជាក់គឺការពារសុខភាព និងសុវត្ថិភាពម្ហូបអាហាររបស់អ្នកប្រើប្រាស់ និងគាំទ្រពាណិជ្ជកម្មម្ហូបអាហារដោយស្មោះត្រង់។",
             en: "This law establishes frameworks and mechanisms for managing food safety, quality, hygiene, and compliance throughout the food-production chain. Its stated aims are to protect consumer health and food safety and to support fair food trade.",
         },
         cardSummary: {
-            km: "ក្របខណ្ឌរបស់កម្ពុជាសម្រាប់សុវត្ថិភាព គុណភាព និងអនាម័យម្ហូបអាហារនៅទូទាំងខ្សែចង្វាក់ផលិតកម្ម។",
+            kh: "ក្របខណ្ឌរបស់កម្ពុជាសម្រាប់សុវត្ថិភាព គុណភាព និងអនាម័យម្ហូបអាហារនៅទូទាំងខ្សែចង្វាក់ផលិតកម្ម។",
             en: "Cambodia’s framework for food safety, quality, and hygiene across the food-production chain.",
         },
         body: {
-            km: "Open Development Cambodia បង្ហាញច្បាប់នេះជាក្របខណ្ឌថ្នាក់ជាតិ មិនមែនជាសេចក្ដីសន្និដ្ឋានអំពី Product ណាមួយទេ។ ចំណុចសំខាន់ៗខាងក្រោមសង្ខេបតាមកំណត់ត្រារបស់ ODC។ សូមអានឯកសារប្រភពភាសាខ្មែរ ឬអង់គ្លេសដែលបានរាយខាងក្រោមសម្រាប់បទប្បញ្ញត្តិពេញលេញ។",
+            kh: "Open Development Cambodia បង្ហាញច្បាប់នេះជាក្របខណ្ឌថ្នាក់ជាតិ មិនមែនជាសេចក្ដីសន្និដ្ឋានអំពី Product ណាមួយទេ។ ចំណុចសំខាន់ៗខាងក្រោមសង្ខេបតាមកំណត់ត្រារបស់ ODC។ សូមអានឯកសារប្រភពភាសាខ្មែរ ឬអង់គ្លេសដែលបានរាយខាងក្រោមសម្រាប់បទប្បញ្ញត្តិពេញលេញ។",
             en: "Open Development Cambodia presents this law as a national framework, not as a conclusion about any Product. The points below reflect ODC’s record. Consult the Khmer or English source text listed below for the complete provisions.",
         },
         keyPoints: [
             {
-                km: "វិសាលភាពរបស់ច្បាប់គ្របដណ្តប់លើគ្រប់ដំណាក់កាលនៃខ្សែចង្វាក់ផលិតកម្មម្ហូបអាហារ។",
+                kh: "វិសាលភាពរបស់ច្បាប់គ្របដណ្តប់លើគ្រប់ដំណាក់កាលនៃខ្សែចង្វាក់ផលិតកម្មម្ហូបអាហារ។",
                 en: "Its scope covers every stage of the food-production chain.",
             },
             {
-                km: "ច្បាប់កំណត់ក្របខណ្ឌ និងយន្តការសម្រាប់គ្រប់គ្រងសុវត្ថិភាព គុណភាព អនាម័យ និងភាពស្របច្បាប់នៃម្ហូបអាហារ។",
+                kh: "ច្បាប់កំណត់ក្របខណ្ឌ និងយន្តការសម្រាប់គ្រប់គ្រងសុវត្ថិភាព គុណភាព អនាម័យ និងភាពស្របច្បាប់នៃម្ហូបអាហារ។",
                 en: "It establishes frameworks and mechanisms for managing food safety, quality, hygiene, and compliance.",
             },
             {
-                km: "គោលបំណងដែលបានបញ្ជាក់គឺការពារសុខភាព និងសុវត្ថិភាពម្ហូបអាហាររបស់អ្នកប្រើប្រាស់ និងធានាពាណិជ្ជកម្មម្ហូបអាហារដោយស្មោះត្រង់។",
+                kh: "គោលបំណងដែលបានបញ្ជាក់គឺការពារសុខភាព និងសុវត្ថិភាពម្ហូបអាហាររបស់អ្នកប្រើប្រាស់ និងធានាពាណិជ្ជកម្មម្ហូបអាហារដោយស្មោះត្រង់។",
                 en: "Its stated aims are consumer health and food-safety protection and fair food trade.",
             },
         ],
         publisher: {
-            km: "Open Development Cambodia",
+            kh: "Open Development Cambodia",
             en: "Open Development Cambodia",
         },
         issuingAgency: {
-            km: "ក្រសួងពាណិជ្ជកម្ម",
+            kh: "ក្រសួងពាណិជ្ជកម្ម",
             en: "Ministry of Commerce",
         },
         documentReference: {
-            km: "នស/រកម/០៦២២/០០៦",
+            kh: "នស/រកម/០៦២២/០០៦",
             en: "NS/RKM/0622/006",
         },
         date: {
             label: {
-                km: "កាលបរិច្ឆេទចុះហត្ថលេខា",
+                kh: "កាលបរិច្ឆេទចុះហត្ថលេខា",
                 en: "Signed",
             },
             value: {
-                km: "៨ មិថុនា ២០២២",
+                kh: "៨ មិថុនា ២០២២",
                 en: "June 8, 2022",
             },
         },
         sources: [
             {
                 label: {
-                    km: "កំណត់ត្រាច្បាប់ Open Development Cambodia",
+                    kh: "កំណត់ត្រាច្បាប់ Open Development Cambodia",
                     en: "Open Development Cambodia law record",
                 },
                 url: "https://data.opendevelopmentcambodia.net/laws_record/law-on-food-safety",
             },
             {
                 label: {
-                    km: "ធនធាន PDF ភាសាខ្មែរ",
+                    kh: "ធនធាន PDF ភាសាខ្មែរ",
                     en: "Khmer PDF resource",
                 },
                 url: "https://data.opendevelopmentcambodia.net/laws_record/law-on-food-safety/resource/1406ab5a-0097-43e9-99db-234b80cfb7ec",
             },
             {
                 label: {
-                    km: "ធនធាន PDF ភាសាអង់គ្លេស",
+                    kh: "ធនធាន PDF ភាសាអង់គ្លេស",
                     en: "English PDF resource",
                 },
                 url: "https://data.opendevelopmentcambodia.net/laws_record/law-on-food-safety/resource/525730c8-110a-4670-a3b5-80d08db2c82b",
             },
         ],
         sourceDisclosure: {
-            km: "នេះជាប្រភពខាងក្រៅ។ LifeGoods មិនបានផ្ទៀងផ្ទាត់ ឬបកស្រាយព័ត៌មានផ្លូវច្បាប់នេះដោយឯករាជ្យទេ។ ព័ត៌មាននេះមិនមែនជាការប្រឹក្សាផ្លូវច្បាប់ទេ។",
+            kh: "នេះជាប្រភពខាងក្រៅ។ LifeGoods មិនបានផ្ទៀងផ្ទាត់ ឬបកស្រាយព័ត៌មានផ្លូវច្បាប់នេះដោយឯករាជ្យទេ។ ព័ត៌មាននេះមិនមែនជាការប្រឹក្សាផ្លូវច្បាប់ទេ។",
             en: "This is an external source. LifeGoods has not independently verified or interpreted this legal information. This information is not legal advice.",
         },
     },
@@ -142,54 +142,54 @@ export const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
         slug: "food-allergies-what-you-need-to-know",
         topic: "declarations",
         title: {
-            km: "អាឡែហ្ស៊ីអាហារ៖ អ្វីដែលអ្នកត្រូវដឹង",
+            kh: "អាឡែហ្ស៊ីអាហារ៖ អ្វីដែលអ្នកត្រូវដឹង",
             en: "Food Allergies: What You Need to Know",
         },
         summary: {
-            km: "ទំព័ររបស់ FDA ពន្យល់អំពីអាឡែហ្សែនអាហារសំខាន់ៗ និងវិធីដែលអាឡែហ្សែនអាចត្រូវបានបង្ហាញលើស្លាកនៅសហរដ្ឋអាមេរិក។",
+            kh: "ទំព័ររបស់ FDA ពន្យល់អំពីអាឡែហ្សែនអាហារសំខាន់ៗ និងវិធីដែលអាឡែហ្សែនអាចត្រូវបានបង្ហាញលើស្លាកនៅសហរដ្ឋអាមេរិក។",
             en: "The FDA page explains major food allergens and how allergen sources may be declared on labels in the United States.",
         },
         cardSummary: {
-            km: "ការណែនាំរបស់ FDA អំពីអាឡែហ្សែនសំខាន់ៗ និងការបង្ហាញប្រភពអាឡែហ្សែនលើស្លាក។",
+            kh: "ការណែនាំរបស់ FDA អំពីអាឡែហ្សែនសំខាន់ៗ និងការបង្ហាញប្រភពអាឡែហ្សែនលើស្លាក។",
             en: "FDA guidance on major allergens and declaring allergen sources on labels.",
         },
         body: {
-            km: "ប្រភពនេះជាការណែនាំសម្រាប់អាហារដែលស្ថិតក្រោមការគ្រប់គ្រងរបស់ FDA នៅសហរដ្ឋអាមេរិក។ វាជួយអានពាក្យប្រកាសលើស្លាក ប៉ុន្តែមិនមែនជាការកំណត់ថា Product ណាមួយសមស្របសម្រាប់មនុស្សម្នាក់ទេ។ សូមប្រើប្រភពដើមសម្រាប់ព័ត៌មានវេជ្ជសាស្ត្រ និងតម្រូវការតាមដែនសមត្ថកិច្ច។",
+            kh: "ប្រភពនេះជាការណែនាំសម្រាប់អាហារដែលស្ថិតក្រោមការគ្រប់គ្រងរបស់ FDA នៅសហរដ្ឋអាមេរិក។ វាជួយអានពាក្យប្រកាសលើស្លាក ប៉ុន្តែមិនមែនជាការកំណត់ថា Product ណាមួយសមស្របសម្រាប់មនុស្សម្នាក់ទេ។ សូមប្រើប្រភពដើមសម្រាប់ព័ត៌មានវេជ្ជសាស្ត្រ និងតម្រូវការតាមដែនសមត្ថកិច្ច។",
             en: "This source is guidance for foods regulated by the FDA in the United States. It helps explain label declarations, but it does not determine whether a particular Product is suitable for an individual. Use the original source for medical information and jurisdiction-specific requirements.",
         },
         keyPoints: [
             {
-                km: "ទំព័រនេះរាយអាឡែហ្សែនសំខាន់ ៩ ប្រភេទ៖ ទឹកដោះគោ ស៊ុត ត្រី សត្វសមុទ្រសំបក ដើមឈើមានគ្រាប់ សណ្ដែកដី ស្រូវសាលី សណ្ដែកសៀង និងល្ង។",
+                kh: "ទំព័រនេះរាយអាឡែហ្សែនសំខាន់ ៩ ប្រភេទ៖ ទឹកដោះគោ ស៊ុត ត្រី សត្វសមុទ្រសំបក ដើមឈើមានគ្រាប់ សណ្ដែកដី ស្រូវសាលី សណ្ដែកសៀង និងល្ង។",
                 en: "It lists nine major allergens: milk, eggs, fish, crustacean shellfish, tree nuts, peanuts, wheat, soybeans, and sesame.",
             },
             {
-                km: "ប្រភពអាឡែហ្សែនអាចបង្ហាញក្នុងវង់ក្រចកបន្ទាប់ពីឈ្មោះគ្រឿងផ្សំ ឬក្នុងសេចក្ដីប្រកាស “Contains” ជិតបញ្ជីគ្រឿងផ្សំ។",
+                kh: "ប្រភពអាឡែហ្សែនអាចបង្ហាញក្នុងវង់ក្រចកបន្ទាប់ពីឈ្មោះគ្រឿងផ្សំ ឬក្នុងសេចក្ដីប្រកាស “Contains” ជិតបញ្ជីគ្រឿងផ្សំ។",
                 en: "An allergen source may appear in parentheses after an ingredient name or in a nearby “Contains” statement.",
             },
             {
-                km: "តម្រូវការដែលបានពន្យល់នេះជារបស់សហរដ្ឋអាមេរិក ហើយមិនគួរយកទៅសន្និដ្ឋានថាជាច្បាប់កម្ពុជាទេ។",
+                kh: "តម្រូវការដែលបានពន្យល់នេះជារបស់សហរដ្ឋអាមេរិក ហើយមិនគួរយកទៅសន្និដ្ឋានថាជាច្បាប់កម្ពុជាទេ។",
                 en: "The requirements described are U.S.-specific and should not be treated as Cambodian law.",
             },
         ],
         publisher: {
-            km: "រដ្ឋបាលចំណីអាហារ និងឱសថសហរដ្ឋអាមេរិក (FDA)",
+            kh: "រដ្ឋបាលចំណីអាហារ និងឱសថសហរដ្ឋអាមេរិក (FDA)",
             en: "U.S. Food and Drug Administration (FDA)",
         },
         jurisdiction: {
-            km: "សហរដ្ឋអាមេរិក",
+            kh: "សហរដ្ឋអាមេរិក",
             en: "United States",
         },
         sources: [
             {
                 label: {
-                    km: "អត្ថបទណែនាំរបស់ FDA",
+                    kh: "អត្ថបទណែនាំរបស់ FDA",
                     en: "FDA guidance article",
                 },
                 url: "https://www.fda.gov/food/buy-store-serve-safe-food/food-allergies-what-you-need-know",
             },
         ],
         sourceDisclosure: {
-            km: "នេះជាការណែនាំពីប្រភពខាងក្រៅរបស់សហរដ្ឋអាមេរិក។ LifeGoods មិនបានផ្ទៀងផ្ទាត់ ឬបកស្រាយវាជាការណែនាំវេជ្ជសាស្ត្រ ឬជាតម្រូវការរបស់កម្ពុជាទេ។",
+            kh: "នេះជាការណែនាំពីប្រភពខាងក្រៅរបស់សហរដ្ឋអាមេរិក។ LifeGoods មិនបានផ្ទៀងផ្ទាត់ ឬបកស្រាយវាជាការណែនាំវេជ្ជសាស្ត្រ ឬជាតម្រូវការរបស់កម្ពុជាទេ។",
             en: "This is external U.S. guidance. LifeGoods has not independently verified or interpreted it as medical advice or as a Cambodian requirement.",
         },
     },
@@ -198,72 +198,72 @@ export const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
         slug: "general-guidelines-use-term-halal",
         topic: "halal",
         title: {
-            km: "គោលការណ៍ណែនាំទូទៅសម្រាប់ការប្រើពាក្យ «ហាឡាល់»",
+            kh: "គោលការណ៍ណែនាំទូទៅសម្រាប់ការប្រើពាក្យ «ហាឡាល់»",
             en: "General Guidelines for Use of the Term “Halal”",
         },
         summary: {
-            km: "គោលការណ៍ណែនាំ Codex ពន្យល់ពីការប្រើពាក្យ Halal ក្នុងការអះអាងលើស្លាក និងលក្ខខណ្ឌទូទៅសម្រាប់អាហារ ការកែច្នៃ និងការរក្សាទុក។",
+            kh: "គោលការណ៍ណែនាំ Codex ពន្យល់ពីការប្រើពាក្យ Halal ក្នុងការអះអាងលើស្លាក និងលក្ខខណ្ឌទូទៅសម្រាប់អាហារ ការកែច្នៃ និងការរក្សាទុក។",
             en: "The Codex guidelines explain use of Halal claims on labels and general conditions for food preparation, processing, and storage.",
         },
         cardSummary: {
-            km: "គោលការណ៍ណែនាំអន្តរជាតិសម្រាប់ការអះអាង Halal និងការរក្សាការបំបែកពីអាហារមិនស្របតាមច្បាប់អ៊ីស្លាម។",
+            kh: "គោលការណ៍ណែនាំអន្តរជាតិសម្រាប់ការអះអាង Halal និងការរក្សាការបំបែកពីអាហារមិនស្របតាមច្បាប់អ៊ីស្លាម។",
             en: "International guidance for Halal claims and preventing contact with unlawful food.",
         },
         body: {
-            km: "CAC/GL 24-1997 ជាអត្ថបទណែនាំរបស់ Codex Alimentarius Commission ដែលប្រទេសនីមួយៗអាចបកស្រាយតាមអាជ្ញាធររបស់ខ្លួន។ វាពិពណ៌នាអំពីអាហារ Halal ការរៀបចំ ការកែច្នៃ ការវេចខ្ចប់ ការដឹកជញ្ជូន និងការរក្សាទុក។ ការមើលឃើញពាក្យ ឬសញ្ញា Halal លើកញ្ចប់ មិនមែនជាការផ្ទៀងផ្ទាត់ Certificate ទេ។",
+            kh: "CAC/GL 24-1997 ជាអត្ថបទណែនាំរបស់ Codex Alimentarius Commission ដែលប្រទេសនីមួយៗអាចបកស្រាយតាមអាជ្ញាធររបស់ខ្លួន។ វាពិពណ៌នាអំពីអាហារ Halal ការរៀបចំ ការកែច្នៃ ការវេចខ្ចប់ ការដឹកជញ្ជូន និងការរក្សាទុក។ ការមើលឃើញពាក្យ ឬសញ្ញា Halal លើកញ្ចប់ មិនមែនជាការផ្ទៀងផ្ទាត់ Certificate ទេ។",
             en: "CAC/GL 24-1997 is Codex Alimentarius Commission guidance that each country may interpret through its appropriate authorities. It describes Halal food and conditions for preparation, processing, packaging, transport, and storage. Seeing a Halal word or mark on a package is not verification of a Certificate.",
         },
         keyPoints: [
             {
-                km: "គោលការណ៍ណែនាំអនុវត្តចំពោះការប្រើពាក្យ Halal និងពាក្យមានន័យស្មើគ្នាក្នុងការអះអាងលើស្លាក។",
+                kh: "គោលការណ៍ណែនាំអនុវត្តចំពោះការប្រើពាក្យ Halal និងពាក្យមានន័យស្មើគ្នាក្នុងការអះអាងលើស្លាក។",
                 en: "The guidance applies to use of Halal and equivalent terms in label claims.",
             },
             {
-                km: "លក្ខខណ្ឌទូទៅរួមមានការមិនមានប្រភពមិនស្របតាមច្បាប់អ៊ីស្លាម និងការការពារការប៉ះពាល់ជាមួយអាហារប្រភេទនោះក្នុងដំណើរការ។",
+                kh: "លក្ខខណ្ឌទូទៅរួមមានការមិនមានប្រភពមិនស្របតាមច្បាប់អ៊ីស្លាម និងការការពារការប៉ះពាល់ជាមួយអាហារប្រភេទនោះក្នុងដំណើរការ។",
                 en: "General conditions include avoiding unlawful sources and preventing contact with them during processing and handling.",
             },
             {
-                km: "ការអះអាង Halal មិនគួរបង្កើតការសង្ស័យអំពីសុវត្ថិភាពអាហារផ្សេងទៀត ឬអះអាងថាអាហារ Halal មានសុខភាពល្អជាងទេ។",
+                kh: "ការអះអាង Halal មិនគួរបង្កើតការសង្ស័យអំពីសុវត្ថិភាពអាហារផ្សេងទៀត ឬអះអាងថាអាហារ Halal មានសុខភាពល្អជាងទេ។",
                 en: "A Halal claim should not imply that other food is unsafe or that Halal food is nutritionally superior or healthier.",
             },
         ],
         publisher: {
-            km: "អង្គការស្បៀងអាហារ និងកសិកម្ម (FAO)",
+            kh: "អង្គការស្បៀងអាហារ និងកសិកម្ម (FAO)",
             en: "Food and Agriculture Organization (FAO)",
         },
         issuingAgency: {
-            km: "គណៈកម្មការកូដិច អាលីម៉ង់តារីយ៉ូស",
+            kh: "គណៈកម្មការកូដិច អាលីម៉ង់តារីយ៉ូស",
             en: "Codex Alimentarius Commission",
         },
         documentReference: {
-            km: "CAC/GL 24-1997",
+            kh: "CAC/GL 24-1997",
             en: "CAC/GL 24-1997",
         },
         jurisdiction: {
-            km: "អន្តរជាតិ (គោលការណ៍ណែនាំយោបល់)",
+            kh: "អន្តរជាតិ (គោលការណ៍ណែនាំយោបល់)",
             en: "International (advisory guidance)",
         },
         date: {
             label: {
-                km: "ឆ្នាំអនុម័ត",
+                kh: "ឆ្នាំអនុម័ត",
                 en: "Adopted",
             },
             value: {
-                km: "១៩៩៧",
+                kh: "១៩៩៧",
                 en: "1997",
             },
         },
         sources: [
             {
                 label: {
-                    km: "គោលការណ៍ណែនាំ FAO/Codex",
+                    kh: "គោលការណ៍ណែនាំ FAO/Codex",
                     en: "FAO/Codex guidelines",
                 },
                 url: "https://www.fao.org/4/y2770e/y2770e08.htm#TopOfPage",
             },
         ],
         sourceDisclosure: {
-            km: "នេះជាគោលការណ៍ណែនាំខាងក្រៅ។ LifeGoods មិនបានផ្ទៀងផ្ទាត់ការអះអាង Halal ឬសុពលភាព Certificate របស់ Product ណាមួយទេ។",
+            kh: "នេះជាគោលការណ៍ណែនាំខាងក្រៅ។ LifeGoods មិនបានផ្ទៀងផ្ទាត់ការអះអាង Halal ឬសុពលភាព Certificate របស់ Product ណាមួយទេ។",
             en: "This is external guidance. LifeGoods does not verify a Product’s Halal claim or Certificate validity.",
         },
     },
@@ -272,72 +272,72 @@ export const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
         slug: "cambodian-standard-cs-001-2000",
         topic: "laws",
         title: {
-            km: "ស្តង់ដារកម្ពុជា CS 001-2000 ស្តីពីការដាក់ស្លាកផលិតផលម្ហូបអាហារ",
+            kh: "ស្តង់ដារកម្ពុជា CS 001-2000 ស្តីពីការដាក់ស្លាកផលិតផលម្ហូបអាហារ",
             en: "Cambodian Standard CS 001-2000: Labelling of Food Product",
         },
         summary: {
-            km: "ប្រកាសលេខ ១០៤៥ បង្កើតស្តង់ដារ CS 001-2000 សម្រាប់ការដាក់ស្លាកអាហារវេចខ្ចប់មុនដែលត្រូវផ្តល់ព័ត៌មានច្បាស់លាស់ដល់អ្នកប្រើប្រាស់ និងអាជ្ញាធរ។",
+            kh: "ប្រកាសលេខ ១០៤៥ បង្កើតស្តង់ដារ CS 001-2000 សម្រាប់ការដាក់ស្លាកអាហារវេចខ្ចប់មុនដែលត្រូវផ្តល់ព័ត៌មានច្បាស់លាស់ដល់អ្នកប្រើប្រាស់ និងអាជ្ញាធរ។",
             en: "Prakas No. 1045 establishes CS 001-2000 for labelling prepackaged foods with clear information for consumers and authorities.",
         },
         cardSummary: {
-            km: "ស្តង់ដារកម្ពុជាសម្រាប់ព័ត៌មានដែលត្រូវបង្ហាញលើស្លាកអាហារវេចខ្ចប់មុន។",
+            kh: "ស្តង់ដារកម្ពុជាសម្រាប់ព័ត៌មានដែលត្រូវបង្ហាញលើស្លាកអាហារវេចខ្ចប់មុន។",
             en: "Cambodia’s standard for information required on prepackaged-food labels.",
         },
         body: {
-            km: "ស្តង់ដារ CS 001-2000 អនុវត្តចំពោះអាហារវេចខ្ចប់មុនសម្រាប់អ្នកប្រើប្រាស់ ឬគោលបំណងផ្គត់ផ្គង់ម្ហូបអាហារ។ វាកំណត់ព័ត៌មានដូចជា ឈ្មោះអាហារ បញ្ជីគ្រឿងផ្សំ បរិមាណ ឈ្មោះនិងអាសយដ្ឋាន អ្នកផលិតឬអ្នកចែកចាយ ប្រទេសដើម លេខឡូត៍ និងកាលបរិច្ឆេទជាមួយការណែនាំរក្សាទុក។ ទំព័រប្រភពបង្ហាញការបកប្រែជាភាសាអង់គ្លេសដែលមិនមែនជាកំណែផ្លូវការ។",
+            kh: "ស្តង់ដារ CS 001-2000 អនុវត្តចំពោះអាហារវេចខ្ចប់មុនសម្រាប់អ្នកប្រើប្រាស់ ឬគោលបំណងផ្គត់ផ្គង់ម្ហូបអាហារ។ វាកំណត់ព័ត៌មានដូចជា ឈ្មោះអាហារ បញ្ជីគ្រឿងផ្សំ បរិមាណ ឈ្មោះនិងអាសយដ្ឋាន អ្នកផលិតឬអ្នកចែកចាយ ប្រទេសដើម លេខឡូត៍ និងកាលបរិច្ឆេទជាមួយការណែនាំរក្សាទុក។ ទំព័រប្រភពបង្ហាញការបកប្រែជាភាសាអង់គ្លេសដែលមិនមែនជាកំណែផ្លូវការ។",
             en: "CS 001-2000 applies to prepackaged foods offered to consumers or for catering. It covers information such as the food name, ingredient list, quantity, responsible organization’s name and address, country of origin, lot number, and date marking with storage instructions. The source page identifies its English text as an unofficial translation.",
         },
         keyPoints: [
             {
-                km: "អាហារវេចខ្ចប់មុនត្រូវមានព័ត៌មានច្បាស់លាស់ និងគ្រប់គ្រាន់លើស្លាក។",
+                kh: "អាហារវេចខ្ចប់មុនត្រូវមានព័ត៌មានច្បាស់លាស់ និងគ្រប់គ្រាន់លើស្លាក។",
                 en: "Prepackaged foods must carry clear and sufficient label information.",
             },
             {
-                km: "បញ្ជីគ្រឿងផ្សំត្រូវរៀបតាមលំដាប់បរិមាណចូលពីច្រើនទៅតិច ហើយអាចរួមបញ្ចូលគ្រឿងផ្សំរងក្នុងវង់ក្រចក។",
+                kh: "បញ្ជីគ្រឿងផ្សំត្រូវរៀបតាមលំដាប់បរិមាណចូលពីច្រើនទៅតិច ហើយអាចរួមបញ្ចូលគ្រឿងផ្សំរងក្នុងវង់ក្រចក។",
                 en: "Ingredients are listed in descending order of ingoing amount, with compound ingredients and their sub-ingredients shown in brackets where applicable.",
             },
             {
-                km: "លេខឡូត៍ ប្រទេសដើម និងការសម្គាល់កាលបរិច្ឆេទជួយកំណត់អត្តសញ្ញាណ និងព័ត៌មានរក្សាទុករបស់ទំនិញ។",
+                kh: "លេខឡូត៍ ប្រទេសដើម និងការសម្គាល់កាលបរិច្ឆេទជួយកំណត់អត្តសញ្ញាណ និងព័ត៌មានរក្សាទុករបស់ទំនិញ។",
                 en: "Lot numbers, country of origin, and date markings provide identification and storage information for the food.",
             },
         ],
         publisher: {
-            km: "National Trade Repository កម្ពុជា",
+            kh: "National Trade Repository កម្ពុជា",
             en: "Cambodia National Trade Repository",
         },
         issuingAgency: {
-            km: "ក្រសួងឧស្សាហកម្ម រ៉ែ និងថាមពល",
+            kh: "ក្រសួងឧស្សាហកម្ម រ៉ែ និងថាមពល",
             en: "Ministry of Industry, Mines and Energy",
         },
         documentReference: {
-            km: "ប្រកាសលេខ ១០៤៥; CS 001-2000",
+            kh: "ប្រកាសលេខ ១០៤៥; CS 001-2000",
             en: "Prakas No. 1045; CS 001-2000",
         },
         jurisdiction: {
-            km: "កម្ពុជា",
+            kh: "កម្ពុជា",
             en: "Cambodia",
         },
         date: {
             label: {
-                km: "កាលបរិច្ឆេទចុះហត្ថលេខា",
+                kh: "កាលបរិច្ឆេទចុះហត្ថលេខា",
                 en: "Signed",
             },
             value: {
-                km: "២៨ ធ្នូ ២០០០",
+                kh: "២៨ ធ្នូ ២០០០",
                 en: "December 28, 2000",
             },
         },
         sources: [
             {
                 label: {
-                    km: "កំណត់ត្រាស្តង់ដារ National Trade Repository",
+                    kh: "កំណត់ត្រាស្តង់ដារ National Trade Repository",
                     en: "National Trade Repository standard record",
                 },
                 url: "https://cambodiantr.gov.kh/en/document/?title=prakas-no-1045-isc-cs001-2000-labeling-of-food-product",
             },
         ],
         sourceDisclosure: {
-            km: "នេះជាប្រភពច្បាប់ខាងក្រៅ។ ទំព័រនេះបង្ហាញអត្ថបទអង់គ្លេសជាការបកប្រែមិនមែនជាកំណែផ្លូវការ។ LifeGoods មិនបានបកស្រាយ ឬសន្និដ្ឋានអំពីភាពស្របច្បាប់របស់ Product ណាមួយទេ។",
+            kh: "នេះជាប្រភពច្បាប់ខាងក្រៅ។ ទំព័រនេះបង្ហាញអត្ថបទអង់គ្លេសជាការបកប្រែមិនមែនជាកំណែផ្លូវការ។ LifeGoods មិនបានបកស្រាយ ឬសន្និដ្ឋានអំពីភាពស្របច្បាប់របស់ Product ណាមួយទេ។",
             en: "This is an external regulatory source. Its English text is identified as an unofficial translation. LifeGoods does not interpret it as a compliance conclusion for any Product.",
         },
     },
@@ -346,86 +346,86 @@ export const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
         slug: "prakas-0059-nutrition-labelling",
         topic: "laws",
         title: {
-            km: "ប្រកាសលេខ ០០៥៩ ស្តីពីតម្រូវការព័ត៌មានអាហារូបត្ថម្ភសម្រាប់ស្លាកអាហារវេចខ្ចប់មុន",
+            kh: "ប្រកាសលេខ ០០៥៩ ស្តីពីតម្រូវការព័ត៌មានអាហារូបត្ថម្ភសម្រាប់ស្លាកអាហារវេចខ្ចប់មុន",
             en: "Prakas No. 0059: Nutrition Information Requirements for Labelling Prepackaged Food",
         },
         summary: {
-            km: "ប្រកាសនេះកំណត់តម្រូវការព័ត៌មានអាហារូបត្ថម្ភសម្រាប់ស្លាកអាហារវេចខ្ចប់មុន ដើម្បីជួយការពារអ្នកប្រើប្រាស់ និងលើកកម្ពស់ការធ្វើពាណិជ្ជកម្មដោយស្មោះត្រង់។",
+            kh: "ប្រកាសនេះកំណត់តម្រូវការព័ត៌មានអាហារូបត្ថម្ភសម្រាប់ស្លាកអាហារវេចខ្ចប់មុន ដើម្បីជួយការពារអ្នកប្រើប្រាស់ និងលើកកម្ពស់ការធ្វើពាណិជ្ជកម្មដោយស្មោះត្រង់។",
             en: "This Prakas sets nutrition-information requirements for prepackaged-food labels to protect consumers and promote fair food trade.",
         },
         cardSummary: {
-            km: "តម្រូវការរបស់កម្ពុជាសម្រាប់ការបង្ហាញព័ត៌មានអាហារូបត្ថម្ភលើស្លាកអាហារវេចខ្ចប់មុន។",
+            kh: "តម្រូវការរបស់កម្ពុជាសម្រាប់ការបង្ហាញព័ត៌មានអាហារូបត្ថម្ភលើស្លាកអាហារវេចខ្ចប់មុន។",
             en: "Cambodian requirements for nutrition information on prepackaged-food labels.",
         },
         body: {
-            km: "កំណត់ត្រារបស់ Open Development Cambodia បង្ហាញថា ប្រកាសលេខ ០០៥៩ កំណត់ព័ត៌មានអាហារូបត្ថម្ភដែលត្រូវបង្ហាញលើស្លាកអាហារវេចខ្ចប់មុន។ គោលបំណងដែលបានសរសេរគឺកុំឲ្យអាហារត្រូវបានចែកចាយដោយបោកបញ្ឆោត និងដើម្បីការពារសុខុមាលភាពអ្នកប្រើប្រាស់ និងការធ្វើពាណិជ្ជកម្មដោយស្មោះត្រង់។ សូមអានកំណត់ត្រា និងឯកសារ PDF ភាសាខ្មែរ ឬអង់គ្លេសសម្រាប់តម្រូវការពេញលេញ។",
+            kh: "កំណត់ត្រារបស់ Open Development Cambodia បង្ហាញថា ប្រកាសលេខ ០០៥៩ កំណត់ព័ត៌មានអាហារូបត្ថម្ភដែលត្រូវបង្ហាញលើស្លាកអាហារវេចខ្ចប់មុន។ គោលបំណងដែលបានសរសេរគឺកុំឲ្យអាហារត្រូវបានចែកចាយដោយបោកបញ្ឆោត និងដើម្បីការពារសុខុមាលភាពអ្នកប្រើប្រាស់ និងការធ្វើពាណិជ្ជកម្មដោយស្មោះត្រង់។ សូមអានកំណត់ត្រា និងឯកសារ PDF ភាសាខ្មែរ ឬអង់គ្លេសសម្រាប់តម្រូវការពេញលេញ។",
             en: "Open Development Cambodia’s record describes Prakas No. 0059 as setting nutrition-information requirements for prepackaged-food labels. Its stated purpose is to prevent fraudulent or deceptive circulation of food, protect consumer welfare, and promote fair food trade. Consult the record and the Khmer or English PDFs listed below for the complete requirements.",
         },
         keyPoints: [
             {
-                km: "ប្រកាសនេះអនុវត្តចំពោះព័ត៌មានអាហារូបត្ថម្ភលើស្លាកអាហារវេចខ្ចប់មុននៅកម្ពុជា។",
+                kh: "ប្រកាសនេះអនុវត្តចំពោះព័ត៌មានអាហារូបត្ថម្ភលើស្លាកអាហារវេចខ្ចប់មុននៅកម្ពុជា។",
                 en: "The Prakas concerns nutrition information on prepackaged-food labels in Cambodia.",
             },
             {
-                km: "គោលបំណងដែលបានបញ្ជាក់គឺការពារអ្នកប្រើប្រាស់ពីព័ត៌មានបោកបញ្ឆោត និងលើកកម្ពស់ការធ្វើពាណិជ្ជកម្មដោយស្មោះត្រង់។",
+                kh: "គោលបំណងដែលបានបញ្ជាក់គឺការពារអ្នកប្រើប្រាស់ពីព័ត៌មានបោកបញ្ឆោត និងលើកកម្ពស់ការធ្វើពាណិជ្ជកម្មដោយស្មោះត្រង់។",
                 en: "Its stated aims are consumer protection from deceptive information and fair food trade.",
             },
             {
-                km: "ឯកសារមានធនធាន PDF ជាភាសាខ្មែរ និងអង់គ្លេស ដើម្បីអានតម្រូវការដើមឲ្យបានពេញលេញ។",
+                kh: "ឯកសារមានធនធាន PDF ជាភាសាខ្មែរ និងអង់គ្លេស ដើម្បីអានតម្រូវការដើមឲ្យបានពេញលេញ។",
                 en: "The record provides Khmer and English PDF resources for the complete original requirements.",
             },
         ],
         publisher: {
-            km: "Open Development Cambodia",
+            kh: "Open Development Cambodia",
             en: "Open Development Cambodia",
         },
         issuingAgency: {
-            km: "ក្រសួងពាណិជ្ជកម្ម",
+            kh: "ក្រសួងពាណិជ្ជកម្ម",
             en: "Ministry of Commerce",
         },
         documentReference: {
-            km: "០០៥៩ ប.អ.ក.ប.ប្រក",
+            kh: "០០៥៩ ប.អ.ក.ប.ប្រក",
             en: "0059 P.N. A.KBB.PrK",
         },
         jurisdiction: {
-            km: "កម្ពុជា",
+            kh: "កម្ពុជា",
             en: "Cambodia",
         },
         date: {
             label: {
-                km: "កាលបរិច្ឆេទចុះហត្ថលេខា",
+                kh: "កាលបរិច្ឆេទចុះហត្ថលេខា",
                 en: "Signed",
             },
             value: {
-                km: "២២ កុម្ភៈ ២០២២",
+                kh: "២២ កុម្ភៈ ២០២២",
                 en: "February 22, 2022",
             },
         },
         sources: [
             {
                 label: {
-                    km: "កំណត់ត្រាច្បាប់ Open Development Cambodia",
+                    kh: "កំណត់ត្រាច្បាប់ Open Development Cambodia",
                     en: "Open Development Cambodia law record",
                 },
                 url: "https://data.opendevelopmentcambodia.net/en/laws_record/prakas-n-0059-on-nutrition-information-requirements-for-the-labelling-of-pre-packaging-food-product",
             },
             {
                 label: {
-                    km: "ធនធាន PDF ភាសាខ្មែរ",
+                    kh: "ធនធាន PDF ភាសាខ្មែរ",
                     en: "Khmer PDF resource",
                 },
                 url: "https://data.opendevelopmentcambodia.net/en/laws_record/prakas-n-0059-on-nutrition-information-requirements-for-the-labelling-of-pre-packaging-food-product/resource/da15bcfa-a256-43f7-a21b-8f4f0c0d1467",
             },
             {
                 label: {
-                    km: "ធនធាន PDF ភាសាអង់គ្លេស",
+                    kh: "ធនធាន PDF ភាសាអង់គ្លេស",
                     en: "English PDF resource",
                 },
                 url: "https://data.opendevelopmentcambodia.net/en/laws_record/prakas-n-0059-on-nutrition-information-requirements-for-the-labelling-of-pre-packaging-food-product/resource/b9f8e8d6-f568-48b1-8104-a3e36ea57b68",
             },
         ],
         sourceDisclosure: {
-            km: "នេះជាប្រភពច្បាប់ខាងក្រៅ។ LifeGoods មិនបានផ្ទៀងផ្ទាត់ ឬបកស្រាយតម្រូវការនេះជាការវិនិច្ឆ័យភាពស្របច្បាប់របស់ Product ណាមួយទេ។",
+            kh: "នេះជាប្រភពច្បាប់ខាងក្រៅ។ LifeGoods មិនបានផ្ទៀងផ្ទាត់ ឬបកស្រាយតម្រូវការនេះជាការវិនិច្ឆ័យភាពស្របច្បាប់របស់ Product ណាមួយទេ។",
             en: "This is an external regulatory source. LifeGoods has not independently verified or interpreted it as a compliance conclusion for any Product.",
         },
     },
@@ -625,15 +625,15 @@ export const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
         slug: "contains-and-may-contain",
         topic: "declarations",
         title: {
-            km: "ពាក្យ «មាន» និង «អាចមាន»",
+            kh: "ពាក្យ «មាន» និង «អាចមាន»",
             en: "Contains and may contain",
         },
         summary: {
-            km: "ពាក្យទាំងពីរនេះបង្ហាញពីប្រភេទនៃការប្រកាសខុសគ្នា។",
+            kh: "ពាក្យទាំងពីរនេះបង្ហាញពីប្រភេទនៃការប្រកាសខុសគ្នា។",
             en: "These phrases describe different kinds of label declarations.",
         },
         body: {
-            km: "ការប្រកាស «មាន» និង «អាចមាន» ត្រូវអានតាមអត្ថបទដើម និងបរិបទរបស់ស្លាក។ កម្មវិធីមិនបម្លែងពាក្យទាំងនេះទៅជាការធានាសុវត្ថិភាពទេ។",
+            kh: "ការប្រកាស «មាន» និង «អាចមាន» ត្រូវអានតាមអត្ថបទដើម និងបរិបទរបស់ស្លាក។ កម្មវិធីមិនបម្លែងពាក្យទាំងនេះទៅជាការធានាសុវត្ថិភាពទេ។",
             en: "“Contains” and “may contain” should be read from the original label text and its context. The app does not turn either phrase into a safety guarantee.",
         },
     },
@@ -642,15 +642,15 @@ export const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
         slug: "no-declaration-is-not-allergen-free",
         topic: "declarations",
         title: {
-            km: "មិនឃើញការប្រកាស មិនមែនគ្មានអាលែហ្សែន",
+            kh: "មិនឃើញការប្រកាស មិនមែនគ្មានអាលែហ្សែន",
             en: "No declaration is not allergen-free",
         },
         summary: {
-            km: "អវត្តមាននៃពាក្យប្រកាសមួយ មិនបញ្ជាក់ពីអវត្តមានរបស់អាលែហ្សែនទេ។",
+            kh: "អវត្តមាននៃពាក្យប្រកាសមួយ មិនបញ្ជាក់ពីអវត្តមានរបស់អាលែហ្សែនទេ។",
             en: "The absence of a declaration does not establish the absence of an allergen.",
         },
         body: {
-            km: "ប្រសិនបើភស្តុតាងអាចអានបានពេញលេញ ប្រព័ន្ធអាចរាយការណ៍ថាមិនបានរកឃើញការប្រកាស។ នេះមិនមែនជាការធានាថា Product គ្មានអាលែហ្សែនទេ។",
+            kh: "ប្រសិនបើភស្តុតាងអាចអានបានពេញលេញ ប្រព័ន្ធអាចរាយការណ៍ថាមិនបានរកឃើញការប្រកាស។ នេះមិនមែនជាការធានាថា Product គ្មានអាលែហ្សែនទេ។",
             en: "When readable evidence is complete, the system may report that no declaration was detected. That is not a guarantee that a Product is allergen-free.",
         },
     },
@@ -659,15 +659,15 @@ export const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
         slug: "readable-and-incomplete-labels",
         topic: "evidence",
         title: {
-            km: "ស្លាកអាចអានបាន និងស្លាកមិនពេញលេញ",
+            kh: "ស្លាកអាចអានបាន និងស្លាកមិនពេញលេញ",
             en: "Readable and incomplete labels",
         },
         summary: {
-            km: "ភាពមិនពេញលេញរបស់រូបភាព ឬអត្ថបទធ្វើឲ្យការណែនាំនៅមានភាពមិនច្បាស់។",
+            kh: "ភាពមិនពេញលេញរបស់រូបភាព ឬអត្ថបទធ្វើឲ្យការណែនាំនៅមានភាពមិនច្បាស់។",
             en: "Missing or unreadable label areas keep guidance uncertain.",
         },
         body: {
-            km: "ស្លាកដែលបាត់ផ្នែក ឬអានមិនច្បាស់ ត្រូវបង្ហាញជាភស្តុតាងមិនច្បាស់លាស់។ វាមិនគួរត្រូវបានបកស្រាយថាជា «គ្មាន» ទេ។",
+            kh: "ស្លាកដែលបាត់ផ្នែក ឬអានមិនច្បាស់ ត្រូវបង្ហាញជាភស្តុតាងមិនច្បាស់លាស់។ វាមិនគួរត្រូវបានបកស្រាយថាជា «គ្មាន» ទេ។",
             en: "A label with missing or unreadable areas is evidence uncertainty. It should not be interpreted as “none.”",
         },
     },
@@ -676,15 +676,15 @@ export const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
         slug: "ingredient-list-structure",
         topic: "ingredients",
         title: {
-            km: "របៀបអានបញ្ជីគ្រឿងផ្សំ",
+            kh: "របៀបអានបញ្ជីគ្រឿងផ្សំ",
             en: "Ingredient-list structure",
         },
         summary: {
-            km: "លំដាប់ វង់ក្រចក និងភាគរយជួយរក្សាអត្ថន័យរបស់ស្លាកដើម។",
+            kh: "លំដាប់ វង់ក្រចក និងភាគរយជួយរក្សាអត្ថន័យរបស់ស្លាកដើម។",
             en: "Order, brackets, and percentages preserve the meaning of the original label.",
         },
         body: {
-            km: "ការពន្យល់គួររក្សាអត្ថបទដើម លំដាប់ និងគ្រឿងផ្សំរង។ ការបកប្រែខ្លីមិនគួរជំនួសភស្តុតាងដើមទេ។",
+            kh: "ការពន្យល់គួររក្សាអត្ថបទដើម លំដាប់ និងគ្រឿងផ្សំរង។ ការបកប្រែខ្លីមិនគួរជំនួសភស្តុតាងដើមទេ។",
             en: "An explanation should preserve original text, order, and compound ingredients. A short translation does not replace the source evidence.",
         },
     },
@@ -693,15 +693,15 @@ export const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
         slug: "additive-names-and-functions",
         topic: "ingredients",
         title: {
-            km: "ឈ្មោះ និងមុខងារសារធាតុបន្ថែម",
+            kh: "ឈ្មោះ និងមុខងារសារធាតុបន្ថែម",
             en: "Additive names and functions",
         },
         summary: {
-            km: "លេខ ឬឈ្មោះសារធាតុបន្ថែមគួរត្រូវបានបង្ហាញជាមួយបរិបទ និងភាពមិនច្បាស់។",
+            kh: "លេខ ឬឈ្មោះសារធាតុបន្ថែមគួរត្រូវបានបង្ហាញជាមួយបរិបទ និងភាពមិនច្បាស់។",
             en: "Additive names or numbers need context and visible uncertainty.",
         },
         body: {
-            km: "ការមានសារធាតុបន្ថែមមួយ មិនមានន័យថាវាគ្រោះថ្នាក់ទេ។ ការពន្យល់ត្រូវបែងចែកឈ្មោះ មុខងារ និងភស្តុតាងចេញពីគ្នា។",
+            kh: "ការមានសារធាតុបន្ថែមមួយ មិនមានន័យថាវាគ្រោះថ្នាក់ទេ។ ការពន្យល់ត្រូវបែងចែកឈ្មោះ មុខងារ និងភស្តុតាងចេញពីគ្នា។",
             en: "The presence of an additive does not make it dangerous. Explanations keep its name, function, and evidence distinct.",
         },
     },
@@ -710,15 +710,15 @@ export const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
         slug: "date-marking-types",
         topic: "dates",
         title: {
-            km: "ប្រភេទកាលបរិច្ឆេទលើស្លាក",
+            kh: "ប្រភេទកាលបរិច្ឆេទលើស្លាក",
             en: "Types of date markings",
         },
         summary: {
-            km: "កាលបរិច្ឆេទផលិត ប្រើមុន និងផុតកំណត់មានន័យខុសគ្នា។",
+            kh: "កាលបរិច្ឆេទផលិត ប្រើមុន និងផុតកំណត់មានន័យខុសគ្នា។",
             en: "Manufacture, best-before, and expiry markings have different meanings.",
         },
         body: {
-            km: "ត្រូវរក្សាទុកអត្ថបទកាលបរិច្ឆេទដើម និងបង្ហាញភាពមិនច្បាស់ ប្រសិនបើទម្រង់ ឬអត្ថន័យមិនអាចបកស្រាយបាន។",
+            kh: "ត្រូវរក្សាទុកអត្ថបទកាលបរិច្ឆេទដើម និងបង្ហាញភាពមិនច្បាស់ ប្រសិនបើទម្រង់ ឬអត្ថន័យមិនអាចបកស្រាយបាន។",
             en: "Keep the original date text and show uncertainty when its format or meaning cannot be interpreted reliably.",
         },
     },
@@ -727,15 +727,15 @@ export const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
         slug: "seal-observation-and-certification",
         topic: "dates",
         title: {
-            km: "សញ្ញាដែលមើលឃើញ និងវិញ្ញាបនបត្រ",
+            kh: "សញ្ញាដែលមើលឃើញ និងវិញ្ញាបនបត្រ",
             en: "Visible seals and certification",
         },
         summary: {
-            km: "ការមើលឃើញសញ្ញាមួយ មិនមែនជាការផ្ទៀងផ្ទាត់វិញ្ញាបនបត្រទេ។",
+            kh: "ការមើលឃើញសញ្ញាមួយ មិនមែនជាការផ្ទៀងផ្ទាត់វិញ្ញាបនបត្រទេ។",
             en: "Seeing a mark is not the same as verifying a certificate.",
         },
         body: {
-            km: "ប្រព័ន្ធអាចកត់ត្រាអ្វីដែលមើលឃើញលើកញ្ចប់ ប៉ុន្តែមិនអះអាងសុពលភាព ឬវិសាលភាពវិញ្ញាបនបត្រទេ។",
+            kh: "ប្រព័ន្ធអាចកត់ត្រាអ្វីដែលមើលឃើញលើកញ្ចប់ ប៉ុន្តែមិនអះអាងសុពលភាព ឬវិសាលភាពវិញ្ញាបនបត្រទេ។",
             en: "The system may record what is visible on a package, but it does not assert certificate validity or scope.",
         },
     },
@@ -744,15 +744,15 @@ export const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
         slug: "package-revision-differences",
         topic: "dates",
         title: {
-            km: "ភាពខុសគ្នារវាងកំណែកញ្ចប់",
+            kh: "ភាពខុសគ្នារវាងកំណែកញ្ចប់",
             en: "Package Revision differences",
         },
         summary: {
-            km: "ការផ្លាស់ប្តូរស្លាក ឬទីផ្សារ អាចបង្កើតកំណែកញ្ចប់ផ្សេងគ្នា។",
+            kh: "ការផ្លាស់ប្តូរស្លាក ឬទីផ្សារ អាចបង្កើតកំណែកញ្ចប់ផ្សេងគ្នា។",
             en: "Label or market changes can represent different Package Revisions.",
         },
         body: {
-            km: "ការផ្គូផ្គងដោយលេខសម្គាល់ ឬរូបភាពគឺជាបេក្ខជនប៉ុណ្ណោះ។ វាមិនបញ្ជាក់ថាកញ្ចប់នៅក្នុងដៃដូចគ្នាទាំងស្រុងទេ។",
+            kh: "ការផ្គូផ្គងដោយលេខសម្គាល់ ឬរូបភាពគឺជាបេក្ខជនប៉ុណ្ណោះ។ វាមិនបញ្ជាក់ថាកញ្ចប់នៅក្នុងដៃដូចគ្នាទាំងស្រុងទេ។",
             en: "An identifier or image match is only a candidate. It does not prove that the physical package is the same revision.",
         },
     },

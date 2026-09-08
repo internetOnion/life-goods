@@ -33,29 +33,18 @@ services:
     restart: unless-stopped
     environment:
       LIFEGOODS_ENVIRONMENT: staging
-      LIFEGOODS_DATABASE_URL: postgresql+psycopg://${LIFEGOODS_POSTGRES_USER}:${LIFEGOODS_POSTGRES_PASSWORD}@postgres:5432/${LIFEGOODS_POSTGRES_DB}
-      LIFEGOODS_OFF_MONGODB_URI: mongodb://${LIFEGOODS_OFF_READER_USER}:${LIFEGOODS_OFF_READER_PASSWORD}@mongodb:27017/${LIFEGOODS_OFF_DATABASE}?authSource=admin
+      LIFEGOODS_OFF_MONGODB_URI: mongodb://${LIFEGOODS_OFF_READER_USER}:${LIFEGOODS_OFF_READER_PASSWORD}@mongodb:27017/${LIFEGOODS_OFF_DATABASE}?authSource=${LIFEGOODS_OFF_DATABASE}
       LIFEGOODS_OFF_MONGODB_DATABASE: ${LIFEGOODS_OFF_DATABASE}
+      LIFEGOODS_GENERATED_MONGODB_URI: mongodb://${LIFEGOODS_GENERATED_USER}:${LIFEGOODS_GENERATED_PASSWORD}@mongodb:27017/${LIFEGOODS_GENERATED_DATABASE}?authSource=${LIFEGOODS_GENERATED_DATABASE}
+      LIFEGOODS_GENERATED_MONGODB_DATABASE: ${LIFEGOODS_GENERATED_DATABASE}
+      LIFEGOODS_GEMINI_API_KEY: ${LIFEGOODS_GEMINI_API_KEY:-}
       LIFEGOODS_REDIS_URL: redis://:${LIFEGOODS_REDIS_PASSWORD}@redis:6379/0
       LIFEGOODS_ALLOWED_ORIGINS: ${LIFEGOODS_ALLOWED_ORIGINS}
       LIFEGOODS_OPEN_FOOD_FACTS_IMAGE_BASE_URL: ${LIFEGOODS_OPEN_FOOD_FACTS_IMAGE_BASE_URL}
     depends_on:
-      - postgres
       - mongodb
       - redis
     mem_limit: 1024m
-    pids_limit: 512
-
-  postgres:
-    image: postgres:18-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${LIFEGOODS_POSTGRES_DB}
-      POSTGRES_USER: ${LIFEGOODS_POSTGRES_USER}
-      POSTGRES_PASSWORD: ${LIFEGOODS_POSTGRES_PASSWORD}
-    volumes:
-      - lifegoods-postgres:/var/lib/postgresql/data
-    mem_limit: 512m
     pids_limit: 512
 
   mongodb:
@@ -69,6 +58,9 @@ services:
       LIFEGOODS_OFF_READER_PASSWORD: ${LIFEGOODS_OFF_READER_PASSWORD}
       LIFEGOODS_OFF_WRITER_USERNAME: ${LIFEGOODS_OFF_WRITER_USER}
       LIFEGOODS_OFF_WRITER_PASSWORD: ${LIFEGOODS_OFF_WRITER_PASSWORD}
+      LIFEGOODS_GENERATED_DATABASE: ${LIFEGOODS_GENERATED_DATABASE}
+      LIFEGOODS_GENERATED_USERNAME: ${LIFEGOODS_GENERATED_USER}
+      LIFEGOODS_GENERATED_PASSWORD: ${LIFEGOODS_GENERATED_PASSWORD}
     volumes:
       - lifegoods-mongodb:/data/db
       - ../../infra/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
@@ -94,7 +86,6 @@ services:
     pids_limit: 256
 
 volumes:
-  lifegoods-postgres:
   lifegoods-mongodb:
   lifegoods-redis:
   certbot-webroot:

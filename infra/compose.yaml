@@ -1,23 +1,4 @@
 services:
-  postgres:
-    image: postgres:18-alpine
-    environment:
-      POSTGRES_DB: ${LIFEGOODS_POSTGRES_DB:-lifegoods}
-      POSTGRES_USER: ${LIFEGOODS_POSTGRES_USER:-lifegoods}
-      POSTGRES_PASSWORD: ${LIFEGOODS_POSTGRES_PASSWORD:-lifegoods}
-    ports:
-      - "${LIFEGOODS_POSTGRES_PORT:-5433}:5432"
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${LIFEGOODS_POSTGRES_USER:-lifegoods} -d ${LIFEGOODS_POSTGRES_DB:-lifegoods}",
-        ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    volumes:
-      - lifegoods-postgres:/var/lib/postgresql
 
   mongodb:
     image: mongo:8.2
@@ -29,6 +10,9 @@ services:
       LIFEGOODS_OFF_READER_PASSWORD: ${LIFEGOODS_OFF_READER_PASSWORD:-lifegoods_reader}
       LIFEGOODS_OFF_WRITER_USERNAME: ${LIFEGOODS_OFF_WRITER_USER:-lifegoods_writer}
       LIFEGOODS_OFF_WRITER_PASSWORD: ${LIFEGOODS_OFF_WRITER_PASSWORD:-lifegoods_writer}
+      LIFEGOODS_GENERATED_DATABASE: ${LIFEGOODS_GENERATED_MONGODB_DATABASE:-lifegoods_generated}
+      LIFEGOODS_GENERATED_USERNAME: ${LIFEGOODS_GENERATED_MONGODB_USER:-lifegoods_generated}
+      LIFEGOODS_GENERATED_PASSWORD: ${LIFEGOODS_GENERATED_MONGODB_PASSWORD:-lifegoods_generated}
     ports:
       - "${LIFEGOODS_OFF_MONGODB_PORT:-27018}:27017"
     healthcheck:
@@ -55,5 +39,4 @@ services:
       retries: 10
 
 volumes:
-  lifegoods-postgres:
   lifegoods-mongodb:

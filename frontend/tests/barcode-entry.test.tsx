@@ -94,13 +94,13 @@ describe("search page", () => {
 
     test("does not activate the input when the route is opened", () => {
         render(
-            <MemoryRouter
-                initialEntries={["/search"]}
-            >
+            <MemoryRouter initialEntries={["/search"]}>
                 <BarcodeEntryPage />
             </MemoryRouter>,
         )
-        expect(screen.getByRole("textbox", { name: "Search" })).not.toHaveFocus()
+        expect(
+            screen.getByRole("textbox", { name: "Search" }),
+        ).not.toHaveFocus()
     })
 
     test("displays Manual Product Lookup heading", () => {

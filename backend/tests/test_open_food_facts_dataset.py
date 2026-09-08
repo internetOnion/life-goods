@@ -69,7 +69,7 @@ def test_dataset_lookup_maps_full_document_and_version_provenance() -> None:
     assert record.manufacturing_places.value == "Cambodia"
     assert [(item.value, item.language) for item in record.storage_conditions] == [
         ("Keep in a cool, dry place", "en"),
-        ("រក្សាទុកកន្លែងត្រជាក់ និងស្ងួត", "km"),
+        ("រក្សាទុកកន្លែងត្រជាក់ និងស្ងួត", "kh"),
     ]
     assert record.halal_label_claim is not None
     assert record.halal_label_claim.value == ("en:halal",)

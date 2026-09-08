@@ -1,12 +1,10 @@
 """Core infrastructure, settings, database session factory, and shared error definitions."""
 
 from lifegoods.core.concurrency import ExternalLookupLocks, SlidingWindowRequestBudget
-from lifegoods.core.database import Base, create_session_factory
 from lifegoods.core.errors import ErrorCode, ErrorDetail, ErrorEnvelope, LifeGoodsError
 from lifegoods.core.settings import Settings
 
 __all__ = [
-    "Base",
     "ErrorCode",
     "ErrorDetail",
     "ErrorEnvelope",
@@ -14,5 +12,4 @@ __all__ = [
     "LifeGoodsError",
     "Settings",
     "SlidingWindowRequestBudget",
-    "create_session_factory",
 ]

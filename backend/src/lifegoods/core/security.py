@@ -13,10 +13,10 @@ response. It is intentionally conservative:
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from contextlib import suppress
 from typing import Any
 
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
 
@@ -37,7 +37,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         self._frame_options = frame_options
 
     async def dispatch(
-        self, request: Request, call_next: Callable[[Request], Response]
+        self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         response = await call_next(request)
 
@@ -45,10 +45,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers.setdefault("Referrer-Policy", "no-referrer")
         response.headers.setdefault("X-Frame-Options", self._frame_options)
         # Remove the framework banner to avoid exposing the server stack.
-        try:
+        with suppress(KeyError, AttributeError):
             del response.headers["Server"]
-        except (KeyError, AttributeError):
-            pass
 
         path = request.url.path
         if path.startswith("/api/v1/") and path not in _CACHEABLE_PATHS:
