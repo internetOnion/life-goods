@@ -180,7 +180,13 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
             const transitionDocument = document as SearchViewTransitionDocument
 
             if (transitionDocument.startViewTransition) {
-                transitionDocument.startViewTransition(updateSearchRoute)
+                try {
+                    transitionDocument.startViewTransition(updateSearchRoute)
+                } catch {
+                    // A second click can arrive while a view transition is active.
+                    // Keep navigation reliable even when the browser rejects it.
+                    updateSearchRoute()
+                }
             } else {
                 updateSearchRoute()
             }
@@ -666,7 +672,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
             </section>
 
             <div className="mt-5 mb-3.5 flex items-center justify-center">
-                <BrandLockup animated />
+                <BrandLockup />
             </div>
 
             <div className="mx-auto w-full max-w-lg">

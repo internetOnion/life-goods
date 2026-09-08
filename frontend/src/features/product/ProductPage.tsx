@@ -80,18 +80,7 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
     const hasEcoScore = Boolean(
         offView?.ecoscoreGrade && offView.ecoscoreGrade !== "unknown",
     )
-    const sourceAssessmentCount = [
-        hasNutriScore,
-        hasNovaGroup,
-        hasEcoScore,
-    ].filter(Boolean).length
-    const hasSourceAssessments = sourceAssessmentCount > 0
-    const assessmentGridClass =
-        sourceAssessmentCount === 1
-            ? "sm:mx-auto sm:max-w-[18rem]"
-            : sourceAssessmentCount === 2
-              ? "sm:mx-auto sm:max-w-[30rem] sm:grid-cols-2"
-              : "sm:grid-cols-3"
+    const hasSourceAssessments = hasNutriScore || hasNovaGroup || hasEcoScore
 
     useEffect(() => {
         if (
@@ -279,36 +268,20 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
 
                         {/* Open Food Facts Top Score Pillars */}
                         {hasSourceAssessments && (
-                            <div className="space-y-2 pt-1">
-                                <div className="flex items-center justify-between gap-2">
-                                    <h2 className="text-xs font-bold tracking-[0.06em] text-neutral-500 uppercase">
-                                        Source Assessments
-                                    </h2>
-                                    <span className="text-caption font-medium text-neutral-400">
-                                        Open Food Facts
-                                    </span>
-                                </div>
-                                <p className="text-xs leading-normal text-neutral-600">
-                                    Attributed source calculations; not Life
-                                    Goods verdicts or purchase recommendations.
-                                </p>
-                                <div
-                                    className={`grid grid-cols-1 gap-2.5 sm:gap-3 ${assessmentGridClass}`}
-                                >
-                                    <NutriScoreBanner
-                                        grade={offView.nutriscoreGrade}
-                                        score={offView.nutriscoreScore}
-                                        version={offView.nutriscoreVersion}
-                                    />
-                                    <NovaGroupBanner
-                                        group={offView.novaGroup}
-                                        markers={offView.novaGroupsMarkers}
-                                    />
-                                    <EcoScoreBanner
-                                        grade={offView.ecoscoreGrade}
-                                        score={offView.ecoscoreScore}
-                                    />
-                                </div>
+                            <div className="grid grid-cols-1 gap-2 pt-1">
+                                <NutriScoreBanner
+                                    grade={offView.nutriscoreGrade}
+                                    score={offView.nutriscoreScore}
+                                    version={offView.nutriscoreVersion}
+                                />
+                                <NovaGroupBanner
+                                    group={offView.novaGroup}
+                                    markers={offView.novaGroupsMarkers}
+                                />
+                                <EcoScoreBanner
+                                    grade={offView.ecoscoreGrade}
+                                    score={offView.ecoscoreScore}
+                                />
                             </div>
                         )}
 

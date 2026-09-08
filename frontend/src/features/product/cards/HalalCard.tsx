@@ -77,6 +77,10 @@ export const HalalCard: React.FC<HalalCardProps> = ({
     const config = OUTCOME_CONFIG[outcome] || OUTCOME_CONFIG.NOT_ASSESSED
     const OutcomeIcon = config.Icon
     const findings = assessment?.findings || []
+    const hasAssessment =
+        assessment?.status === "COMPLETED" && outcome !== "NOT_ASSESSED"
+
+    if (!hasHalalClaim && !hasAssessment && findings.length === 0) return null
 
     return (
         <Card className="border-neutral-200/90 bg-white shadow-xs">
@@ -100,44 +104,47 @@ export const HalalCard: React.FC<HalalCardProps> = ({
 
             <CardContent className="space-y-4 p-4 pt-2 sm:p-5">
                 {/* Outcome Summary Box */}
-                <div
-                    className={`space-y-1.5 rounded-2xl border p-3.5 ${
-                        config.variant === "success"
-                            ? "border-success-200 bg-success-50/60 text-success-950"
-                            : config.variant === "warning"
-                              ? "border-warning-200 bg-warning-50/70 text-warning-950"
-                              : config.variant === "error"
-                                ? "border-error-200 bg-error-50/70 text-error-950"
-                                : "border-neutral-200/80 bg-neutral-50/70 text-neutral-800"
-                    }`}
-                >
-                    <div className="flex items-center gap-2">
-                        <OutcomeIcon
-                            className={`h-4 w-4 shrink-0 ${
-                                config.variant === "success"
-                                    ? "text-success-600"
-                                    : config.variant === "warning"
-                                      ? "text-warning-600"
-                                      : config.variant === "error"
-                                        ? "text-error-600"
-                                        : "text-neutral-500"
-                            }`}
-                        />
-                        <h4 className="text-xs font-bold sm:text-sm">
-                            {config.title}
-                        </h4>
+                {hasAssessment && (
+                    <div
+                        className={`space-y-1.5 rounded-2xl border p-3.5 ${
+                            config.variant === "success"
+                                ? "border-success-200 bg-success-50/60 text-success-950"
+                                : config.variant === "warning"
+                                  ? "border-warning-200 bg-warning-50/70 text-warning-950"
+                                  : config.variant === "error"
+                                    ? "border-error-200 bg-error-50/70 text-error-950"
+                                    : "border-neutral-200/80 bg-neutral-50/70 text-neutral-800"
+                        }`}
+                    >
+                        <div className="flex items-center gap-2">
+                            <OutcomeIcon
+                                className={`h-4 w-4 shrink-0 ${
+                                    config.variant === "success"
+                                        ? "text-success-600"
+                                        : config.variant === "warning"
+                                          ? "text-warning-600"
+                                          : config.variant === "error"
+                                            ? "text-error-600"
+                                            : "text-neutral-500"
+                                }`}
+                            />
+                            <h4 className="text-xs font-bold sm:text-sm">
+                                {config.title}
+                            </h4>
+                        </div>
+                        <p className="text-xs leading-relaxed opacity-95 sm:text-sm">
+                            {config.desc}
+                        </p>
                     </div>
-                    <p className="text-xs leading-relaxed opacity-95 sm:text-sm">
-                        {config.desc}
-                    </p>
-                </div>
+                )}
 
                 {/* Manufacturer Claim */}
                 {hasHalalClaim && (
                     <div className="rounded-xl border border-neutral-200/70 bg-neutral-50 p-3">
                         <p className="text-xs leading-relaxed font-medium text-neutral-800 italic sm:text-sm">
-                            Package carries an official Halal symbol or claim
-                            detected in label metadata.
+                            Open Food Facts lists a Halal label claim for this
+                            Product. Life Goods has not verified the claim or a
+                            certificate.
                         </p>
                     </div>
                 )}

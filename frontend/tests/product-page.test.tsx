@@ -57,24 +57,31 @@ describe("Product page (life-goods-viewer layout)", () => {
             }),
         ).toBeVisible()
         expect(
-            screen.getByText("Allergen Findings", { exact: true }),
-        ).toBeVisible()
+            screen.queryByText("Allergen Findings", { exact: true }),
+        ).not.toBeInTheDocument()
         expect(
-            screen.getByText("Additives (E-Nums)", { exact: true }),
-        ).toBeVisible()
-        expect(screen.getByText("Halal Status", { exact: true })).toBeVisible()
-        expect(screen.getByText("NOT ASSESSED", { exact: true })).toBeVisible()
-        expect(screen.getAllByText("chocolate").length).toBeGreaterThanOrEqual(
-            1,
-        )
-
+            screen.queryByLabelText("Product label highlights"),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByText("Halal & Dietary Assessment"),
+        ).not.toBeInTheDocument()
         // Score Banners
-        expect(screen.getByText("Nutri-Score")).toBeVisible()
-        expect(screen.getByText("Grade D")).toBeVisible()
-        expect(screen.getByText("NOVA Food Processing")).toBeVisible()
-        expect(screen.getByText("NOVA 4")).toBeVisible()
-        expect(screen.getByText(/Eco-Score/i)).toBeVisible()
-        expect(screen.getByText("Grade C")).toBeVisible()
+        expect(screen.getByText("Nutri-Score").closest("p")).toHaveTextContent(
+            "Nutri-Score D",
+        )
+        expect(screen.getByText("Ultra-processed foods")).toBeVisible()
+        expect(screen.getByText("NOVA group 4")).toBeVisible()
+        expect(screen.getByText("Green-Score").closest("p")).toHaveTextContent(
+            "Green-Score C",
+        )
+        expect(
+            screen.queryByRole("heading", { name: "Source Assessments" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByText(
+                "Attributed source calculations; not Life Goods verdicts or purchase recommendations.",
+            ),
+        ).not.toBeInTheDocument()
 
         // Navigation Tabs
         expect(screen.getByRole("tab", { name: "Overview" })).toBeVisible()
@@ -117,6 +124,82 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(
             screen.queryByText("Photo Archive & Packaging Scans"),
         ).not.toBeInTheDocument()
+    })
+
+    test("shows compact assessment results without redundant intro copy", async () => {
+        renderProduct(
+            vi.fn<ProductLookup>().mockResolvedValue(productResponse()),
+        )
+
+        await screen.findByRole("heading", { name: "Dark Chocolate" })
+
+        expect(screen.getByText("Nutri-Score").closest("p")).toHaveTextContent(
+            "Nutri-Score D",
+        )
+        expect(screen.getByText("Ultra-processed foods")).toBeVisible()
+        expect(screen.getByText("Green-Score").closest("p")).toHaveTextContent(
+            "Green-Score C",
+        )
+        expect(
+            screen.queryByRole("heading", { name: "Source Assessments" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByText(
+                "Attributed source calculations; not Life Goods verdicts or purchase recommendations.",
+            ),
+        ).not.toBeInTheDocument()
+    })
+
+    test("shows only available Halal and Additive label highlights", async () => {
+        renderProduct(
+            vi.fn<ProductLookup>().mockResolvedValue(
+                productResponse({
+                    additives_tags: ["en:e322", "en:e330"],
+                    labels_tags: ["en:halal"],
+                }),
+            ),
+        )
+
+        await screen.findByRole("heading", { name: "Dark Chocolate" })
+
+        const highlights = screen.getByLabelText("Product label highlights")
+        expect(highlights).toHaveClass("justify-end")
+        const halalHighlight = within(highlights).getByText("Halal")
+        const additiveHighlight = within(highlights).getByText("Additive")
+        expect(halalHighlight).toHaveClass(
+            "border-info-200",
+            "bg-info-50",
+            "text-info-800",
+        )
+        expect(additiveHighlight).toHaveClass(
+            "border-info-200",
+            "bg-info-50",
+            "text-info-800",
+        )
+        expect(
+            within(highlights).queryByText(/listed/i),
+        ).not.toBeInTheDocument()
+        expect(screen.queryByText("Halal Status")).not.toBeInTheDocument()
+        expect(screen.queryByText("Additives (E-Nums)")).not.toBeInTheDocument()
+    })
+
+    test("omits the Halal highlight when only additives are listed", async () => {
+        renderProduct(
+            vi
+                .fn<ProductLookup>()
+                .mockResolvedValue(
+                    productResponse({ additives_tags: ["en:e322"] }),
+                ),
+        )
+
+        await screen.findByRole("heading", { name: "Dark Chocolate" })
+
+        const highlights = screen.getByLabelText("Product label highlights")
+        expect(within(highlights).getByText("Additive")).toBeVisible()
+        expect(
+            within(highlights).queryByText(/listed/i),
+        ).not.toBeInTheDocument()
+        expect(within(highlights).queryByText("Halal")).not.toBeInTheDocument()
     })
 
     test("uses English ingredient data by default without showing a language switcher", async () => {
@@ -267,12 +350,25 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(
             await screen.findByRole("heading", { name: "Sparse Product" }),
         ).toBeVisible()
+        const originRow = screen.getByText("Origin", {
+            exact: true,
+        }).parentElement
+        expect(originRow).not.toBeNull()
+        expect(
+            within(originRow as HTMLElement).getByText(
+                "Source Data Unavailable",
+                {
+                    exact: true,
+                },
+            ),
+        ).toBeVisible()
+        expect(
+            screen.queryByText("Allergen Findings", { exact: true }),
+        ).not.toBeInTheDocument()
         expect(screen.queryByText("Source Assessments")).not.toBeInTheDocument()
         expect(screen.queryByText("Not computed")).not.toBeInTheDocument()
         expect(screen.queryByText("NOVA not computed")).not.toBeInTheDocument()
-        expect(
-            screen.queryByText("Eco-Score not calculated"),
-        ).not.toBeInTheDocument()
+        expect(screen.queryByText(/Green-Score/i)).not.toBeInTheDocument()
     })
 
     test("does not show assessment cards when no valid assessment is available", async () => {
@@ -296,9 +392,7 @@ describe("Product page (life-goods-viewer layout)", () => {
             }),
         ).toBeVisible()
         expect(screen.queryByText("Source Assessments")).not.toBeInTheDocument()
-        expect(
-            screen.queryByText("Eco-Score not calculated"),
-        ).not.toBeInTheDocument()
+        expect(screen.queryByText(/Green-Score/i)).not.toBeInTheDocument()
         expect(screen.queryByText("100/100")).not.toBeInTheDocument()
         expect(screen.queryByText("Not computed")).not.toBeInTheDocument()
         expect(screen.queryByText(/Score: 15 pts/)).not.toBeInTheDocument()

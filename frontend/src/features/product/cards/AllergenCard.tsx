@@ -65,18 +65,18 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
 
     return (
         <Card className="border-neutral-200/90 bg-white shadow-xs">
-            <CardHeader className="p-4 pb-2 sm:p-5">
+            <CardHeader className="p-4 pb-8 sm:p-5 sm:pb-8">
                 <div className="flex items-center gap-2.5">
                     <div className="bg-warning-100 text-warning-800 grid size-8 shrink-0 place-items-center rounded-xl">
                         <ShieldAlert className="h-4 w-4" />
                     </div>
                     <CardTitle className="text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
-                        Codex Allergen Assessment
+                        Allergen Assessment
                     </CardTitle>
                 </div>
             </CardHeader>
 
-            <CardContent className="space-y-4 p-4 pt-2 sm:p-5">
+            <CardContent className="space-y-4 p-4 pt-0 sm:p-5 sm:pt-0">
                 {/* Findings Alert Box */}
                 {findings.length > 0 ? (
                     <div className="border-warning-200 bg-warning-50/70 space-y-2 rounded-2xl border p-3">
@@ -113,10 +113,10 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
 
                 {/* Package Label Tags if available */}
                 {(rawAllergenTags.length > 0 || rawTracesTags.length > 0) && (
-                    <div className="space-y-2 text-xs">
+                    <div className="space-y-3 text-sm">
                         {rawAllergenTags.length > 0 && (
-                            <div className="space-y-1">
-                                <span className="text-caption font-bold tracking-[0.06em] text-neutral-500 uppercase">
+                            <div className="space-y-2">
+                                <span className="text-xs font-bold tracking-[0.06em] text-neutral-500 uppercase sm:text-sm">
                                     Declared Allergens:
                                 </span>
                                 <div className="flex flex-wrap gap-1.5">
@@ -124,7 +124,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                         <Badge
                                             key={idx}
                                             variant="warning"
-                                            className="py-0.2 text-caption px-2 font-semibold"
+                                            className="px-2.5 py-0.5 text-sm font-semibold"
                                         >
                                             {tag}
                                         </Badge>
@@ -134,8 +134,8 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                         )}
 
                         {rawTracesTags.length > 0 && (
-                            <div className="space-y-1">
-                                <span className="text-caption font-bold tracking-[0.06em] text-neutral-500 uppercase">
+                            <div className="space-y-2">
+                                <span className="text-xs font-bold tracking-[0.06em] text-neutral-500 uppercase sm:text-sm">
                                     May Contain Traces:
                                 </span>
                                 <div className="flex flex-wrap gap-1.5">
@@ -143,7 +143,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                         <Badge
                                             key={idx}
                                             variant="outline"
-                                            className="py-0.2 text-caption px-2 font-medium text-neutral-600"
+                                            className="px-2.5 py-0.5 text-sm font-medium text-neutral-600"
                                         >
                                             {tag}
                                         </Badge>

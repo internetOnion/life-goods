@@ -68,33 +68,23 @@ export function BrandMark({
 
 export interface BrandLockupProps {
     compact?: boolean
-    animated?: boolean
     className?: string
 }
 
-export function BrandLockup({
-    compact = false,
-    animated = false,
-    className,
-}: BrandLockupProps) {
+export function BrandLockup({ compact = false, className }: BrandLockupProps) {
     return (
         <span
             className={cn(
                 "inline-flex items-center gap-2.5 select-none",
-                animated && "brand-lockup-animated",
                 className,
             )}
             aria-label="Life Goods"
         >
-            <BrandMark
-                className={animated ? "brand-lockup-animated__mark" : undefined}
-                size={compact ? 28 : 36}
-            />
+            <BrandMark size={compact ? 28 : 36} />
             <span
                 className={cn(
                     "leading-none font-black tracking-[-0.03em] text-neutral-950",
                     compact ? "text-base sm:text-lg" : "text-xl sm:text-2xl",
-                    animated && "brand-lockup-animated__wordmark",
                 )}
             >
                 Life Goods
