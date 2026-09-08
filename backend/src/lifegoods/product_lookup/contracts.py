@@ -253,6 +253,15 @@ class ProductProjectionResponse(BaseModel):
     meta: ProductProjectionMetaResponse
 
 
+class ProductSummary(BaseModel):
+    barcode: str
+    name: OriginalText | None = None
+    brands: list[str] = Field(default_factory=list)
+    quantity: str | None = None
+    thumbnail: SourceImage | None = None
+    source: SourceAttributionResponse
+
+
 class ProductLookupErrorCode(StrEnum):
     INVALID_BARCODE = "invalid_barcode"
     PRODUCT_NOT_FOUND = "product_not_found"

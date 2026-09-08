@@ -831,6 +831,178 @@
         "title": "ProductProjectionResponse",
         "type": "object"
       },
+      "ProductSearchDataResponse": {
+        "properties": {
+          "products": {
+            "items": {
+              "$ref": "#/components/schemas/ProductSummary"
+            },
+            "title": "Products",
+            "type": "array"
+          }
+        },
+        "title": "ProductSearchDataResponse",
+        "type": "object"
+      },
+      "ProductSearchErrorCode": {
+        "enum": [
+          "invalid_query",
+          "invalid_barcode",
+          "invalid_cursor",
+          "search_unavailable",
+          "dataset_unavailable",
+          "rate_limit_exceeded",
+          "internal_error"
+        ],
+        "title": "ProductSearchErrorCode",
+        "type": "string"
+      },
+      "ProductSearchErrorDetail": {
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ProductSearchErrorCode"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ProductSearchErrorDetail",
+        "type": "object"
+      },
+      "ProductSearchErrorResponse": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ProductSearchErrorDetail"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductLookupErrorMetaResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ProductSearchErrorResponse",
+        "type": "object"
+      },
+      "ProductSearchMetaResponse": {
+        "properties": {
+          "dataset": {
+            "$ref": "#/components/schemas/DatasetSnapshotResponse"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/SearchPaginationMetaResponse"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SourceAttributionResponse"
+          }
+        },
+        "required": [
+          "source",
+          "dataset"
+        ],
+        "title": "ProductSearchMetaResponse",
+        "type": "object"
+      },
+      "ProductSearchResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ProductSearchDataResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ProductSearchMetaResponse"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "ProductSearchResponse",
+        "type": "object"
+      },
+      "ProductSummary": {
+        "properties": {
+          "barcode": {
+            "title": "Barcode",
+            "type": "string"
+          },
+          "brands": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Brands",
+            "type": "array"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OriginalText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SourceAttributionResponse"
+          },
+          "thumbnail": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceImage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "barcode",
+          "source"
+        ],
+        "title": "ProductSummary",
+        "type": "object"
+      },
+      "SearchPaginationMetaResponse": {
+        "properties": {
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "title": "SearchPaginationMetaResponse",
+        "type": "object"
+      },
       "SourceAssessmentsProjection": {
         "properties": {
           "green_score": {
@@ -1496,6 +1668,99 @@
         "summary": "Get Open Food Facts Image",
         "tags": [
           "Open Food Facts Images"
+        ]
+      }
+    },
+    "/api/v1/products/search": {
+      "get": {
+        "description": "Searches Products in the selected local Open Food Facts Dataset Snapshot by Barcode, name, or brand.",
+        "operationId": "searchProducts",
+        "parameters": [
+          {
+            "description": "Search query: Barcode, product name, or brand.",
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "description": "Search query: Barcode, product name, or brand.",
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional continuation token for pagination.",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional continuation token for pagination.",
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductSearchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductSearchErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductSearchErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductSearchErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductSearchErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Search Products",
+        "tags": [
+          "Products"
         ]
       }
     },

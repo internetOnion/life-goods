@@ -41,6 +41,17 @@ from lifegoods.product_lookup import (
     install_product_lookup_access_log_filter,
     product_lookup_router,
 )
+from lifegoods.product_search import (
+    NoOpProductSearchMetrics,
+    ProductSearchMetrics,
+    ProductSearchRateLimiter,
+    RedisProductSearchRateLimiter,
+    SearchProducts,
+    get_product_search,
+    get_product_search_metrics,
+    get_product_search_rate_limiter,
+    product_search_router,
+)
 from lifegoods.translation.gemini import GeminiTranslationAdapter
 from lifegoods.translation.module import (
     PRODUCTION_MODEL,
@@ -69,6 +80,9 @@ def create_app(
     product_lookup_limiter: ProductLookupRateLimiter | None = None,
     product_lookup_metrics: ProductLookupMetrics | None = None,
     translation_coordinator: TranslationCoordinator | None = None,
+    product_search_service: SearchProducts | None = None,
+    product_search_limiter: ProductSearchRateLimiter | None = None,
+    product_search_metrics: ProductSearchMetrics | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings()
     install_product_lookup_access_log_filter()
@@ -82,6 +96,7 @@ def create_app(
         product_lookup_limiter is None
         or (resolved_settings.product_lookup_cache_enabled and product_lookup_cache is None)
         or translation_coordinator is None
+        or product_search_limiter is None
     )
 
     if needs_shared_redis:
@@ -126,6 +141,19 @@ def create_app(
             resolved_settings.product_lookup_requests_per_minute,
         )
 
+    if product_search_limiter is not None:
+        resolved_product_search_limiter = product_search_limiter
+    else:
+        assert shared_redis_client is not None
+        resolved_product_search_limiter = RedisProductSearchRateLimiter(
+            shared_redis_client,
+            resolved_settings.product_search_requests_per_minute,
+        )
+
+    resolved_product_search_metrics = (
+        product_search_metrics or NoOpProductSearchMetrics()
+    )
+
     resolved_product_lookup_metrics = product_lookup_metrics or NoOpProductLookupMetrics()
 
     if image_source is None:
@@ -149,6 +177,7 @@ def create_app(
         allow_methods=["GET"],
         allow_headers=["*"],
     )
+    app.include_router(product_search_router)
     app.include_router(product_lookup_router)
     app.include_router(open_food_facts_image_router)
 
@@ -216,6 +245,17 @@ def create_app(
         resolved_product_lookup_limiter
     )
     app.dependency_overrides[get_product_lookup_metrics] = lambda: resolved_product_lookup_metrics
+    app.dependency_overrides[get_product_search] = lambda: (
+        product_search_service
+        if product_search_service is not None
+        else SearchProducts(resolved_product_lookup_source)
+    )
+    app.dependency_overrides[get_product_search_rate_limiter] = lambda: (
+        resolved_product_search_limiter
+    )
+    app.dependency_overrides[get_product_search_metrics] = lambda: (
+        resolved_product_search_metrics
+    )
 
     @app.exception_handler(RequestValidationError)
     async def request_validation_handler(

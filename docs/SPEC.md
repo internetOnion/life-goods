@@ -738,3 +738,33 @@ Stable Product Lookup exposes exact Open Food Facts taxonomy references under `p
 The stable Product Lookup HTTP suite is the acceptance boundary for `language=kh`, rejection of application request `km`, recognized source-provided `km` metadata, Original Text, generated provenance, field and overall states, structured storage/packaging/category items, taxonomy references, and legacy fields. Deterministic fixtures cover complete, sparse, multilingual, mixed, unknown-language, source-Khmer, brand-only, long-input, missing-source, partial, and unavailable behavior.
 
 The benchmark described in section 14 measures the production translation path and records cold and cached results separately under `docs/research/translation-benchmark/issue-100/`. Real MongoDB/Redis integration checks remain separate from the zero-network suite and require dedicated disposable test connections. On 2026-09-08, the project owner waived live-provider execution as an issue-completion requirement because production retains the already-approved exact Gemini model. Consequently, no claims are made about measured live provider latency, completion, timeout, usage, or cost, and simulated measurements are not substituted. The live command remains available as an optional operator diagnostic. This scope decision does not alter the 12-second default.
+
+## 25. Product Search API and attributed Product summaries (Issue #104)
+
+The first Product Search milestone exposes `GET /api/v1/products/search` for Barcode search and attributed Product summaries before text-based retrieval is introduced:
+
+1. **Request & Contract**:
+   - `GET /api/v1/products/search?q={query}&cursor={cursor}`
+   - Registered before the parameterized Product Lookup route (`GET /api/v1/products/{barcode}`).
+   - `q` is required and must contain between 2 and 200 characters and at most 10 normalized terms. Empty or punctuation-only input returns HTTP 422 with error code `invalid_query`. Term extraction normalizes text while preserving Unicode combining marks (such as Khmer vowels and diacritics) attached to letters and numbers.
+   - `cursor` is accepted in the contract as an optional query parameter but rejected with HTTP 422 `invalid_cursor` until pagination is implemented. Barcode results never require continuation.
+
+2. **Numeric Input & Barcode Classification**:
+   - Numeric inputs at supported Barcode lengths (8, 12, 13, 14) are validated using standard Barcode check-digit and normalization logic (stripping outer whitespace and internal spaces or hyphens, preserving leading zeros).
+   - Invalid Barcode-length numeric candidates return HTTP 422 with error code `invalid_barcode`.
+   - Shorter numeric inputs (e.g. "1664") or numeric inputs not matching supported Barcode lengths are classified as text rather than invalid Barcodes.
+
+3. **Barcode Retrieval & Product Summaries**:
+   - Valid Barcodes look up zero or one Product summary from the Dataset Snapshot independently of text index readiness.
+   - If the Product is absent from the Dataset Snapshot, HTTP 200 is returned with an empty products list (`data.products: []`).
+   - If the Product is found, HTTP 200 is returned with a single `ProductSummary` item.
+   - `ProductSummary` includes `barcode`, selected `name` (`OriginalText` provenance), `brands`, `quantity`, `thumbnail` (`SourceImage` provenance), and individual `source` attribution (`https://world.openfoodfacts.org/product/{barcode}`). It does not calculate full Product details or invoke translation.
+   - Top-level `meta` provides `source` attribution for Open Food Facts (`https://world.openfoodfacts.org`), `dataset` metadata, and nullable `pagination.next_cursor` (`null`).
+
+4. **Intermediate Text Retrieval Availability**:
+   - Valid text queries (names, brands, short numbers) return HTTP 503 with error code `search_unavailable` pending the text-search index and ranking slice (#105).
+
+5. **Rate Limiting & Privacy**:
+   - Anonymous per-IP rate limiting operates independently under `LIFEGOODS_PRODUCT_SEARCH_REQUESTS_PER_MINUTE` (default 60), returning HTTP 429 `rate_limit_exceeded`.
+   - Search queries, Barcodes, and client IP addresses are redacted from access logs and omitted from operational metrics.
+

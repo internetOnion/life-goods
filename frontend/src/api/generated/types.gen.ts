@@ -386,6 +386,88 @@ export type ProductProjectionResponse = {
 };
 
 /**
+ * ProductSearchDataResponse
+ */
+export type ProductSearchDataResponse = {
+    /**
+     * Products
+     */
+    products?: Array<ProductSummary>;
+};
+
+/**
+ * ProductSearchErrorCode
+ */
+export type ProductSearchErrorCode = 'invalid_query' | 'invalid_barcode' | 'invalid_cursor' | 'search_unavailable' | 'dataset_unavailable' | 'rate_limit_exceeded' | 'internal_error';
+
+/**
+ * ProductSearchErrorDetail
+ */
+export type ProductSearchErrorDetail = {
+    code: ProductSearchErrorCode;
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * ProductSearchErrorResponse
+ */
+export type ProductSearchErrorResponse = {
+    error: ProductSearchErrorDetail;
+    meta?: ProductLookupErrorMetaResponse | null;
+};
+
+/**
+ * ProductSearchMetaResponse
+ */
+export type ProductSearchMetaResponse = {
+    dataset: DatasetSnapshotResponse;
+    pagination?: SearchPaginationMetaResponse;
+    source: SourceAttributionResponse;
+};
+
+/**
+ * ProductSearchResponse
+ */
+export type ProductSearchResponse = {
+    data: ProductSearchDataResponse;
+    meta: ProductSearchMetaResponse;
+};
+
+/**
+ * ProductSummary
+ */
+export type ProductSummary = {
+    /**
+     * Barcode
+     */
+    barcode: string;
+    /**
+     * Brands
+     */
+    brands?: Array<string>;
+    name?: OriginalText | null;
+    /**
+     * Quantity
+     */
+    quantity?: string | null;
+    source: SourceAttributionResponse;
+    thumbnail?: SourceImage | null;
+};
+
+/**
+ * SearchPaginationMetaResponse
+ */
+export type SearchPaginationMetaResponse = {
+    /**
+     * Next Cursor
+     */
+    next_cursor?: string | null;
+};
+
+/**
  * SourceAssessmentsProjection
  */
 export type SourceAssessmentsProjection = {
@@ -718,6 +800,54 @@ export type GetOpenFoodFactsImageResponses = {
 };
 
 export type GetOpenFoodFactsImageResponse = GetOpenFoodFactsImageResponses[keyof GetOpenFoodFactsImageResponses];
+
+export type SearchProductsData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Q
+         * Search query: Barcode, product name, or brand.
+         */
+        q: string;
+        /**
+         * Cursor
+         * Optional continuation token for pagination.
+         */
+        cursor?: string | null;
+    };
+    url: '/api/v1/products/search';
+};
+
+export type SearchProductsErrors = {
+    /**
+     * Unprocessable Content
+     */
+    422: ProductSearchErrorResponse;
+    /**
+     * Too Many Requests
+     */
+    429: ProductSearchErrorResponse;
+    /**
+     * Internal Server Error
+     */
+    500: ProductSearchErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: ProductSearchErrorResponse;
+};
+
+export type SearchProductsError = SearchProductsErrors[keyof SearchProductsErrors];
+
+export type SearchProductsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProductSearchResponse;
+};
+
+export type SearchProductsResponse = SearchProductsResponses[keyof SearchProductsResponses];
 
 export type GetProductData = {
     body?: never;

@@ -16,6 +16,12 @@ class ProductLookupAccessLogFilter(logging.Filter):
         path = arguments[2]
         if not isinstance(path, str):
             return True
+        if path.startswith("/api/v1/products/search"):
+            sanitized = list(arguments)
+            sanitized[0] = "[redacted]"
+            sanitized[2] = "/api/v1/products/search"
+            record.args = tuple(sanitized)
+            return True
         matched_prefix = next(
             (
                 prefix
