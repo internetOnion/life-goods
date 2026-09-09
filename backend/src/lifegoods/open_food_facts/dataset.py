@@ -6,6 +6,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from threading import Lock
+from time import monotonic
 from typing import Any, cast
 
 from pymongo import ASCENDING, TEXT
@@ -61,12 +62,12 @@ LOCALIZED_NAME_FIELDS = (
     ("product_name_vi", "vi"),
     ("product_name_zh", "zh"),
 )
-PACKAGE_SEARCH_TEXT_FIELDS = tuple(
-    (field, TEXT) for field, _language in LOCALIZED_NAME_FIELDS
-) + (("brands", TEXT),)
-PACKAGE_SEARCH_TEXT_WEIGHTS = {
-    field: 10 for field, _language in LOCALIZED_NAME_FIELDS
-} | {"brands": 8}
+PACKAGE_SEARCH_TEXT_FIELDS = tuple((field, TEXT) for field, _language in LOCALIZED_NAME_FIELDS) + (
+    ("brands", TEXT),
+)
+PACKAGE_SEARCH_TEXT_WEIGHTS = {field: 10 for field, _language in LOCALIZED_NAME_FIELDS} | {
+    "brands": 8
+}
 LOCALIZED_INGREDIENT_FIELDS = (
     ("ingredients_text", None),
     ("ingredients_text_en", "en"),
@@ -138,9 +139,7 @@ class OpenFoodFactsDatasetSource:
 
     def fetch(self, identifier: NormalizedIdentifier) -> ExternalLookupResult:
         try:
-            pointer = self._database[CONTROL_COLLECTION].find_one(
-                {"_id": ACTIVE_POINTER_ID}
-            )
+            pointer = self._database[CONTROL_COLLECTION].find_one({"_id": ACTIVE_POINTER_ID})
             if pointer is None or not isinstance(pointer.get("active_version_id"), str):
                 _log_off_unavailable("read_active_pointer", "metadata_invalid")
                 return _unavailable(identifier)
@@ -150,9 +149,7 @@ class OpenFoodFactsDatasetSource:
                 resolved = self._resolve_manifest(version_id)
             if resolved is None:
                 return _unavailable(identifier)
-            product = self._database[resolved.collection_name].find_one(
-                {"code": identifier.value}
-            )
+            product = self._database[resolved.collection_name].find_one({"code": identifier.value})
             if product is None and not self._collection_exists(resolved.collection_name):
                 _log_off_unavailable("verify_product_collection", "collection_missing")
                 return _unavailable(identifier)
@@ -181,13 +178,9 @@ class OpenFoodFactsDatasetSource:
 
     def resolve_product_lookup_snapshot(self) -> DatasetSnapshot:
         try:
-            pointer = self._database[CONTROL_COLLECTION].find_one(
-                {"_id": ACTIVE_POINTER_ID}
-            )
+            pointer = self._database[CONTROL_COLLECTION].find_one({"_id": ACTIVE_POINTER_ID})
             if pointer is None or not isinstance(pointer.get("active_version_id"), str):
-                _log_off_unavailable(
-                    "product_lookup_read_active_pointer", "metadata_invalid"
-                )
+                _log_off_unavailable("product_lookup_read_active_pointer", "metadata_invalid")
                 raise DatasetUnavailableError("Dataset Snapshot pointer unavailable")
             version_id = pointer["active_version_id"]
             resolved = self._cached_manifest(version_id)
@@ -203,9 +196,7 @@ class OpenFoodFactsDatasetSource:
         except DatasetUnavailableError:
             raise
         except (PyMongoError, KeyError, TypeError, ValueError) as error:
-            _log_off_unavailable(
-                "product_lookup_resolve_snapshot", "dependency_error", error
-            )
+            _log_off_unavailable("product_lookup_resolve_snapshot", "dependency_error", error)
             raise DatasetUnavailableError("Dataset Snapshot unavailable") from error
 
     def fetch_source_record(
@@ -214,18 +205,14 @@ class OpenFoodFactsDatasetSource:
         snapshot: DatasetSnapshot,
     ) -> SourceRecord | None:
         try:
-            product = self._database[snapshot.collection_name].find_one(
-                {"code": identifier.value}
-            )
+            product = self._database[snapshot.collection_name].find_one({"code": identifier.value})
             if product is None:
                 if not self._collection_exists(snapshot.collection_name):
                     _log_off_unavailable(
                         "product_lookup_verify_product_collection",
                         "collection_missing",
                     )
-                    raise DatasetUnavailableError(
-                        "Dataset Snapshot Product collection unavailable"
-                    )
+                    raise DatasetUnavailableError("Dataset Snapshot Product collection unavailable")
                 return None
         except DatasetUnavailableError:
             raise
@@ -233,9 +220,7 @@ class OpenFoodFactsDatasetSource:
             _log_off_unavailable("product_lookup_fetch", "dependency_error", error)
             raise DatasetUnavailableError("Dataset Snapshot unavailable") from error
 
-        source_record = {
-            key: value for key, value in product.items() if key != "_id"
-        }
+        source_record = {key: value for key, value in product.items() if key != "_id"}
         try:
             _validate_json_value(source_record)
         except (TypeError, ValueError) as error:
@@ -253,9 +238,7 @@ class OpenFoodFactsDatasetSource:
         limit: int = 20,
     ) -> list[dict[str, Any]]:
         try:
-            search_col_name = validate_search_index_readiness(
-                self._database, snapshot.version
-            )
+            search_col_name = validate_search_index_readiness(self._database, snapshot.version)
         except SearchIndexError:
             raise
         except (PyMongoError, KeyError, TypeError, ValueError) as error:
@@ -266,8 +249,7 @@ class OpenFoodFactsDatasetSource:
         escaped_final_term = re.escape(final_term)
 
         match_conditions: list[dict[str, Any]] = [
-            {"$or": [{"name_tokens": t}, {"brand_tokens": t}]}
-            for t in earlier_terms
+            {"$or": [{"name_tokens": t}, {"brand_tokens": t}]} for t in earlier_terms
         ]
         match_conditions.append(
             {
@@ -278,66 +260,68 @@ class OpenFoodFactsDatasetSource:
             }
         )
 
-        pipeline: list[dict[str, Any]] = [
-            {"$match": {"$and": match_conditions}},
-            {
-                "$set": {
-                    "rank": {
-                        "$switch": {
-                            "branches": [
-                                {
-                                    "case": {"$in": [normalized_query, "$brand_values"]},
-                                    "then": 0,
-                                },
-                                {
-                                    "case": {"$in": [normalized_query, "$name_values"]},
-                                    "then": 1,
-                                },
-                                {
-                                    "case": {
-                                        "$or": [
-                                            {"$in": [final_term, "$name_tokens"]},
-                                            {"$in": [final_term, "$brand_tokens"]},
-                                        ]
-                                    },
-                                    "then": 2,
-                                },
-                            ],
-                            "default": 3,
-                        }
-                    }
-                }
-            },
+        complete_final = {"$or": [{"name_tokens": final_term}, {"brand_tokens": final_term}]}
+        exact_brand = {"brand_values": normalized_query}
+        exact_name = {"name_values": normalized_query}
+        complete_conditions = match_conditions[:-1] + [complete_final]
+        tiers = [
+            complete_conditions + [exact_brand],
+            complete_conditions + [exact_name, {"$nor": [exact_brand]}],
+            complete_conditions + [{"$nor": [exact_brand, exact_name]}],
+            match_conditions + [{"$nor": [exact_brand, exact_name, complete_final]}],
         ]
-
-        if cursor is not None:
-            pipeline.append(
-                {
-                    "$match": {
-                        "$or": [
-                            {"rank": {"$gt": cursor.rank}},
-                            {"rank": cursor.rank, "name_sort": {"$gt": cursor.name_sort}},
-                            {
-                                "rank": cursor.rank,
-                                "name_sort": cursor.name_sort,
-                                "code": {"$gt": cursor.code},
-                            },
-                        ]
-                    }
-                }
-            )
-
-        pipeline.append({"$sort": {"rank": 1, "name_sort": 1, "code": 1}})
-        pipeline.append({"$limit": limit + 1})
-
+        results: list[dict[str, Any]] = []
+        deadline = monotonic() + 2
         try:
-            return list(
-                self._database[search_col_name].aggregate(pipeline, maxTimeMS=2000)
-            )
+            for rank, conditions in enumerate(tiers):
+                if cursor is not None and rank < cursor.rank:
+                    continue
+                if cursor is not None and rank == cursor.rank:
+                    conditions = conditions + [
+                        {
+                            "$or": [
+                                {"name_sort": {"$gt": cursor.name_sort}},
+                                {"name_sort": cursor.name_sort, "code": {"$gt": cursor.code}},
+                            ]
+                        }
+                    ]
+                remaining_ms = int((deadline - monotonic()) * 1000)
+                if remaining_ms <= 0:
+                    raise ExecutionTimeout("Search execution budget exhausted")
+                pipeline: list[dict[str, Any]] = [
+                    {"$match": {"$and": conditions}},
+                    {"$sort": {"name_sort": 1, "code": 1}},
+                    {"$limit": limit + 1 - len(results)},
+                ]
+                options: dict[str, Any] = {"maxTimeMS": remaining_ms}
+                if rank == 3 and len(final_term) <= 2:
+                    # A bounded probe avoids a full sort-index scan for sparse prefixes.
+                    # Only sort the probe when it contains the entire candidate set.
+                    candidates = list(
+                        self._database[search_col_name].aggregate(
+                            [pipeline[0], {"$limit": 129}], **options
+                        )
+                    )
+                    if len(candidates) <= 128:
+                        rows = sorted(candidates, key=lambda row: (row["name_sort"], row["code"]))[
+                            : limit + 1 - len(results)
+                        ]
+                    else:
+                        options["maxTimeMS"] = int((deadline - monotonic()) * 1000)
+                        if options["maxTimeMS"] <= 0:
+                            raise ExecutionTimeout("Search execution budget exhausted")
+                        options["hint"] = "ix_search_sort"
+                        rows = list(self._database[search_col_name].aggregate(pipeline, **options))
+                else:
+                    rows = list(self._database[search_col_name].aggregate(pipeline, **options))
+                results.extend({**row, "rank": rank} for row in rows)
+                if monotonic() >= deadline:
+                    raise ExecutionTimeout("Search execution budget exhausted")
+                if len(results) == limit + 1:
+                    break
+            return results
         except ExecutionTimeout as error:
-            raise SearchIndexTimeoutError(
-                "Search request timed out. Please try again."
-            ) from error
+            raise SearchIndexTimeoutError("Search request timed out. Please try again.") from error
         except (PyMongoError, KeyError, TypeError, ValueError) as error:
             raise DatasetUnavailableError("Dataset Snapshot unavailable") from error
 
@@ -395,8 +379,6 @@ class OpenFoodFactsDatasetSource:
             )
         return tuple(results)
 
-
-
     def _cached_manifest(self, version_id: str) -> _ResolvedDataset | None:
         with self._manifest_cache_lock:
             resolved = self._manifest_cache.get(version_id)
@@ -429,9 +411,7 @@ class OpenFoodFactsDatasetSource:
 
     def _collection_exists(self, collection_name: str) -> bool:
         try:
-            return bool(
-                self._database.list_collection_names(filter={"name": collection_name})
-            )
+            return bool(self._database.list_collection_names(filter={"name": collection_name}))
         except TypeError:
             return collection_name in self._database.list_collection_names()
 
@@ -534,12 +514,8 @@ def _record_from_product(
         brands=_brands(product),
         quantity=_string_value(product, "quantity"),
         selected_images=_selected_images(product, identifier.value, image_base_url),
-        ingredient_texts=_localized_texts(
-            product, LOCALIZED_INGREDIENT_FIELDS, primary_language
-        ),
-        allergen_declaration=_string_value(
-            product, "allergens", language=primary_language
-        ),
+        ingredient_texts=_localized_texts(product, LOCALIZED_INGREDIENT_FIELDS, primary_language),
+        allergen_declaration=_string_value(product, "allergens", language=primary_language),
         allergen_tags=_string_tuple_value(product, "allergens_tags"),
         trace_declaration=_string_value(product, "traces", language=primary_language),
         trace_tags=_string_tuple_value(product, "traces_tags"),
@@ -595,9 +571,7 @@ def _halal_label_claim(product: dict[str, Any]) -> SourcedValue[tuple[str, ...]]
     if not isinstance(raw_value, list):
         return None
     values = tuple(
-        value
-        for value in raw_value
-        if isinstance(value, str) and value.lower() == "en:halal"
+        value for value in raw_value if isinstance(value, str) and value.lower() == "en:halal"
     )
     return SourcedValue(value=values, source_field="labels_tags") if values else None
 

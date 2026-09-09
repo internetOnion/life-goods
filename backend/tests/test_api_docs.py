@@ -204,3 +204,28 @@ def test_product_lookup_errors_keep_security_headers(client: TestClient) -> None
     assert response.headers["Referrer-Policy"] == "no-referrer"
     assert response.headers["Cache-Control"] == "no-store"
 
+
+def test_product_search_response_examples_validate(client: TestClient) -> None:
+    from lifegoods.product_search.contracts import ProductSearchErrorResponse, ProductSearchResponse
+    from lifegoods.product_search.query import decode_and_validate_cursor
+
+    operation = client.get("/openapi.json").json()["paths"]["/api/v1/products/search"]["get"]
+    required = {
+        "200": {"barcode", "text", "continuation", "no_results"},
+        "422": {"invalid_query", "invalid_barcode", "invalid_cursor"},
+        "429": {"rate_limit_exceeded"},
+        "500": {"internal_error"},
+        "503": {"search_unavailable", "search_timeout", "dataset_unavailable"},
+    }
+    for status, names in required.items():
+        examples = operation["responses"][status]["content"]["application/json"]["examples"]
+        assert set(examples) == names
+        model = ProductSearchResponse if status == "200" else ProductSearchErrorResponse
+        for example in examples.values():
+            model.model_validate(example["value"])
+    example = operation["responses"]["200"]["content"]["application/json"]["examples"][
+        "continuation"
+    ]
+    decode_and_validate_cursor(
+        example["value"]["meta"]["pagination"]["next_cursor"], expected_terms=("chocolate",)
+    )

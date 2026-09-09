@@ -4,6 +4,7 @@ from pathlib import Path
 
 import fakeredis
 import mongomock
+import pytest
 from fastapi.testclient import TestClient
 
 from lifegoods.main import create_app
@@ -1012,4 +1013,76 @@ def test_search_http_prefix_pagination_continuation() -> None:
         assert len(set(all_codes)) == 25
 
 
+@pytest.mark.parametrize(("field", "value"), [("f", "é"), ("n", "\ud800")])
+def test_search_rejects_invalid_unicode_cursor_fields_with_422(field: str, value: str) -> None:
+    import base64
 
+    from lifegoods.product_search.query import query_fingerprint
+
+    payload = {"f": query_fingerprint(("milk",)), "r": 0, "n": "milk", "c": "4006381333931"}
+    payload[field] = value
+    cursor = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+    with _client(_dataset_database()) as client:
+        response = client.get("/api/v1/products/search", params={"q": "milk", "cursor": cursor})
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "invalid_cursor"
+
+
+def test_search_pages_cross_tiers_without_duplicates_or_omissions() -> None:
+    from lifegoods.identifiers import calculate_check_digit
+    from lifegoods.open_food_facts import build_search_index
+
+    # Literal tier order: exact brand, exact name, complete tokens, remaining prefixes.
+    # Shared names exercise Barcode tie-breaking; overlapping tiers must appear once.
+    for query, prefix_name in [("co", "cold"), ("sweet c", "sweet cold"), ("តែ ប", "តែ បៃតង")]:
+        database = _dataset_database()
+        records = []
+        expected = []
+        for tier, count in enumerate([7, 7, 13, 24]):
+            for index in range(count):
+                digits = f"400638{tier * 100 + index:06d}"
+                code = digits + str(calculate_check_digit(digits))
+                expected.append(code)
+                name = [query, query, f"{query} drink", prefix_name][tier]
+                records.append(
+                    {
+                        "code": code,
+                        "product_name": name,
+                        "lang": "en",
+                        "brands": query if tier == 0 else "Other Brand",
+                    }
+                )
+        # Earlier terms cannot themselves be prefixes.
+        records.append({"code": "3017620422003", "product_name": "sweetened cold"})
+        database[COLLECTION_NAME].insert_many(records)
+        build_search_index(database, version_id=VERSION_ID)
+        actual = []
+        cursor = None
+        with _client(database) as client:
+            for _ in range(4):
+                params = {"q": query}
+                if cursor:
+                    params["cursor"] = cursor
+                response = client.get("/api/v1/products/search", params=params)
+                assert response.status_code == 200
+                payload = response.json()
+                actual.extend(p["barcode"] for p in payload["data"]["products"])
+                cursor = payload["meta"]["pagination"]["next_cursor"]
+                if cursor is None:
+                    break
+        if query == "co":
+            expected.append("3017620422003")
+        assert cursor is None
+        assert actual == expected
+
+
+def test_search_shares_timeout_budget_across_ranking_tiers(monkeypatch) -> None:
+    from lifegoods.open_food_facts import dataset as dataset_module
+
+    clock = iter([0.0, 0.8, 1.6, 2.4])
+    monkeypatch.setattr(dataset_module, "monotonic", lambda: next(clock))
+    with _client(_dataset_database_with_search_index()) as client:
+        response = client.get("/api/v1/products/search", params={"q": "absent"})
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "search_timeout"
+    assert "data" not in response.json()

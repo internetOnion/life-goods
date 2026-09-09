@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import hashlib
 import hmac
 import json
+import re
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -44,6 +46,7 @@ MAX_QUERY_TERMS = 10
 SUPPORTED_BARCODE_LENGTHS = {8, 12, 13, 14}
 MAX_NAME_SORT_LENGTH = 200
 MAX_CURSOR_CODE_LENGTH = 30
+MAX_CURSOR_LENGTH = 4096
 
 
 class QueryClassification(StrEnum):
@@ -96,14 +99,23 @@ def decode_and_validate_cursor(
     expected_terms: tuple[str, ...],
 ) -> SearchCursor:
     """Decode and validate an opaque cursor token against expected query terms."""
-    if not cursor or not isinstance(cursor, str):
+    if (
+        not isinstance(cursor, str)
+        or not cursor
+        or len(cursor) > MAX_CURSOR_LENGTH
+        or re.fullmatch(r"[A-Za-z0-9_-]+", cursor) is None
+    ):
         raise InvalidCursorError("Pagination cursor is invalid")
 
     try:
         padding = "=" * ((4 - len(cursor) % 4) % 4)
-        raw_bytes = base64.urlsafe_b64decode((cursor + padding).encode("ascii"))
+        raw_bytes = base64.b64decode(
+            (cursor + padding).encode("ascii"), altchars=b"-_", validate=True
+        )
+        if base64.urlsafe_b64encode(raw_bytes).decode("ascii").rstrip("=") != cursor:
+            raise InvalidCursorError()
         data = json.loads(raw_bytes.decode("utf-8"))
-    except Exception as err:
+    except (ValueError, UnicodeError, binascii.Error, RecursionError) as err:
         raise InvalidCursorError("Pagination cursor is invalid") from err
 
     if not isinstance(data, dict):
@@ -118,15 +130,24 @@ def decode_and_validate_cursor(
     name_sort = data.get("n")
     code = data.get("c")
 
-    if not isinstance(fp, str) or not isinstance(name_sort, str) or not isinstance(code, str):
+    if (
+        not isinstance(fp, str)
+        or re.fullmatch(r"[0-9a-f]{16}", fp) is None
+        or not isinstance(name_sort, str)
+        or not isinstance(code, str)
+    ):
         raise InvalidCursorError("Pagination cursor is invalid")
     if not isinstance(rank, int) or isinstance(rank, bool):
         raise InvalidCursorError("Pagination cursor is invalid")
     if rank not in (0, 1, 2, 3):
         raise InvalidCursorError("Pagination cursor is invalid")
+    try:
+        name_sort.encode("utf-8")
+    except UnicodeEncodeError as error:
+        raise InvalidCursorError() from error
     if len(name_sort) > MAX_NAME_SORT_LENGTH:
         raise InvalidCursorError("Pagination cursor is invalid")
-    if len(code) > MAX_CURSOR_CODE_LENGTH or not code or not code.isdigit():
+    if len(code) > MAX_CURSOR_CODE_LENGTH or not code or not code.isascii() or not code.isdigit():
         raise InvalidCursorError("Pagination cursor is invalid")
 
     expected_fp = query_fingerprint(expected_terms)
@@ -138,10 +159,6 @@ def decode_and_validate_cursor(
         name_sort=name_sort,
         code=code,
     )
-
-
-
-
 
 
 @dataclass(frozen=True, slots=True)

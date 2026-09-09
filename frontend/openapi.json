@@ -1728,6 +1728,138 @@
           "200": {
             "content": {
               "application/json": {
+                "examples": {
+                  "barcode": {
+                    "summary": "A Barcode match",
+                    "value": {
+                      "data": {
+                        "products": [
+                          {
+                            "barcode": "4006381333931",
+                            "brands": [
+                              "Example Foods"
+                            ],
+                            "name": {
+                              "language": "en",
+                              "source_field": "product_name",
+                              "value": "Dark Chocolate"
+                            },
+                            "quantity": "100 g",
+                            "source": {
+                              "name": "Open Food Facts",
+                              "product_url": "https://world.openfoodfacts.org/product/4006381333931"
+                            }
+                          }
+                        ]
+                      },
+                      "meta": {
+                        "dataset": {
+                          "retrieved_at": "2026-08-27T08:00:00Z",
+                          "version": "example-snapshot"
+                        },
+                        "pagination": {},
+                        "source": {
+                          "name": "Open Food Facts",
+                          "product_url": "https://world.openfoodfacts.org"
+                        }
+                      }
+                    }
+                  },
+                  "continuation": {
+                    "description": "Pass next_cursor with the same query to retrieve the next page.",
+                    "summary": "More results for chocolate (abbreviated page)",
+                    "value": {
+                      "data": {
+                        "products": [
+                          {
+                            "barcode": "4006381333931",
+                            "brands": [
+                              "Example Foods"
+                            ],
+                            "name": {
+                              "language": "en",
+                              "source_field": "product_name",
+                              "value": "Dark Chocolate"
+                            },
+                            "quantity": "100 g",
+                            "source": {
+                              "name": "Open Food Facts",
+                              "product_url": "https://world.openfoodfacts.org/product/4006381333931"
+                            }
+                          }
+                        ]
+                      },
+                      "meta": {
+                        "dataset": {
+                          "retrieved_at": "2026-08-27T08:00:00Z",
+                          "version": "example-snapshot"
+                        },
+                        "pagination": {
+                          "next_cursor": "eyJmIjoiNzQ5OWFjZWQ0Mzg2OWIyNyIsInIiOjIsIm4iOiJkYXJrIGNob2NvbGF0ZSIsImMiOiI0MDA2MzgxMzMzOTMxIn0"
+                        },
+                        "source": {
+                          "name": "Open Food Facts",
+                          "product_url": "https://world.openfoodfacts.org"
+                        }
+                      }
+                    }
+                  },
+                  "no_results": {
+                    "summary": "No matching Products",
+                    "value": {
+                      "data": {
+                        "products": []
+                      },
+                      "meta": {
+                        "dataset": {
+                          "retrieved_at": "2026-08-27T08:00:00Z",
+                          "version": "example-snapshot"
+                        },
+                        "pagination": {},
+                        "source": {
+                          "name": "Open Food Facts",
+                          "product_url": "https://world.openfoodfacts.org"
+                        }
+                      }
+                    }
+                  },
+                  "text": {
+                    "summary": "Text results for chocolate",
+                    "value": {
+                      "data": {
+                        "products": [
+                          {
+                            "barcode": "4006381333931",
+                            "brands": [
+                              "Example Foods"
+                            ],
+                            "name": {
+                              "language": "en",
+                              "source_field": "product_name",
+                              "value": "Dark Chocolate"
+                            },
+                            "quantity": "100 g",
+                            "source": {
+                              "name": "Open Food Facts",
+                              "product_url": "https://world.openfoodfacts.org/product/4006381333931"
+                            }
+                          }
+                        ]
+                      },
+                      "meta": {
+                        "dataset": {
+                          "retrieved_at": "2026-08-27T08:00:00Z",
+                          "version": "example-snapshot"
+                        },
+                        "pagination": {},
+                        "source": {
+                          "name": "Open Food Facts",
+                          "product_url": "https://world.openfoodfacts.org"
+                        }
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "$ref": "#/components/schemas/ProductSearchResponse"
                 }
@@ -1738,6 +1870,35 @@
           "422": {
             "content": {
               "application/json": {
+                "examples": {
+                  "invalid_barcode": {
+                    "summary": "invalid barcode",
+                    "value": {
+                      "error": {
+                        "code": "invalid_barcode",
+                        "message": "Barcode is invalid"
+                      }
+                    }
+                  },
+                  "invalid_cursor": {
+                    "summary": "invalid cursor",
+                    "value": {
+                      "error": {
+                        "code": "invalid_cursor",
+                        "message": "Pagination cursor is invalid"
+                      }
+                    }
+                  },
+                  "invalid_query": {
+                    "summary": "invalid query",
+                    "value": {
+                      "error": {
+                        "code": "invalid_query",
+                        "message": "Query must be between 2 and 200 characters"
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "$ref": "#/components/schemas/ProductSearchErrorResponse"
                 }
@@ -1748,16 +1909,47 @@
           "429": {
             "content": {
               "application/json": {
+                "examples": {
+                  "rate_limit_exceeded": {
+                    "summary": "rate limit exceeded",
+                    "value": {
+                      "error": {
+                        "code": "rate_limit_exceeded",
+                        "message": "Too many requests. Please try again later."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "$ref": "#/components/schemas/ProductSearchErrorResponse"
                 }
               }
             },
-            "description": "Too Many Requests"
+            "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until another request can be made",
+                "example": 60,
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
           },
           "500": {
             "content": {
               "application/json": {
+                "examples": {
+                  "internal_error": {
+                    "summary": "internal error",
+                    "value": {
+                      "error": {
+                        "code": "internal_error",
+                        "message": "Product Search failed unexpectedly"
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "$ref": "#/components/schemas/ProductSearchErrorResponse"
                 }
@@ -1768,6 +1960,35 @@
           "503": {
             "content": {
               "application/json": {
+                "examples": {
+                  "dataset_unavailable": {
+                    "summary": "dataset unavailable",
+                    "value": {
+                      "error": {
+                        "code": "dataset_unavailable",
+                        "message": "Dataset Snapshot is temporarily unavailable"
+                      }
+                    }
+                  },
+                  "search_timeout": {
+                    "summary": "search timeout",
+                    "value": {
+                      "error": {
+                        "code": "search_timeout",
+                        "message": "Search request timed out. Please try again."
+                      }
+                    }
+                  },
+                  "search_unavailable": {
+                    "summary": "search unavailable",
+                    "value": {
+                      "error": {
+                        "code": "search_unavailable",
+                        "message": "Text search is temporarily unavailable"
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "$ref": "#/components/schemas/ProductSearchErrorResponse"
                 }

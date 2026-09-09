@@ -94,3 +94,49 @@ def test_cursor_rejects_malformed_and_tampered_input(corrupted_cursor: str) -> N
     with pytest.raises(InvalidCursorError):
         decode_and_validate_cursor(corrupted_cursor, expected_terms=("coca", "cola"))
 
+
+@pytest.mark.parametrize(
+    "suffix",
+    ["!!!!", "!" * 100_000, "=", "\n", " "],
+    ids=["garbage", "oversized", "padding", "newline", "space"],
+)
+def test_cursor_rejects_noncanonical_encoding(suffix: str) -> None:
+    cursor = encode_cursor(terms=("milk",), rank=2, name_sort="milk", code="4006381333931")
+    with pytest.raises(InvalidCursorError):
+        decode_and_validate_cursor(cursor + suffix, expected_terms=("milk",))
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        ("r", True),
+        ("r", "2"),
+        ("r", -1),
+        ("f", "é"),
+        ("f", "A" * 16),
+        ("n", []),
+        ("n", "\ud800"),
+        ("n", "a" * 201),
+        ("c", "١٢٣"),
+        ("c", ""),
+        ("c", "1" * 31),
+    ],
+)
+def test_cursor_rejects_invalid_fields(key: str, value: object) -> None:
+    import base64
+    import json
+
+    payload = {"f": query_fingerprint(("milk",)), "r": 2, "n": "milk", "c": "4006381333931"}
+    payload[key] = value
+    cursor = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+    with pytest.raises(InvalidCursorError):
+        decode_and_validate_cursor(cursor, expected_terms=("milk",))
+
+
+def test_cursor_bounds_and_unicode_name_round_trip() -> None:
+    terms = ("ទឹកដោះគោ",)
+    name = "ទឹកដោះគោ😀" * 20
+    cursor = encode_cursor(terms=terms, rank=3, name_sort=name, code="4006381333931")
+    assert decode_and_validate_cursor(cursor, expected_terms=terms).name_sort == name[:200]
+    with pytest.raises(InvalidCursorError):
+        decode_and_validate_cursor("a" * 4097, expected_terms=terms)

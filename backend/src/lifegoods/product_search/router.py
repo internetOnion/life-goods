@@ -22,6 +22,7 @@ from lifegoods.product_search.contracts import (
     ProductSearchResponse,
     SearchPaginationMetaResponse,
 )
+from lifegoods.product_search.examples import SEARCH_RESPONSES
 from lifegoods.product_search.metrics import ProductSearchMetrics
 from lifegoods.product_search.query import (
     InvalidCursorError,
@@ -61,12 +62,7 @@ def get_product_search_metrics() -> ProductSearchMetrics:
         "the final term supports an unfinished prefix."
     ),
     response_model=ProductSearchResponse,
-    responses={
-        422: {"model": ProductSearchErrorResponse},
-        429: {"model": ProductSearchErrorResponse},
-        500: {"model": ProductSearchErrorResponse},
-        503: {"model": ProductSearchErrorResponse},
-    },
+    responses=SEARCH_RESPONSES,
 )
 def search_products(
     request: Request,

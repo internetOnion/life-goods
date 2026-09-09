@@ -318,11 +318,11 @@ def run(corpus_path: Path, output: Path, base_url: str, count: int) -> None:
 
 class CaptureAggregate(monitoring.CommandListener):
     def __init__(self) -> None:
-        self.command: dict[str, Any] | None = None
+        self.commands: list[dict[str, Any]] = []
 
     def started(self, event: monitoring.CommandStartedEvent) -> None:
         if event.command_name == "aggregate":
-            self.command = dict(event.command)
+            self.commands.append(dict(event.command))
 
     def succeeded(self, event: monitoring.CommandSucceededEvent) -> None:
         pass
@@ -345,27 +345,89 @@ def plans(output: Path) -> None:
         ("rare", "កូកា-កូឡា"),
         ("no-match", "zzlifegoodsabsent107"),
         ("short-prefix", "co"),
+        ("short-prefix", "ch"),
+        ("short-prefix", "ca"),
+        ("short-final-term", "sweet c"),
+        ("sparse-short-prefix", "តែ ប"),
     ]:
         parsed = parse_and_validate_query(query)
         item: dict[str, Any] = {"kind": kind, "query": query}
+        listener.commands.clear()
         try:
             source.search_text(snapshot, parsed.terms, " ".join(parsed.terms))
         except Exception as error:
             item["retrieval_error"] = type(error).__name__
-        command = listener.command
-        assert command is not None
-        clean = {
-            k: command[k] for k in ("aggregate", "pipeline", "cursor", "maxTimeMS") if k in command
-        }
-        item["command"] = clean
-        try:
-            item["explain"] = database.command("explain", clean, verbosity="executionStats")
-        except Exception as error:
-            item["explain_error"] = type(error).__name__
-            item["details"] = getattr(error, "details", None)
+        item["commands"] = []
+        for command in list(listener.commands):
+            clean = {
+                k: command[k]
+                for k in ("aggregate", "pipeline", "cursor", "maxTimeMS", "hint")
+                if k in command
+            }
+            captured: dict[str, Any] = {"command": clean}
+            try:
+                captured["explain"] = database.command("explain", clean, verbosity="executionStats")
+            except Exception as error:
+                captured["explain_error"] = type(error).__name__
+                captured["details"] = getattr(error, "details", None)
+            item["commands"].append(captured)
         result.append(item)
         write(output, result)
     client.close()
+
+
+def reference_pipeline(terms: tuple[str, ...]) -> list[dict[str, Any]]:
+    """Original exhaustive ranking aggregate, retained as an independent ordering oracle."""
+    normalized_query = " ".join(terms)
+    earlier_terms = list(dict.fromkeys(terms[:-1]))
+    final_term = terms[-1]
+    escaped_final_term = re.escape(final_term)
+
+    match_conditions: list[dict[str, Any]] = [
+        {"$or": [{"name_tokens": t}, {"brand_tokens": t}]} for t in earlier_terms
+    ]
+    match_conditions.append(
+        {
+            "$or": [
+                {"name_tokens": {"$regex": f"^{escaped_final_term}"}},
+                {"brand_tokens": {"$regex": f"^{escaped_final_term}"}},
+            ]
+        }
+    )
+
+    pipeline: list[dict[str, Any]] = [
+        {"$match": {"$and": match_conditions}},
+        {
+            "$set": {
+                "rank": {
+                    "$switch": {
+                        "branches": [
+                            {
+                                "case": {"$in": [normalized_query, "$brand_values"]},
+                                "then": 0,
+                            },
+                            {
+                                "case": {"$in": [normalized_query, "$name_values"]},
+                                "then": 1,
+                            },
+                            {
+                                "case": {
+                                    "$or": [
+                                        {"$in": [final_term, "$name_tokens"]},
+                                        {"$in": [final_term, "$brand_tokens"]},
+                                    ]
+                                },
+                                "then": 2,
+                            },
+                        ],
+                        "default": 3,
+                    }
+                }
+            }
+        },
+    ]
+
+    return pipeline + [{"$sort": {"rank": 1, "name_sort": 1, "code": 1}}]
 
 
 def smoke(output: Path, base_url: str, pagination_query: str) -> None:
@@ -462,7 +524,7 @@ def smoke(output: Path, base_url: str, pagination_query: str) -> None:
                 "passed": response.status_code == 422
                 and body.get("error", {}).get("code") == "invalid_cursor",
             }
-        # Compare all HTTP codes with the same production aggregate, separately from timing.
+        # Compare all HTTP codes with the original exhaustive ranking oracle, outside timing.
         listener = CaptureAggregate()
         mongo: MongoClient[dict[str, Any]] = MongoClient(
             DEFAULT_OFF_MONGODB_URI, event_listeners=[listener]
@@ -471,15 +533,15 @@ def smoke(output: Path, base_url: str, pagination_query: str) -> None:
         parsed = parse_and_validate_query(case["query"])
         comparison: dict[str, Any] = {}
         try:
-            source.search_text(
-                source.resolve_product_lookup_snapshot(), parsed.terms, " ".join(parsed.terms)
-            )
-            command = listener.command
-            assert command is not None
-            pipeline = command["pipeline"][:-1] + [{"$limit": 2001}, {"$project": {"code": 1}}]
-            expected = list(
-                mongo.lifegoods_off[command["aggregate"]].aggregate(pipeline, maxTimeMS=2000)
-            )
+            snapshot = source.resolve_product_lookup_snapshot()
+            from lifegoods.open_food_facts import validate_search_index_readiness
+
+            collection = validate_search_index_readiness(mongo.lifegoods_off, snapshot.version)
+            pipeline = reference_pipeline(parsed.terms) + [
+                {"$limit": 2001},
+                {"$project": {"code": 1}},
+            ]
+            expected = list(mongo.lifegoods_off[collection].aggregate(pipeline, maxTimeMS=2000))
             expected_codes = [p["code"] for p in expected]
             comparison = {
                 "database_codes": expected_codes,

@@ -1,22 +1,20 @@
 from __future__ import annotations
 
-import uuid
+import os
 from collections.abc import Iterator
-from datetime import UTC, datetime
 from typing import Any
 
 import pytest
 from pymongo import MongoClient
+from search_database_support import disposable_dataset
+from search_database_support import test_connections as connections
 
 from lifegoods.core.settings import Settings
 from lifegoods.identifiers import calculate_check_digit
 from lifegoods.open_food_facts import (
-    ACTIVE_POINTER_ID,
-    CONTROL_COLLECTION,
     VERSIONS_COLLECTION,
     OpenFoodFactsDatasetSource,
     build_search_index,
-    search_collection_name,
     validate_search_index_readiness,
 )
 from lifegoods.product_search import (
@@ -27,25 +25,37 @@ from lifegoods.product_search import (
 
 pytestmark = pytest.mark.integration
 
-WRITER_URI = (
-    "mongodb://lifegoods_writer:lifegoods_writer@localhost:27018/"
-    "lifegoods_off?authSource=lifegoods_off"
-)
+
+@pytest.fixture(scope="module")
+def connection_uris() -> tuple[str, str]:
+    configured = connections(
+        {
+            **os.environ,
+            "LIFEGOODS_OFF_MONGODB_DATABASE": Settings().off_mongodb_database,
+        }
+    )
+    if configured is None:
+        pytest.skip("Set dedicated LIFEGOODS_TEST_OFF_MONGODB_READER_URI and WRITER_URI")
+    return configured
 
 
 @pytest.fixture(scope="module")
-def settings() -> Settings:
-    return Settings()
+def settings(connection_uris: tuple[str, str]) -> Settings:
+    return Settings(off_mongodb_uri=connection_uris[0], off_mongodb_database="lifegoods_off_test")
 
 
 @pytest.fixture(scope="module")
-def writer_client(settings: Settings) -> Iterator[MongoClient[dict[str, Any]]]:
+def writer_client(
+    settings: Settings, connection_uris: tuple[str, str]
+) -> Iterator[MongoClient[dict[str, Any]]]:
     client: MongoClient[dict[str, Any]] = MongoClient(
-        WRITER_URI,
+        connection_uris[1],
         serverSelectionTimeoutMS=settings.off_mongodb_timeout_ms,
     )
-    yield client
-    client.close()
+    try:
+        yield client
+    finally:
+        client.close()
 
 
 @pytest.fixture(scope="module")
@@ -54,8 +64,10 @@ def reader_client(settings: Settings) -> Iterator[MongoClient[dict[str, Any]]]:
         settings.off_mongodb_uri,
         serverSelectionTimeoutMS=settings.off_mongodb_timeout_ms,
     )
-    yield client
-    client.close()
+    try:
+        yield client
+    finally:
+        client.close()
 
 
 def _make_valid_code(prefix_num: int) -> str:
@@ -69,45 +81,8 @@ def test_dataset(
     writer_client: MongoClient[dict[str, Any]],
     settings: Settings,
 ) -> Iterator[tuple[str, str, str]]:
-    writer_db = writer_client[settings.off_mongodb_database]
-
-    run_id = uuid.uuid4().hex[:8]
-    version_id = f"test-search-{run_id}"
-    source_col_name = f"off_products_test_{run_id}"
-    search_col_name = search_collection_name(version_id)
-
-    # Backup existing active pointer if present
-    existing_pointer = writer_db[CONTROL_COLLECTION].find_one({"_id": ACTIVE_POINTER_ID})
-
-    writer_db[VERSIONS_COLLECTION].insert_one(
-        {
-            "_id": version_id,
-            "collection_name": source_col_name,
-            "source_url": "https://example.com/test_export.jsonl.gz",
-            "retrieval_completed_at": datetime.now(UTC),
-            "activated_at": datetime.now(UTC),
-            "sha256": "0" * 64,
-            "status": "ACTIVE",
-        }
-    )
-    writer_db[CONTROL_COLLECTION].update_one(
-        {"_id": ACTIVE_POINTER_ID},
-        {"$set": {"active_version_id": version_id}},
-        upsert=True,
-    )
-
-    yield version_id, source_col_name, search_col_name
-
-    # Teardown
-    writer_db.drop_collection(source_col_name)
-    writer_db.drop_collection(search_col_name)
-    writer_db[VERSIONS_COLLECTION].delete_one({"_id": version_id})
-    if existing_pointer is not None:
-        writer_db[CONTROL_COLLECTION].replace_one(
-            {"_id": ACTIVE_POINTER_ID}, existing_pointer, upsert=True
-        )
-    else:
-        writer_db[CONTROL_COLLECTION].delete_one({"_id": ACTIVE_POINTER_ID})
+    with disposable_dataset(writer_client[settings.off_mongodb_database]) as fixture:
+        yield fixture
 
 
 def test_build_search_index_lifecycle(
@@ -371,3 +346,47 @@ def test_search_prefix_retrieval_and_execution_plan_on_real_mongodb(
     assert len(combined_codes) == 25
     assert len(set(combined_codes)) == 25
 
+
+@pytest.mark.parametrize(
+    ("query", "prefix_name"),
+    [("co", "cold"), ("sweet c", "sweet cold"), ("sweet col", "sweet cold"), ("តែ ប", "តែ បៃតង")],
+)
+def test_exhaustive_tier_pagination_on_real_mongodb(
+    writer_client: MongoClient[dict[str, Any]],
+    reader_client: MongoClient[dict[str, Any]],
+    settings: Settings,
+    test_dataset: tuple[str, str, str],
+    query: str,
+    prefix_name: str,
+) -> None:
+    version, collection, _ = test_dataset
+    database = writer_client[settings.off_mongodb_database]
+    expected = []
+    records = []
+    for tier, count in enumerate([7, 7, 13, 151]):
+        for index in range(count):
+            code = _make_valid_code(tier * 200 + index)
+            expected.append(code)
+            records.append(
+                {
+                    "code": code,
+                    "product_name": [query, query, f"{query} drink", prefix_name][tier],
+                    "brands": query if tier == 0 else "Other Brand",
+                }
+            )
+    database[collection].insert_many(list(reversed(records)))
+    build_search_index(database, version_id=version)
+    service = SearchProducts(
+        OpenFoodFactsDatasetSource(reader_client[settings.off_mongodb_database])
+    )
+    actual = []
+    cursor = None
+    for _ in range(10):
+        page = service.execute(parse_and_validate_query(query), cursor=cursor)
+        actual.extend(product.barcode for product in page.products)
+        cursor = page.next_cursor
+        if cursor is None:
+            break
+    assert cursor is None
+    assert actual == expected
+    assert service.execute(parse_and_validate_query("absent z")).products == []
