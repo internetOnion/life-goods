@@ -264,19 +264,20 @@ class OpenFoodFactsDatasetSource:
         exact_brand = {"brand_values": normalized_query}
         exact_name = {"name_values": normalized_query}
         complete_conditions = match_conditions[:-1] + [complete_final]
-        tiers = [
-            complete_conditions + [exact_brand],
-            complete_conditions + [exact_name, {"$nor": [exact_brand]}],
-            complete_conditions + [{"$nor": [exact_brand, exact_name]}],
-            match_conditions + [{"$nor": [exact_brand, exact_name, complete_final]}],
-        ]
         results: list[dict[str, Any]] = []
         deadline = monotonic() + 2
         try:
-            for rank, conditions in enumerate(tiers):
-                if cursor is not None and rank < cursor.rank:
+            # Rank complete matches together: separate tier queries would scan the
+            # same candidate set three times even when the first tiers are empty.
+            for prefix_only in (False, True):
+                if not prefix_only and cursor is not None and cursor.rank == 3:
                     continue
-                if cursor is not None and rank == cursor.rank:
+                conditions = (
+                    match_conditions + [{"$nor": [exact_brand, exact_name, complete_final]}]
+                    if prefix_only
+                    else complete_conditions
+                )
+                if prefix_only and cursor is not None and cursor.rank == 3:
                     conditions = conditions + [
                         {
                             "$or": [
@@ -285,16 +286,64 @@ class OpenFoodFactsDatasetSource:
                             ]
                         }
                     ]
+                pipeline: list[dict[str, Any]] = [{"$match": {"$and": conditions}}]
+                if not prefix_only:
+                    pipeline.append(
+                        {
+                            "$set": {
+                                "rank": {
+                                    "$switch": {
+                                        "branches": [
+                                            {
+                                                "case": {
+                                                    "$in": [normalized_query, "$brand_values"]
+                                                },
+                                                "then": 0,
+                                            },
+                                            {
+                                                "case": {"$in": [normalized_query, "$name_values"]},
+                                                "then": 1,
+                                            },
+                                        ],
+                                        "default": 2,
+                                    }
+                                }
+                            }
+                        }
+                    )
+                    if cursor is not None:
+                        pipeline.append(
+                            {
+                                "$match": {
+                                    "$or": [
+                                        {"rank": {"$gt": cursor.rank}},
+                                        {
+                                            "rank": cursor.rank,
+                                            "name_sort": {"$gt": cursor.name_sort},
+                                        },
+                                        {
+                                            "rank": cursor.rank,
+                                            "name_sort": cursor.name_sort,
+                                            "code": {"$gt": cursor.code},
+                                        },
+                                    ]
+                                }
+                            }
+                        )
+                ordering = {"name_sort": 1, "code": 1}
+                if not prefix_only:
+                    ordering = {"rank": 1, **ordering}
+                pipeline.extend(
+                    [
+                        {"$sort": ordering},
+                        {"$limit": limit + 1 - len(results)},
+                    ]
+                )
                 remaining_ms = int((deadline - monotonic()) * 1000)
                 if remaining_ms <= 0:
                     raise ExecutionTimeout("Search execution budget exhausted")
-                pipeline: list[dict[str, Any]] = [
-                    {"$match": {"$and": conditions}},
-                    {"$sort": {"name_sort": 1, "code": 1}},
-                    {"$limit": limit + 1 - len(results)},
-                ]
                 options: dict[str, Any] = {"maxTimeMS": remaining_ms}
-                if rank == 3 and len(final_term) <= 2:
+                if prefix_only and len(final_term) <= 2:
                     # A bounded probe avoids a full sort-index scan for sparse prefixes.
                     # Only sort the probe when it contains the entire candidate set.
                     candidates = list(
@@ -314,7 +363,7 @@ class OpenFoodFactsDatasetSource:
                         rows = list(self._database[search_col_name].aggregate(pipeline, **options))
                 else:
                     rows = list(self._database[search_col_name].aggregate(pipeline, **options))
-                results.extend({**row, "rank": rank} for row in rows)
+                results.extend({**row, "rank": 3} if prefix_only else row for row in rows)
                 if monotonic() >= deadline:
                     raise ExecutionTimeout("Search execution budget exhausted")
                 if len(results) == limit + 1:
