@@ -747,8 +747,8 @@ The Product Search endpoint `GET /api/v1/products/search` provides Barcode searc
    - `GET /api/v1/products/search?q={query}&cursor={cursor}`
    - Registered before the parameterized Product Lookup route (`GET /api/v1/products/{barcode}`).
    - `q` is required and must contain between 2 and 200 characters and at most 10 normalized terms. Empty or punctuation-only input returns HTTP 422 with error code `invalid_query`. Term extraction normalizes text using NFKC casefolding while preserving Unicode combining marks (such as Khmer vowels and diacritics) attached to letters and numbers.
-   - `cursor` is an optional continuation token for paginated text searches. Cursors are opaque, URL-safe base64 tokens containing the sort position (`rank`, bounded `name_sort`, `code`) and a HMAC-verified SHA-256 fingerprint of the normalized query terms.
-   - Tampered cursors, malformed base64, cursors issued for different query terms, or cursors supplied with Barcode searches return HTTP 422 with error code `invalid_cursor`.
+   - `cursor` is an optional continuation token for paginated text searches. Cursors are opaque, URL-safe base64 tokens containing the sort position (`rank`, bounded `name_sort`, `code`) and an unsigned SHA-256 fingerprint of the normalized query terms. Tokens are canonical unpadded URL-safe base64, bounded to 4,096 characters, with strictly validated primitive fields and a 16-character lowercase hexadecimal query fingerprint.
+   - Malformed cursors, noncanonical base64, cursors issued for different query terms, or cursors supplied with Barcode searches return HTTP 422 with error code `invalid_cursor`.
 
 2. **Numeric Input & Barcode Classification**:
    - Numeric inputs at supported Barcode lengths (8, 12, 13, 14) are validated using standard Barcode check-digit and normalization logic (stripping outer whitespace and internal spaces or hyphens, preserving leading zeros).
@@ -784,7 +784,7 @@ The Product Search endpoint `GET /api/v1/products/search` provides Barcode searc
      `{"$or": [{"rank": {"$gt": r0}}, {"rank": r0, "name_sort": {"$gt": n0}}, {"rank": r0, "name_sort": n0, "code": {"$gt": c0}}]}`.
    - Each page retrieves up to 20 products. Keyset queries fetch 21 records to generate `next_cursor` without secondary count queries.
    - When no subsequent results remain, `pagination.next_cursor` is `null`.
-   - Text search aggregation enforces a 2,000 ms execution deadline (`maxTimeMS=2000`). Database timeouts return HTTP 503 with error code `search_timeout`.
+   - Text retrieval shares a two-second execution budget across ordered complete-match and remaining-prefix queries; each MongoDB command receives the remaining `maxTimeMS`. Complete matches rank tiers 0–2 together to avoid repeated candidate scans; the disjoint remaining-prefix query runs only when needed. Queries stop once 21 results have been found. One- or two-character final prefixes use a bounded 129-candidate probe: at most 128 candidates can be sorted as a complete set in memory; larger sets use the existing name/Barcode sort index with early termination. Longer prefixes retain indexed candidate retrieval. Budget exhaustion returns HTTP 503 `search_timeout`, never partial success.
 
 7. **Rate Limiting & Privacy**:
    - Anonymous per-IP rate limiting operates independently under `LIFEGOODS_PRODUCT_SEARCH_REQUESTS_PER_MINUTE` (default 60), returning HTTP 429 `rate_limit_exceeded`.
@@ -812,10 +812,29 @@ hit-at-five was 89.29% against a 90% target; discovery displayed-summary matchin
 was 92% against a 100% target. These failures remain recorded without revised
 labels or targets and do not establish Cambodian market coverage.
 
-Parent #103 remains open pending reliable short-prefix retrieval, resolution of
-the recorded relevance limitations, strict malformed-cursor rejection, and explicit
-Scalar response examples. In particular, appending non-base64 `!!!!` to a valid
-cursor currently returns 200 instead of the required 422; section 25 describes the
-intended rejection contract, not evidence that this defect is resolved. The
+At the issue #107 measurement, parent #103 remained open pending reliable
+short-prefix retrieval, resolution of the recorded relevance limitations, strict
+malformed-cursor rejection, and explicit Scalar response examples. Appending
+non-base64 `!!!!` to a valid cursor then returned 200 instead of the required 422.
+Section 27 records the subsequent fixes and remaining acceptance failures. The
 benchmark-only rate-limit settings did not change normal runtime limits. No
 frontend UI, Dataset Snapshot rotation, or Khmer Translation generation was added.
+
+
+## 27. Product Search review fixes (PR #108)
+
+PR #108 now rejects malformed/noncanonical cursors with HTTP 422, documents success,
+pagination, no-match and failure response examples in Scalar, and isolates real
+Product Search integration tests in `lifegoods_off_test`. Explicit reader/writer
+URIs are required; tests skip without them and reject application database targets.
+The schema-1 production index and ranking/display rules remain unchanged.
+
+The unchanged issue #107 corpus was rerun with separate evidence in
+[PR #108 findings](research/search-validation/pr-108/FINDINGS.md). All 2,100 requests
+succeeded without timeouts at commit `eeab921`; warmed concurrency-five p95 was 88.15 ms (target below
+300 ms). Specific-Product hit-at-five remains 89.29% (target 90%) and discovery
+matching is 99.5% (target 100%). These remain acceptance failures. Parent #103 stays
+open and PR #108 stays unmerged; issue #107 remains completed evidence work. The
+original issue #107 artifacts and the historical failure record above are retained.
+
+Earlier fix iterations recorded timeouts, including a run overlapping a full Source Record count. Those failed runs remain in the PR evidence; the final run used grouped complete-tier retrieval with no concurrent database workload. This is not a guarantee of cold-cache or contended-load performance.

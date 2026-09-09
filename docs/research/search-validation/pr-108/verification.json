@@ -1,0 +1,86 @@
+{
+  "tested_commit": "eeab921ec9456bbe86f5eff28741904ec5efb422",
+  "review_base": "e208716a2558fc0b320243218062b7cd728e832d",
+  "checks": {
+    "frontend_tests": {
+      "passed": 95
+    },
+    "backend_tests": {
+      "passed": 433,
+      "skipped": 22
+    },
+    "isolated_product_search_mongodb_tests": {
+      "passed": 7
+    },
+    "typecheck": "passed",
+    "lint": "passed",
+    "build": "passed",
+    "api_check": "passed",
+    "changed_python_format_check": "11 files passed",
+    "scalar": "Browser verified Search Products operation, success choices, continuation token and503 example",
+    "review": {
+      "standards_findings": 0,
+      "spec_code_findings": 0
+    }
+  },
+  "notes": [
+    "Frontend tests/build/typecheck and API check completed before eeab921; subsequent commit changes only backend retrieval, with full backend tests, isolated integrations, Ruff and Python typecheck rerun.",
+    "Normal suite skips real-service tests; the seven Product Search integration tests ran separately with explicitly provisioned disposable connections.",
+    "Existing python-dotenv line48, mongomock utcnow deprecation and Vite large-chunk warnings remain.",
+    "No provider calls, search cache, schema changes, source writes or active-pointer updates."
+  ],
+  "measurement_runs": {
+    "http-measurements.json": "Initial working tree before final Unicode cursor fix;2,100 requests, zeroerrors,c5p95210.12ms.",
+    "final-http-measurements.json": "5710f48; overlapped full Source Record count;23timeouts,c5p95810.80ms. Retained failure.",
+    "isolated-http-measurements.json": "5710f48 without concurrent database work;1firstpass timeout,warmedzeroerrors,c5p95260.09ms. Retained failure.",
+    "grouped-tier-http-measurements.json": "eeab921ec9456bbe86f5eff28741904ec5efb422; final grouped complete-tier retrieval; no concurrent database/test workload."
+  },
+  "final_protocol": {
+    "first_pass": {
+      "requests": 100,
+      "p50_ms": 10.121042025275528,
+      "p95_ms": 91.95362497121096,
+      "p99_ms": 190.33658399712294,
+      "errors": 0,
+      "server_timeouts": 0,
+      "client_timeouts": 0,
+      "timeouts": 0
+    },
+    "warmed_concurrency_1": {
+      "requests": 1000,
+      "p50_ms": 7.7277920208871365,
+      "p95_ms": 56.8941660458222,
+      "p99_ms": 117.295959033072,
+      "errors": 0,
+      "server_timeouts": 0,
+      "client_timeouts": 0,
+      "timeouts": 0
+    },
+    "warmed_concurrency_5": {
+      "requests": 1000,
+      "p50_ms": 11.835458921268582,
+      "p95_ms": 88.14545802306384,
+      "p99_ms": 187.84299993421882,
+      "errors": 0,
+      "server_timeouts": 0,
+      "client_timeouts": 0,
+      "timeouts": 0
+    }
+  },
+  "corpus_sha256": "5994288c7115f9ea9475ff598f9e81c21ba653075e749915ef17d1b2de2b8999",
+  "final_relevance": {
+    "barcode": 1.0,
+    "brand": 1.0,
+    "discovery": 0.9949999999999999,
+    "negative": 1.0,
+    "specific": 0.8928571428571429
+  },
+  "parent_acceptance": false,
+  "cleanup": {
+    "benchmark_server": "stopped",
+    "temporary_test_users": "removed",
+    "test_database_documents_remaining": 0,
+    "temporary_credential_files": "removed",
+    "original_issue107_artifacts": "unchanged"
+  }
+}
