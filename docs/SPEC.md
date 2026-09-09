@@ -791,3 +791,31 @@ The Product Search endpoint `GET /api/v1/products/search` provides Barcode searc
    - Search queries, Barcodes, and client IP addresses are redacted from access logs and omitted from operational metrics.
 
 
+## 26. Full-dataset Product Search validation (Issue #107)
+
+The activation and acceptance-evidence work in #107 is complete. This does not
+establish acceptance of parent #103. The full findings, frozen corpus, reproduction
+commands and raw measurements are retained under
+[search-validation/issue-107](research/search-validation/issue-107/FINDINGS.md).
+
+On 2026-09-09 (Asia/Phnom_Penh), the existing manual lifecycle command built the
+production schema-1 search index for Dataset Snapshot
+`9f6d5359fa944e458804c1b63e7365a7`, with status `READY`: 4,522,390 records indexed and
+188,319 excluded from 4,710,709 measured Source Records. Source Records and activation
+state were preserved.
+
+The separately frozen 100-case corpus was exercised through real HTTP and MongoDB,
+with a separate first pass and 1,000 requests each at concurrency one and five.
+Warmed concurrency-five p95 was 149.13 ms, below the unchanged 300 ms target, but
+43 server timeouts occurred across the 2,100 measured requests. Specific-Product
+hit-at-five was 89.29% against a 90% target; discovery displayed-summary matching
+was 92% against a 100% target. These failures remain recorded without revised
+labels or targets and do not establish Cambodian market coverage.
+
+Parent #103 remains open pending reliable short-prefix retrieval, resolution of
+the recorded relevance limitations, strict malformed-cursor rejection, and explicit
+Scalar response examples. In particular, appending non-base64 `!!!!` to a valid
+cursor currently returns 200 instead of the required 422; section 25 describes the
+intended rejection contract, not evidence that this defect is resolved. The
+benchmark-only rate-limit settings did not change normal runtime limits. No
+frontend UI, Dataset Snapshot rotation, or Khmer Translation generation was added.
