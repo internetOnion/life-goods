@@ -2183,6 +2183,7 @@
     },
     "/api/v1/package-search": {
       "get": {
+        "description": "Searches the active local Open Food Facts Dataset Snapshot by Product name, brand, or country. Results remain attributed Source data and do not prove Product identity or origin.",
         "operationId": "searchPackages",
         "parameters": [
           {
@@ -2262,7 +2263,7 @@
             "description": "Service Unavailable"
           }
         },
-        "summary": "Search Packages",
+        "summary": "Search Products",
         "tags": [
           "Package Search"
         ]

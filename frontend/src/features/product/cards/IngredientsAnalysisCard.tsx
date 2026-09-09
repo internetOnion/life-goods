@@ -154,7 +154,7 @@ export const IngredientsAnalysisCard: React.FC<
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     {/* Palm Oil */}
                     <div
-                        className={`flex items-center gap-2.5 rounded-xl border p-2.5 ${palm.color}`}
+                        className={`flex items-center gap-2 rounded-xl border p-2.5 ${palm.color}`}
                     >
                         <PalmTreeIcon
                             className={`h-4 w-4 shrink-0 ${palm.iconColor}`}
@@ -171,7 +171,7 @@ export const IngredientsAnalysisCard: React.FC<
 
                     {/* Vegan */}
                     <div
-                        className={`flex items-center gap-2.5 rounded-xl border p-2.5 ${vegan.color}`}
+                        className={`flex items-center gap-2 rounded-xl border p-2.5 ${vegan.color}`}
                     >
                         <Sprout
                             className={`h-4 w-4 shrink-0 ${vegan.iconColor}`}
@@ -188,7 +188,7 @@ export const IngredientsAnalysisCard: React.FC<
 
                     {/* Vegetarian */}
                     <div
-                        className={`flex items-center gap-2.5 rounded-xl border p-2.5 ${veg.color}`}
+                        className={`flex items-center gap-2 rounded-xl border p-2.5 ${veg.color}`}
                     >
                         <Salad
                             className={`h-4 w-4 shrink-0 ${veg.iconColor}`}

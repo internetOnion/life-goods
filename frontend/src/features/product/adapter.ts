@@ -819,6 +819,20 @@ export function extractOpenFoodFactsView(
             .filter(Boolean)
     }
 
+    // Languages recorded on the label. Keep the source tag format so the UI
+    // can distinguish the language code from the taxonomy name.
+    const languages = Array.isArray(raw.languages_tags)
+        ? (raw.languages_tags as unknown[]).filter(
+              (language): language is string =>
+                  typeof language === "string" && Boolean(language.trim()),
+          )
+        : typeof raw.languages === "string"
+          ? raw.languages
+                .split(",")
+                .map((language) => language.trim())
+                .filter(Boolean)
+          : []
+
     // Product Origin
     const origins =
         typeof raw.origins === "string" && raw.origins.trim()
@@ -1128,6 +1142,7 @@ export function extractOpenFoodFactsView(
         statesTags: Array.isArray(raw.states_tags)
             ? (raw.states_tags as string[])
             : [],
+        languages,
         dataQualityWarnings: Array.isArray(raw.data_quality_warnings_tags)
             ? (raw.data_quality_warnings_tags as string[])
             : [],

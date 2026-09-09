@@ -1,7 +1,7 @@
 import React from "react"
+import { ChevronRight } from "lucide-react"
 
-import { Card } from "@/components/ui/card"
-import { cn } from "@/lib/utils"
+import { ScoreLessonLink } from "./ScoreLessonLink"
 
 interface NovaGroupBannerProps {
     group?: 1 | 2 | 3 | 4 | null
@@ -11,39 +11,29 @@ interface NovaGroupBannerProps {
 interface NovaGroupConfig {
     group: number
     name: string
-    textColor: string
-    secondaryColor: string
-    cardBg: string
+    surfaceClassName: string
 }
 
 const NOVA_GROUPS: NovaGroupConfig[] = [
     {
         group: 1,
         name: "Unprocessed or minimally processed foods",
-        textColor: "text-[#026B36]",
-        secondaryColor: "text-[#1B5E36]",
-        cardBg: "bg-[#EFF8F2] border-[#CDE5D4]",
+        surfaceClassName: "bg-emerald-50 hover:bg-emerald-100",
     },
     {
         group: 2,
         name: "Processed culinary ingredients",
-        textColor: "text-[#997003]",
-        secondaryColor: "text-[#856103]",
-        cardBg: "bg-[#FDF9EE] border-[#F5E4BA]",
+        surfaceClassName: "bg-amber-50 hover:bg-amber-100",
     },
     {
         group: 3,
         name: "Processed foods",
-        textColor: "text-[#B85704]",
-        secondaryColor: "text-[#8E4410]",
-        cardBg: "bg-[#FAF3EC] border-[#F1D8C5]",
+        surfaceClassName: "bg-orange-50 hover:bg-orange-100",
     },
     {
         group: 4,
         name: "Ultra-processed foods",
-        textColor: "text-[#AC2301]",
-        secondaryColor: "text-[#87230A]",
-        cardBg: "bg-[#FDF2F0] border-[#F4CDCA]",
+        surfaceClassName: "bg-red-50 hover:bg-red-100",
     },
 ]
 
@@ -80,43 +70,40 @@ export const NovaGroupBanner: React.FC<NovaGroupBannerProps> = ({
     }
 
     return (
-        <Card
-            className={cn(
-                "flex min-h-20 flex-row items-center gap-2.5 rounded-xl border p-2.5 shadow-none sm:p-3",
-                activeGroup.cardBg,
-            )}
+        <ScoreLessonLink
+            to="/learn/nova-food-classification"
+            className="focus-visible:ring-primary-500 block no-underline focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
         >
-            <div className="flex w-16 shrink-0 items-center justify-center select-none">
-                <img
-                    src={getNovaAsset(group)}
-                    alt={"NOVA Group " + group}
-                    className="h-auto max-h-11 w-auto max-w-full object-contain"
-                    loading="lazy"
+            <div
+                className={`flex min-h-20 flex-row items-center gap-3 px-4 py-3.5 transition-colors sm:px-5 ${activeGroup.surfaceClassName}`}
+            >
+                <div className="flex w-16 shrink-0 items-center justify-center select-none">
+                    <img
+                        src={getNovaAsset(group)}
+                        alt=""
+                        aria-hidden="true"
+                        className="h-auto max-h-11 w-auto max-w-full object-contain"
+                        loading="lazy"
+                    />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                    <p className="text-base leading-tight font-bold tracking-[-0.02em] text-neutral-950">
+                        {activeGroup.name}
+                    </p>
+                    <p className="mt-1 text-sm leading-snug text-neutral-600">
+                        {markerList.length > 0
+                            ? markerList.length +
+                              " ultra-processing marker" +
+                              (markerList.length === 1 ? "" : "s")
+                            : "NOVA group " + group}
+                    </p>
+                </div>
+                <ChevronRight
+                    className="text-info-700 size-5 shrink-0"
+                    aria-hidden="true"
                 />
             </div>
-
-            <div className="min-w-0 flex-1">
-                <p
-                    className={cn(
-                        "text-base leading-tight font-medium tracking-[-0.02em] sm:text-lg",
-                        activeGroup.textColor,
-                    )}
-                >
-                    {activeGroup.name}
-                </p>
-                <p
-                    className={cn(
-                        "mt-1 text-sm leading-snug font-medium",
-                        activeGroup.secondaryColor,
-                    )}
-                >
-                    {markerList.length > 0
-                        ? markerList.length +
-                          " ultra-processing marker" +
-                          (markerList.length === 1 ? "" : "s")
-                        : "NOVA group " + group}
-                </p>
-            </div>
-        </Card>
+        </ScoreLessonLink>
     )
 }

@@ -1,7 +1,7 @@
 import React from "react"
+import { ChevronRight } from "lucide-react"
 
-import { Card } from "@/components/ui/card"
-import { cn } from "@/lib/utils"
+import { ScoreLessonLink } from "./ScoreLessonLink"
 
 interface NutriScoreBannerProps {
     grade?: "a" | "b" | "c" | "d" | "e" | "unknown" | null
@@ -12,52 +12,40 @@ interface NutriScoreBannerProps {
 interface GradeConfig {
     key: string
     label: string
-    textColor: string
-    secondaryColor: string
-    cardBg: string
     desc: string
+    surfaceClassName: string
 }
 
 const NUTRI_GRADES: GradeConfig[] = [
     {
         key: "a",
         label: "A",
-        textColor: "text-[#026B36]",
-        secondaryColor: "text-[#1B5E36]",
-        cardBg: "bg-[#EFF8F2] border-[#CDE5D4]",
         desc: "Very good nutritional quality",
+        surfaceClassName: "bg-emerald-50 hover:bg-emerald-100",
     },
     {
         key: "b",
         label: "B",
-        textColor: "text-[#4A7F1A]",
-        secondaryColor: "text-[#416E18]",
-        cardBg: "bg-[#F5FAF0] border-[#D9EBCF]",
         desc: "Good nutritional quality",
+        surfaceClassName: "bg-lime-50 hover:bg-lime-100",
     },
     {
         key: "c",
         label: "C",
-        textColor: "text-[#997003]",
-        secondaryColor: "text-[#856103]",
-        cardBg: "bg-[#FDF9EE] border-[#F5E4BA]",
         desc: "Average nutritional quality",
+        surfaceClassName: "bg-amber-50 hover:bg-amber-100",
     },
     {
         key: "d",
         label: "D",
-        textColor: "text-[#B85704]",
-        secondaryColor: "text-[#8E4410]",
-        cardBg: "bg-[#FAF3EC] border-[#F1D8C5]",
         desc: "Poor nutritional quality",
+        surfaceClassName: "bg-orange-50 hover:bg-orange-100",
     },
     {
         key: "e",
         label: "E",
-        textColor: "text-[#AC2301]",
-        secondaryColor: "text-[#87230A]",
-        cardBg: "bg-[#FDF2F0] border-[#F4CDCA]",
         desc: "Very poor nutritional quality",
+        surfaceClassName: "bg-red-50 hover:bg-red-100",
     },
 ]
 
@@ -83,40 +71,39 @@ export const NutriScoreBanner: React.FC<NutriScoreBannerProps> = ({
     if (!activeGrade) return null
 
     return (
-        <Card
-            className={cn(
-                "flex min-h-20 flex-row items-center gap-2.5 rounded-xl border p-2.5 shadow-none sm:p-3",
-                activeGrade.cardBg,
-            )}
+        <ScoreLessonLink
+            to="/learn/nutri-score"
+            className="focus-visible:ring-primary-500 block no-underline focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
         >
-            <div className="flex w-16 shrink-0 items-center justify-center select-none">
-                <img
-                    src={getNutriScoreAsset(grade)}
-                    alt={"Nutri-Score Grade " + activeGrade.label}
-                    className="h-auto max-h-11 w-auto max-w-full object-contain"
-                    loading="lazy"
+            <div
+                className={`flex min-h-20 flex-row items-center gap-3 px-4 py-3.5 transition-colors sm:px-5 ${activeGrade.surfaceClassName}`}
+            >
+                <div className="flex w-16 shrink-0 items-center justify-center select-none">
+                    <img
+                        src={getNutriScoreAsset(grade)}
+                        alt=""
+                        aria-hidden="true"
+                        className="h-auto max-h-11 w-auto max-w-full object-contain"
+                        loading="lazy"
+                    />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                    <p className="text-base leading-tight font-bold tracking-[-0.02em] text-neutral-950">
+                        <span>Nutri-Score</span>{" "}
+                        <span className="font-extrabold">
+                            {activeGrade.label}
+                        </span>
+                    </p>
+                    <p className="mt-1 text-sm leading-snug text-neutral-600">
+                        {activeGrade.desc}
+                    </p>
+                </div>
+                <ChevronRight
+                    className="text-info-700 size-5 shrink-0"
+                    aria-hidden="true"
                 />
             </div>
-
-            <div className="min-w-0 flex-1">
-                <p
-                    className={cn(
-                        "text-base leading-tight font-medium tracking-[-0.02em] sm:text-lg",
-                        activeGrade.textColor,
-                    )}
-                >
-                    <span>Nutri-Score</span>{" "}
-                    <span className="font-extrabold">{activeGrade.label}</span>
-                </p>
-                <p
-                    className={cn(
-                        "mt-1 text-sm leading-snug font-medium",
-                        activeGrade.secondaryColor,
-                    )}
-                >
-                    {activeGrade.desc}
-                </p>
-            </div>
-        </Card>
+        </ScoreLessonLink>
     )
 }

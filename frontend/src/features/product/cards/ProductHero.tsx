@@ -57,7 +57,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
     const quantityItem = identityEvidence.find((e) => e.field === "quantity")
     const quantity =
         typeof quantityItem?.value === "string"
-            ? quantityItem.value
+            ? quantityItem.value.trim() || null
             : typeof quantityItem?.value === "number"
               ? String(quantityItem.value)
               : null
@@ -87,8 +87,6 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
     const canZoomImage = Boolean(currentImage && !imageFailed)
 
     // Summary counts for quick stats bar
-    const allergensDetected =
-        candidate.allergen_assessment?.findings?.length || 0
     const additivesItem = labelEvidence.find((e) => e.field === "additive_tags")
     const additivesCount = Array.isArray(additivesItem?.value)
         ? additivesItem.value.length
@@ -110,7 +108,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
     }
 
     return (
-        <div className="shadow-source-sheet overflow-hidden rounded-2xl border border-neutral-200/90 bg-white p-4 sm:p-6">
+        <div className="shadow-source-sheet overflow-hidden rounded-2xl border border-neutral-200/90 bg-white p-3 sm:p-6">
             <div className="grid items-start gap-6 sm:grid-cols-[13rem_minmax(0,1fr)] sm:gap-6">
                 {/* Product Image Viewer */}
                 <div className="flex w-full min-w-0 flex-col items-center sm:w-auto">
@@ -200,7 +198,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                 </div>
 
                 {/* Product Details Header */}
-                <div className="w-full min-w-0 space-y-5 sm:pt-1">
+                <div className="w-full min-w-0 space-y-4 sm:pt-1">
                     <h1
                         ref={headingRef}
                         tabIndex={-1}
@@ -228,7 +226,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
 
                     {/* Quick Factual Summary Divider Rows (Neutral) */}
                     <div className="divide-y divide-neutral-100 border-t border-b border-neutral-200/80 text-xs">
-                        <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-3.5">
+                        <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-3">
                             <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                 Barcode
                             </span>
@@ -254,7 +252,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                             </Button>
                         </div>
 
-                        <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-3.5">
+                        <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-3">
                             <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                 Quantity
                             </span>
@@ -263,25 +261,14 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                             </span>
                         </div>
 
-                        <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-3.5">
+                        <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-3">
                             <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                 Origin
                             </span>
                             <span className="min-w-0 text-right text-xs font-semibold wrap-anywhere text-neutral-900 sm:text-sm">
-                                {origin || "Source Data Unavailable"}
+                                {origin?.trim() || "Source Data Unavailable"}
                             </span>
                         </div>
-
-                        {allergensDetected > 0 && (
-                            <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-3.5">
-                                <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
-                                    Allergen Findings
-                                </span>
-                                <span className="min-w-0 text-right text-xs font-semibold wrap-anywhere text-neutral-900 sm:text-sm">
-                                    {allergensDetected} detected
-                                </span>
-                            </div>
-                        )}
                     </div>
 
                     {hasLabelHighlights && (

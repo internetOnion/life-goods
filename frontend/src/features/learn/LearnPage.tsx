@@ -15,11 +15,12 @@ import {
     XIcon,
 } from "@phosphor-icons/react"
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react"
-import { Link, useParams } from "react-router"
+import { Link, useLocation, useParams } from "react-router"
 
 import { appRoutes } from "@/app/routes"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { getProductLessonLocationState } from "@/features/product/navigation"
 import { usePageMetadata } from "@/lib/metadata"
 
 import {
@@ -342,16 +343,16 @@ function LearnIndexPage({ locale }: LearnIndexPageProps) {
     }
 
     return (
-        <main className="mx-auto w-[min(calc(100%_-_2rem),52rem)] pt-[clamp(2.5rem,8vh,5rem)] pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] max-[23.5rem]:w-[min(calc(100%_-_1.25rem),52rem)] sm:w-[min(calc(100%_-_3rem),52rem)]">
-            <div className="max-w-[42rem]">
+        <main className="mx-auto w-full max-w-xl min-w-0 px-4 py-8 sm:px-6 sm:py-12">
+            <div>
                 <h1
                     ref={headingRef}
                     tabIndex={-1}
-                    className="text-display-learn leading-[1.55] font-black tracking-tight text-balance"
+                    className="text-display-learn leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
                 >
                     {t("learn.title")}
                 </h1>
-                <p className="text-muted-foreground text-body-lg mt-3 max-w-[62ch] leading-loose">
+                <p className="text-muted-foreground mt-3 text-base leading-relaxed">
                     {t("learn.intro")}
                 </p>
             </div>
@@ -469,7 +470,7 @@ function LearnIndexPage({ locale }: LearnIndexPageProps) {
                             </p>
                         </div>
                     </div>
-                    <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+                    <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4">
                         {LEARN_GUIDES.map((guide) => (
                             <LearnGuideTile
                                 key={guide.slug}
@@ -627,7 +628,7 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
     return (
         <>
             {entry?.kind === "simulated" ? <LearnDemoNotice active /> : null}
-            <main className="mx-auto w-full max-w-xl min-w-0 px-4 pt-[clamp(2rem,7vh,4.5rem)] pb-[calc(3rem_+_env(safe-area-inset-bottom))] sm:px-6">
+            <main className="mx-auto w-full max-w-xl min-w-0 px-4 py-8 sm:px-6 sm:py-12">
                 <Link
                     className="text-primary hover:bg-accent focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-bold no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none"
                     to={appRoutes.learn}
@@ -644,7 +645,7 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
                         <h1
                             ref={headingRef}
                             tabIndex={-1}
-                            className="text-display mt-2 leading-[1.55] tracking-tight text-balance"
+                            className="text-display mt-2 leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
                         >
                             {localized(entry.title, contentLocale)}
                         </h1>
@@ -903,7 +904,7 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
                             id="missing-article"
                             ref={headingRef}
                             tabIndex={-1}
-                            className="text-display leading-[1.6] tracking-tight text-balance"
+                            className="text-display leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
                         >
                             {t("learn.unavailableTitle")}
                         </h1>
@@ -932,7 +933,7 @@ export function LearnGuidePage() {
     }, [guideSlug])
 
     return (
-        <main className="mx-auto w-full max-w-xl min-w-0 px-4 pt-[clamp(2rem,7vh,4.5rem)] pb-[calc(4rem_+_env(safe-area-inset-bottom))] sm:px-6">
+        <main className="mx-auto w-full max-w-xl min-w-0 px-4 py-8 sm:px-6 sm:py-12">
             <Link
                 className="text-primary hover:bg-accent focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-bold no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none"
                 to={appRoutes.learn}
@@ -947,7 +948,7 @@ export function LearnGuidePage() {
                         <h1
                             ref={headingRef}
                             tabIndex={-1}
-                            className="text-display leading-[1.55] tracking-tight text-balance"
+                            className="text-display leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
                         >
                             {localized(guide.title, locale)}
                         </h1>
@@ -1016,7 +1017,7 @@ export function LearnGuidePage() {
                         id="missing-guide"
                         ref={headingRef}
                         tabIndex={-1}
-                        className="text-display leading-[1.6] tracking-tight text-balance"
+                        className="text-display leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
                     >
                         {t("learn.unavailableGuideTitle")}
                     </h1>
@@ -1274,6 +1275,8 @@ function StructuredLearnArticle({
     locale: LearnLocale
 }) {
     const { t } = useTranslation()
+    const location = useLocation()
+    const productReturn = getProductLessonLocationState(location.state)
     const guide = LEARN_GUIDES.find(
         (candidate) => candidate.category === entry.category,
     )
@@ -1290,17 +1293,27 @@ function StructuredLearnArticle({
         const source = LEARN_SOURCE_BY_ID.get(reference.sourceId)
         return source ? [{ reference, source }] : []
     })
+    const backTo =
+        productReturn?.returnTo ??
+        (guide ? guidePath(guide.slug) : appRoutes.learn)
 
     return (
-        <main className="mx-auto w-full max-w-xl min-w-0 px-4 pt-[clamp(2rem,7vh,4.5rem)] pb-[calc(3rem_+_env(safe-area-inset-bottom))] sm:px-6">
+        <main className="mx-auto w-full max-w-xl min-w-0 px-4 py-8 sm:px-6 sm:py-12">
             <Link
                 className="text-primary hover:bg-accent focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-bold no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none"
-                to={guide ? guidePath(guide.slug) : appRoutes.learn}
+                to={backTo}
+                state={
+                    productReturn
+                        ? { restoreScrollY: productReturn.returnScrollY }
+                        : undefined
+                }
             >
                 <ArrowLeftIcon aria-hidden="true" size={20} weight="bold" />
-                {guide
-                    ? localized(guide.title, locale)
-                    : t("learn.backToLearn")}
+                {productReturn
+                    ? t("learn.backToProduct")
+                    : guide
+                      ? localized(guide.title, locale)
+                      : t("learn.backToLearn")}
             </Link>
             <article className="mt-7" lang={locale}>
                 <p className="text-primary text-sm leading-relaxed font-bold tabular-nums">
@@ -1309,7 +1322,7 @@ function StructuredLearnArticle({
                 <h1
                     ref={headingRef}
                     tabIndex={-1}
-                    className="text-display mt-2 leading-[1.55] tracking-tight text-balance"
+                    className="text-display mt-2 leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
                 >
                     {localized(entry.title, locale)}
                 </h1>

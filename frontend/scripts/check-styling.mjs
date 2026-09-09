@@ -36,7 +36,7 @@ for (const filePath of sourceFiles.filter((file) =>
     /\.(ts|tsx|js|jsx)$/.test(file),
 )) {
     const source = await readFile(filePath, "utf8")
-    const relativePath = path.relative(root, filePath)
+    const relativePath = path.relative(root, filePath).split(path.sep).join("/")
     if (
         !relativePath.startsWith("src/components/ui/") &&
         /<(?:button|input|textarea|select)\b/.test(source)

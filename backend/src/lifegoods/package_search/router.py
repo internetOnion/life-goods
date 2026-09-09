@@ -46,6 +46,12 @@ def _client_identifier(request: Request) -> str:
 @router.get(
     "/package-search",
     operation_id="searchPackages",
+    summary="Search Products",
+    description=(
+        "Searches the active local Open Food Facts Dataset Snapshot by Product name, "
+        "brand, or country. Results remain attributed Source data and do not prove "
+        "Product identity or origin."
+    ),
     response_model=PackageSearchResponse,
     responses={
         422: {"model": ErrorEnvelope},

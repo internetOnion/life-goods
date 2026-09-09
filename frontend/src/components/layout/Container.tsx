@@ -14,7 +14,7 @@ export const Container: React.FC<ContainerProps> = ({
     return (
         <div
             className={cn(
-                "mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-xl flex-col px-4 py-6 sm:px-6 sm:py-8",
+                "mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-xl min-w-0 flex-col px-4 py-6 sm:px-6 sm:py-8",
                 className,
             )}
             {...props}

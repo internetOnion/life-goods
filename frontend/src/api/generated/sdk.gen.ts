@@ -62,7 +62,8 @@ export const searchPackageMatches = <ThrowOnError extends boolean = false>(optio
 };
 
 /**
- * Search Packages
+ * Search Products
+ * Searches the active local Open Food Facts Dataset Snapshot by Product name, brand, or country. Results remain attributed Source data and do not prove Product identity or origin.
  */
 export const searchPackages = <ThrowOnError extends boolean = false>(options: Options<SearchPackagesData, ThrowOnError>) => {
     return (options.client ?? client).get<SearchPackagesResponses, SearchPackagesErrors, ThrowOnError>({

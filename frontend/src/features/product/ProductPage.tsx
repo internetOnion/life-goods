@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
-import { AlertCircle, ArrowLeft, LayoutGrid, ListFilter } from "lucide-react"
+import { AlertCircle, ArrowLeft } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { useNavigate, useParams } from "react-router"
+import { useLocation, useNavigate, useParams } from "react-router"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -15,8 +15,10 @@ import { usePageMetadata } from "@/lib/metadata"
 
 import { lookupProduct, type ProductLookup } from "./api"
 import { adaptProductLookup } from "./adapter"
+import { getProductRestoreLocationState } from "./navigation"
 import { AdditivesCard } from "./cards/AdditivesCard"
 import { AllergenCard } from "./cards/AllergenCard"
+import { CountryTagInfoCard } from "./cards/CountryTagInfoCard"
 import { DataQualityCard } from "./cards/DataQualityCard"
 import { HalalCard } from "./cards/HalalCard"
 import { IngredientsAnalysisCard } from "./cards/IngredientsAnalysisCard"
@@ -40,13 +42,16 @@ type ProductPageProps = {
 
 export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
     const { barcode = "" } = useParams()
+    const location = useLocation()
     const navigate = useNavigate()
 
     const validation = useMemo(() => validateIdentifier(barcode), [barcode])
     const normalizedBarcode = validation.valid ? validation.value : ""
+    const restoreScrollY = getProductRestoreLocationState(
+        location.state,
+    )?.restoreScrollY
 
     const [activeTab, setActiveTab] = useState("ingredients")
-    const [viewMode, setViewMode] = useState<"tabs" | "stream">("tabs")
 
     const tabScrollRef = useRef<HTMLDivElement>(null)
 
@@ -83,13 +88,14 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
     const hasSourceAssessments = hasNutriScore || hasNovaGroup || hasEcoScore
 
     useEffect(() => {
-        if (
-            typeof window !== "undefined" &&
-            typeof window.scrollTo === "function"
-        ) {
-            window.scrollTo(0, 0)
+        if (!normalizedBarcode) return
+        if (restoreScrollY !== undefined) {
+            if (!productQuery.data) return
+            window.scrollTo(0, restoreScrollY)
+            return
         }
-    }, [normalizedBarcode])
+        window.scrollTo(0, 0)
+    }, [normalizedBarcode, productQuery.data, restoreScrollY])
 
     useEffect(() => {
         const container = tabScrollRef.current
@@ -183,7 +189,7 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
             )?.error?.code === "product_not_found")
 
     return (
-        <div className="min-h-screen bg-neutral-50/50">
+        <div className="min-h-svh bg-neutral-50">
             <Header
                 showBackButton={true}
                 onBack={() => void navigate("/")}
@@ -193,13 +199,13 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
             <Container>
                 {productQuery.isLoading && (
                     <div className="animate-pulse space-y-4 pb-16">
-                        <Skeleton className="h-64 w-full rounded-3xl" />
+                        <Skeleton className="h-64 w-full rounded-2xl" />
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <Skeleton className="h-28 w-full rounded-2xl" />
                             <Skeleton className="h-28 w-full rounded-2xl" />
                         </div>
-                        <Skeleton className="h-44 w-full rounded-3xl" />
-                        <Skeleton className="h-36 w-full rounded-3xl" />
+                        <Skeleton className="h-44 w-full rounded-2xl" />
+                        <Skeleton className="h-36 w-full rounded-2xl" />
                     </div>
                 )}
 
@@ -268,201 +274,104 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
 
                         {/* Open Food Facts Top Score Pillars */}
                         {hasSourceAssessments && (
-                            <div className="grid grid-cols-1 gap-2 pt-1">
-                                <NutriScoreBanner
-                                    grade={offView.nutriscoreGrade}
-                                    score={offView.nutriscoreScore}
-                                    version={offView.nutriscoreVersion}
-                                />
-                                <NovaGroupBanner
-                                    group={offView.novaGroup}
-                                    markers={offView.novaGroupsMarkers}
-                                />
-                                <EcoScoreBanner
-                                    grade={offView.ecoscoreGrade}
-                                    score={offView.ecoscoreScore}
-                                />
+                            <div
+                                className="overflow-hidden rounded-2xl border border-neutral-200 bg-white"
+                                aria-label="Open Food Facts Source Assessments"
+                            >
+                                <div className="divide-y divide-neutral-200">
+                                    <NutriScoreBanner
+                                        grade={offView.nutriscoreGrade}
+                                        score={offView.nutriscoreScore}
+                                        version={offView.nutriscoreVersion}
+                                    />
+                                    <NovaGroupBanner
+                                        group={offView.novaGroup}
+                                        markers={offView.novaGroupsMarkers}
+                                    />
+                                    <EcoScoreBanner
+                                        grade={offView.ecoscoreGrade}
+                                        score={offView.ecoscoreScore}
+                                    />
+                                </div>
                             </div>
                         )}
 
-                        {/* Navigation View Mode Toggle & Tab Bar */}
-                        <div className="flex items-center justify-between gap-3 pt-2">
+                        {/* Product Details Navigation */}
+                        <div className="flex items-center gap-3 pt-2">
                             <div className="space-y-0.5">
                                 <h2 className="text-base font-extrabold tracking-[-0.02em] text-neutral-950 sm:text-lg">
                                     Product Details
                                 </h2>
                                 <p className="text-xs text-neutral-500">
-                                    {viewMode === "tabs"
-                                        ? "Browse categorized sections"
-                                        : "Full linear stream"}
+                                    Browse categorized sections
                                 </p>
                             </div>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                type="button"
-                                onClick={() =>
-                                    setViewMode(
-                                        viewMode === "tabs" ? "stream" : "tabs",
-                                    )
-                                }
-                                className="focus-visible:ring-primary-500 inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-xl border border-neutral-200/90 bg-white px-3.5 py-2 text-xs font-semibold text-neutral-700 shadow-2xs transition-colors hover:bg-neutral-50 hover:text-neutral-950 focus-visible:ring-2 active:scale-[0.98]"
-                            >
-                                {viewMode === "tabs" ? (
-                                    <>
-                                        <ListFilter className="h-4 w-4 text-neutral-500" />
-                                        <span>Show All Sections</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <LayoutGrid className="h-4 w-4 text-neutral-500" />
-                                        <span>Tabbed View</span>
-                                    </>
-                                )}
-                            </Button>
                         </div>
 
-                        {viewMode === "tabs" ? (
-                            /* Tabbed Navigation */
-                            <Tabs
-                                value={activeTab}
-                                onValueChange={setActiveTab}
-                                variant="line"
-                                className="w-full"
-                            >
-                                <div className="sticky top-16 z-20 -mx-4 border-b border-neutral-200/80 bg-white sm:-mx-6">
-                                    <div
-                                        ref={tabScrollRef}
-                                        className="no-scrollbar flex items-center overflow-x-auto overscroll-x-contain scroll-smooth px-4 sm:px-6"
-                                    >
-                                        <TabsList className="flex h-auto w-max min-w-full items-center justify-start gap-0 border-none bg-transparent p-0">
-                                            <TabsTrigger
-                                                value="ingredients"
-                                                className="shrink-0"
-                                            >
-                                                Ingredients
-                                            </TabsTrigger>
-                                            <TabsTrigger
-                                                value="nutrition"
-                                                className="shrink-0"
-                                            >
-                                                Nutrition
-                                            </TabsTrigger>
-                                            <TabsTrigger
-                                                value="data"
-                                                className="shrink-0"
-                                            >
-                                                Data & Raw
-                                            </TabsTrigger>
-                                            <TabsTrigger
-                                                value="overview"
-                                                className="shrink-0"
-                                            >
-                                                Overview
-                                            </TabsTrigger>
-                                        </TabsList>
-                                    </div>
+                        <Tabs
+                            value={activeTab}
+                            onValueChange={setActiveTab}
+                            variant="line"
+                            className="w-full"
+                        >
+                            <div className="sticky top-16 z-20 -mx-4 border-b border-neutral-200/80 bg-white sm:-mx-6">
+                                <div
+                                    ref={tabScrollRef}
+                                    className="no-scrollbar flex items-center overflow-x-auto overscroll-x-contain scroll-smooth px-4 sm:px-6"
+                                >
+                                    <TabsList className="flex h-auto w-max min-w-full items-center justify-center gap-0 border-none bg-transparent p-0">
+                                        <TabsTrigger
+                                            value="ingredients"
+                                            className="shrink-0"
+                                        >
+                                            Ingredients
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            value="nutrition"
+                                            className="shrink-0"
+                                        >
+                                            Nutrition
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            value="data"
+                                            className="shrink-0"
+                                        >
+                                            Data & Raw
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            value="overview"
+                                            className="shrink-0"
+                                        >
+                                            Overview
+                                        </TabsTrigger>
+                                    </TabsList>
                                 </div>
+                            </div>
 
-                                {/* Tab 1: Overview */}
-                                <TabsContent
-                                    value="overview"
-                                    className="space-y-4 pt-2"
-                                >
-                                    <ProductCharacteristicsCard
-                                        product={offView}
-                                    />
-                                    <PackagingsTableCard
-                                        packagings={offView.packagings}
-                                        packagingText={offView.packagingText}
-                                    />
-                                    <PackagingCard
-                                        labelEvidence={labelEvidence}
-                                    />
-                                    <ProvenanceCard candidate={candidate} />
-                                </TabsContent>
-
-                                {/* Tab 2: Ingredients */}
-                                <TabsContent
-                                    value="ingredients"
-                                    className="space-y-4 pt-2"
-                                >
-                                    <IngredientsAnalysisCard
-                                        analysis={offView.ingredientsAnalysis}
-                                    />
-                                    <IngredientsCard
-                                        labelEvidence={labelEvidence}
-                                        allergenAssessment={
-                                            candidate.allergen_assessment
-                                        }
-                                    />
-                                    <AdditivesCard
-                                        labelEvidence={labelEvidence}
-                                    />
-                                    <AllergenCard
-                                        assessment={
-                                            candidate.allergen_assessment
-                                        }
-                                        labelEvidence={labelEvidence}
-                                    />
-                                    <HalalCard
-                                        assessment={
-                                            candidate.halal_ingredient_assessment
-                                        }
-                                        labelEvidence={labelEvidence}
-                                    />
-                                </TabsContent>
-
-                                {/* Tab 3: Nutrition */}
-                                <TabsContent
-                                    value="nutrition"
-                                    className="space-y-4 pt-2"
-                                >
-                                    <NutrientLevelsCard
-                                        levels={offView.nutrientLevels}
-                                        labelEvidence={labelEvidence}
-                                    />
-                                    <NutritionCard
-                                        labelEvidence={labelEvidence}
-                                    />
-                                </TabsContent>
-
-                                {/* Tab 4: Data Quality & Raw Record */}
-                                <TabsContent
-                                    value="data"
-                                    className="space-y-4 pt-2"
-                                >
-                                    <DataQualityCard
-                                        completeness={offView.completeness}
-                                        statesTags={offView.statesTags}
-                                        creator={offView.creator}
-                                        lastModified={offView.lastModified}
-                                    />
-                                    <ProvenanceCard candidate={candidate} />
-                                    {adapted.meta && (
-                                        <RawRecordCard
-                                            meta={adapted.meta}
-                                            rawRecord={adapted.rawRecord}
-                                        />
-                                    )}
-                                </TabsContent>
-                            </Tabs>
-                        ) : (
-                            /* Stream View */
-                            <div className="space-y-4 pt-1">
+                            {/* Tab 1: Overview */}
+                            <TabsContent
+                                value="overview"
+                                className="space-y-4 pt-2"
+                            >
                                 <ProductCharacteristicsCard product={offView} />
                                 <PackagingsTableCard
                                     packagings={offView.packagings}
                                     packagingText={offView.packagingText}
                                 />
+                                <PackagingCard labelEvidence={labelEvidence} />
+                                <ProvenanceCard candidate={candidate} />
+                            </TabsContent>
+
+                            {/* Tab 2: Ingredients */}
+                            <TabsContent
+                                value="ingredients"
+                                className="space-y-4 pt-2"
+                            >
                                 <IngredientsAnalysisCard
                                     analysis={offView.ingredientsAnalysis}
                                 />
                                 <IngredientsCard
                                     labelEvidence={labelEvidence}
-                                    allergenAssessment={
-                                        candidate.allergen_assessment
-                                    }
                                 />
                                 <AdditivesCard labelEvidence={labelEvidence} />
                                 <AllergenCard
@@ -475,14 +384,34 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                     }
                                     labelEvidence={labelEvidence}
                                 />
+                            </TabsContent>
+
+                            {/* Tab 3: Nutrition */}
+                            <TabsContent
+                                value="nutrition"
+                                className="space-y-4 pt-2"
+                            >
+                                <NutrientLevelsCard
+                                    levels={offView.nutrientLevels}
+                                    labelEvidence={labelEvidence}
+                                />
                                 <NutritionCard labelEvidence={labelEvidence} />
+                            </TabsContent>
+
+                            {/* Tab 4: Data Quality & Raw Record */}
+                            <TabsContent
+                                value="data"
+                                className="space-y-4 pt-2"
+                            >
+                                <CountryTagInfoCard
+                                    languages={offView.languages}
+                                />
                                 <DataQualityCard
                                     completeness={offView.completeness}
                                     statesTags={offView.statesTags}
                                     creator={offView.creator}
                                     lastModified={offView.lastModified}
                                 />
-                                <PackagingCard labelEvidence={labelEvidence} />
                                 <ProvenanceCard candidate={candidate} />
                                 {adapted.meta && (
                                     <RawRecordCard
@@ -490,8 +419,8 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                         rawRecord={adapted.rawRecord}
                                     />
                                 )}
-                            </div>
-                        )}
+                            </TabsContent>
+                        </Tabs>
                     </div>
                 )}
             </Container>

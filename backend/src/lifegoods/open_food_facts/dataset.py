@@ -43,7 +43,9 @@ CONTROL_COLLECTION = "off_dataset_control"
 VERSIONS_COLLECTION = "off_dataset_versions"
 ACTIVE_POINTER_ID = "active"
 PRODUCT_COLLECTION_PREFIX = "off_products_"
-PACKAGE_SEARCH_TEXT_INDEX = "idx_off_package_search_text"
+# Versioned because adding country fields changes the MongoDB text-index shape;
+# activation can create the new index alongside the previous disposable one.
+PACKAGE_SEARCH_TEXT_INDEX = "idx_off_package_search_text_v2"
 PACKAGE_SEARCH_COUNTRY_INDEX = "idx_off_countries_tags"
 PACKAGE_SEARCH_COUNTRY_TAG = "en:cambodia"
 OPEN_FOOD_FACTS_BASE_URL = "https://world.openfoodfacts.org"
@@ -63,10 +65,10 @@ LOCALIZED_NAME_FIELDS = (
 )
 PACKAGE_SEARCH_TEXT_FIELDS = tuple(
     (field, TEXT) for field, _language in LOCALIZED_NAME_FIELDS
-) + (("brands", TEXT),)
+) + (("brands", TEXT), ("countries_tags", TEXT), ("manufacturing_places", TEXT))
 PACKAGE_SEARCH_TEXT_WEIGHTS = {
     field: 10 for field, _language in LOCALIZED_NAME_FIELDS
-} | {"brands": 8}
+} | {"brands": 8, "countries_tags": 6, "manufacturing_places": 6}
 LOCALIZED_INGREDIENT_FIELDS = (
     ("ingredients_text", None),
     ("ingredients_text_en", "en"),

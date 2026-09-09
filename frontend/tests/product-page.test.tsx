@@ -2,10 +2,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter, Route, Routes } from "react-router"
-import { describe, expect, test, vi } from "vitest"
+import { afterEach, describe, expect, test, vi } from "vitest"
 
 import type { ProductLookup } from "../src/features/product/api"
 import { ProductPage } from "../src/features/product/ProductPage"
+import { LearnArticlePage } from "../src/features/learn/LearnPage"
 import { productResponse } from "./product-fixtures"
 
 function renderProduct(
@@ -23,6 +24,7 @@ function renderProduct(
                         path="/products/:barcode"
                         element={<ProductPage lookup={lookup} />}
                     />
+                    <Route path="/learn/:slug" element={<LearnArticlePage />} />
                 </Routes>
             </MemoryRouter>
         </QueryClientProvider>,
@@ -30,6 +32,10 @@ function renderProduct(
 }
 
 describe("Product page (life-goods-viewer layout)", () => {
+    afterEach(() => {
+        localStorage.clear()
+    })
+
     test("presents product hero, score banners, tabs, and source attribution", async () => {
         renderProduct(
             vi.fn<ProductLookup>().mockResolvedValue(productResponse()),
@@ -74,6 +80,26 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(screen.getByText("Green-Score").closest("p")).toHaveTextContent(
             "Green-Score C",
         )
+        const nutriScoreLink = screen.getByRole("link", {
+            name: /Nutri-Score D/,
+        })
+        expect(nutriScoreLink).toHaveAttribute("href", "/learn/nutri-score")
+        expect(nutriScoreLink.firstElementChild).toHaveClass("bg-orange-50")
+
+        const novaGroupLink = screen.getByRole("link", {
+            name: /Ultra-processed foods/,
+        })
+        expect(novaGroupLink).toHaveAttribute(
+            "href",
+            "/learn/nova-food-classification",
+        )
+        expect(novaGroupLink.firstElementChild).toHaveClass("bg-red-50")
+
+        const greenScoreLink = screen.getByRole("link", {
+            name: /Green-Score C/,
+        })
+        expect(greenScoreLink).toHaveAttribute("href", "/learn/green-score")
+        expect(greenScoreLink.firstElementChild).toHaveClass("bg-amber-50")
         expect(
             screen.queryByRole("heading", { name: "Source Assessments" }),
         ).not.toBeInTheDocument()
@@ -99,31 +125,34 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(screen.getByText("Dietary & Ingredient Analysis")).toBeVisible()
         expect(screen.getByText("Ingredients List")).toBeVisible()
 
-        // View mode toggle
-        expect(screen.getByText("Show All Sections")).toBeVisible()
+        expect(screen.queryByText("Show All Sections")).not.toBeInTheDocument()
     })
 
-    test("switches between Tabbed View and Show All Sections stream view", async () => {
+    test("returns from a score lesson to the result scroll position", async () => {
         const user = userEvent.setup()
+        const scrollToSpy = vi.spyOn(window, "scrollTo")
+        Object.defineProperty(window, "scrollY", {
+            configurable: true,
+            value: 420,
+        })
         renderProduct(
             vi.fn<ProductLookup>().mockResolvedValue(productResponse()),
         )
 
         await screen.findByRole("heading", { name: "Dark Chocolate" })
+        await user.click(screen.getByRole("link", { name: /Nutri-Score D/ }))
 
-        // Click to toggle to Stream View
-        const toggleButton = screen.getByRole("button", {
-            name: /Show All Sections/i,
-        })
-        await user.click(toggleButton)
-
-        // Now stream view displays cards simultaneously without tabs
-        expect(screen.getByText("Tabbed View")).toBeVisible()
-        expect(screen.getByText("Ingredients List")).toBeVisible()
-        expect(screen.getByText("Dietary & Ingredient Analysis")).toBeVisible()
         expect(
-            screen.queryByText("Photo Archive & Packaging Scans"),
-        ).not.toBeInTheDocument()
+            await screen.findByRole("heading", { name: "Nutri-Score" }),
+        ).toBeVisible()
+        await user.click(screen.getByRole("link", { name: "Back to Product" }))
+
+        expect(
+            await screen.findByRole("heading", { name: "Dark Chocolate" }),
+        ).toBeVisible()
+        expect(scrollToSpy).toHaveBeenLastCalledWith(0, 420)
+
+        scrollToSpy.mockRestore()
     })
 
     test("shows compact assessment results without redundant intro copy", async () => {
@@ -148,6 +177,27 @@ describe("Product page (life-goods-viewer layout)", () => {
                 "Attributed source calculations; not Life Goods verdicts or purchase recommendations.",
             ),
         ).not.toBeInTheDocument()
+    })
+
+    test("shows every language recorded in languages_tags", async () => {
+        const user = userEvent.setup()
+        renderProduct(
+            vi.fn<ProductLookup>().mockResolvedValue(
+                productResponse({
+                    languages_tags: ["en:english", "en:khmer", "fr:french"],
+                }),
+            ),
+        )
+
+        await screen.findByRole("heading", { name: "Dark Chocolate" })
+        await user.click(screen.getByRole("tab", { name: "Data & Raw" }))
+
+        const languages = screen.getByLabelText(
+            "Languages recorded on the label",
+        )
+        expect(languages).toHaveTextContent("en:english")
+        expect(languages).toHaveTextContent("en:khmer")
+        expect(languages).toHaveTextContent("fr:french")
     })
 
     test("shows only available Halal and Additive label highlights", async () => {
@@ -183,6 +233,49 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(screen.queryByText("Additives (E-Nums)")).not.toBeInTheDocument()
     })
 
+    test("shows a selected concern match in the Allergen Assessment", async () => {
+        localStorage.setItem(
+            "lifegoods_selected_concerns",
+            JSON.stringify(["dairy"]),
+        )
+
+        renderProduct(
+            vi.fn<ProductLookup>().mockResolvedValue(
+                productResponse({
+                    ingredients_text_en: "Milk, sugar, cocoa",
+                    allergens_tags: ["en:milk"],
+                }),
+            ),
+        )
+
+        await screen.findByRole("heading", { name: "Dark Chocolate" })
+
+        const user = userEvent.setup()
+        await user.click(screen.getByRole("tab", { name: "Ingredients" }))
+
+        const ingredients = screen.getByRole("table")
+        expect(within(ingredients).getByText("Milk")).toBeVisible()
+        expect(
+            within(ingredients).queryByText("Milk / Dairy"),
+        ).not.toBeInTheDocument()
+        expect(
+            within(ingredients).queryByLabelText(/^Allergen:/),
+        ).not.toBeInTheDocument()
+
+        expect(
+            screen.getByRole("status", { name: "Selected concern matches" }),
+        ).toHaveTextContent('Dairy: "milk"')
+        expect(screen.getByText("Declared Allergens:")).toBeVisible()
+        expect(
+            screen.queryByText("Allergen Findings", { exact: true }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.getByText(
+                /This is a Source Record match, not a safety or allergen-free conclusion/i,
+            ),
+        ).toBeVisible()
+    })
+
     test("omits the Halal highlight when only additives are listed", async () => {
         renderProduct(
             vi
@@ -202,7 +295,7 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(within(highlights).queryByText("Halal")).not.toBeInTheDocument()
     })
 
-    test("uses English ingredient data by default without showing a language switcher", async () => {
+    test("uses English ingredient data by default and switches languages", async () => {
         const user = userEvent.setup()
         renderProduct(
             vi.fn<ProductLookup>().mockResolvedValue(
@@ -222,16 +315,25 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(screen.getByText("Ingredients List")).toBeVisible()
         expect(screen.getByText("Cocoa mass")).toBeVisible()
         expect(screen.getByText("cocoa butter")).toBeVisible()
-        expect(screen.getByRole("list", { name: "Ingredients" })).toBeVisible()
-        expect(screen.getAllByRole("listitem")).toHaveLength(3)
+        const ingredientsTable = screen.getByRole("table")
+        expect(ingredientsTable).toBeVisible()
+        expect(within(ingredientsTable).getAllByRole("row")).toHaveLength(4)
+        expect(
+            within(ingredientsTable).queryByText(/^#\d+$/),
+        ).not.toBeInTheDocument()
 
-        expect(
-            screen.queryByRole("button", { name: "English" }),
-        ).not.toBeInTheDocument()
-        expect(
-            screen.queryByRole("button", { name: "Khmer" }),
-        ).not.toBeInTheDocument()
-        expect(screen.queryByText("ស្ករ កាកាវ")).not.toBeInTheDocument()
+        const languageSelect = screen.getByRole("combobox", {
+            name: "Ingredient language",
+        })
+        expect(languageSelect).toHaveValue("en")
+        expect(within(languageSelect).getByText("English")).toBeInTheDocument()
+        expect(within(languageSelect).getByText("Khmer")).toBeInTheDocument()
+
+        await user.selectOptions(languageSelect, "km")
+
+        expect(languageSelect).toHaveValue("km")
+        expect(screen.getByText("ស្ករ កាកាវ")).toBeVisible()
+        expect(screen.queryByText("Cocoa mass")).not.toBeInTheDocument()
 
         expect(
             screen.queryByRole("button", { name: "Structured Breakdown" }),
@@ -356,6 +458,18 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(originRow).not.toBeNull()
         expect(
             within(originRow as HTMLElement).getByText(
+                "Source Data Unavailable",
+                {
+                    exact: true,
+                },
+            ),
+        ).toBeVisible()
+        const quantityRow = screen.getByText("Quantity", {
+            exact: true,
+        }).parentElement
+        expect(quantityRow).not.toBeNull()
+        expect(
+            within(quantityRow as HTMLElement).getByText(
                 "Source Data Unavailable",
                 {
                     exact: true,

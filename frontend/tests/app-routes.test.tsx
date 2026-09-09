@@ -29,7 +29,7 @@ describe("Life Goods routes", () => {
             screen.getByRole("heading", { level: 1, name: "Scan a Barcode" }),
         ).toBeInTheDocument()
         expect(
-            screen.getByRole("heading", { name: "Your camera stays private" }),
+            screen.getByRole("heading", { name: "Private camera scanning" }),
         ).toBeVisible()
         const navigation = screen.getByRole("navigation", {
             name: "Primary navigation",
@@ -111,7 +111,9 @@ describe("Life Goods routes", () => {
         renderRoute("/")
         const searchLink = screen.getByRole("link", { name: "Search" })
         await user.click(searchLink)
-        expect(screen.getByRole("textbox", { name: "Search" })).not.toHaveFocus()
+        expect(
+            screen.getByRole("textbox", { name: "Search" }),
+        ).not.toHaveFocus()
     })
 
     test("clicking Learn in the bottom navigation opens the guide grid", async () => {

@@ -10,9 +10,16 @@ from lifegoods.open_food_facts import (
     ExternalPackageSearchUnavailableError,
     OpenFoodFactsDatasetSource,
 )
+from lifegoods.open_food_facts.dataset import PACKAGE_SEARCH_TEXT_FIELDS
 
 VERSION_ID = "dataset-search"
 COLLECTION_NAME = "off_products_dataset_search"
+
+
+def test_search_text_index_covers_product_name_brand_and_country() -> None:
+    indexed_fields = {field for field, _kind in PACKAGE_SEARCH_TEXT_FIELDS}
+
+    assert {"product_name", "brands", "countries_tags", "manufacturing_places"} <= indexed_fields
 
 
 class Cursor:

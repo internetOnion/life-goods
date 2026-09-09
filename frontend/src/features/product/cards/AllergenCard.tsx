@@ -5,7 +5,7 @@ import {
     ChevronUp,
     ShieldAlert,
 } from "lucide-react"
-import React, { useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,11 @@ import type {
     AllergenAssessmentResponse,
     PackageMatchEvidenceResponse,
 } from "@/features/product/types"
+import {
+    findSelectedConcernMatches,
+    loadSelectedConcernIds,
+    SELECTED_CONCERNS_STORAGE_KEY,
+} from "@/features/concerns/matching"
 
 interface AllergenCardProps {
     assessment?: AllergenAssessmentResponse | null
@@ -25,6 +30,22 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
     labelEvidence,
 }) => {
     const [showAllConcepts, setShowAllConcepts] = useState(false)
+    const [selectedConcernIds, setSelectedConcernIds] = useState(
+        loadSelectedConcernIds,
+    )
+
+    useEffect(() => {
+        const handleStorage = (event: StorageEvent) => {
+            if (
+                event.key === SELECTED_CONCERNS_STORAGE_KEY ||
+                event.key === null
+            ) {
+                setSelectedConcernIds(loadSelectedConcernIds())
+            }
+        }
+        window.addEventListener("storage", handleStorage)
+        return () => window.removeEventListener("storage", handleStorage)
+    }, [])
 
     // Also look for direct Open Food Facts allergen tags if rule assessment was unassessed
     const allergenTagsItem = labelEvidence?.find(
@@ -39,7 +60,9 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
           )
         : []
 
-    const tracesTagsItem = labelEvidence?.find((e) => e.field === "trace_tags")
+    const tracesTagsItem = labelEvidence?.find(
+        (e) => e.field === "trace_tag" || e.field === "trace_tags",
+    )
     const rawTracesTags = Array.isArray(tracesTagsItem?.value)
         ? (tracesTagsItem.value as string[]).map((t) =>
               t
@@ -62,6 +85,21 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
     const negativeConcepts = concepts.filter(
         (c) => c.outcome === "NO_DECLARATION_DETECTED_IN_READABLE_LABEL",
     )
+    const selectedConcernMatches = useMemo(
+        () =>
+            findSelectedConcernMatches(
+                selectedConcernIds,
+                assessment,
+                labelEvidence,
+            ),
+        [assessment, labelEvidence, selectedConcernIds],
+    )
+    const assessmentConcernMatches = selectedConcernMatches.filter(
+        (match) => match.source === "assessment finding",
+    )
+    const sourceRecordConcernMatches = selectedConcernMatches.filter(
+        (match) => match.source !== "assessment finding",
+    )
 
     return (
         <Card className="border-neutral-200/90 bg-white shadow-xs">
@@ -77,9 +115,54 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
             </CardHeader>
 
             <CardContent className="space-y-4 p-4 pt-0 sm:p-5 sm:pt-0">
+                {sourceRecordConcernMatches.length > 0 && (
+                    <div
+                        className="border-primary-200 bg-primary-50/70 space-y-2 rounded-2xl border p-3"
+                        role="status"
+                        aria-label="Selected concern matches"
+                    >
+                        <div className="text-primary-950 flex items-center gap-2 text-xs font-bold sm:text-sm">
+                            <AlertTriangle className="text-primary-700 h-4 w-4 shrink-0" />
+                            <span>
+                                Your selected concern
+                                {sourceRecordConcernMatches.length > 1
+                                    ? "s"
+                                    : ""}{" "}
+                                match this Product evidence:
+                            </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 pl-6">
+                            {sourceRecordConcernMatches.map((match) => (
+                                <Badge
+                                    key={match.concernId}
+                                    variant="outline"
+                                    className="border-primary-300 text-primary-950 bg-white px-2 py-0.5 text-xs font-bold"
+                                >
+                                    {match.concernLabel}: "{match.matchedText}"
+                                </Badge>
+                            ))}
+                        </div>
+                        <p className="text-caption text-primary-900 pl-6">
+                            Based on{" "}
+                            {sourceRecordConcernMatches
+                                .map((match) => match.source)
+                                .filter(
+                                    (source, index, sources) =>
+                                        sources.indexOf(source) === index,
+                                )
+                                .join(" and ")}
+                            . This is a Source Record match, not a safety or
+                            allergen-free conclusion.
+                        </p>
+                    </div>
+                )}
+
                 {/* Findings Alert Box */}
                 {findings.length > 0 ? (
-                    <div className="border-warning-200 bg-warning-50/70 space-y-2 rounded-2xl border p-3">
+                    <div
+                        aria-label="Allergen findings"
+                        className="border-warning-200 bg-warning-50/70 space-y-2 rounded-2xl border p-3"
+                    >
                         <div className="text-warning-900 flex items-center gap-2 text-xs font-bold sm:text-sm">
                             <AlertTriangle className="text-warning-600 h-4 w-4 shrink-0" />
                             <span>
@@ -99,6 +182,29 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                 </Badge>
                             ))}
                         </div>
+                        {assessmentConcernMatches.length > 0 && (
+                            <div className="border-warning-200/70 space-y-2 border-t pt-2 pl-6">
+                                <p className="text-caption text-warning-900 font-bold">
+                                    Your selected concern
+                                    {assessmentConcernMatches.length > 1
+                                        ? "s"
+                                        : ""}{" "}
+                                    found in the assessment:
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {assessmentConcernMatches.map((match) => (
+                                        <Badge
+                                            key={match.concernId}
+                                            variant="warning"
+                                            className="text-warning-950 py-0.2 bg-white px-2 font-bold"
+                                        >
+                                            {match.concernLabel}: "
+                                            {match.matchedText}"
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 ) : positiveConcepts.length === 0 &&
                   rawAllergenTags.length === 0 ? (

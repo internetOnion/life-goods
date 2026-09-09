@@ -31,24 +31,18 @@ export const Header: React.FC<HeaderProps> = ({
                         </Button>
                     )}
 
-                    <div
-                        onClick={showBackButton ? onBack : undefined}
-                        className={`flex items-center ${showBackButton ? "group cursor-pointer" : ""}`}
-                        role={showBackButton ? "button" : undefined}
-                        tabIndex={showBackButton ? 0 : undefined}
-                        onKeyDown={
-                            showBackButton
-                                ? (e) => {
-                                      if (e.key === "Enter" || e.key === " ") {
-                                          e.preventDefault()
-                                          onBack?.()
-                                      }
-                                  }
-                                : undefined
-                        }
-                    >
+                    {showBackButton ? (
+                        <Button
+                            variant="ghost"
+                            onClick={onBack}
+                            className="h-11 w-auto px-1 hover:bg-transparent"
+                            aria-label="Back to scanner"
+                        >
+                            <BrandLockup compact />
+                        </Button>
+                    ) : (
                         <BrandLockup compact />
-                    </div>
+                    )}
                 </div>
 
                 {showBackButton && identifier && (

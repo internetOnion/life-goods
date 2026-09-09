@@ -115,8 +115,8 @@
     --text-4xl: 2.25rem;
     --text-5xl: 3rem;
     --text-display-product: clamp(1.75rem, 6vw, 2.5rem);
-    --text-display: clamp(2rem, 7vw, 3.15rem);
-    --text-display-learn: clamp(2.1rem, 7vw, 3.35rem);
+    --text-display: clamp(1.75rem, 6vw, 2.5rem);
+    --text-display-learn: clamp(1.75rem, 6vw, 2.5rem);
     --text-display-splash: clamp(2rem, 9vw, 4.75rem);
 
     --shadow-source-sheet: 0 14px 38px -28px rgba(19, 21, 25, 0.55);
