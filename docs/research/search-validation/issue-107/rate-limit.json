@@ -1,0 +1,312 @@
+{
+  "limit": 60,
+  "redis_database": 15,
+  "rows": [
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 422,
+      "code": "invalid_query",
+      "retry_after": null
+    },
+    {
+      "status": 429,
+      "code": "rate_limit_exceeded",
+      "retry_after": "60"
+    }
+  ],
+  "passed": true
+}
