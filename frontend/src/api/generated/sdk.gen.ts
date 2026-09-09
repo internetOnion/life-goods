@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetExperimentalProductData, GetExperimentalProductErrors, GetExperimentalProductResponses, GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetProductData, GetProductErrors, GetProductResponses } from './types.gen';
+import type { GetExperimentalProductData, GetExperimentalProductErrors, GetExperimentalProductResponses, GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetProductData, GetProductErrors, GetProductResponses, SearchProductsData, SearchProductsErrors, SearchProductsResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -36,6 +36,17 @@ export const getExperimentalProduct = <ThrowOnError extends boolean = false>(opt
 export const getOpenFoodFactsImage = <ThrowOnError extends boolean = false>(options: Options<GetOpenFoodFactsImageData, ThrowOnError>) => {
     return (options.client ?? client).get<GetOpenFoodFactsImageResponses, GetOpenFoodFactsImageErrors, ThrowOnError>({
         url: '/api/v1/open-food-facts-images',
+        ...options
+    });
+};
+
+/**
+ * Search Products
+ * Searches Products in the selected local Open Food Facts Dataset Snapshot by Barcode, name, or brand. Earlier terms require complete tokens; the final term supports an unfinished prefix.
+ */
+export const searchProducts = <ThrowOnError extends boolean = false>(options: Options<SearchProductsData, ThrowOnError>) => {
+    return (options.client ?? client).get<SearchProductsResponses, SearchProductsErrors, ThrowOnError>({
+        url: '/api/v1/products/search',
         ...options
     });
 };

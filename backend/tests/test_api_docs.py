@@ -146,9 +146,86 @@ def test_stable_product_lookup_is_typed_in_openapi(client: TestClient) -> None:
     assert "TranslationMetaResponse" in schemas
 
 
+def test_product_search_is_typed_in_openapi(client: TestClient) -> None:
+    response = client.get("/openapi.json")
+    assert response.status_code == 200
+    specification = response.json()
+
+    operation = specification["paths"]["/api/v1/products/search"]["get"]
+    assert operation["operationId"] == "searchProducts"
+    assert operation.get("deprecated") is not True
+    assert operation["tags"] == ["Products"]
+
+    param_names = {p["name"]: p for p in operation["parameters"]}
+    assert "q" in param_names
+    assert param_names["q"]["required"] is True
+    assert param_names["q"]["in"] == "query"
+
+    assert "cursor" in param_names
+    assert param_names["cursor"]["required"] is False
+    assert param_names["cursor"]["in"] == "query"
+
+    assert "examples" in param_names["q"]
+    assert "final_word_prefix" in param_names["q"]["examples"]
+    assert param_names["q"]["examples"]["final_word_prefix"]["value"] == "coca col"
+
+    assert set(operation["responses"]) == {"200", "422", "429", "500", "503"}
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/ProductSearchResponse"
+    }
+    for status in ("422", "429", "500", "503"):
+        assert operation["responses"][status]["content"]["application/json"]["schema"] == {
+            "$ref": "#/components/schemas/ProductSearchErrorResponse"
+        }
+
+    schemas = specification["components"]["schemas"]
+    assert "ProductSearchResponse" in schemas
+    assert "ProductSearchDataResponse" in schemas
+    assert "ProductSummary" in schemas
+    assert "ProductSearchMetaResponse" in schemas
+    assert "SearchPaginationMetaResponse" in schemas
+    assert "ProductSearchErrorResponse" in schemas
+    assert schemas["ProductSearchErrorCode"]["enum"] == [
+        "invalid_query",
+        "invalid_barcode",
+        "invalid_cursor",
+        "search_unavailable",
+        "search_timeout",
+        "dataset_unavailable",
+        "rate_limit_exceeded",
+        "internal_error",
+    ]
+
+
 def test_product_lookup_errors_keep_security_headers(client: TestClient) -> None:
     response = client.get("/api/v1/products/invalid")
     assert response.status_code == 422
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.headers["Referrer-Policy"] == "no-referrer"
     assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_product_search_response_examples_validate(client: TestClient) -> None:
+    from lifegoods.product_search.contracts import ProductSearchErrorResponse, ProductSearchResponse
+    from lifegoods.product_search.query import decode_and_validate_cursor
+
+    operation = client.get("/openapi.json").json()["paths"]["/api/v1/products/search"]["get"]
+    required = {
+        "200": {"barcode", "text", "continuation", "no_results"},
+        "422": {"invalid_query", "invalid_barcode", "invalid_cursor"},
+        "429": {"rate_limit_exceeded"},
+        "500": {"internal_error"},
+        "503": {"search_unavailable", "search_timeout", "dataset_unavailable"},
+    }
+    for status, names in required.items():
+        examples = operation["responses"][status]["content"]["application/json"]["examples"]
+        assert set(examples) == names
+        model = ProductSearchResponse if status == "200" else ProductSearchErrorResponse
+        for example in examples.values():
+            model.model_validate(example["value"])
+    example = operation["responses"]["200"]["content"]["application/json"]["examples"][
+        "continuation"
+    ]
+    decode_and_validate_cursor(
+        example["value"]["meta"]["pagination"]["next_cursor"], expected_terms=("chocolate",)
+    )

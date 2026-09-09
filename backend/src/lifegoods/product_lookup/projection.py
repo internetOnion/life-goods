@@ -17,7 +17,9 @@ from lifegoods.product_lookup.contracts import (
     ProductIdentityProjection,
     ProductLookupMetaResponse,
     ProductProjection,
+    ProductSummary,
     SourceAssessmentsProjection,
+    SourceAttributionResponse,
     SourceImage,
     SourceRecordMetadataProjection,
     StorageInstructionItem,
@@ -414,10 +416,10 @@ def _selected_image(
     return None
 
 
-def _extract_front_image(
+def extract_front_image(
     record: dict[str, Any],
     barcode: str | None,
-    preferred_language: str | None,
+    preferred_language: str | None = None,
 ) -> SourceImage | None:
     selected_images = (
         record.get("selected_images") if _is_record(record.get("selected_images")) else None
@@ -468,6 +470,7 @@ def _extract_front_image(
             source_field=f"images.selected.front.{lang}.rev",
         )
     return None
+_extract_front_image = extract_front_image
 
 
 def _packaging_components(record: dict[str, Any]) -> list[PackagingComponent]:
@@ -781,6 +784,69 @@ def _extract_taxonomy_references(record: dict[str, Any]) -> TaxonomyReferencesPr
     )
 
 
+def extract_product_names(
+    record: dict[str, Any],
+    record_language: str | None = None,
+) -> list[OriginalText]:
+    resolved_record_language = (
+        record_language if record_language is not None else _source_language(record)
+    )
+    return _original_texts(record, "product_name", resolved_record_language)
+
+
+def extract_preferred_name(
+    record: dict[str, Any],
+    record_language: str | None = None,
+) -> OriginalText | None:
+    resolved_record_language = (
+        record_language if record_language is not None else _source_language(record)
+    )
+    names = _original_texts(record, "product_name", resolved_record_language)
+    if not names:
+        return None
+    if resolved_record_language:
+        for name in names:
+            if name.language == resolved_record_language:
+                return name
+    for name in names:
+        if name.language == "en":
+            return name
+    return names[0]
+
+
+def extract_brands(record: dict[str, Any]) -> list[str]:
+    return _list_values(record, "brands", "brands_tags")
+
+
+def extract_quantity(record: dict[str, Any]) -> str | None:
+    return _text_value(record.get("quantity"))
+
+
+def project_product_summary(
+    source_record: dict[str, Any] | None,
+    *,
+    barcode: str | None = None,
+) -> ProductSummary:
+    record = source_record or {}
+    record_language = _source_language(record)
+    resolved_barcode = (
+        barcode
+        if barcode is not None
+        else _text_value(record.get("code")) or ""
+    )
+    return ProductSummary(
+        barcode=resolved_barcode,
+        name=extract_preferred_name(record, record_language),
+        brands=extract_brands(record),
+        quantity=extract_quantity(record),
+        thumbnail=extract_front_image(record, resolved_barcode, record_language),
+        source=SourceAttributionResponse(
+            name="Open Food Facts",
+            product_url=f"https://world.openfoodfacts.org/product/{resolved_barcode}",
+        ),
+    )
+
+
 def project_source_record(
     source_record: dict[str, Any] | None,
     *,
@@ -796,21 +862,7 @@ def project_source_record(
     )
     names = _original_texts(record, "product_name", record_language)
     generic_names = _original_texts(record, "generic_name", record_language)
-
-    preferred_name: OriginalText | None = None
-    if names:
-        if record_language:
-            for name in names:
-                if name.language == record_language:
-                    preferred_name = name
-                    break
-        if preferred_name is None:
-            for name in names:
-                if name.language == "en":
-                    preferred_name = name
-                    break
-        if preferred_name is None:
-            preferred_name = names[0]
+    preferred_name = extract_preferred_name(record, record_language)
 
     packaging_texts = _merge_original_texts(
         _original_texts(record, "packaging", record_language),

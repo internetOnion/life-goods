@@ -31,6 +31,7 @@ from lifegoods.product_lookup.contracts import (
     ProductProjection,
     ProductProjectionData,
     ProductProjectionResponse,
+    ProductSummary,
     SourceAssessmentsProjection,
     SourceAttributionResponse,
     SourceImage,
@@ -53,7 +54,15 @@ from lifegoods.product_lookup.models import (
     RawProductLookupSource,
     SourceRecord,
 )
-from lifegoods.product_lookup.projection import project_source_record
+from lifegoods.product_lookup.projection import (
+    extract_brands,
+    extract_front_image,
+    extract_preferred_name,
+    extract_product_names,
+    extract_quantity,
+    project_product_summary,
+    project_source_record,
+)
 from lifegoods.product_lookup.rate_limit import (
     ProductLookupRateLimiter,
     RedisProductLookupRateLimiter,
@@ -104,6 +113,7 @@ __all__ = [
     "ProductProjection",
     "ProductProjectionData",
     "ProductProjectionResponse",
+    "ProductSummary",
     "RawProductLookupSource",
     "RedisProductLookupCache",
     "RedisProductLookupRateLimiter",
@@ -119,6 +129,11 @@ __all__ = [
     "TranslationMetaResponse",
     "TranslationOverallStatus",
     "apply_translation_to_product",
+    "extract_brands",
+    "extract_front_image",
+    "extract_preferred_name",
+    "extract_product_names",
+    "extract_quantity",
     "get_product_lookup",
     "get_product_lookup_metrics",
     "get_product_lookup_rate_limiter",
@@ -127,5 +142,6 @@ __all__ = [
     "normalize_barcode",
     "product_lookup_cache_key",
     "product_lookup_router",
+    "project_product_summary",
     "project_source_record",
 ]

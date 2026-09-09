@@ -738,3 +738,103 @@ Stable Product Lookup exposes exact Open Food Facts taxonomy references under `p
 The stable Product Lookup HTTP suite is the acceptance boundary for `language=kh`, rejection of application request `km`, recognized source-provided `km` metadata, Original Text, generated provenance, field and overall states, structured storage/packaging/category items, taxonomy references, and legacy fields. Deterministic fixtures cover complete, sparse, multilingual, mixed, unknown-language, source-Khmer, brand-only, long-input, missing-source, partial, and unavailable behavior.
 
 The benchmark described in section 14 measures the production translation path and records cold and cached results separately under `docs/research/translation-benchmark/issue-100/`. Real MongoDB/Redis integration checks remain separate from the zero-network suite and require dedicated disposable test connections. On 2026-09-08, the project owner waived live-provider execution as an issue-completion requirement because production retains the already-approved exact Gemini model. Consequently, no claims are made about measured live provider latency, completion, timeout, usage, or cost, and simulated measurements are not substituted. The live command remains available as an optional operator diagnostic. This scope decision does not alter the 12-second default.
+
+## 25. Product Search API, text matching, and paginated summaries (Issues #104, #105)
+
+The Product Search endpoint `GET /api/v1/products/search` provides Barcode search and complete-word text search across source Product names and brands over a single static Dataset Snapshot:
+
+1. **Request & Contract**:
+   - `GET /api/v1/products/search?q={query}&cursor={cursor}`
+   - Registered before the parameterized Product Lookup route (`GET /api/v1/products/{barcode}`).
+   - `q` is required and must contain between 2 and 200 characters and at most 10 normalized terms. Empty or punctuation-only input returns HTTP 422 with error code `invalid_query`. Term extraction normalizes text using NFKC casefolding while preserving Unicode combining marks (such as Khmer vowels and diacritics) attached to letters and numbers.
+   - `cursor` is an optional continuation token for paginated text searches. Cursors are opaque, URL-safe base64 tokens containing the sort position (`rank`, bounded `name_sort`, `code`) and an unsigned SHA-256 fingerprint of the normalized query terms. Tokens are canonical unpadded URL-safe base64, bounded to 4,096 characters, with strictly validated primitive fields and a 16-character lowercase hexadecimal query fingerprint.
+   - Malformed cursors, noncanonical base64, cursors issued for different query terms, or cursors supplied with Barcode searches return HTTP 422 with error code `invalid_cursor`.
+
+2. **Numeric Input & Barcode Classification**:
+   - Numeric inputs at supported Barcode lengths (8, 12, 13, 14) are validated using standard Barcode check-digit and normalization logic (stripping outer whitespace and internal spaces or hyphens, preserving leading zeros).
+   - Invalid Barcode-length numeric candidates return HTTP 422 with error code `invalid_barcode`.
+   - Shorter numeric inputs (e.g. "1664") or numeric inputs not matching supported Barcode lengths are classified as text rather than invalid Barcodes.
+
+3. **Barcode Retrieval & Product Summaries**:
+   - Valid Barcodes look up zero or one Product summary from the Dataset Snapshot independently of text index readiness.
+   - If the Product is absent from the Dataset Snapshot, HTTP 200 is returned with an empty products list (`data.products: []`).
+   - If the Product is found, HTTP 200 is returned with a single `ProductSummary` item.
+   - `ProductSummary` includes `barcode`, selected `name` (`OriginalText` provenance), `brands`, `quantity`, `thumbnail` (`SourceImage` provenance), and individual `Source Attribution` (`https://world.openfoodfacts.org/product/{barcode}`). It does not calculate full Product details or invoke `Khmer Translation`.
+   - Top-level `meta` provides `Source Attribution` for Open Food Facts (`https://world.openfoodfacts.org`), `Dataset Snapshot` metadata, and nullable `pagination.next_cursor` (`null` for Barcode queries).
+
+4. **Text Search Indexing & Readiness**:
+   - Search index lifecycle creates a schema version 1 compound index collection per active Dataset Snapshot.
+   - Indexes include `ix_search_name_tokens` (`name_tokens: 1`), `ix_search_brand_tokens` (`brand_tokens: 1`), and `ix_search_sort` (`name_sort: 1, code: 1`).
+   - Only records with valid Barcodes (`normalize_identifier`) are indexed; invalid `Source Records` increment `excluded_count`.
+   - Manifest metadata (`search_index`) tracks `status: "READY"`, `schema_version: 1`, `document_count`, and `excluded_count`.
+   - If the search index is missing, incompatible, or not ready, text searches return HTTP 503 with error code `search_unavailable`, while Barcode searches continue to operate without degradation.
+
+5. **Text Ranking & Localized Name Selection**:
+   - Earlier terms strictly require complete tokens; the final term supports an escaped, anchored prefix. Typo tolerance, substring-anywhere matching, fuzzy retrieval, and cross-language retrieval are not supported.
+   - Results are ranked across four strict tiers:
+     - Exact brand match (`rank: 0`): the normalized query matches an entry in `brand_values`.
+     - Exact name match (`rank: 1`): the normalized query matches an entry in `name_values`.
+     - Complete-word token match (`rank: 2`): all query terms are present as complete tokens across `name_tokens` and/or `brand_tokens`.
+     - Remaining prefix match (`rank: 3`): earlier query terms match complete tokens, and the final query term matches as an anchored prefix (`^term`) on a token in `name_tokens` or `brand_tokens`.
+   - Compound ordering strictly follows `{"rank": 1, "name_sort": 1, "code": 1}`.
+   - Localized name display selection (`select_matching_name`) prioritizes the source name candidate matching the highest count of query terms. When query-term match counts tie, complete-token matches are preferred over prefix matches. Subsequent ties are broken by `record_language` -> `"en"` -> first listed name. If zero name terms match (e.g. pure brand match), standard Product Lookup name preference applies.
+
+6. **Keyset Pagination & Timeout**:
+   - Page continuation uses keyset evaluation against the compound sort key across all ranking tiers (`rank: 0, 1, 2, 3`) without offset skipping:
+     `{"$or": [{"rank": {"$gt": r0}}, {"rank": r0, "name_sort": {"$gt": n0}}, {"rank": r0, "name_sort": n0, "code": {"$gt": c0}}]}`.
+   - Each page retrieves up to 20 products. Keyset queries fetch 21 records to generate `next_cursor` without secondary count queries.
+   - When no subsequent results remain, `pagination.next_cursor` is `null`.
+   - Text retrieval shares a two-second execution budget across ordered complete-match and remaining-prefix queries; each MongoDB command receives the remaining `maxTimeMS`. Complete matches rank tiers 0–2 together to avoid repeated candidate scans; the disjoint remaining-prefix query runs only when needed. Queries stop once 21 results have been found. One- or two-character final prefixes use a bounded 129-candidate probe: at most 128 candidates can be sorted as a complete set in memory; larger sets use the existing name/Barcode sort index with early termination. Longer prefixes retain indexed candidate retrieval. Budget exhaustion returns HTTP 503 `search_timeout`, never partial success.
+
+7. **Rate Limiting & Privacy**:
+   - Anonymous per-IP rate limiting operates independently under `LIFEGOODS_PRODUCT_SEARCH_REQUESTS_PER_MINUTE` (default 60), returning HTTP 429 `rate_limit_exceeded`.
+   - Search queries, Barcodes, and client IP addresses are redacted from access logs and omitted from operational metrics.
+
+
+## 26. Full-dataset Product Search validation (Issue #107)
+
+The activation and acceptance-evidence work in #107 is complete. This does not
+establish acceptance of parent #103. The full findings, frozen corpus, reproduction
+commands and raw measurements are retained under
+[search-validation/issue-107](research/search-validation/issue-107/FINDINGS.md).
+
+On 2026-09-09 (Asia/Phnom_Penh), the existing manual lifecycle command built the
+production schema-1 search index for Dataset Snapshot
+`9f6d5359fa944e458804c1b63e7365a7`, with status `READY`: 4,522,390 records indexed and
+188,319 excluded from 4,710,709 measured Source Records. Source Records and activation
+state were preserved.
+
+The separately frozen 100-case corpus was exercised through real HTTP and MongoDB,
+with a separate first pass and 1,000 requests each at concurrency one and five.
+Warmed concurrency-five p95 was 149.13 ms, below the unchanged 300 ms target, but
+43 server timeouts occurred across the 2,100 measured requests. Specific-Product
+hit-at-five was 89.29% against a 90% target; discovery displayed-summary matching
+was 92% against a 100% target. These failures remain recorded without revised
+labels or targets and do not establish Cambodian market coverage.
+
+At the issue #107 measurement, parent #103 remained open pending reliable
+short-prefix retrieval, resolution of the recorded relevance limitations, strict
+malformed-cursor rejection, and explicit Scalar response examples. Appending
+non-base64 `!!!!` to a valid cursor then returned 200 instead of the required 422.
+Section 27 records the subsequent fixes and remaining acceptance failures. The
+benchmark-only rate-limit settings did not change normal runtime limits. No
+frontend UI, Dataset Snapshot rotation, or Khmer Translation generation was added.
+
+
+## 27. Product Search review fixes (PR #108)
+
+PR #108 now rejects malformed/noncanonical cursors with HTTP 422, documents success,
+pagination, no-match and failure response examples in Scalar, and isolates real
+Product Search integration tests in `lifegoods_off_test`. Explicit reader/writer
+URIs are required; tests skip without them and reject application database targets.
+The schema-1 production index and ranking/display rules remain unchanged.
+
+The unchanged issue #107 corpus was rerun with separate evidence in
+[PR #108 findings](research/search-validation/pr-108/FINDINGS.md). All 2,100 requests
+succeeded without timeouts at commit `eeab921`; warmed concurrency-five p95 was 88.15 ms (target below
+300 ms). Specific-Product hit-at-five remains 89.29% (target 90%) and discovery
+matching is 99.5% (target 100%). These remain acceptance failures. Parent #103 stays
+open and PR #108 stays unmerged; issue #107 remains completed evidence work. The
+original issue #107 artifacts and the historical failure record above are retained.
+
+Earlier fix iterations recorded timeouts, including a run overlapping a full Source Record count. Those failed runs remain in the PR evidence; the final run used grouped complete-tier retrieval with no concurrent database workload. This is not a guarantee of cold-cache or contended-load performance.
