@@ -1,8 +1,11 @@
-import type { ProductLookupResponse } from "@/api/generated"
+import type { ProductProjectionResponse } from "@/api/generated"
+import type { ProductLookupResponse } from "./types"
 import staticProducts from "@/data/products.json"
 import { normalizeIdentifier } from "@/lib/identifier"
 
-export type ProductLookup = (barcode: string) => Promise<ProductLookupResponse>
+export type ProductLookup = (
+    barcode: string,
+) => Promise<ProductLookupResponse | ProductProjectionResponse>
 
 type StaticProduct = {
     meta: ProductLookupResponse["meta"]

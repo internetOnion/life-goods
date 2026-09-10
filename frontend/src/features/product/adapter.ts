@@ -1,6 +1,10 @@
 import { getIdentifierScheme, normalizeIdentifier } from "@/lib/identifier"
 
 import type {
+    ProductProjection,
+    ProductProjectionResponse,
+} from "@/api/generated"
+import type {
     ExternalDatasetVersionResponse,
     IdentifierScheme,
     IngredientsAnalysis,
@@ -238,14 +242,143 @@ export function extractReferenceImages(
     )
 }
 
+function rawFromProductProjection(
+    product: ProductProjection,
+): Record<string, unknown> {
+    const raw: Record<string, unknown> = {
+        code: product.identity.barcode,
+        product_name: product.identity.preferred_name?.value,
+        product_name_en: product.identity.preferred_name?.value,
+        brands: (product.identity.brands ?? []).join(", "),
+        quantity: product.identity.quantity,
+        lang: product.source.record_language,
+        categories_tags: (product.categories ?? []).map(
+            (c) => `en:${c.replace(/\s+/g, "-")}`,
+        ),
+        labels_tags: (product.labels ?? []).map(
+            (l) => `en:${l.replace(/\s+/g, "-")}`,
+        ),
+        countries_tags: (product.countries ?? []).map(
+            (c) => `en:${c.replace(/\s+/g, "-")}`,
+        ),
+        origins_tags: (product.environment?.origins ?? []).map(
+            (o) => `en:${o.replace(/\s+/g, "-")}`,
+        ),
+        manufacturing_places: (
+            product.environment?.manufacturing_places ?? []
+        ).join(", "),
+        creator: product.source.creator,
+        last_modified_datetime: product.source.last_modified_at,
+        completeness: product.source.completeness,
+        data_quality_warnings_tags: (
+            product.source.data_quality_warnings ?? []
+        ).map((w) => `en:${w.replace(/\s+/g, "-")}`),
+    }
+
+    if (product.front_image) {
+        raw.selected_images = {
+            front: {
+                display: {
+                    [product.front_image.language || "en"]:
+                        product.front_image.url,
+                },
+            },
+        }
+    }
+
+    const ingredients = product.ingredients ?? []
+    if (ingredients.length > 0) {
+        for (const ing of ingredients) {
+            if (ing.language) {
+                raw[`ingredients_text_${ing.language}`] = ing.value
+            }
+        }
+        raw.ingredients_text = ingredients[0]?.value
+        if (!raw.ingredients_text_en && ingredients[0]?.language === "en") {
+            raw.ingredients_text_en = ingredients[0].value
+        }
+    }
+
+    const names = product.identity.names ?? []
+    if (names.length > 0) {
+        for (const name of names) {
+            if (name.language) {
+                raw[`product_name_${name.language}`] = name.value
+            }
+        }
+    }
+
+    const packagingTexts = product.packaging?.texts ?? []
+    if (packagingTexts.length > 0) {
+        raw.packaging_text = packagingTexts[0]?.value
+        raw.packaging_text_en = packagingTexts[0]?.value
+    }
+
+    const components = product.packaging?.components ?? []
+    if (components.length > 0) {
+        raw.packagings = components.map((c) => ({
+            shape: c.shape ? `en:${c.shape}` : null,
+            material: c.material ? `en:${c.material}` : null,
+            recycling: c.recycling ? `en:${c.recycling}` : null,
+            quantity_per_unit: c.quantity_per_unit,
+            weight_measured: c.weight_measured,
+            number_of_units: c.number_of_units,
+        }))
+    }
+
+    const nutriments: Record<string, unknown> = {}
+    for (const row of product.nutrition?.rows ?? []) {
+        if (row.per_100g !== undefined && row.per_100g !== null) {
+            nutriments[`${row.nutrient}_100g`] = row.per_100g
+        }
+        if (row.per_serving !== undefined && row.per_serving !== null) {
+            nutriments[`${row.nutrient}_serving`] = row.per_serving
+        }
+        if (row.unit) {
+            nutriments[`${row.nutrient}_unit`] = row.unit
+        }
+    }
+    if (product.assessments?.nutri_score) {
+        raw.nutriscore_grade = product.assessments.nutri_score.grade
+        raw.nutriscore_score = product.assessments.nutri_score.score
+        raw.nutriscore_version = product.assessments.nutri_score.version
+        if (product.assessments.nutri_score.score !== undefined) {
+            nutriments["nutrition-score-fr_100g"] =
+                product.assessments.nutri_score.score
+        }
+    }
+    if (product.assessments?.nova) {
+        raw.nova_group = product.assessments.nova.group
+        nutriments["nova-group_100g"] = product.assessments.nova.group
+    }
+    if (product.assessments?.green_score) {
+        raw.ecoscore_grade = product.assessments.green_score.grade
+        raw.environmental_score_grade = product.assessments.green_score.grade
+        raw.ecoscore_score = product.assessments.green_score.score
+        raw.environmental_score_score = product.assessments.green_score.score
+        raw.environmental_score_version =
+            product.assessments.green_score.version
+    }
+    raw.nutriments = nutriments
+    raw.nutrition_data_per = product.nutrition?.basis
+    raw.serving_size = product.nutrition?.serving_size
+
+    return raw
+}
+
 /**
- * Adapts raw ProductLookupResponse into a normalized PackageMatchCandidateResponse
+ * Adapts raw ProductLookupResponse or ProductProjectionResponse into a normalized PackageMatchCandidateResponse
  */
 export function adaptProductLookup(
-    response: ProductLookupResponse,
+    response: ProductProjectionResponse | ProductLookupResponse,
 ): AdaptedProductResult {
     const { data, meta } = response
-    const raw = data.source_record || {}
+    const raw: Record<string, unknown> =
+        "product" in data && data.product
+            ? rawFromProductProjection(data.product)
+            : "source_record" in data
+              ? data.source_record || {}
+              : {}
     const rawBarcode =
         meta.lookup.barcode || (typeof raw.code === "string" ? raw.code : "")
     const normalizedIdentifier = normalizeIdentifier(rawBarcode)

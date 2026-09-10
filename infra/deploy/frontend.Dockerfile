@@ -7,7 +7,7 @@
 #   docker build -t lifegoods/frontend:prod \
 #     --build-arg VITE_MVP_DEMO_MODE=false \
 #     -f infra/deploy/frontend.Dockerfile .
-FROM node:22-alpine AS build
+FROM node:24-alpine AS build
 WORKDIR /src
 
 RUN corepack enable

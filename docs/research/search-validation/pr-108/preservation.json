@@ -1,0 +1,18 @@
+{
+  "tested_commit": "5710f4862b2723b33fb512376f41c6023ddcdc1a",
+  "active_pointer_matches_issue107": true,
+  "active_pointer": {
+    "_id": "active",
+    "previous_version_id": "9f6d5359fa944e458804c1b63e7365a7",
+    "active_version_id": "9f6d5359fa944e458804c1b63e7365a7",
+    "activated_at": "2026-08-27 14:31:24.960000"
+  },
+  "source_count": 4710709,
+  "source_count_matches_issue107": true,
+  "search_index_matches_issue107": true,
+  "source_access": "Read-only runtime identity; no source writes or index rebuild performed.",
+  "comparison_note": "Compare JSON-normalized timestamps; the initial in-memory comparison mixed datetime objects and stored JSON strings.",
+  "final_pointer_matches": true,
+  "final_search_index_matches": true,
+  "final_implementation_commit": "eeab921ec9456bbe86f5eff28741904ec5efb422"
+}

@@ -64,7 +64,7 @@ const SUPPORTING_ENTRIES = KNOWLEDGE_ENTRIES.filter(
 )
 
 function currentLocale(language: string | undefined): LearnLocale {
-    return language === "en" ? "en" : "km"
+    return language === "en" ? "en" : "kh"
 }
 
 function localized(value: LocalizedText | undefined, locale: LearnLocale) {
@@ -117,7 +117,7 @@ const foodScoreTableLabels = {
         level: "Level",
         meaning: "What it means",
     },
-    km: {
+    kh: {
         heading: "កម្រិតពិន្ទុ និងអត្ថន័យ",
         level: "កម្រិត",
         meaning: "អត្ថន័យ",
@@ -590,9 +590,9 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
     const matchedEntry = KNOWLEDGE_ENTRIES.find((item) => item.slug === slug)
     const entry =
         matchedEntry?.kind === "sourced" || demoMode ? matchedEntry : undefined
-    const contentLocale = entry && entry.title.km ? locale : "en"
+    const contentLocale = entry && entry.title.kh ? locale : "en"
     const hasLanguageFallback = Boolean(
-        entry && locale === "km" && !entry.title.km,
+        entry && locale === "kh" && !entry.title.kh,
     )
     usePageMetadata({
         title:

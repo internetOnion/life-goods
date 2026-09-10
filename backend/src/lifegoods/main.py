@@ -1,5 +1,4 @@
-from collections.abc import Iterator
-from typing import Any, cast
+from typing import Any
 
 import httpx2 as httpx
 import redis
@@ -9,59 +8,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from pymongo import MongoClient
 from scalar_fastapi import get_scalar_api_reference
-from sqlalchemy import create_engine
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session, sessionmaker
 
-from lifegoods.core.concurrency import KeyedSlidingWindowLimiter
 from lifegoods.core.errors import ErrorCode, ErrorDetail, ErrorEnvelope
+from lifegoods.core.security import SecurityHeadersMiddleware
 from lifegoods.core.settings import Settings
+from lifegoods.generated_data.budget import RedisTranslationBudgetLimiter
+from lifegoods.generated_data.cache import RedisTranslationHotCache
+from lifegoods.generated_data.coordinator import TranslationCoordinator
+from lifegoods.generated_data.repository import MongoGeneratedDataRepository
 from lifegoods.identifiers import InvalidIdentifierError
 from lifegoods.open_food_facts import (
     ExternalImageSource,
-    ExternalPackageSource,
-    OpenFoodFactsApiSource,
     OpenFoodFactsDatasetSource,
     OpenFoodFactsImageSource,
     get_image_source,
     open_food_facts_image_router,
 )
-from lifegoods.package_matches import (
-    AllergenAssessmentCache,
-    AllergenAssessmentEvaluator,
-    FindPackageMatches,
-    HalalIngredientAssessmentCache,
-    HalalIngredientAssessmentEvaluator,
-    MongoPackageSearch,
-    PackageMatchRateLimiter,
-    PackageMatchSourceUnavailableError,
-    PackageSearch,
-    RedisAllergenAssessmentCache,
-    RedisHalalIngredientAssessmentCache,
-    RedisPackageMatchRateLimiter,
-    SearchValidationError,
-    StandardAllergenAssessmentEvaluator,
-    StandardHalalIngredientAssessmentEvaluator,
-    get_finder,
-    get_rate_limiter,
-)
-from lifegoods.package_matches import (
-    get_search_rate_limiter as get_package_match_search_rate_limiter,
-)
-from lifegoods.package_matches import (
-    get_searcher as get_package_match_searcher,
-)
-from lifegoods.package_matches import (
-    router as package_matches_router,
-)
-from lifegoods.package_search import (
-    SearchPackages,
-    get_searcher,
-)
-from lifegoods.package_search import (
-    get_rate_limiter as get_package_search_rate_limiter,
-)
-from lifegoods.package_search import router as package_search_router
 from lifegoods.product_lookup import (
     LookupProduct,
     NoOpProductLookupMetrics,
@@ -75,13 +37,27 @@ from lifegoods.product_lookup import (
     get_product_lookup,
     get_product_lookup_metrics,
     get_product_lookup_rate_limiter,
+    get_translation_coordinator,
     install_product_lookup_access_log_filter,
     product_lookup_router,
 )
-from lifegoods.reference_datasets import (
-    DatabaseAllergenReferenceDataAccess,
-    DatabaseHalalReferenceDataAccess,
+from lifegoods.product_search import (
+    NoOpProductSearchMetrics,
+    ProductSearchMetrics,
+    ProductSearchRateLimiter,
+    RedisProductSearchRateLimiter,
+    SearchProducts,
+    get_product_search,
+    get_product_search_metrics,
+    get_product_search_rate_limiter,
+    product_search_router,
 )
+from lifegoods.translation.gemini import GeminiTranslationAdapter
+from lifegoods.translation.module import (
+    PRODUCTION_MODEL,
+    KhmerTranslationModule,
+)
+from lifegoods.translation.provider import TranslationProvider
 
 ERROR_MESSAGES: dict[ErrorCode, str] = {
     ErrorCode.IDENTIFIER_REQUIRED: "An identifier is required.",
@@ -98,58 +74,30 @@ ERROR_MESSAGES: dict[ErrorCode, str] = {
 def create_app(
     *,
     settings: Settings | None = None,
-    session_factory: sessionmaker[Session] | None = None,
-    external_source: ExternalPackageSource | None = None,
     image_source: ExternalImageSource | None = None,
-    package_match_limiter: PackageMatchRateLimiter | None = None,
-    package_search_limiter: KeyedSlidingWindowLimiter | None = None,
-    allergen_evaluator: AllergenAssessmentEvaluator | None = None,
-    assessment_cache: AllergenAssessmentCache | None = None,
-    package_search: PackageSearch | None = None,
-    search_rate_limiter: PackageMatchRateLimiter | None = None,
-    halal_evaluator: HalalIngredientAssessmentEvaluator | None = None,
-    halal_assessment_cache: HalalIngredientAssessmentCache | None = None,
     product_lookup_source: RawProductLookupSource | None = None,
     product_lookup_cache: ProductLookupCache | None = None,
     product_lookup_limiter: ProductLookupRateLimiter | None = None,
     product_lookup_metrics: ProductLookupMetrics | None = None,
+    translation_coordinator: TranslationCoordinator | None = None,
+    product_search_service: SearchProducts | None = None,
+    product_search_limiter: ProductSearchRateLimiter | None = None,
+    product_search_metrics: ProductSearchMetrics | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings()
     install_product_lookup_access_log_filter()
-    if session_factory is None:
-        db_engine = create_engine(resolved_settings.database_url)
-        resolved_session_factory = sessionmaker(db_engine, expire_on_commit=False)
-    else:
-        resolved_session_factory = session_factory
 
     owned_http_clients: list[httpx.Client] = []
     owned_mongo_clients: list[MongoClient[dict[str, Any]]] = []
     owned_redis_clients: list[redis.Redis] = []
     shared_redis_client: redis.Redis | None = None
 
-    needs_shared_redis = False
-    if package_match_limiter is None and not isinstance(
-        assessment_cache, RedisAllergenAssessmentCache
-    ):
-        needs_shared_redis = True
-    if search_rate_limiter is None:
-        needs_shared_redis = True
-    if resolved_settings.assessment_cache_enabled:
-        if assessment_cache is None and not isinstance(
-            halal_assessment_cache, RedisHalalIngredientAssessmentCache
-        ):
-            needs_shared_redis = True
-        if halal_assessment_cache is None and not isinstance(
-            assessment_cache, RedisAllergenAssessmentCache
-        ):
-            needs_shared_redis = True
-    if product_lookup_limiter is None:
-        needs_shared_redis = True
-    if (
-        resolved_settings.product_lookup_cache_enabled
-        and product_lookup_cache is None
-    ):
-        needs_shared_redis = True
+    needs_shared_redis = (
+        product_lookup_limiter is None
+        or (resolved_settings.product_lookup_cache_enabled and product_lookup_cache is None)
+        or translation_coordinator is None
+        or product_search_limiter is None
+    )
 
     if needs_shared_redis:
         shared_redis_client = redis.Redis.from_url(
@@ -160,137 +108,18 @@ def create_app(
         )
         owned_redis_clients.append(shared_redis_client)
 
-    if package_match_limiter is not None:
-        resolved_package_match_limiter = package_match_limiter
+    if product_lookup_source is not None:
+        resolved_product_lookup_source = product_lookup_source
     else:
-        limiter_redis_client = cast(
-            redis.Redis,
-            assessment_cache._client
-            if isinstance(assessment_cache, RedisAllergenAssessmentCache)
-            else shared_redis_client,
-        )
-        assert limiter_redis_client is not None
-        resolved_package_match_limiter = RedisPackageMatchRateLimiter(
-            limiter_redis_client,
-            resolved_settings.package_match_requests_per_minute,
-            fallback_seconds=resolved_settings.package_match_rate_limit_fallback_seconds,
-            local_max_keys=resolved_settings.package_match_rate_limit_local_max_keys,
-        )
-    if search_rate_limiter is not None:
-        resolved_search_rate_limiter = search_rate_limiter
-    else:
-        assert shared_redis_client is not None
-        resolved_search_rate_limiter = RedisPackageMatchRateLimiter(
-            shared_redis_client,
-            resolved_settings.package_search_requests_per_minute,
-            fallback_seconds=resolved_settings.package_match_rate_limit_fallback_seconds,
-            local_max_keys=resolved_settings.package_match_rate_limit_local_max_keys,
-            key_prefix="package-matches:search-rate-limit",
-        )
-    resolved_reference_data = DatabaseAllergenReferenceDataAccess(
-        resolved_session_factory
-    )
-    if assessment_cache is not None:
-        resolved_cache: AllergenAssessmentCache | None = assessment_cache
-    elif isinstance(halal_assessment_cache, RedisHalalIngredientAssessmentCache):
-        resolved_cache = RedisAllergenAssessmentCache(
-            halal_assessment_cache._client,
-            ttl_seconds=resolved_settings.assessment_cache_ttl_seconds,
-        )
-    elif resolved_settings.assessment_cache_enabled:
-        assert shared_redis_client is not None
-        resolved_cache = RedisAllergenAssessmentCache(
-            shared_redis_client,
-            ttl_seconds=resolved_settings.assessment_cache_ttl_seconds,
-        )
-    else:
-        resolved_cache = None
-
-    resolved_allergen_evaluator = (
-        allergen_evaluator
-        or StandardAllergenAssessmentEvaluator(
-            enabled=resolved_settings.allergen_assessments_enabled,
-            engine_version=resolved_settings.assessment_engine_version,
-            reference_data=resolved_reference_data,
-            cache=resolved_cache,
-        )
-    )
-
-    resolved_halal_reference_data = DatabaseHalalReferenceDataAccess(
-        resolved_session_factory
-    )
-    if halal_assessment_cache is not None:
-        resolved_halal_cache: HalalIngredientAssessmentCache | None = (
-            halal_assessment_cache
-        )
-    elif isinstance(assessment_cache, RedisAllergenAssessmentCache):
-        resolved_halal_cache = RedisHalalIngredientAssessmentCache(
-            assessment_cache._client,
-            ttl_seconds=resolved_settings.assessment_cache_ttl_seconds,
-        )
-    elif resolved_settings.assessment_cache_enabled:
-        assert shared_redis_client is not None
-        resolved_halal_cache = RedisHalalIngredientAssessmentCache(
-            shared_redis_client,
-            ttl_seconds=resolved_settings.assessment_cache_ttl_seconds,
-        )
-    else:
-        resolved_halal_cache = None
-
-    resolved_halal_evaluator = (
-        halal_evaluator
-        or StandardHalalIngredientAssessmentEvaluator(
-            enabled=resolved_settings.halal_ingredient_assessments_enabled,
-            engine_version=(
-                resolved_settings.halal_ingredient_assessment_engine_version
-            ),
-            reference_data=resolved_halal_reference_data,
-            cache=resolved_halal_cache,
-        )
-    )
-    resolved_package_search_limiter = (
-        package_search_limiter
-        or KeyedSlidingWindowLimiter(resolved_settings.package_search_requests_per_minute)
-    )
-    needs_dataset_source = external_source is None or (
-        product_lookup_source is None
-        and not isinstance(external_source, OpenFoodFactsDatasetSource)
-    )
-    dataset_source: OpenFoodFactsDatasetSource | None = None
-    if needs_dataset_source:
         mongo_client: MongoClient[dict[str, Any]] = MongoClient(
             resolved_settings.off_mongodb_uri,
             serverSelectionTimeoutMS=resolved_settings.off_mongodb_timeout_ms,
         )
         owned_mongo_clients.append(mongo_client)
-        dataset_source = OpenFoodFactsDatasetSource(
+        resolved_product_lookup_source = OpenFoodFactsDatasetSource(
             mongo_client[resolved_settings.off_mongodb_database],
             image_base_url=resolved_settings.open_food_facts_image_base_url,
         )
-    if external_source is None:
-        assert dataset_source is not None
-        resolved_source: ExternalPackageSource = dataset_source
-    else:
-        resolved_source = external_source
-    if product_lookup_source is not None:
-        resolved_product_lookup_source = product_lookup_source
-    elif resolved_settings.product_lookup_source == "open_food_facts_api":
-        product_api_client = httpx.Client(
-            timeout=resolved_settings.open_food_facts_api_timeout_seconds,
-            follow_redirects=True,
-        )
-        owned_http_clients.append(product_api_client)
-        resolved_product_lookup_source = OpenFoodFactsApiSource(
-            product_api_client,
-            base_url=resolved_settings.open_food_facts_api_base_url,
-            timeout_seconds=resolved_settings.open_food_facts_api_timeout_seconds,
-            user_agent=resolved_settings.open_food_facts_user_agent,
-        )
-    elif isinstance(resolved_source, OpenFoodFactsDatasetSource):
-        resolved_product_lookup_source = resolved_source
-    else:
-        assert dataset_source is not None
-        resolved_product_lookup_source = dataset_source
 
     if product_lookup_cache is not None:
         resolved_product_lookup_cache = product_lookup_cache
@@ -302,6 +131,7 @@ def create_app(
         )
     else:
         resolved_product_lookup_cache = NullProductLookupCache()
+
     if product_lookup_limiter is not None:
         resolved_product_lookup_limiter = product_lookup_limiter
     else:
@@ -310,14 +140,22 @@ def create_app(
             shared_redis_client,
             resolved_settings.product_lookup_requests_per_minute,
         )
-    resolved_product_lookup_metrics = (
-        product_lookup_metrics or NoOpProductLookupMetrics()
+
+    if product_search_limiter is not None:
+        resolved_product_search_limiter = product_search_limiter
+    else:
+        assert shared_redis_client is not None
+        resolved_product_search_limiter = RedisProductSearchRateLimiter(
+            shared_redis_client,
+            resolved_settings.product_search_requests_per_minute,
+        )
+
+    resolved_product_search_metrics = (
+        product_search_metrics or NoOpProductSearchMetrics()
     )
-    resolved_package_search = package_search
-    if resolved_package_search is None and isinstance(
-        resolved_source, OpenFoodFactsDatasetSource
-    ):
-        resolved_package_search = MongoPackageSearch(resolved_source)
+
+    resolved_product_lookup_metrics = product_lookup_metrics or NoOpProductLookupMetrics()
+
     if image_source is None:
         image_http_client = httpx.Client()
         owned_http_clients.append(image_http_client)
@@ -330,17 +168,18 @@ def create_app(
         )
     else:
         resolved_image_source = image_source
-    app = FastAPI(title="LifeGoods API", version="0.1.0")
+
+    app = FastAPI(title="Life Goods API", version="0.1.0")
+    app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(resolved_settings.allowed_origins),
         allow_methods=["GET"],
         allow_headers=["*"],
     )
-    app.include_router(package_matches_router)
-    app.include_router(package_search_router)
-    app.include_router(open_food_facts_image_router)
+    app.include_router(product_search_router)
     app.include_router(product_lookup_router)
+    app.include_router(open_food_facts_image_router)
 
     @app.get("/scalar", include_in_schema=False)
     async def scalar_html() -> HTMLResponse:
@@ -349,96 +188,84 @@ def create_app(
             title=f"{app.title} - Scalar Reference",
         )
 
-    for owned_http_client in owned_http_clients:
-        app.router.add_event_handler("shutdown", owned_http_client.close)
-    for owned_mongo_client in owned_mongo_clients:
-        app.router.add_event_handler("shutdown", owned_mongo_client.close)
-    for owned_redis_client in owned_redis_clients:
-        app.router.add_event_handler("shutdown", owned_redis_client.close)
-
-    def provide_finder() -> Iterator[FindPackageMatches]:
-        yield FindPackageMatches(
-            resolved_source,
-            allergen_evaluator=resolved_allergen_evaluator,
-            halal_evaluator=resolved_halal_evaluator,
+    if translation_coordinator is not None:
+        resolved_translation_coordinator = translation_coordinator
+    else:
+        assert shared_redis_client is not None
+        generated_mongo_client: MongoClient[dict[str, Any]] = MongoClient(
+            resolved_settings.generated_mongodb_uri,
+            serverSelectionTimeoutMS=resolved_settings.generated_mongodb_timeout_ms,
+        )
+        owned_mongo_clients.append(generated_mongo_client)
+        generated_repository = MongoGeneratedDataRepository(
+            generated_mongo_client[resolved_settings.generated_mongodb_database]
         )
 
-    def provide_searcher() -> Iterator[SearchPackages]:
-        yield SearchPackages(resolved_source)  # type: ignore[arg-type]
+        provider: TranslationProvider | None
+        if resolved_settings.gemini_api_key:
+            gemini_http_client = httpx.Client()
+            owned_http_clients.append(gemini_http_client)
+            provider = GeminiTranslationAdapter(
+                resolved_settings.gemini_api_key,
+                model=PRODUCTION_MODEL,
+                timeout_seconds=resolved_settings.gemini_translation_timeout_seconds,
+                http_client=gemini_http_client,
+            )
+        else:
+            provider = None
 
-    app.dependency_overrides[get_finder] = provide_finder
-    app.dependency_overrides[get_rate_limiter] = lambda: resolved_package_match_limiter
-    app.dependency_overrides[get_package_match_searcher] = lambda: resolved_package_search
-    app.dependency_overrides[get_package_match_search_rate_limiter] = (
-        lambda: resolved_search_rate_limiter
-    )
-    app.dependency_overrides[get_searcher] = provide_searcher
-    app.dependency_overrides[get_package_search_rate_limiter] = (
-        lambda: resolved_package_search_limiter
-    )
+        translation_module = KhmerTranslationModule(provider=provider)
+        translation_cache = RedisTranslationHotCache(
+            shared_redis_client,
+            ttl_seconds=resolved_settings.generated_translation_cache_ttl_seconds,
+        )
+        translation_budget = RedisTranslationBudgetLimiter(
+            shared_redis_client,
+            requests_per_minute=resolved_settings.generated_translation_budget_per_minute,
+        )
+        resolved_translation_coordinator = TranslationCoordinator(
+            module=translation_module,
+            deadline_seconds=resolved_settings.translation_deadline_seconds,
+            repository=generated_repository,
+            cache=translation_cache,
+            budget=translation_budget,
+            lease_ttl_seconds=resolved_settings.generated_translation_lease_ttl_seconds,
+            cooldown_seconds=resolved_settings.generated_translation_cooldown_seconds,
+            poll_interval_seconds=resolved_settings.generated_translation_poll_interval_seconds,
+        )
+
     app.dependency_overrides[get_image_source] = lambda: resolved_image_source
+    app.dependency_overrides[get_translation_coordinator] = lambda: resolved_translation_coordinator
     app.dependency_overrides[get_product_lookup] = lambda: LookupProduct(
         resolved_product_lookup_source,
         resolved_product_lookup_cache,
+        coordinator=resolved_translation_coordinator,
     )
-    app.dependency_overrides[get_product_lookup_rate_limiter] = (
-        lambda: resolved_product_lookup_limiter
+    app.dependency_overrides[get_product_lookup_rate_limiter] = lambda: (
+        resolved_product_lookup_limiter
     )
-    app.dependency_overrides[get_product_lookup_metrics] = (
-        lambda: resolved_product_lookup_metrics
+    app.dependency_overrides[get_product_lookup_metrics] = lambda: resolved_product_lookup_metrics
+    app.dependency_overrides[get_product_search] = lambda: (
+        product_search_service
+        if product_search_service is not None
+        else SearchProducts(resolved_product_lookup_source)
+    )
+    app.dependency_overrides[get_product_search_rate_limiter] = lambda: (
+        resolved_product_search_limiter
+    )
+    app.dependency_overrides[get_product_search_metrics] = lambda: (
+        resolved_product_search_metrics
     )
 
     @app.exception_handler(RequestValidationError)
     async def request_validation_handler(
-        request: Request, _error: RequestValidationError
+        _request: Request, _error: RequestValidationError
     ) -> JSONResponse:
-        if request.url.path == "/api/v1/open-food-facts-images":
-            envelope = ErrorEnvelope(
-                error=ErrorDetail(
-                    code=ErrorCode.REFERENCE_IMAGE_URL_INVALID,
-                    message="A valid reference image URL is required.",
-                )
-            )
-            return JSONResponse(status_code=422, content=envelope.model_dump())
-        if request.url.path == "/api/v1/package-matches/search":
-            has_missing_query = any(
-                item.get("loc", [None])[-1] == "q" and item.get("type") == "missing"
-                for item in _error.errors()
-            )
-            code = (
-                ErrorCode.SEARCH_QUERY_REQUIRED
-                if has_missing_query
-                else ErrorCode.SEARCH_QUERY_INVALID
-            )
-            message = (
-                "A search value is required."
-                if has_missing_query
-                else "The search value or paging values are invalid."
-            )
-            envelope = ErrorEnvelope(error=ErrorDetail(code=code, message=message))
-            return JSONResponse(status_code=422, content=envelope.model_dump())
-        if request.url.path == "/api/v1/package-search":
-            envelope = ErrorEnvelope(
-                error=ErrorDetail(
-                    code=ErrorCode.PACKAGE_SEARCH_QUERY_INVALID,
-                    message="Enter a search query from 2 to 80 characters.",
-                )
-            )
-            return JSONResponse(status_code=422, content=envelope.model_dump())
         envelope = ErrorEnvelope(
             error=ErrorDetail(
-                code=ErrorCode.IDENTIFIER_REQUIRED,
-                message=ERROR_MESSAGES[ErrorCode.IDENTIFIER_REQUIRED],
+                code=ErrorCode.REQUEST_BODY_INVALID,
+                message="The request is invalid.",
             )
-        )
-        return JSONResponse(status_code=422, content=envelope.model_dump())
-
-    @app.exception_handler(SearchValidationError)
-    async def search_validation_handler(
-        _request: Request, error: SearchValidationError
-    ) -> JSONResponse:
-        envelope = ErrorEnvelope(
-            error=ErrorDetail(code=ErrorCode.SEARCH_QUERY_INVALID, message=str(error))
         )
         return JSONResponse(status_code=422, content=envelope.model_dump())
 
@@ -454,29 +281,12 @@ def create_app(
         )
         return JSONResponse(status_code=422, content=envelope.model_dump())
 
-    @app.exception_handler(SQLAlchemyError)
-    async def database_unavailable_handler(
-        _request: Request, _error: SQLAlchemyError
-    ) -> JSONResponse:
-        envelope = ErrorEnvelope(
-            error=ErrorDetail(
-                code=ErrorCode.PACKAGE_MATCH_SOURCE_UNAVAILABLE,
-                message="Package Match lookup is temporarily unavailable.",
-            )
-        )
-        return JSONResponse(status_code=503, content=envelope.model_dump())
-
-    @app.exception_handler(PackageMatchSourceUnavailableError)
-    async def source_unavailable_handler(
-        _request: Request, _error: PackageMatchSourceUnavailableError
-    ) -> JSONResponse:
-        envelope = ErrorEnvelope(
-            error=ErrorDetail(
-                code=ErrorCode.PACKAGE_MATCH_SOURCE_UNAVAILABLE,
-                message="Package Match lookup is temporarily unavailable.",
-            )
-        )
-        return JSONResponse(status_code=503, content=envelope.model_dump())
+    for owned_http_client in owned_http_clients:
+        app.router.add_event_handler("shutdown", owned_http_client.close)
+    for owned_mongo_client in owned_mongo_clients:
+        app.router.add_event_handler("shutdown", owned_mongo_client.close)
+    for owned_redis_client in owned_redis_clients:
+        app.router.add_event_handler("shutdown", owned_redis_client.close)
 
     return app
 

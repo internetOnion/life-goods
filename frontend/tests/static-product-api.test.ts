@@ -1,8 +1,24 @@
-import { describe, expect, test } from "vitest"
+import { afterEach, describe, expect, test, vi } from "vitest"
 
 import { lookupProduct } from "../src/features/product/api"
 
+afterEach(() => vi.unstubAllGlobals())
+
 describe("static Product Lookup", () => {
+    test("uses the offline adapter without a network request", async () => {
+        const fetchMock = vi.fn(() => {
+            throw new Error("offline")
+        })
+        vi.stubGlobal("fetch", fetchMock)
+        const { adaptProductLookup } =
+            await import("../src/features/product/adapter")
+        const response = await lookupProduct("3017620422003")
+        const adapted = adaptProductLookup(response)
+        expect(adapted.offView.productName).toBe("Nutella")
+        expect(adapted.meta.source).toEqual(response.meta.source)
+        expect(adapted.meta.dataset).toEqual(response.meta.dataset)
+        expect(fetchMock).not.toHaveBeenCalled()
+    })
     test("returns the Nutella biscuit Source Record from frontend data", async () => {
         const response = await lookupProduct("800 050 031 0427")
 
