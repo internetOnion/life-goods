@@ -838,3 +838,108 @@ open and PR #108 stays unmerged; issue #107 remains completed evidence work. The
 original issue #107 artifacts and the historical failure record above are retained.
 
 Earlier fix iterations recorded timeouts, including a run overlapping a full Source Record count. Those failed runs remain in the PR evidence; the final run used grouped complete-tier retrieval with no concurrent database workload. This is not a guarantee of cold-cache or contended-load performance.
+
+## 28. Isolated package-photo comparison prototype (Issue #110)
+
+The #109 research sprint defines a temporary, local-only exception to the MVP
+boundary for comparing nutrition evidence from package photos. It is disabled by
+default and has no frontend route, public deployment, application-side image
+store, server-side session, or durable Product data. The exception does not alter
+Product Lookup, Product Search, Dataset Snapshot, Source Record, Source
+Attribution, or Khmer Translation semantics.
+
+Photo-derived text is evidence submitted for comparison. It is not an Open Food
+Facts Source Record and is not the glossary-defined Original Text. The contract
+retains literal text, original script, language (or `und`), printed units,
+qualifiers, image and region references, and optional normalized Decimal values
+separately. A missing number remains null; an explicit zero remains zero. Model
+claims, provider metadata, and image regions are evidence pointers and do not
+certify label authenticity or accuracy.
+
+Image identifiers are opaque ASCII identifiers containing only letters, digits,
+hyphens, and underscores; they never contain image bytes, local paths, or
+fetchable URLs. Image regions use normalized coordinates in the inclusive
+`[0, 1]` coordinate space of the referenced image. An extraction retains the
+image registry, optional Product identity observations, package quantity,
+nutrition columns, and each field's evidence pointers. Nutrition columns have
+unique IDs, a printed basis (including explicit `unknown`), preparation state,
+basis/preparation evidence, and fields with unique IDs. Readable package and
+serving quantities require evidence; unreadable or not-visible quantities retain
+null literal values and a field state.
+
+The contract has separate states for readable, unreadable, ambiguous,
+conflicting, and not-visible fields. Conflicting observations remain available
+to callers rather than being silently selected. Nutrition columns retain their
+per-package, per-serving, per-100-g, per-100-ml, or other printed basis and an
+explicit preparation state (`as_sold`, `as_prepared`, or `unknown`). Percentage
+and combined rows remain distinct from amount rows. Package and serving
+quantities require explicit positive normalized values and units when they are
+normalized.
+
+The experimental extraction and comparison surfaces are specified as:
+
+- `POST /api/experimental/photo-comparison/extractions`, accepting a bounded
+  multipart request with one or more repeated `photos` fields for one Product
+  and returning a validated extraction;
+- `POST /api/experimental/photo-comparison/comparisons`, accepting two
+  validated extraction objects in a JSON `{ "left": ..., "right": ... }`
+  request and returning comparison rows.
+
+Comparison inputs retain the complete field observation, column ID, printed
+basis, preparation state, package/serving quantities, and evidence for the
+reported basis and known preparation state. Derived values retain their output
+unit, target basis, and derivation inputs pointing to the reported field and
+any quantity used. Percentage and combined rows remain represented but cannot
+enter the individual amount comparison.
+
+The routes are not registered by Issue #110. Later integration must revalidate
+client-submitted extraction objects at the comparison boundary, because they
+cannot be certified as provider-produced. Comparison rows retain both reported
+inputs, optional normalized values, calculation basis, assumptions, evidence,
+and a state of comparable, conditional, or not-comparable. Unknown preparation
+states can support a reported side-by-side view and an explicitly conditional
+derivation, but cannot produce a definitive difference or winner. Missing,
+unreadable, conflicting, qualified, or incompatible values cannot produce a
+numeric difference. No comparison contract contains a health, safety, or
+purchase judgment.
+
+Experimental errors use the same JSON envelope for every failure:
+
+```json
+{
+  "error": {
+    "code": "provider_timeout",
+    "message": "The extraction provider timed out."
+  }
+}
+```
+
+The typed error codes map to request validation (`422`), size limits (`413`),
+unsupported image format (`415`), rate or capacity limits (`429`), invalid
+provider output (`502`), provider unavailable (`503`), provider timeout (`504`),
+and unexpected internal failure (`500`).
+
+Later HTTP and provider work must enforce bounded upload and response sizes,
+JPEG/PNG-only input, finite request/image/pixel/concurrency limits, temporary
+resource cleanup, and sanitized failure responses before making provider calls.
+Photos, package text, prompts, provider payloads, and response bodies stay out
+of ordinary logs, metrics, MongoDB, and translation artifacts. Provider-side
+retention is documented separately from application cleanup. The contract-only
+issue provides executable examples for a normal pair, missing weight, multiple
+columns, conflicting photos, and unknown preparation states; it does not claim
+that owner-checked seed transcriptions are reproducible image evidence.
+
+The integration defaults are one to six JPEG or PNG photos per Product, 10 MiB
+per photo, 32 MiB per request, 25 megapixels per decoded image, 1 MiB per
+extraction or comparison response, and 1 MiB for the comparison request JSON,
+at most eight nutrition columns, 100 fields per column, and 4,096 characters
+per literal text field. Admission checks must run before unbounded buffering or
+provider calls. The typed failure mapping is documented above. Partial and
+retake-required extractions remain successful domain responses with explicit
+outcomes and reasons.
+
+The later route integration is disabled by default, binds only to the local
+development loopback interface, and is absent from OpenAPI while disabled. It
+must release temporary image resources on success, rejection, exception, and
+cancellation. Application cleanup does not make a zero-retention promise for
+the provider; provider-side retention is documented separately.

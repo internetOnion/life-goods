@@ -27,6 +27,16 @@ def test_scalar_route_is_excluded_from_openapi(client: TestClient) -> None:
     assert "/scalar" not in openapi_spec.get("paths", {})
 
 
+def test_photo_comparison_routes_are_not_registered_by_contract_issue(
+    client: TestClient,
+) -> None:
+    paths = client.get("/openapi.json").json().get("paths", {})
+    assert "/api/experimental/photo-comparison/extractions" not in paths
+    assert "/api/experimental/photo-comparison/comparisons" not in paths
+    assert client.post("/api/experimental/photo-comparison/extractions").status_code == 404
+    assert client.post("/api/experimental/photo-comparison/comparisons").status_code == 404
+
+
 def test_obsolete_routes_and_schemas_are_absent_from_openapi(client: TestClient) -> None:
     response = client.get("/openapi.json")
     assert response.status_code == 200

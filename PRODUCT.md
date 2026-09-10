@@ -41,6 +41,12 @@ The primary workflow happens one-handed on a mobile phone in a shop. The Shopper
 - No Product contributions, corrections, moderation, verification, live Open Food Facts fallback, or automatic Dataset Snapshot updates
 - No health, safety, allergen-free, Halal, authenticity, legal, compliance, or purchase verdicts
 
+The experimental sprint may temporarily accept package photos for a local, opt-in
+research prototype when normal source data is unavailable or incomplete. This
+exception retains photo-derived evidence and uncertainty separately from Open
+Food Facts Source Records, does not create Product contributions or verification,
+and is not enabled for ordinary Shopper use or public deployment.
+
 Source Assessments such as Nutri-Score, NOVA, Green-Score, and nutrient-level classifications remain visibly attributed Open Food Facts calculations. Life Goods does not verify, recalculate, or adopt them as its own judgments. Source Data Unavailable is unknown, not evidence that a Product has or lacks a property.
 
 ## Brand Commitments

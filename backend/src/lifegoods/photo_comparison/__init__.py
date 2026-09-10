@@ -1,0 +1,62 @@
+"""Contracts for the opt-in package-photo comparison prototype.
+
+This package intentionally contains no FastAPI router, provider client, image
+storage, or persistence.  The contracts are shared by the later extraction,
+comparison, and HTTP issues.
+"""
+
+from lifegoods.photo_comparison.contracts import (
+    MAX_COMPARISON_REQUEST_BYTES,
+    MAX_PHOTOS_PER_PRODUCT,
+    ComparisonRequest,
+    ComparisonResponse,
+    ComparisonRow,
+    ComparisonState,
+    DerivationInput,
+    DerivationInputKind,
+    DerivedValue,
+    Extraction,
+    ExtractionOutcome,
+    FieldObservation,
+    FieldState,
+    ImageEvidence,
+    ImageRegion,
+    MeasurementUnit,
+    NutritionBasis,
+    NutritionColumn,
+    ObservationAlternative,
+    PhotoComparisonErrorCode,
+    PhotoComparisonErrorDetail,
+    PhotoComparisonErrorResponse,
+    PreparationState,
+    Quantity,
+    ReportedValue,
+)
+
+__all__ = [
+    "MAX_COMPARISON_REQUEST_BYTES",
+    "MAX_PHOTOS_PER_PRODUCT",
+    "ComparisonRequest",
+    "ComparisonResponse",
+    "ComparisonRow",
+    "ComparisonState",
+    "DerivedValue",
+    "DerivationInput",
+    "DerivationInputKind",
+    "Extraction",
+    "ExtractionOutcome",
+    "FieldObservation",
+    "FieldState",
+    "ImageEvidence",
+    "ImageRegion",
+    "MeasurementUnit",
+    "NutritionBasis",
+    "NutritionColumn",
+    "ObservationAlternative",
+    "PhotoComparisonErrorCode",
+    "PhotoComparisonErrorDetail",
+    "PhotoComparisonErrorResponse",
+    "PreparationState",
+    "Quantity",
+    "ReportedValue",
+]
