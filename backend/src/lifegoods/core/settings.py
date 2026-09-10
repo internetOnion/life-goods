@@ -25,6 +25,7 @@ DEFAULT_ASSESSMENT_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60
 DEFAULT_PRODUCT_LOOKUP_CACHE_ENABLED = True
 DEFAULT_PRODUCT_LOOKUP_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60
 DEFAULT_PRODUCT_LOOKUP_REQUESTS_PER_MINUTE = 60
+DEFAULT_INGREDIENT_MATCHING_PROTOTYPE_ENABLED = False
 
 
 class Settings(BaseSettings):
@@ -81,6 +82,9 @@ class Settings(BaseSettings):
     product_lookup_cache_enabled: bool = DEFAULT_PRODUCT_LOOKUP_CACHE_ENABLED
     product_lookup_cache_ttl_seconds: int = DEFAULT_PRODUCT_LOOKUP_CACHE_TTL_SECONDS
     product_lookup_requests_per_minute: int = DEFAULT_PRODUCT_LOOKUP_REQUESTS_PER_MINUTE
+    ingredient_matching_prototype_enabled: bool = (
+        DEFAULT_INGREDIENT_MATCHING_PROTOTYPE_ENABLED
+    )
     # Retained only for configuration compatibility; MVP-1 never consults it.
     project_catalog_enabled: bool = False
 

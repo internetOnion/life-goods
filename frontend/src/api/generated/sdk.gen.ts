@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetExperimentalProductData, GetExperimentalProductErrors, GetExperimentalProductResponses, GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetPackageMatchesData, GetPackageMatchesErrors, GetPackageMatchesResponses, SearchPackageMatchesData, SearchPackageMatchesErrors, SearchPackageMatchesResponses, SearchPackagesData, SearchPackagesErrors, SearchPackagesResponses } from './types.gen';
+import type { GetExperimentalProductData, GetExperimentalProductErrors, GetExperimentalProductResponses, GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetPackageMatchesData, GetPackageMatchesErrors, GetPackageMatchesResponses, MatchExperimentalIngredientsData, MatchExperimentalIngredientsErrors, MatchExperimentalIngredientsResponses, SearchPackageMatchesData, SearchPackageMatchesErrors, SearchPackageMatchesResponses, SearchPackagesData, SearchPackagesErrors, SearchPackagesResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -16,6 +16,21 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
      * used to access values that aren't defined as part of the SDK function.
      */
     meta?: Record<string, unknown>;
+};
+
+/**
+ * Match experimental ingredient taxonomy entries
+ * Matches English ingredient text against a disposable Open Food Facts taxonomy projection. This experimental contract is unstable and does not infer allergens.
+ */
+export const matchExperimentalIngredients = <ThrowOnError extends boolean = false>(options: Options<MatchExperimentalIngredientsData, ThrowOnError>) => {
+    return (options.client ?? client).post<MatchExperimentalIngredientsResponses, MatchExperimentalIngredientsErrors, ThrowOnError>({
+        url: '/api/experimental/ingredient-matches',
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
+    });
 };
 
 /**

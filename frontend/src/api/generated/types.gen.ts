@@ -251,6 +251,16 @@ export type ExternalDatasetVersionResponse = {
 };
 
 /**
+ * HTTPValidationError
+ */
+export type HttpValidationError = {
+    /**
+     * Detail
+     */
+    detail?: Array<ValidationError>;
+};
+
+/**
  * HalalClassification
  */
 export type HalalClassification = 'EXPLICIT_PROHIBITED' | 'SOURCE_AMBIGUOUS';
@@ -400,6 +410,103 @@ export type HalalSourceCitationResponse = {
  * IdentifierScheme
  */
 export type IdentifierScheme = 'GTIN_8' | 'UPC_A' | 'EAN_13' | 'GTIN_14';
+
+/**
+ * IngredientMatchDataResponse
+ */
+export type IngredientMatchDataResponse = {
+    /**
+     * Ingredient Tags
+     */
+    ingredient_tags: Array<string>;
+    /**
+     * Matches
+     */
+    matches: Array<IngredientMatchDetailResponse>;
+};
+
+/**
+ * IngredientMatchDetailResponse
+ */
+export type IngredientMatchDetailResponse = {
+    /**
+     * Alias
+     */
+    alias: string;
+    /**
+     * Ambiguous
+     */
+    ambiguous: boolean;
+    /**
+     * End
+     */
+    end: number;
+    /**
+     * Matched Text
+     */
+    matched_text: string;
+    /**
+     * Name
+     */
+    name: string | null;
+    /**
+     * Parents
+     */
+    parents: Array<string>;
+    /**
+     * Start
+     */
+    start: number;
+    /**
+     * Tags
+     */
+    tags: Array<string>;
+};
+
+/**
+ * IngredientMatchErrorResponse
+ */
+export type IngredientMatchErrorResponse = {
+    /**
+     * Error
+     */
+    error: {
+        [key: string]: string;
+    };
+};
+
+/**
+ * IngredientMatchRequest
+ */
+export type IngredientMatchRequest = {
+    /**
+     * Ingredient Text
+     * English ingredient text to match against the prototype taxonomy.
+     */
+    ingredient_text: string;
+};
+
+/**
+ * IngredientMatchResponse
+ */
+export type IngredientMatchResponse = {
+    data: IngredientMatchDataResponse;
+    source: IngredientMatchSourceResponse;
+};
+
+/**
+ * IngredientMatchSourceResponse
+ */
+export type IngredientMatchSourceResponse = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Taxonomy Sha256
+     */
+    taxonomy_sha256: string;
+};
 
 export type JsonValue = boolean | number | number | string | Array<JsonValue> | {
     [key: string]: JsonValue;
@@ -785,6 +892,34 @@ export type SourceAttributionResponse = {
 };
 
 /**
+ * ValidationError
+ */
+export type ValidationError = {
+    /**
+     * Context
+     */
+    ctx?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Input
+     */
+    input?: unknown;
+    /**
+     * Location
+     */
+    loc: Array<string | number>;
+    /**
+     * Message
+     */
+    msg: string;
+    /**
+     * Error Type
+     */
+    type: string;
+};
+
+/**
  * PackageSearchResponse
  */
 export type LifegoodsPackageMatchesContractsPackageSearchResponse = {
@@ -929,6 +1064,35 @@ export type LifegoodsPackageSearchContractsPackageSearchResultResponse = {
      */
     source_kind?: 'OPEN_FOOD_FACTS';
 };
+
+export type MatchExperimentalIngredientsData = {
+    body: IngredientMatchRequest;
+    path?: never;
+    query?: never;
+    url: '/api/experimental/ingredient-matches';
+};
+
+export type MatchExperimentalIngredientsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * Service Unavailable
+     */
+    503: IngredientMatchErrorResponse;
+};
+
+export type MatchExperimentalIngredientsError = MatchExperimentalIngredientsErrors[keyof MatchExperimentalIngredientsErrors];
+
+export type MatchExperimentalIngredientsResponses = {
+    /**
+     * Successful Response
+     */
+    200: IngredientMatchResponse;
+};
+
+export type MatchExperimentalIngredientsResponse = MatchExperimentalIngredientsResponses[keyof MatchExperimentalIngredientsResponses];
 
 export type GetExperimentalProductData = {
     body?: never;

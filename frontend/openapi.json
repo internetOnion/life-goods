@@ -457,6 +457,19 @@
         "title": "ExternalDatasetVersionResponse",
         "type": "object"
       },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
       "HalalClassification": {
         "enum": [
           "EXPLICIT_PROHIBITED",
@@ -770,6 +783,157 @@
         ],
         "title": "IdentifierScheme",
         "type": "string"
+      },
+      "IngredientMatchDataResponse": {
+        "properties": {
+          "ingredient_tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Ingredient Tags",
+            "type": "array"
+          },
+          "matches": {
+            "items": {
+              "$ref": "#/components/schemas/IngredientMatchDetailResponse"
+            },
+            "title": "Matches",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ingredient_tags",
+          "matches"
+        ],
+        "title": "IngredientMatchDataResponse",
+        "type": "object"
+      },
+      "IngredientMatchDetailResponse": {
+        "properties": {
+          "alias": {
+            "title": "Alias",
+            "type": "string"
+          },
+          "ambiguous": {
+            "title": "Ambiguous",
+            "type": "boolean"
+          },
+          "end": {
+            "title": "End",
+            "type": "integer"
+          },
+          "matched_text": {
+            "title": "Matched Text",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "parents": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Parents",
+            "type": "array"
+          },
+          "start": {
+            "title": "Start",
+            "type": "integer"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "matched_text",
+          "start",
+          "end",
+          "alias",
+          "tags",
+          "name",
+          "parents",
+          "ambiguous"
+        ],
+        "title": "IngredientMatchDetailResponse",
+        "type": "object"
+      },
+      "IngredientMatchErrorResponse": {
+        "properties": {
+          "error": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Error",
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "IngredientMatchErrorResponse",
+        "type": "object"
+      },
+      "IngredientMatchRequest": {
+        "properties": {
+          "ingredient_text": {
+            "description": "English ingredient text to match against the prototype taxonomy.",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Ingredient Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ingredient_text"
+        ],
+        "title": "IngredientMatchRequest",
+        "type": "object"
+      },
+      "IngredientMatchResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/IngredientMatchDataResponse"
+          },
+          "source": {
+            "$ref": "#/components/schemas/IngredientMatchSourceResponse"
+          }
+        },
+        "required": [
+          "data",
+          "source"
+        ],
+        "title": "IngredientMatchResponse",
+        "type": "object"
+      },
+      "IngredientMatchSourceResponse": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "taxonomy_sha256": {
+            "title": "Taxonomy Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "taxonomy_sha256"
+        ],
+        "title": "IngredientMatchSourceResponse",
+        "type": "object"
       },
       "JsonValue": {
         "anyOf": [
@@ -1499,6 +1663,46 @@
         "title": "SourceAttributionResponse",
         "type": "object"
       },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
       "lifegoods__package_matches__contracts__PackageSearchResponse": {
         "properties": {
           "dataset_version": {
@@ -1833,6 +2037,58 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/experimental/ingredient-matches": {
+      "post": {
+        "description": "Matches English ingredient text against a disposable Open Food Facts taxonomy projection. This experimental contract is unstable and does not infer allergens.",
+        "operationId": "matchExperimentalIngredients",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngredientMatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngredientMatchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngredientMatchErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Match experimental ingredient taxonomy entries",
+        "tags": [
+          "Ingredient Matching"
+        ]
+      }
+    },
     "/api/experimental/products/{barcode}": {
       "get": {
         "description": "Looks up a Barcode in the selected local Open Food Facts Dataset Snapshot and returns the raw Source Record. This experimental contract is unstable.",
