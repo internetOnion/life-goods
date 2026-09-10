@@ -16,6 +16,8 @@ from sqlalchemy.pool import StaticPool
 
 from lifegoods.core.database import Base
 from lifegoods.identifiers import normalize_identifier
+from lifegoods.ingredient_matching.importer import import_ingredient_taxonomy
+from lifegoods.ingredient_matching.models import IngredientMatcher
 from lifegoods.main import create_app
 from lifegoods.open_food_facts import (
     ACTIVE_POINTER_ID,
@@ -74,6 +76,7 @@ def _client(
     metrics=None,
     limiter=None,
     client_address: tuple[str, int] = ("testclient", 50000),
+    ingredient_matcher=None,
 ) -> TestClient:
     redis_client = redis_client or fakeredis.FakeRedis(decode_responses=True)
     source = OpenFoodFactsDatasetSource(database)
@@ -88,6 +91,7 @@ def _client(
             else RedisProductLookupRateLimiter(redis_client, requests_per_minute)
         ),
         product_lookup_metrics=metrics,
+        ingredient_matcher=ingredient_matcher,
     )
     return TestClient(app, client=client_address)
 
@@ -108,7 +112,34 @@ def test_product_lookup_returns_complete_raw_source_record_with_provenance() -> 
         key: value for key, value in payload["product"].items() if key != "_id"
     }
     assert response.json() == {
-        "data": {"source_record": expected_source_record},
+        "data": {
+            "source_record": expected_source_record,
+            "allergen_analysis": {
+                "off": {"state": "available", "tags": ["en:milk"]},
+                "ingredient_matching": {
+                    "state": "unavailable",
+                    "reason": "matcher_unavailable",
+                    "quality": None,
+                    "tags": [],
+                    "evidence": [],
+                    "limitations": [],
+                    "unmatched_texts": [],
+                    "input": {
+                        "source_field": "ingredients_text_en",
+                        "language": "en",
+                    },
+                    "taxonomy_sha256": None,
+                    "allergen_taxonomy_sha256": None,
+                },
+                "comparison": {
+                    "state": "unavailable",
+                    "in_both": [],
+                    "off_only": [],
+                    "ingredient_matching_only": [],
+                    "sets_equal": None,
+                },
+            },
+        },
         "meta": {
             "lookup": {"barcode": "4006381333931"},
             "source": {
@@ -124,6 +155,36 @@ def test_product_lookup_returns_complete_raw_source_record_with_provenance() -> 
         },
     }
     assert "_id" not in response.json()["data"]["source_record"]
+
+
+def test_product_lookup_compares_off_and_ingredient_allergens_when_off_is_empty() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "ingredients_text_en": "wheat flour, peanuts",
+            "allergens_tags": [],
+        }
+    )
+    import_ingredient_taxonomy(database)
+    matcher = IngredientMatcher(database, enabled=True)
+
+    with _client(database, ingredient_matcher=matcher) as client:
+        response = client.get("/api/experimental/products/4006381333931")
+        cached_response = client.get("/api/experimental/products/4006381333931")
+
+    analysis = response.json()["data"]["allergen_analysis"]
+    assert analysis["off"] == {"state": "empty", "tags": []}
+    assert analysis["ingredient_matching"]["state"] == "completed"
+    assert analysis["ingredient_matching"]["tags"] == ["en:gluten", "en:peanuts"]
+    assert analysis["comparison"] == {
+        "state": "available",
+        "in_both": [],
+        "off_only": [],
+        "ingredient_matching_only": ["en:gluten", "en:peanuts"],
+        "sets_equal": False,
+    }
+    assert cached_response.json()["data"]["allergen_analysis"] == analysis
 
 
 def test_product_lookup_preserves_sparse_source_record_without_inference() -> None:

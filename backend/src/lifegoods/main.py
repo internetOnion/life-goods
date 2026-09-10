@@ -118,6 +118,7 @@ def create_app(
     product_lookup_limiter: ProductLookupRateLimiter | None = None,
     product_lookup_metrics: ProductLookupMetrics | None = None,
     ingredient_matching_database: Any | None = None,
+    ingredient_matcher: IngredientMatcher | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings()
     install_product_lookup_access_log_filter()
@@ -300,6 +301,10 @@ def create_app(
         resolved_ingredient_matching_database = ingredient_mongo_client[
             resolved_settings.off_mongodb_database
         ]
+    resolved_ingredient_matcher = ingredient_matcher or IngredientMatcher(
+        resolved_ingredient_matching_database,
+        enabled=resolved_settings.ingredient_matching_prototype_enabled,
+    )
 
     if product_lookup_cache is not None:
         resolved_product_lookup_cache = product_lookup_cache
@@ -390,6 +395,7 @@ def create_app(
     app.dependency_overrides[get_product_lookup] = lambda: LookupProduct(
         resolved_product_lookup_source,
         resolved_product_lookup_cache,
+        ingredient_matcher=resolved_ingredient_matcher,
     )
     app.dependency_overrides[get_product_lookup_rate_limiter] = (
         lambda: resolved_product_lookup_limiter
@@ -397,10 +403,7 @@ def create_app(
     app.dependency_overrides[get_product_lookup_metrics] = (
         lambda: resolved_product_lookup_metrics
     )
-    app.dependency_overrides[get_ingredient_matcher] = lambda: IngredientMatcher(
-        resolved_ingredient_matching_database,
-        enabled=resolved_settings.ingredient_matching_prototype_enabled,
-    )
+    app.dependency_overrides[get_ingredient_matcher] = lambda: resolved_ingredient_matcher
 
     @app.exception_handler(RequestValidationError)
     async def request_validation_handler(

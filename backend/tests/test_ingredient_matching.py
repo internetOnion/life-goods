@@ -65,6 +65,23 @@ def test_importer_verifies_snapshot_and_matches_normalized_english_aliases() -> 
     assert result.taxonomy_sha256 == (
         "b635e3a211eb2f07de2e113f7487a882cd1777efe86deea5a9197aa9a61a45df"
     )
+    assert result.allergen_taxonomy_sha256 == (
+        "05905753380d4cf03a6c3297457afce8b979b8a60aa1ccde87f120b3849ef8c2"
+    )
+
+
+def test_matching_exposes_explicit_allergen_relationship_paths() -> None:
+    matcher = _matcher()
+
+    result = matcher.match("wheat flour, peanuts, milk powder")
+
+    paths = {
+        match.matched_text: match.allergen_paths
+        for match in result.matches
+    }
+    assert paths["wheat flour"] == (("en:wheat-flour", "en:wheat", "en:gluten"),)
+    assert paths["peanuts"] == (("en:peanut", "en:peanuts"),)
+    assert paths["milk powder"] == (("en:milk-powder", "en:dairy", "en:milk"),)
 
 
 def test_matcher_uses_longest_phrase_and_respects_word_boundaries() -> None:

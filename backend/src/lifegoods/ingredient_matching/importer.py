@@ -21,6 +21,7 @@ DEFAULT_TAXONOMY_PATH = (
     / "taxonomies"
     / "ingredients.full.json"
 )
+DEFAULT_ALLERGEN_TAXONOMY_PATH = DEFAULT_TAXONOMY_PATH.with_name("allergens.full.json")
 DEFAULT_MANIFEST_PATH = DEFAULT_TAXONOMY_PATH.with_name("manifest.json")
 
 
@@ -28,6 +29,7 @@ def import_ingredient_taxonomy(
     database: Database[dict[str, Any]],
     *,
     taxonomy_path: Path = DEFAULT_TAXONOMY_PATH,
+    allergen_taxonomy_path: Path = DEFAULT_ALLERGEN_TAXONOMY_PATH,
     manifest_path: Path = DEFAULT_MANIFEST_PATH,
 ) -> dict[str, Any]:
     raw = taxonomy_path.read_bytes()
@@ -41,6 +43,19 @@ def import_ingredient_taxonomy(
         raise ValueError("Ingredient taxonomy must be a JSON object")
     if expected.get("item_count") != len(taxonomy):
         raise ValueError("Ingredient taxonomy item count does not match manifest.json")
+
+    allergen_raw = allergen_taxonomy_path.read_bytes()
+    allergen_taxonomy_sha256 = hashlib.sha256(allergen_raw).hexdigest()
+    allergen_expected = manifest["files"][allergen_taxonomy_path.name]
+    if allergen_expected["sha256"] != allergen_taxonomy_sha256:
+        raise ValueError("Allergen taxonomy SHA-256 does not match manifest.json")
+    allergen_taxonomy = json.loads(allergen_raw)
+    if not isinstance(allergen_taxonomy, dict):
+        raise ValueError("Allergen taxonomy must be a JSON object")
+    if allergen_expected.get("item_count") != len(allergen_taxonomy):
+        raise ValueError("Allergen taxonomy item count does not match manifest.json")
+
+    allergen_paths = _build_allergen_paths(taxonomy, set(allergen_taxonomy))
 
     suffix = taxonomy_sha256[:16]
     alias_collection_name = f"ingredient_match_aliases_{suffix}"
@@ -64,7 +79,14 @@ def import_ingredient_taxonomy(
             if isinstance(parents_value, list)
             else []
         )
-        entries.append({"_id": tag, "name": name, "parents": parents})
+        entries.append(
+            {
+                "_id": tag,
+                "name": name,
+                "parents": parents,
+                "allergen_paths": allergen_paths.get(tag, []),
+            }
+        )
         values: list[str] = []
         if name is not None:
             values.append(name)
@@ -90,6 +112,7 @@ def import_ingredient_taxonomy(
         {
             "_id": INGREDIENT_MATCHING_POINTER_ID,
             "taxonomy_sha256": taxonomy_sha256,
+            "allergen_taxonomy_sha256": allergen_taxonomy_sha256,
             "taxonomy_item_count": len(taxonomy),
             "alias_count": len(aliases),
             "max_alias_words": max_alias_words,
@@ -102,8 +125,54 @@ def import_ingredient_taxonomy(
     )
     return {
         "taxonomy_sha256": taxonomy_sha256,
+        "allergen_taxonomy_sha256": allergen_taxonomy_sha256,
         "taxonomy_item_count": len(taxonomy),
         "alias_count": len(aliases),
         "alias_collection": alias_collection_name,
         "entry_collection": entry_collection_name,
+    }
+
+
+def _build_allergen_paths(
+    taxonomy: dict[str, Any],
+    allergen_tags: set[str],
+) -> dict[str, list[list[str]]]:
+    resolved: dict[str, dict[str, list[str]]] = {}
+    visiting: set[str] = set()
+
+    def resolve(tag: str) -> dict[str, list[str]]:
+        if tag in resolved:
+            return resolved[tag]
+        if tag in visiting:
+            raise ValueError(f"Ingredient taxonomy parent cycle includes {tag}")
+        raw_entry = taxonomy.get(tag)
+        if not isinstance(raw_entry, dict):
+            raise ValueError(f"Ingredient taxonomy entry is invalid: {tag}")
+        visiting.add(tag)
+        paths: dict[str, list[str]] = {}
+        raw_allergens = raw_entry.get("allergens", {})
+        direct_allergen = (
+            raw_allergens.get("en")
+            if isinstance(raw_allergens, dict)
+            else None
+        )
+        if direct_allergen is not None:
+            if not isinstance(direct_allergen, str) or direct_allergen not in allergen_tags:
+                raise ValueError(f"Ingredient taxonomy allergen target is invalid: {tag}")
+            paths[direct_allergen] = [tag, direct_allergen]
+        parents = raw_entry.get("parents", [])
+        if parents is not None and not isinstance(parents, list):
+            raise ValueError(f"Ingredient taxonomy parents are invalid: {tag}")
+        for parent in parents or []:
+            if not isinstance(parent, str) or parent not in taxonomy:
+                raise ValueError(f"Ingredient taxonomy parent is invalid: {tag}")
+            for allergen, path in resolve(parent).items():
+                paths.setdefault(allergen, [tag, *path])
+        visiting.remove(tag)
+        resolved[tag] = paths
+        return paths
+
+    return {
+        tag: [path for path in resolve(tag).values()]
+        for tag in taxonomy
     }

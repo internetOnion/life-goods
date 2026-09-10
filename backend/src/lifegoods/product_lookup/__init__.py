@@ -1,4 +1,5 @@
 from lifegoods.product_lookup.access_log import install_product_lookup_access_log_filter
+from lifegoods.product_lookup.allergen_analysis import ProductAllergenAnalyzer
 from lifegoods.product_lookup.cache import (
     InMemoryProductLookupCache,
     NullProductLookupCache,
@@ -32,6 +33,7 @@ from lifegoods.product_lookup.service import LookupProduct, ProductLookupResult
 __all__ = [
     "DatasetSnapshot",
     "DatasetUnavailableError",
+    "ProductAllergenAnalyzer",
     "InMemoryProductLookupCache",
     "InvalidSourceRecordError",
     "LookupProduct",

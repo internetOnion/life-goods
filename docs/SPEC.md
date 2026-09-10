@@ -67,6 +67,14 @@ A successful response returns `200 OK` with an envelope shaped like:
 }
 ```
 
+For a found Product, `data` also contains `allergen_analysis` beside the unchanged
+`source_record`. The analysis keeps `off` tags separate from `ingredient_matching` tags and
+includes a `comparison` with exact-tag intersections and differences. Ingredient matching runs
+when usable English ingredient text is present regardless of whether `allergens_tags` is empty.
+Missing, unsupported, ambiguous, or insufficient ingredient evidence is returned explicitly and
+does not mean that the Product has no allergens. The analysis is source comparison, not a Life
+Goods safety, allergen-free, or verification verdict.
+
 `source_record` contains the raw imported Open Food Facts document. The backend removes MongoDB `_id`, local import bookkeeping, and other storage-only metadata. It does not normalize or selectively project Open Food Facts fields in this experimental contract.
 
 This endpoint is intentionally unstable. After the English Product page reveals its actual needs, a stable Life Goods projection will graduate under `/api/v1/products/{barcode}`.

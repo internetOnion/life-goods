@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 
 from lifegoods.identifiers import InvalidIdentifierError
 from lifegoods.product_lookup.contracts import (
+    AllergenAnalysisResponse,
     DatasetSnapshotResponse,
     ProductLookupDataResponse,
     ProductLookupErrorCode,
@@ -123,7 +124,30 @@ def get_experimental_product(
             metrics=metrics,
         )
         return ProductLookupResponse(
-            data=ProductLookupDataResponse(source_record=result.source_record),
+            data=ProductLookupDataResponse(
+                source_record=result.source_record,
+                allergen_analysis=AllergenAnalysisResponse.model_validate(
+                    result.allergen_analysis
+                    or {
+                        "off": {"state": "missing", "tags": []},
+                        "ingredient_matching": {
+                            "state": "unavailable",
+                            "reason": "analyzer_unavailable",
+                            "tags": [],
+                            "evidence": [],
+                            "limitations": [],
+                            "unmatched_texts": [],
+                        },
+                        "comparison": {
+                            "state": "unavailable",
+                            "in_both": [],
+                            "off_only": [],
+                            "ingredient_matching_only": [],
+                            "sets_equal": None,
+                        },
+                    }
+                ),
+            ),
             meta=ProductLookupMetaResponse(
                 lookup=ProductLookupMetadataResponse(barcode=result.barcode),
                 source=SourceAttributionResponse(
