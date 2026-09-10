@@ -1,8 +1,7 @@
-"""Contracts for the opt-in package-photo comparison prototype.
+"""Contracts and local services for the opt-in package-photo comparison prototype.
 
-This package intentionally contains no FastAPI router, provider client, image
-storage, or persistence.  The contracts are shared by the later extraction,
-comparison, and HTTP issues.
+The standalone app is intentionally separate from the ordinary Life Goods API;
+this package does not add routes, storage, or persistence to that app.
 """
 
 from lifegoods.photo_comparison.contracts import (

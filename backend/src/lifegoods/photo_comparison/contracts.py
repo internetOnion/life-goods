@@ -469,6 +469,7 @@ class DerivedValue(PhotoComparisonModel):
 
 class ComparisonRow(PhotoComparisonModel):
     nutrient: str = Field(min_length=1, max_length=128)
+    row_kind: NutrientRowKind = NutrientRowKind.AMOUNT
     left: ReportedValue | None = None
     right: ReportedValue | None = None
     normalized_left: DerivedValue | None = None
@@ -598,11 +599,22 @@ class ComparisonRequest(PhotoComparisonModel):
     schema_version: int = Field(default=1, ge=1, le=1)
     left: Extraction
     right: Extraction
+    left_column_id: OpaqueIdentifier | None = None
+    right_column_id: OpaqueIdentifier | None = None
 
     @model_validator(mode="after")
     def _require_two_products(self) -> ComparisonRequest:
         if self.left.product_id == self.right.product_id:
             raise ValueError("comparison requires two distinct Products")
+        for side, extraction, selected_id in (
+            ("left", self.left, self.left_column_id),
+            ("right", self.right, self.right_column_id),
+        ):
+            column_ids = {column.column_id for column in extraction.nutrition_columns}
+            if len(column_ids) > 1 and selected_id is None:
+                raise ValueError(f"{side}_column_id is required when multiple columns exist")
+            if selected_id is not None and selected_id not in column_ids:
+                raise ValueError(f"{side}_column_id must reference an extraction column")
         return self
 
 

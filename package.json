@@ -15,6 +15,7 @@
         "backend:install": "uv sync --project backend --dev",
         "backend:sync": "uv sync --project backend --dev",
         "backend:dev": "uv run --project backend uvicorn lifegoods.main:app --app-dir backend/src --reload",
+        "photo-comparison:dev": "uv run --project backend python -m lifegoods.photo_comparison.server",
         "backend:test": "uv run --project backend pytest backend/tests",
         "backend:test:integration": "uv run --project backend pytest backend/tests --run-integration",
         "backend:lint": "uv run --project backend ruff check backend/src backend/tests backend/scripts",

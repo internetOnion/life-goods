@@ -85,8 +85,14 @@ def _field(
         original_script=(f"{nutrient.title()} {value}{unit or ''}" if value else None),
         state=state,
         normalized_value=Decimal(normalized) if normalized is not None else None,
-        normalized_unit=(MeasurementUnit.G if unit == "g" else MeasurementUnit.MG)
-        if normalized is not None and unit in {"g", "mg"}
+        normalized_unit=(
+            MeasurementUnit.PERCENT
+            if unit == "%"
+            else MeasurementUnit.G
+            if unit == "g"
+            else MeasurementUnit.MG
+        )
+        if normalized is not None and unit in {"g", "mg", "%"}
         else None,
         row_kind=row_kind,
         alternatives=alternatives or [],
@@ -127,7 +133,7 @@ def seed_extraction(
     panel_image_id: str,
     sodium_value: str,
     sodium_unit: str,
-    sodium_normalized: str,
+    sodium_normalized: str | None,
     *,
     weight_image_id: str | None = None,
     weight_g: str | None = None,

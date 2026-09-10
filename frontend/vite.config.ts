@@ -26,6 +26,11 @@ export default defineConfig(({ mode }) => ({
               }
             : {}),
         proxy: {
+            "/api/experimental/photo-comparison": {
+                target:
+                    process.env.VITE_PHOTO_COMPARISON_API_URL ||
+                    "http://127.0.0.1:8765",
+            },
             "/api": "http://127.0.0.1:8000",
         },
     },

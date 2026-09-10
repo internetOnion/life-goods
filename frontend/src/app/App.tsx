@@ -8,6 +8,7 @@ import {
     LearnPage,
 } from "@/features/learn/LearnPage"
 import { NotFoundPage } from "@/features/not-found/NotFoundPage"
+import { PhotoComparisonPage } from "@/features/photo-comparison/PhotoComparisonPage"
 import { ProductPage } from "@/features/product/ProductPage"
 import { lookupProduct, type ProductLookup } from "@/features/product/api"
 import { ScanPage } from "@/features/scan/ScanPage"
@@ -48,6 +49,16 @@ export function App({ lookup = lookupProduct, demoMode = false }: AppProps) {
                 <Route
                     path={appRoutes.dataAndLicenses}
                     element={<DataAndLicensesPage />}
+                />
+                <Route
+                    path={appRoutes.photoComparison}
+                    element={<PhotoComparisonPage />}
+                />
+                <Route
+                    path="/photo-comparison"
+                    element={
+                        <Navigate to={appRoutes.photoComparison} replace />
+                    }
                 />
                 <Route path="*" element={<NotFoundPage />} />
             </Routes>

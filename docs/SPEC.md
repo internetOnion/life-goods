@@ -876,14 +876,56 @@ and combined rows remain distinct from amount rows. Package and serving
 quantities require explicit positive normalized values and units when they are
 normalized.
 
-The experimental extraction and comparison surfaces are specified as:
+The feature-first local implementation exposes the experimental extraction and
+comparison surfaces only through a standalone loopback app started with
+`pnpm photo-comparison:dev`. The ordinary `create_app()` API, its OpenAPI
+document, and the Shopper frontend do not register these routes. The standalone
+app serves the browser test page at `/` and Scalar documentation at `/scalar`.
+
+The extraction and comparison surfaces are:
 
 - `POST /api/experimental/photo-comparison/extractions`, accepting a bounded
   multipart request with one or more repeated `photos` fields for one Product
   and returning a validated extraction;
 - `POST /api/experimental/photo-comparison/comparisons`, accepting two
   validated extraction objects in a JSON `{ "left": ..., "right": ... }`
-  request and returning comparison rows.
+  request and returning comparison rows. Optional `left_column_id` and
+  `right_column_id` values select the nutrition column for each Product; a
+  selection is required when that Product has multiple columns and a sole
+  column is selected automatically.
+
+The local page accepts one to six JPEG/PNG photos per Product, shows previews,
+supports add/remove/replace, and submits the complete current photo set on
+each extraction or explicit retry. A changed photo invalidates that Product's
+extraction and the previous comparison. The page keeps the session in memory
+and provides Reset; it has no saved history or manual transcription editor.
+
+Image input is bounded at 10 MiB per photo, 32 MiB per multipart request, and
+25 megapixels per image. Pillow validates actual JPEG/PNG content, applies EXIF
+orientation, and re-encodes without metadata. The local process admits one
+active Gemini request, ten extraction requests per minute, a 60-second provider
+deadline, and a 1 MiB JSON response. Temporary image buffers are closed on
+success, rejection, exception, and cancellation. Application-side photos,
+photo-derived text, prompts, provider bodies, and provider responses do not
+enter ordinary logs, databases, or translation caches. Gemini-side retention
+remains governed by the configured provider.
+
+Gemini extraction uses the existing API-key setting and the exact
+`gemini-3.8-flash` model with a dedicated visible-evidence prompt. It requests
+structured JSON, rejects malformed output or unknown image references, and
+normalizes only explicit numerals and units locally. Missing credentials,
+unsupported provider behavior, timeout, and provider failure return typed errors;
+the app never substitutes fake results or another model. The browser page then
+shows reported values, original-script evidence, image links, bases, partial or
+retake information, assumptions, and conditional/unavailable comparison rows.
+
+Extraction configuration `photo-extraction-v3` requests compact visible evidence
+with low thinking and a 16,384-token output budget. The provider schema omits
+application field/column IDs, redundant serving-quantity state, and outcome;
+Python supplies these after validation. Missing quantities may be omitted or null.
+Identity names retain literal text while Python supplies their display labels.
+The 60-second deadline and 1 MiB response limit still apply. Truncated output is
+rejected with a specific error and requires an explicit retry.
 
 Comparison inputs retain the complete field observation, column ID, printed
 basis, preparation state, package/serving quantities, and evidence for the
@@ -919,15 +961,23 @@ unsupported image format (`415`), rate or capacity limits (`429`), invalid
 provider output (`502`), provider unavailable (`503`), provider timeout (`504`),
 and unexpected internal failure (`500`).
 
-Later HTTP and provider work must enforce bounded upload and response sizes,
-JPEG/PNG-only input, finite request/image/pixel/concurrency limits, temporary
-resource cleanup, and sanitized failure responses before making provider calls.
-Photos, package text, prompts, provider payloads, and response bodies stay out
-of ordinary logs, metrics, MongoDB, and translation artifacts. Provider-side
-retention is documented separately from application cleanup. The contract-only
-issue provides executable examples for a normal pair, missing weight, multiple
-columns, conflicting photos, and unknown preparation states; it does not claim
-that owner-checked seed transcriptions are reproducible image evidence.
+The local implementation enforces bounded upload and response sizes, JPEG/PNG-only
+input, finite request/image/pixel/concurrency limits, temporary resource cleanup,
+and sanitized failure responses before making provider calls. Photos, package
+text, prompts, provider payloads, and response bodies stay out of ordinary logs,
+metrics, MongoDB, and translation artifacts. Provider-side retention is
+documented separately from application cleanup. The contract-only issue provides
+executable examples for a normal pair, missing weight, multiple columns,
+conflicting photos, and unknown preparation states; it does not claim that
+owner-checked seed transcriptions are reproducible image evidence.
+
+The sprint deliberately follows a feature-first sequence: implement #112 and
+#113, connect them in #114, run focused and normal repository checks, then try
+the available real photos and record practical findings under
+`docs/research/photo-comparison/`. #111's reviewed dataset and transcription
+tool remain deferred and are not treated as completed requirements. Public
+deployment, ordinary Shopper integration, and formal evaluation remain later
+work.
 
 The integration defaults are one to six JPEG or PNG photos per Product, 10 MiB
 per photo, 32 MiB per request, 25 megapixels per decoded image, 1 MiB per

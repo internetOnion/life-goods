@@ -124,6 +124,36 @@ pnpm dev
 
 The frontend is available at `http://localhost:5173`. Use `pnpm dev:https` when testing camera access at `https://localhost:5173`; `/api` still proxies to the HTTP backend.
 
+### Try the local photo-comparison lab
+
+The photo-comparison experiment is intentionally separate from the ordinary
+Life Goods API and Shopper frontend. Start it with:
+
+```bash
+pnpm photo-comparison:dev
+```
+
+It binds only to `http://127.0.0.1:8765`, serves the two-Product browser page at
+`/`, and exposes Scalar at `/scalar`. Set `LIFEGOODS_GEMINI_API_KEY` (or the
+existing `GEMINI_API_KEY`) in `backend/.env` before extracting photos. The lab
+uses the exact `gemini-3.8-flash` model and never substitutes canned results or
+another model when credentials or provider behavior are unavailable.
+
+Each Product accepts one to six JPEG/PNG photos, up to 10 MiB per photo, 32 MiB
+per upload request, and 25 megapixels per image. Photos are corrected for EXIF
+orientation, re-encoded without metadata, sent together for one extraction, and
+discarded after the request. The process allows one active provider request and
+ten extraction requests per minute. Comparisons are pure Python Decimal
+calculations over the submitted evidence; the page keeps photos and results in
+the current browser session only. No photo-derived text is written to MongoDB,
+Redis, translation caches, or ordinary logs.
+
+The feature-first sequence implements extraction and deterministic comparison
+before a real-photo trial. Try the available Mee Chiet/MAMA photos through the
+page after the lab works, including adding the separate weight photo and
+replacing an unreadable photo. The reviewed multilingual corpus in #111 remains
+deferred; public deployment and Shopper integration remain later work.
+
 ## Verification
 
 ```bash
