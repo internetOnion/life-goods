@@ -353,10 +353,6 @@ export type IngredientMatchingAllergenResponse = {
     unmatched_texts: Array<string>;
 };
 
-export type JsonValue = boolean | number | number | string | Array<JsonValue> | {
-    [key: string]: JsonValue;
-} | null;
-
 /**
  * NovaSourceAssessment
  */
@@ -533,19 +529,6 @@ export type ProductIdentityProjection = {
 };
 
 /**
- * ProductLookupDataResponse
- */
-export type ProductLookupDataResponse = {
-    allergen_analysis: AllergenAnalysisResponse;
-    /**
-     * Source Record
-     */
-    source_record: {
-        [key: string]: JsonValue;
-    };
-};
-
-/**
  * ProductLookupErrorCode
  */
 export type ProductLookupErrorCode = 'invalid_barcode' | 'product_not_found' | 'dataset_unavailable' | 'rate_limit_exceeded' | 'internal_error' | 'unsupported_language';
@@ -577,15 +560,6 @@ export type ProductLookupErrorResponse = {
 };
 
 /**
- * ProductLookupMetaResponse
- */
-export type ProductLookupMetaResponse = {
-    dataset: DatasetSnapshotResponse;
-    lookup: ProductLookupMetadataResponse;
-    source: SourceAttributionResponse;
-};
-
-/**
  * ProductLookupMetadataResponse
  */
 export type ProductLookupMetadataResponse = {
@@ -593,14 +567,6 @@ export type ProductLookupMetadataResponse = {
      * Barcode
      */
     barcode: string;
-};
-
-/**
- * ProductLookupResponse
- */
-export type ProductLookupResponse = {
-    data: ProductLookupDataResponse;
-    meta: ProductLookupMetaResponse;
 };
 
 /**
@@ -655,6 +621,7 @@ export type ProductProjection = {
  * ProductProjectionData
  */
 export type ProductProjectionData = {
+    allergen_analysis: AllergenAnalysisResponse;
     product: ProductProjection;
 };
 
@@ -1031,53 +998,6 @@ export type MatchExperimentalIngredientsResponses = {
 };
 
 export type MatchExperimentalIngredientsResponse = MatchExperimentalIngredientsResponses[keyof MatchExperimentalIngredientsResponses];
-
-export type GetExperimentalProductData = {
-    body?: never;
-    path: {
-        /**
-         * Barcode
-         * GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode.
-         */
-        barcode: string;
-    };
-    query?: never;
-    url: '/api/experimental/products/{barcode}';
-};
-
-export type GetExperimentalProductErrors = {
-    /**
-     * Not Found
-     */
-    404: ProductLookupErrorResponse;
-    /**
-     * Unprocessable Content
-     */
-    422: ProductLookupErrorResponse;
-    /**
-     * Too Many Requests
-     */
-    429: ProductLookupErrorResponse;
-    /**
-     * Internal Server Error
-     */
-    500: ProductLookupErrorResponse;
-    /**
-     * Service Unavailable
-     */
-    503: ProductLookupErrorResponse;
-};
-
-export type GetExperimentalProductError = GetExperimentalProductErrors[keyof GetExperimentalProductErrors];
-
-export type GetExperimentalProductResponses = {
-    /**
-     * Successful Response
-     */
-    200: ProductLookupResponse;
-};
-
-export type GetExperimentalProductResponse = GetExperimentalProductResponses[keyof GetExperimentalProductResponses];
 
 export type GetOpenFoodFactsImageData = {
     body?: never;

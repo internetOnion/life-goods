@@ -1,12 +1,12 @@
 import { describe, expect, test } from "vitest"
 
-import type {
-    ProductLookupMetaResponse,
-    ProductLookupResponse,
-} from "../src/api/generated"
 import { unavailableAllergenAnalysis } from "../src/features/product/defaults"
 import { adaptProductLookup } from "../src/features/product/adapter"
 import { adaptSourceRecord } from "../src/features/product/sourceRecord"
+import type {
+    ProductLookupMetaResponse,
+    ProductLookupResponse,
+} from "../src/features/product/types"
 import { productResponse } from "./product-fixtures"
 
 const meta = {

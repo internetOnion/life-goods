@@ -1,4 +1,5 @@
 import type { ProductProjectionResponse } from "../src/api/generated"
+import { unavailableAllergenAnalysis } from "../src/features/product/defaults"
 import { adaptSourceRecord } from "../src/features/product/sourceRecord"
 
 export function productResponse(
@@ -50,6 +51,7 @@ export function productResponse(
     const presentation = adaptSourceRecord(raw, meta)
     return {
         data: {
+            allergen_analysis: unavailableAllergenAnalysis,
             product: {
                 identity: {
                     barcode: presentation.identity.barcode,

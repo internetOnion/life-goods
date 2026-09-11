@@ -40,69 +40,16 @@ def test_obsolete_routes_and_schemas_are_absent_from_openapi(client: TestClient)
     assert "PackageMatchCandidateResponse" not in schemas
 
 
-def test_experimental_product_lookup_is_typed_in_openapi(client: TestClient) -> None:
+def test_experimental_product_lookup_is_absent_from_openapi(client: TestClient) -> None:
     response = client.get("/openapi.json")
     assert response.status_code == 200
     specification = response.json()
 
-    operation = specification["paths"]["/api/experimental/products/{barcode}"]["get"]
-    assert operation["operationId"] == "getExperimentalProduct"
-    assert operation.get("deprecated") is True
-    assert operation["tags"] == ["Products"]
-    assert operation["parameters"] == [
-        {
-            "name": "barcode",
-            "in": "path",
-            "required": True,
-            "schema": {
-                "type": "string",
-                "description": "GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode.",
-                "title": "Barcode",
-            },
-            "description": "GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode.",
-        }
-    ]
-    assert set(operation["responses"]) == {"200", "404", "422", "429", "500", "503"}
-    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
-        "$ref": "#/components/schemas/ProductLookupResponse"
-    }
-    for status in ("404", "422", "429", "500", "503"):
-        assert operation["responses"][status]["content"]["application/json"]["schema"] == {
-            "$ref": "#/components/schemas/ProductLookupErrorResponse"
-        }
-
+    paths = specification["paths"]
     schemas = specification["components"]["schemas"]
-    assert schemas["ProductLookupErrorCode"]["enum"] == [
-        "invalid_barcode",
-        "product_not_found",
-        "dataset_unavailable",
-        "rate_limit_exceeded",
-        "internal_error",
-        "unsupported_language",
-    ]
-    source_record = schemas["ProductLookupDataResponse"]["properties"]["source_record"]
-    assert source_record["type"] == "object"
-    assert "allergen_analysis" in schemas["ProductLookupDataResponse"]["required"]
-    assert "qualifications" in schemas["IngredientMatchingAllergenResponse"][
-        "required"
-    ]
-    assert "unmatched_spans" in schemas["IngredientMatchingAllergenResponse"][
-        "required"
-    ]
-    assert schemas["AllergenEvidenceResponse"]["properties"]["qualification"][
-        "enum"
-    ] == [
-        "positive_mention",
-        "precautionary_statement",
-        "negated_mention",
-        "unresolved_context",
-    ]
-    ingredient_operation = specification["paths"][
-        "/api/experimental/ingredient-matches"
-    ]["post"]
-    assert ingredient_operation["responses"]["422"]["content"]["application/json"][
-        "schema"
-    ] == {"$ref": "#/components/schemas/IngredientMatchErrorResponse"}
+    assert "/api/experimental/products/{barcode}" not in paths
+    assert "ProductLookupResponse" not in schemas
+    assert "ProductLookupDataResponse" not in schemas
 
 
 def test_stable_product_lookup_is_typed_in_openapi(client: TestClient) -> None:
@@ -165,6 +112,31 @@ def test_stable_product_lookup_is_typed_in_openapi(client: TestClient) -> None:
     assert "TranslatableField" in schemas
     assert "StorageInstructionItem" in schemas
     assert "TranslationMetaResponse" in schemas
+    data_schema = schemas["ProductProjectionData"]
+    assert data_schema["properties"]["allergen_analysis"] == {
+        "$ref": "#/components/schemas/AllergenAnalysisResponse"
+    }
+    assert "allergen_analysis" in data_schema["required"]
+    assert "qualifications" in schemas["IngredientMatchingAllergenResponse"][
+        "required"
+    ]
+    assert "unmatched_spans" in schemas["IngredientMatchingAllergenResponse"][
+        "required"
+    ]
+    assert schemas["AllergenEvidenceResponse"]["properties"]["qualification"][
+        "enum"
+    ] == [
+        "positive_mention",
+        "precautionary_statement",
+        "negated_mention",
+        "unresolved_context",
+    ]
+    ingredient_operation = specification["paths"][
+        "/api/experimental/ingredient-matches"
+    ]["post"]
+    assert ingredient_operation["responses"]["422"]["content"]["application/json"][
+        "schema"
+    ] == {"$ref": "#/components/schemas/IngredientMatchErrorResponse"}
 
 
 def test_product_search_is_typed_in_openapi(client: TestClient) -> None:

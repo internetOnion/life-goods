@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetExperimentalProductData, GetExperimentalProductErrors, GetExperimentalProductResponses, GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetProductData, GetProductErrors, GetProductResponses, MatchExperimentalIngredientsData, MatchExperimentalIngredientsErrors, MatchExperimentalIngredientsResponses, SearchProductsData, SearchProductsErrors, SearchProductsResponses } from './types.gen';
+import type { GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetProductData, GetProductErrors, GetProductResponses, MatchExperimentalIngredientsData, MatchExperimentalIngredientsErrors, MatchExperimentalIngredientsResponses, SearchProductsData, SearchProductsErrors, SearchProductsResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -30,18 +30,6 @@ export const matchExperimentalIngredients = <ThrowOnError extends boolean = fals
             'Content-Type': 'application/json',
             ...options.headers
         }
-    });
-};
-
-/**
- * Look up an experimental raw Product
- * Looks up a Barcode in the selected local Open Food Facts Dataset Snapshot and returns the raw Source Record. This experimental contract is deprecated.
- * @deprecated
- */
-export const getExperimentalProduct = <ThrowOnError extends boolean = false>(options: Options<GetExperimentalProductData, ThrowOnError>) => {
-    return (options.client ?? client).get<GetExperimentalProductResponses, GetExperimentalProductErrors, ThrowOnError>({
-        url: '/api/experimental/products/{barcode}',
-        ...options
     });
 };
 

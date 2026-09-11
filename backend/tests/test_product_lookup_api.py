@@ -125,67 +125,6 @@ def _client(
     return TestClient(app, client=client_address)
 
 
-def test_product_lookup_returns_complete_raw_source_record_with_provenance() -> None:
-    database = _dataset_database()
-    payload = json.loads((FIXTURES / "complete.json").read_text(encoding="utf-8"))
-    payload["product"]["ecoscore_data"] = {
-        "adjustments": [{"name": "origins_of_ingredients", "value": None}]
-    }
-    database[COLLECTION_NAME].insert_one(payload["product"])
-
-    with _client(database) as client:
-        response = client.get("/api/experimental/products/4006-3813-3393-1")
-
-    assert response.status_code == 200
-    expected_source_record = {
-        key: value for key, value in payload["product"].items() if key != "_id"
-    }
-    assert response.json() == {
-        "data": {
-            "source_record": expected_source_record,
-            "allergen_analysis": {
-                "off": {"state": "available", "tags": ["en:milk"]},
-                "ingredient_matching": {
-                    "state": "unavailable",
-                    "reason": "matcher_unavailable",
-                    "quality": None,
-                    "tags": [],
-                    "evidence": [],
-                    "qualifications": [],
-                    "limitations": [],
-                    "unmatched_texts": [],
-                    "unmatched_spans": [],
-                    "input": {
-                        "source_field": "ingredients_text_en",
-                        "language": "en",
-                    },
-                    "taxonomy_sha256": None,
-                    "allergen_taxonomy_sha256": None,
-                },
-                "comparison": {
-                    "state": "unavailable",
-                    "in_both": [],
-                    "off_only": [],
-                    "ingredient_matching_only": [],
-                    "sets_equal": None,
-                },
-            },
-        },
-        "meta": {
-            "lookup": {"barcode": "4006381333931"},
-            "source": {
-                "name": "Open Food Facts",
-                "product_url": ("https://world.openfoodfacts.org/product/4006381333931"),
-            },
-            "dataset": {
-                "version": VERSION_ID,
-                "retrieved_at": "2026-08-27T08:00:00Z",
-            },
-        },
-    }
-    assert "_id" not in response.json()["data"]["source_record"]
-
-
 def test_product_lookup_compares_off_and_ingredient_allergens_when_off_is_empty() -> None:
     database = _dataset_database()
     database[COLLECTION_NAME].insert_one(
@@ -199,8 +138,8 @@ def test_product_lookup_compares_off_and_ingredient_allergens_when_off_is_empty(
     matcher = IngredientMatcher(database, enabled=True)
 
     with _client(database, ingredient_matcher=matcher) as client:
-        response = client.get("/api/experimental/products/4006381333931")
-        cached_response = client.get("/api/experimental/products/4006381333931")
+        response = client.get("/api/v1/products/4006381333931")
+        cached_response = client.get("/api/v1/products/4006381333931")
 
     analysis = response.json()["data"]["allergen_analysis"]
     assert analysis["off"] == {"state": "empty", "tags": []}
@@ -229,8 +168,8 @@ def test_product_lookup_excludes_qualified_matches_from_positive_comparison() ->
     matcher = IngredientMatcher(database, enabled=True)
 
     with _client(database, ingredient_matcher=matcher) as client:
-        response = client.get("/api/experimental/products/4006381333931")
-        cached_response = client.get("/api/experimental/products/4006381333931")
+        response = client.get("/api/v1/products/4006381333931")
+        cached_response = client.get("/api/v1/products/4006381333931")
 
     analysis = response.json()["data"]["allergen_analysis"]
     assert analysis["ingredient_matching"]["tags"] == ["en:gluten"]
@@ -254,16 +193,14 @@ def test_product_lookup_keeps_invalid_off_tags_separate_from_matching() -> None:
         "ingredients_text_en": "milk",
         "allergens_tags": ["en:milk", 42],
     }
-    expected_source_record = dict(source_record)
     database[COLLECTION_NAME].insert_one(source_record)
     import_ingredient_taxonomy(database)
     matcher = IngredientMatcher(database, enabled=True)
 
     with _client(database, ingredient_matcher=matcher) as client:
-        response = client.get("/api/experimental/products/4006381333931")
+        response = client.get("/api/v1/products/4006381333931")
 
     body = response.json()
-    assert body["data"]["source_record"] == expected_source_record
     assert body["data"]["allergen_analysis"]["off"] == {
         "state": "invalid",
         "tags": ["en:milk"],
@@ -300,7 +237,7 @@ def test_product_lookup_reports_ingredient_matching_unavailable_reasons(
     matcher = IngredientMatcher(database, enabled=True)
 
     with _client(database, ingredient_matcher=matcher) as client:
-        response = client.get("/api/experimental/products/4006381333931")
+        response = client.get("/api/v1/products/4006381333931")
 
     analysis = response.json()["data"]["allergen_analysis"]["ingredient_matching"]
     assert analysis["state"] == "unavailable"
@@ -314,19 +251,26 @@ def test_product_lookup_remains_available_when_matcher_is_disabled() -> None:
         "ingredients_text_en": "milk",
         "allergens_tags": [],
     }
-    expected_source_record = dict(source_record)
     database[COLLECTION_NAME].insert_one(source_record)
     matcher = IngredientMatcher(database, enabled=False)
 
     with _client(database, ingredient_matcher=matcher) as client:
-        response = client.get("/api/experimental/products/4006381333931")
+        response = client.get("/api/v1/products/4006381333931")
 
     body = response.json()
     assert response.status_code == 200
-    assert body["data"]["source_record"] == expected_source_record
     assert body["data"]["allergen_analysis"]["ingredient_matching"]["reason"] == (
         "matcher_unavailable"
     )
+
+
+def test_experimental_product_lookup_route_is_removed() -> None:
+    database = _dataset_database()
+
+    with _client(database) as client:
+        response = client.get("/api/experimental/products/4006381333931")
+
+    assert response.status_code == 404
 
 
 def test_ingredient_match_post_allows_configured_origin_cors_preflight() -> None:
@@ -414,20 +358,6 @@ def test_ingredient_match_malformed_json_uses_the_same_error_envelope() -> None:
     }
 
 
-def test_product_lookup_preserves_sparse_source_record_without_inference() -> None:
-    database = _dataset_database()
-    payload = json.loads((FIXTURES / "sparse.json").read_text(encoding="utf-8"))
-    database[COLLECTION_NAME].insert_one(payload["product"])
-
-    with _client(database) as client:
-        response = client.get("/api/experimental/products/8850000000003")
-
-    expected = {key: value for key, value in payload["product"].items() if key != "_id"}
-    assert response.status_code == 200
-    assert response.json()["data"]["source_record"] == expected
-    assert response.json()["data"]["source_record"]["quantity"] is None
-
-
 @pytest.mark.parametrize(
     ("entered", "normalized"),
     [
@@ -445,7 +375,7 @@ def test_product_lookup_supports_each_barcode_length_at_the_http_boundary(
     database[COLLECTION_NAME].insert_one({"code": normalized, "product_name": "Known Product"})
 
     with _client(database) as client:
-        response = client.get("/api/experimental/products/" + quote(entered, safe="-"))
+        response = client.get("/api/v1/products/" + quote(entered, safe="-"))
 
     assert response.status_code == 200
     assert response.json()["meta"]["lookup"]["barcode"] == normalized
@@ -467,7 +397,7 @@ def test_invalid_barcode_uses_stable_error_and_never_enters_lookup_cache(
     redis_client = fakeredis.FakeRedis(decode_responses=True)
 
     with _client(database, redis_client=redis_client) as client:
-        response = client.get("/api/experimental/products/" + quote(invalid_input, safe=""))
+        response = client.get("/api/v1/products/" + quote(invalid_input, safe=""))
 
     assert response.status_code == 422
     assert response.json() == {
@@ -481,7 +411,7 @@ def test_unknown_product_identifies_the_dataset_snapshot_that_was_checked() -> N
     database[COLLECTION_NAME].create_index("code")
 
     with _client(database) as client:
-        response = client.get("/api/experimental/products/4006381333931")
+        response = client.get("/api/v1/products/4006381333931")
 
     assert response.status_code == 404
     assert response.json() == {
@@ -514,7 +444,7 @@ def test_dataset_snapshot_faults_are_unavailable_instead_of_not_found(
     break_dataset(database)
 
     with _client(database) as client:
-        response = client.get("/api/experimental/products/4006381333931")
+        response = client.get("/api/v1/products/4006381333931")
 
     assert response.status_code == 503
     assert response.json() == {
@@ -533,7 +463,7 @@ def test_mongodb_failure_is_reported_as_dataset_unavailable(monkeypatch) -> None
 
     monkeypatch.setattr(database[CONTROL_COLLECTION], "find_one", fail_lookup)
     with _client(database) as client:
-        response = client.get("/api/experimental/products/4006381333931")
+        response = client.get("/api/v1/products/4006381333931")
 
     assert response.status_code == 503
     assert "private database detail" not in response.text
@@ -553,7 +483,7 @@ def test_non_json_source_value_fails_with_a_sanitized_internal_error() -> None:
     database[COLLECTION_NAME].insert_one({"code": "4006381333931", "storage_date": RETRIEVED_AT})
 
     with _client(database, metrics=metrics) as client:
-        response = client.get("/api/experimental/products/4006381333931")
+        response = client.get("/api/v1/products/4006381333931")
 
     assert response.status_code == 500
     assert response.json() == {
@@ -591,7 +521,7 @@ def test_unexpected_dependency_failure_uses_sanitized_internal_error(
     database[COLLECTION_NAME].insert_one({"code": "4006381333931"})
 
     with _client(database, limiter=limiter, metrics=metrics) as client:
-        response = client.get("/api/experimental/products/4006381333931")
+        response = client.get("/api/v1/products/4006381333931")
 
     assert response.status_code == 500
     assert response.json() == {
@@ -609,13 +539,13 @@ def test_found_outcome_is_served_from_cache_after_source_record_changes() -> Non
     redis_client = fakeredis.FakeRedis(decode_responses=True)
 
     with _client(database, redis_client=redis_client) as client:
-        first = client.get("/api/experimental/products/4006381333931")
+        first = client.get("/api/v1/products/4006381333931")
         database[COLLECTION_NAME].update_one(
             {"code": "4006381333931"}, {"$set": {"product_name": "Changed"}}
         )
-        second = client.get("/api/experimental/products/4006381333931")
+        second = client.get("/api/v1/products/4006381333931")
 
-    assert first.json()["data"]["source_record"]["product_name"] == "Original"
+    assert first.json()["data"]["product"]["identity"]["preferred_name"]["value"] == "Original"
     assert second.json() == first.json()
 
 
@@ -625,11 +555,11 @@ def test_not_found_outcome_is_served_from_cache_after_source_record_is_added() -
     redis_client = fakeredis.FakeRedis(decode_responses=True)
 
     with _client(database, redis_client=redis_client) as client:
-        first = client.get("/api/experimental/products/4006381333931")
+        first = client.get("/api/v1/products/4006381333931")
         database[COLLECTION_NAME].insert_one(
             {"code": "4006381333931", "product_name": "Added later"}
         )
-        second = client.get("/api/experimental/products/4006381333931")
+        second = client.get("/api/v1/products/4006381333931")
 
     assert first.status_code == 404
     assert second.status_code == 404
@@ -659,15 +589,21 @@ def test_cache_is_isolated_by_dataset_snapshot_version() -> None:
     )
 
     with _client(database) as client:
-        first = client.get("/api/experimental/products/4006381333931")
+        first = client.get("/api/v1/products/4006381333931")
         database[CONTROL_COLLECTION].update_one(
             {"_id": ACTIVE_POINTER_ID},
             {"$set": {"active_version_id": second_version}},
         )
-        second = client.get("/api/experimental/products/4006381333931")
+        second = client.get("/api/v1/products/4006381333931")
 
-    assert first.json()["data"]["source_record"]["product_name"] == "First snapshot"
-    assert second.json()["data"]["source_record"]["product_name"] == "Second snapshot"
+    assert (
+        first.json()["data"]["product"]["identity"]["preferred_name"]["value"]
+        == "First snapshot"
+    )
+    assert (
+        second.json()["data"]["product"]["identity"]["preferred_name"]["value"]
+        == "Second snapshot"
+    )
     assert second.json()["meta"]["dataset"]["version"] == second_version
 
 
@@ -679,10 +615,13 @@ def test_malformed_cache_entry_is_repaired_from_dataset_snapshot() -> None:
     redis_client.set(key, "not-json")
 
     with _client(database, redis_client=redis_client) as client:
-        response = client.get("/api/experimental/products/4006381333931")
+        response = client.get("/api/v1/products/4006381333931")
 
     assert response.status_code == 200
-    assert response.json()["data"]["source_record"]["product_name"] == "Authoritative"
+    assert (
+        response.json()["data"]["product"]["identity"]["preferred_name"]["value"]
+        == "Authoritative"
+    )
     repaired_cache_value = redis_client.get(key)
     assert isinstance(repaired_cache_value, str)
     assert json.loads(repaired_cache_value)["outcome"] == "found"
@@ -713,7 +652,7 @@ def test_redis_cache_outage_falls_through_without_logging_shopper_data(
         caplog.at_level("INFO"),
         _client(database, redis_client=redis_client) as client,
     ):
-        response = client.get("/api/experimental/products/4006381333931")
+        response = client.get("/api/v1/products/4006381333931")
 
     assert response.status_code == 200
     product_lookup_records = [
@@ -759,18 +698,27 @@ def test_in_memory_cache_expires_at_the_http_seam() -> None:
     )
 
     with TestClient(app) as client:
-        first = client.get("/api/experimental/products/4006381333931")
+        first = client.get("/api/v1/products/4006381333931")
         database[COLLECTION_NAME].update_one(
             {"code": "4006381333931"},
             {"$set": {"product_name": "After expiry"}},
         )
-        cached = client.get("/api/experimental/products/4006381333931")
+        cached = client.get("/api/v1/products/4006381333931")
         clock = 15.0
-        refreshed = client.get("/api/experimental/products/4006381333931")
+        refreshed = client.get("/api/v1/products/4006381333931")
 
-    assert first.json()["data"]["source_record"]["product_name"] == "Before expiry"
-    assert cached.json()["data"]["source_record"]["product_name"] == "Before expiry"
-    assert refreshed.json()["data"]["source_record"]["product_name"] == "After expiry"
+    assert (
+        first.json()["data"]["product"]["identity"]["preferred_name"]["value"]
+        == "Before expiry"
+    )
+    assert (
+        cached.json()["data"]["product"]["identity"]["preferred_name"]["value"]
+        == "Before expiry"
+    )
+    assert (
+        refreshed.json()["data"]["product"]["identity"]["preferred_name"]["value"]
+        == "After expiry"
+    )
 
 
 def test_rate_limit_applies_before_validation_and_returns_retry_after() -> None:
@@ -778,8 +726,8 @@ def test_rate_limit_applies_before_validation_and_returns_retry_after() -> None:
     redis_client = fakeredis.FakeRedis(decode_responses=True)
 
     with _client(database, redis_client=redis_client, requests_per_minute=1) as client:
-        invalid = client.get("/api/experimental/products/1234")
-        limited = client.get("/api/experimental/products/4006381333931")
+        invalid = client.get("/api/v1/products/1234")
+        limited = client.get("/api/v1/products/4006381333931")
 
     assert invalid.status_code == 422
     assert limited.status_code == 429
@@ -807,11 +755,11 @@ def test_rate_limit_isolated_by_client_and_ignores_forwarded_headers() -> None:
         client_address=("203.0.113.10", 50000),
     ) as first_client:
         first = first_client.get(
-            "/api/experimental/products/4006381333931",
+            "/api/v1/products/4006381333931",
             headers={"x-forwarded-for": "10.0.0.1"},
         )
         spoofed = first_client.get(
-            "/api/experimental/products/4006381333931",
+            "/api/v1/products/4006381333931",
             headers={"x-forwarded-for": "10.0.0.2"},
         )
     with _client(
@@ -820,7 +768,7 @@ def test_rate_limit_isolated_by_client_and_ignores_forwarded_headers() -> None:
         requests_per_minute=1,
         client_address=("203.0.113.11", 50000),
     ) as second_client:
-        isolated = second_client.get("/api/experimental/products/4006381333931")
+        isolated = second_client.get("/api/v1/products/4006381333931")
 
     assert first.status_code == 404
     assert spoofed.status_code == 429
@@ -838,7 +786,7 @@ def test_metrics_are_aggregate_and_exclude_barcode_and_client_address() -> None:
     metrics = RecordingMetrics()
 
     with _client(database, metrics=metrics) as client:
-        response = client.get("/api/experimental/products/4006381333931")
+        response = client.get("/api/v1/products/4006381333931")
 
     assert response.status_code == 200
     assert metrics.events == [
@@ -869,7 +817,7 @@ def test_uvicorn_access_log_redacts_product_lookup_path_and_client_address(
             '%s - "%s %s HTTP/%s" %d',
             "203.0.113.42:50000",
             "GET",
-            "/api/experimental/products/4006381333931",
+            "/api/v1/products/4006381333931",
             "1.1",
             200,
         )
@@ -877,25 +825,7 @@ def test_uvicorn_access_log_redacts_product_lookup_path_and_client_address(
     message = caplog.records[-1].getMessage()
     assert "4006381333931" not in message
     assert "203.0.113.42" not in message
-    assert "/api/experimental/products/[redacted]" in message
-
-    with (
-        caplog.at_level("INFO", logger=access_logger.name),
-        _client(database),
-    ):
-        access_logger.info(
-            '%s - "%s %s HTTP/%s" %d',
-            "203.0.113.42:50000",
-            "GET",
-            "/api/v1/products/4006381333931",
-            "1.1",
-            200,
-        )
-
-    message_v1 = caplog.records[-1].getMessage()
-    assert "4006381333931" not in message_v1
-    assert "203.0.113.42" not in message_v1
-    assert "/api/v1/products/[redacted]" in message_v1
+    assert "/api/v1/products/[redacted]" in message
 
     with (
         caplog.at_level("INFO", logger=access_logger.name),
@@ -932,6 +862,13 @@ def test_v1_product_lookup_returns_stable_product_projection_with_provenance() -
     body = response.json()
     assert body["data"]["product"]["identity"]["barcode"] == "4006381333931"
     assert body["data"]["product"]["identity"]["preferred_name"]["value"] == "Dark Chocolate"
+    assert body["data"]["allergen_analysis"]["off"] == {
+        "state": "available",
+        "tags": ["en:milk"],
+    }
+    assert body["data"]["allergen_analysis"]["ingredient_matching"]["state"] == (
+        "unavailable"
+    )
     assert body["meta"]["lookup"]["barcode"] == "4006381333931"
     assert body["meta"]["source"]["name"] == "Open Food Facts"
     assert (
@@ -1041,6 +978,9 @@ def test_v1_product_lookup_with_language_kh_generates_translation() -> None:
         == "https://world.openfoodfacts.org/product/4006381333931"
     )
     assert body["meta"]["dataset"]["version"] == VERSION_ID
+    assert body["data"]["allergen_analysis"]["ingredient_matching"]["state"] == (
+        "unavailable"
+    )
 
     product = body["data"]["product"]
     assert product["identity"]["name"]["translation_status"] == "generated"
@@ -1636,7 +1576,7 @@ def test_product_lookup_never_sends_an_outbound_http_request(
 
     monkeypatch.setattr(httpx.Client, "send", guard_outbound)
     with _client(database) as client:
-        response = client.get("/api/experimental/products/4006381333931")
+        response = client.get("/api/v1/products/4006381333931")
 
     assert response.status_code == expected_status
 

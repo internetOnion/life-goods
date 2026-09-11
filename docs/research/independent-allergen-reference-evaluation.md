@@ -4,6 +4,12 @@
 **Issue Reference:** #118 — Research and select independent ingredient-to-allergen reference data  
 **Review Baseline:** Commit `979c44d` (PR #116)  
 
+> **Implementation status:** This is research context, not an adopted production
+> design. Issue #119 keeps the Open Food Facts matcher and does not wire an
+> independent reference bundle or expand its mappings. The proposed bundle path
+> and `independent_reference` response examples below are historical proposals;
+> the current runtime contract uses `ingredient_matching`.
+
 ---
 
 ## 1. Executive Summary
@@ -239,7 +245,7 @@ We recommend adopting a **Tiered Curated Reference Model**:
 
 1. **Policy Anchor:** Adopt **Codex CXS 1-1985 (Amended 2026)** as the formal category policy authority. It establishes which categories exist, their regulatory status, and derivative exemption principles.
 2. **Standard Vocabulary Identifiers:** Adopt **FoodOn** and **UK FSA Allergen Codes** for stable machine-readable URIs and biological classifications.
-3. **Project-Curated Cited Mapping Bundle:** Maintain an immutable, hash-pinned, versioned JSON reference bundle (advancing `backend/src/lifegoods/reference_datasets/bundles/codex_2026_food_allergen_reviewed_english_v1.json`). Every mapping must specify:
+3. **Project-Curated Cited Mapping Bundle:** If a future issue adopts this direction, maintain an immutable, hash-pinned, versioned JSON reference bundle outside the current runtime matcher. Every mapping must specify:
    - Target Concept ID
    - Mapped English text
    - Relationship type: `EXACT_NAME`, `DERIVED_FROM`, `SPECIES_MEMBER`, `DOES_NOT_CONTAIN`

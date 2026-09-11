@@ -4,17 +4,11 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-from lifegoods.core.types import JsonValue
 from lifegoods.translation.contracts import (
     OriginalText,
     TranslationFieldStatus,
     TranslationOverallStatus,
 )
-
-
-class ProductLookupDataResponse(BaseModel):
-    source_record: dict[str, JsonValue]
-    allergen_analysis: "AllergenAnalysisResponse"
 
 
 class OffAllergenAnalysisResponse(BaseModel):
@@ -119,11 +113,6 @@ class ProductProjectionMetaResponse(ProductLookupMetaResponse):
             status=TranslationOverallStatus.NOT_REQUESTED
         )
     )
-
-
-class ProductLookupResponse(BaseModel):
-    data: ProductLookupDataResponse
-    meta: ProductLookupMetaResponse
 
 
 type NutritionAmount = float | int | str
@@ -310,6 +299,7 @@ class ProductProjection(BaseModel):
 
 class ProductProjectionData(BaseModel):
     product: ProductProjection
+    allergen_analysis: AllergenAnalysisResponse
 
 
 class ProductProjectionResponse(BaseModel):
