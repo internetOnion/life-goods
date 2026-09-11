@@ -1,4 +1,5 @@
 import type {
+    AllergenIngredientGroup,
     LearnCategory,
     LearnEntry,
     LearnFact,
@@ -87,6 +88,224 @@ function makeFoodScoreEntry(
         reviewState: approved,
     }
 }
+
+const ALLERGEN_INGREDIENT_GROUPS: AllergenIngredientGroup[] = [
+    {
+        key: "milk",
+        name: { kh: "ទឹកដោះគោ", en: "Milk" },
+        examples: [
+            { name: { kh: "ម្សៅទឹកដោះគោ (milk powder)", en: "Milk powder" } },
+            { name: { kh: "វ៉េ (whey)", en: "Whey" } },
+            { name: { kh: "កាសេអ៊ីន (casein)", en: "Casein" } },
+            { name: { kh: "កាសេអ៊ីណាត (caseinate)", en: "Caseinate" } },
+            { name: { kh: "ប៊ឺ (butter)", en: "Butter" } },
+            { name: { kh: "ក្រែម (cream)", en: "Cream" } },
+            { name: { kh: "ឈីស (cheese)", en: "Cheese" } },
+            { name: { kh: "យ៉ាអួ (yogurt)", en: "Yogurt" } },
+        ],
+        labelMeaning: { kh: "ប្រូតេអ៊ីនទឹកដោះគោ", en: "Milk protein" },
+    },
+    {
+        key: "egg",
+        name: { kh: "ស៊ុត", en: "Egg" },
+        examples: [
+            { name: { kh: "ស៊ុតស (egg white)", en: "Egg white" } },
+            { name: { kh: "ស៊ុតលឿង (egg yolk)", en: "Egg yolk" } },
+            { name: { kh: "អាល់ប៊ុយមីន (albumin)", en: "Albumin" } },
+            { name: { kh: "អូវ៉ាល់ប៊ុយមីន (ovalbumin)", en: "Ovalbumin" } },
+            { name: { kh: "ម៉ាយ៉ូណេស (mayonnaise)", en: "Mayonnaise" } },
+        ],
+        labelMeaning: { kh: "ប្រូតេអ៊ីនស៊ុត", en: "Egg protein" },
+    },
+    {
+        key: "peanut",
+        name: { kh: "សណ្តែកដី", en: "Peanut" },
+        examples: [
+            { name: { kh: "សណ្តែកដី (peanut)", en: "Peanut" } },
+            { name: { kh: "សណ្តែកដី (groundnut)", en: "Groundnut" } },
+            { name: { kh: "ម្សៅសណ្តែកដី (peanut flour)", en: "Peanut flour" } },
+            {
+                name: {
+                    kh: "ប៊ឺសណ្តែកដី (peanut butter)",
+                    en: "Peanut butter",
+                },
+            },
+            {
+                name: { kh: "ប្រេងអារ៉ាគីស (arachis oil)", en: "Arachis oil" },
+                note: {
+                    kh: "ការកែច្នៃអាចផ្លាស់ប្តូរបរិមាណប្រូតេអ៊ីនដែលនៅសល់។ ឈ្មោះប្រេងតែមួយមិនអាចបញ្ជាក់សុវត្ថិភាពបានទេ។",
+                    en: "Processing can change the amount of protein that remains. The oil name alone does not establish safety.",
+                },
+            },
+        ],
+        labelMeaning: { kh: "សណ្តែកដី", en: "Peanut" },
+    },
+    {
+        key: "tree-nuts",
+        name: { kh: "គ្រាប់ធញ្ញជាតិពីដើមឈើ", en: "Tree nuts" },
+        examples: [
+            { name: { kh: "អាល់ម៉ុន (almond)", en: "Almond" } },
+            { name: { kh: "ស្វាយចន្ទី (cashew)", en: "Cashew" } },
+            { name: { kh: "វ៉ាល់ណាត់ (walnut)", en: "Walnut" } },
+            { name: { kh: "ហេសែលណាត់ (hazelnut)", en: "Hazelnut" } },
+            { name: { kh: "ពីស្តាស្យូ (pistachio)", en: "Pistachio" } },
+            { name: { kh: "ផេកាន (pecan)", en: "Pecan" } },
+            { name: { kh: "ម៉ាកាដាមៀ (macadamia)", en: "Macadamia" } },
+        ],
+        labelMeaning: {
+            kh: "ត្រូវសម្គាល់ឈ្មោះគ្រាប់ជាក់លាក់",
+            en: "Identify the specific nut",
+        },
+    },
+    {
+        key: "soy",
+        name: { kh: "សណ្តែកសៀង", en: "Soy" },
+        examples: [
+            { name: { kh: "សណ្តែកសៀង (soybean)", en: "Soybean" } },
+            { name: { kh: "ម្សៅសណ្តែកសៀង (soy flour)", en: "Soy flour" } },
+            {
+                name: {
+                    kh: "ប្រូតេអ៊ីនសណ្តែកសៀង (soy protein)",
+                    en: "Soy protein",
+                },
+            },
+            { name: { kh: "តៅហ៊ូ (tofu)", en: "Tofu" } },
+            { name: { kh: "តែមប៉េ (tempeh)", en: "Tempeh" } },
+            { name: { kh: "មីសូ (miso)", en: "Miso" } },
+            {
+                name: { kh: "លេស៊ីទីន (lecithin)", en: "Lecithin" },
+                note: {
+                    kh: "ប្រភពលេស៊ីទីនត្រូវមានបញ្ជាក់។ ការកែច្នៃអាចផ្លាស់ប្តូរបរិមាណប្រូតេអ៊ីនដែលនៅសល់ ហើយឈ្មោះនេះតែមួយមិនអាចបញ្ជាក់សុវត្ថិភាពបានទេ។",
+                    en: "The source of lecithin needs to be stated. Processing can change the amount of protein that remains, and this name alone does not establish safety.",
+                },
+            },
+        ],
+        labelMeaning: { kh: "សណ្តែកសៀង", en: "Soy" },
+    },
+    {
+        key: "wheat-gluten-cereals",
+        name: {
+            kh: "ស្រូវសាលី ឬធញ្ញជាតិមានគ្លុយតែន",
+            en: "Wheat or gluten cereals",
+        },
+        examples: [
+            { name: { kh: "ម្សៅស្រូវសាលី (wheat flour)", en: "Wheat flour" } },
+            { name: { kh: "សេម៉ូលីណា (semolina)", en: "Semolina" } },
+            { name: { kh: "ឌូរ៉ុម (durum)", en: "Durum" } },
+            { name: { kh: "ស្ពែល (spelt)", en: "Spelt" } },
+            { name: { kh: "កម្ទេចនំប៉័ង (breadcrumbs)", en: "Breadcrumbs" } },
+            {
+                name: {
+                    kh: "ម្សៅអាមីដុងស្រូវសាលី (wheat starch)",
+                    en: "Wheat starch",
+                },
+            },
+        ],
+        labelMeaning: {
+            kh: "ស្រូវសាលី ឬធញ្ញជាតិមានគ្លុយតែន",
+            en: "Wheat or a gluten-containing cereal",
+        },
+    },
+    {
+        key: "fish",
+        name: { kh: "ត្រី", en: "Fish" },
+        examples: [
+            { name: { kh: "សាច់ត្រី (fish meat)", en: "Fish meat" } },
+            { name: { kh: "ទឹកត្រី (fish sauce)", en: "Fish sauce" } },
+            { name: { kh: "ទឹកស៊ុបត្រី (fish stock)", en: "Fish stock" } },
+            { name: { kh: "ត្រីអាន់ឆូវី (anchovy)", en: "Anchovy" } },
+            { name: { kh: "ត្រីធូណា (tuna)", en: "Tuna" } },
+            { name: { kh: "ត្រីសាល់ម៉ុន (salmon)", en: "Salmon" } },
+            { name: { kh: "ស៊ូរីមី (surimi)", en: "Surimi" } },
+        ],
+        labelMeaning: { kh: "ត្រី", en: "Fish" },
+    },
+    {
+        key: "crustacean-shellfish",
+        name: { kh: "សត្វសមុទ្រសំបករឹង", en: "Crustacean shellfish" },
+        examples: [
+            { name: { kh: "បង្គា (shrimp)", en: "Shrimp" } },
+            { name: { kh: "បង្គា (prawn)", en: "Prawn" } },
+            { name: { kh: "ក្តាម (crab)", en: "Crab" } },
+            { name: { kh: "បង្កង (lobster)", en: "Lobster" } },
+            { name: { kh: "ក្រេហ្វីស (crayfish)", en: "Crayfish" } },
+            { name: { kh: "កាពិបង្គា (shrimp paste)", en: "Shrimp paste" } },
+        ],
+        labelMeaning: { kh: "សត្វសមុទ្រសំបករឹង", en: "Crustacean" },
+    },
+    {
+        key: "molluscs",
+        name: { kh: "សត្វសមុទ្រសាច់ទន់", en: "Molluscs" },
+        examples: [
+            { name: { kh: "មឹក (squid)", en: "Squid" } },
+            { name: { kh: "អយស្ទ័រ (oyster)", en: "Oyster" } },
+            { name: { kh: "មូសែល (mussel)", en: "Mussel" } },
+            { name: { kh: "ខ្យងសមុទ្រ (clam)", en: "Clam" } },
+            { name: { kh: "មឹកយក្ស (octopus)", en: "Octopus" } },
+            { name: { kh: "ខ្យង (snail)", en: "Snail" } },
+        ],
+        labelMeaning: { kh: "សត្វសមុទ្រសាច់ទន់", en: "Mollusc" },
+    },
+    {
+        key: "sesame",
+        name: { kh: "ល្ង", en: "Sesame" },
+        examples: [
+            { name: { kh: "គ្រាប់ល្ង (sesame seed)", en: "Sesame seed" } },
+            { name: { kh: "ម្សៅល្ង (sesame flour)", en: "Sesame flour" } },
+            { name: { kh: "ប្រេងល្ង (sesame oil)", en: "Sesame oil" } },
+            { name: { kh: "តាហ៊ីនី (tahini)", en: "Tahini" } },
+        ],
+        labelMeaning: { kh: "ល្ង", en: "Sesame" },
+    },
+    {
+        key: "buckwheat",
+        name: { kh: "បាក់វីត", en: "Buckwheat" },
+        examples: [
+            {
+                name: {
+                    kh: "គ្រាប់បាក់វីត (buckwheat grain)",
+                    en: "Buckwheat grain",
+                },
+            },
+            {
+                name: {
+                    kh: "ម្សៅបាក់វីត (buckwheat flour)",
+                    en: "Buckwheat flour",
+                },
+            },
+            {
+                name: { kh: "មីសូបា (soba noodles)", en: "Soba noodles" },
+                note: {
+                    kh: "មីសូបាខ្លះមានទាំងបាក់វីត និងស្រូវសាលី។ ត្រូវអានបញ្ជីគ្រឿងផ្សំពេញលេញ។",
+                    en: "Some soba noodles contain both buckwheat and wheat. Read the complete ingredient list.",
+                },
+            },
+        ],
+        labelMeaning: { kh: "បាក់វីត", en: "Buckwheat" },
+    },
+    {
+        key: "sulphites",
+        name: { kh: "ស៊ុលហ្វៃត", en: "Sulphites" },
+        examples: [
+            {
+                name: {
+                    kh: "ស៊ុលហ្វឺឌីអុកស៊ីត (sulfur dioxide)",
+                    en: "Sulfur dioxide",
+                },
+            },
+            {
+                name: {
+                    kh: "សារធាតុរក្សាទុក E220-E228",
+                    en: "Preservatives E220-E228",
+                },
+            },
+        ],
+        labelMeaning: {
+            kh: "សារធាតុរក្សាទុកស៊ុលហ្វៃត",
+            en: "Sulphite preservative",
+        },
+    },
+]
 
 export const LEARN_ENTRIES: LearnEntry[] = [
     makeEntry(
@@ -407,6 +626,49 @@ export const LEARN_ENTRIES: LearnEntry[] = [
         "codex-label-2026",
         "Section 8.3",
     ),
+    {
+        id: "ALLERGEN_LEARN_005",
+        slug: "common-ingredient-names-by-allergen",
+        category: "allergens",
+        title: {
+            kh: "ឈ្មោះគ្រឿងផ្សំទូទៅតាមក្រុមអាលែហ្សែន",
+            en: "Common ingredient names by allergen",
+        },
+        summary: {
+            kh: "ស្គាល់ឈ្មោះគ្រឿងផ្សំទូទៅដែលអាចបង្ហាញប្រភពអាលែហ្សែននៅលើស្លាកអាហារ។ ឧទាហរណ៍ទាំងនេះមិនមែនជាបញ្ជីពេញលេញទេ។",
+            en: "Recognize common ingredient names that can indicate an allergen source on a food label. These examples are not an exhaustive list.",
+        },
+        body: {
+            kh: "ស្លាកអាហារអាចប្រើឈ្មោះអាហារដែលស្គាល់ ឬឈ្មោះគ្រឿងផ្សំជាក់លាក់ជាងនេះ។ ក្រុមខាងក្រោមភ្ជាប់ពាក្យទូទៅលើស្លាកទៅនឹងប្រភពអាលែហ្សែនដែលពាក្យនោះអាចបង្ហាញ។ ត្រូវអានបញ្ជីគ្រឿងផ្សំពេញលេញ និងសេចក្តីប្រកាសដែលនៅជិត ព្រោះច្បាប់ និងពាក្យប្រើប្រាស់អាចខុសគ្នាតាមប្រទេស ឬតំបន់។",
+            en: "A food label may use a familiar food name or a more specific ingredient name. The groups below connect common label terms with the allergen source they can indicate. Read the complete ingredient list and any nearby declaration because requirements and wording vary by country or region.",
+        },
+        allergenIngredientGroups: ALLERGEN_INGREDIENT_GROUPS,
+        doesNotImply: {
+            kh: "ឧទាហរណ៍ទាំងនេះមិនមែនជាបញ្ជីពេញលេញ និងមិនកំណត់ថា Product មួយមានសុវត្ថិភាពសម្រាប់មនុស្សជាក់លាក់ទេ។ គ្រឿងផ្សំដែលបានបញ្ជាក់ខុសពីសេចក្តីប្រកាសអំពីការប៉ះពាល់ដោយចៃដន្យដូចជា “អាចមាន”។ មិនត្រូវចាត់ថ្នាក់ពាក្យមិនច្បាស់ដូចជា flavouring គ្រឿងទេស ឬប្រេងបន្លែទៅជាអាលែហ្សែនដោយគ្មានប្រភពដែលបានបញ្ជាក់ទេ ហើយការមិនឃើញសេចក្តីប្រកាសមិនបញ្ជាក់ថា Product គ្មានអាលែហ្សែនទេ។",
+            en: "These examples are not exhaustive and do not determine whether a Product is safe for a particular person. A confirmed ingredient is different from precautionary wording such as “may contain.” Vague terms such as flavouring, spices, or vegetable oil must not be assigned to an allergen without a stated source, and a missing declaration does not prove that a Product is allergen-free.",
+        },
+        sourceRefs: [
+            {
+                sourceId: "project-allergen-ingredient-guide",
+                section:
+                    "Common allergens and ingredient examples; How to show allergen information; Important safety notes",
+            },
+            {
+                sourceId: "codex-label-2026",
+                section: "Sections 4.2.1.4-4.2.1.7 and 8.3",
+            },
+            {
+                sourceId: "fda-food-allergies",
+                section: "Food Labels and Allergens",
+            },
+            {
+                sourceId: "fsanz-allergen-labelling",
+                section: "What must be declared",
+            },
+        ],
+        relatedEntryIds: [],
+        reviewState: "draft",
+    },
     makeEntry(
         "HALAL_LEARN_001",
         "codex-definition-of-halal-food",
