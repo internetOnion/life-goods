@@ -87,4 +87,3 @@ def join_ingredient_chunks(chunks: list[str]) -> str:
     if not cleaned:
         return ""
     return ", ".join(cleaned)
-

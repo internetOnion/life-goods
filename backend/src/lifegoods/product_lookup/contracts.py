@@ -1,10 +1,9 @@
 from datetime import datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-from lifegoods.core.types import JsonValue
 from lifegoods.translation.contracts import (
     OriginalText,
     TranslationFieldStatus,
@@ -12,8 +11,67 @@ from lifegoods.translation.contracts import (
 )
 
 
-class ProductLookupDataResponse(BaseModel):
-    source_record: dict[str, JsonValue]
+class OffAllergenAnalysisResponse(BaseModel):
+    state: Literal["available", "empty", "missing", "invalid"]
+    tags: list[str]
+
+
+class AllergenInputResponse(BaseModel):
+    source_field: str
+    language: str
+
+
+class AllergenEvidenceResponse(BaseModel):
+    matched_text: str
+    start: int
+    end: int
+    alias: str
+    ingredient_tags: list[str]
+    name: str | None
+    parents: list[str]
+    ambiguous: bool
+    qualification: Literal[
+        "positive_mention",
+        "precautionary_statement",
+        "negated_mention",
+        "unresolved_context",
+    ]
+    allergens: list[dict[str, Any]]
+
+
+class AllergenUnmatchedSpanResponse(BaseModel):
+    text: str
+    start: int
+    end: int
+
+
+class IngredientMatchingAllergenResponse(BaseModel):
+    state: Literal["completed", "unavailable"]
+    reason: str | None = None
+    quality: Literal["clear", "ambiguous", "insufficient"] | None = None
+    tags: list[str]
+    evidence: list[AllergenEvidenceResponse]
+    qualifications: list[AllergenEvidenceResponse]
+    limitations: list[str]
+    unmatched_texts: list[str]
+    unmatched_spans: list[AllergenUnmatchedSpanResponse]
+    input: AllergenInputResponse | None = None
+    taxonomy_sha256: str | None = None
+    allergen_taxonomy_sha256: str | None = None
+
+
+class AllergenComparisonResponse(BaseModel):
+    state: Literal["available", "unavailable"]
+    in_both: list[str]
+    off_only: list[str]
+    ingredient_matching_only: list[str]
+    sets_equal: bool | None
+
+
+class AllergenAnalysisResponse(BaseModel):
+    off: OffAllergenAnalysisResponse
+    ingredient_matching: IngredientMatchingAllergenResponse
+    comparison: AllergenComparisonResponse
 
 
 class ProductLookupMetadataResponse(BaseModel):
@@ -55,11 +113,6 @@ class ProductProjectionMetaResponse(ProductLookupMetaResponse):
             status=TranslationOverallStatus.NOT_REQUESTED
         )
     )
-
-
-class ProductLookupResponse(BaseModel):
-    data: ProductLookupDataResponse
-    meta: ProductLookupMetaResponse
 
 
 type NutritionAmount = float | int | str
@@ -246,6 +299,7 @@ class ProductProjection(BaseModel):
 
 class ProductProjectionData(BaseModel):
     product: ProductProjection
+    allergen_analysis: AllergenAnalysisResponse
 
 
 class ProductProjectionResponse(BaseModel):

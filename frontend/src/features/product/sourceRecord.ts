@@ -1,7 +1,4 @@
-import type {
-    ProductLookupMetaResponse,
-    ProductLookupResponse,
-} from "../../api/generated"
+import type { ProductLookupMetaResponse, ProductLookupResponse } from "./types"
 
 type SourceRecord = ProductLookupResponse["data"]["source_record"]
 type UnknownRecord = Record<string, unknown>

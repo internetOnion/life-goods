@@ -4,9 +4,9 @@
 > **Life Goods Packaged-Food Khmer Translation Benchmark Review Packet**
 > Machine-generated benchmark evaluation for candidate model selection and go/no-go thresholds. Candidate approval establishes the exact provider model and translation-configuration version; it does NOT claim, represent, or imply that individual live Product translations are human-reviewed, verified, or endorsed label text.
 
-**Generated:** 2026-09-04 07:44:39 UTC  
-**Candidate Model:** `gemini-3.8-flash`  
-**Benchmark Dataset Version:** `v1`  
+**Generated:** 2026-09-04 07:44:39 UTC
+**Candidate Model:** `gemini-3.8-flash`
+**Benchmark Dataset Version:** `v1`
 
 ## Quantitative Evaluation Summary
 
@@ -215,4 +215,3 @@ Fluent Khmer reviewer verification checklist:
 | `categories` | `generated` | Snacks ; Dried fruits // Plant-based | អាហារសម្រន់ ; ផ្លែឈើក្រៀម // ផ្អែកលើរុក្ខជាតិ | _None_ |
 
 ---
-

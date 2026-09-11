@@ -2,9 +2,9 @@
 
 ## Status
 
-This specification defines the new backend-first product direction. The current repository still contains catalog, package-match, reference-dataset, allergen, Halal, assessment, and package-capture code from the previous direction. Those modules are transitional and do not define the target product.
+This specification defines the backend-first product direction implemented by the current repository. The read-only backend foundation uses MongoDB for the Open Food Facts Dataset Snapshot and generated translation data, Redis for disposable caching and rate limiting, and FastAPI as the frontend contract owner. The bounded ingredient-matching prototype remains source-based evidence only; it is not a safety, allergen-free, or verification verdict.
 
-The documentation reset does not remove implementation code or databases. Backend simplification will be a separate, atomic change.
+The backend simplification and removal of obsolete relational/application wiring are represented in the current checkout. Historical issue references below remain useful for provenance, but the current code and contract sections are authoritative.
 
 ## 1. Product boundary
 
@@ -23,15 +23,15 @@ The MVP does not own a Product catalog, accept contributions, upload package pho
 
 ## 2. Current milestone
 
-The first backend milestone is one cached, read-only Product Lookup endpoint over the configured Dataset Snapshot. It establishes Barcode validation, source provenance, missing-state behavior, and a raw exploratory payload before the product-page contract is refined.
+The first backend milestone is one cached, read-only Product Lookup endpoint over the configured Dataset Snapshot. It establishes Barcode validation, source provenance, missing-state behavior, the stable Product projection, and source-based allergen evidence.
 
 Search is an optional parallel follow-on. It is not required for the first endpoint, but it is not blocked by a formal phase gate once it can reuse stable lookup foundations.
 
-## 3. Experimental Product Lookup API
+## 3. Stable Product Lookup API
 
 ### Request
 
-`GET /api/experimental/products/{barcode}`
+`GET /api/v1/products/{barcode}`
 
 The route belongs to Life Goods rather than the source provider. The response identifies Open Food Facts through explicit metadata.
 
@@ -49,7 +49,12 @@ A successful response returns `200 OK` with an envelope shaped like:
 ```json
 {
     "data": {
-        "source_record": {}
+        "product": {},
+        "allergen_analysis": {
+            "off": {},
+            "ingredient_matching": {},
+            "comparison": {}
+        }
     },
     "meta": {
         "lookup": {
@@ -67,9 +72,35 @@ A successful response returns `200 OK` with an envelope shaped like:
 }
 ```
 
-`source_record` contains the raw imported Open Food Facts document. The backend removes MongoDB `_id`, local import bookkeeping, and other storage-only metadata. It does not normalize or selectively project Open Food Facts fields in this experimental contract.
+For a found Product, `data.allergen_analysis` keeps Open Food Facts `off` tags separate from
+`ingredient_matching` tags and includes a `comparison` with exact-tag intersections and
+differences. Ingredient matching runs when usable English ingredient text is present regardless
+of whether `allergens_tags` is empty.
+Missing, unsupported, ambiguous, or insufficient ingredient evidence is returned explicitly and
+does not mean that the Product has no allergens. The analysis is source comparison, not a Life
+Goods safety, allergen-free, or verification verdict.
 
-This endpoint is intentionally unstable. After the English Product page reveals its actual needs, a stable Life Goods projection will graduate under `/api/v1/products/{barcode}`.
+`ingredient_matching.evidence` retains the matched Original Text span, taxonomy relationship,
+and one of these bounded qualification values:
+
+- `positive_mention`: reliable ingredient evidence eligible for derived tags;
+- `precautionary_statement`: a supported cross-contact statement such as `may contain`;
+- `negated_mention`: a supported negated form such as `milk-free`; or
+- `unresolved_context`: recognized wording whose allergen relationship or context is not
+  supported.
+
+Only unambiguous `positive_mention` evidence with a supported allergen relationship contributes
+to `ingredient_matching.tags` or the comparison sets. `qualifications` exposes non-positive
+qualified evidence separately, while `unmatched_spans` reports each unmatched Original Text
+token with its exact `text`, `start`, and `end` offsets. `unmatched_texts` remains the text-only
+projection for compatibility. These fields describe source evidence and coverage limitations;
+they never assert that a Product is allergen-free or safe.
+
+The matcher supports bounded English qualification forms only. It does not claim general
+natural-language or multilingual interpretation. A missing ingredient field, unsupported or
+unknown language, oversized text, disabled matcher, or unavailable matcher is represented as
+Source Data Unavailable with a reason, while the stable Product projection remains available
+when possible.
 
 ### Errors
 
@@ -95,6 +126,19 @@ Required behavior:
 | Unexpected internal failure                         |       `500` | `internal_error`      |
 
 The service never falls back silently to the live Open Food Facts API.
+
+The experimental `POST /api/experimental/ingredient-matches` route accepts JSON from configured
+frontend origins. Its browser preflight permits `POST` only for those configured origins. Invalid,
+missing, blank, whitespace-only, or oversized requests use the same `422` envelope:
+
+```json
+{
+    "error": {
+        "code": "invalid_ingredient_text",
+        "message": "Enter ingredient text from 1 to 2000 characters."
+    }
+}
+```
 
 ## 4. Dataset Snapshot
 
@@ -176,25 +220,31 @@ Translation provider and model selection are deferred until this phase.
 - Permit aggregate counts for lookup volume, found/not-found rate, latency, cache performance, and error rate.
 - Minimize or redact Barcodes in application logs unless a short-lived operational diagnostic explicitly requires them.
 
-## 10. Backend transition
+## 10. Backend persistence and module boundary
 
-The new read-only MVP has no durable relational data requirement. The backend refactor will therefore:
+The current read-only MVP has no durable relational data requirement. The backend
+refactor is complete for the current architecture:
 
-1. preserve the MongoDB Dataset Snapshot and Open Food Facts import/read foundation;
-2. preserve Redis as disposable cache and rate-limit infrastructure;
-3. remove the PostgreSQL and Alembic runtime dependency;
-4. remove obsolete catalog, package-match, reference-dataset, allergen, Halal, assessment, and package-capture implementation only after their dependencies are mapped;
-5. replace obsolete models, migrations, tests, configuration, and infrastructure together; and
-6. update README and development commands atomically with that implementation change.
+1. the MongoDB Dataset Snapshot and Open Food Facts import/read foundation remain;
+2. Redis remains disposable cache and rate-limit infrastructure;
+3. PostgreSQL, Alembic, and their migration chain are not runtime dependencies;
+4. obsolete catalog, package-match, reference-dataset, Halal, assessment, and
+   package-capture application wiring is absent; and
+5. the bounded ingredient-matching prototype uses the Open Food Facts taxonomy
+   only. Independent reference-source integration and mapping expansion remain
+   out of scope until a future specification adopts them.
 
-No shared, staging, or production PostgreSQL history must be preserved. Do not delete the existing migration chain in isolation: the clean-slate removal belongs to the atomic backend refactor.
+Generated translation storage is isolated in MongoDB and initialized explicitly
+with `pnpm generated-data:init`; web startup does not create its collections or
+indexes. A future relational store would require a new product requirement and
+an accepted ADR rather than restoring the removed migration history.
 
 ## 11. First milestone acceptance criteria
 
 The first backend milestone is complete when:
 
 - supported Barcodes are normalized and validated before lookup;
-- a known Barcode returns the raw Source Record in the documented envelope;
+- a known Barcode returns the stable Product projection and allergen analysis in the documented envelope;
 - storage-only fields do not leave the backend;
 - source name, source Product URL, Dataset Snapshot version, and retrieval time are present;
 - invalid, unknown, unavailable-source, rate-limit, and internal-error paths use the documented statuses and codes;
@@ -203,15 +253,15 @@ The first backend milestone is complete when:
 - the endpoint is represented in FastAPI's OpenAPI contract and generated frontend client; and
 - aggregate metrics contain no retained Barcode or Shopper history.
 
-## 12. Deliberate compatibility surface (Issue #83)
+## 12. Frontend compatibility surface (Issue #83)
 
-To allow safe incremental migration of the frontend without breaking existing prototype behavior:
-
-1. **Deprecated Experimental Route**: `GET /api/experimental/products/{barcode}` is retained with `deprecated=True` in OpenAPI. It returns `ProductLookupResponse` containing the unprojected Open Food Facts `source_record`.
-2. **Dual-Contract Frontend Adapter**: `adaptProductLookup` in `frontend/src/features/product/adapter.ts` accepts either `ProductProjectionResponse` (from the stable `/api/v1/products/{barcode}` endpoint) or `ProductLookupResponse` (from the deprecated experimental route).
-The default frontend Product Lookup currently reads the checked-in Dataset Snapshot without an API request. Its raw response uses a frontend-owned compatibility type, independent of the generated FastAPI types. The adapter preserves Source Attribution for both that static response and the stable API response. Connecting the default frontend to `language=kh` and implementing translated-field display remain deferred to #90.
-
-3. **Subsequent Removal Issue**: Once frontend presentation components consume `ProductProjection` directly and no consumers rely on `adaptProductLookup`'s legacy candidate structure, the experimental endpoint and dual-mode adapter will be removed in a dedicated follow-up issue.
+The default frontend Product Lookup currently reads the checked-in Dataset Snapshot without an
+API request. Its offline adapter retains a frontend-owned raw Source Record compatibility type,
+including an unavailable allergen-analysis fallback, independent of the generated FastAPI types.
+The generated client represents the stable `/api/v1/products/{barcode}` response, including its
+`data.allergen_analysis` sibling. The adapter preserves Source Attribution for both the static
+offline response and the stable API response. Connecting the default frontend to
+`language=kh` and implementing translated-field display remain deferred to #90.
 
 ## 13. Isolated generated-data persistence (Issue #84)
 
@@ -299,7 +349,7 @@ The stable Product Lookup endpoint integrates optional on-demand Khmer Translati
    - `GET /api/v1/products/{barcode}?language=kh`
    - Requests without `language=kh` return the stable Product projection and Original Text without generating translation (`meta.translation.status="not_requested"`).
    - The application request and locale value is `kh`. External Source Record language tags, including `km`, retain their original metadata. Any other unsupported language parameter value returns HTTP 422 with stable error code `unsupported_language`.
-   - The experimental endpoint `/api/experimental/products/{barcode}` remains functional but is formally deprecated in OpenAPI documentation.
+   - The stable response also includes `data.allergen_analysis`, preserving the distinction between Open Food Facts tags, matcher-derived tags, qualifications, unmatched spans, and comparison sets.
 
 2. **Field-Level Co-Location**:
    - Semantic fields eligible for translation (`identity.name`, `identity.generic_name`, `ingredients_text`, `categories_text`) carry individual translation states: `not_requested`, `source_khmer_available`, `original_text_preserved`, `generated`, `source_data_unavailable`, or `translation_unavailable`.

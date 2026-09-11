@@ -2,6 +2,7 @@ import type { ProductProjectionResponse } from "@/api/generated"
 import type { ProductLookupResponse } from "./types"
 import staticProducts from "@/data/products.json"
 import { normalizeIdentifier } from "@/lib/identifier"
+import { unavailableAllergenAnalysis } from "./defaults"
 
 export type ProductLookup = (
     barcode: string,
@@ -45,7 +46,10 @@ export const lookupProduct = (
     }
 
     return Promise.resolve({
-        data: { source_record: product.source_record },
+        data: {
+            source_record: product.source_record,
+            allergen_analysis: unavailableAllergenAnalysis,
+        },
         meta: product.meta,
     })
 }
