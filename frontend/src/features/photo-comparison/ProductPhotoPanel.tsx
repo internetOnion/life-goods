@@ -1,6 +1,7 @@
 import {
     ArrowClockwise,
     Camera,
+    Info,
     Trash,
     UploadSimple,
     WarningCircle,
@@ -302,7 +303,11 @@ export function ProductPhotoPanel({
                         product.loading && "text-primary-700 font-medium",
                         product.extraction &&
                             !product.error &&
-                            "text-success-700 font-medium",
+                            (product.extraction.outcome === "retake_required"
+                                ? "border-warning-300 bg-warning-50 text-warning-900 rounded-xl border p-3"
+                                : product.extraction.outcome === "partial"
+                                  ? "border-warning-200 bg-warning-50/70 text-warning-900 rounded-xl border p-3"
+                                  : "text-success-700 font-medium"),
                         !product.extraction &&
                             !product.loading &&
                             !product.error &&
@@ -318,11 +323,52 @@ export function ProductPhotoPanel({
                         "Reading photos…"
                     ) : product.extraction ? (
                         <div className="flex flex-col gap-1">
-                            <span className="text-success-800 font-bold">
-                                {product.extraction.outcome === "complete"
-                                    ? "Extraction completed"
-                                    : "Extraction finished"}
-                            </span>
+                            <div className="flex items-center gap-1.5 font-bold">
+                                {product.extraction.outcome === "complete" ? (
+                                    <span className="text-success-800">
+                                        Extraction completed
+                                    </span>
+                                ) : product.extraction.outcome === "partial" ? (
+                                    <>
+                                        <Info
+                                            size={15}
+                                            weight="bold"
+                                            className="text-warning-700 shrink-0"
+                                        />
+                                        <span className="text-warning-900">
+                                            Partial extraction: some label
+                                            fields could not be read
+                                        </span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <WarningCircle
+                                            size={15}
+                                            weight="bold"
+                                            className="text-warning-700 shrink-0"
+                                        />
+                                        <span className="text-warning-950">
+                                            Photos difficult to read: retake
+                                            recommended
+                                        </span>
+                                    </>
+                                )}
+                            </div>
+                            {product.extraction.outcome ===
+                                "retake_required" && (
+                                <p className="text-warning-800 text-xs">
+                                    Photos could not be clearly read. Please add
+                                    or replace with well-lit, close-up photos of
+                                    the nutrition panel.
+                                </p>
+                            )}
+                            {product.extraction.outcome === "partial" && (
+                                <p className="text-warning-800 text-xs">
+                                    Readable nutrients can still be compared.
+                                    Clearer photos can provide more complete
+                                    details.
+                                </p>
+                            )}
                             <details className="mt-1 cursor-pointer text-neutral-500">
                                 <summary className="text-[11px] font-medium text-neutral-500 select-none hover:text-neutral-700">
                                     Technical metadata
@@ -678,6 +724,27 @@ function ObservationRow({
                             {field.original_script}
                         </div>
                     )}
+                {field.state === "conflicting" && (
+                    <div className="text-warning-700 mt-1 text-[11px] font-medium">
+                        <span>Conflicting values on label: </span>
+                        <span>
+                            {displayValue(
+                                field.value_text,
+                                field.unit_text || "",
+                            )}
+                        </span>
+                        {field.alternatives?.map((alt, i) => (
+                            <span key={i}>
+                                {" "}
+                                vs{" "}
+                                {displayValue(
+                                    alt.value_text,
+                                    alt.unit_text || "",
+                                )}
+                            </span>
+                        ))}
+                    </div>
+                )}
                 <details className="mt-0.5 text-[11px] text-neutral-400">
                     <summary className="cursor-pointer select-none hover:text-neutral-600">
                         Details

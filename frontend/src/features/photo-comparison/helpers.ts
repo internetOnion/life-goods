@@ -101,9 +101,9 @@ export function displayBasisLabel(basis?: string | null): string {
         case "per_serving":
             return "Per serving"
         case "per_100g":
-            return "Per 100g"
+            return "Per 100 g"
         case "per_100ml":
-            return "Per 100ml"
+            return "Per 100 ml"
         default:
             return "Not specified"
     }
@@ -111,13 +111,39 @@ export function displayBasisLabel(basis?: string | null): string {
 
 export function formatPreparationLabel(prep?: string | null): string {
     switch (prep) {
+        case "dry":
+            return "Dry"
         case "as_sold":
             return "As sold"
         case "as_prepared":
+        case "prepared":
             return "As prepared"
         default:
             return "Unconfirmed"
     }
+}
+
+export function formatBasisAndPrep(
+    basis?: string | null,
+    prep?: string | null,
+): string {
+    const b = displayBasisLabel(basis).toLowerCase()
+    const p = formatPreparationLabel(prep).toLowerCase()
+    return `${b} · ${p}`
+}
+
+export function formatActionableError(message: string): string {
+    const lower = message.toLowerCase()
+    if (lower.includes("timeout") || lower.includes("timed out")) {
+        return "Photo processing request timed out. Please check your connection and tap Retry."
+    }
+    if (lower.includes("unavailable")) {
+        return "Photo processing provider is temporarily unavailable. Check your connection and tap Retry."
+    }
+    if (lower.includes("rate limit") || lower.includes("capacity")) {
+        return "Processing capacity reached. Please wait a moment and tap Retry."
+    }
+    return message || "The request failed. Please retry."
 }
 
 export function formatStateLabel(value: string | null | undefined): string {

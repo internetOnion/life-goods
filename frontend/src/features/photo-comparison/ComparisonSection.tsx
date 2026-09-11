@@ -6,9 +6,12 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 import {
+    displayBasisLabel,
     displayValue,
+    formatBasisAndPrep,
     formatNormalizedValue,
     formatNutrientName,
+    formatPreparationLabel,
     getMissingCellText,
 } from "./helpers"
 import type {
@@ -147,6 +150,26 @@ export function ComparisonSection({
             {/* Main Comparison Area */}
             {comparison && (
                 <div className="mt-6 space-y-8">
+                    {/* Leading Product Identities Header */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-800 pb-4">
+                        <div>
+                            <span className="mb-1 block text-xs font-semibold tracking-wider text-neutral-400 uppercase">
+                                Comparing Products
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-lg font-bold text-white sm:text-xl">
+                                    {leftProduct.title}
+                                </span>
+                                <span className="text-xs font-bold text-neutral-500 uppercase">
+                                    vs
+                                </span>
+                                <span className="text-lg font-bold text-white sm:text-xl">
+                                    {rightProduct.title}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Top Qualification Notice */}
                     <div
                         className={cn(
@@ -383,9 +406,6 @@ function AmountTableRow({
         row.left?.observation.label || row.right?.observation.label,
     )
 
-    // Show notice if one side is missing
-    const isSingleSided = !row.left || !row.right
-
     return (
         <tr className="transition-colors hover:bg-neutral-900/40">
             {/* Nutrient column */}
@@ -393,11 +413,6 @@ function AmountTableRow({
                 <div className="text-sm font-bold text-white">
                     {nutrientName}
                 </div>
-                {isSingleSided && row.reason && (
-                    <div className="text-warning-400/90 mt-1 text-[11px]">
-                        {row.reason}
-                    </div>
-                )}
             </td>
 
             {/* Left product cell */}
@@ -456,9 +471,48 @@ function ProductAmountCell({
     if (obs.state !== "readable") {
         const missing = getMissingCellText(obs.state)
         return (
-            <span className="text-xs font-medium text-neutral-500 italic">
-                {missing}
-            </span>
+            <div>
+                <span className="text-warning-400 text-xs font-medium italic">
+                    {missing}
+                </span>
+                {obs.state === "conflicting" && (
+                    <div className="text-warning-300 mt-1 text-[11px]">
+                        <span>Conflicting values on label: </span>
+                        <span className="font-mono">
+                            {displayValue(obs.value_text, obs.unit_text || "")}
+                        </span>
+                        {obs.alternatives?.map((alt, i) => (
+                            <span key={i} className="font-mono">
+                                {" "}
+                                vs{" "}
+                                {displayValue(
+                                    alt.value_text,
+                                    alt.unit_text || "",
+                                )}
+                            </span>
+                        ))}
+                    </div>
+                )}
+                {obs.evidence && obs.evidence.length > 0 && (
+                    <details className="mt-1 text-[11px] text-neutral-400">
+                        <summary className="cursor-pointer text-[10px] text-neutral-400 select-none hover:text-neutral-200">
+                            Evidence & details
+                        </summary>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                            {obs.evidence.map((ptr) => (
+                                <PhotoEvidenceButton
+                                    key={ptr.image_id}
+                                    imageId={ptr.image_id}
+                                    product={product}
+                                    onClick={() =>
+                                        onFocusEvidence(ptr.image_id)
+                                    }
+                                />
+                            ))}
+                        </div>
+                    </details>
+                )}
+            </div>
         )
     }
 
@@ -474,33 +528,106 @@ function ProductAmountCell({
         (derived.unit !== obs.unit_text ||
             formatNormalizedValue(derived.value) !== obs.value_text)
 
+    const effectiveBasis = derived?.target_basis || reported.basis
+    const effectivePrep = reported.preparation_state
+
     return (
         <div>
             <div className="font-mono text-sm font-bold text-neutral-100 tabular-nums">
                 {displayPrimary}
             </div>
 
-            {hasDifferentPrinted && (
-                <div className="mt-0.5 text-[11px] text-neutral-400">
-                    <span>Printed: </span>
-                    <span className="font-mono text-neutral-300">
-                        {printedText}
-                    </span>
-                </div>
-            )}
+            {/* Stated basis and dry vs prepared */}
+            <div className="mt-0.5 text-[11px] font-medium text-neutral-400">
+                {formatBasisAndPrep(effectiveBasis, effectivePrep)}
+            </div>
 
-            {obs.evidence && obs.evidence.length > 0 && (
-                <div className="mt-1.5 flex flex-wrap gap-1">
-                    {obs.evidence.map((ptr: EvidencePointer) => (
-                        <PhotoEvidenceButton
-                            key={ptr.image_id}
-                            imageId={ptr.image_id}
-                            product={product}
-                            onClick={() => onFocusEvidence(ptr.image_id)}
-                        />
-                    ))}
+            {/* Accessible disclosure control for reported inputs, source-photo evidence, and derivation details */}
+            <details className="mt-1 text-[11px] text-neutral-400">
+                <summary className="cursor-pointer text-[10px] font-medium text-neutral-400 select-none hover:text-neutral-200">
+                    Evidence & details
+                </summary>
+                <div className="mt-1.5 space-y-1.5 rounded-lg border border-neutral-800 bg-neutral-900/60 p-2 text-[11px]">
+                    {hasDifferentPrinted && (
+                        <div>
+                            <span className="text-neutral-500">Printed: </span>
+                            <span className="font-mono text-neutral-300">
+                                {printedText}
+                            </span>
+                            <span className="text-neutral-400">
+                                {" "}
+                                (
+                                {displayBasisLabel(
+                                    reported.basis,
+                                ).toLowerCase()}
+                                ,{" "}
+                                {formatPreparationLabel(
+                                    reported.preparation_state,
+                                ).toLowerCase()}
+                                )
+                            </span>
+                        </div>
+                    )}
+
+                    {obs.alternatives && obs.alternatives.length > 0 && (
+                        <div className="text-warning-400/90">
+                            <span>Alternative readings: </span>
+                            {obs.alternatives.map((alt, i) => (
+                                <span key={i} className="font-mono">
+                                    {displayValue(
+                                        alt.value_text,
+                                        alt.unit_text || "",
+                                    )}
+                                    {i < (obs.alternatives?.length ?? 0) - 1
+                                        ? ", "
+                                        : ""}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+
+                    {derived && derived.inputs && derived.inputs.length > 0 && (
+                        <div className="text-neutral-400">
+                            <span className="text-neutral-500">
+                                Normalized from:{" "}
+                            </span>
+                            {derived.inputs.map((inp, i) => (
+                                <span
+                                    key={i}
+                                    className="font-mono text-neutral-300"
+                                >
+                                    {inp.kind === "package_quantity"
+                                        ? `net weight ${formatNormalizedValue(inp.normalized_value, inp.normalized_unit)}`
+                                        : inp.kind === "serving_quantity"
+                                          ? `serving ${formatNormalizedValue(inp.normalized_value, inp.normalized_unit)}`
+                                          : `${formatNormalizedValue(inp.normalized_value, inp.normalized_unit)}`}
+                                    {i < derived.inputs.length - 1 ? ", " : ""}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+
+                    {obs.evidence && obs.evidence.length > 0 && (
+                        <div className="pt-1">
+                            <span className="mb-1 block text-[10px] text-neutral-500">
+                                Source photo evidence:
+                            </span>
+                            <div className="flex flex-wrap gap-1">
+                                {obs.evidence.map((ptr: EvidencePointer) => (
+                                    <PhotoEvidenceButton
+                                        key={ptr.image_id}
+                                        imageId={ptr.image_id}
+                                        product={product}
+                                        onClick={() =>
+                                            onFocusEvidence(ptr.image_id)
+                                        }
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
-            )}
+            </details>
         </div>
     )
 }
@@ -587,17 +714,46 @@ function PercentageCell({
             <div className="font-mono text-sm font-bold text-neutral-100 tabular-nums">
                 {displayValue(obs.value_text, "%")}
             </div>
+            <div className="mt-0.5 text-[11px] font-medium text-neutral-400">
+                {formatBasisAndPrep(reported.basis, reported.preparation_state)}
+            </div>
             {obs.evidence && obs.evidence.length > 0 && (
-                <div className="mt-1 flex flex-wrap gap-1">
-                    {obs.evidence.map((ptr: EvidencePointer) => (
-                        <PhotoEvidenceButton
-                            key={ptr.image_id}
-                            imageId={ptr.image_id}
-                            product={product}
-                            onClick={() => onFocusEvidence(ptr.image_id)}
-                        />
-                    ))}
-                </div>
+                <details className="mt-1 text-[11px] text-neutral-400">
+                    <summary className="cursor-pointer text-[10px] font-medium text-neutral-400 select-none hover:text-neutral-200">
+                        Evidence & details
+                    </summary>
+                    <div className="mt-1.5 space-y-1.5 rounded-lg border border-neutral-800 bg-neutral-900/60 p-2 text-[11px]">
+                        <div>
+                            <span className="text-neutral-400">
+                                Basis:{" "}
+                                {displayBasisLabel(
+                                    reported.basis,
+                                ).toLowerCase()}
+                                ,{" "}
+                                {formatPreparationLabel(
+                                    reported.preparation_state,
+                                ).toLowerCase()}
+                            </span>
+                        </div>
+                        <div className="pt-1">
+                            <span className="mb-1 block text-[10px] text-neutral-500">
+                                Source photo evidence:
+                            </span>
+                            <div className="flex flex-wrap gap-1">
+                                {obs.evidence.map((ptr: EvidencePointer) => (
+                                    <PhotoEvidenceButton
+                                        key={ptr.image_id}
+                                        imageId={ptr.image_id}
+                                        product={product}
+                                        onClick={() =>
+                                            onFocusEvidence(ptr.image_id)
+                                        }
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </details>
             )}
         </div>
     )
@@ -612,48 +768,109 @@ function DifferenceCell({
     leftProduct: ProductSideState
     rightProduct: ProductSideState
 }) {
+    if (row.state === "conditional") {
+        return (
+            <div>
+                <Badge
+                    variant="subtle"
+                    className="border-warning-700/60 bg-warning-950/60 text-warning-300 text-[10px] font-semibold"
+                >
+                    Conditional
+                </Badge>
+                {row.reason && (
+                    <div className="text-warning-300/90 mt-1 text-[11px] leading-tight">
+                        {row.reason}
+                    </div>
+                )}
+                {row.assumptions && row.assumptions.length > 0 && (
+                    <ul className="mt-1 list-disc space-y-0.5 pl-3 text-[10px] text-neutral-400">
+                        {row.assumptions.map((a, i) => (
+                            <li key={i}>{a}</li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+        )
+    }
+
     if (row.derived_difference) {
-        const diffNum = Number(row.derived_difference.value)
+        const rawVal = row.derived_difference.value
+        const diffNum =
+            typeof rawVal === "number"
+                ? rawVal
+                : Number.parseFloat(String(rawVal ?? "").replace(/,/g, ""))
+        const isNumeric = !Number.isNaN(diffNum)
         const formatted = formatNormalizedValue(
             row.derived_difference.value,
             row.derived_difference.unit,
         )
-        const signedFormatted = diffNum > 0 ? `+${formatted}` : formatted
-        const directionContext =
-            diffNum > 0
+        const signedFormatted =
+            isNumeric && diffNum > 0 ? `+${formatted}` : formatted
+        const directionContext = isNumeric
+            ? diffNum > 0
                 ? `${leftProduct.title} has more`
                 : diffNum < 0
                   ? `${rightProduct.title} has more`
                   : "Identical amount"
+            : ""
+        const diffBasis = formatBasisAndPrep(
+            row.derived_difference.target_basis,
+            null,
+        )
+
+        if (isNumeric && diffNum === 0) {
+            return (
+                <div>
+                    <div className="flex items-center gap-1.5">
+                        <Badge
+                            variant="subtle"
+                            className="border-neutral-700 bg-neutral-800 text-[10px] font-semibold text-neutral-200"
+                        >
+                            Equal amount
+                        </Badge>
+                    </div>
+                    <div className="text-primary-300 mt-0.5 font-mono text-xs font-bold tabular-nums">
+                        {formatted}
+                    </div>
+                    <div className="mt-0.5 text-[10px] font-medium text-neutral-400">
+                        {directionContext}
+                    </div>
+                    <div className="mt-0.5 text-[10px] text-neutral-500">
+                        {diffBasis}
+                    </div>
+                </div>
+            )
+        }
 
         return (
             <div>
                 <div className="text-primary-300 font-mono text-xs font-bold tabular-nums">
                     {signedFormatted}
                 </div>
-                <div className="mt-0.5 text-[10px] font-medium text-neutral-400">
-                    {directionContext}
+                {directionContext && (
+                    <div className="mt-0.5 text-[10px] font-medium text-neutral-400">
+                        {directionContext}
+                    </div>
+                )}
+                <div className="mt-0.5 text-[10px] text-neutral-500">
+                    {diffBasis}
                 </div>
             </div>
         )
     }
 
-    if (row.normalized_left && row.normalized_right) {
+    if (row.reason) {
         return (
             <div>
                 <Badge
                     variant="subtle"
-                    className="border-neutral-700 bg-neutral-800 text-[10px] text-neutral-300"
+                    className="border-neutral-700 bg-neutral-800 text-[10px] text-neutral-400"
                 >
-                    {row.state === "conditional"
-                        ? "Conditional"
-                        : "Values shown"}
+                    Not comparable
                 </Badge>
-                {row.reason && (
-                    <div className="mt-1 text-[10px] leading-tight text-neutral-400">
-                        {row.reason}
-                    </div>
-                )}
+                <div className="mt-1 text-[11px] leading-tight text-neutral-400">
+                    {row.reason}
+                </div>
             </div>
         )
     }

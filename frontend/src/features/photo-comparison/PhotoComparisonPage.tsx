@@ -10,6 +10,7 @@ import { usePageMetadata } from "@/lib/metadata"
 
 import { compareProducts, extractProductPhotos } from "./api"
 import { ComparisonSection } from "./ComparisonSection"
+import { formatActionableError } from "./helpers"
 import { PhotoInspectionModal } from "./PhotoInspectionModal"
 import { ProductPhotoPanel } from "./ProductPhotoPanel"
 import type {
@@ -39,6 +40,18 @@ function createInitialProduct(
         retry: false,
         revision: 0,
     }
+}
+
+function getDefaultColumnId(
+    extraction: ProductSideState["extraction"],
+): string | null {
+    if (
+        !extraction?.nutrition_columns ||
+        extraction.nutrition_columns.length !== 1
+    ) {
+        return null
+    }
+    return extraction.nutrition_columns[0]?.column_id ?? null
 }
 
 export type PhotoComparisonPageProps = {
@@ -84,11 +97,15 @@ export function PhotoComparisonPage({
 
     const previewRefs = useRef<Record<string, HTMLElement | null>>({})
     const activeUrlsRef = useRef<Set<string>>(new Set())
+    const comparisonRequestIdRef = useRef<number>(0)
+    const isMountedRef = useRef<boolean>(true)
 
     // Revoke all created URLs when unmounting
     useEffect(() => {
+        isMountedRef.current = true
         const activeUrls = activeUrlsRef.current
         return () => {
+            isMountedRef.current = false
             for (const url of activeUrls) {
                 URL.revokeObjectURL(url)
             }
@@ -130,8 +147,18 @@ export function PhotoComparisonPage({
         if (processingStep === "comparing") {
             return "Comparing…"
         }
+        if (comparisonError || leftProduct.retry || rightProduct.retry) {
+            return "Retry comparison"
+        }
         return "Compare Products"
-    }, [processingStep, leftProduct.title, rightProduct.title])
+    }, [
+        processingStep,
+        leftProduct.title,
+        rightProduct.title,
+        leftProduct.retry,
+        rightProduct.retry,
+        comparisonError,
+    ])
 
     const comparisonStatus = useMemo(() => {
         if (comparisonError) return comparisonError
@@ -171,6 +198,7 @@ export function PhotoComparisonPage({
     }, [comparison, comparisonError, processingStep, leftProduct, rightProduct])
 
     const invalidateComparison = () => {
+        comparisonRequestIdRef.current += 1
         setComparison(null)
         setComparisonError(null)
     }
@@ -221,12 +249,12 @@ export function PhotoComparisonPage({
 
             if (invalidTypeFiles.length > 0) {
                 validationErrors.push(
-                    "Unsupported file format: only JPEG and PNG photos are supported.",
+                    "Unsupported file format: only JPEG and PNG photos are supported. Please select JPEG or PNG images, or take a photo with your camera.",
                 )
             }
             if (oversizedFiles.length > 0) {
                 validationErrors.push(
-                    `File size exceeds 10 MiB limit (${oversizedFiles.map((f) => f.name).join(", ")}).`,
+                    `File size exceeds 10 MiB limit (${oversizedFiles.map((f) => f.name).join(", ")}). Please choose smaller photos or retake with standard camera resolution.`,
                 )
             }
 
@@ -310,7 +338,7 @@ export function PhotoComparisonPage({
         if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
             setProduct((prev) => ({
                 ...prev,
-                error: "Unsupported file format: only JPEG and PNG photos are supported.",
+                error: "Unsupported file format: only JPEG and PNG photos are supported. Please select JPEG or PNG images, or take a photo with your camera.",
             }))
             return
         }
@@ -318,7 +346,7 @@ export function PhotoComparisonPage({
         if (file.size > MAX_FILE_SIZE_BYTES) {
             setProduct((prev) => ({
                 ...prev,
-                error: `File size exceeds 10 MiB limit (${file.name}).`,
+                error: `File size exceeds 10 MiB limit (${file.name}). Please choose a smaller photo or retake with standard camera resolution.`,
             }))
             return
         }
@@ -387,10 +415,65 @@ export function PhotoComparisonPage({
         columnId: string | null,
     ) => {
         invalidateComparison()
+        const nextLeftColId =
+            side === "left"
+                ? columnId
+                : leftProduct.selectedColumnId ||
+                  getDefaultColumnId(leftProduct.extraction)
+
+        const nextRightColId =
+            side === "right"
+                ? columnId
+                : rightProduct.selectedColumnId ||
+                  getDefaultColumnId(rightProduct.extraction)
+
         if (side === "left") {
             setLeftProduct((prev) => ({ ...prev, selectedColumnId: columnId }))
         } else {
             setRightProduct((prev) => ({ ...prev, selectedColumnId: columnId }))
+        }
+
+        const leftExt = leftProduct.extraction
+        const rightExt = rightProduct.extraction
+        if (leftExt && rightExt && nextLeftColId && nextRightColId) {
+            const reqId = ++comparisonRequestIdRef.current
+            void (async () => {
+                setProcessingStep("comparing")
+                try {
+                    const result = await compare({
+                        left: leftExt,
+                        right: rightExt,
+                        left_column_id: nextLeftColId,
+                        right_column_id: nextRightColId,
+                    })
+                    if (
+                        !isMountedRef.current ||
+                        comparisonRequestIdRef.current !== reqId
+                    ) {
+                        return
+                    }
+                    setComparison(result)
+                } catch (err: unknown) {
+                    if (
+                        !isMountedRef.current ||
+                        comparisonRequestIdRef.current !== reqId
+                    ) {
+                        return
+                    }
+                    const raw =
+                        err instanceof Error
+                            ? err.message
+                            : "The comparison request failed."
+                    setComparisonError(formatActionableError(raw))
+                } finally {
+                    if (
+                        isMountedRef.current &&
+                        comparisonRequestIdRef.current === reqId
+                    ) {
+                        setProcessingStep("idle")
+                    }
+                }
+            })()
         }
     }
 
@@ -455,10 +538,11 @@ export function PhotoComparisonPage({
                         }
                     })
                 } catch (err: unknown) {
-                    const message =
+                    const raw =
                         err instanceof Error
                             ? err.message
                             : "The extraction request failed. Check the provider and retry."
+                    const message = formatActionableError(raw)
                     setLeftProduct((prev) => ({
                         ...prev,
                         loading: false,
@@ -518,10 +602,11 @@ export function PhotoComparisonPage({
                         }
                     })
                 } catch (err: unknown) {
-                    const message =
+                    const raw =
                         err instanceof Error
                             ? err.message
                             : "The extraction request failed. Check the provider and retry."
+                    const message = formatActionableError(raw)
                     setRightProduct((prev) => ({
                         ...prev,
                         loading: false,
@@ -533,16 +618,10 @@ export function PhotoComparisonPage({
             }
 
             const leftColId =
-                leftProduct.selectedColumnId ||
-                ((leftExt.nutrition_columns?.length ?? 0) === 1
-                    ? (leftExt.nutrition_columns?.[0]?.column_id ?? null)
-                    : null)
+                leftProduct.selectedColumnId || getDefaultColumnId(leftExt)
 
             const rightColId =
-                rightProduct.selectedColumnId ||
-                ((rightExt.nutrition_columns?.length ?? 0) === 1
-                    ? (rightExt.nutrition_columns?.[0]?.column_id ?? null)
-                    : null)
+                rightProduct.selectedColumnId || getDefaultColumnId(rightExt)
 
             if ((leftExt.nutrition_columns?.length ?? 0) > 1 && !leftColId) {
                 return
@@ -552,6 +631,7 @@ export function PhotoComparisonPage({
             }
 
             setProcessingStep("comparing")
+            const reqId = ++comparisonRequestIdRef.current
             const payload = {
                 left: leftExt,
                 right: rightExt,
@@ -561,13 +641,25 @@ export function PhotoComparisonPage({
 
             try {
                 const result = await compare(payload)
+                if (
+                    !isMountedRef.current ||
+                    comparisonRequestIdRef.current !== reqId
+                ) {
+                    return
+                }
                 setComparison(result)
             } catch (err: unknown) {
-                const message =
+                if (
+                    !isMountedRef.current ||
+                    comparisonRequestIdRef.current !== reqId
+                ) {
+                    return
+                }
+                const raw =
                     err instanceof Error
                         ? err.message
                         : "The comparison request failed. Retry when both extractions are ready."
-                setComparisonError(message)
+                setComparisonError(formatActionableError(raw))
             }
         } finally {
             setProcessingStep("idle")

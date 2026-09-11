@@ -936,3 +936,1184 @@ describe("Photo inspection and UX features", () => {
         ).toBeInTheDocument()
     })
 })
+
+describe("Compare Products uncertainty, partial results, and recovery (#124)", () => {
+    test("several columns pause for a plainly labeled selection with basis and prep state, then continue", async () => {
+        const user = userEvent.setup()
+        const extractPhotosMock = vi.fn().mockImplementation((id: string) =>
+            Promise.resolve(
+                id === "left"
+                    ? {
+                          schema_version: 1,
+                          product_id: "left",
+                          images: [
+                              {
+                                  image_id: "img_a1",
+                                  original_image_id: "img_a1",
+                                  role: "label",
+                                  width: 800,
+                                  height: 600,
+                              },
+                          ],
+                          package_quantity: null,
+                          nutrition_columns: [
+                              {
+                                  column_id: "col_dry",
+                                  label: "Dry mix",
+                                  state: "readable",
+                                  basis: "per_100g",
+                                  preparation_state: "as_sold",
+                                  fields: [],
+                              },
+                              {
+                                  column_id: "col_prep",
+                                  label: "Prepared with milk",
+                                  state: "readable",
+                                  basis: "per_serving",
+                                  preparation_state: "as_prepared",
+                                  fields: [],
+                              },
+                          ],
+                          outcome: "complete",
+                          provider: "google",
+                          model: "gemini",
+                          configuration_version: "1.0.0",
+                      }
+                    : {
+                          schema_version: 1,
+                          product_id: "right",
+                          images: [
+                              {
+                                  image_id: "img_b1",
+                                  original_image_id: "img_b1",
+                                  role: "label",
+                                  width: 800,
+                                  height: 600,
+                              },
+                          ],
+                          package_quantity: null,
+                          nutrition_columns: [
+                              {
+                                  column_id: "col_sole",
+                                  label: "Per 100g",
+                                  state: "readable",
+                                  basis: "per_100g",
+                                  preparation_state: "as_sold",
+                                  fields: [],
+                              },
+                          ],
+                          outcome: "complete",
+                          provider: "google",
+                          model: "gemini",
+                          configuration_version: "1.0.0",
+                      },
+            ),
+        )
+
+        const compareMock = vi.fn().mockResolvedValue({
+            schema_version: 1,
+            calculated_from_submitted_evidence: true,
+            left_product_id: "left",
+            right_product_id: "right",
+            rows: [
+                {
+                    nutrient: "protein",
+                    row_kind: "amount",
+                    state: "comparable",
+                    left: {
+                        column_id: "col_dry",
+                        observation: {
+                            field_id: "left_prot",
+                            nutrient: "protein",
+                            label: "Protein",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "12",
+                            unit_text: "g",
+                            evidence: [{ image_id: "img_a1" }],
+                        },
+                        basis: "per_100g",
+                        preparation_state: "as_sold",
+                    },
+                    right: {
+                        column_id: "col_sole",
+                        observation: {
+                            field_id: "right_prot",
+                            nutrient: "protein",
+                            label: "Protein",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "8",
+                            unit_text: "g",
+                            evidence: [{ image_id: "img_b1" }],
+                        },
+                        basis: "per_100g",
+                        preparation_state: "as_sold",
+                    },
+                    normalized_left: {
+                        value: "12",
+                        unit: "g",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                    normalized_right: {
+                        value: "8",
+                        unit: "g",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                    derived_difference: {
+                        value: "4",
+                        unit: "g",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                },
+            ],
+        })
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+        render(
+            <QueryClientProvider client={queryClient}>
+                <MemoryRouter initialEntries={["/compare"]}>
+                    <PhotoComparisonPage
+                        extractPhotos={extractPhotosMock}
+                        compare={compareMock}
+                    />
+                </MemoryRouter>
+            </QueryClientProvider>,
+        )
+
+        // Upload photos for both products
+        const inputLeft = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+        const inputRight = document.getElementById(
+            "upload-photos-right",
+        ) as HTMLInputElement
+        fireEvent.change(inputLeft, {
+            target: {
+                files: [new File(["a"], "a.jpg", { type: "image/jpeg" })],
+            },
+        })
+        fireEvent.change(inputRight, {
+            target: {
+                files: [new File(["b"], "b.jpg", { type: "image/jpeg" })],
+            },
+        })
+
+        // Tap Compare Products
+        const compareBtn = screen.getByRole("button", {
+            name: "Compare Products",
+        })
+        await user.click(compareBtn)
+
+        // Extraction runs for both
+        expect(extractPhotosMock).toHaveBeenCalledTimes(2)
+
+        // Pauses because Product A has 2 columns and none was selected!
+        expect(
+            screen.getByText(
+                "Select a nutrition column for Product A to continue.",
+            ),
+        ).toBeInTheDocument()
+        expect(compareMock).not.toHaveBeenCalled()
+
+        // Plainly labeled basis and preparation states are visible
+        expect(
+            screen.getAllByText("Per 100 g · As sold").length,
+        ).toBeGreaterThan(0)
+        expect(
+            screen.getByText("Per serving · As prepared"),
+        ).toBeInTheDocument()
+
+        // Sole column on Product B is labeled
+        expect(screen.getByText("Sole column")).toBeInTheDocument()
+
+        // Select the dry column for Product A -> should continue automatically
+        const selectDryColBtn = screen.getAllByRole("button", {
+            name: "Select column",
+        })[0]
+        await user.click(selectDryColBtn!)
+
+        // Comparison continues automatically
+        expect(compareMock).toHaveBeenCalledTimes(1)
+        expect(compareMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                left_column_id: "col_dry",
+                right_column_id: "col_sole",
+            }),
+        )
+
+        // Comparison results render with factual difference
+        expect(screen.getByText("Protein")).toBeInTheDocument()
+        expect(screen.getByText("+4 g")).toBeInTheDocument()
+        expect(screen.getByText("Product A has more")).toBeInTheDocument()
+    })
+
+    test("each value states basis and distinguishes dry vs prepared values", () => {
+        const mockRow: ComparisonResponse = {
+            schema_version: 1,
+            calculated_from_submitted_evidence: true,
+            left_product_id: "left",
+            right_product_id: "right",
+            rows: [
+                {
+                    nutrient: "fat",
+                    row_kind: "amount",
+                    state: "comparable",
+                    left: {
+                        column_id: "c1",
+                        observation: {
+                            field_id: "f1",
+                            nutrient: "fat",
+                            label: "Total Fat",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "15",
+                            unit_text: "g",
+                            evidence: [{ image_id: "img1" }],
+                        },
+                        basis: "per_100g",
+                        preparation_state: "as_sold",
+                    },
+                    right: {
+                        column_id: "c2",
+                        observation: {
+                            field_id: "f2",
+                            nutrient: "fat",
+                            label: "Total Fat",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "10",
+                            unit_text: "g",
+                            evidence: [{ image_id: "img2" }],
+                        },
+                        basis: "per_100g",
+                        preparation_state: "as_sold",
+                    },
+                    normalized_left: {
+                        value: "15",
+                        unit: "g",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                    normalized_right: {
+                        value: "10",
+                        unit: "g",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                    derived_difference: {
+                        value: "5",
+                        unit: "g",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                },
+            ],
+        }
+
+        const leftProd: ProductSideState = {
+            id: "left",
+            title: "Product A",
+            number: "1",
+            photos: [],
+            extraction: null,
+            selectedColumnId: "c1",
+            loading: false,
+            error: "",
+            retry: false,
+            revision: 1,
+        }
+        const rightProd: ProductSideState = {
+            id: "right",
+            title: "Product B",
+            number: "2",
+            photos: [],
+            extraction: null,
+            selectedColumnId: "c2",
+            loading: false,
+            error: "",
+            retry: false,
+            revision: 1,
+        }
+
+        render(
+            <ComparisonSection
+                comparison={mockRow}
+                comparisonStatus="Comparison ready"
+                comparisonError={null}
+                isComparing={false}
+                isReadyToCompare={true}
+                leftProduct={leftProd}
+                rightProduct={rightProd}
+                onCompare={vi.fn()}
+                onFocusEvidence={vi.fn()}
+            />,
+        )
+
+        // Basis and preparation state stated for each value (and difference)
+        const basisLabels = screen.getAllByText("per 100 g · as sold")
+        expect(basisLabels.length).toBeGreaterThanOrEqual(2)
+
+        // Leads with Product identities
+        expect(screen.getByText("Comparing Products")).toBeInTheDocument()
+        expect(screen.getAllByText("Product A").length).toBeGreaterThan(0)
+        expect(screen.getAllByText("Product B").length).toBeGreaterThan(0)
+
+        // Evidence and details are placed behind accessible disclosure controls
+        const disclosures = screen.getAllByText("Evidence & details")
+        expect(disclosures.length).toBeGreaterThan(0)
+    })
+
+    test("results lead with Product identities, comparison basis, and nutrition comparison while details sit behind accessible disclosures", () => {
+        const mockDisclosedComparison: ComparisonResponse = {
+            schema_version: 1,
+            calculated_from_submitted_evidence: true,
+            left_product_id: "left",
+            right_product_id: "right",
+            rows: [
+                {
+                    nutrient: "sodium",
+                    row_kind: "amount",
+                    state: "comparable",
+                    left: {
+                        column_id: "c1",
+                        observation: {
+                            field_id: "sod_1",
+                            nutrient: "sodium",
+                            label: "Sodium",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "1.38",
+                            unit_text: "g",
+                            evidence: [{ image_id: "img_label_1" }],
+                        },
+                        basis: "per_100g",
+                        preparation_state: "as_sold",
+                    },
+                    right: {
+                        column_id: "c2",
+                        observation: {
+                            field_id: "sod_2",
+                            nutrient: "sodium",
+                            label: "Sodium",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "500",
+                            unit_text: "mg",
+                            evidence: [{ image_id: "img_label_2" }],
+                        },
+                        basis: "per_100g",
+                        preparation_state: "as_sold",
+                    },
+                    normalized_left: {
+                        value: "1380",
+                        unit: "mg",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                    normalized_right: {
+                        value: "500",
+                        unit: "mg",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                    derived_difference: {
+                        value: "880",
+                        unit: "mg",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                },
+            ],
+        }
+
+        const leftProd: ProductSideState = {
+            id: "left",
+            title: "Crisps A",
+            number: "1",
+            photos: [],
+            extraction: {
+                schema_version: 1,
+                product_id: "left",
+                images: [
+                    {
+                        image_id: "img_label_1",
+                        original_image_id: "img_label_1",
+                        role: "label",
+                        width: 800,
+                        height: 600,
+                    },
+                ],
+                package_quantity: null,
+                nutrition_columns: [],
+                outcome: "complete",
+                provider: "google",
+                model: "gemini",
+                configuration_version: "1.0.0",
+            },
+            selectedColumnId: "c1",
+            loading: false,
+            error: "",
+            retry: false,
+            revision: 1,
+        }
+
+        const rightProd: ProductSideState = {
+            id: "right",
+            title: "Crisps B",
+            number: "2",
+            photos: [],
+            extraction: {
+                schema_version: 1,
+                product_id: "right",
+                images: [
+                    {
+                        image_id: "img_label_2",
+                        original_image_id: "img_label_2",
+                        role: "label",
+                        width: 800,
+                        height: 600,
+                    },
+                ],
+                package_quantity: null,
+                nutrition_columns: [],
+                outcome: "complete",
+                provider: "google",
+                model: "gemini",
+                configuration_version: "1.0.0",
+            },
+            selectedColumnId: "c2",
+            loading: false,
+            error: "",
+            retry: false,
+            revision: 1,
+        }
+
+        render(
+            <ComparisonSection
+                comparison={mockDisclosedComparison}
+                comparisonStatus="Comparison ready"
+                comparisonError={null}
+                isComparing={false}
+                isReadyToCompare={true}
+                leftProduct={leftProd}
+                rightProduct={rightProd}
+                onCompare={vi.fn()}
+                onFocusEvidence={vi.fn()}
+            />,
+        )
+
+        // 1. Leads with Product identities
+        expect(screen.getByText("Comparing Products")).toBeInTheDocument()
+        expect(screen.getAllByText("Crisps A").length).toBeGreaterThan(0)
+        expect(screen.getAllByText("Crisps B").length).toBeGreaterThan(0)
+
+        // 2. Comparison basis notice
+        expect(
+            screen.getByText("Equal-weight comparison (per 100 g)"),
+        ).toBeInTheDocument()
+
+        // 3. Nutrition table leads with comparison
+        expect(screen.getByText("Sodium")).toBeInTheDocument()
+        expect(screen.getByText("1,380 mg")).toBeInTheDocument()
+        expect(screen.getByText("+880 mg")).toBeInTheDocument()
+        expect(screen.getByText("Crisps A has more")).toBeInTheDocument()
+
+        // 4. Details sit behind accessible disclosure controls
+        const disclosures = screen.getAllByText("Evidence & details")
+        expect(disclosures.length).toBeGreaterThan(0)
+
+        // Inside disclosure: reported printed values that differ from normalized
+        expect(screen.getByText(/Printed:/i)).toBeInTheDocument()
+        expect(screen.getByText("1.38 g")).toBeInTheDocument()
+
+        // Inside disclosure: source photo evidence button
+        expect(screen.getAllByText("View photo 1").length).toBeGreaterThan(0)
+    })
+
+    test("handles partial extractions, unreadable values, and explicit zero distinct from missing data", () => {
+        const mockPartialComparison: ComparisonResponse = {
+            schema_version: 1,
+            calculated_from_submitted_evidence: true,
+            left_product_id: "left",
+            right_product_id: "right",
+            rows: [
+                {
+                    nutrient: "sugar",
+                    row_kind: "amount",
+                    state: "comparable",
+                    left: {
+                        column_id: "c1",
+                        observation: {
+                            field_id: "sug_0",
+                            nutrient: "sugar",
+                            label: "Sugars",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "0",
+                            unit_text: "g",
+                            evidence: [{ image_id: "img1" }],
+                        },
+                        basis: "per_100g",
+                        preparation_state: "as_sold",
+                    },
+                    right: {
+                        column_id: "c2",
+                        observation: {
+                            field_id: "sug_5",
+                            nutrient: "sugar",
+                            label: "Sugars",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "5",
+                            unit_text: "g",
+                            evidence: [{ image_id: "img2" }],
+                        },
+                        basis: "per_100g",
+                        preparation_state: "as_sold",
+                    },
+                    normalized_left: {
+                        value: "0",
+                        unit: "g",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                    normalized_right: {
+                        value: "5",
+                        unit: "g",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                    derived_difference: {
+                        value: "-5",
+                        unit: "g",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                },
+                {
+                    nutrient: "calcium",
+                    row_kind: "amount",
+                    state: "not_comparable",
+                    reason: "Not found in photos for the other product.",
+                    left: {
+                        column_id: "c1",
+                        observation: {
+                            field_id: "calc_1",
+                            nutrient: "calcium",
+                            label: "Calcium",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "200",
+                            unit_text: "mg",
+                            evidence: [{ image_id: "img1" }],
+                        },
+                        basis: "per_100g",
+                        preparation_state: "as_sold",
+                    },
+                },
+                {
+                    nutrient: "iron",
+                    row_kind: "amount",
+                    state: "not_comparable",
+                    reason: "One or both observations are not readable.",
+                    left: {
+                        column_id: "c1",
+                        observation: {
+                            field_id: "iron_1",
+                            nutrient: "iron",
+                            label: "Iron",
+                            state: "unreadable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            evidence: [{ image_id: "img1" }],
+                        },
+                        basis: "per_100g",
+                        preparation_state: "as_sold",
+                    },
+                    right: {
+                        column_id: "c2",
+                        observation: {
+                            field_id: "iron_2",
+                            nutrient: "iron",
+                            label: "Iron",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "4",
+                            unit_text: "mg",
+                            evidence: [{ image_id: "img2" }],
+                        },
+                        basis: "per_100g",
+                        preparation_state: "as_sold",
+                    },
+                },
+            ],
+        }
+
+        const leftProd: ProductSideState = {
+            id: "left",
+            title: "Product A",
+            number: "1",
+            photos: [],
+            extraction: null,
+            selectedColumnId: "c1",
+            loading: false,
+            error: "",
+            retry: false,
+            revision: 1,
+        }
+        const rightProd: ProductSideState = {
+            id: "right",
+            title: "Product B",
+            number: "2",
+            photos: [],
+            extraction: null,
+            selectedColumnId: "c2",
+            loading: false,
+            error: "",
+            retry: false,
+            revision: 1,
+        }
+
+        render(
+            <ComparisonSection
+                comparison={mockPartialComparison}
+                comparisonStatus="Comparison ready"
+                comparisonError={null}
+                isComparing={false}
+                isReadyToCompare={true}
+                leftProduct={leftProd}
+                rightProduct={rightProd}
+                onCompare={vi.fn()}
+                onFocusEvidence={vi.fn()}
+            />,
+        )
+
+        // 1. Explicit zero is shown as "0 g", NOT treated as missing
+        expect(screen.getByText("0 g")).toBeInTheDocument()
+        expect(screen.getByText("Product B has more")).toBeInTheDocument()
+
+        // 2. Missing calcium on right product shows "Not found in these photos" and never zero
+        expect(
+            screen.getByText("Not found in these photos"),
+        ).toBeInTheDocument()
+        expect(screen.getByText("200 mg")).toBeInTheDocument()
+
+        // 3. Unreadable iron shows "Could not read this value" and never zero
+        expect(
+            screen.getByText("Could not read this value"),
+        ).toBeInTheDocument()
+        expect(screen.getByText("4 mg")).toBeInTheDocument()
+        expect(
+            screen.getByText("One or both observations are not readable."),
+        ).toBeInTheDocument()
+    })
+
+    test("displays conflicting values and suppresses definitive difference for unknown preparation", () => {
+        const mockConflictingAndConditional: ComparisonResponse = {
+            schema_version: 1,
+            calculated_from_submitted_evidence: true,
+            left_product_id: "left",
+            right_product_id: "right",
+            rows: [
+                {
+                    nutrient: "sodium",
+                    row_kind: "amount",
+                    state: "not_comparable",
+                    reason: "One or both observations are not readable.",
+                    left: {
+                        column_id: "c1",
+                        observation: {
+                            field_id: "sod_conflict",
+                            nutrient: "sodium",
+                            label: "Sodium",
+                            state: "conflicting",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "500",
+                            unit_text: "mg",
+                            alternatives: [
+                                {
+                                    value_text: "650",
+                                    unit_text: "mg",
+                                    state: "readable",
+                                    evidence: [{ image_id: "img_alt" }],
+                                },
+                            ],
+                            evidence: [{ image_id: "img1" }],
+                        },
+                        basis: "per_100g",
+                        preparation_state: "as_sold",
+                    },
+                    right: {
+                        column_id: "c2",
+                        observation: {
+                            field_id: "sod_r",
+                            nutrient: "sodium",
+                            label: "Sodium",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "400",
+                            unit_text: "mg",
+                            evidence: [{ image_id: "img2" }],
+                        },
+                        basis: "per_100g",
+                        preparation_state: "as_sold",
+                    },
+                },
+                {
+                    nutrient: "energy",
+                    row_kind: "amount",
+                    state: "conditional",
+                    reason: "Preparation state is unknown, so the normalized values are conditional.",
+                    assumptions: [
+                        "Preparation state is unknown for at least one Product.",
+                    ],
+                    left: {
+                        column_id: "c1",
+                        observation: {
+                            field_id: "nrg_1",
+                            nutrient: "energy",
+                            label: "Energy",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "150",
+                            unit_text: "kcal",
+                            evidence: [{ image_id: "img1" }],
+                        },
+                        basis: "per_100g",
+                        preparation_state: "unknown",
+                    },
+                    right: {
+                        column_id: "c2",
+                        observation: {
+                            field_id: "nrg_2",
+                            nutrient: "energy",
+                            label: "Energy",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "150",
+                            unit_text: "kcal",
+                            evidence: [{ image_id: "img2" }],
+                        },
+                        basis: "per_100g",
+                        preparation_state: "as_sold",
+                    },
+                    normalized_left: {
+                        value: "150",
+                        unit: "kcal",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                    normalized_right: {
+                        value: "150",
+                        unit: "kcal",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                    derived_difference: {
+                        value: "0",
+                        unit: "kcal",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                },
+            ],
+        }
+
+        const leftProd: ProductSideState = {
+            id: "left",
+            title: "Product A",
+            number: "1",
+            photos: [],
+            extraction: null,
+            selectedColumnId: "c1",
+            loading: false,
+            error: "",
+            retry: false,
+            revision: 1,
+        }
+        const rightProd: ProductSideState = {
+            id: "right",
+            title: "Product B",
+            number: "2",
+            photos: [],
+            extraction: null,
+            selectedColumnId: "c2",
+            loading: false,
+            error: "",
+            retry: false,
+            revision: 1,
+        }
+
+        render(
+            <ComparisonSection
+                comparison={mockConflictingAndConditional}
+                comparisonStatus="Comparison ready"
+                comparisonError={null}
+                isComparing={false}
+                isReadyToCompare={true}
+                leftProduct={leftProd}
+                rightProduct={rightProd}
+                onCompare={vi.fn()}
+                onFocusEvidence={vi.fn()}
+            />,
+        )
+
+        // Conflicting values are visible
+        expect(
+            screen.getByText(/Conflicting values on label:/i),
+        ).toBeInTheDocument()
+        expect(screen.getByText("500 mg")).toBeInTheDocument()
+        expect(screen.getByText("vs 650 mg")).toBeInTheDocument()
+
+        // Conditional unknown preparation suppresses definitive difference
+        expect(screen.getByText("Conditional")).toBeInTheDocument()
+        expect(
+            screen.getByText(
+                "Preparation state is unknown, so the normalized values are conditional.",
+            ),
+        ).toBeInTheDocument()
+        expect(
+            screen.getAllByText(
+                "Preparation state is unknown for at least one Product.",
+            ).length,
+        ).toBeGreaterThan(0)
+        expect(screen.queryByText("Equal amount")).not.toBeInTheDocument()
+        expect(screen.queryByText("Identical amount")).not.toBeInTheDocument()
+    })
+
+    test("clearly indicates equal nutrient amounts", () => {
+        const mockEqualComparison: ComparisonResponse = {
+            schema_version: 1,
+            calculated_from_submitted_evidence: true,
+            left_product_id: "left",
+            right_product_id: "right",
+            rows: [
+                {
+                    nutrient: "fiber",
+                    row_kind: "amount",
+                    state: "comparable",
+                    left: {
+                        column_id: "c1",
+                        observation: {
+                            field_id: "fib_1",
+                            nutrient: "fiber",
+                            label: "Dietary Fiber",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "3",
+                            unit_text: "g",
+                            evidence: [{ image_id: "img1" }],
+                        },
+                        basis: "per_100g",
+                        preparation_state: "as_sold",
+                    },
+                    right: {
+                        column_id: "c2",
+                        observation: {
+                            field_id: "fib_2",
+                            nutrient: "fiber",
+                            label: "Dietary Fiber",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "3",
+                            unit_text: "g",
+                            evidence: [{ image_id: "img2" }],
+                        },
+                        basis: "per_100g",
+                        preparation_state: "as_sold",
+                    },
+                    normalized_left: {
+                        value: "3",
+                        unit: "g",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                    normalized_right: {
+                        value: "3",
+                        unit: "g",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                    derived_difference: {
+                        value: "0",
+                        unit: "g",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                },
+            ],
+        }
+
+        const leftProd: ProductSideState = {
+            id: "left",
+            title: "Product A",
+            number: "1",
+            photos: [],
+            extraction: null,
+            selectedColumnId: "c1",
+            loading: false,
+            error: "",
+            retry: false,
+            revision: 1,
+        }
+        const rightProd: ProductSideState = {
+            id: "right",
+            title: "Product B",
+            number: "2",
+            photos: [],
+            extraction: null,
+            selectedColumnId: "c2",
+            loading: false,
+            error: "",
+            retry: false,
+            revision: 1,
+        }
+
+        render(
+            <ComparisonSection
+                comparison={mockEqualComparison}
+                comparisonStatus="Comparison ready"
+                comparisonError={null}
+                isComparing={false}
+                isReadyToCompare={true}
+                leftProduct={leftProd}
+                rightProduct={rightProd}
+                onCompare={vi.fn()}
+                onFocusEvidence={vi.fn()}
+            />,
+        )
+
+        // Clear equal amount badge and message
+        expect(screen.getByText("Equal amount")).toBeInTheDocument()
+        expect(screen.getByText("Identical amount")).toBeInTheDocument()
+        expect(screen.getByText("0 g")).toBeInTheDocument()
+    })
+
+    test("actionable error recovery and retry preserves unaffected work", async () => {
+        const user = userEvent.setup()
+        let rightShouldFail = true
+
+        const extractPhotosMock = vi.fn().mockImplementation((id: string) => {
+            if (id === "left") {
+                return Promise.resolve({
+                    schema_version: 1,
+                    product_id: "left",
+                    images: [
+                        {
+                            image_id: "img_a",
+                            original_image_id: "img_a",
+                            role: "label",
+                            width: 800,
+                            height: 600,
+                        },
+                    ],
+                    package_quantity: null,
+                    nutrition_columns: [
+                        {
+                            column_id: "c1",
+                            name: "Per 100g",
+                            state: "readable",
+                            basis: "per_100g",
+                            preparation_state: "as_sold",
+                            fields: [],
+                        },
+                    ],
+                    outcome: "complete",
+                    provider: "google",
+                    model: "gemini",
+                    configuration_version: "1.0.0",
+                })
+            }
+            if (rightShouldFail) {
+                return Promise.reject(
+                    new Error(
+                        "provider_timeout: The extraction provider timed out.",
+                    ),
+                )
+            }
+            return Promise.resolve({
+                schema_version: 1,
+                product_id: "right",
+                images: [
+                    {
+                        image_id: "img_b",
+                        original_image_id: "img_b",
+                        role: "label",
+                        width: 800,
+                        height: 600,
+                    },
+                ],
+                package_quantity: null,
+                nutrition_columns: [
+                    {
+                        column_id: "c2",
+                        name: "Per 100g",
+                        state: "readable",
+                        basis: "per_100g",
+                        preparation_state: "as_sold",
+                        fields: [],
+                    },
+                ],
+                outcome: "complete",
+                provider: "google",
+                model: "gemini",
+                configuration_version: "1.0.0",
+            })
+        })
+
+        const compareMock = vi.fn().mockResolvedValue({
+            schema_version: 1,
+            calculated_from_submitted_evidence: true,
+            left_product_id: "left",
+            right_product_id: "right",
+            rows: [],
+        })
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+        render(
+            <QueryClientProvider client={queryClient}>
+                <MemoryRouter initialEntries={["/compare"]}>
+                    <PhotoComparisonPage
+                        extractPhotos={extractPhotosMock}
+                        compare={compareMock}
+                    />
+                </MemoryRouter>
+            </QueryClientProvider>,
+        )
+
+        // Upload photos for both
+        const inputLeft = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+        const inputRight = document.getElementById(
+            "upload-photos-right",
+        ) as HTMLInputElement
+        fireEvent.change(inputLeft, {
+            target: {
+                files: [new File(["a"], "a.jpg", { type: "image/jpeg" })],
+            },
+        })
+        fireEvent.change(inputRight, {
+            target: {
+                files: [new File(["b"], "b.jpg", { type: "image/jpeg" })],
+            },
+        })
+
+        const compareBtn = screen.getByRole("button", {
+            name: "Compare Products",
+        })
+        await user.click(compareBtn)
+
+        // Product A succeeded, Product B failed with timeout
+        expect(extractPhotosMock).toHaveBeenCalledTimes(2)
+        expect(
+            screen.getByText(
+                /Photo processing request timed out\. Please check your connection and tap Retry\./i,
+            ),
+        ).toBeInTheDocument()
+
+        // Button shows "Retry comparison"
+        const retryBtn = screen.getByRole("button", {
+            name: "Retry comparison",
+        })
+        expect(retryBtn).toBeInTheDocument()
+
+        // Now fix Product B and retry
+        rightShouldFail = false
+        await user.click(retryBtn)
+
+        // Product A's work was preserved! Only Product B was called on retry!
+        // So total calls to extractPhotosMock is now 3 (left: 1, right: 2)
+        expect(extractPhotosMock).toHaveBeenCalledTimes(3)
+        expect(extractPhotosMock).toHaveBeenLastCalledWith(
+            "right",
+            expect.any(Array),
+        )
+    })
+
+    test("retake-required and partial outcomes show actionable guidance in ProductPhotoPanel", () => {
+        const retakeProduct: ProductSideState = {
+            id: "left",
+            title: "Product A",
+            number: "1",
+            photos: [],
+            extraction: {
+                schema_version: 1,
+                product_id: "left",
+                images: [],
+                package_quantity: null,
+                nutrition_columns: [],
+                outcome: "retake_required",
+                retake_reasons: [
+                    "Nutrition facts panel is blurry or out of focus.",
+                    "Glare reflects across the serving size line.",
+                ],
+                provider: "google",
+                model: "gemini",
+                configuration_version: "1.0.0",
+            },
+            selectedColumnId: null,
+            loading: false,
+            error: "",
+            retry: false,
+            revision: 1,
+        }
+
+        render(
+            <ProductPhotoPanel
+                product={retakeProduct}
+                highlightedPhotoId={null}
+                previewRefs={{ current: {} }}
+                onTitleChange={vi.fn()}
+                onAddFiles={vi.fn()}
+                onRemovePhoto={vi.fn()}
+                onReplacePhoto={vi.fn()}
+                onClearPhotos={vi.fn()}
+                onSelectColumn={vi.fn()}
+                onFocusEvidence={vi.fn()}
+            />,
+        )
+
+        // Actionable guidance for unreadable photos
+        expect(
+            screen.getByText("Photos difficult to read: retake recommended"),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByText(
+                /Photos could not be clearly read\. Please add or replace with well-lit, close-up photos/i,
+            ),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByText(
+                "Nutrition facts panel is blurry or out of focus.",
+            ),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByText("Glare reflects across the serving size line."),
+        ).toBeInTheDocument()
+    })
+})
