@@ -17,6 +17,7 @@ from pymongo import ASCENDING, MongoClient
 from pymongo.database import Database
 from pymongo.errors import BulkWriteError, DuplicateKeyError, PyMongoError
 
+from lifegoods.ingredient_matching.importer import import_ingredient_taxonomy
 from lifegoods.open_food_facts.dataset import (
     ACTIVE_POINTER_ID,
     CONTROL_COLLECTION,
@@ -814,6 +815,10 @@ def main(argv: list[str] | None = None) -> int:
     subparsers.add_parser("list")
     subparsers.add_parser("rollback")
     subparsers.add_parser("prune")
+    subparsers.add_parser(
+        "import-ingredient-taxonomy",
+        help="Import the pinned English ingredient taxonomy prototype projection",
+    )
     args = parser.parse_args(argv)
 
     client: MongoClient[dict[str, Any]] = MongoClient(args.mongo_uri)
@@ -887,6 +892,8 @@ def main(argv: list[str] | None = None) -> int:
             output = rollback_version(database)
         elif args.command == "prune":
             output = {"removed_version_ids": prune_versions(database)}
+        elif args.command == "import-ingredient-taxonomy":
+            output = import_ingredient_taxonomy(database)
         else:
             output = list_versions(database)
         print(json.dumps(output, default=_json_default, indent=2))

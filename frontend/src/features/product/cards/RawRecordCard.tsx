@@ -72,7 +72,7 @@ export const RawRecordCard: React.FC<RawRecordCardProps> = ({
 
             <CardContent className="space-y-3 p-4 pt-2 text-xs sm:p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-neutral-200/60 bg-neutral-50 p-2.5 font-mono text-xs text-neutral-700">
-                    <span>Route: /api/v1/experimental/products/:barcode</span>
+                    <span>Route: /api/v1/products/:barcode</span>
                     <span className="text-neutral-500">
                         Snapshot: {meta.dataset.version}
                     </span>

@@ -1,11 +1,12 @@
 import { describe, expect, test } from "vitest"
 
+import { unavailableAllergenAnalysis } from "../src/features/product/defaults"
+import { adaptProductLookup } from "../src/features/product/adapter"
+import { adaptSourceRecord } from "../src/features/product/sourceRecord"
 import type {
     ProductLookupMetaResponse,
     ProductLookupResponse,
-} from "../src/api/generated"
-import { adaptProductLookup } from "../src/features/product/adapter"
-import { adaptSourceRecord } from "../src/features/product/sourceRecord"
+} from "../src/features/product/types"
 import { productResponse } from "./product-fixtures"
 
 const meta = {
@@ -23,7 +24,13 @@ const meta = {
 function response(
     sourceRecord: ProductLookupResponse["data"]["source_record"],
 ): ProductLookupResponse {
-    return { data: { source_record: sourceRecord }, meta }
+    return {
+        data: {
+            source_record: sourceRecord,
+            allergen_analysis: unavailableAllergenAnalysis,
+        },
+        meta,
+    }
 }
 
 describe("raw Open Food Facts Source Record presentation adapter", () => {

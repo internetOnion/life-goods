@@ -33,6 +33,7 @@ The primary workflow happens one-handed on a mobile phone in a shop. The Shopper
 - Mobile-first progressive web application with anonymous, read-only use
 - On-device Barcode decoding; camera frames and package photos are not uploaded or retained
 - Product Lookup against one static, locally hosted Open Food Facts Dataset Snapshot
+- Independent ingredient-text allergen evidence compared with Open Food Facts allergen tags
 - English information-architecture prototype before the Khmer public MVP
 - On-demand Khmer Translation in the public MVP, with Original Text available per translated field
 - Translation failure falls back to Original Text instead of failing Product Lookup
@@ -40,6 +41,10 @@ The primary workflow happens one-handed on a mobile phone in a shop. The Shopper
 - Privacy-preserving aggregate operational metrics only; no accounts, saved Products, persistent scan history, personalization, Barcode-level analytics, or persistent Shopper identifiers
 - No Product contributions, corrections, moderation, verification, live Open Food Facts fallback, or automatic Dataset Snapshot updates
 - No health, safety, allergen-free, Halal, authenticity, legal, compliance, or purchase verdicts
+
+When available, ingredient-text allergen evidence is shown separately from Open Food Facts
+allergen tags. The comparison describes agreement and differences between two source-based
+signals; it does not verify either source or make an allergen-free or safety claim.
 
 The experimental sprint may temporarily accept package photos for a local, opt-in
 research prototype when normal source data is unavailable or incomplete. This

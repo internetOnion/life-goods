@@ -5,6 +5,10 @@ from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
     from lifegoods.generated_data.coordinator import TranslationCoordinator
+from lifegoods.product_lookup.allergen_analysis import (
+    IngredientMatcherProtocol,
+    ProductAllergenAnalyzer,
+)
 from lifegoods.product_lookup.barcode import normalize_barcode
 from lifegoods.product_lookup.cache import (
     ProductLookupCache,
@@ -45,6 +49,7 @@ class ProductLookupResult:
     cache_status: CacheStatus
     product: ProductProjection | None = None
     translation: TranslationMetaResponse | None = None
+    allergen_analysis: dict[str, object] | None = None
 
 
 def mark_product_translation_unavailable(
@@ -101,10 +106,16 @@ class LookupProduct:
         source: RawProductLookupSource,
         cache: ProductLookupCache,
         coordinator: TranslationCoordinator | None = None,
+        ingredient_matcher: IngredientMatcherProtocol | None = None,
     ) -> None:
         self._source = source
         self._cache = cache
         self._coordinator = coordinator
+        self._allergen_analyzer = (
+            ProductAllergenAnalyzer(ingredient_matcher)
+            if ingredient_matcher is not None
+            else None
+        )
 
     def execute(
         self,
@@ -127,6 +138,11 @@ class LookupProduct:
             )
             cache_status = "miss"
 
+        analysis = (
+            self._allergen_analyzer.analyze(source_record)
+            if source_record is not None and self._allergen_analyzer is not None
+            else None
+        )
         product: ProductProjection | None = None
         translation_meta: TranslationMetaResponse | None = None
         if source_record is not None:
@@ -160,7 +176,6 @@ class LookupProduct:
                 translation_meta = TranslationMetaResponse(
                     status=TranslationOverallStatus.NOT_REQUESTED
                 )
-
         return ProductLookupResult(
             barcode=identifier.value,
             source_record=source_record,
@@ -168,4 +183,5 @@ class LookupProduct:
             cache_status=cache_status,
             product=product,
             translation=translation_meta,
+            allergen_analysis=analysis,
         )

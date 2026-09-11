@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetExperimentalProductData, GetExperimentalProductErrors, GetExperimentalProductResponses, GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetProductData, GetProductErrors, GetProductResponses, SearchProductsData, SearchProductsErrors, SearchProductsResponses } from './types.gen';
+import type { GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetProductData, GetProductErrors, GetProductResponses, MatchExperimentalIngredientsData, MatchExperimentalIngredientsErrors, MatchExperimentalIngredientsResponses, SearchProductsData, SearchProductsErrors, SearchProductsResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -19,14 +19,17 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 };
 
 /**
- * Look up an experimental raw Product
- * Looks up a Barcode in the selected local Open Food Facts Dataset Snapshot and returns the raw Source Record. This experimental contract is deprecated.
- * @deprecated
+ * Match experimental ingredient taxonomy entries
+ * Matches English ingredient text against a disposable Open Food Facts taxonomy projection. This experimental contract is unstable and does not infer allergens.
  */
-export const getExperimentalProduct = <ThrowOnError extends boolean = false>(options: Options<GetExperimentalProductData, ThrowOnError>) => {
-    return (options.client ?? client).get<GetExperimentalProductResponses, GetExperimentalProductErrors, ThrowOnError>({
-        url: '/api/experimental/products/{barcode}',
-        ...options
+export const matchExperimentalIngredients = <ThrowOnError extends boolean = false>(options: Options<MatchExperimentalIngredientsData, ThrowOnError>) => {
+    return (options.client ?? client).post<MatchExperimentalIngredientsResponses, MatchExperimentalIngredientsErrors, ThrowOnError>({
+        url: '/api/experimental/ingredient-matches',
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
     });
 };
 

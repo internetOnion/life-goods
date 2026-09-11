@@ -160,4 +160,3 @@ def test_web_startup_does_not_create_collections_or_indexes_implicitly(
     app = create_app()
     assert app is not None
     assert mock_client.lifegoods_generated.list_collection_names() == []
-

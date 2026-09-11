@@ -17,6 +17,11 @@ from lifegoods.generated_data.cache import RedisTranslationHotCache
 from lifegoods.generated_data.coordinator import TranslationCoordinator
 from lifegoods.generated_data.repository import MongoGeneratedDataRepository
 from lifegoods.identifiers import InvalidIdentifierError
+from lifegoods.ingredient_matching import (
+    IngredientMatcher,
+    get_ingredient_matcher,
+)
+from lifegoods.ingredient_matching import router as ingredient_matching_router
 from lifegoods.open_food_facts import (
     ExternalImageSource,
     OpenFoodFactsDatasetSource,
@@ -79,6 +84,8 @@ def create_app(
     product_lookup_cache: ProductLookupCache | None = None,
     product_lookup_limiter: ProductLookupRateLimiter | None = None,
     product_lookup_metrics: ProductLookupMetrics | None = None,
+    ingredient_matching_database: Any | None = None,
+    ingredient_matcher: IngredientMatcher | None = None,
     translation_coordinator: TranslationCoordinator | None = None,
     product_search_service: SearchProducts | None = None,
     product_search_limiter: ProductSearchRateLimiter | None = None,
@@ -120,6 +127,17 @@ def create_app(
             mongo_client[resolved_settings.off_mongodb_database],
             image_base_url=resolved_settings.open_food_facts_image_base_url,
         )
+
+    resolved_ingredient_matching_database = ingredient_matching_database
+    if (
+        resolved_ingredient_matching_database is None
+        and isinstance(resolved_product_lookup_source, OpenFoodFactsDatasetSource)
+    ):
+        resolved_ingredient_matching_database = resolved_product_lookup_source.database
+    resolved_ingredient_matcher = ingredient_matcher or IngredientMatcher(
+        resolved_ingredient_matching_database,
+        enabled=resolved_settings.ingredient_matching_prototype_enabled,
+    )
 
     if product_lookup_cache is not None:
         resolved_product_lookup_cache = product_lookup_cache
@@ -174,11 +192,12 @@ def create_app(
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(resolved_settings.allowed_origins),
-        allow_methods=["GET"],
+        allow_methods=["GET", "POST"],
         allow_headers=["*"],
     )
     app.include_router(product_search_router)
     app.include_router(product_lookup_router)
+    app.include_router(ingredient_matching_router)
     app.include_router(open_food_facts_image_router)
 
     @app.get("/scalar", include_in_schema=False)
@@ -240,6 +259,7 @@ def create_app(
         resolved_product_lookup_source,
         resolved_product_lookup_cache,
         coordinator=resolved_translation_coordinator,
+        ingredient_matcher=resolved_ingredient_matcher,
     )
     app.dependency_overrides[get_product_lookup_rate_limiter] = lambda: (
         resolved_product_lookup_limiter
@@ -256,11 +276,22 @@ def create_app(
     app.dependency_overrides[get_product_search_metrics] = lambda: (
         resolved_product_search_metrics
     )
+    app.dependency_overrides[get_ingredient_matcher] = lambda: resolved_ingredient_matcher
 
     @app.exception_handler(RequestValidationError)
     async def request_validation_handler(
-        _request: Request, _error: RequestValidationError
+        request: Request, _error: RequestValidationError
     ) -> JSONResponse:
+        if request.url.path == "/api/experimental/ingredient-matches":
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "error": {
+                        "code": "invalid_ingredient_text",
+                        "message": "Enter ingredient text from 1 to 2000 characters.",
+                    }
+                },
+            )
         envelope = ErrorEnvelope(
             error=ErrorDetail(
                 code=ErrorCode.REQUEST_BODY_INVALID,

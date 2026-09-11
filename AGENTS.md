@@ -22,6 +22,7 @@
 - Requirements are Node.js 24, pnpm, Python 3.13, uv, and Docker Compose.
 - Install with `pnpm install` and `pnpm backend:install`.
 - Start MongoDB and Redis with `docker compose -f infra/compose.yaml up -d`.
+- Reset the local Redis cache and rate-limit state with `pnpm redis:reset`.
 - Inspect and activate the local Open Food Facts snapshot with `pnpm off:dataset -- list` and `pnpm off:dataset -- activate <version_id>`.
 - Run `pnpm backend:dev` and `pnpm dev` in separate terminals for HTTP development at `http://localhost:5173`.
 - Use `pnpm dev:https` for camera testing at `https://localhost:5173`.
@@ -44,7 +45,7 @@
 - TypeScript is strict; unused locals and parameters fail typecheck.
 - Frontend formatting uses the root Prettier configuration and Tailwind plugin. Use `pnpm frontend:lint:format` or `pnpm --dir frontend lint:format`.
 - All scripts, package commands, tools, and path operations must work across Windows, macOS, and Linux. Do not use POSIX-only inline environment assignments or hardcoded shell-specific path separators.
-- Preserve existing migration history until the atomic backend refactor removes PostgreSQL/Alembic with obsolete models and tests. Do not create an empty replacement baseline first.
+- The current backend has no PostgreSQL or Alembic runtime. Do not reintroduce relational persistence or legacy application wiring unless the current specification and an accepted ADR explicitly require it.
 - Create documentation lazily. `PRODUCT.md` defines product intent, `CONTEXT.md` defines language, `docs/SPEC.md` defines current behavior, and `docs/adr/` records only decisions that are hard to reverse, surprising without context, and the result of a real tradeoff.
 - Put new research in `docs/research/` and Mermaid source plus rendered output in `docs/diagrams/` only when the work actually requires them.
 - Icons and illustrations are not restricted to Phosphor. Use any icon library or custom SVG as long as it has high semantic fidelity (truthfully represents the underlying concept without mismatched compromises) and is vibe-coded to match the Life Goods visual identity (non-generic, tactile, cohesive stroke weights and tones).
@@ -52,4 +53,11 @@
 
 ## Issue tracking
 
-Issues and implementation tickets use GitHub Issues for `internetOnion/life-goods`. Use the canonical `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix` labels. The previous Wave taxonomy is obsolete and should not guide new work.
+Issues and implementation tickets use GitHub Issues for `internetOnion/life-goods`. Labels use lowercase, colon-separated namespaces:
+
+- `area:` `frontend`, `backend`, `documentation`
+- `status:` `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `in-progress`, `blocked`, `wontfix`, `duplicate`, `invalid`, `post-mvp`
+- `type:` `bug`, `enhancement`, `question`, `epic`
+- `community:` `good-first-issue`, `help-wanted`
+
+The previous Wave taxonomy is obsolete and should not guide new work.

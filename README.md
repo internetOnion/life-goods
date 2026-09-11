@@ -19,7 +19,11 @@ pnpm install
 pnpm backend:install
 ```
 
-The backend provides local defaults. Copy `backend/.env.example` to `backend/.env` only when you need to override them.
+The backend provides local defaults, including MongoDB on port `27018`, Redis on
+port `6380`, localhost CORS, and the ingredient-matching prototype enabled. Copy
+`backend/.env.example` to `backend/.env` only when you need to override them.
+`LIFEGOODS_GEMINI_API_KEY` is optional; leaving it empty disables new Khmer
+Translation generation while Product Lookup remains available.
 
 ## Start the local infrastructure
 
@@ -30,6 +34,16 @@ docker compose -f infra/compose.yaml up -d
 ```
 
 Host ports are MongoDB `27018` and Redis `6380`.
+
+Reset the local Redis database when you need to clear Product Lookup cache and
+rate-limit state:
+
+```bash
+pnpm redis:reset
+```
+
+This runs `FLUSHDB` against the Compose Redis service. It does not affect
+MongoDB or the Open Food Facts Dataset Snapshot.
 
 ## Use the local Open Food Facts snapshot
 

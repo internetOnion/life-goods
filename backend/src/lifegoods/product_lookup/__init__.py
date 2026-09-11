@@ -1,4 +1,5 @@
 from lifegoods.product_lookup.access_log import install_product_lookup_access_log_filter
+from lifegoods.product_lookup.allergen_analysis import ProductAllergenAnalyzer
 from lifegoods.product_lookup.barcode import (
     InvalidBarcodeError,
     normalize_barcode,
@@ -27,7 +28,6 @@ from lifegoods.product_lookup.contracts import (
     ProductLookupErrorResponse,
     ProductLookupMetadataResponse,
     ProductLookupMetaResponse,
-    ProductLookupResponse,
     ProductProjection,
     ProductProjectionData,
     ProductProjectionResponse,
@@ -84,6 +84,7 @@ __all__ = [
     "DatasetSnapshot",
     "DatasetSnapshotResponse",
     "DatasetUnavailableError",
+    "ProductAllergenAnalyzer",
     "EnvironmentProjection",
     "GradedSourceAssessment",
     "InMemoryProductLookupCache",
@@ -108,7 +109,6 @@ __all__ = [
     "ProductLookupMetaResponse",
     "ProductLookupMetrics",
     "ProductLookupRateLimiter",
-    "ProductLookupResponse",
     "ProductLookupResult",
     "ProductProjection",
     "ProductProjectionData",
