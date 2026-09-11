@@ -10,12 +10,14 @@ import type { ComparisonRequest } from "./types"
 export async function extractProductPhotos(
     productId: string,
     photos: File[],
+    options?: { signal?: AbortSignal },
 ): Promise<Extraction> {
     const response = await extractPhotoComparison({
         body: {
             product_id: productId,
             photos,
         },
+        signal: options?.signal,
     })
 
     if (response.error) {
@@ -34,6 +36,7 @@ export async function extractProductPhotos(
 
 export async function compareProducts(
     payload: ComparisonRequest,
+    options?: { signal?: AbortSignal },
 ): Promise<ComparisonResponse> {
     const response = await comparePhotoComparison({
         body: {
@@ -43,6 +46,7 @@ export async function compareProducts(
             right_column_id: payload.right_column_id ?? undefined,
             schema_version: payload.schema_version,
         },
+        signal: options?.signal,
     })
 
     if (response.error) {

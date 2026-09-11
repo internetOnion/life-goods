@@ -14,6 +14,7 @@ import { formatActionableError } from "./helpers"
 import { PhotoInspectionModal } from "./PhotoInspectionModal"
 import { ProductPhotoPanel } from "./ProductPhotoPanel"
 import type {
+    ComparisonRequest,
     ComparisonResponse,
     ProductPhoto,
     ProductSideState,
@@ -52,6 +53,16 @@ function getDefaultColumnId(
         return null
     }
     return extraction.nutrition_columns[0]?.column_id ?? null
+}
+
+function isAbortError(err: unknown): boolean {
+    if (!err) return false
+    if (typeof err === "object") {
+        if ("name" in err && (err as { name?: string }).name === "AbortError") {
+            return true
+        }
+    }
+    return false
 }
 
 export type PhotoComparisonPageProps = {
@@ -99,13 +110,45 @@ export function PhotoComparisonPage({
     const activeUrlsRef = useRef<Set<string>>(new Set())
     const comparisonRequestIdRef = useRef<number>(0)
     const isMountedRef = useRef<boolean>(true)
+    const sessionIdRef = useRef<number>(1)
+    const leftAbortControllerRef = useRef<AbortController | null>(null)
+    const rightAbortControllerRef = useRef<AbortController | null>(null)
+    const compareAbortControllerRef = useRef<AbortController | null>(null)
+    const leftProductRef = useRef<ProductSideState>(leftProduct)
+    const rightProductRef = useRef<ProductSideState>(rightProduct)
+    leftProductRef.current = leftProduct
+    rightProductRef.current = rightProduct
 
-    // Revoke all created URLs when unmounting
+    const abortInFlightExtraction = (side?: "left" | "right") => {
+        if (!side || side === "left") {
+            if (leftAbortControllerRef.current) {
+                leftAbortControllerRef.current.abort()
+                leftAbortControllerRef.current = null
+            }
+        }
+        if (!side || side === "right") {
+            if (rightAbortControllerRef.current) {
+                rightAbortControllerRef.current.abort()
+                rightAbortControllerRef.current = null
+            }
+        }
+    }
+
+    const abortInFlightComparison = () => {
+        if (compareAbortControllerRef.current) {
+            compareAbortControllerRef.current.abort()
+            compareAbortControllerRef.current = null
+        }
+    }
+
+    // Revoke all created URLs and abort pending requests when unmounting
     useEffect(() => {
         isMountedRef.current = true
         const activeUrls = activeUrlsRef.current
         return () => {
             isMountedRef.current = false
+            abortInFlightExtraction()
+            abortInFlightComparison()
             for (const url of activeUrls) {
                 URL.revokeObjectURL(url)
             }
@@ -198,12 +241,27 @@ export function PhotoComparisonPage({
     }, [comparison, comparisonError, processingStep, leftProduct, rightProduct])
 
     const invalidateComparison = () => {
+        abortInFlightComparison()
         comparisonRequestIdRef.current += 1
         setComparison(null)
         setComparisonError(null)
     }
 
+    const resetSideProcessing = (side: "left" | "right") => {
+        abortInFlightExtraction(side)
+        invalidateComparison()
+        setProcessingStep((step) => {
+            if (side === "left" && step === "extracting_left") return "idle"
+            if (side === "right" && step === "extracting_right") return "idle"
+            if (step === "comparing") return "idle"
+            return step
+        })
+    }
+
     const handleResetSession = () => {
+        sessionIdRef.current += 1
+        abortInFlightExtraction()
+        abortInFlightComparison()
         for (const photo of leftProduct.photos) {
             URL.revokeObjectURL(photo.url)
             activeUrlsRef.current.delete(photo.url)
@@ -215,6 +273,7 @@ export function PhotoComparisonPage({
         setLeftProduct(createInitialProduct("left", "Product A", "1"))
         setRightProduct(createInitialProduct("right", "Product B", "2"))
         setInspectionState({ isOpen: false, side: "left", index: 0 })
+        setHighlightedPhotoId(null)
         setProcessingStep("idle")
         invalidateComparison()
     }
@@ -228,6 +287,8 @@ export function PhotoComparisonPage({
     }
 
     const handleAddFiles = (side: "left" | "right", files: File[]) => {
+        resetSideProcessing(side)
+
         const setProduct = side === "left" ? setLeftProduct : setRightProduct
 
         setProduct((prev) => {
@@ -296,11 +357,11 @@ export function PhotoComparisonPage({
                 loading: false,
             }
         })
-
-        invalidateComparison()
     }
 
     const handleRemovePhoto = (side: "left" | "right", index: number) => {
+        resetSideProcessing(side)
+
         const updater = (prev: ProductSideState): ProductSideState => {
             const photo = prev.photos[index]
             if (photo) {
@@ -320,7 +381,6 @@ export function PhotoComparisonPage({
             }
         }
 
-        invalidateComparison()
         if (side === "left") {
             setLeftProduct(updater)
         } else {
@@ -333,6 +393,8 @@ export function PhotoComparisonPage({
         index: number,
         file: File,
     ) => {
+        resetSideProcessing(side)
+
         const setProduct = side === "left" ? setLeftProduct : setRightProduct
 
         if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
@@ -380,11 +442,11 @@ export function PhotoComparisonPage({
                 loading: false,
             }
         })
-
-        invalidateComparison()
     }
 
     const handleClearPhotos = (side: "left" | "right") => {
+        resetSideProcessing(side)
+
         const updater = (prev: ProductSideState): ProductSideState => {
             for (const photo of prev.photos) {
                 URL.revokeObjectURL(photo.url)
@@ -402,7 +464,6 @@ export function PhotoComparisonPage({
             }
         }
 
-        invalidateComparison()
         if (side === "left") {
             setLeftProduct(updater)
         } else {
@@ -414,41 +475,62 @@ export function PhotoComparisonPage({
         side: "left" | "right",
         columnId: string | null,
     ) => {
+        abortInFlightComparison()
         invalidateComparison()
+
+        if (side === "left") {
+            leftProductRef.current = {
+                ...leftProductRef.current,
+                selectedColumnId: columnId,
+            }
+            setLeftProduct((prev) => ({ ...prev, selectedColumnId: columnId }))
+        } else {
+            rightProductRef.current = {
+                ...rightProductRef.current,
+                selectedColumnId: columnId,
+            }
+            setRightProduct((prev) => ({ ...prev, selectedColumnId: columnId }))
+        }
+
+        const currentLeft = leftProductRef.current
+        const currentRight = rightProductRef.current
+
+        const leftExt = currentLeft.extraction
+        const rightExt = currentRight.extraction
+
         const nextLeftColId =
             side === "left"
                 ? columnId
-                : leftProduct.selectedColumnId ||
-                  getDefaultColumnId(leftProduct.extraction)
+                : currentLeft.selectedColumnId || getDefaultColumnId(leftExt)
 
         const nextRightColId =
             side === "right"
                 ? columnId
-                : rightProduct.selectedColumnId ||
-                  getDefaultColumnId(rightProduct.extraction)
+                : currentRight.selectedColumnId || getDefaultColumnId(rightExt)
 
-        if (side === "left") {
-            setLeftProduct((prev) => ({ ...prev, selectedColumnId: columnId }))
-        } else {
-            setRightProduct((prev) => ({ ...prev, selectedColumnId: columnId }))
-        }
-
-        const leftExt = leftProduct.extraction
-        const rightExt = rightProduct.extraction
         if (leftExt && rightExt && nextLeftColId && nextRightColId) {
             const reqId = ++comparisonRequestIdRef.current
+            const compareSessionId = sessionIdRef.current
+            const compController = new AbortController()
+            compareAbortControllerRef.current = compController
+
             void (async () => {
                 setProcessingStep("comparing")
                 try {
-                    const result = await compare({
-                        left: leftExt,
-                        right: rightExt,
-                        left_column_id: nextLeftColId,
-                        right_column_id: nextRightColId,
-                    })
+                    const result = await compare(
+                        {
+                            left: leftExt,
+                            right: rightExt,
+                            left_column_id: nextLeftColId,
+                            right_column_id: nextRightColId,
+                        },
+                        { signal: compController.signal },
+                    )
                     if (
                         !isMountedRef.current ||
-                        comparisonRequestIdRef.current !== reqId
+                        sessionIdRef.current !== compareSessionId ||
+                        comparisonRequestIdRef.current !== reqId ||
+                        compController.signal.aborted
                     ) {
                         return
                     }
@@ -456,7 +538,10 @@ export function PhotoComparisonPage({
                 } catch (err: unknown) {
                     if (
                         !isMountedRef.current ||
-                        comparisonRequestIdRef.current !== reqId
+                        sessionIdRef.current !== compareSessionId ||
+                        comparisonRequestIdRef.current !== reqId ||
+                        compController.signal.aborted ||
+                        isAbortError(err)
                     ) {
                         return
                     }
@@ -466,8 +551,12 @@ export function PhotoComparisonPage({
                             : "The comparison request failed."
                     setComparisonError(formatActionableError(raw))
                 } finally {
+                    if (compareAbortControllerRef.current === compController) {
+                        compareAbortControllerRef.current = null
+                    }
                     if (
                         isMountedRef.current &&
+                        sessionIdRef.current === compareSessionId &&
                         comparisonRequestIdRef.current === reqId
                     ) {
                         setProcessingStep("idle")
@@ -487,47 +576,73 @@ export function PhotoComparisonPage({
         }
 
         setComparisonError(null)
+        const compareSessionId = sessionIdRef.current
+        const initialLeftRevision = leftProductRef.current.revision
+        const initialRightRevision = rightProductRef.current.revision
 
         try {
-            let leftExt = leftProduct.extraction
+            let leftExt = leftProductRef.current.extraction
+
             if (!leftExt) {
+                if (leftProductRef.current.photos.length === 0) {
+                    return
+                }
                 setProcessingStep("extracting_left")
                 setLeftProduct((prev) => ({
                     ...prev,
                     loading: true,
                     error: "",
                 }))
-                const currentRevision = leftProduct.revision
+                const controller = new AbortController()
+                leftAbortControllerRef.current = controller
+
                 try {
                     const ext = await extractPhotos(
-                        leftProduct.id,
-                        leftProduct.photos.map((p) => p.file),
+                        leftProductRef.current.id,
+                        leftProductRef.current.photos.map((p) => p.file),
+                        { signal: controller.signal },
                     )
+
+                    if (
+                        !isMountedRef.current ||
+                        sessionIdRef.current !== compareSessionId ||
+                        leftProductRef.current.revision !==
+                            initialLeftRevision ||
+                        controller.signal.aborted
+                    ) {
+                        return
+                    }
+
                     leftExt = ext
-                    setLeftProduct((prev) => {
-                        if (prev.revision !== currentRevision) return prev
-                        const defaultColId =
-                            (ext.nutrition_columns?.length ?? 0) === 1
-                                ? (ext.nutrition_columns?.[0]?.column_id ??
-                                  null)
-                                : null
+                    const defaultColId =
+                        (ext.nutrition_columns?.length ?? 0) === 1
+                            ? (ext.nutrition_columns?.[0]?.column_id ?? null)
+                            : null
 
-                        let updatedTitle = prev.title
-                        const isDefaultTitle =
-                            prev.title === "Product A" ||
-                            prev.title === "Product B"
-                        if (isDefaultTitle) {
-                            const brand =
-                                ext.identity?.brand?.value_text?.trim()
-                            const name = ext.identity?.name?.value_text?.trim()
-                            const detected = [brand, name]
-                                .filter(Boolean)
-                                .join(" ")
-                            if (detected) {
-                                updatedTitle = detected
-                            }
+                    let updatedTitle = leftProductRef.current.title
+                    const isDefaultTitle =
+                        updatedTitle === "Product A" ||
+                        updatedTitle === "Product B"
+                    if (isDefaultTitle) {
+                        const brand = ext.identity?.brand?.value_text?.trim()
+                        const name = ext.identity?.name?.value_text?.trim()
+                        const detected = [brand, name].filter(Boolean).join(" ")
+                        if (detected) {
+                            updatedTitle = detected
                         }
+                    }
 
+                    leftProductRef.current = {
+                        ...leftProductRef.current,
+                        loading: false,
+                        extraction: ext,
+                        selectedColumnId: defaultColId,
+                        title: updatedTitle,
+                        retry: false,
+                    }
+
+                    setLeftProduct((prev) => {
+                        if (prev.revision !== initialLeftRevision) return prev
                         return {
                             ...prev,
                             loading: false,
@@ -538,60 +653,112 @@ export function PhotoComparisonPage({
                         }
                     })
                 } catch (err: unknown) {
+                    if (
+                        !isMountedRef.current ||
+                        sessionIdRef.current !== compareSessionId ||
+                        leftProductRef.current.revision !==
+                            initialLeftRevision ||
+                        controller.signal.aborted ||
+                        isAbortError(err)
+                    ) {
+                        return
+                    }
                     const raw =
                         err instanceof Error
                             ? err.message
                             : "The extraction request failed. Check the provider and retry."
                     const message = formatActionableError(raw)
-                    setLeftProduct((prev) => ({
-                        ...prev,
-                        loading: false,
-                        error: message,
-                        retry: true,
-                    }))
+                    setLeftProduct((prev) => {
+                        if (prev.revision !== initialLeftRevision) return prev
+                        return {
+                            ...prev,
+                            loading: false,
+                            error: message,
+                            retry: true,
+                        }
+                    })
                     return
+                } finally {
+                    if (leftAbortControllerRef.current === controller) {
+                        leftAbortControllerRef.current = null
+                    }
                 }
             }
 
-            let rightExt = rightProduct.extraction
+            if (
+                !isMountedRef.current ||
+                sessionIdRef.current !== compareSessionId ||
+                !leftExt ||
+                leftProductRef.current.revision !== initialLeftRevision ||
+                leftProductRef.current.photos.length === 0 ||
+                rightProductRef.current.photos.length === 0 ||
+                rightProductRef.current.revision !== initialRightRevision
+            ) {
+                return
+            }
+
+            let rightExt = rightProductRef.current.extraction
+            const rightRevision = rightProductRef.current.revision
+
             if (!rightExt) {
+                if (rightProductRef.current.photos.length === 0) {
+                    return
+                }
                 setProcessingStep("extracting_right")
                 setRightProduct((prev) => ({
                     ...prev,
                     loading: true,
                     error: "",
                 }))
-                const currentRevision = rightProduct.revision
+                const controller = new AbortController()
+                rightAbortControllerRef.current = controller
+
                 try {
                     const ext = await extractPhotos(
-                        rightProduct.id,
-                        rightProduct.photos.map((p) => p.file),
+                        rightProductRef.current.id,
+                        rightProductRef.current.photos.map((p) => p.file),
+                        { signal: controller.signal },
                     )
+
+                    if (
+                        !isMountedRef.current ||
+                        sessionIdRef.current !== compareSessionId ||
+                        rightProductRef.current.revision !== rightRevision ||
+                        controller.signal.aborted
+                    ) {
+                        return
+                    }
+
                     rightExt = ext
-                    setRightProduct((prev) => {
-                        if (prev.revision !== currentRevision) return prev
-                        const defaultColId =
-                            (ext.nutrition_columns?.length ?? 0) === 1
-                                ? (ext.nutrition_columns?.[0]?.column_id ??
-                                  null)
-                                : null
+                    const defaultColId =
+                        (ext.nutrition_columns?.length ?? 0) === 1
+                            ? (ext.nutrition_columns?.[0]?.column_id ?? null)
+                            : null
 
-                        let updatedTitle = prev.title
-                        const isDefaultTitle =
-                            prev.title === "Product A" ||
-                            prev.title === "Product B"
-                        if (isDefaultTitle) {
-                            const brand =
-                                ext.identity?.brand?.value_text?.trim()
-                            const name = ext.identity?.name?.value_text?.trim()
-                            const detected = [brand, name]
-                                .filter(Boolean)
-                                .join(" ")
-                            if (detected) {
-                                updatedTitle = detected
-                            }
+                    let updatedTitle = rightProductRef.current.title
+                    const isDefaultTitle =
+                        updatedTitle === "Product A" ||
+                        updatedTitle === "Product B"
+                    if (isDefaultTitle) {
+                        const brand = ext.identity?.brand?.value_text?.trim()
+                        const name = ext.identity?.name?.value_text?.trim()
+                        const detected = [brand, name].filter(Boolean).join(" ")
+                        if (detected) {
+                            updatedTitle = detected
                         }
+                    }
 
+                    rightProductRef.current = {
+                        ...rightProductRef.current,
+                        loading: false,
+                        extraction: ext,
+                        selectedColumnId: defaultColId,
+                        title: updatedTitle,
+                        retry: false,
+                    }
+
+                    setRightProduct((prev) => {
+                        if (prev.revision !== rightRevision) return prev
                         return {
                             ...prev,
                             loading: false,
@@ -602,26 +769,57 @@ export function PhotoComparisonPage({
                         }
                     })
                 } catch (err: unknown) {
+                    if (
+                        !isMountedRef.current ||
+                        sessionIdRef.current !== compareSessionId ||
+                        rightProductRef.current.revision !== rightRevision ||
+                        controller.signal.aborted ||
+                        isAbortError(err)
+                    ) {
+                        return
+                    }
                     const raw =
                         err instanceof Error
                             ? err.message
                             : "The extraction request failed. Check the provider and retry."
                     const message = formatActionableError(raw)
-                    setRightProduct((prev) => ({
-                        ...prev,
-                        loading: false,
-                        error: message,
-                        retry: true,
-                    }))
+                    setRightProduct((prev) => {
+                        if (prev.revision !== rightRevision) return prev
+                        return {
+                            ...prev,
+                            loading: false,
+                            error: message,
+                            retry: true,
+                        }
+                    })
                     return
+                } finally {
+                    if (rightAbortControllerRef.current === controller) {
+                        rightAbortControllerRef.current = null
+                    }
                 }
             }
 
+            if (
+                !isMountedRef.current ||
+                sessionIdRef.current !== compareSessionId ||
+                !leftExt ||
+                !rightExt ||
+                leftProductRef.current.revision !== initialLeftRevision ||
+                rightProductRef.current.revision !== rightRevision ||
+                leftProductRef.current.photos.length === 0 ||
+                rightProductRef.current.photos.length === 0
+            ) {
+                return
+            }
+
             const leftColId =
-                leftProduct.selectedColumnId || getDefaultColumnId(leftExt)
+                leftProductRef.current.selectedColumnId ||
+                getDefaultColumnId(leftExt)
 
             const rightColId =
-                rightProduct.selectedColumnId || getDefaultColumnId(rightExt)
+                rightProductRef.current.selectedColumnId ||
+                getDefaultColumnId(rightExt)
 
             if ((leftExt.nutrition_columns?.length ?? 0) > 1 && !leftColId) {
                 return
@@ -631,8 +829,12 @@ export function PhotoComparisonPage({
             }
 
             setProcessingStep("comparing")
+            abortInFlightComparison()
             const reqId = ++comparisonRequestIdRef.current
-            const payload = {
+            const compController = new AbortController()
+            compareAbortControllerRef.current = compController
+
+            const payload: ComparisonRequest = {
                 left: leftExt,
                 right: rightExt,
                 left_column_id: leftColId || undefined,
@@ -640,10 +842,14 @@ export function PhotoComparisonPage({
             }
 
             try {
-                const result = await compare(payload)
+                const result = await compare(payload, {
+                    signal: compController.signal,
+                })
                 if (
                     !isMountedRef.current ||
-                    comparisonRequestIdRef.current !== reqId
+                    sessionIdRef.current !== compareSessionId ||
+                    comparisonRequestIdRef.current !== reqId ||
+                    compController.signal.aborted
                 ) {
                     return
                 }
@@ -651,7 +857,10 @@ export function PhotoComparisonPage({
             } catch (err: unknown) {
                 if (
                     !isMountedRef.current ||
-                    comparisonRequestIdRef.current !== reqId
+                    sessionIdRef.current !== compareSessionId ||
+                    comparisonRequestIdRef.current !== reqId ||
+                    compController.signal.aborted ||
+                    isAbortError(err)
                 ) {
                     return
                 }
@@ -660,9 +869,18 @@ export function PhotoComparisonPage({
                         ? err.message
                         : "The comparison request failed. Retry when both extractions are ready."
                 setComparisonError(formatActionableError(raw))
+            } finally {
+                if (compareAbortControllerRef.current === compController) {
+                    compareAbortControllerRef.current = null
+                }
             }
         } finally {
-            setProcessingStep("idle")
+            if (
+                isMountedRef.current &&
+                sessionIdRef.current === compareSessionId
+            ) {
+                setProcessingStep("idle")
+            }
         }
     }
 

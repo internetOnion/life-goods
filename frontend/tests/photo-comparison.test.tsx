@@ -10,7 +10,9 @@ import { PhotoComparisonPage } from "../src/features/photo-comparison/PhotoCompa
 import { PhotoInspectionModal } from "../src/features/photo-comparison/PhotoInspectionModal"
 import { ProductPhotoPanel } from "../src/features/photo-comparison/ProductPhotoPanel"
 import type {
+    ComparisonRequest,
     ComparisonResponse,
+    Extraction,
     ProductSideState,
 } from "../src/features/photo-comparison/types"
 import type { ProductLookup } from "../src/features/product/api"
@@ -296,8 +298,22 @@ describe("Compare Products frontend page (/compare)", () => {
         await user.click(compareButton)
 
         expect(extractPhotosMock).toHaveBeenCalledTimes(2)
-        expect(extractPhotosMock).toHaveBeenCalledWith("left", [fileLeft])
-        expect(extractPhotosMock).toHaveBeenCalledWith("right", [fileRight])
+        expect(extractPhotosMock.mock.calls[0]?.[0]).toBe("left")
+        expect(extractPhotosMock.mock.calls[0]?.[1]).toEqual([fileLeft])
+        expect(
+            (
+                extractPhotosMock.mock.calls[0]?.[2] as
+                    { signal?: AbortSignal } | undefined
+            )?.signal,
+        ).toBeInstanceOf(AbortSignal)
+        expect(extractPhotosMock.mock.calls[1]?.[0]).toBe("right")
+        expect(extractPhotosMock.mock.calls[1]?.[1]).toEqual([fileRight])
+        expect(
+            (
+                extractPhotosMock.mock.calls[1]?.[2] as
+                    { signal?: AbortSignal } | undefined
+            )?.signal,
+        ).toBeInstanceOf(AbortSignal)
         expect(compareMock).toHaveBeenCalledTimes(1)
 
         // Factual results rendered
@@ -1142,12 +1158,18 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
 
         // Comparison continues automatically
         expect(compareMock).toHaveBeenCalledTimes(1)
-        expect(compareMock).toHaveBeenCalledWith(
+        expect(compareMock.mock.calls[0]?.[0]).toEqual(
             expect.objectContaining({
                 left_column_id: "col_dry",
                 right_column_id: "col_sole",
             }),
         )
+        expect(
+            (
+                compareMock.mock.calls[0]?.[1] as
+                    { signal?: AbortSignal } | undefined
+            )?.signal,
+        ).toBeInstanceOf(AbortSignal)
 
         // Comparison results render with factual difference
         expect(screen.getByText("Protein")).toBeInTheDocument()
@@ -2049,10 +2071,12 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         // Product A's work was preserved! Only Product B was called on retry!
         // So total calls to extractPhotosMock is now 3 (left: 1, right: 2)
         expect(extractPhotosMock).toHaveBeenCalledTimes(3)
-        expect(extractPhotosMock).toHaveBeenLastCalledWith(
-            "right",
-            expect.any(Array),
-        )
+        const lastCall = extractPhotosMock.mock.calls.at(-1)
+        expect(lastCall?.[0]).toBe("right")
+        expect(Array.isArray(lastCall?.[1])).toBe(true)
+        expect(
+            (lastCall?.[2] as { signal?: AbortSignal } | undefined)?.signal,
+        ).toBeInstanceOf(AbortSignal)
     })
 
     test("retake-required and partial outcomes show actionable guidance in ProductPhotoPanel", () => {
@@ -2115,5 +2139,863 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         expect(
             screen.getByText("Glare reflects across the serving size line."),
         ).toBeInTheDocument()
+    })
+})
+
+describe("Compare Products obsolete-response safety (#125)", () => {
+    function createDeferred<T>() {
+        let resolve!: (val: T) => void
+        let reject!: (err: unknown) => void
+        const promise = new Promise<T>((res, rej) => {
+            resolve = res
+            reject = rej
+        })
+        return { promise, resolve, reject }
+    }
+
+    test("replacing photos while extraction is pending cancels in-flight extraction and prevents stale results", async () => {
+        const user = userEvent.setup()
+        let capturedSignal: AbortSignal | undefined
+        const deferredLeft = createDeferred<Extraction>()
+
+        const extractPhotosMock = vi
+            .fn()
+            .mockImplementation(
+                (
+                    id: string,
+                    _photos: File[],
+                    options?: { signal?: AbortSignal },
+                ) => {
+                    if (id === "left") {
+                        capturedSignal = options?.signal
+                        return deferredLeft.promise
+                    }
+                    return Promise.resolve({
+                        schema_version: 1,
+                        product_id: "right",
+                        images: [],
+                        package_quantity: null,
+                        nutrition_columns: [
+                            {
+                                column_id: "c_right",
+                                label: "Per 100g",
+                                basis: "per_100g",
+                                preparation_state: "as_sold",
+                                fields: [],
+                            },
+                        ],
+                        outcome: "complete",
+                        provider: "google",
+                        model: "gemini",
+                        configuration_version: "1.0.0",
+                    })
+                },
+            )
+
+        const compareMock = vi.fn().mockResolvedValue({
+            schema_version: 1,
+            calculated_from_submitted_evidence: true,
+            left_product_id: "left",
+            right_product_id: "right",
+            rows: [],
+        })
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+        render(
+            <QueryClientProvider client={queryClient}>
+                <MemoryRouter initialEntries={["/compare"]}>
+                    <PhotoComparisonPage
+                        extractPhotos={extractPhotosMock}
+                        compare={compareMock}
+                    />
+                </MemoryRouter>
+            </QueryClientProvider>,
+        )
+
+        // Upload initial photos
+        const inputLeft = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+        const inputRight = document.getElementById(
+            "upload-photos-right",
+        ) as HTMLInputElement
+        fireEvent.change(inputLeft, {
+            target: {
+                files: [
+                    new File(["photo1"], "photo1.jpg", { type: "image/jpeg" }),
+                ],
+            },
+        })
+        fireEvent.change(inputRight, {
+            target: {
+                files: [
+                    new File(["photoB"], "photoB.jpg", { type: "image/jpeg" }),
+                ],
+            },
+        })
+
+        // Tap Compare Products
+        const compareBtn = screen.getByRole("button", {
+            name: "Compare Products",
+        })
+        await user.click(compareBtn)
+
+        // Extraction for Left is in flight
+        expect(extractPhotosMock.mock.calls[0]?.[0]).toBe("left")
+        expect(Array.isArray(extractPhotosMock.mock.calls[0]?.[1])).toBe(true)
+        expect(
+            (
+                extractPhotosMock.mock.calls[0]?.[2] as
+                    { signal?: AbortSignal } | undefined
+            )?.signal,
+        ).toBeInstanceOf(AbortSignal)
+        expect(capturedSignal?.aborted).toBe(false)
+        expect(screen.getByText("Reading Product A…")).toBeInTheDocument()
+
+        // User replaces Left photo with a new photo while extraction is pending
+        const replaceInput = document.getElementById(
+            "replace-file-left-0",
+        ) as HTMLInputElement
+        fireEvent.change(replaceInput, {
+            target: {
+                files: [
+                    new File(["photo2"], "photo2.jpg", { type: "image/jpeg" }),
+                ],
+            },
+        })
+
+        // In-flight request was aborted
+        expect(capturedSignal?.aborted).toBe(true)
+
+        // Now resolve the old extraction promise
+        deferredLeft.resolve({
+            schema_version: 1,
+            product_id: "left",
+            identity: {
+                name: { field_id: "name", value_text: "Stale Noodle" },
+            },
+            images: [],
+            package_quantity: null,
+            nutrition_columns: [
+                {
+                    column_id: "c_stale",
+                    label: "Per Serving",
+                    basis: "per_serving",
+                    preparation_state: "as_sold",
+                    fields: [],
+                },
+            ],
+            outcome: "complete",
+            provider: "google",
+            model: "gemini",
+            configuration_version: "1.0.0",
+        })
+
+        await Promise.resolve()
+
+        // Stale extraction title "Stale Noodle" should NOT appear!
+        expect(
+            screen.queryByDisplayValue("Stale Noodle"),
+        ).not.toBeInTheDocument()
+        // Stale comparison must NOT have been called!
+        expect(compareMock).not.toHaveBeenCalled()
+        // Button should be "Compare Products", not stuck in loading
+        expect(
+            screen.getByRole("button", { name: "Compare Products" }),
+        ).toBeEnabled()
+    })
+
+    test("changing columns during comparison cancels in-flight comparison and rejects out-of-order responses", async () => {
+        const user = userEvent.setup()
+
+        const deferredCompare1 = createDeferred<ComparisonResponse>()
+        const deferredCompare2 = createDeferred<ComparisonResponse>()
+        const capturedSignals: AbortSignal[] = []
+
+        const leftExtractionWithTwoCols: Extraction = {
+            schema_version: 1,
+            product_id: "left",
+            images: [],
+            package_quantity: null,
+            nutrition_columns: [
+                {
+                    column_id: "col_dry",
+                    label: "As Sold (Dry)",
+                    basis: "per_100g",
+                    preparation_state: "as_sold",
+                    fields: [],
+                },
+                {
+                    column_id: "col_prep",
+                    label: "Prepared",
+                    basis: "per_100g",
+                    preparation_state: "as_prepared",
+                    fields: [],
+                },
+            ],
+            outcome: "complete",
+            provider: "google",
+            model: "gemini",
+            configuration_version: "1.0.0",
+        }
+
+        const rightExtraction: Extraction = {
+            schema_version: 1,
+            product_id: "right",
+            images: [],
+            package_quantity: null,
+            nutrition_columns: [
+                {
+                    column_id: "col_right",
+                    label: "Per 100g",
+                    basis: "per_100g",
+                    preparation_state: "as_sold",
+                    fields: [],
+                },
+            ],
+            outcome: "complete",
+            provider: "google",
+            model: "gemini",
+            configuration_version: "1.0.0",
+        }
+
+        const extractPhotosMock = vi.fn().mockImplementation((id: string) => {
+            return Promise.resolve(
+                id === "left" ? leftExtractionWithTwoCols : rightExtraction,
+            )
+        })
+
+        let compareCallCount = 0
+        const compareMock = vi
+            .fn()
+            .mockImplementation(
+                (
+                    _payload: ComparisonRequest,
+                    options?: { signal?: AbortSignal },
+                ) => {
+                    compareCallCount++
+                    const sig = options?.signal
+                    if (sig) capturedSignals.push(sig)
+                    if (compareCallCount === 1) {
+                        return deferredCompare1.promise
+                    }
+                    return deferredCompare2.promise
+                },
+            )
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+        render(
+            <QueryClientProvider client={queryClient}>
+                <MemoryRouter initialEntries={["/compare"]}>
+                    <PhotoComparisonPage
+                        extractPhotos={extractPhotosMock}
+                        compare={compareMock}
+                    />
+                </MemoryRouter>
+            </QueryClientProvider>,
+        )
+
+        // Upload photos for both
+        const inputLeft = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+        const inputRight = document.getElementById(
+            "upload-photos-right",
+        ) as HTMLInputElement
+        fireEvent.change(inputLeft, {
+            target: {
+                files: [new File(["a"], "a.jpg", { type: "image/jpeg" })],
+            },
+        })
+        fireEvent.change(inputRight, {
+            target: {
+                files: [new File(["b"], "b.jpg", { type: "image/jpeg" })],
+            },
+        })
+
+        // Tap Compare Products
+        await user.click(
+            screen.getByRole("button", { name: "Compare Products" }),
+        )
+
+        // Both extractions succeed; pauses for column selection because Left has 2 columns
+        expect(
+            screen.getByText(
+                "Select a nutrition column for Product A to continue.",
+            ),
+        ).toBeInTheDocument()
+
+        // Select the first column: "col_dry"
+        const selectDryCol = screen.getAllByRole("button", {
+            name: /Select column/i,
+        })[0]
+        await user.click(selectDryCol!)
+
+        // First comparison is now in flight
+        expect(compareMock).toHaveBeenCalledTimes(1)
+        expect(capturedSignals[0]?.aborted).toBe(false)
+
+        // While first comparison is in flight, user switches to the second column: "col_prep"
+        const selectPrepCol = screen.getByRole("button", {
+            name: /Select column/i,
+        })
+        await user.click(selectPrepCol)
+
+        // First comparison request should be cancelled/aborted
+        expect(capturedSignals[0]?.aborted).toBe(true)
+        expect(compareMock).toHaveBeenCalledTimes(2)
+
+        // Now resolve the older comparison 1 FIRST (out-of-order resolution) with obsolete data
+        deferredCompare1.resolve({
+            schema_version: 1,
+            calculated_from_submitted_evidence: true,
+            left_product_id: "left",
+            right_product_id: "right",
+            rows: [
+                {
+                    row_kind: "amount",
+                    nutrient: "protein",
+                    state: "not_comparable",
+                    reason: "Stale reason from col dry",
+                },
+            ],
+        })
+
+        await Promise.resolve()
+
+        // Obsolete response 1 must be rejected and NOT rendered!
+        expect(
+            screen.queryByText("Stale reason from col dry"),
+        ).not.toBeInTheDocument()
+
+        // Now resolve comparison 2 with current data
+        deferredCompare2.resolve({
+            schema_version: 1,
+            calculated_from_submitted_evidence: true,
+            left_product_id: "left",
+            right_product_id: "right",
+            rows: [
+                {
+                    row_kind: "amount",
+                    nutrient: "protein",
+                    state: "not_comparable",
+                    reason: "Fresh reason from col prep",
+                },
+            ],
+        })
+
+        // Fresh result 2 is rendered!
+        expect(
+            await screen.findByText("Fresh reason from col prep"),
+        ).toBeInTheDocument()
+        expect(
+            screen.queryByText("Stale reason from col dry"),
+        ).not.toBeInTheDocument()
+    })
+
+    test("resetting during extraction cancels request and prevents stale results from reappearing", async () => {
+        const user = userEvent.setup()
+        let capturedSignal: AbortSignal | undefined
+        const deferredLeft = createDeferred<Extraction>()
+
+        const extractPhotosMock = vi
+            .fn()
+            .mockImplementation(
+                (
+                    id: string,
+                    _photos: File[],
+                    options?: { signal?: AbortSignal },
+                ) => {
+                    if (id === "left") {
+                        capturedSignal = options?.signal
+                        return deferredLeft.promise
+                    }
+                    return Promise.resolve({
+                        schema_version: 1,
+                        product_id: "right",
+                        images: [],
+                        package_quantity: null,
+                        nutrition_columns: [],
+                        outcome: "complete",
+                        provider: "google",
+                        model: "gemini",
+                        configuration_version: "1.0.0",
+                    })
+                },
+            )
+
+        const compareMock = vi.fn().mockResolvedValue({
+            schema_version: 1,
+            calculated_from_submitted_evidence: true,
+            left_product_id: "left",
+            right_product_id: "right",
+            rows: [],
+        })
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+        render(
+            <QueryClientProvider client={queryClient}>
+                <MemoryRouter initialEntries={["/compare"]}>
+                    <PhotoComparisonPage
+                        extractPhotos={extractPhotosMock}
+                        compare={compareMock}
+                    />
+                </MemoryRouter>
+            </QueryClientProvider>,
+        )
+
+        // Upload photos
+        const inputLeft = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+        const inputRight = document.getElementById(
+            "upload-photos-right",
+        ) as HTMLInputElement
+        fireEvent.change(inputLeft, {
+            target: {
+                files: [new File(["a"], "a.jpg", { type: "image/jpeg" })],
+            },
+        })
+        fireEvent.change(inputRight, {
+            target: {
+                files: [new File(["b"], "b.jpg", { type: "image/jpeg" })],
+            },
+        })
+
+        // Tap Compare Products
+        await user.click(
+            screen.getByRole("button", { name: "Compare Products" }),
+        )
+
+        expect(capturedSignal?.aborted).toBe(false)
+        expect(screen.getByText("Reading Product A…")).toBeInTheDocument()
+
+        // Tap Reset session while extraction is in flight
+        await user.click(screen.getByRole("button", { name: /Reset session/i }))
+
+        // Request was aborted
+        expect(capturedSignal?.aborted).toBe(true)
+
+        // Now resolve the old extraction
+        deferredLeft.resolve({
+            schema_version: 1,
+            product_id: "left",
+            identity: {
+                name: { field_id: "name", value_text: "Zombie Product" },
+            },
+            images: [],
+            package_quantity: null,
+            nutrition_columns: [],
+            outcome: "complete",
+            provider: "google",
+            model: "gemini",
+            configuration_version: "1.0.0",
+        })
+
+        await Promise.resolve()
+
+        // Page must remain in reset state!
+        expect(screen.getByDisplayValue("Product A")).toBeInTheDocument()
+        expect(screen.getByDisplayValue("Product B")).toBeInTheDocument()
+        expect(
+            screen.queryByDisplayValue("Zombie Product"),
+        ).not.toBeInTheDocument()
+        expect(compareMock).not.toHaveBeenCalled()
+        expect(
+            screen.getByRole("button", { name: "Compare Products" }),
+        ).toBeDisabled()
+    })
+
+    test("resetting during comparison cancels request and prevents stale comparison from reappearing", async () => {
+        const user = userEvent.setup()
+        let capturedSignal: AbortSignal | undefined
+        const deferredCompare = createDeferred<ComparisonResponse>()
+
+        const extractPhotosMock = vi.fn().mockImplementation((id: string) => {
+            return Promise.resolve({
+                schema_version: 1,
+                product_id: id,
+                images: [],
+                package_quantity: null,
+                nutrition_columns: [
+                    {
+                        column_id: `col_${id}`,
+                        label: "Per 100g",
+                        basis: "per_100g",
+                        preparation_state: "as_sold",
+                        fields: [],
+                    },
+                ],
+                outcome: "complete",
+                provider: "google",
+                model: "gemini",
+                configuration_version: "1.0.0",
+            })
+        })
+
+        const compareMock = vi
+            .fn()
+            .mockImplementation(
+                (
+                    _payload: ComparisonRequest,
+                    options?: { signal?: AbortSignal },
+                ) => {
+                    capturedSignal = options?.signal
+                    return deferredCompare.promise
+                },
+            )
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+        render(
+            <QueryClientProvider client={queryClient}>
+                <MemoryRouter initialEntries={["/compare"]}>
+                    <PhotoComparisonPage
+                        extractPhotos={extractPhotosMock}
+                        compare={compareMock}
+                    />
+                </MemoryRouter>
+            </QueryClientProvider>,
+        )
+
+        // Upload photos
+        const inputLeft = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+        const inputRight = document.getElementById(
+            "upload-photos-right",
+        ) as HTMLInputElement
+        fireEvent.change(inputLeft, {
+            target: {
+                files: [new File(["a"], "a.jpg", { type: "image/jpeg" })],
+            },
+        })
+        fireEvent.change(inputRight, {
+            target: {
+                files: [new File(["b"], "b.jpg", { type: "image/jpeg" })],
+            },
+        })
+
+        // Tap Compare Products
+        await user.click(
+            screen.getByRole("button", { name: "Compare Products" }),
+        )
+
+        // Comparison is in flight
+        expect(screen.getByText("Comparing…")).toBeInTheDocument()
+        expect(capturedSignal?.aborted).toBe(false)
+
+        // Reset session while comparison is in flight
+        await user.click(screen.getByRole("button", { name: /Reset session/i }))
+
+        // Comparison was aborted
+        expect(capturedSignal?.aborted).toBe(true)
+
+        // Resolve the stale comparison
+        deferredCompare.resolve({
+            schema_version: 1,
+            calculated_from_submitted_evidence: true,
+            left_product_id: "left",
+            right_product_id: "right",
+            rows: [
+                {
+                    row_kind: "amount",
+                    nutrient: "energy",
+                    state: "not_comparable",
+                    reason: "Ghost Energy Reason",
+                },
+            ],
+        })
+
+        await Promise.resolve()
+
+        // Ghost comparison row must NOT appear
+        expect(
+            screen.queryByText("Ghost Energy Reason"),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: "Compare Products" }),
+        ).toBeDisabled()
+    })
+
+    test("leaving the page unmounts and cancels in-flight extraction and comparison requests", async () => {
+        let extractionSignal: AbortSignal | undefined
+        const deferredLeft = createDeferred<Extraction>()
+
+        const extractPhotosMock = vi
+            .fn()
+            .mockImplementation(
+                (
+                    _id: string,
+                    _photos: File[],
+                    options?: { signal?: AbortSignal },
+                ) => {
+                    extractionSignal = options?.signal
+                    return deferredLeft.promise
+                },
+            )
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+        const { unmount } = render(
+            <QueryClientProvider client={queryClient}>
+                <MemoryRouter initialEntries={["/compare"]}>
+                    <PhotoComparisonPage extractPhotos={extractPhotosMock} />
+                </MemoryRouter>
+            </QueryClientProvider>,
+        )
+
+        // Upload photos
+        const inputLeft = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+        const inputRight = document.getElementById(
+            "upload-photos-right",
+        ) as HTMLInputElement
+        fireEvent.change(inputLeft, {
+            target: {
+                files: [new File(["a"], "a.jpg", { type: "image/jpeg" })],
+            },
+        })
+        fireEvent.change(inputRight, {
+            target: {
+                files: [new File(["b"], "b.jpg", { type: "image/jpeg" })],
+            },
+        })
+
+        // Tap Compare Products
+        fireEvent.click(
+            screen.getByRole("button", { name: "Compare Products" }),
+        )
+
+        expect(extractionSignal?.aborted).toBe(false)
+
+        // Unmount (simulate navigating away from the page)
+        unmount()
+
+        // In-flight extraction is aborted upon leaving
+        expect(extractionSignal?.aborted).toBe(true)
+
+        // Resolving deferred after unmount does not throw or log unhandled warnings
+        deferredLeft.resolve({
+            schema_version: 1,
+            product_id: "left",
+            images: [],
+            package_quantity: null,
+            nutrition_columns: [],
+            outcome: "complete",
+            provider: "google",
+            model: "gemini",
+            configuration_version: "1.0.0",
+        })
+
+        await Promise.resolve()
+    })
+
+    test("leaving the page unmounts and cancels in-flight comparison request", async () => {
+        let compareSignal: AbortSignal | undefined
+        const deferredCompare = createDeferred<ComparisonResponse>()
+
+        const extractPhotosMock = vi.fn().mockImplementation((id: string) => {
+            return Promise.resolve({
+                schema_version: 1,
+                product_id: id,
+                images: [],
+                package_quantity: null,
+                nutrition_columns: [
+                    {
+                        column_id: `col_${id}`,
+                        label: "Per 100g",
+                        basis: "per_100g",
+                        preparation_state: "as_sold",
+                        fields: [],
+                    },
+                ],
+                outcome: "complete",
+                provider: "google",
+                model: "gemini",
+                configuration_version: "1.0.0",
+            })
+        })
+
+        const compareMock = vi
+            .fn()
+            .mockImplementation(
+                (
+                    _payload: ComparisonRequest,
+                    options?: { signal?: AbortSignal },
+                ) => {
+                    compareSignal = options?.signal
+                    return deferredCompare.promise
+                },
+            )
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+        const { unmount } = render(
+            <QueryClientProvider client={queryClient}>
+                <MemoryRouter initialEntries={["/compare"]}>
+                    <PhotoComparisonPage
+                        extractPhotos={extractPhotosMock}
+                        compare={compareMock}
+                    />
+                </MemoryRouter>
+            </QueryClientProvider>,
+        )
+
+        // Upload photos
+        const inputLeft = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+        const inputRight = document.getElementById(
+            "upload-photos-right",
+        ) as HTMLInputElement
+        fireEvent.change(inputLeft, {
+            target: {
+                files: [new File(["a"], "a.jpg", { type: "image/jpeg" })],
+            },
+        })
+        fireEvent.change(inputRight, {
+            target: {
+                files: [new File(["b"], "b.jpg", { type: "image/jpeg" })],
+            },
+        })
+
+        // Tap Compare Products
+        fireEvent.click(
+            screen.getByRole("button", { name: "Compare Products" }),
+        )
+
+        expect(await screen.findByText("Comparing…")).toBeInTheDocument()
+        expect(compareSignal?.aborted).toBe(false)
+
+        // Unmount
+        unmount()
+
+        // In-flight comparison is aborted
+        expect(compareSignal?.aborted).toBe(true)
+
+        deferredCompare.resolve({
+            schema_version: 1,
+            calculated_from_submitted_evidence: true,
+            left_product_id: "left",
+            right_product_id: "right",
+            rows: [],
+        })
+        await Promise.resolve()
+    })
+
+    test("modifying Product B photos while Product A extraction is in flight stops superseded comparison flow", async () => {
+        let leftSignal: AbortSignal | undefined
+        const deferredLeft = createDeferred<Extraction>()
+
+        const extractPhotosMock = vi
+            .fn()
+            .mockImplementation(
+                (
+                    id: string,
+                    _photos: File[],
+                    options?: { signal?: AbortSignal },
+                ) => {
+                    if (id === "left") {
+                        leftSignal = options?.signal
+                        return deferredLeft.promise
+                    }
+                    return Promise.resolve({
+                        schema_version: 1,
+                        product_id: "right",
+                        images: [],
+                        package_quantity: null,
+                        nutrition_columns: [],
+                        outcome: "complete",
+                        provider: "google",
+                        model: "gemini",
+                        configuration_version: "1.0.0",
+                    })
+                },
+            )
+
+        const compareMock = vi.fn().mockResolvedValue({
+            schema_version: 1,
+            calculated_from_submitted_evidence: true,
+            left_product_id: "left",
+            right_product_id: "right",
+            rows: [],
+        })
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+        render(
+            <QueryClientProvider client={queryClient}>
+                <MemoryRouter initialEntries={["/compare"]}>
+                    <PhotoComparisonPage
+                        extractPhotos={extractPhotosMock}
+                        compare={compareMock}
+                    />
+                </MemoryRouter>
+            </QueryClientProvider>,
+        )
+
+        // Upload photos for both
+        const inputLeft = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+        const inputRight = document.getElementById(
+            "upload-photos-right",
+        ) as HTMLInputElement
+        fireEvent.change(inputLeft, {
+            target: {
+                files: [new File(["a"], "a.jpg", { type: "image/jpeg" })],
+            },
+        })
+        fireEvent.change(inputRight, {
+            target: {
+                files: [new File(["b"], "b.jpg", { type: "image/jpeg" })],
+            },
+        })
+
+        // Tap Compare Products
+        fireEvent.click(
+            screen.getByRole("button", { name: "Compare Products" }),
+        )
+
+        expect(leftSignal?.aborted).toBe(false)
+        expect(screen.getByText("Reading Product A…")).toBeInTheDocument()
+
+        // User clears Product B photo while Product A extraction is pending
+        const removeRightBtn = screen.getAllByLabelText("Remove photo 1")[1]
+        expect(removeRightBtn).toBeDefined()
+        fireEvent.click(removeRightBtn!)
+
+        // Old Product A extraction resolves
+        deferredLeft.resolve({
+            schema_version: 1,
+            product_id: "left",
+            images: [],
+            package_quantity: null,
+            nutrition_columns: [],
+            outcome: "complete",
+            provider: "google",
+            model: "gemini",
+            configuration_version: "1.0.0",
+        })
+
+        await Promise.resolve()
+
+        // Right side was NOT called with empty photos
+        expect(extractPhotosMock).toHaveBeenCalledTimes(1)
+        expect(extractPhotosMock.mock.calls[0]?.[0]).toBe("left")
+        // Comparison was NOT triggered
+        expect(compareMock).not.toHaveBeenCalled()
     })
 })
