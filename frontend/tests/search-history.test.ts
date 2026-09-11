@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest"
 import {
     clearRecentSearches,
     getRecentSearches,
+    removeRecentSearch,
     saveRecentSearch,
 } from "../src/features/search/history"
 
@@ -12,7 +13,7 @@ describe("search history", () => {
         vi.restoreAllMocks()
     })
 
-    test("stores the newest six normalized text queries", () => {
+    test("stores the newest four normalized text queries", () => {
         vi.spyOn(Date, "now").mockReturnValue(100)
 
         for (const query of [
@@ -32,8 +33,21 @@ describe("search history", () => {
             "six",
             "five",
             "four",
+        ])
+    })
+
+    test("removes one query while preserving the remaining order", () => {
+        saveRecentSearch("one")
+        saveRecentSearch("two")
+        saveRecentSearch("three")
+
+        expect(removeRecentSearch("TWO").map((item) => item.query)).toEqual([
             "three",
-            "two",
+            "one",
+        ])
+        expect(getRecentSearches().map((item) => item.query)).toEqual([
+            "three",
+            "one",
         ])
     })
 

@@ -4,7 +4,7 @@ export type SearchHistoryItem = {
 }
 
 const STORAGE_KEY = "lifegoods.search-history.v1"
-const MAX_HISTORY_ITEMS = 6
+const MAX_HISTORY_ITEMS = 4
 
 function normalizeQuery(query: string) {
     return query.trim().replace(/\s+/g, " ")
@@ -56,6 +56,22 @@ export function saveRecentSearch(query: string): SearchHistoryItem[] {
                 normalized.toLocaleLowerCase(),
         ),
     ].slice(0, MAX_HISTORY_ITEMS)
+
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+    } catch {
+        // Search continues to work when browser storage is unavailable.
+    }
+
+    return updated
+}
+
+export function removeRecentSearch(query: string): SearchHistoryItem[] {
+    const normalized = normalizeQuery(query)
+    const updated = getRecentSearches().filter(
+        (item) =>
+            item.query.toLocaleLowerCase() !== normalized.toLocaleLowerCase(),
+    )
 
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))

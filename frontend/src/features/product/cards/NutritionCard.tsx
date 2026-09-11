@@ -132,7 +132,7 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
                                                             strokeWidth="1.5"
                                                             strokeLinecap="round"
                                                             strokeLinejoin="round"
-                                                            className="size-4 shrink-0 text-info-500"
+                                                            className="text-info-500 size-4 shrink-0"
                                                             aria-hidden="true"
                                                         >
                                                             <path d="M3 0v12c0 3.314 2.686 6 6 6h4" />

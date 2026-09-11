@@ -139,6 +139,21 @@ export const IngredientsAnalysisCard: React.FC<
     const vegan = getPill("vegan", analysis.vegan)
     const veg = getPill("vegetarian", analysis.vegetarian)
 
+    const knownCount = [
+        analysis.palmOil,
+        analysis.vegan,
+        analysis.vegetarian,
+    ].filter((value) => value !== "unknown").length
+
+    if (knownCount === 0) return null
+
+    const gridColumnsClass =
+        knownCount === 1
+            ? "sm:grid-cols-1"
+            : knownCount === 2
+              ? "sm:grid-cols-2"
+              : "sm:grid-cols-3"
+
     return (
         <Card className="border-neutral-200/90 bg-white shadow-xs">
             <CardHeader className="p-4 pb-2 sm:p-5">
@@ -151,57 +166,60 @@ export const IngredientsAnalysisCard: React.FC<
             </CardHeader>
 
             <CardContent className="p-4 pt-2 sm:p-5">
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                    {/* Palm Oil */}
-                    <div
-                        className={`flex items-center gap-2 rounded-xl border p-2.5 ${palm.color}`}
-                    >
-                        <PalmTreeIcon
-                            className={`h-4 w-4 shrink-0 ${palm.iconColor}`}
-                        />
-                        <div className="min-w-0">
-                            <span className="text-micro block font-bold tracking-wider uppercase opacity-70">
-                                {palm.title}
-                            </span>
-                            <span className="block truncate text-xs font-semibold">
-                                {palm.status}
-                            </span>
+                <div className={`grid grid-cols-1 gap-2 ${gridColumnsClass}`}>
+                    {analysis.palmOil !== "unknown" && (
+                        <div
+                            className={`flex items-center gap-2 rounded-xl border p-2.5 ${palm.color}`}
+                        >
+                            <PalmTreeIcon
+                                className={`h-4 w-4 shrink-0 ${palm.iconColor}`}
+                            />
+                            <div className="min-w-0">
+                                <span className="text-micro block font-bold tracking-wider uppercase opacity-70">
+                                    {palm.title}
+                                </span>
+                                <span className="block truncate text-xs font-semibold">
+                                    {palm.status}
+                                </span>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
-                    {/* Vegan */}
-                    <div
-                        className={`flex items-center gap-2 rounded-xl border p-2.5 ${vegan.color}`}
-                    >
-                        <Sprout
-                            className={`h-4 w-4 shrink-0 ${vegan.iconColor}`}
-                        />
-                        <div className="min-w-0">
-                            <span className="text-micro block font-bold tracking-wider uppercase opacity-70">
-                                {vegan.title}
-                            </span>
-                            <span className="block truncate text-xs font-semibold">
-                                {vegan.status}
-                            </span>
+                    {analysis.vegan !== "unknown" && (
+                        <div
+                            className={`flex items-center gap-2 rounded-xl border p-2.5 ${vegan.color}`}
+                        >
+                            <Sprout
+                                className={`h-4 w-4 shrink-0 ${vegan.iconColor}`}
+                            />
+                            <div className="min-w-0">
+                                <span className="text-micro block font-bold tracking-wider uppercase opacity-70">
+                                    {vegan.title}
+                                </span>
+                                <span className="block truncate text-xs font-semibold">
+                                    {vegan.status}
+                                </span>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
-                    {/* Vegetarian */}
-                    <div
-                        className={`flex items-center gap-2 rounded-xl border p-2.5 ${veg.color}`}
-                    >
-                        <Salad
-                            className={`h-4 w-4 shrink-0 ${veg.iconColor}`}
-                        />
-                        <div className="min-w-0">
-                            <span className="text-micro block font-bold tracking-wider uppercase opacity-70">
-                                {veg.title}
-                            </span>
-                            <span className="block truncate text-xs font-semibold">
-                                {veg.status}
-                            </span>
+                    {analysis.vegetarian !== "unknown" && (
+                        <div
+                            className={`flex items-center gap-2 rounded-xl border p-2.5 ${veg.color}`}
+                        >
+                            <Salad
+                                className={`h-4 w-4 shrink-0 ${veg.iconColor}`}
+                            />
+                            <div className="min-w-0">
+                                <span className="text-micro block font-bold tracking-wider uppercase opacity-70">
+                                    {veg.title}
+                                </span>
+                                <span className="block truncate text-xs font-semibold">
+                                    {veg.status}
+                                </span>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </CardContent>
         </Card>

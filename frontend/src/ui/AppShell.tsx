@@ -4,7 +4,7 @@ import {
     ScanIcon,
 } from "@phosphor-icons/react"
 import { type ReactNode, useEffect, useState } from "react"
-import { Link, NavLink, useLocation } from "react-router"
+import { NavLink, useLocation } from "react-router"
 
 import { appRoutes } from "@/app/routes"
 import { SplashScreen } from "@/components/brand/SplashScreen"
@@ -36,7 +36,7 @@ const navigation = [
 export function AppShell({ children }: AppShellProps) {
     const location = useLocation()
     const [showSplash, setShowSplash] = useState(true)
-    const isSearchRoute = location.pathname === appRoutes.search
+    const isSearchRoute = location.pathname.startsWith(appRoutes.search)
 
     useEffect(() => {
         const prefersReducedMotion =
@@ -77,20 +77,6 @@ export function AppShell({ children }: AppShellProps) {
                 )}
             >
                 {children}
-                {!isSearchRoute &&
-                    location.pathname !== appRoutes.dataAndLicenses && (
-                        <footer className="mx-auto w-full max-w-xl px-4 pt-4 pb-8 sm:px-6">
-                            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-neutral-200 pt-5 text-xs leading-relaxed text-neutral-500">
-                                <span>Read-only Open Food Facts data</span>
-                                <Link
-                                    className="text-info-700 font-bold no-underline hover:underline"
-                                    to={appRoutes.dataAndLicenses}
-                                >
-                                    Data and licenses
-                                </Link>
-                            </div>
-                        </footer>
-                    )}
             </div>
 
             {!isSearchRoute && (
@@ -98,7 +84,7 @@ export function AppShell({ children }: AppShellProps) {
                     className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/95 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-md select-none"
                     aria-label="Primary navigation"
                 >
-                    <div className="mx-auto grid h-20 w-full max-w-2xl grid-cols-3 items-center gap-1.5 px-3 sm:px-0">
+                    <div className="mx-auto grid h-[4.75rem] w-full max-w-2xl grid-cols-3 items-center gap-1.5 px-3 sm:px-0">
                         {navigation.map(
                             ({ to, label, icon: Icon, ...props }) => {
                                 const isEnd =
@@ -112,7 +98,7 @@ export function AppShell({ children }: AppShellProps) {
                                         aria-label={label}
                                         className={({ isActive }) =>
                                             cn(
-                                                "group relative flex h-[3.75rem] min-w-0 flex-col items-center justify-center rounded-2xl px-2 py-1.5 text-center transition-colors duration-150 select-none",
+                                                "group relative flex h-[3.5rem] min-w-0 flex-col items-center justify-center rounded-2xl px-2 py-1.5 text-center transition-colors duration-150 select-none",
                                                 "focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
                                                 isActive
                                                     ? "text-primary-800"
@@ -124,7 +110,7 @@ export function AppShell({ children }: AppShellProps) {
                                             <>
                                                 <span
                                                     className={cn(
-                                                        "grid size-7 place-items-center transition-colors duration-150",
+                                                        "grid size-7 place-items-center rounded-xl transition-colors duration-150",
                                                         isActive
                                                             ? "text-primary-800"
                                                             : "text-neutral-500 group-hover:text-neutral-900",

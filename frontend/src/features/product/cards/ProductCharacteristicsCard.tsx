@@ -2,7 +2,6 @@ import {
     BookmarkCheck,
     ExternalLink,
     Headphones,
-    ShieldCheck,
     Store,
     Tag,
 } from "lucide-react"
@@ -22,7 +21,6 @@ export const ProductCharacteristicsCard: React.FC<
     const hasContent = Boolean(
         product.genericName ||
         product.categories.length > 0 ||
-        product.labels.length > 0 ||
         product.stores.length > 0 ||
         product.embCodes.length > 0 ||
         product.customerService ||
@@ -71,30 +69,6 @@ export const ProductCharacteristicsCard: React.FC<
                                     className="text-xs font-semibold capitalize"
                                 >
                                     {cat}
-                                </Badge>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Labels & Certifications */}
-                {product.labels.length > 0 && (
-                    <div className="space-y-1.5 border-t border-neutral-100 pt-1">
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 sm:text-sm">
-                            <ShieldCheck className="h-3.5 w-3.5 text-neutral-400" />
-                            <span>
-                                Labels, Certifications & Awards (
-                                {product.labels.length})
-                            </span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                            {product.labels.map((lbl, idx) => (
-                                <Badge
-                                    key={idx}
-                                    variant="outline"
-                                    className="bg-neutral-50 text-xs font-semibold capitalize"
-                                >
-                                    {lbl}
                                 </Badge>
                             ))}
                         </div>

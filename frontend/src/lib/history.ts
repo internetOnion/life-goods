@@ -3,6 +3,7 @@ export interface ScanHistoryItem {
     scheme?: string
     name?: string
     brand?: string
+    manufacturingPlace?: string
     imageUrl?: string
     timestamp: number
 }
@@ -12,7 +13,7 @@ const MAX_HISTORY_ITEMS = 20
 
 export function getRecentScans(): ScanHistoryItem[] {
     try {
-        const raw = localStorage.getItem(STORAGE_KEY)
+        const raw = sessionStorage.getItem(STORAGE_KEY)
         if (!raw) return []
         const parsed: unknown = JSON.parse(raw)
         if (Array.isArray(parsed)) {
@@ -38,7 +39,7 @@ export function saveScanItem(item: Omit<ScanHistoryItem, "timestamp">): void {
             ...filtered,
         ].slice(0, MAX_HISTORY_ITEMS)
 
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
     } catch (e) {
         console.warn("Failed to save scan history", e)
     }
@@ -48,7 +49,7 @@ export function removeScanItem(identifier: string): void {
     try {
         const existing = getRecentScans()
         const updated = existing.filter((i) => i.identifier !== identifier)
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
     } catch (e) {
         console.warn("Failed to remove scan item", e)
     }
@@ -56,7 +57,7 @@ export function removeScanItem(identifier: string): void {
 
 export function clearRecentScans(): void {
     try {
-        localStorage.removeItem(STORAGE_KEY)
+        sessionStorage.removeItem(STORAGE_KEY)
     } catch (e) {
         console.warn("Failed to clear scan history", e)
     }

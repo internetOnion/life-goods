@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter, useLocation } from "react-router"
 import { beforeEach, describe, expect, test, vi } from "vitest"
@@ -15,31 +15,30 @@ vi.mock("../src/features/search/api", () => ({
 
 const mockedSearchProducts = vi.mocked(searchProducts)
 const searchResult = {
-    identifier: "3017620422003",
-    names: [
-        {
-            value: "Nutella",
-            source_field: "product_name",
-            source_name: "Open Food Facts",
-            source_url: "https://world.openfoodfacts.org/product/3017620422003",
-            language: "en",
-            retrieved_at: "2026-08-27T14:14:59.017Z",
-            dataset_version_id: "fixture",
-        },
-    ],
-    brands: {
-        value: ["Nutella"],
-        source_field: "brands",
-        source_name: "Open Food Facts",
-        source_url: "https://world.openfoodfacts.org/product/3017620422003",
-        language: null,
-        retrieved_at: "2026-08-27T14:14:59.017Z",
-        dataset_version_id: "fixture",
+    barcode: "3017620422003",
+    name: {
+        value: "Nutella",
+        language: "en",
+        source_field: "product_name",
     },
-    quantity: { value: "400 g" },
-    manufacturing_place: { value: "France" },
-    reference_image: null,
+    brands: ["Nutella"],
+    manufacturing_places: ["Cambodia"],
+    quantity: "400 g",
+    source: {
+        name: "Open Food Facts",
+        product_url: "https://world.openfoodfacts.org/product/3017620422003",
+    },
+    thumbnail: null,
 } as ProductSearchResult
+
+const recentProduct = {
+    identifier: "3017620422003",
+    name: "Nutella Spread 400g",
+    brand: "Ferrero",
+    manufacturingPlace: "France",
+    imageUrl: "https://images.openfoodfacts.org/front.jpg",
+    timestamp: 1,
+}
 
 function CurrentLocation() {
     const location = useLocation()
@@ -60,24 +59,29 @@ function renderPage(path = "/search") {
 describe("search page", () => {
     beforeEach(() => {
         localStorage.clear()
+        sessionStorage.clear()
         mockedSearchProducts.mockReset()
         mockedSearchProducts.mockResolvedValue({
-            normalized_query: "nutella",
             results: [searchResult],
-            next_offset: null,
+            nextCursor: null,
         })
     })
 
-    test("keeps the page and prompts for input when search is submitted empty", async () => {
+    test("keeps the empty history layout when search is submitted empty", async () => {
         const user = userEvent.setup()
         renderPage()
 
         await user.click(screen.getByRole("button", { name: "Search" }))
         expect(screen.getByTestId("location")).toHaveTextContent("/search")
         expect(
-            screen.getByRole("heading", {
-                name: "Please enter a Barcode, Product name, brand, or country",
-            }),
+            screen.getByRole("heading", { name: "Search history" }),
+        ).toBeVisible()
+        expect(screen.getByText("You haven't searched yet.")).toBeVisible()
+        expect(
+            screen.getByRole("heading", { name: "Recent searches" }),
+        ).toBeVisible()
+        expect(
+            screen.getByText("You haven't viewed any Products yet."),
         ).toBeVisible()
         expect(screen.queryByRole("alert")).not.toBeInTheDocument()
 
@@ -89,23 +93,79 @@ describe("search page", () => {
         expect(mockedSearchProducts).toHaveBeenCalledWith("abc")
     })
 
-    test("searches Product name, brand, and country queries", async () => {
+    test("waits for Enter before showing Product search results", async () => {
         const user = userEvent.setup()
         renderPage()
 
         await user.type(
             screen.getByRole("textbox", { name: "Search" }),
-            "France",
+            "Nutella",
         )
-        await user.click(screen.getByRole("button", { name: "Search" }))
 
-        expect(await screen.findByText("Nutella")).toBeVisible()
-        expect(screen.getByText("Nutella · France · 400 g")).toBeVisible()
-        expect(mockedSearchProducts).toHaveBeenCalledWith("France")
+        expect(mockedSearchProducts).not.toHaveBeenCalled()
+        expect(
+            screen.queryByRole("button", { name: "View Nutella" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByText("Try a sample Product"),
+        ).not.toBeInTheDocument()
+
+        await user.keyboard("{Enter}")
+
+        const resultCard = await screen.findByRole("button", {
+            name: "View Nutella",
+        })
+        expect(
+            within(resultCard).getByRole("heading", {
+                name: "Nutella · 400 g",
+            }),
+        ).toBeVisible()
+        expect(within(resultCard).getByText("Company")).toBeVisible()
+        expect(within(resultCard).getByText("Made in")).toBeVisible()
+        expect(within(resultCard).getByText("Cambodia")).toBeVisible()
+        expect(within(resultCard).getByText("Barcode")).toBeVisible()
+        expect(within(resultCard).getByText("3017620422003")).toBeVisible()
+        expect(within(resultCard).getByText(">")).toBeVisible()
+        expect(mockedSearchProducts).toHaveBeenCalledWith("Nutella")
     })
 
-    test("normalizes a valid Barcode and opens its Product page", async () => {
+    test("shows N/A for unavailable company and manufacturing place", async () => {
         const user = userEvent.setup()
+        mockedSearchProducts.mockResolvedValue({
+            results: [
+                { ...searchResult, brands: [], manufacturing_places: [] },
+            ],
+            nextCursor: null,
+        })
+        renderPage()
+
+        await user.type(
+            screen.getByRole("textbox", { name: "Search" }),
+            "Nutella",
+        )
+        await user.keyboard("{Enter}")
+
+        const resultCard = await screen.findByRole("button", {
+            name: "View Nutella",
+        })
+        expect(within(resultCard).getAllByText("N/A")).toHaveLength(2)
+    })
+
+    test("shows a recognized Barcode card before opening its Product page", async () => {
+        const user = userEvent.setup()
+        mockedSearchProducts.mockResolvedValue({
+            results: [
+                {
+                    ...searchResult,
+                    barcode: "4006381333931",
+                    name: {
+                        ...searchResult.name!,
+                        value: "Recognized Product",
+                    },
+                },
+            ],
+            nextCursor: null,
+        })
         renderPage()
         await user.type(
             screen.getByRole("textbox", { name: "Search" }),
@@ -113,10 +173,21 @@ describe("search page", () => {
         )
         await user.click(screen.getByRole("button", { name: "Search" }))
 
+        const productCard = await screen.findByRole("button", {
+            name: "View Recognized Product",
+        })
+        expect(screen.getByTestId("location")).toHaveTextContent("/search")
+        expect(within(productCard).getByText("4006381333931")).toBeVisible()
+        expect(mockedSearchProducts).toHaveBeenCalledWith("4 006381 333931")
+        expect(localStorage.getItem("lifegoods.search-history.v1")).toContain(
+            "4 006381 333931",
+        )
+
+        await user.click(productCard)
+
         expect(screen.getByTestId("location")).toHaveTextContent(
             "/products/4006381333931",
         )
-        expect(localStorage.getItem("lifegoods.search-history.v1")).toBeNull()
     })
 
     test("preserves an invalid scanned value for correction", () => {
@@ -136,16 +207,18 @@ describe("search page", () => {
         ).toHaveAttribute("href", "/")
     })
 
-    test("clears the input and resets errors when clear button is clicked", async () => {
-        const user = userEvent.setup()
-        renderPage("/search?q=12345678")
+    test("omits the clear button and helper text around the search bar", () => {
+        renderPage("/search?q=gg")
         const input = screen.getByRole("textbox", { name: "Search" })
-        expect(input).toHaveValue("12345678")
-
-        const clearButton = screen.getByRole("button", { name: "Clear search" })
-        await user.click(clearButton)
-        expect(input).toHaveValue("")
-        expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+        expect(input).toHaveValue("gg")
+        expect(
+            screen.queryByRole("button", { name: "Clear search" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByText(
+                "Search by Barcode, Product name, company, or country.",
+            ),
+        ).not.toBeInTheDocument()
     })
 
     test("contains no extra tutorial text or cards other than the search bar", () => {
@@ -172,43 +245,54 @@ describe("search page", () => {
         ).not.toHaveFocus()
     })
 
-    test("labels sample Products honestly when no search history exists", () => {
+    test("shows empty history sections without sample Products", () => {
         renderPage()
-        expect(screen.getByText("Try a sample Product")).toBeVisible()
+        expect(screen.getByText("You haven't searched yet.")).toBeVisible()
         expect(
-            screen.getByAltText("Nutella Spread 400g product image"),
+            screen.getByText("You haven't viewed any Products yet."),
         ).toBeVisible()
+        expect(
+            screen.queryByText("Try a sample Product"),
+        ).not.toBeInTheDocument()
     })
 
-    test("stores successful text searches and reruns them from recent searches", async () => {
-        const user = userEvent.setup()
-        renderPage()
-
-        await user.type(
-            screen.getByRole("textbox", { name: "Search" }),
-            "Coca cola",
+    test("shows the four latest Product views and links to the full history", () => {
+        sessionStorage.setItem(
+            "lifegoods_scan_history_v1",
+            JSON.stringify(
+                Array.from({ length: 5 }, (_, index) => ({
+                    ...recentProduct,
+                    identifier: `30176204220${index}3`,
+                    name: `Viewed Product ${index + 1}`,
+                    timestamp: index + 1,
+                })),
+            ),
         )
-        await user.click(screen.getByRole("button", { name: "Search" }))
-        await screen.findByRole("heading", { name: "Products" })
-        await user.click(screen.getByRole("button", { name: "Clear search" }))
+        renderPage()
 
         expect(screen.getByText("Recent searches")).toBeVisible()
-        expect(screen.getByText("Saved only in this browser.")).toBeVisible()
-
-        await user.click(
-            screen.getByRole("button", {
-                name: "Search again for Coca cola",
-            }),
+        expect(
+            screen.queryByText("Search again from your latest queries."),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByText("Products you viewed in this session."),
+        ).not.toBeInTheDocument()
+        expect(screen.getByRole("link", { name: "See more" })).toHaveAttribute(
+            "href",
+            "/search/recent",
         )
-
-        expect(mockedSearchProducts).toHaveBeenLastCalledWith("Coca cola")
-        expect(mockedSearchProducts).toHaveBeenCalledTimes(2)
+        expect(screen.getByText("Viewed Product 1")).toBeVisible()
+        expect(screen.getByText("Viewed Product 4")).toBeVisible()
+        expect(screen.queryByText("Viewed Product 5")).not.toBeInTheDocument()
+        expect(screen.getAllByText("Company")).toHaveLength(4)
+        expect(screen.getAllByText("Made in")).toHaveLength(4)
+        expect(screen.getAllByText("Barcode")).toHaveLength(4)
     })
 
-    test("places recent searches directly below the search field", () => {
-        localStorage.setItem(
-            "lifegoods.search-history.v1",
-            JSON.stringify([{ query: "Milk", searchedAt: 1 }]),
+    test("places recent Product views below search history", () => {
+        sessionStorage.setItem(
+            "lifegoods_scan_history_v1",
+            JSON.stringify([recentProduct]),
         )
         renderPage()
 
@@ -216,26 +300,96 @@ describe("search page", () => {
             .getAllByRole("heading")
             .map((heading) => heading.textContent)
 
-        expect(headings.indexOf("Recent searches")).toBeLessThan(
-            headings.indexOf("Manual Product Lookup"),
+        expect(headings.indexOf("Search history")).toBeLessThan(
+            headings.indexOf("Recent searches"),
         )
         expect(
-            screen.getByRole("button", { name: "Search again for Milk" }),
+            screen.getByRole("link", { name: "View Nutella Spread 400g" }),
         ).toBeVisible()
     })
 
-    test("clears all recent searches", async () => {
+    test("shows replayable search history separately from viewed Products", async () => {
         const user = userEvent.setup()
         localStorage.setItem(
             "lifegoods.search-history.v1",
-            JSON.stringify([{ query: "Milk", searchedAt: 1 }]),
+            JSON.stringify([
+                { query: "3017620422003", searchedAt: 2 },
+                { query: "Coca Cola", searchedAt: 1 },
+            ]),
         )
         renderPage()
 
-        await user.click(screen.getByRole("button", { name: "Clear all" }))
+        expect(
+            screen.getByRole("heading", { name: "Search history" }),
+        ).toBeVisible()
+        expect(
+            screen.getByRole("button", {
+                name: "Search again for 3017620422003",
+            }),
+        ).toBeVisible()
+        expect(
+            screen.getByRole("button", { name: "Search again for Coca Cola" }),
+        ).toBeVisible()
+        expect(
+            screen.getByText("You haven't viewed any Products yet."),
+        ).toBeVisible()
 
-        expect(screen.queryByText("Recent searches")).not.toBeInTheDocument()
-        expect(screen.getByText("Try a sample Product")).toBeVisible()
-        expect(localStorage.getItem("lifegoods.search-history.v1")).toBeNull()
+        await user.click(
+            screen.getByRole("button", { name: "Search again for Coca Cola" }),
+        )
+
+        expect(screen.getByRole("textbox", { name: "Search" })).toHaveValue(
+            "Coca Cola",
+        )
+        expect(
+            await screen.findByRole("heading", { name: "Products" }),
+        ).toBeVisible()
+        expect(mockedSearchProducts).toHaveBeenCalledWith("Coca Cola")
+    })
+
+    test("removes an individual query from search history", async () => {
+        const user = userEvent.setup()
+        localStorage.setItem(
+            "lifegoods.search-history.v1",
+            JSON.stringify([
+                { query: "3017620422003", searchedAt: 2 },
+                { query: "Coca Cola", searchedAt: 1 },
+            ]),
+        )
+        renderPage()
+
+        await user.click(
+            screen.getByRole("button", {
+                name: "Remove Coca Cola from search history",
+            }),
+        )
+
+        expect(
+            screen.queryByRole("button", {
+                name: "Remove Coca Cola from search history",
+            }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.getByRole("button", {
+                name: "Remove 3017620422003 from search history",
+            }),
+        ).toBeVisible()
+        expect(localStorage.getItem("lifegoods.search-history.v1")).toContain(
+            "3017620422003",
+        )
+        expect(
+            localStorage.getItem("lifegoods.search-history.v1"),
+        ).not.toContain("Coca Cola")
+    })
+
+    test("keeps the recent searches empty state when no Products were viewed", () => {
+        renderPage()
+        expect(screen.getByText("Recent searches")).toBeVisible()
+        expect(
+            screen.getByText("You haven't viewed any Products yet."),
+        ).toBeVisible()
+        expect(
+            screen.queryByText("Try a sample Product"),
+        ).not.toBeInTheDocument()
     })
 })

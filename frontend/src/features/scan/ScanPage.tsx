@@ -408,7 +408,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                   : cameraMessage
 
     return (
-        <main className="mx-auto w-full max-w-xl px-4 pt-3 pb-8 sm:px-6 sm:pt-6">
+        <main className="page-rail page-rail-tight sm:px-6 sm:pt-6">
             <h1 className="sr-only">{text.title}</h1>
 
             <section

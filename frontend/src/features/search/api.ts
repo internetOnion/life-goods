@@ -1,22 +1,39 @@
-import { searchPackages } from "@/api/generated"
-import type { LifegoodsPackageSearchContractsPackageSearchResultResponse } from "@/api/generated"
+import { searchProducts as searchProductsRequest } from "@/api/generated"
+import type { ProductSummary } from "@/api/generated"
+import {
+    canUseOpenFoodFactsBrandSearch,
+    searchOpenFoodFactsBrand,
+} from "./openFoodFacts"
 
-export type ProductSearchResult =
-    LifegoodsPackageSearchContractsPackageSearchResultResponse
+export type ProductSearchResult = ProductSummary
 
 export type ProductSearchResponse = {
-    normalized_query: string
     results: ProductSearchResult[]
-    next_offset: number | null
+    nextCursor: string | null
 }
 
 export async function searchProducts(
     query: string,
+    cursor: string | null = null,
 ): Promise<ProductSearchResponse> {
-    const response = await searchPackages({
-        query: { query, limit: 12 },
-        throwOnError: true,
-    })
+    const canUseRemoteSearch = canUseOpenFoodFactsBrandSearch(query)
 
-    return response.data
+    try {
+        const response = await searchProductsRequest({
+            query: { q: query, cursor },
+            throwOnError: true,
+        })
+        const results = response.data.data.products ?? []
+
+        if (results.length || !canUseRemoteSearch) {
+            return {
+                results,
+                nextCursor: response.data.meta.pagination?.next_cursor ?? null,
+            }
+        }
+    } catch (error) {
+        if (!canUseRemoteSearch) throw error
+    }
+
+    return searchOpenFoodFactsBrand(query, cursor)
 }

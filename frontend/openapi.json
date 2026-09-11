@@ -945,6 +945,13 @@
             "title": "Brands",
             "type": "array"
           },
+          "manufacturing_places": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Manufacturing Places",
+            "type": "array"
+          },
           "name": {
             "anyOf": [
               {

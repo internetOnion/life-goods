@@ -16,7 +16,7 @@ export function DataAndLicensesPage() {
     }, [])
 
     return (
-        <main className="mx-auto min-h-[calc(100svh-8rem)] w-full max-w-xl min-w-0 px-4 py-8 sm:px-6 sm:py-12">
+        <main className="page-rail min-h-[calc(100svh-8rem)] sm:px-6 sm:py-12">
             <h1
                 ref={headingRef}
                 tabIndex={-1}

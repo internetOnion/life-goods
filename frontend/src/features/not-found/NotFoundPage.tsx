@@ -19,7 +19,7 @@ export function NotFoundPage() {
     }, [])
 
     return (
-        <main className="mx-auto grid min-h-[calc(100svh-8rem)] w-full max-w-xl min-w-0 content-center px-4 py-12 sm:px-6">
+        <main className="page-rail grid min-h-[calc(100svh-8rem)] content-center sm:px-6 sm:py-12">
             <div className="mb-6">
                 <SnapshotNotFoundIllustration size={160} />
             </div>

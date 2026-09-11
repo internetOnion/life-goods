@@ -18,23 +18,17 @@ import { adaptProductLookup } from "./adapter"
 import { getProductRestoreLocationState } from "./navigation"
 import { AdditivesCard } from "./cards/AdditivesCard"
 import { AllergenCard } from "./cards/AllergenCard"
-import { CountryTagInfoCard } from "./cards/CountryTagInfoCard"
-import { DataQualityCard } from "./cards/DataQualityCard"
 import { HalalCard } from "./cards/HalalCard"
 import { IngredientsAnalysisCard } from "./cards/IngredientsAnalysisCard"
 import { IngredientsCard } from "./cards/IngredientsCard"
 import { NotFoundCard } from "./cards/NotFoundCard"
 import { NutritionCard } from "./cards/NutritionCard"
-import { PackagingCard } from "./cards/PackagingCard"
 import { PackagingsTableCard } from "./cards/PackagingsTableCard"
-import { ProductCharacteristicsCard } from "./cards/ProductCharacteristicsCard"
 import { ProductHero } from "./cards/ProductHero"
 import { ProvenanceCard } from "./cards/ProvenanceCard"
-import { RawRecordCard } from "./cards/RawRecordCard"
-import { EcoScoreBanner } from "./cards/scores/EcoScoreBanner"
-import { NovaGroupBanner } from "./cards/scores/NovaGroupBanner"
+import { SymbolsCard } from "./cards/SymbolsCard"
 import { NutrientLevelsCard } from "./cards/scores/NutrientLevelsCard"
-import { NutriScoreBanner } from "./cards/scores/NutriScoreBanner"
+import { SourceAssessmentsCard } from "./cards/scores/SourceAssessmentsCard"
 
 type ProductPageProps = {
     lookup?: ProductLookup
@@ -135,46 +129,22 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
     })
 
     useEffect(() => {
-        if (candidate && adapted) {
-            const nameEvidence = candidate.identity_evidence?.find(
-                (e) => e.field === "name",
-            )
-            const brandEvidence = candidate.identity_evidence?.find(
-                (e) => e.field === "brands",
-            )
+        if (candidate && adapted && offView) {
             const frontImg =
                 candidate.reference_images?.find((img) => img.role === "front")
                     ?.url || candidate.reference_images?.[0]?.url
 
-            let brandStr = ""
-            if (brandEvidence?.value) {
-                if (Array.isArray(brandEvidence.value)) {
-                    brandStr = (brandEvidence.value as unknown[])
-                        .map((v) =>
-                            typeof v === "string"
-                                ? v
-                                : typeof v === "number"
-                                  ? String(v)
-                                  : "",
-                        )
-                        .filter(Boolean)
-                        .join(", ")
-                } else if (typeof brandEvidence.value === "string") {
-                    brandStr = brandEvidence.value
-                } else if (typeof brandEvidence.value === "number") {
-                    brandStr = String(brandEvidence.value)
-                }
-            }
-
             saveScanItem({
                 identifier: adapted.normalizedIdentifier || barcode,
-                name: (nameEvidence?.value as string) || "Unlabeled Product",
-                brand: brandStr || undefined,
+                name: offView.productName || "Unlabeled Product",
+                brand: offView.brands.join(", ") || undefined,
+                manufacturingPlace:
+                    offView.manufacturingPlaces?.trim() || undefined,
                 imageUrl: frontImg,
                 scheme: adapted.scheme,
             })
         }
-    }, [candidate, adapted, barcode])
+    }, [candidate, adapted, barcode, offView])
 
     const isNotFound =
         productQuery.isError &&
@@ -192,8 +162,10 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
         <div className="min-h-svh bg-neutral-50">
             <Header
                 showBackButton={true}
-                onBack={() => void navigate("/")}
+                onBack={() => void navigate("/search")}
                 identifier={barcode}
+                backLabel="Back to search"
+                secondaryActionLabel="New Search"
             />
 
             <Container>
@@ -212,10 +184,7 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                 {isNotFound && (
                     <NotFoundCard
                         identifier={barcode}
-                        onBack={() => void navigate("/")}
-                        onTrySample={(code) =>
-                            void navigate(`/products/${code}`)
-                        }
+                        onBack={() => void navigate("/search")}
                     />
                 )}
 
@@ -249,11 +218,11 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => void navigate("/")}
+                                        onClick={() => void navigate("/search")}
                                         className="gap-1 text-neutral-600 hover:text-neutral-900"
                                     >
                                         <ArrowLeft className="h-4 w-4" />
-                                        <span>Back to Scanner</span>
+                                        <span>Back to Search</span>
                                     </Button>
                                 </div>
                             </CardContent>
@@ -268,32 +237,21 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                             candidate={candidate}
                             identifier={adapted.normalizedIdentifier || barcode}
                             genericName={offView.genericName}
-                            origin={offView.origins}
+                            manufacturingPlace={offView.manufacturingPlaces}
                             headingRef={headingRef}
                         />
 
-                        {/* Open Food Facts Top Score Pillars */}
                         {hasSourceAssessments && (
-                            <div
-                                className="overflow-hidden rounded-2xl border border-neutral-200 bg-white"
-                                aria-label="Open Food Facts Source Assessments"
-                            >
-                                <div className="divide-y divide-neutral-200">
-                                    <NutriScoreBanner
-                                        grade={offView.nutriscoreGrade}
-                                        score={offView.nutriscoreScore}
-                                        version={offView.nutriscoreVersion}
-                                    />
-                                    <NovaGroupBanner
-                                        group={offView.novaGroup}
-                                        markers={offView.novaGroupsMarkers}
-                                    />
-                                    <EcoScoreBanner
-                                        grade={offView.ecoscoreGrade}
-                                        score={offView.ecoscoreScore}
-                                    />
-                                </div>
-                            </div>
+                            <SourceAssessmentsCard
+                                showHeader={false}
+                                nutriscoreGrade={offView.nutriscoreGrade}
+                                nutriscoreScore={offView.nutriscoreScore}
+                                nutriscoreVersion={offView.nutriscoreVersion}
+                                novaGroup={offView.novaGroup}
+                                novaGroupsMarkers={offView.novaGroupsMarkers}
+                                ecoscoreGrade={offView.ecoscoreGrade}
+                                ecoscoreScore={offView.ecoscoreScore}
+                            />
                         )}
 
                         {/* Product Details Navigation */}
@@ -333,10 +291,10 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                             Nutrition
                                         </TabsTrigger>
                                         <TabsTrigger
-                                            value="data"
+                                            value="symbols"
                                             className="shrink-0"
                                         >
-                                            Data & Raw
+                                            Symbols
                                         </TabsTrigger>
                                         <TabsTrigger
                                             value="overview"
@@ -353,12 +311,52 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                 value="overview"
                                 className="space-y-4 pt-2"
                             >
-                                <ProductCharacteristicsCard product={offView} />
+                                <IngredientsAnalysisCard
+                                    analysis={offView.ingredientsAnalysis}
+                                />
+                                <IngredientsCard
+                                    labelEvidence={labelEvidence}
+                                />
+                                <AdditivesCard labelEvidence={labelEvidence} />
+                                <AllergenCard
+                                    assessment={candidate.allergen_assessment}
+                                    labelEvidence={labelEvidence}
+                                />
+                                <HalalCard
+                                    assessment={
+                                        candidate.halal_ingredient_assessment
+                                    }
+                                    labelEvidence={labelEvidence}
+                                />
+                                <NutrientLevelsCard
+                                    levels={offView.nutrientLevels}
+                                    labelEvidence={labelEvidence}
+                                />
+                                <NutritionCard labelEvidence={labelEvidence} />
+                                {hasSourceAssessments && (
+                                    <SourceAssessmentsCard
+                                        nutriscoreGrade={
+                                            offView.nutriscoreGrade
+                                        }
+                                        nutriscoreScore={
+                                            offView.nutriscoreScore
+                                        }
+                                        nutriscoreVersion={
+                                            offView.nutriscoreVersion
+                                        }
+                                        novaGroup={offView.novaGroup}
+                                        novaGroupsMarkers={
+                                            offView.novaGroupsMarkers
+                                        }
+                                        ecoscoreGrade={offView.ecoscoreGrade}
+                                        ecoscoreScore={offView.ecoscoreScore}
+                                    />
+                                )}
+                                <SymbolsCard labels={offView.labels} />
                                 <PackagingsTableCard
                                     packagings={offView.packagings}
                                     packagingText={offView.packagingText}
                                 />
-                                <PackagingCard labelEvidence={labelEvidence} />
                                 <ProvenanceCard candidate={candidate} />
                             </TabsContent>
 
@@ -398,27 +396,35 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                 <NutritionCard labelEvidence={labelEvidence} />
                             </TabsContent>
 
-                            {/* Tab 4: Data Quality & Raw Record */}
+                            {/* Tab 4: Symbols */}
                             <TabsContent
-                                value="data"
+                                value="symbols"
                                 className="space-y-4 pt-2"
                             >
-                                <CountryTagInfoCard
-                                    languages={offView.languages}
-                                />
-                                <DataQualityCard
-                                    completeness={offView.completeness}
-                                    statesTags={offView.statesTags}
-                                    creator={offView.creator}
-                                    lastModified={offView.lastModified}
-                                />
-                                <ProvenanceCard candidate={candidate} />
-                                {adapted.meta && (
-                                    <RawRecordCard
-                                        meta={adapted.meta}
-                                        rawRecord={adapted.rawRecord}
+                                {hasSourceAssessments && (
+                                    <SourceAssessmentsCard
+                                        nutriscoreGrade={
+                                            offView.nutriscoreGrade
+                                        }
+                                        nutriscoreScore={
+                                            offView.nutriscoreScore
+                                        }
+                                        nutriscoreVersion={
+                                            offView.nutriscoreVersion
+                                        }
+                                        novaGroup={offView.novaGroup}
+                                        novaGroupsMarkers={
+                                            offView.novaGroupsMarkers
+                                        }
+                                        ecoscoreGrade={offView.ecoscoreGrade}
+                                        ecoscoreScore={offView.ecoscoreScore}
                                     />
                                 )}
+                                <SymbolsCard labels={offView.labels} />
+                                <PackagingsTableCard
+                                    packagings={offView.packagings}
+                                    packagingText={offView.packagingText}
+                                />
                             </TabsContent>
                         </Tabs>
                     </div>

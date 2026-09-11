@@ -122,6 +122,8 @@
     --shadow-source-sheet: 0 14px 38px -28px rgba(19, 21, 25, 0.55);
     --shadow-source-sheet-body: 0 14px 38px -28px rgba(19, 21, 25, 0.42);
     --shadow-action-lift: 0 8px 20px -14px rgba(90, 50, 11, 0.8);
+    --radius-source-sheet: 1rem;
+    --radius-control: 0.75rem;
     --animate-scan-laser: scan-laser 2.2s ease-in-out infinite;
     --animate-splash-mark-entrance: splash-mark-entrance 2.2s
         cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -416,6 +418,27 @@ h2[tabindex="-1"]:focus {
     &::-webkit-scrollbar {
         display: none;
     }
+}
+
+@utility page-rail {
+    margin-inline: auto;
+    width: 100%;
+    max-width: 36rem;
+    min-width: 0;
+    padding-inline: 1rem;
+    padding-block: 2rem;
+}
+
+@utility page-rail-tight {
+    padding-block: 0.75rem 2rem;
+}
+
+@utility source-sheet {
+    border: 1px solid
+        color-mix(in srgb, var(--color-neutral-200) 80%, transparent);
+    border-radius: var(--radius-source-sheet);
+    background: var(--color-card);
+    box-shadow: var(--shadow-source-sheet);
 }
 
 @utility scrollbar-subtle {

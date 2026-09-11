@@ -163,7 +163,7 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                         <div className="flex items-center justify-between gap-3 border-b border-neutral-200 bg-neutral-50 px-3 py-1.5">
                             <div className="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-neutral-600">
                                 <Languages
-                                    className="size-3.5 shrink-0 text-info-600"
+                                    className="text-info-600 size-3.5 shrink-0"
                                     aria-hidden="true"
                                 />
                                 <span>Ingredient language</span>
@@ -229,48 +229,46 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                                                 {item.subIngredients &&
                                                     item.subIngredients.length >
                                                         0 && (
-                                                        <div className="space-y-0.5 pt-0.5">
-                                                            <div className="flex items-start gap-1.5 pl-1.5 text-sm font-normal text-neutral-600">
-                                                                <svg
-                                                                    viewBox="0 0 16 24"
-                                                                    fill="none"
-                                                                    stroke="currentColor"
-                                                                    strokeWidth="1.5"
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    className="text-info-500 size-4 shrink-0"
-                                                                    aria-hidden="true"
-                                                                >
-                                                                    <path d="M3 0v12c0 3.314 2.686 6 6 6h4" />
-                                                                </svg>
-                                                                <span>
-                                                                    <span className="sr-only">
-                                                                        Sub-components:{" "}
-                                                                    </span>
-                                                                    {item.subIngredients.map(
-                                                                        (
-                                                                            sub,
-                                                                            sIdx,
-                                                                        ) => (
-                                                                            <React.Fragment
-                                                                                key={
-                                                                                    sIdx
-                                                                                }
-                                                                            >
-                                                                                {
-                                                                                    sub
-                                                                                }
-                                                                                {sIdx <
-                                                                                    item
-                                                                                        .subIngredients!
-                                                                                        .length -
-                                                                                        1 &&
-                                                                                    ", "}
-                                                                            </React.Fragment>
-                                                                        ),
-                                                                    )}
+                                                        <div className="inline-flex items-center gap-1.5 pl-3 text-sm font-normal text-neutral-600">
+                                                            <svg
+                                                                viewBox="0 0 16 24"
+                                                                fill="none"
+                                                                stroke="currentColor"
+                                                                strokeWidth="1.5"
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                className="text-info-500 size-4 shrink-0"
+                                                                aria-hidden="true"
+                                                            >
+                                                                <path d="M3 0v12c0 3.314 2.686 6 6 6h4" />
+                                                            </svg>
+                                                            <span>
+                                                                <span className="sr-only">
+                                                                    Sub-components:{" "}
                                                                 </span>
-                                                            </div>
+                                                                {item.subIngredients.map(
+                                                                    (
+                                                                        sub,
+                                                                        sIdx,
+                                                                    ) => (
+                                                                        <React.Fragment
+                                                                            key={
+                                                                                sIdx
+                                                                            }
+                                                                        >
+                                                                            {
+                                                                                sub
+                                                                            }
+                                                                            {sIdx <
+                                                                                item
+                                                                                    .subIngredients!
+                                                                                    .length -
+                                                                                    1 &&
+                                                                                ", "}
+                                                                        </React.Fragment>
+                                                                    ),
+                                                                )}
+                                                            </span>
                                                         </div>
                                                     )}
                                             </div>

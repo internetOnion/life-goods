@@ -20,6 +20,7 @@ def test_index_document_valid_and_invalid_codes() -> None:
             "product_name": "Dark Chocolate",
             "product_name_km": "សូកូឡាខ្មៅ",
             "brands": "Example Brand",
+            "manufacturing_places": "Cambodia, France",
             "quantity": "100g",
         }
     )
@@ -28,6 +29,8 @@ def test_index_document_valid_and_invalid_codes() -> None:
     assert "dark chocolate" in doc["name_values"]
     assert "សូកូឡាខ្មៅ" in doc["name_values"]
     assert "example brand" in doc["brand_values"]
+    assert doc["manufacturing_places"] == ["Cambodia", "France"]
+    assert "cambodia" in doc["country_tokens"]
     assert "សូកូឡាខ្មៅ" in doc["name_tokens"]
     assert doc["name_sort"] == "dark chocolate"
     assert len(doc["names"]) == 2
@@ -66,9 +69,7 @@ def test_build_search_index_records_exclusions_and_indexes() -> None:
             "status": "READY",
         }
     )
-    database[CONTROL_COLLECTION].insert_one(
-        {"_id": "active", "active_version_id": version_id}
-    )
+    database[CONTROL_COLLECTION].insert_one({"_id": "active", "active_version_id": version_id})
 
     # Insert 2 valid products, 2 invalid products
     database[collection_name].insert_many(

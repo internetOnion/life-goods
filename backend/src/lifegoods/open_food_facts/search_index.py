@@ -14,16 +14,22 @@ from lifegoods.identifiers import InvalidIdentifierError, normalize_identifier
 from lifegoods.product_lookup.projection import (
     extract_brands,
     extract_front_image,
+    extract_manufacturing_places,
     extract_preferred_name,
     extract_product_names,
     extract_quantity,
 )
 
 SEARCH_COLLECTION_PREFIX = "off_product_search_"
-SEARCH_SCHEMA_VERSION = 1
+SEARCH_SCHEMA_VERSION = 2
 VERSIONS_COLLECTION = "off_dataset_versions"
 REQUIRED_SEARCH_INDEXES = frozenset(
-    {"ix_search_name_tokens", "ix_search_brand_tokens", "ix_search_sort"}
+    {
+        "ix_search_name_tokens",
+        "ix_search_brand_tokens",
+        "ix_search_country_tokens",
+        "ix_search_sort",
+    }
 )
 
 
@@ -106,26 +112,29 @@ def index_document(
     record_language = _text_value(product.get("lang"))
     names = extract_product_names(product, record_language)
     name_values = [
-        normalize_search_value(n.value)
-        for n in names
-        if normalize_search_value(n.value)
+        normalize_search_value(n.value) for n in names if normalize_search_value(n.value)
     ]
     name_tokens = sorted({token for n in names for token in extract_terms(n.value)})
     names_data = [
-        {"value": n.value, "language": n.language, "source_field": n.source_field}
-        for n in names
+        {"value": n.value, "language": n.language, "source_field": n.source_field} for n in names
     ]
 
     preferred = extract_preferred_name(product, record_language)
     name_sort = normalize_search_value(preferred.value)[:100] if preferred else ""
 
     brands_list = extract_brands(product)
-    brand_values = [
-        normalize_search_value(b)
-        for b in brands_list
-        if normalize_search_value(b)
-    ]
+    brand_values = [normalize_search_value(b) for b in brands_list if normalize_search_value(b)]
     brand_tokens = sorted({token for b in brands_list for token in extract_terms(b)})
+
+    manufacturing_places = extract_manufacturing_places(product)
+    country_values = [
+        normalize_search_value(place)
+        for place in manufacturing_places
+        if normalize_search_value(place)
+    ]
+    country_tokens = sorted(
+        {token for place in manufacturing_places for token in extract_terms(place)}
+    )
 
     quantity = extract_quantity(product)
     thumbnail_img = extract_front_image(product, code, record_language)
@@ -147,9 +156,12 @@ def index_document(
         "name_tokens": name_tokens,
         "brand_values": brand_values,
         "brand_tokens": brand_tokens,
+        "country_values": country_values,
+        "country_tokens": country_tokens,
         "names": names_data,
         "name_sort": name_sort,
         "brands": brands_list,
+        "manufacturing_places": manufacturing_places,
         "quantity": quantity,
         "thumbnail": thumbnail_data,
     }
@@ -235,9 +247,8 @@ def build_search_index(
             batch.clear()
         target.create_index([("name_tokens", ASCENDING)], name="ix_search_name_tokens")
         target.create_index([("brand_tokens", ASCENDING)], name="ix_search_brand_tokens")
-        target.create_index(
-            [("name_sort", ASCENDING), ("code", ASCENDING)], name="ix_search_sort"
-        )
+        target.create_index([("country_tokens", ASCENDING)], name="ix_search_country_tokens")
+        target.create_index([("name_sort", ASCENDING), ("code", ASCENDING)], name="ix_search_sort")
         target.rename(target_name, dropTarget=True)
         renamed = True
         result = {

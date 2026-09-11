@@ -343,7 +343,7 @@ function LearnIndexPage({ locale }: LearnIndexPageProps) {
     }
 
     return (
-        <main className="mx-auto w-full max-w-xl min-w-0 px-4 py-8 sm:px-6 sm:py-12">
+        <main className="page-rail sm:px-6 sm:py-12">
             <div>
                 <h1
                     ref={headingRef}
@@ -628,7 +628,7 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
     return (
         <>
             {entry?.kind === "simulated" ? <LearnDemoNotice active /> : null}
-            <main className="mx-auto w-full max-w-xl min-w-0 px-4 py-8 sm:px-6 sm:py-12">
+            <main className="page-rail sm:px-6 sm:py-12">
                 <Link
                     className="text-primary hover:bg-accent focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-bold no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none"
                     to={appRoutes.learn}

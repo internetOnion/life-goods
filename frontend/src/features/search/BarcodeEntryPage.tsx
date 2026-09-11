@@ -1,32 +1,32 @@
 import {
     ArrowLeftIcon,
     CircleNotchIcon,
-    ClockCounterClockwiseIcon,
     XIcon,
     InfoIcon,
     MagnifyingGlassIcon,
+    ClockCounterClockwiseIcon,
 } from "@phosphor-icons/react"
 import { type FormEvent, useEffect, useRef, useState } from "react"
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router"
 
 import { Button } from "@/components/ui/button"
 import { BrandMark } from "@/components/brand/BrandMark"
-import {
-    BarcodeGuideIllustration,
-    PackageImagePlaceholder,
-} from "@/components/illustrations"
+import { PackageImagePlaceholder } from "@/components/illustrations"
 import { Input } from "@/components/ui/input"
 import { buildProxiedImageUrl } from "@/features/product/adapter"
 import { validateIdentifier } from "@/features/scan/identifier"
 import { usePageMetadata } from "@/lib/metadata"
+import { getRecentScans, type ScanHistoryItem } from "@/lib/history"
 import { cn } from "@/lib/utils"
 
 import { searchProducts, type ProductSearchResult } from "./api"
 import {
-    clearRecentSearches,
     getRecentSearches,
+    removeRecentSearch,
     saveRecentSearch,
+    type SearchHistoryItem,
 } from "./history"
+import { RecentProductCard } from "./RecentProductCard"
 
 type SearchLocationState = {
     invalidBarcode?: string
@@ -42,100 +42,20 @@ const validationMessages = {
         "That Barcode has an invalid check digit. Check the digits and try again.",
 } as const
 
-const SAMPLE_PRODUCTS = [
-    {
-        code: "3017620422003",
-        name: "Nutella Spread 400g",
-        imageUrl: buildProxiedImageUrl(
-            "https://images.openfoodfacts.org/images/products/301/762/042/2003/front_en.400.jpg",
-        ),
-    },
-    {
-        code: "5449000000996",
-        name: "Coca-Cola 330ml Can",
-        imageUrl: buildProxiedImageUrl(
-            "https://images.openfoodfacts.org/images/products/544/900/000/0996/front_en.400.jpg",
-        ),
-    },
-    {
-        code: "7622210449283",
-        name: "Prince Chocolat Biscuits",
-        imageUrl: buildProxiedImageUrl(
-            "https://images.openfoodfacts.org/images/products/762/221/044/9283/front_en.400.jpg",
-        ),
-    },
-    {
-        code: "8000500310427",
-        name: "Nutella Biscuits",
-        imageUrl: buildProxiedImageUrl(
-            "https://images.openfoodfacts.org/images/products/800/050/031/0427/front_en.400.jpg",
-        ),
-    },
-] as const
-
 function isBarcodeInput(value: string) {
     return /^[\d\s-]+$/.test(value)
 }
 
 function productName(result: ProductSearchResult) {
-    return (
-        (result.names.find(
-            (name) => name.language === "en" && typeof name.value === "string",
-        )?.value as string) ??
-        (typeof result.names[0]?.value === "string"
-            ? result.names[0].value
-            : null) ??
-        "Unnamed Product"
-    )
+    return result.name?.value ?? "Unnamed Product"
 }
 
 function brandName(result: ProductSearchResult) {
-    const brands = result.brands?.value
-    return Array.isArray(brands)
-        ? brands
-              .filter((brand): brand is string => typeof brand === "string")
-              .join(", ")
-        : typeof brands === "string"
-          ? brands
-          : null
+    return result.brands?.join(", ") || null
 }
 
-function manufacturingPlace(result: ProductSearchResult) {
-    const value = result.manufacturing_place?.value
-    if (typeof value === "string") return value
-    if (Array.isArray(value)) {
-        return value
-            .filter((place): place is string => typeof place === "string")
-            .join(", ")
-    }
-    return null
-}
-
-function quantityValue(result: ProductSearchResult) {
-    const value = result.quantity?.value
-    return typeof value === "string" ? value : null
-}
-
-function SampleProductImage({ src, alt }: { src: string; alt: string }) {
-    const [imageFailed, setImageFailed] = useState(false)
-
-    return (
-        <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-neutral-100 bg-neutral-50 sm:size-16">
-            {imageFailed ? (
-                <PackageImagePlaceholder
-                    className="size-full p-1"
-                    label="Source Image Unavailable"
-                />
-            ) : (
-                <img
-                    src={src}
-                    alt={alt}
-                    className="size-full object-contain p-1"
-                    onError={() => setImageFailed(true)}
-                />
-            )}
-        </div>
-    )
+function manufacturingPlaceName(result: ProductSearchResult) {
+    return result.manufacturing_places?.join(", ") || null
 }
 
 export function BarcodeEntryPage() {
@@ -156,14 +76,15 @@ export function BarcodeEntryPage() {
             ? "That scan was not a supported Barcode. Check the digits below."
             : null,
     )
-    const [emptyQuerySubmitted, setEmptyQuerySubmitted] = useState(false)
     const [searchStatus, setSearchStatus] = useState<SearchStatus>("idle")
     const [results, setResults] = useState<ProductSearchResult[]>([])
-    const [recentSearches, setRecentSearches] = useState(getRecentSearches)
-    const [historyAnnouncement, setHistoryAnnouncement] = useState("")
+    const [nextCursor, setNextCursor] = useState<string | null>(null)
+    const [isLoadingMore, setIsLoadingMore] = useState(false)
+    const [recentProducts] = useState<ScanHistoryItem[]>(getRecentScans)
+    const [searchHistory, setSearchHistory] =
+        useState<SearchHistoryItem[]>(getRecentSearches)
     const searchRequestRef = useRef(0)
     const headingRef = useRef<HTMLHeadingElement>(null)
-    const inputRef = useRef<HTMLInputElement>(null)
 
     usePageMetadata({
         title: "Search",
@@ -176,10 +97,10 @@ export function BarcodeEntryPage() {
 
     const runProductSearch = async (searchQuery: string) => {
         const trimmed = searchQuery.trim()
-        setQuery(trimmed)
-        setEmptyQuerySubmitted(false)
+        setSearchHistory(saveRecentSearch(trimmed))
         setError(null)
         setResults([])
+        setNextCursor(null)
         setSearchStatus("loading")
         const requestId = ++searchRequestRef.current
 
@@ -187,9 +108,8 @@ export function BarcodeEntryPage() {
             const response = await searchProducts(trimmed)
             if (requestId !== searchRequestRef.current) return
             setResults(response.results)
+            setNextCursor(response.nextCursor)
             setSearchStatus(response.results.length ? "results" : "empty")
-            setRecentSearches(saveRecentSearch(trimmed))
-            setHistoryAnnouncement(`Saved ${trimmed} to recent searches.`)
         } catch {
             if (requestId !== searchRequestRef.current) return
             setSearchStatus("error")
@@ -199,39 +119,54 @@ export function BarcodeEntryPage() {
         }
     }
 
-    const submit = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault()
-        const trimmed = query.trim()
+    const loadMore = async () => {
+        if (!nextCursor || isLoadingMore) return
+        setError(null)
+        setIsLoadingMore(true)
+        const requestId = ++searchRequestRef.current
+
+        try {
+            const response = await searchProducts(query.trim(), nextCursor)
+            if (requestId !== searchRequestRef.current) return
+            setResults((current) => [...current, ...response.results])
+            setNextCursor(response.nextCursor)
+        } catch {
+            if (requestId !== searchRequestRef.current) return
+            setError(
+                "More Products are temporarily unavailable. Try again in a moment.",
+            )
+        } finally {
+            if (requestId === searchRequestRef.current) setIsLoadingMore(false)
+        }
+    }
+
+    const submitQuery = async (searchValue: string) => {
+        const trimmed = searchValue.trim()
         if (!trimmed) {
             setError(null)
-            setEmptyQuerySubmitted(true)
             setResults([])
+            setNextCursor(null)
             setSearchStatus("idle")
             return
         }
         const validation = validateIdentifier(trimmed)
         if (validation.valid) {
-            setEmptyQuerySubmitted(false)
-            setError(null)
-            setSearchStatus("idle")
-            void navigate(`/products/${validation.value}`, {
-                state: { fromBarcodeEntry: true },
-            })
+            await runProductSearch(trimmed)
             return
         }
 
         if (isBarcodeInput(trimmed)) {
-            setEmptyQuerySubmitted(false)
             setError(validationMessages[validation.reason])
             setResults([])
+            setNextCursor(null)
             setSearchStatus("error")
             return
         }
 
         if (trimmed.length < 2) {
-            setEmptyQuerySubmitted(false)
             setError("Enter at least two characters to search.")
             setResults([])
+            setNextCursor(null)
             setSearchStatus("error")
             return
         }
@@ -239,31 +174,25 @@ export function BarcodeEntryPage() {
         await runProductSearch(trimmed)
     }
 
-    const clearSearch = () => {
-        searchRequestRef.current += 1
-        setQuery("")
-        setError(null)
-        setResults([])
-        setSearchStatus("idle")
-        setEmptyQuerySubmitted(false)
-        inputRef.current?.focus()
+    const submit = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault()
+        void submitQuery(query)
     }
 
-    const clearHistory = () => {
-        clearRecentSearches()
-        setRecentSearches([])
-        setHistoryAnnouncement("Recent searches cleared.")
+    const replaySearch = (item: SearchHistoryItem) => {
+        setQuery(item.query)
+        void submitQuery(item.query)
+    }
+
+    const removeSearch = (item: SearchHistoryItem) => {
+        setSearchHistory(removeRecentSearch(item.query))
     }
 
     return (
-        <main className="mx-auto min-h-svh w-full max-w-xl px-4 pt-3 pb-8 sm:px-6 sm:pt-4">
+        <main className="page-rail page-rail-tight sm:px-6 sm:pt-4">
             <h1 ref={headingRef} tabIndex={-1} className="sr-only">
                 Search
             </h1>
-            <p className="sr-only" role="status" aria-live="polite">
-                {historyAnnouncement}
-            </p>
-
             <div className="relative flex min-h-11 items-center justify-center">
                 <Button
                     asChild
@@ -286,9 +215,7 @@ export function BarcodeEntryPage() {
 
             <form
                 className="relative mx-auto mt-3 w-full max-w-lg [view-transition-name:search-bar]"
-                onSubmit={(event) => {
-                    void submit(event)
-                }}
+                onSubmit={submit}
                 noValidate
             >
                 <div className="relative min-w-0 flex-1">
@@ -297,10 +224,9 @@ export function BarcodeEntryPage() {
                     </span>
                     <Input
                         id="search"
-                        ref={inputRef}
                         aria-label="Search"
                         className={cn(
-                            "h-[60px] rounded-full border-neutral-200/90 bg-white pr-28 pl-[3.25rem] text-base shadow-[0_6px_14px_-10px_rgba(19,21,25,0.55)] placeholder:text-neutral-400",
+                            "h-[60px] rounded-full border-neutral-200/90 bg-white pr-20 pl-[3.25rem] text-base shadow-[0_6px_14px_-10px_rgba(19,21,25,0.55)] placeholder:text-neutral-400",
                             error &&
                                 "border-error-500 focus-visible:ring-error-500/25",
                         )}
@@ -308,7 +234,6 @@ export function BarcodeEntryPage() {
                         onChange={(event) => {
                             searchRequestRef.current += 1
                             setQuery(event.target.value)
-                            setEmptyQuerySubmitted(false)
                             setResults([])
                             setSearchStatus("idle")
                             if (error) setError(null)
@@ -317,22 +242,9 @@ export function BarcodeEntryPage() {
                         spellCheck={false}
                         aria-invalid={error ? true : undefined}
                         aria-describedby={error ? "search-error" : undefined}
-                        placeholder="Search products, brands, or countries..."
+                        placeholder="Search Product, company or country..."
                     />
                 </div>
-
-                {query ? (
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-1/2 right-[4.35rem] size-10 -translate-y-1/2 rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
-                        onClick={clearSearch}
-                        aria-label="Clear search"
-                    >
-                        <XIcon size={18} weight="bold" aria-hidden="true" />
-                    </Button>
-                ) : null}
 
                 <Button
                     className="absolute top-1/2 right-1.5 size-[52px] -translate-y-1/2 rounded-full bg-neutral-800 p-0 text-white shadow-[0_6px_14px_-10px_rgba(19,21,25,0.75)] hover:bg-neutral-900 active:bg-neutral-950 disabled:opacity-80"
@@ -357,16 +269,71 @@ export function BarcodeEntryPage() {
                 </Button>
             </form>
 
-            <p className="mx-auto mt-3 max-w-lg px-2 text-center text-xs leading-relaxed text-neutral-500">
-                Search by Barcode, Product name, brand, or country.
-            </p>
-
-            {searchStatus === "idle" &&
-            !query &&
-            !error &&
-            recentSearches.length ? (
+            {searchStatus === "idle" && !query && !error ? (
                 <section
-                    className="mx-auto mt-5 w-full max-w-lg text-left"
+                    className="mx-auto mt-6 w-full max-w-lg text-left"
+                    aria-labelledby="search-history-heading"
+                >
+                    <div className="min-w-0">
+                        <h2
+                            id="search-history-heading"
+                            className="text-sm font-extrabold text-neutral-900"
+                        >
+                            Search history
+                        </h2>
+                    </div>
+                    {searchHistory.length ? (
+                        <ul className="mt-3 grid grid-cols-2 gap-2">
+                            {searchHistory.map((item) => (
+                                <li
+                                    className="flex min-w-0 items-center rounded-lg border border-neutral-300/90 bg-white shadow-[0_5px_12px_-12px_rgba(19,21,25,0.65)] transition-[border-color,background-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-neutral-400 hover:bg-neutral-50/70 hover:shadow-[0_8px_18px_-14px_rgba(19,21,25,0.7)]"
+                                    key={`${item.query}-${item.searchedAt}`}
+                                >
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        className="group min-h-10 min-w-0 flex-1 justify-start gap-1.5 rounded-lg px-2 py-1 text-left focus-visible:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:translate-y-0 sm:px-2.5"
+                                        onClick={() => replaySearch(item)}
+                                        aria-label={`Search again for ${item.query}`}
+                                    >
+                                        <ClockCounterClockwiseIcon
+                                            className="text-info-500 group-hover:text-info-600 shrink-0 transition-colors"
+                                            size={16}
+                                            weight="duotone"
+                                            aria-hidden="true"
+                                        />
+                                        <span className="min-w-0 truncate text-xs font-semibold tracking-[-0.01em] text-neutral-800">
+                                            {item.query}
+                                        </span>
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        className="focus-visible:ring-primary-500 mr-0.5 size-9 shrink-0 rounded-md text-neutral-400 hover:bg-neutral-100 hover:text-neutral-800 focus-visible:ring-2 focus-visible:ring-offset-1"
+                                        onClick={() => removeSearch(item)}
+                                        aria-label={`Remove ${item.query} from search history`}
+                                    >
+                                        <XIcon
+                                            size={16}
+                                            weight="bold"
+                                            aria-hidden="true"
+                                        />
+                                    </Button>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="mt-3 py-1 text-center text-sm leading-relaxed text-neutral-600">
+                            You haven&apos;t searched yet.
+                        </p>
+                    )}
+                </section>
+            ) : null}
+
+            {searchStatus === "idle" && !query && !error ? (
+                <section
+                    className="mx-auto mt-8 w-full max-w-lg text-left"
                     aria-labelledby="recent-searches-heading"
                 >
                     <div className="flex items-center justify-between gap-4">
@@ -377,45 +344,29 @@ export function BarcodeEntryPage() {
                             >
                                 Recent searches
                             </h2>
-                            <p className="mt-0.5 text-xs text-neutral-500">
-                                Saved only in this browser.
-                            </p>
                         </div>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="shrink-0 px-2.5 text-neutral-600"
-                            onClick={clearHistory}
-                        >
-                            Clear all
-                        </Button>
+                        {recentProducts.length ? (
+                            <Link
+                                to="/search/recent"
+                                className="text-primary-700 hover:bg-primary-50 hover:text-primary-800 focus-visible:ring-primary-500 shrink-0 rounded-lg px-2.5 py-2 text-sm font-extrabold transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                            >
+                                See more
+                            </Link>
+                        ) : null}
                     </div>
-                    <ul className="mt-3 flex flex-wrap gap-2">
-                        {recentSearches.map((item) => (
-                            <li key={item.query} className="max-w-full">
-                                <Button
-                                    type="button"
-                                    variant="subtle"
-                                    className="max-w-full rounded-full border border-transparent px-4 text-sm font-semibold text-neutral-700 hover:border-neutral-200 hover:bg-white"
-                                    onClick={() => {
-                                        void runProductSearch(item.query)
-                                    }}
-                                    aria-label={`Search again for ${item.query}`}
-                                    title={item.query}
-                                >
-                                    <ClockCounterClockwiseIcon
-                                        size={18}
-                                        weight="bold"
-                                        aria-hidden="true"
-                                    />
-                                    <span className="truncate">
-                                        {item.query}
-                                    </span>
-                                </Button>
-                            </li>
-                        ))}
-                    </ul>
+                    {recentProducts.length ? (
+                        <ul className="mt-3 space-y-2.5">
+                            {recentProducts.slice(0, 4).map((item) => (
+                                <li key={item.identifier}>
+                                    <RecentProductCard item={item} />
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="mt-3 py-1 text-center text-sm leading-relaxed text-neutral-600">
+                            You haven&apos;t viewed any Products yet.
+                        </p>
+                    )}
                 </section>
             ) : null}
 
@@ -435,9 +386,35 @@ export function BarcodeEntryPage() {
                 </div>
             ) : null}
 
+            {searchStatus === "loading" ? (
+                <section
+                    className="mx-auto mt-5 w-full max-w-lg"
+                    aria-label="Searching Products"
+                    aria-live="polite"
+                >
+                    <span className="sr-only">Searching Products</span>
+                    <div className="space-y-2.5" aria-hidden="true">
+                        {[0, 1, 2].map((item) => (
+                            <div
+                                key={item}
+                                className="flex min-h-32 animate-pulse items-start gap-3 rounded-2xl border border-neutral-200 bg-white p-3"
+                            >
+                                <div className="size-20 shrink-0 rounded-xl bg-neutral-100" />
+                                <div className="min-w-0 flex-1 space-y-2 pt-1">
+                                    <div className="h-4 w-3/4 rounded bg-neutral-100" />
+                                    <div className="h-3 w-full rounded bg-neutral-100" />
+                                    <div className="h-3 w-5/6 rounded bg-neutral-100" />
+                                    <div className="h-3 w-2/3 rounded bg-neutral-100" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            ) : null}
+
             {searchStatus === "results" ? (
                 <section
-                    className="mx-auto mt-8 w-full max-w-lg"
+                    className="mx-auto mt-5 w-full max-w-lg"
                     aria-live="polite"
                 >
                     <div className="mb-3 flex items-baseline justify-between gap-3">
@@ -448,22 +425,25 @@ export function BarcodeEntryPage() {
                             {results.length} found
                         </span>
                     </div>
-                    <div className="divide-y divide-neutral-200 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_14px_38px_-28px_rgba(19,21,25,0.55)]">
+                    <div className="space-y-2.5">
                         {results.map((result) => {
                             const name = productName(result)
                             const brand = brandName(result)
-                            const place = manufacturingPlace(result)
-                            const imageUrl = result.reference_image?.url
+                            const manufacturingPlace =
+                                manufacturingPlaceName(result)
+                            const imageUrl = result.thumbnail?.url
+                                ? buildProxiedImageUrl(result.thumbnail.url)
+                                : null
 
                             return (
                                 <Button
-                                    key={result.identifier}
+                                    key={result.barcode}
                                     type="button"
                                     variant="ghost"
-                                    className="group focus-visible:ring-primary-500 flex h-auto min-h-[92px] w-full items-center justify-start gap-3 rounded-none px-3 py-3 text-left whitespace-normal hover:bg-neutral-50 focus-visible:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-inset"
+                                    className="group focus-visible:ring-primary-500 flex h-auto min-h-32 w-full items-start justify-start gap-3 rounded-2xl border border-neutral-200 bg-white p-3 text-left whitespace-normal shadow-none transition-[border-color,background-color,transform] duration-150 hover:border-neutral-300 hover:bg-neutral-50 focus-visible:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-[0.99]"
                                     onClick={() => {
                                         void navigate(
-                                            `/products/${result.identifier}`,
+                                            `/products/${result.barcode}`,
                                             {
                                                 state: {
                                                     fromBarcodeEntry: true,
@@ -471,8 +451,9 @@ export function BarcodeEntryPage() {
                                             },
                                         )
                                     }}
+                                    aria-label={`View ${name}`}
                                 >
-                                    <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-neutral-100 bg-neutral-50">
+                                    <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-neutral-50">
                                         {imageUrl ? (
                                             <img
                                                 src={imageUrl}
@@ -486,29 +467,41 @@ export function BarcodeEntryPage() {
                                             />
                                         )}
                                     </div>
-                                    <span className="min-w-0 flex-1">
-                                        <span className="block truncate text-sm font-extrabold text-neutral-900">
+                                    <div className="min-w-0 flex-1">
+                                        <h3 className="text-sm leading-snug font-extrabold wrap-anywhere text-neutral-900 sm:text-base">
                                             {name}
-                                        </span>
-                                        <span className="mt-0.5 block truncate text-xs text-neutral-600">
-                                            {[
-                                                brand,
-                                                place,
-                                                quantityValue(result),
-                                            ]
-                                                .filter(Boolean)
-                                                .join(" · ") ||
-                                                "Source Data Unavailable"}
-                                        </span>
-                                        <span className="mt-1 block truncate font-mono text-[0.6875rem] tracking-wide text-neutral-400">
-                                            {result.identifier}
-                                        </span>
-                                    </span>
+                                            {result.quantity ? (
+                                                <span className="ml-1 font-semibold text-neutral-500">
+                                                    · {result.quantity}
+                                                </span>
+                                            ) : null}
+                                        </h3>
+                                        <dl className="mt-2 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-2 gap-y-1 text-xs leading-snug">
+                                            <dt className="font-bold text-neutral-500">
+                                                Company
+                                            </dt>
+                                            <dd className="m-0 font-semibold wrap-anywhere text-neutral-700">
+                                                {brand || "N/A"}
+                                            </dd>
+                                            <dt className="font-bold text-neutral-500">
+                                                Made in
+                                            </dt>
+                                            <dd className="m-0 font-semibold wrap-anywhere text-neutral-700 capitalize">
+                                                {manufacturingPlace || "N/A"}
+                                            </dd>
+                                            <dt className="font-bold text-neutral-500">
+                                                Barcode
+                                            </dt>
+                                            <dd className="m-0 font-mono wrap-anywhere text-neutral-600">
+                                                {result.barcode}
+                                            </dd>
+                                        </dl>
+                                    </div>
                                     <span
-                                        className="text-primary-600 shrink-0 text-lg transition-transform group-hover:translate-x-0.5"
+                                        className="text-primary-600 self-center text-2xl leading-none font-bold transition-transform group-hover:translate-x-0.5"
                                         aria-hidden="true"
                                     >
-                                        →
+                                        &gt;
                                     </span>
                                 </Button>
                             )
@@ -517,6 +510,19 @@ export function BarcodeEntryPage() {
                     <p className="mt-3 text-center text-[0.6875rem] leading-relaxed text-neutral-500">
                         Data from Open Food Facts
                     </p>
+                    {nextCursor ? (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="mt-4 w-full rounded-xl"
+                            onClick={() => void loadMore()}
+                            disabled={isLoadingMore}
+                        >
+                            {isLoadingMore
+                                ? "Loading Products…"
+                                : "Load more Products"}
+                        </Button>
+                    ) : null}
                 </section>
             ) : null}
 
@@ -535,83 +541,10 @@ export function BarcodeEntryPage() {
                         No Products found
                     </h2>
                     <p className="mt-1.5 text-sm leading-relaxed text-neutral-500">
-                        Try a different Product name, brand, or country.
+                        Try a different Product name, company, or country.
                     </p>
                 </div>
             ) : null}
-
-            {searchStatus === "idle" && !query && !error && (
-                <div className="mt-10 flex flex-col items-center text-center">
-                    <BarcodeGuideIllustration className="mb-4 drop-shadow-xs" />
-                    <div className="min-h-[69px]">
-                        <h2 className="text-base font-extrabold text-neutral-900">
-                            {emptyQuerySubmitted
-                                ? "Please enter a Barcode, Product name, brand, or country"
-                                : "Manual Product Lookup"}
-                        </h2>
-                        <p
-                            className={cn(
-                                "mt-1.5 max-w-[36ch] text-xs leading-relaxed text-neutral-500",
-                                emptyQuerySubmitted && "invisible",
-                            )}
-                        >
-                            Enter a Barcode, Product name, brand, or country, or
-                            choose a sample Product below to explore.
-                        </p>
-                    </div>
-
-                    {!recentSearches.length ? (
-                        <section
-                            className="mt-8 w-full max-w-lg space-y-3 text-left"
-                            aria-labelledby="sample-products-heading"
-                        >
-                            <h2
-                                id="sample-products-heading"
-                                className="text-sm font-extrabold text-neutral-900"
-                            >
-                                Try a sample Product
-                            </h2>
-                            <div className="grid grid-cols-1 gap-2">
-                                {SAMPLE_PRODUCTS.map((s) => (
-                                    <Button
-                                        key={s.code}
-                                        variant="outline"
-                                        size="sm"
-                                        type="button"
-                                        onClick={() => {
-                                            void navigate(
-                                                `/products/${s.code}`,
-                                                {
-                                                    state: {
-                                                        fromBarcodeEntry: true,
-                                                    },
-                                                },
-                                            )
-                                        }}
-                                        className="hover:border-primary-500 flex h-auto w-full cursor-pointer items-center justify-between gap-3 rounded-xl border-neutral-200 bg-white p-2.5 text-left transition-all hover:shadow-2xs"
-                                    >
-                                        <SampleProductImage
-                                            src={s.imageUrl}
-                                            alt={`${s.name} product image`}
-                                        />
-                                        <div className="min-w-0 flex-1 pr-2">
-                                            <span className="block truncate text-xs font-semibold text-neutral-900 sm:text-sm">
-                                                {s.name}
-                                            </span>
-                                            <span className="text-micro block font-mono text-neutral-400 sm:text-xs">
-                                                {s.code}
-                                            </span>
-                                        </div>
-                                        <span className="text-primary-600 text-caption shrink-0 font-semibold">
-                                            View →
-                                        </span>
-                                    </Button>
-                                ))}
-                            </div>
-                        </section>
-                    ) : null}
-                </div>
-            )}
         </main>
     )
 }

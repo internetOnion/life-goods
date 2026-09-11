@@ -448,6 +448,10 @@ export type ProductSummary = {
      * Brands
      */
     brands?: Array<string>;
+    /**
+     * Manufacturing Places
+     */
+    manufacturing_places?: Array<string>;
     name?: OriginalText | null;
     /**
      * Quantity
