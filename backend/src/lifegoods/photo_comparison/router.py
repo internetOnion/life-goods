@@ -1,16 +1,18 @@
-"""Standalone HTTP routes for the local photo-comparison workflow."""
+"""HTTP routes shared by the normal API and standalone photo-comparison app."""
 
 from __future__ import annotations
 
 import json
-from typing import Annotated
+from typing import Annotated, Any
 
-from fastapi import APIRouter, File, Form, Request, UploadFile
+from fastapi import APIRouter, FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from lifegoods.photo_comparison.contracts import (
     MAX_COMPARISON_REQUEST_BYTES,
+    MAX_PHOTOS_PER_PRODUCT,
     ComparisonRequest,
     ComparisonResponse,
     Extraction,
@@ -39,8 +41,10 @@ from lifegoods.photo_comparison.service import (
     PhotoExtractionService,
 )
 
-EXTRACTION_PATH = "/api/experimental/photo-comparison/extractions"
-COMPARISON_PATH = "/api/experimental/photo-comparison/comparisons"
+EXTRACTION_PATH = "/api/v1/photo-comparison/extractions"
+COMPARISON_PATH = "/api/v1/photo-comparison/comparisons"
+EXPERIMENTAL_PREFIX = "/api/experimental/photo-comparison"
+_EXTRACTION_PATHS = {EXTRACTION_PATH, f"{EXPERIMENTAL_PREFIX}/extractions"}
 
 _ERROR_EXAMPLES = {
     "validation": {
@@ -75,7 +79,16 @@ _ERROR_EXAMPLES = {
         "value": {
             "error": {
                 "code": "rate_limit_exceeded",
-                "message": "The local extraction limit is 10 requests per minute.",
+                "message": "The extraction limit is 10 requests per minute.",
+            }
+        },
+    },
+    "comparison_limit": {
+        "summary": "Comparison request limit",
+        "value": {
+            "error": {
+                "code": "size_limit_exceeded",
+                "message": "The comparison request must be 1 MiB or smaller.",
             }
         },
     },
@@ -120,7 +133,7 @@ _PARTIAL_EXTRACTION_EXAMPLE = {
         "retake_reasons": ["Add a clear package-weight photo."],
         "provider": "google",
         "model": "gemini-3.8-flash",
-        "configuration_version": "photo-extraction-v1",
+        "configuration_version": "photo-extraction-v3",
     },
 }
 
@@ -148,15 +161,139 @@ _COMPARISON_EXAMPLE = {
     },
 }
 
+_COMPARISON_REQUEST_SCHEMA = ComparisonRequest.model_json_schema(
+    ref_template="#/components/schemas/{model}"
+)
+_COMPARISON_REQUEST_SCHEMA.pop("$defs", None)
 
-def _error(code: PhotoComparisonErrorCode, message: str, status_code: int) -> JSONResponse:
+def _error(
+    code: PhotoComparisonErrorCode,
+    message: str,
+    status_code: int,
+    *,
+    headers: dict[str, str] | None = None,
+) -> JSONResponse:
     response = PhotoComparisonErrorResponse(
         error=PhotoComparisonErrorDetail(code=code, message=message)
     )
     return JSONResponse(
         status_code=status_code,
         content=json.loads(response.model_dump_json()),
-        headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
+        headers={
+            "Cache-Control": "no-store",
+            "Pragma": "no-cache",
+            **(headers or {}),
+        },
+    )
+
+
+class PhotoComparisonUploadLimitMiddleware:
+    """Reject oversized multipart bodies before FastAPI parses or spools uploads."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if (
+            scope.get("type") != "http"
+            or scope.get("method") != "POST"
+            or scope.get("path") not in _EXTRACTION_PATHS
+        ):
+            await self.app(scope, receive, send)
+            return
+
+        content_length = _header_value(scope, b"content-length")
+        if content_length is not None:
+            try:
+                if int(content_length) > MAX_UPLOAD_BYTES:
+                    await _send_error_response(scope, receive, send)
+                    return
+            except ValueError:
+                pass
+
+        messages: list[Message] = []
+        total_bytes = 0
+        while True:
+            message = await receive()
+            if message["type"] == "http.request":
+                total_bytes += len(message.get("body", b""))
+                if total_bytes > MAX_UPLOAD_BYTES:
+                    await _send_error_response(scope, receive, send)
+                    return
+                messages.append(message)
+                if not message.get("more_body", False):
+                    break
+            else:
+                messages.append(message)
+                break
+
+        replay = iter(messages)
+
+        async def replay_receive() -> Message:
+            try:
+                return next(replay)
+            except StopIteration:
+                return {"type": "http.disconnect"}
+
+        await self.app(scope, replay_receive, send)
+
+
+def install_photo_comparison_openapi(app: FastAPI) -> None:
+    """Expose multipart uploads as browser file values in OpenAPI 3.1."""
+
+    original_openapi = app.openapi
+
+    def openapi() -> dict[str, Any]:
+        schema = original_openapi()
+        body_schema = (
+            schema.get("components", {})
+            .get("schemas", {})
+            .get("Body_extractPhotoComparison", {})
+        )
+        photos = body_schema.get("properties", {}).get("photos", {})
+        items = photos.get("items")
+        if isinstance(items, dict):
+            items.pop("contentMediaType", None)
+            items["format"] = "binary"
+        if isinstance(photos, dict):
+            photos["minItems"] = 1
+            photos["maxItems"] = MAX_PHOTOS_PER_PRODUCT
+        return schema
+
+    app.openapi = openapi
+
+
+def _header_value(scope: Scope, name: bytes) -> str | None:
+    for header_name, header_value in scope.get("headers", []):
+        if header_name.lower() == name:
+            return header_value.decode("latin-1")
+    return None
+
+
+async def _send_error_response(scope: Scope, receive: Receive, send: Send) -> None:
+    response = _error(
+        PhotoComparisonErrorCode.SIZE_LIMIT_EXCEEDED,
+        "The upload request must be 32 MiB or smaller.",
+        413,
+    )
+    await response(scope, receive, send)
+
+
+def photo_comparison_http_exception_response(
+    path: str, status_code: int
+) -> JSONResponse | None:
+    if path not in _EXTRACTION_PATHS:
+        return None
+    if status_code == 413:
+        return _error(
+            PhotoComparisonErrorCode.SIZE_LIMIT_EXCEEDED,
+            "The upload request must be 32 MiB or smaller.",
+            413,
+        )
+    return _error(
+        PhotoComparisonErrorCode.REQUEST_INVALID,
+        "The photo-comparison request is invalid.",
+        422,
     )
 
 
@@ -165,7 +302,7 @@ def _success(model: Extraction | ComparisonResponse) -> JSONResponse:
     if len(body) > MAX_EXTRACTION_RESPONSE_BYTES:
         return _error(
             PhotoComparisonErrorCode.INTERNAL_ERROR,
-            "The extraction response exceeded the local response limit.",
+            "The photo-comparison response exceeded the local response limit.",
             500,
         )
     return JSONResponse(
@@ -188,7 +325,9 @@ def _content_length(request: Request) -> int | None:
 
 def _read_upload(upload: UploadFile, remaining: int) -> bytes:
     if remaining <= 0:
-        raise ImageValidationError("The upload request must be 32 MiB or smaller.")
+        raise ImageValidationError(
+            "The upload request must be 32 MiB or smaller.", size_limit=True
+        )
     chunks: list[bytes] = []
     total = 0
     while total <= MAX_PHOTO_BYTES:
@@ -199,21 +338,26 @@ def _read_upload(upload: UploadFile, remaining: int) -> bytes:
             break
         total += len(chunk)
         if total > MAX_PHOTO_BYTES:
-            raise ImageValidationError("Each photo must be 10 MiB or smaller.")
+            raise ImageValidationError("Each photo must be 10 MiB or smaller.", size_limit=True)
         chunks.append(chunk)
     if total > remaining:
-        raise ImageValidationError("The upload request must be 32 MiB or smaller.")
+        raise ImageValidationError(
+            "The upload request must be 32 MiB or smaller.", size_limit=True
+        )
     return b"".join(chunks)
 
 
 def build_router(
     extraction_service: PhotoExtractionService,
     comparison_service: PhotoComparisonService,
+    *,
+    prefix: str = "/api/v1/photo-comparison",
 ) -> APIRouter:
-    router = APIRouter(prefix="/api/experimental/photo-comparison", tags=["Photo comparison"])
+    router = APIRouter(prefix=prefix, tags=["Photo comparison"])
 
     @router.post(
         "/extractions",
+        operation_id="extractPhotoComparison",
         response_model=Extraction,
         summary="Extract visible nutrition evidence from Product photos",
         responses={
@@ -231,6 +375,12 @@ def build_router(
                     "application/json": {
                         "examples": {"upload_limit": _ERROR_EXAMPLES["upload_limit"]}
                     }
+                },
+            },
+            422: {
+                "model": PhotoComparisonErrorResponse,
+                "content": {
+                    "application/json": {"examples": {"validation": _ERROR_EXAMPLES["validation"]}}
                 },
             },
             415: {
@@ -252,6 +402,7 @@ def build_router(
                     }
                 },
             },
+            500: {"model": PhotoComparisonErrorResponse},
             502: {
                 "model": PhotoComparisonErrorResponse,
                 "content": {
@@ -299,14 +450,14 @@ def build_router(
     def extract_photos(
         request: Request,
         product_id: Annotated[
-            str | None, Form(description="Local Product panel identifier.")
-        ] = None,
+            str, Form(description="Local Product panel identifier.")
+        ],
         photos: Annotated[
-            list[UploadFile] | None,
+            list[UploadFile],
             File(description="One to six JPEG or PNG photos, submitted in preview order."),
-        ] = None,
+        ],
     ) -> JSONResponse:
-        uploads = photos or []
+        uploads = photos
         content_length = _content_length(request)
         if content_length is not None and content_length > MAX_UPLOAD_BYTES:
             return _error(
@@ -340,20 +491,39 @@ def build_router(
                         413,
                     )
                 prepared.append(prepare_image(data, declared_content_type=upload.content_type))
-            extraction = extraction_service.extract(product_id, prepared)
+            extraction = extraction_service.extract(
+                product_id,
+                prepared,
+                rate_limit_key=_client_address(request),
+            )
             return _success(extraction)
         except ImageValidationError as error:
             code = (
                 PhotoComparisonErrorCode.UNSUPPORTED_IMAGE_FORMAT
                 if error.unsupported_format
-                else PhotoComparisonErrorCode.SIZE_LIMIT_EXCEEDED
+                else (
+                    PhotoComparisonErrorCode.SIZE_LIMIT_EXCEEDED
+                    if error.size_limit
+                    else PhotoComparisonErrorCode.REQUEST_INVALID
+                )
             )
-            status = 415 if code is PhotoComparisonErrorCode.UNSUPPORTED_IMAGE_FORMAT else 413
+            status = (
+                415
+                if code is PhotoComparisonErrorCode.UNSUPPORTED_IMAGE_FORMAT
+                else 413
+                if code is PhotoComparisonErrorCode.SIZE_LIMIT_EXCEEDED
+                else 422
+            )
             return _error(code, str(error), status)
         except MissingCredentialsError as error:
             return _error(PhotoComparisonErrorCode.PROVIDER_UNAVAILABLE, str(error), 503)
         except ExtractionRateLimitError as error:
-            return _error(PhotoComparisonErrorCode.RATE_LIMIT_EXCEEDED, str(error), 429)
+            return _error(
+                PhotoComparisonErrorCode.RATE_LIMIT_EXCEEDED,
+                str(error),
+                429,
+                headers={"Retry-After": str(error.retry_after)},
+            )
         except ExtractionCapacityError as error:
             return _error(PhotoComparisonErrorCode.CAPACITY_LIMIT_EXCEEDED, str(error), 429)
         except PhotoProviderTimeout as error:
@@ -375,8 +545,17 @@ def build_router(
 
     @router.post(
         "/comparisons",
+        operation_id="comparePhotoComparison",
         response_model=ComparisonResponse,
         summary="Compare two submitted nutrition extractions",
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {"schema": _COMPARISON_REQUEST_SCHEMA}
+                },
+            }
+        },
         responses={
             200: {
                 "description": "Reported and deterministic comparison rows.",
@@ -386,7 +565,9 @@ def build_router(
                 "model": PhotoComparisonErrorResponse,
                 "content": {
                     "application/json": {
-                        "examples": {"upload_limit": _ERROR_EXAMPLES["upload_limit"]}
+                        "examples": {
+                            "comparison_limit": _ERROR_EXAMPLES["comparison_limit"]
+                        }
                     }
                 },
             },
@@ -436,4 +617,16 @@ def build_router(
     return router
 
 
-__all__ = ["COMPARISON_PATH", "EXTRACTION_PATH", "build_router"]
+def _client_address(request: Request) -> str:
+    return request.client.host if request.client is not None else "unknown"
+
+
+__all__ = [
+    "COMPARISON_PATH",
+    "EXPERIMENTAL_PREFIX",
+    "EXTRACTION_PATH",
+    "PhotoComparisonUploadLimitMiddleware",
+    "build_router",
+    "install_photo_comparison_openapi",
+    "photo_comparison_http_exception_response",
+]

@@ -120,6 +120,82 @@ export type AllergenUnmatchedSpanResponse = {
 };
 
 /**
+ * Body_extractPhotoComparison
+ */
+export type BodyExtractPhotoComparison = {
+    /**
+     * Photos
+     * One to six JPEG or PNG photos, submitted in preview order.
+     */
+    photos: Array<Blob | File>;
+    /**
+     * Product Id
+     * Local Product panel identifier.
+     */
+    product_id: string;
+};
+
+/**
+ * ComparisonResponse
+ */
+export type ComparisonResponse = {
+    /**
+     * Calculated From Submitted Evidence
+     */
+    calculated_from_submitted_evidence?: true;
+    /**
+     * Left Product Id
+     */
+    left_product_id: string;
+    /**
+     * Right Product Id
+     */
+    right_product_id: string;
+    /**
+     * Rows
+     */
+    rows?: Array<ComparisonRow>;
+    /**
+     * Schema Version
+     */
+    schema_version?: number;
+};
+
+/**
+ * ComparisonRow
+ */
+export type ComparisonRow = {
+    /**
+     * Assumptions
+     */
+    assumptions?: Array<string>;
+    /**
+     * Calculation Basis
+     */
+    calculation_basis?: string | null;
+    derived_difference?: DerivedValue | null;
+    left?: ReportedValue | null;
+    normalized_left?: DerivedValue | null;
+    normalized_right?: DerivedValue | null;
+    /**
+     * Nutrient
+     */
+    nutrient: string;
+    /**
+     * Reason
+     */
+    reason?: string | null;
+    right?: ReportedValue | null;
+    row_kind?: NutrientRowKind;
+    state: ComparisonState;
+};
+
+/**
+ * ComparisonState
+ */
+export type ComparisonState = 'comparable' | 'conditional' | 'not_comparable';
+
+/**
  * DatasetSnapshotResponse
  */
 export type DatasetSnapshotResponse = {
@@ -131,6 +207,47 @@ export type DatasetSnapshotResponse = {
      * Version
      */
     version: string;
+};
+
+/**
+ * DerivationInput
+ */
+export type DerivationInput = {
+    /**
+     * Evidence
+     */
+    evidence: Array<EvidencePointer>;
+    kind: DerivationInputKind;
+    normalized_unit: MeasurementUnit;
+    /**
+     * Normalized Value
+     */
+    normalized_value: string;
+    /**
+     * Source Id
+     */
+    source_id: string;
+};
+
+/**
+ * DerivationInputKind
+ */
+export type DerivationInputKind = 'reported_field' | 'package_quantity' | 'serving_quantity';
+
+/**
+ * DerivedValue
+ */
+export type DerivedValue = {
+    /**
+     * Inputs
+     */
+    inputs: Array<DerivationInput>;
+    target_basis: NutritionBasis;
+    unit: MeasurementUnit;
+    /**
+     * Value
+     */
+    value: string;
 };
 
 /**
@@ -174,6 +291,119 @@ export type ErrorEnvelope = {
 };
 
 /**
+ * EvidencePointer
+ */
+export type EvidencePointer = {
+    /**
+     * Image Id
+     */
+    image_id: string;
+    region?: ImageRegion | null;
+};
+
+/**
+ * Extraction
+ */
+export type Extraction = {
+    /**
+     * Configuration Version
+     */
+    configuration_version?: string | null;
+    identity?: ProductIdentity | null;
+    /**
+     * Images
+     */
+    images: Array<ImageEvidence>;
+    /**
+     * Model
+     */
+    model?: string | null;
+    /**
+     * Nutrition Columns
+     */
+    nutrition_columns?: Array<NutritionColumn>;
+    outcome: ExtractionOutcome;
+    package_quantity?: Quantity | null;
+    /**
+     * Product Id
+     */
+    product_id: string;
+    /**
+     * Provider
+     */
+    provider?: string | null;
+    /**
+     * Retake Reasons
+     */
+    retake_reasons?: Array<string>;
+    /**
+     * Schema Version
+     */
+    schema_version?: number;
+};
+
+/**
+ * ExtractionOutcome
+ */
+export type ExtractionOutcome = 'complete' | 'partial' | 'retake_required';
+
+/**
+ * FieldObservation
+ * Literal package evidence plus conservative optional normalization.
+ */
+export type FieldObservation = {
+    /**
+     * Alternatives
+     */
+    alternatives?: Array<ObservationAlternative>;
+    /**
+     * Evidence
+     */
+    evidence?: Array<EvidencePointer>;
+    /**
+     * Field Id
+     */
+    field_id: string;
+    /**
+     * Label
+     */
+    label?: string | null;
+    /**
+     * Language
+     */
+    language?: string;
+    normalized_unit?: MeasurementUnit | null;
+    /**
+     * Normalized Value
+     */
+    normalized_value?: string | null;
+    /**
+     * Nutrient
+     */
+    nutrient?: string | null;
+    /**
+     * Original Script
+     */
+    original_script?: string | null;
+    qualifier?: ValueQualifier;
+    row_kind?: NutrientRowKind;
+    state?: FieldState;
+    /**
+     * Unit Text
+     */
+    unit_text?: string | null;
+    /**
+     * Value Text
+     */
+    value_text?: string | null;
+};
+
+/**
+ * FieldState
+ */
+export type FieldState = 'readable' | 'unreadable' | 'ambiguous' | 'conflicting' | 'not_visible';
+
+/**
  * GradedSourceAssessment
  */
 export type GradedSourceAssessment = {
@@ -190,6 +420,59 @@ export type GradedSourceAssessment = {
      * Version
      */
     version?: string | null;
+};
+
+/**
+ * ImageEvidence
+ */
+export type ImageEvidence = {
+    /**
+     * Height
+     */
+    height: number;
+    /**
+     * Image Id
+     */
+    image_id: string;
+    /**
+     * Original Image Id
+     */
+    original_image_id: string;
+    /**
+     * Processed Image Id
+     */
+    processed_image_id?: string | null;
+    /**
+     * Role
+     */
+    role: string;
+    /**
+     * Width
+     */
+    width: number;
+};
+
+/**
+ * ImageRegion
+ * Normalized coordinates in the inclusive [0, 1] image coordinate space.
+ */
+export type ImageRegion = {
+    /**
+     * Height
+     */
+    height: number;
+    /**
+     * Width
+     */
+    width: number;
+    /**
+     * X
+     */
+    x: number;
+    /**
+     * Y
+     */
+    y: number;
 };
 
 /**
@@ -354,6 +637,11 @@ export type IngredientMatchingAllergenResponse = {
 };
 
 /**
+ * MeasurementUnit
+ */
+export type MeasurementUnit = 'g' | 'mg' | 'µg' | 'kg' | 'ml' | 'l' | 'kcal' | 'kJ' | '%' | 'count' | 'unknown';
+
+/**
  * NovaSourceAssessment
  */
 export type NovaSourceAssessment = {
@@ -364,7 +652,47 @@ export type NovaSourceAssessment = {
     source_field: string;
 };
 
+/**
+ * NutrientRowKind
+ */
+export type NutrientRowKind = 'amount' | 'percentage' | 'combined' | 'other';
+
 export type NutritionAmount = number | number | string;
+
+/**
+ * NutritionBasis
+ */
+export type NutritionBasis = 'per_package' | 'per_serving' | 'per_100g' | 'per_100ml' | 'unknown' | 'other';
+
+/**
+ * NutritionColumn
+ */
+export type NutritionColumn = {
+    basis?: NutritionBasis;
+    /**
+     * Basis Evidence
+     */
+    basis_evidence?: Array<EvidencePointer>;
+    /**
+     * Column Id
+     */
+    column_id: string;
+    /**
+     * Fields
+     */
+    fields?: Array<FieldObservation>;
+    /**
+     * Label
+     */
+    label?: string | null;
+    /**
+     * Preparation Evidence
+     */
+    preparation_evidence?: Array<EvidencePointer>;
+    preparation_state?: PreparationState;
+    serving_quantity?: Quantity | null;
+    serving_quantity_state?: FieldState;
+};
 
 /**
  * NutritionProjection
@@ -403,6 +731,34 @@ export type NutritionRow = {
      */
     unit?: string | null;
     value?: NutritionAmount | null;
+};
+
+/**
+ * ObservationAlternative
+ * A competing literal reading retained for an ambiguous or conflicting field.
+ */
+export type ObservationAlternative = {
+    /**
+     * Evidence
+     */
+    evidence?: Array<EvidencePointer>;
+    /**
+     * Language
+     */
+    language?: string;
+    /**
+     * Original Script
+     */
+    original_script?: string | null;
+    state?: FieldState;
+    /**
+     * Unit Text
+     */
+    unit_text?: string | null;
+    /**
+     * Value Text
+     */
+    value_text?: string | null;
 };
 
 /**
@@ -497,6 +853,42 @@ export type PackagingProjection = {
      * Texts
      */
     texts?: Array<OriginalText>;
+};
+
+/**
+ * PhotoComparisonErrorCode
+ */
+export type PhotoComparisonErrorCode = 'request_invalid' | 'size_limit_exceeded' | 'unsupported_image_format' | 'rate_limit_exceeded' | 'capacity_limit_exceeded' | 'provider_output_invalid' | 'provider_unavailable' | 'provider_timeout' | 'internal_error';
+
+/**
+ * PhotoComparisonErrorDetail
+ */
+export type PhotoComparisonErrorDetail = {
+    code: PhotoComparisonErrorCode;
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * PhotoComparisonErrorResponse
+ */
+export type PhotoComparisonErrorResponse = {
+    error: PhotoComparisonErrorDetail;
+};
+
+/**
+ * PreparationState
+ */
+export type PreparationState = 'as_sold' | 'as_prepared' | 'unknown';
+
+/**
+ * ProductIdentity
+ */
+export type ProductIdentity = {
+    brand?: FieldObservation | null;
+    name?: FieldObservation | null;
 };
 
 /**
@@ -713,6 +1105,72 @@ export type ProductSummary = {
     quantity?: string | null;
     source: SourceAttributionResponse;
     thumbnail?: SourceImage | null;
+};
+
+/**
+ * Quantity
+ */
+export type Quantity = {
+    /**
+     * Alternatives
+     */
+    alternatives?: Array<ObservationAlternative>;
+    /**
+     * Evidence
+     */
+    evidence?: Array<EvidencePointer>;
+    /**
+     * Field Id
+     */
+    field_id: string;
+    /**
+     * Label
+     */
+    label?: string | null;
+    /**
+     * Language
+     */
+    language?: string;
+    normalized_unit?: MeasurementUnit | null;
+    /**
+     * Normalized Value
+     */
+    normalized_value?: string | null;
+    qualifier?: ValueQualifier;
+    state?: FieldState;
+    /**
+     * Unit Text
+     */
+    unit_text?: string | null;
+    /**
+     * Value Text
+     */
+    value_text?: string | null;
+};
+
+/**
+ * ReportedValue
+ * A complete nutrition field plus the column context that reported it.
+ */
+export type ReportedValue = {
+    basis?: NutritionBasis;
+    /**
+     * Basis Evidence
+     */
+    basis_evidence?: Array<EvidencePointer>;
+    /**
+     * Column Id
+     */
+    column_id: string;
+    observation: FieldObservation;
+    package_quantity?: Quantity | null;
+    /**
+     * Preparation Evidence
+     */
+    preparation_evidence?: Array<EvidencePointer>;
+    preparation_state?: PreparationState;
+    serving_quantity?: Quantity | null;
+    serving_quantity_state?: FieldState;
 };
 
 /**
@@ -970,6 +1428,11 @@ export type TranslationMetadataResponse = {
  */
 export type TranslationOverallStatus = 'not_requested' | 'not_needed' | 'complete' | 'partial' | 'unavailable';
 
+/**
+ * ValueQualifier
+ */
+export type ValueQualifier = 'exact' | 'less_than' | 'greater_than' | 'approximate';
+
 export type MatchExperimentalIngredientsData = {
     body: IngredientMatchRequest;
     path?: never;
@@ -1040,6 +1503,110 @@ export type GetOpenFoodFactsImageResponses = {
 };
 
 export type GetOpenFoodFactsImageResponse = GetOpenFoodFactsImageResponses[keyof GetOpenFoodFactsImageResponses];
+
+export type ComparePhotoComparisonData = {
+    /**
+     * ComparisonRequest
+     */
+    body: {
+        left: Extraction;
+        /**
+         * Left Column Id
+         */
+        left_column_id?: string | null;
+        right: Extraction;
+        /**
+         * Right Column Id
+         */
+        right_column_id?: string | null;
+        /**
+         * Schema Version
+         */
+        schema_version?: number;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/photo-comparison/comparisons';
+};
+
+export type ComparePhotoComparisonErrors = {
+    /**
+     * Content Too Large
+     */
+    413: PhotoComparisonErrorResponse;
+    /**
+     * Unprocessable Content
+     */
+    422: PhotoComparisonErrorResponse;
+    /**
+     * Internal Server Error
+     */
+    500: PhotoComparisonErrorResponse;
+};
+
+export type ComparePhotoComparisonError = ComparePhotoComparisonErrors[keyof ComparePhotoComparisonErrors];
+
+export type ComparePhotoComparisonResponses = {
+    /**
+     * Reported and deterministic comparison rows.
+     */
+    200: ComparisonResponse;
+};
+
+export type ComparePhotoComparisonResponse = ComparePhotoComparisonResponses[keyof ComparePhotoComparisonResponses];
+
+export type ExtractPhotoComparisonData = {
+    body: BodyExtractPhotoComparison;
+    path?: never;
+    query?: never;
+    url: '/api/v1/photo-comparison/extractions';
+};
+
+export type ExtractPhotoComparisonErrors = {
+    /**
+     * Content Too Large
+     */
+    413: PhotoComparisonErrorResponse;
+    /**
+     * Unsupported Media Type
+     */
+    415: PhotoComparisonErrorResponse;
+    /**
+     * Unprocessable Content
+     */
+    422: PhotoComparisonErrorResponse;
+    /**
+     * Too Many Requests
+     */
+    429: PhotoComparisonErrorResponse;
+    /**
+     * Internal Server Error
+     */
+    500: PhotoComparisonErrorResponse;
+    /**
+     * Bad Gateway
+     */
+    502: PhotoComparisonErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: PhotoComparisonErrorResponse;
+    /**
+     * Gateway Timeout
+     */
+    504: PhotoComparisonErrorResponse;
+};
+
+export type ExtractPhotoComparisonError = ExtractPhotoComparisonErrors[keyof ExtractPhotoComparisonErrors];
+
+export type ExtractPhotoComparisonResponses = {
+    /**
+     * Validated visible-evidence extraction, complete, partial, or retake-required.
+     */
+    200: Extraction;
+};
+
+export type ExtractPhotoComparisonResponse = ExtractPhotoComparisonResponses[keyof ExtractPhotoComparisonResponses];
 
 export type SearchProductsData = {
     body?: never;

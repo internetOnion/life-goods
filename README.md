@@ -124,7 +124,7 @@ do not verify Open Food Facts Source Records.
 
 ## Start development servers
 
-The frontend currently uses its checked-in Dataset Snapshot for offline Product Lookup. The stable backend API remains available independently; connecting the Shopper interface and translation controls is deferred to #90.
+The frontend currently uses its checked-in Dataset Snapshot for offline Product Lookup. The stable backend API remains available independently; connecting the Shopper interface and translation controls is deferred to #90. The ordinary backend also exposes the stable Compare Products API under `/api/v1/photo-comparison/`.
 
 Run the backend and frontend in separate terminals:
 
@@ -138,10 +138,10 @@ pnpm dev
 
 The frontend is available at `http://localhost:5173`. Use `pnpm dev:https` when testing camera access at `https://localhost:5173`; `/api` still proxies to the HTTP backend.
 
-### Try the local photo-comparison lab
+### Try the standalone photo-comparison development app
 
-The photo-comparison experiment is intentionally separate from the ordinary
-Life Goods API and Shopper frontend. Start it with:
+The standalone development app remains available as a thin consumer of the same
+photo-comparison services and contracts used by the ordinary Life Goods API. Start it with:
 
 ```bash
 pnpm photo-comparison:dev
@@ -162,11 +162,10 @@ calculations over the submitted evidence; the page keeps photos and results in
 the current browser session only. No photo-derived text is written to MongoDB,
 Redis, translation caches, or ordinary logs.
 
-The feature-first sequence implements extraction and deterministic comparison
-before a real-photo trial. Try the available Mee Chiet/MAMA photos through the
-page after the lab works, including adding the separate weight photo and
-replacing an unreadable photo. The reviewed multilingual corpus in #111 remains
-deferred; public deployment and Shopper integration remain later work.
+The ordinary backend serves the stable API at `/api/v1/photo-comparison/`; the
+standalone app serves the same behavior under its development-only experimental
+prefix and browser page. The reviewed multilingual corpus in #111 remains
+deferred.
 
 ## Verification
 

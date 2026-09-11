@@ -380,3 +380,18 @@ class GeminiPhotoExtractionAdapter:
             raise PhotoProviderOutputInvalid(
                 "Gemini returned malformed extraction JSON."
             ) from error
+
+
+def create_photo_extraction_provider(
+    api_key: str | None,
+    *,
+    http_client: httpx.Client | None = None,
+) -> GeminiPhotoExtractionAdapter | None:
+    if not api_key:
+        return None
+    return GeminiPhotoExtractionAdapter(
+        api_key,
+        model=PHOTO_MODEL,
+        timeout_seconds=PHOTO_TIMEOUT_SECONDS,
+        http_client=http_client,
+    )

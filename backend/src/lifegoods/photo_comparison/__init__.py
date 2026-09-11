@@ -1,8 +1,4 @@
-"""Contracts and local services for the opt-in package-photo comparison prototype.
-
-The standalone app is intentionally separate from the ordinary Life Goods API;
-this package does not add routes, storage, or persistence to that app.
-"""
+"""Contracts and shared services for Compare Products photo evidence."""
 
 from lifegoods.photo_comparison.contracts import (
     MAX_COMPARISON_REQUEST_BYTES,
@@ -31,6 +27,10 @@ from lifegoods.photo_comparison.contracts import (
     Quantity,
     ReportedValue,
 )
+from lifegoods.photo_comparison.rate_limit import (
+    PhotoComparisonRateLimiter,
+    RedisPhotoComparisonRateLimiter,
+)
 
 __all__ = [
     "MAX_COMPARISON_REQUEST_BYTES",
@@ -55,7 +55,9 @@ __all__ = [
     "PhotoComparisonErrorCode",
     "PhotoComparisonErrorDetail",
     "PhotoComparisonErrorResponse",
+    "PhotoComparisonRateLimiter",
     "PreparationState",
     "Quantity",
     "ReportedValue",
+    "RedisPhotoComparisonRateLimiter",
 ]

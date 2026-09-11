@@ -32,6 +32,7 @@ DEFAULT_GENERATED_TRANSLATION_COOLDOWN_SECONDS = 60
 DEFAULT_GENERATED_TRANSLATION_BUDGET_PER_MINUTE = 60
 DEFAULT_GENERATED_TRANSLATION_POLL_INTERVAL_SECONDS = 0.05
 DEFAULT_GEMINI_TRANSLATION_TIMEOUT_SECONDS = 12.0
+DEFAULT_PHOTO_COMPARISON_REQUESTS_PER_MINUTE = 10
 
 
 class Settings(BaseSettings):
@@ -92,6 +93,10 @@ class Settings(BaseSettings):
         default=DEFAULT_GEMINI_TRANSLATION_TIMEOUT_SECONDS,
         gt=0,
         allow_inf_nan=False,
+    )
+    photo_comparison_requests_per_minute: int = Field(
+        default=DEFAULT_PHOTO_COMPARISON_REQUESTS_PER_MINUTE,
+        gt=0,
     )
     gemini_api_key: str | None = Field(
         default=None,

@@ -1,4 +1,4 @@
-"""Standalone app for the opt-in local photo-comparison experiment."""
+"""Standalone development app for the shared photo-comparison capability."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 from scalar_fastapi import get_scalar_api_reference
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from lifegoods.core.security import SecurityHeadersMiddleware
 from lifegoods.core.settings import Settings
@@ -18,11 +19,16 @@ from lifegoods.photo_comparison.contracts import (
     PhotoComparisonErrorResponse,
 )
 from lifegoods.photo_comparison.gemini import (
-    PHOTO_MODEL,
     PHOTO_TIMEOUT_SECONDS,
-    GeminiPhotoExtractionAdapter,
+    create_photo_extraction_provider,
 )
-from lifegoods.photo_comparison.router import build_router
+from lifegoods.photo_comparison.router import (
+    EXPERIMENTAL_PREFIX,
+    PhotoComparisonUploadLimitMiddleware,
+    build_router,
+    install_photo_comparison_openapi,
+    photo_comparison_http_exception_response,
+)
 from lifegoods.photo_comparison.service import (
     PhotoComparisonService,
     PhotoExtractionService,
@@ -48,10 +54,8 @@ def create_photo_comparison_app(
     if resolved_provider is None and resolved_settings.gemini_api_key:
         client = httpx.Client(timeout=PHOTO_TIMEOUT_SECONDS)
         owned_clients.append(client)
-        resolved_provider = GeminiPhotoExtractionAdapter(
+        resolved_provider = create_photo_extraction_provider(
             resolved_settings.gemini_api_key,
-            model=PHOTO_MODEL,
-            timeout_seconds=PHOTO_TIMEOUT_SECONDS,
             http_client=client,
         )
 
@@ -61,12 +65,20 @@ def create_photo_comparison_app(
         title="Life Goods Photo Comparison Lab",
         version="0.1.0",
         description=(
-            "Local-only experimental photo evidence extraction and deterministic comparison. "
-            "This app is separate from the ordinary Life Goods API."
+            "Development entry point for photo evidence extraction and deterministic comparison. "
+            "It delegates to the same services and contracts as the ordinary Life Goods API."
         ),
     )
     app.add_middleware(SecurityHeadersMiddleware)
-    app.include_router(build_router(extraction_service, comparison_service))
+    app.add_middleware(PhotoComparisonUploadLimitMiddleware)
+    app.include_router(
+        build_router(
+            extraction_service,
+            comparison_service,
+            prefix=EXPERIMENTAL_PREFIX,
+        )
+    )
+    install_photo_comparison_openapi(app)
 
     @app.get("/", response_class=HTMLResponse, include_in_schema=False)
     async def index() -> HTMLResponse:
@@ -87,6 +99,21 @@ def create_photo_comparison_app(
             PhotoComparisonErrorCode.REQUEST_INVALID,
             "The photo-comparison request is invalid.",
             422,
+        )
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_exception_handler(
+        request: Request, error: StarletteHTTPException
+    ) -> JSONResponse:
+        photo_error = photo_comparison_http_exception_response(
+            request.url.path, error.status_code
+        )
+        if photo_error is not None:
+            return photo_error
+        return JSONResponse(
+            status_code=error.status_code,
+            content={"detail": error.detail},
+            headers=error.headers,
         )
 
     for client in owned_clients:

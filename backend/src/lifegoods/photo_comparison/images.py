@@ -19,9 +19,16 @@ SUPPORTED_IMAGE_FORMATS = {"JPEG": "image/jpeg", "PNG": "image/png"}
 class ImageValidationError(ValueError):
     """Raised when an upload is not a supported, bounded image."""
 
-    def __init__(self, message: str, *, unsupported_format: bool = False) -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        unsupported_format: bool = False,
+        size_limit: bool = False,
+    ) -> None:
         super().__init__(message)
         self.unsupported_format = unsupported_format
+        self.size_limit = size_limit
 
 
 @dataclass(frozen=True)
@@ -37,7 +44,7 @@ def _opaque_id(prefix: str) -> str:
 
 def prepare_image(data: bytes, *, declared_content_type: str | None = None) -> PreparedImage:
     if len(data) > MAX_PHOTO_BYTES:
-        raise ImageValidationError("Each photo must be 10 MiB or smaller.")
+        raise ImageValidationError("Each photo must be 10 MiB or smaller.", size_limit=True)
     if not data:
         raise ImageValidationError("The submitted photo is empty.")
 
@@ -62,14 +69,18 @@ def prepare_image(data: bytes, *, declared_content_type: str | None = None) -> P
                 )
             width, height = opened.size
             if width <= 0 or height <= 0 or width * height > MAX_IMAGE_PIXELS:
-                raise ImageValidationError("Each photo must be 25 megapixels or smaller.")
+                raise ImageValidationError(
+                    "Each photo must be 25 megapixels or smaller.", size_limit=True
+                )
             opened.verify()
 
         with Image.open(io.BytesIO(data)) as reopened:
             corrected = ImageOps.exif_transpose(reopened)
             width, height = corrected.size
             if width <= 0 or height <= 0 or width * height > MAX_IMAGE_PIXELS:
-                raise ImageValidationError("Each photo must be 25 megapixels or smaller.")
+                raise ImageValidationError(
+                    "Each photo must be 25 megapixels or smaller.", size_limit=True
+                )
             if image_format == "JPEG":
                 prepared = corrected.convert("RGB")
                 output = io.BytesIO()

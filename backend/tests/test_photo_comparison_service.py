@@ -4,12 +4,15 @@ import io
 import json
 from decimal import Decimal
 
+import fakeredis
 import httpx2 as httpx
 import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 from pydantic import ValidationError
 
+from lifegoods.core.settings import Settings
+from lifegoods.main import create_app
 from lifegoods.photo_comparison.app import create_photo_comparison_app
 from lifegoods.photo_comparison.comparison import compare
 from lifegoods.photo_comparison.contracts import (
@@ -33,6 +36,8 @@ from lifegoods.photo_comparison.gemini import (
 )
 from lifegoods.photo_comparison.images import MAX_UPLOAD_BYTES, ImageValidationError, prepare_image
 from lifegoods.photo_comparison.normalization import build_extraction
+from lifegoods.photo_comparison.rate_limit import RedisPhotoComparisonRateLimiter
+from lifegoods.photo_comparison.service import ProviderCapacity, RedisProviderCapacity
 
 
 def _png_bytes() -> bytes:
@@ -94,7 +99,7 @@ def _provider_payload(
 class FakeProvider:
     provider_name = "fake-provider"
     model = "gemini-3.8-flash"
-    configuration_version = "photo-extraction-v1"
+    configuration_version = "photo-extraction-v3"
 
     def __init__(
         self, *, unknown_reference: bool = False, failure: Exception | None = None
@@ -323,6 +328,111 @@ def test_http_extraction_validates_provider_references_and_failures() -> None:
     assert response.json()["error"]["code"] == "provider_unavailable"
 
 
+class AllowAllPhotoRateLimiter:
+    def try_acquire(self, key: str) -> tuple[bool, int]:
+        del key
+        return True, 0
+
+
+def test_normal_app_serves_stable_photo_routes_with_injected_provider() -> None:
+    app = create_app(
+        settings=Settings(_env_file=None, gemini_api_key=None),  # pyright: ignore[reportCallIssue]
+        photo_provider=FakeProvider(),
+        photo_rate_limiter=AllowAllPhotoRateLimiter(),
+        photo_capacity=ProviderCapacity(),
+    )
+    with TestClient(app) as client:
+        left = client.post(
+            "/api/v1/photo-comparison/extractions",
+            data={"product_id": "left"},
+            files=[("photos", ("left.png", _png_bytes(), "image/png"))],
+        )
+        right = client.post(
+            "/api/v1/photo-comparison/extractions",
+            data={"product_id": "right"},
+            files=[("photos", ("right.png", _png_bytes(), "image/png"))],
+        )
+        comparison = client.post(
+            "/api/v1/photo-comparison/comparisons",
+            json={"left": left.json(), "right": right.json()},
+        )
+        invalid_comparison = client.post(
+            "/api/v1/photo-comparison/comparisons",
+            json={"left": {"product_id": "left"}, "right": right.json()},
+        )
+
+    assert left.status_code == 200
+    assert right.status_code == 200
+    assert comparison.status_code == 200
+    assert comparison.json()["left_product_id"] == "left"
+    assert comparison.json()["right_product_id"] == "right"
+    assert invalid_comparison.status_code == 422
+    assert invalid_comparison.json()["error"]["code"] == "request_invalid"
+
+
+def test_normal_app_returns_actionable_error_when_photo_provider_is_unconfigured() -> None:
+    app = create_app(
+        settings=Settings(_env_file=None, gemini_api_key=None),  # pyright: ignore[reportCallIssue]
+        photo_rate_limiter=AllowAllPhotoRateLimiter(),
+        photo_capacity=ProviderCapacity(),
+    )
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/photo-comparison/extractions",
+            data={"product_id": "left"},
+            files=[("photos", ("left.png", _png_bytes(), "image/png"))],
+        )
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "error": {
+            "code": "provider_unavailable",
+            "message": "Photo extraction is unavailable because Gemini credentials are missing.",
+        }
+    }
+
+
+def test_normal_app_sanitizes_malformed_multipart_errors() -> None:
+    app = create_app(
+        settings=Settings(_env_file=None, gemini_api_key=None),  # pyright: ignore[reportCallIssue]
+        photo_rate_limiter=AllowAllPhotoRateLimiter(),
+        photo_capacity=ProviderCapacity(),
+    )
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/photo-comparison/extractions",
+            content=b"not multipart",
+            headers={"content-type": "multipart/form-data; boundary=missing"},
+        )
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "request_invalid"
+
+
+def test_photo_rate_limit_is_shared_between_app_instances() -> None:
+    redis_client = fakeredis.FakeRedis(decode_responses=True)
+    first = RedisPhotoComparisonRateLimiter(redis_client, requests_per_minute=1)
+    second = RedisPhotoComparisonRateLimiter(redis_client, requests_per_minute=1)
+
+    assert first.try_acquire("same-anonymous-client")[0]
+    allowed, retry_after = second.try_acquire("same-anonymous-client")
+
+    assert not allowed
+    assert retry_after >= 1
+
+
+def test_photo_provider_capacity_is_shared_between_app_instances() -> None:
+    redis_client = fakeredis.FakeRedis(decode_responses=True)
+    first = RedisProviderCapacity(redis_client)
+    second = RedisProviderCapacity(redis_client)
+
+    assert first.acquire()
+    assert not second.acquire()
+    first.release()
+    assert second.acquire()
+    second.release()
+
+
 def test_http_extraction_rejects_count_and_unsupported_format() -> None:
     app = create_photo_comparison_app(provider=FakeProvider())
     files = [("photos", (f"{index}.png", _png_bytes(), "image/png")) for index in range(7)]
@@ -337,10 +447,17 @@ def test_http_extraction_rejects_count_and_unsupported_format() -> None:
             data={"product_id": "left"},
             files=[("photos", ("panel.heic", b"not an image", "image/heic"))],
         )
+        empty = client.post(
+            "/api/experimental/photo-comparison/extractions",
+            data={"product_id": "left"},
+            files=[("photos", ("empty.png", b"", "image/png"))],
+        )
     assert too_many.status_code == 422
     assert too_many.json()["error"]["code"] == "request_invalid"
     assert unsupported.status_code == 415
     assert unsupported.json()["error"]["code"] == "unsupported_image_format"
+    assert empty.status_code == 422
+    assert empty.json()["error"]["code"] == "request_invalid"
 
 
 def test_standalone_app_serves_only_local_photo_routes_and_browser_page() -> None:
@@ -678,5 +795,3 @@ def test_special_unit_normalization_and_quantities() -> None:
     unit_kj, factor_kj = normalize_unit("kJ")
     assert unit_kj is MeasurementUnit.KJ
     assert factor_kj == Decimal("1")
-
-

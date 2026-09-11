@@ -27,14 +27,48 @@ def test_scalar_route_is_excluded_from_openapi(client: TestClient) -> None:
     assert "/scalar" not in openapi_spec.get("paths", {})
 
 
-def test_photo_comparison_routes_are_not_registered_by_contract_issue(
+def test_photo_comparison_routes_are_registered_by_the_normal_contract(
     client: TestClient,
 ) -> None:
     paths = client.get("/openapi.json").json().get("paths", {})
+    assert "/api/v1/photo-comparison/extractions" in paths
+    assert "/api/v1/photo-comparison/comparisons" in paths
     assert "/api/experimental/photo-comparison/extractions" not in paths
     assert "/api/experimental/photo-comparison/comparisons" not in paths
-    assert client.post("/api/experimental/photo-comparison/extractions").status_code == 404
-    assert client.post("/api/experimental/photo-comparison/comparisons").status_code == 404
+    extraction_request_body = paths["/api/v1/photo-comparison/extractions"]["post"]["requestBody"]
+    assert extraction_request_body["required"] is True
+    extraction_schema_ref = extraction_request_body["content"]["multipart/form-data"]["schema"]
+    assert extraction_schema_ref == {"$ref": "#/components/schemas/Body_extractPhotoComparison"}
+    extraction_schema = client.get("/openapi.json").json()["components"]["schemas"][
+        "Body_extractPhotoComparison"
+    ]
+    assert extraction_schema["required"] == ["product_id", "photos"]
+    assert extraction_schema["properties"]["photos"]["minItems"] == 1
+    assert extraction_schema["properties"]["photos"]["maxItems"] == 6
+    assert extraction_schema["properties"]["photos"]["items"] == {
+        "type": "string",
+        "format": "binary",
+    }
+    assert paths["/api/v1/photo-comparison/extractions"]["post"]["operationId"] == (
+        "extractPhotoComparison"
+    )
+    assert paths["/api/v1/photo-comparison/comparisons"]["post"]["operationId"] == (
+        "comparePhotoComparison"
+    )
+    comparison_request_body = paths["/api/v1/photo-comparison/comparisons"]["post"][
+        "requestBody"
+    ]
+    assert comparison_request_body["required"] is True
+    comparison_schema = comparison_request_body["content"]["application/json"]["schema"]
+    assert comparison_schema["title"] == "ComparisonRequest"
+    assert comparison_schema["additionalProperties"] is False
+    assert comparison_schema["required"] == ["left", "right"]
+    assert comparison_schema["properties"]["left"] == {
+        "$ref": "#/components/schemas/Extraction"
+    }
+    assert comparison_schema["properties"]["right"] == {
+        "$ref": "#/components/schemas/Extraction"
+    }
 
 
 def test_obsolete_routes_and_schemas_are_absent_from_openapi(client: TestClient) -> None:
