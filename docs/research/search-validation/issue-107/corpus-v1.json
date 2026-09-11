@@ -1,0 +1,1803 @@
+{
+  "corpus_version": "issue-107-v1",
+  "frozen_at": "2026-09-08 17:02:42.737409+00:00",
+  "dataset_version": "9f6d5359fa944e458804c1b63e7365a7",
+  "baseline_sha256": "69170f6ea1918bfca338377044ff685993af79c38822e2fc39ec9cec7b7ca8fa",
+  "targets": {
+    "specific_hit5": 0.9,
+    "brand_precision5": 0.8,
+    "discovery_match5": 1.0,
+    "barcode_hit1": 1.0,
+    "negative_empty": 1.0,
+    "concurrency5_p95_ms_below": 300,
+    "errors": 0
+  },
+  "exclusions": [
+    {
+      "baseline_id": "q05",
+      "reason": "unusable stored Barcode"
+    },
+    {
+      "baseline_id": "q10",
+      "reason": "unusable stored Barcode"
+    },
+    {
+      "baseline_id": "q39",
+      "reason": "unusable stored Barcode"
+    },
+    {
+      "baseline_id": "q55",
+      "reason": "unusable stored Barcode"
+    }
+  ],
+  "cases": [
+    {
+      "id": "q01",
+      "kind": "exact",
+      "language": "und",
+      "query": "កូកា-កូឡា",
+      "expected_codes": [
+        "8847100567574"
+      ],
+      "expected_brand": null,
+      "source_name": "កូកា-កូឡា",
+      "source_brand": "Coca-Cola",
+      "source_field": "product_name",
+      "baseline_id": "q01",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "កូកា-កូឡា",
+      "verified_source_brands": "Coca-Cola",
+      "actual_khmer_script": true
+    },
+    {
+      "id": "q02",
+      "kind": "exact",
+      "language": "en",
+      "query": "Chamomile Herbal Tea",
+      "expected_codes": [
+        "0000105000011"
+      ],
+      "expected_brand": null,
+      "source_name": "Chamomile Herbal Tea",
+      "source_brand": "Lagg's",
+      "source_field": "product_name_en",
+      "baseline_id": "q02",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Chamomile Herbal Tea",
+      "verified_source_brands": "Lagg's",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q03",
+      "kind": "exact",
+      "language": "ES",
+      "query": "Oroweat 12 cereales y semillas",
+      "expected_codes": [
+        "8412600024485"
+      ],
+      "expected_brand": null,
+      "source_name": "Oroweat 12 cereales y semillas",
+      "source_brand": "Oroweat",
+      "source_field": "product_name_ES",
+      "baseline_id": "q03",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Oroweat 12 cereales y semillas",
+      "verified_source_brands": "Oroweat,Bimbo",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q04",
+      "kind": "exact",
+      "language": "aa",
+      "query": "chocolate fudge",
+      "expected_codes": [
+        "0038000222672"
+      ],
+      "expected_brand": null,
+      "source_name": "chocolate fudge",
+      "source_brand": "Pop-Tarts",
+      "source_field": "product_name_aa",
+      "baseline_id": "q04",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "chocolate fudge",
+      "verified_source_brands": "Pop-Tarts",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q06",
+      "kind": "exact",
+      "language": "af",
+      "query": "Veggie Burgers",
+      "expected_codes": [
+        "0028989100849"
+      ],
+      "expected_brand": null,
+      "source_name": "Veggie Burgers",
+      "source_brand": "MorningStar FARMS",
+      "source_field": "product_name_af",
+      "baseline_id": "q06",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Veggie Burgers",
+      "verified_source_brands": "MorningStar FARMS",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q07",
+      "kind": "exact",
+      "language": "ak",
+      "query": "منذر ابوطه",
+      "expected_codes": [
+        "8690547193123"
+      ],
+      "expected_brand": null,
+      "source_name": "منذر ابوطه",
+      "source_brand": "غية",
+      "source_field": "product_name_ak",
+      "baseline_id": "q07",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "منذر ابوطه",
+      "verified_source_brands": "غية",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q08",
+      "kind": "exact",
+      "language": "am",
+      "query": "Oreo Birthday",
+      "expected_codes": [
+        "6901668005946"
+      ],
+      "expected_brand": null,
+      "source_name": "Oreo Birthday",
+      "source_brand": "Oreo",
+      "source_field": "product_name_am",
+      "baseline_id": "q08",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Oreo Birthday",
+      "verified_source_brands": "Oreo",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q09",
+      "kind": "exact",
+      "language": "ar",
+      "query": "Mtn Dew Soda 12 Fluid Ounce Can",
+      "expected_codes": [
+        "0012000000850"
+      ],
+      "expected_brand": null,
+      "source_name": "Mtn Dew Soda 12 Fluid Ounce Can",
+      "source_brand": "Mtn Dew",
+      "source_field": "product_name_ar",
+      "baseline_id": "q09",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Mtn Dew Soda 12 Fluid Ounce Can",
+      "verified_source_brands": "Mtn Dew",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q11",
+      "kind": "exact",
+      "language": "as",
+      "query": "Tomato Sauce",
+      "expected_codes": [
+        "60019585"
+      ],
+      "expected_brand": null,
+      "source_name": "Tomato Sauce",
+      "source_brand": "All Gold",
+      "source_field": "product_name_as",
+      "baseline_id": "q11",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Tomato Sauce",
+      "verified_source_brands": "All Gold",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q12",
+      "kind": "exact",
+      "language": "at",
+      "query": "Lutti Bubblizz",
+      "expected_codes": [
+        "5410057196314"
+      ],
+      "expected_brand": null,
+      "source_name": "Lutti Bubblizz",
+      "source_brand": "Lutti",
+      "source_field": "product_name_at",
+      "baseline_id": "q12",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Lutti Bubblizz",
+      "verified_source_brands": "Lutti",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q13",
+      "kind": "exact",
+      "language": "ay",
+      "query": "Tomato kechup",
+      "expected_codes": [
+        "8851954104021"
+      ],
+      "expected_brand": null,
+      "source_name": "Tomato kechup",
+      "source_brand": "Gorden mountain",
+      "source_field": "product_name_ay",
+      "baseline_id": "q13",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Tomato kechup",
+      "verified_source_brands": "Gorden mountain",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q14",
+      "kind": "exact",
+      "language": "az",
+      "query": "Fındıqlı Alyonka",
+      "expected_codes": [
+        "4607117892113"
+      ],
+      "expected_brand": null,
+      "source_name": "Fındıqlı Alyonka",
+      "source_brand": "Красный Октябрь",
+      "source_field": "product_name_az",
+      "baseline_id": "q14",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Fındıqlı Alyonka",
+      "verified_source_brands": "Красный Октябрь",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q15",
+      "kind": "exact",
+      "language": "be",
+      "query": "olives noire",
+      "expected_codes": [
+        "3396413706484"
+      ],
+      "expected_brand": null,
+      "source_name": "olives noire",
+      "source_brand": "Bonneterre",
+      "source_field": "product_name_be",
+      "baseline_id": "q15",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "olives noire",
+      "verified_source_brands": "Bonneterre",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q16",
+      "kind": "exact",
+      "language": "bg",
+      "query": "Цейлонски чай",
+      "expected_codes": [
+        "0054881006309"
+      ],
+      "expected_brand": null,
+      "source_name": "Цейлонски чай",
+      "source_brand": "AHMAD TEA",
+      "source_field": "product_name_bg",
+      "baseline_id": "q16",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Цейлонски чай",
+      "verified_source_brands": "AHMAD TEA",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q17",
+      "kind": "exact",
+      "language": "bg_imported",
+      "query": "Сладък зелен грах",
+      "expected_codes": [
+        "3083680004275"
+      ],
+      "expected_brand": null,
+      "source_name": "Сладък зелен грах",
+      "source_brand": "Bonduelle",
+      "source_field": "product_name_bg_imported",
+      "baseline_id": "q17",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Сладък зелен грах",
+      "verified_source_brands": "Bonduelle",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q18",
+      "kind": "exact",
+      "language": "bn",
+      "query": "Kelkin Fruit and Nut Granola",
+      "expected_codes": [
+        "5397136003018"
+      ],
+      "expected_brand": null,
+      "source_name": "Kelkin Fruit and Nut Granola",
+      "source_brand": "Flahavan’s",
+      "source_field": "product_name_bn",
+      "baseline_id": "q18",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Kelkin Fruit and Nut Granola",
+      "verified_source_brands": "Flahavan’s, KELKIN",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q19",
+      "kind": "exact",
+      "language": "br",
+      "query": "Yoaourt laezh koaven plaen",
+      "expected_codes": [
+        "3760176400017"
+      ],
+      "expected_brand": null,
+      "source_name": "Yoaourt laezh koaven plaen",
+      "source_brand": "Ker Ronan",
+      "source_field": "product_name_br",
+      "baseline_id": "q19",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Yoaourt laezh koaven plaen",
+      "verified_source_brands": "Ker Ronan",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q20",
+      "kind": "exact",
+      "language": "bs",
+      "query": "Crveni grah",
+      "expected_codes": [
+        "3083680009508"
+      ],
+      "expected_brand": null,
+      "source_name": "Crveni grah",
+      "source_brand": "Bonduelle",
+      "source_field": "product_name_bs",
+      "baseline_id": "q20",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Crveni grah",
+      "verified_source_brands": "Bonduelle",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q21",
+      "kind": "fragment",
+      "language": "ca",
+      "query": "Organic Molasses",
+      "expected_codes": [
+        "0012511600006"
+      ],
+      "expected_brand": null,
+      "source_name": "Organic Molasses",
+      "source_brand": "Wholesome",
+      "source_field": "product_name_ca",
+      "baseline_id": "q21",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Organic Molasses",
+      "verified_source_brands": "Wholesome",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q22",
+      "kind": "fragment",
+      "language": "ca_imported",
+      "query": "Mini Frutas",
+      "expected_codes": [
+        "8410442232013"
+      ],
+      "expected_brand": null,
+      "source_name": "Mini Frutas",
+      "source_brand": "Gerio",
+      "source_field": "product_name_ca_imported",
+      "baseline_id": "q22",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Mini Frutas",
+      "verified_source_brands": "Gerio",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q23",
+      "kind": "fragment",
+      "language": "ch",
+      "query": "Dunkle schokolade",
+      "expected_codes": [
+        "7613032960698"
+      ],
+      "expected_brand": null,
+      "source_name": "Dunkle schokolade",
+      "source_brand": "Cailler",
+      "source_field": "product_name_ch",
+      "baseline_id": "q23",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Dunkle schokolade",
+      "verified_source_brands": "Cailler",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q24",
+      "kind": "fragment",
+      "language": "co",
+      "query": "Sauce À",
+      "expected_codes": [
+        "0064200336413"
+      ],
+      "expected_brand": null,
+      "source_name": "Sauce À Pizza",
+      "source_brand": "Gattuso",
+      "source_field": "product_name_co",
+      "baseline_id": "q24",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Sauce À Pizza",
+      "verified_source_brands": "Gattuso",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q25",
+      "kind": "fragment",
+      "language": "cs",
+      "query": "Watermelon Twist",
+      "expected_codes": [
+        "0012546011136"
+      ],
+      "expected_brand": null,
+      "source_name": "Watermelon Twist Sugar Free Gum",
+      "source_brand": "Trident",
+      "source_field": "product_name_cs",
+      "baseline_id": "q25",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Watermelon Twist Sugar Free Gum",
+      "verified_source_brands": "Trident",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q26",
+      "kind": "fragment",
+      "language": "cs_imported",
+      "query": "Créatif Klasik",
+      "expected_codes": [
+        "3083680002929"
+      ],
+      "expected_brand": null,
+      "source_name": "Créatif Klasik 425 ml",
+      "source_brand": "Bonduelle",
+      "source_field": "product_name_cs_imported",
+      "baseline_id": "q26",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Créatif Klasik 425 ml",
+      "verified_source_brands": "Bonduelle",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q27",
+      "kind": "fragment",
+      "language": "cy",
+      "query": "Cheddar Broccoli",
+      "expected_codes": [
+        "0015300200036"
+      ],
+      "expected_brand": null,
+      "source_name": "Cheddar Broccoli",
+      "source_brand": "Rice A Roni",
+      "source_field": "product_name_cy",
+      "baseline_id": "q27",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Cheddar Broccoli",
+      "verified_source_brands": "Rice A Roni",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q28",
+      "kind": "fragment",
+      "language": "da",
+      "query": "Polarbrød Havre",
+      "expected_codes": [
+        "00015066"
+      ],
+      "expected_brand": null,
+      "source_name": "Polarbrød Havre",
+      "source_brand": "Sainsbury's",
+      "source_field": "product_name_da",
+      "baseline_id": "q28",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Polarbrød Havre",
+      "verified_source_brands": "Sainsbury's",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q29",
+      "kind": "fragment",
+      "language": "da_imported",
+      "query": "Broccoli buketter",
+      "expected_codes": [
+        "3083680055628"
+      ],
+      "expected_brand": null,
+      "source_name": "Broccoli buketter",
+      "source_brand": "Bonduelle",
+      "source_field": "product_name_da_imported",
+      "baseline_id": "q29",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Broccoli buketter",
+      "verified_source_brands": "Bonduelle, Bonduelle Food Service, Bonduelle restauration",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q30",
+      "kind": "fragment",
+      "language": "de",
+      "query": "Mehrkomponeneten Protein",
+      "expected_codes": [
+        "0000204286484"
+      ],
+      "expected_brand": null,
+      "source_name": "Mehrkomponeneten Protein 90 C6 Haselnuß",
+      "source_brand": "allfitnessfactory.de",
+      "source_field": "product_name_de",
+      "baseline_id": "q30",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Mehrkomponeneten Protein 90 C6 Haselnuß",
+      "verified_source_brands": "allfitnessfactory.de",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q31",
+      "kind": "brand",
+      "language": "de_imported",
+      "query": "Danone",
+      "expected_codes": [
+        "3033490004385"
+      ],
+      "expected_brand": "danone",
+      "source_name": "Danone Danonino Pouch Erdbeere 70g",
+      "source_brand": "Danone",
+      "source_field": "product_name_de_imported",
+      "baseline_id": "q31",
+      "intent": "brand",
+      "source_verified": true,
+      "verified_source_text": "Danone Danonino Pouch Erdbeere 70g",
+      "verified_source_brands": "Danone, Danonino",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q32",
+      "kind": "brand",
+      "language": "dz",
+      "query": "Nesquik",
+      "expected_codes": [
+        "7891000104101"
+      ],
+      "expected_brand": "nesquik",
+      "source_name": "Achocolatado Em Po Nesquik Lata 380G Morango",
+      "source_brand": "Nesquik",
+      "source_field": "product_name_dz",
+      "baseline_id": "q32",
+      "intent": "brand",
+      "source_verified": true,
+      "verified_source_text": "Achocolatado Em Po Nesquik Lata 380G Morango",
+      "verified_source_brands": "Nesquik, Nestlé",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q33",
+      "kind": "brand",
+      "language": "el",
+      "query": "Darigold  Inc.",
+      "expected_codes": [
+        "0026400298960"
+      ],
+      "expected_brand": "darigold inc",
+      "source_name": "1% lowfat milk",
+      "source_brand": "Darigold  Inc.",
+      "source_field": "product_name_el",
+      "baseline_id": "q33",
+      "intent": "brand",
+      "source_verified": true,
+      "verified_source_text": "1% lowfat milk",
+      "verified_source_brands": "Darigold  Inc.",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q34",
+      "kind": "brand",
+      "language": "el_imported",
+      "query": "B8nduell",
+      "expected_codes": [
+        "3083680002561"
+      ],
+      "expected_brand": "b8nduell",
+      "source_name": "Πολύ λεπτά πράσινα φασολάκια",
+      "source_brand": "B8nduell",
+      "source_field": "product_name_el_imported",
+      "baseline_id": "q34",
+      "intent": "brand",
+      "source_verified": true,
+      "verified_source_text": "Πολύ λεπτά πράσινα φασολάκια",
+      "verified_source_brands": "B8nduell, Bonduell, Bonduelle",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q35",
+      "kind": "brand",
+      "language": "eo",
+      "query": "milbona",
+      "expected_codes": [
+        "20704049"
+      ],
+      "expected_brand": "milbona",
+      "source_name": "Milk Meio Gordo",
+      "source_brand": "milbona",
+      "source_field": "product_name_eo",
+      "baseline_id": "q35",
+      "intent": "brand",
+      "source_verified": true,
+      "verified_source_text": "Milk Meio Gordo",
+      "verified_source_brands": "milbona",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q36",
+      "kind": "brand",
+      "language": "es",
+      "query": "Best value",
+      "expected_codes": [
+        "0005329003107"
+      ],
+      "expected_brand": "best value",
+      "source_name": "Macarroni and cheese dinner",
+      "source_brand": "Best value",
+      "source_field": "product_name_es",
+      "baseline_id": "q36",
+      "intent": "brand",
+      "source_verified": true,
+      "verified_source_text": "Macarroni and cheese dinner",
+      "verified_source_brands": "Best value",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q37",
+      "kind": "brand",
+      "language": "et",
+      "query": "Demoulas Super Markets",
+      "expected_codes": [
+        "0036217668207"
+      ],
+      "expected_brand": "demoulas super markets",
+      "source_name": "Sesame Noodle",
+      "source_brand": "Demoulas Super Markets",
+      "source_field": "product_name_et",
+      "baseline_id": "q37",
+      "intent": "brand",
+      "source_verified": true,
+      "verified_source_text": "Sesame Noodle",
+      "verified_source_brands": "Demoulas Super Markets",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q38",
+      "kind": "brand",
+      "language": "eu",
+      "query": "simple truth",
+      "expected_codes": [
+        "0011110912381"
+      ],
+      "expected_brand": "simple truth",
+      "source_name": "Organic Quinoa",
+      "source_brand": "simple truth",
+      "source_field": "product_name_eu",
+      "baseline_id": "q38",
+      "intent": "brand",
+      "source_verified": true,
+      "verified_source_text": "Organic Quinoa",
+      "verified_source_brands": "simple truth",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q40",
+      "kind": "brand",
+      "language": "fi",
+      "query": "Kroger",
+      "expected_codes": [
+        "0011110833013"
+      ],
+      "expected_brand": "kroger",
+      "source_name": "Alaskan Pink Salmon",
+      "source_brand": "Kroger",
+      "source_field": "product_name_fi",
+      "baseline_id": "q40",
+      "intent": "brand",
+      "source_verified": true,
+      "verified_source_text": "Alaskan Pink Salmon",
+      "verified_source_brands": "Kroger",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q41",
+      "kind": "combined",
+      "language": "zu",
+      "query": "CAMBREW ស្រាបៀរ អង្គរ",
+      "expected_codes": [
+        "8848858120011"
+      ],
+      "expected_brand": null,
+      "source_name": "ស្រាបៀរ អង្គរ",
+      "source_brand": "CAMBREW",
+      "source_field": "product_name_zu",
+      "baseline_id": "q41",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "ស្រាបៀរ អង្គរ",
+      "verified_source_brands": "CAMBREW",
+      "actual_khmer_script": true
+    },
+    {
+      "id": "q42",
+      "kind": "combined",
+      "language": "fo",
+      "query": "Raska Jogurt Reint",
+      "expected_codes": [
+        "5701614010410"
+      ],
+      "expected_brand": null,
+      "source_name": "Jogurt Reint",
+      "source_brand": "Raska",
+      "source_field": "product_name_fo",
+      "baseline_id": "q42",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Jogurt Reint",
+      "verified_source_brands": "Raska",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q43",
+      "kind": "combined",
+      "language": "fr",
+      "query": "Bovetti Véritable pâte",
+      "expected_codes": [
+        "0000101209159"
+      ],
+      "expected_brand": null,
+      "source_name": "Véritable pâte à tartiner noisettes chocolat noir",
+      "source_brand": "Bovetti",
+      "source_field": "product_name_fr",
+      "baseline_id": "q43",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Véritable pâte à tartiner noisettes chocolat noir",
+      "verified_source_brands": "Bovetti",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q44",
+      "kind": "combined",
+      "language": "fr_imported",
+      "query": "WALKER'S SHORTBREAD ROUNDS",
+      "expected_codes": [
+        "0039047001404"
+      ],
+      "expected_brand": null,
+      "source_name": "SHORTBREAD ROUNDS 150G - WALKERS - 150g",
+      "source_brand": "WALKER'S",
+      "source_field": "product_name_fr_imported",
+      "baseline_id": "q44",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "SHORTBREAD ROUNDS 150G - WALKERS - 150g",
+      "verified_source_brands": "WALKER'S",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q45",
+      "kind": "combined",
+      "language": "fy",
+      "query": "Nature Valley Chewy Oatmeal",
+      "expected_codes": [
+        "0016000115941"
+      ],
+      "expected_brand": null,
+      "source_name": "Chewy Oatmeal Raisin",
+      "source_brand": "Nature Valley",
+      "source_field": "product_name_fy",
+      "baseline_id": "q45",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Chewy Oatmeal Raisin",
+      "verified_source_brands": "Nature Valley",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q46",
+      "kind": "combined",
+      "language": "ga",
+      "query": "Nestlé Crunch Chocolat",
+      "expected_codes": [
+        "0028000899189"
+      ],
+      "expected_brand": null,
+      "source_name": "Crunch Chocolat Noir",
+      "source_brand": "Nestlé",
+      "source_field": "product_name_ga",
+      "baseline_id": "q46",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Crunch Chocolat Noir",
+      "verified_source_brands": "Nestlé",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q47",
+      "kind": "combined",
+      "language": "gb",
+      "query": "Nescafe Nescafé Alta",
+      "expected_codes": [
+        "7613033633683"
+      ],
+      "expected_brand": null,
+      "source_name": "Nescafé Alta Rica Coffee Refill",
+      "source_brand": "Nescafe",
+      "source_field": "product_name_gb",
+      "baseline_id": "q47",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Nescafé Alta Rica Coffee Refill",
+      "verified_source_brands": "Nescafe",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q48",
+      "kind": "combined",
+      "language": "gd",
+      "query": "Hanover Three bean",
+      "expected_codes": [
+        "0028800000013"
+      ],
+      "expected_brand": null,
+      "source_name": "Three bean salad",
+      "source_brand": "Hanover",
+      "source_field": "product_name_gd",
+      "baseline_id": "q48",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Three bean salad",
+      "verified_source_brands": "Hanover",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q49",
+      "kind": "combined",
+      "language": "gl",
+      "query": "BelGioioso Gorgonzola Italian",
+      "expected_codes": [
+        "0031142864458"
+      ],
+      "expected_brand": null,
+      "source_name": "Gorgonzola Italian Blue Cheese",
+      "source_brand": "BelGioioso",
+      "source_field": "product_name_gl",
+      "baseline_id": "q49",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Gorgonzola Italian Blue Cheese",
+      "verified_source_brands": "BelGioioso",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q50",
+      "kind": "combined",
+      "language": "gu",
+      "query": "mahi cow ghee",
+      "expected_codes": [
+        "09793972"
+      ],
+      "expected_brand": null,
+      "source_name": "cow ghee",
+      "source_brand": "mahi",
+      "source_field": "product_name_gu",
+      "baseline_id": "q50",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "cow ghee",
+      "verified_source_brands": "mahi",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q51",
+      "kind": "normalization",
+      "language": "und",
+      "query": "  កូកា-កូឡា !",
+      "expected_codes": [
+        "8847100567574"
+      ],
+      "source_name": "កូកា-កូឡា",
+      "source_brand": "Coca-Cola",
+      "source_field": "product_name",
+      "baseline_id": "q51",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "កូកា-កូឡា",
+      "verified_source_brands": "Coca-Cola",
+      "actual_khmer_script": true
+    },
+    {
+      "id": "q52",
+      "kind": "normalization",
+      "language": "en",
+      "query": "  CHAMOMILE HERBAL TEA !",
+      "expected_codes": [
+        "0000105000011"
+      ],
+      "source_name": "Chamomile Herbal Tea",
+      "source_brand": "Lagg's",
+      "source_field": "product_name_en",
+      "baseline_id": "q52",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Chamomile Herbal Tea",
+      "verified_source_brands": "Lagg's",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q53",
+      "kind": "normalization",
+      "language": "ES",
+      "query": "  OROWEAT 12 CEREALES Y SEMILLAS !",
+      "expected_codes": [
+        "8412600024485"
+      ],
+      "source_name": "Oroweat 12 cereales y semillas",
+      "source_brand": "Oroweat",
+      "source_field": "product_name_ES",
+      "baseline_id": "q53",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "Oroweat 12 cereales y semillas",
+      "verified_source_brands": "Oroweat,Bimbo",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q54",
+      "kind": "normalization",
+      "language": "aa",
+      "query": "  CHOCOLATE FUDGE !",
+      "expected_codes": [
+        "0038000222672"
+      ],
+      "source_name": "chocolate fudge",
+      "source_brand": "Pop-Tarts",
+      "source_field": "product_name_aa",
+      "baseline_id": "q54",
+      "intent": "discovery",
+      "source_verified": true,
+      "verified_source_text": "chocolate fudge",
+      "verified_source_brands": "Pop-Tarts",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q56",
+      "kind": "negative",
+      "language": "und",
+      "query": "lifegoodsnonexistenttokenxyz0",
+      "expected_codes": [],
+      "baseline_id": "q56",
+      "intent": "negative",
+      "source_verified": false,
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q57",
+      "kind": "negative",
+      "language": "und",
+      "query": "lifegoodsnonexistenttokenxyz1",
+      "expected_codes": [],
+      "baseline_id": "q57",
+      "intent": "negative",
+      "source_verified": false,
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q58",
+      "kind": "negative",
+      "language": "und",
+      "query": "lifegoodsnonexistenttokenxyz2",
+      "expected_codes": [],
+      "baseline_id": "q58",
+      "intent": "negative",
+      "source_verified": false,
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q59",
+      "kind": "negative",
+      "language": "und",
+      "query": "lifegoodsnonexistenttokenxyz3",
+      "expected_codes": [],
+      "baseline_id": "q59",
+      "intent": "negative",
+      "source_verified": false,
+      "actual_khmer_script": false
+    },
+    {
+      "id": "q60",
+      "kind": "negative",
+      "language": "und",
+      "query": "lifegoodsnonexistenttokenxyz4",
+      "expected_codes": [],
+      "baseline_id": "q60",
+      "intent": "negative",
+      "source_verified": false,
+      "actual_khmer_script": false
+    },
+    {
+      "id": "barcode-q01",
+      "kind": "barcode",
+      "language": "und",
+      "query": "8847100567574",
+      "expected_codes": [
+        "8847100567574"
+      ],
+      "expected_brand": null,
+      "source_name": "កូកា-កូឡា",
+      "source_brand": "Coca-Cola",
+      "source_field": "product_name",
+      "baseline_id": "q01",
+      "intent": "barcode",
+      "source_verified": true,
+      "verified_source_text": "កូកា-កូឡា",
+      "verified_source_brands": "Coca-Cola",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "specific-q01",
+      "kind": "combined",
+      "language": "und",
+      "query": "Coca-Cola កូកា-កូឡា",
+      "expected_codes": [
+        "8847100567574"
+      ],
+      "expected_brand": null,
+      "source_name": "កូកា-កូឡា",
+      "source_brand": "Coca-Cola",
+      "source_field": "product_name",
+      "baseline_id": "q01",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "កូកា-កូឡា",
+      "verified_source_brands": "Coca-Cola",
+      "actual_khmer_script": true
+    },
+    {
+      "id": "barcode-q02",
+      "kind": "barcode",
+      "language": "en",
+      "query": "0000105000011",
+      "expected_codes": [
+        "0000105000011"
+      ],
+      "expected_brand": null,
+      "source_name": "Chamomile Herbal Tea",
+      "source_brand": "Lagg's",
+      "source_field": "product_name_en",
+      "baseline_id": "q02",
+      "intent": "barcode",
+      "source_verified": true,
+      "verified_source_text": "Chamomile Herbal Tea",
+      "verified_source_brands": "Lagg's",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "specific-q02",
+      "kind": "combined",
+      "language": "en",
+      "query": "Lagg's Chamomile Herbal Tea",
+      "expected_codes": [
+        "0000105000011"
+      ],
+      "expected_brand": null,
+      "source_name": "Chamomile Herbal Tea",
+      "source_brand": "Lagg's",
+      "source_field": "product_name_en",
+      "baseline_id": "q02",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Chamomile Herbal Tea",
+      "verified_source_brands": "Lagg's",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "barcode-q03",
+      "kind": "barcode",
+      "language": "ES",
+      "query": "8412600024485",
+      "expected_codes": [
+        "8412600024485"
+      ],
+      "expected_brand": null,
+      "source_name": "Oroweat 12 cereales y semillas",
+      "source_brand": "Oroweat",
+      "source_field": "product_name_ES",
+      "baseline_id": "q03",
+      "intent": "barcode",
+      "source_verified": true,
+      "verified_source_text": "Oroweat 12 cereales y semillas",
+      "verified_source_brands": "Oroweat,Bimbo",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "specific-q03",
+      "kind": "combined",
+      "language": "ES",
+      "query": "Oroweat Oroweat 12 cereales y semillas",
+      "expected_codes": [
+        "8412600024485"
+      ],
+      "expected_brand": null,
+      "source_name": "Oroweat 12 cereales y semillas",
+      "source_brand": "Oroweat",
+      "source_field": "product_name_ES",
+      "baseline_id": "q03",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Oroweat 12 cereales y semillas",
+      "verified_source_brands": "Oroweat,Bimbo",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "barcode-q04",
+      "kind": "barcode",
+      "language": "aa",
+      "query": "0038000222672",
+      "expected_codes": [
+        "0038000222672"
+      ],
+      "expected_brand": null,
+      "source_name": "chocolate fudge",
+      "source_brand": "Pop-Tarts",
+      "source_field": "product_name_aa",
+      "baseline_id": "q04",
+      "intent": "barcode",
+      "source_verified": true,
+      "verified_source_text": "chocolate fudge",
+      "verified_source_brands": "Pop-Tarts",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "specific-q04",
+      "kind": "combined",
+      "language": "aa",
+      "query": "Pop-Tarts chocolate fudge",
+      "expected_codes": [
+        "0038000222672"
+      ],
+      "expected_brand": null,
+      "source_name": "chocolate fudge",
+      "source_brand": "Pop-Tarts",
+      "source_field": "product_name_aa",
+      "baseline_id": "q04",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "chocolate fudge",
+      "verified_source_brands": "Pop-Tarts",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "barcode-q06",
+      "kind": "barcode",
+      "language": "af",
+      "query": "0028989100849",
+      "expected_codes": [
+        "0028989100849"
+      ],
+      "expected_brand": null,
+      "source_name": "Veggie Burgers",
+      "source_brand": "MorningStar FARMS",
+      "source_field": "product_name_af",
+      "baseline_id": "q06",
+      "intent": "barcode",
+      "source_verified": true,
+      "verified_source_text": "Veggie Burgers",
+      "verified_source_brands": "MorningStar FARMS",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "specific-q06",
+      "kind": "combined",
+      "language": "af",
+      "query": "MorningStar FARMS Veggie Burgers",
+      "expected_codes": [
+        "0028989100849"
+      ],
+      "expected_brand": null,
+      "source_name": "Veggie Burgers",
+      "source_brand": "MorningStar FARMS",
+      "source_field": "product_name_af",
+      "baseline_id": "q06",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Veggie Burgers",
+      "verified_source_brands": "MorningStar FARMS",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "barcode-q07",
+      "kind": "barcode",
+      "language": "ak",
+      "query": "8690547193123",
+      "expected_codes": [
+        "8690547193123"
+      ],
+      "expected_brand": null,
+      "source_name": "منذر ابوطه",
+      "source_brand": "غية",
+      "source_field": "product_name_ak",
+      "baseline_id": "q07",
+      "intent": "barcode",
+      "source_verified": true,
+      "verified_source_text": "منذر ابوطه",
+      "verified_source_brands": "غية",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "specific-q07",
+      "kind": "combined",
+      "language": "ak",
+      "query": "غية منذر ابوطه",
+      "expected_codes": [
+        "8690547193123"
+      ],
+      "expected_brand": null,
+      "source_name": "منذر ابوطه",
+      "source_brand": "غية",
+      "source_field": "product_name_ak",
+      "baseline_id": "q07",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "منذر ابوطه",
+      "verified_source_brands": "غية",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "barcode-q08",
+      "kind": "barcode",
+      "language": "am",
+      "query": "6901668005946",
+      "expected_codes": [
+        "6901668005946"
+      ],
+      "expected_brand": null,
+      "source_name": "Oreo Birthday",
+      "source_brand": "Oreo",
+      "source_field": "product_name_am",
+      "baseline_id": "q08",
+      "intent": "barcode",
+      "source_verified": true,
+      "verified_source_text": "Oreo Birthday",
+      "verified_source_brands": "Oreo",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "specific-q08",
+      "kind": "combined",
+      "language": "am",
+      "query": "Oreo Oreo Birthday",
+      "expected_codes": [
+        "6901668005946"
+      ],
+      "expected_brand": null,
+      "source_name": "Oreo Birthday",
+      "source_brand": "Oreo",
+      "source_field": "product_name_am",
+      "baseline_id": "q08",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Oreo Birthday",
+      "verified_source_brands": "Oreo",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "barcode-q09",
+      "kind": "barcode",
+      "language": "ar",
+      "query": "0012000000850",
+      "expected_codes": [
+        "0012000000850"
+      ],
+      "expected_brand": null,
+      "source_name": "Mtn Dew Soda 12 Fluid Ounce Can",
+      "source_brand": "Mtn Dew",
+      "source_field": "product_name_ar",
+      "baseline_id": "q09",
+      "intent": "barcode",
+      "source_verified": true,
+      "verified_source_text": "Mtn Dew Soda 12 Fluid Ounce Can",
+      "verified_source_brands": "Mtn Dew",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "specific-q09",
+      "kind": "combined",
+      "language": "ar",
+      "query": "Mtn Dew Mtn Dew Soda 12 Fluid Ounce Can",
+      "expected_codes": [
+        "0012000000850"
+      ],
+      "expected_brand": null,
+      "source_name": "Mtn Dew Soda 12 Fluid Ounce Can",
+      "source_brand": "Mtn Dew",
+      "source_field": "product_name_ar",
+      "baseline_id": "q09",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Mtn Dew Soda 12 Fluid Ounce Can",
+      "verified_source_brands": "Mtn Dew",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "barcode-q11",
+      "kind": "barcode",
+      "language": "as",
+      "query": "60019585",
+      "expected_codes": [
+        "60019585"
+      ],
+      "expected_brand": null,
+      "source_name": "Tomato Sauce",
+      "source_brand": "All Gold",
+      "source_field": "product_name_as",
+      "baseline_id": "q11",
+      "intent": "barcode",
+      "source_verified": true,
+      "verified_source_text": "Tomato Sauce",
+      "verified_source_brands": "All Gold",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "specific-q11",
+      "kind": "combined",
+      "language": "as",
+      "query": "All Gold Tomato Sauce",
+      "expected_codes": [
+        "60019585"
+      ],
+      "expected_brand": null,
+      "source_name": "Tomato Sauce",
+      "source_brand": "All Gold",
+      "source_field": "product_name_as",
+      "baseline_id": "q11",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Tomato Sauce",
+      "verified_source_brands": "All Gold",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "barcode-q12",
+      "kind": "barcode",
+      "language": "at",
+      "query": "5410057196314",
+      "expected_codes": [
+        "5410057196314"
+      ],
+      "expected_brand": null,
+      "source_name": "Lutti Bubblizz",
+      "source_brand": "Lutti",
+      "source_field": "product_name_at",
+      "baseline_id": "q12",
+      "intent": "barcode",
+      "source_verified": true,
+      "verified_source_text": "Lutti Bubblizz",
+      "verified_source_brands": "Lutti",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "specific-q12",
+      "kind": "combined",
+      "language": "at",
+      "query": "Lutti Lutti Bubblizz",
+      "expected_codes": [
+        "5410057196314"
+      ],
+      "expected_brand": null,
+      "source_name": "Lutti Bubblizz",
+      "source_brand": "Lutti",
+      "source_field": "product_name_at",
+      "baseline_id": "q12",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Lutti Bubblizz",
+      "verified_source_brands": "Lutti",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "barcode-q13",
+      "kind": "barcode",
+      "language": "ay",
+      "query": "8851954104021",
+      "expected_codes": [
+        "8851954104021"
+      ],
+      "expected_brand": null,
+      "source_name": "Tomato kechup",
+      "source_brand": "Gorden mountain",
+      "source_field": "product_name_ay",
+      "baseline_id": "q13",
+      "intent": "barcode",
+      "source_verified": true,
+      "verified_source_text": "Tomato kechup",
+      "verified_source_brands": "Gorden mountain",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "specific-q13",
+      "kind": "combined",
+      "language": "ay",
+      "query": "Gorden mountain Tomato kechup",
+      "expected_codes": [
+        "8851954104021"
+      ],
+      "expected_brand": null,
+      "source_name": "Tomato kechup",
+      "source_brand": "Gorden mountain",
+      "source_field": "product_name_ay",
+      "baseline_id": "q13",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Tomato kechup",
+      "verified_source_brands": "Gorden mountain",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "barcode-q14",
+      "kind": "barcode",
+      "language": "az",
+      "query": "4607117892113",
+      "expected_codes": [
+        "4607117892113"
+      ],
+      "expected_brand": null,
+      "source_name": "Fındıqlı Alyonka",
+      "source_brand": "Красный Октябрь",
+      "source_field": "product_name_az",
+      "baseline_id": "q14",
+      "intent": "barcode",
+      "source_verified": true,
+      "verified_source_text": "Fındıqlı Alyonka",
+      "verified_source_brands": "Красный Октябрь",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "specific-q14",
+      "kind": "combined",
+      "language": "az",
+      "query": "Красный Октябрь Fındıqlı Alyonka",
+      "expected_codes": [
+        "4607117892113"
+      ],
+      "expected_brand": null,
+      "source_name": "Fındıqlı Alyonka",
+      "source_brand": "Красный Октябрь",
+      "source_field": "product_name_az",
+      "baseline_id": "q14",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Fındıqlı Alyonka",
+      "verified_source_brands": "Красный Октябрь",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "barcode-q15",
+      "kind": "barcode",
+      "language": "be",
+      "query": "3396413706484",
+      "expected_codes": [
+        "3396413706484"
+      ],
+      "expected_brand": null,
+      "source_name": "olives noire",
+      "source_brand": "Bonneterre",
+      "source_field": "product_name_be",
+      "baseline_id": "q15",
+      "intent": "barcode",
+      "source_verified": true,
+      "verified_source_text": "olives noire",
+      "verified_source_brands": "Bonneterre",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "specific-q15",
+      "kind": "combined",
+      "language": "be",
+      "query": "Bonneterre olives noire",
+      "expected_codes": [
+        "3396413706484"
+      ],
+      "expected_brand": null,
+      "source_name": "olives noire",
+      "source_brand": "Bonneterre",
+      "source_field": "product_name_be",
+      "baseline_id": "q15",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "olives noire",
+      "verified_source_brands": "Bonneterre",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "barcode-q16",
+      "kind": "barcode",
+      "language": "bg",
+      "query": "0054881006309",
+      "expected_codes": [
+        "0054881006309"
+      ],
+      "expected_brand": null,
+      "source_name": "Цейлонски чай",
+      "source_brand": "AHMAD TEA",
+      "source_field": "product_name_bg",
+      "baseline_id": "q16",
+      "intent": "barcode",
+      "source_verified": true,
+      "verified_source_text": "Цейлонски чай",
+      "verified_source_brands": "AHMAD TEA",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "specific-q16",
+      "kind": "combined",
+      "language": "bg",
+      "query": "AHMAD TEA Цейлонски чай",
+      "expected_codes": [
+        "0054881006309"
+      ],
+      "expected_brand": null,
+      "source_name": "Цейлонски чай",
+      "source_brand": "AHMAD TEA",
+      "source_field": "product_name_bg",
+      "baseline_id": "q16",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Цейлонски чай",
+      "verified_source_brands": "AHMAD TEA",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "barcode-q17",
+      "kind": "barcode",
+      "language": "bg_imported",
+      "query": "3083680004275",
+      "expected_codes": [
+        "3083680004275"
+      ],
+      "expected_brand": null,
+      "source_name": "Сладък зелен грах",
+      "source_brand": "Bonduelle",
+      "source_field": "product_name_bg_imported",
+      "baseline_id": "q17",
+      "intent": "barcode",
+      "source_verified": true,
+      "verified_source_text": "Сладък зелен грах",
+      "verified_source_brands": "Bonduelle",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "specific-q17",
+      "kind": "combined",
+      "language": "bg_imported",
+      "query": "Bonduelle Сладък зелен грах",
+      "expected_codes": [
+        "3083680004275"
+      ],
+      "expected_brand": null,
+      "source_name": "Сладък зелен грах",
+      "source_brand": "Bonduelle",
+      "source_field": "product_name_bg_imported",
+      "baseline_id": "q17",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Сладък зелен грах",
+      "verified_source_brands": "Bonduelle",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "barcode-q18",
+      "kind": "barcode",
+      "language": "bn",
+      "query": "5397136003018",
+      "expected_codes": [
+        "5397136003018"
+      ],
+      "expected_brand": null,
+      "source_name": "Kelkin Fruit and Nut Granola",
+      "source_brand": "Flahavan’s",
+      "source_field": "product_name_bn",
+      "baseline_id": "q18",
+      "intent": "barcode",
+      "source_verified": true,
+      "verified_source_text": "Kelkin Fruit and Nut Granola",
+      "verified_source_brands": "Flahavan’s, KELKIN",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "specific-q18",
+      "kind": "combined",
+      "language": "bn",
+      "query": "Flahavan’s Kelkin Fruit and Nut Granola",
+      "expected_codes": [
+        "5397136003018"
+      ],
+      "expected_brand": null,
+      "source_name": "Kelkin Fruit and Nut Granola",
+      "source_brand": "Flahavan’s",
+      "source_field": "product_name_bn",
+      "baseline_id": "q18",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Kelkin Fruit and Nut Granola",
+      "verified_source_brands": "Flahavan’s, KELKIN",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "barcode-q19",
+      "kind": "barcode",
+      "language": "br",
+      "query": "3760176400017",
+      "expected_codes": [
+        "3760176400017"
+      ],
+      "expected_brand": null,
+      "source_name": "Yoaourt laezh koaven plaen",
+      "source_brand": "Ker Ronan",
+      "source_field": "product_name_br",
+      "baseline_id": "q19",
+      "intent": "barcode",
+      "source_verified": true,
+      "verified_source_text": "Yoaourt laezh koaven plaen",
+      "verified_source_brands": "Ker Ronan",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "specific-q19",
+      "kind": "combined",
+      "language": "br",
+      "query": "Ker Ronan Yoaourt laezh koaven plaen",
+      "expected_codes": [
+        "3760176400017"
+      ],
+      "expected_brand": null,
+      "source_name": "Yoaourt laezh koaven plaen",
+      "source_brand": "Ker Ronan",
+      "source_field": "product_name_br",
+      "baseline_id": "q19",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Yoaourt laezh koaven plaen",
+      "verified_source_brands": "Ker Ronan",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "barcode-q20",
+      "kind": "barcode",
+      "language": "bs",
+      "query": "3083680009508",
+      "expected_codes": [
+        "3083680009508"
+      ],
+      "expected_brand": null,
+      "source_name": "Crveni grah",
+      "source_brand": "Bonduelle",
+      "source_field": "product_name_bs",
+      "baseline_id": "q20",
+      "intent": "barcode",
+      "source_verified": true,
+      "verified_source_text": "Crveni grah",
+      "verified_source_brands": "Bonduelle",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "specific-q20",
+      "kind": "combined",
+      "language": "bs",
+      "query": "Bonduelle Crveni grah",
+      "expected_codes": [
+        "3083680009508"
+      ],
+      "expected_brand": null,
+      "source_name": "Crveni grah",
+      "source_brand": "Bonduelle",
+      "source_field": "product_name_bs",
+      "baseline_id": "q20",
+      "intent": "specific",
+      "source_verified": true,
+      "verified_source_text": "Crveni grah",
+      "verified_source_brands": "Bonduelle",
+      "actual_khmer_script": false
+    },
+    {
+      "id": "extra-92",
+      "query": "co",
+      "kind": "prefix",
+      "intent": "discovery",
+      "expected_codes": [],
+      "actual_khmer_script": false
+    },
+    {
+      "id": "extra-93",
+      "query": "ch",
+      "kind": "prefix",
+      "intent": "discovery",
+      "expected_codes": [],
+      "actual_khmer_script": false
+    },
+    {
+      "id": "extra-94",
+      "query": "ca",
+      "kind": "prefix",
+      "intent": "discovery",
+      "expected_codes": [],
+      "actual_khmer_script": false
+    },
+    {
+      "id": "extra-95",
+      "query": "coca col",
+      "kind": "prefix",
+      "intent": "discovery",
+      "expected_codes": [],
+      "actual_khmer_script": false
+    },
+    {
+      "id": "extra-96",
+      "query": "Danone",
+      "kind": "prefix",
+      "intent": "discovery",
+      "expected_codes": [],
+      "actual_khmer_script": false
+    },
+    {
+      "id": "extra-97",
+      "query": "Kroger",
+      "kind": "prefix",
+      "intent": "discovery",
+      "expected_codes": [],
+      "actual_khmer_script": false
+    },
+    {
+      "id": "extra-98",
+      "query": "Nestlé",
+      "kind": "prefix",
+      "intent": "discovery",
+      "expected_codes": [],
+      "actual_khmer_script": false
+    },
+    {
+      "id": "extra-99",
+      "query": "1664",
+      "kind": "prefix",
+      "intent": "discovery",
+      "expected_codes": [],
+      "actual_khmer_script": false
+    }
+  ]
+}

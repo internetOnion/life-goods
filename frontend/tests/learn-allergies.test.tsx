@@ -47,8 +47,9 @@ describe("Learn source content and Allergies demos", () => {
                 name: /How to read a food label/,
             })[0],
         ).toHaveAttribute("href", "/learn/guides/how-to-read-a-label")
-        fireEvent.click(
+        fireEvent.change(
             screen.getByRole("searchbox", { name: "Search topics" }),
+            { target: { value: "Law on Food Safety" } },
         )
         expect(screen.getByText("Law on Food Safety")).toBeVisible()
         expect(
@@ -63,14 +64,15 @@ describe("Learn source content and Allergies demos", () => {
 
         unmount()
         renderRoute("/learn", true)
-        fireEvent.click(
+        fireEvent.change(
             screen.getByRole("searchbox", { name: "Search topics" }),
+            { target: { value: "Law on Food Safety" } },
         )
         expect(screen.getByText("Law on Food Safety")).toBeVisible()
         expect(
             screen.queryByText("Contains and may contain"),
         ).not.toBeInTheDocument()
-        expect(screen.getByText("Showing 33 lessons")).toBeVisible()
+        expect(screen.getByText("Showing 1 lessons")).toBeVisible()
         expect(
             screen.queryByRole("status", { name: "Demo data is active" }),
         ).not.toBeInTheDocument()
@@ -94,8 +96,9 @@ describe("Learn source content and Allergies demos", () => {
 
     test("renders sourced content inside its category", () => {
         renderRoute("/learn", true)
-        fireEvent.click(
+        fireEvent.change(
             screen.getByRole("searchbox", { name: "Search topics" }),
+            { target: { value: "Law on Food Safety" } },
         )
 
         const card = screen.getByRole("link", {
@@ -159,8 +162,9 @@ describe("Learn source content and Allergies demos", () => {
         const user = userEvent.setup()
         renderRoute("/learn", false)
 
-        await user.click(
+        await user.type(
             screen.getByRole("searchbox", { name: "Search topics" }),
+            "Law on Food Safety",
         )
 
         await user.click(
@@ -329,7 +333,7 @@ describe("Learn source content and Allergies demos", () => {
 
     test("renders and searches the sourced content in Khmer", async () => {
         const user = userEvent.setup()
-        await i18n.changeLanguage("km")
+        await i18n.changeLanguage("kh")
         renderRoute("/learn", false)
 
         expect(screen.getByRole("heading", { name: "ស្វែងយល់" })).toBeVisible()

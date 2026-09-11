@@ -4,7 +4,7 @@
 #   * Only `nginx` publishes ports (80/443). The backend and ALL databases are on
 #     an internal Docker network with NO published ports — unreachable from outside.
 #   * Every datastore uses strong, per-deploy credentials from infra/secrets/<env>/.env.
-#   * Redis is authenticated and runs appendonly (assessment cache durability).
+#   * Redis is authenticated and runs appendonly (disposable lookup and translation cache).
 #   * Memory/pids limits keep the stack within the Netcup VPS 500 G12 (4 GB).
 #
 # Usage (from repo root, after deploy.sh has provisioned the host):
@@ -46,35 +46,18 @@ services:
     restart: unless-stopped
     environment:
       LIFEGOODS_ENVIRONMENT: production
-      LIFEGOODS_DATABASE_URL: postgresql+psycopg://${LIFEGOODS_POSTGRES_USER}:${LIFEGOODS_POSTGRES_PASSWORD}@postgres:5432/${LIFEGOODS_POSTGRES_DB}
-      LIFEGOODS_OFF_MONGODB_URI: mongodb://${LIFEGOODS_OFF_READER_USER}:${LIFEGOODS_OFF_READER_PASSWORD}@mongodb:27017/${LIFEGOODS_OFF_DATABASE}?authSource=admin
+      LIFEGOODS_OFF_MONGODB_URI: mongodb://${LIFEGOODS_OFF_READER_USER}:${LIFEGOODS_OFF_READER_PASSWORD}@mongodb:27017/${LIFEGOODS_OFF_DATABASE}?authSource=${LIFEGOODS_OFF_DATABASE}
       LIFEGOODS_OFF_MONGODB_DATABASE: ${LIFEGOODS_OFF_DATABASE}
+      LIFEGOODS_GENERATED_MONGODB_URI: mongodb://${LIFEGOODS_GENERATED_USER}:${LIFEGOODS_GENERATED_PASSWORD}@mongodb:27017/${LIFEGOODS_GENERATED_DATABASE}?authSource=${LIFEGOODS_GENERATED_DATABASE}
+      LIFEGOODS_GENERATED_MONGODB_DATABASE: ${LIFEGOODS_GENERATED_DATABASE}
+      LIFEGOODS_GEMINI_API_KEY: ${LIFEGOODS_GEMINI_API_KEY:-}
       LIFEGOODS_REDIS_URL: redis://:${LIFEGOODS_REDIS_PASSWORD}@redis:6379/0
       LIFEGOODS_ALLOWED_ORIGINS: ${LIFEGOODS_ALLOWED_ORIGINS}
       LIFEGOODS_OPEN_FOOD_FACTS_IMAGE_BASE_URL: ${LIFEGOODS_OPEN_FOOD_FACTS_IMAGE_BASE_URL}
     depends_on:
-      - postgres
       - mongodb
       - redis
     mem_limit: 1024m
-    pids_limit: 512
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  postgres:
-    image: postgres:18-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${LIFEGOODS_POSTGRES_DB}
-      POSTGRES_USER: ${LIFEGOODS_POSTGRES_USER}
-      POSTGRES_PASSWORD: ${LIFEGOODS_POSTGRES_PASSWORD}
-    volumes:
-      - lifegoods-postgres:/var/lib/postgresql/data
-    # No ports published: DB is internal-only.
-    mem_limit: 512m
     pids_limit: 512
     logging:
       driver: json-file
@@ -93,6 +76,9 @@ services:
       LIFEGOODS_OFF_READER_PASSWORD: ${LIFEGOODS_OFF_READER_PASSWORD}
       LIFEGOODS_OFF_WRITER_USERNAME: ${LIFEGOODS_OFF_WRITER_USER}
       LIFEGOODS_OFF_WRITER_PASSWORD: ${LIFEGOODS_OFF_WRITER_PASSWORD}
+      LIFEGOODS_GENERATED_DATABASE: ${LIFEGOODS_GENERATED_DATABASE}
+      LIFEGOODS_GENERATED_USERNAME: ${LIFEGOODS_GENERATED_USER}
+      LIFEGOODS_GENERATED_PASSWORD: ${LIFEGOODS_GENERATED_PASSWORD}
     volumes:
       - lifegoods-mongodb:/data/db
       - ../../infra/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
@@ -130,7 +116,6 @@ services:
         max-file: "3"
 
 volumes:
-  lifegoods-postgres:
   lifegoods-mongodb:
   lifegoods-redis:
   certbot-webroot:

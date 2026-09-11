@@ -22,6 +22,10 @@ _Avoid_: Product ID, verification code
 A request to find a Source Record for a Barcode in the selected Dataset Snapshot.
 _Avoid_: Package Match, verification, identification proof
 
+**Product Search**:
+A request to find possible Products matching a Barcode, name, or brand in the selected Dataset Snapshot.
+_Avoid_: Live search, external query, catalog search
+
 ## Source data
 
 **Source Record**:

@@ -1,3 +1,5 @@
+import type { AllergenAnalysisResponse } from "@/api/generated"
+
 export type IdentifierScheme = "GTIN_8" | "UPC_A" | "EAN_13" | "GTIN_14"
 
 export type PackageMatchSourceKind = "REVIEWED_CATALOG" | "OPEN_FOOD_FACTS"
@@ -228,6 +230,7 @@ export interface SourceAttributionResponse {
 
 export interface ProductLookupDataResponse {
     source_record: Record<string, unknown>
+    allergen_analysis: AllergenAnalysisResponse
 }
 
 export interface ProductLookupMetaResponse {

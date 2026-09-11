@@ -7,27 +7,21 @@
 - Use the exact glossary terms and capitalization: `Shopper`, `Product`, `Barcode`, `Product Lookup`, `Source Record`, `Dataset Snapshot`, `Source Attribution`, `Source Assessment`, `Source Data Unavailable`, `Original Text`, and `Khmer Translation`.
 - `CONTEXT.md` is a glossary only. Keep behavior, API shapes, storage choices, and implementation plans out of it.
 
-## Transition warning
-
-The current code still contains catalog, package-match, reference-dataset, allergen, Halal, assessment, package-capture, PostgreSQL, and Alembic behavior from the previous product direction. It is transitional implementation, not product authority.
-
-Do not extend those concepts unless the new specification explicitly requires them. The backend refactor will remove obsolete modules and relational persistence only after their dependencies are mapped, and will update models, migrations, tests, configuration, infrastructure, README, OpenAPI, and the generated client atomically.
-
 ## Structure
 
 - `frontend/` is the only pnpm workspace package; `backend/` is a separate Python 3.13 uv project.
 - `frontend/src/main.tsx` is the React entrypoint. `frontend/src/app/App.tsx` composes routes, and feature behavior lives under `frontend/src/features/`.
 - `backend/src/lifegoods/main.py` is the FastAPI app factory.
-- `backend/src/lifegoods/open_food_facts/` contains the local Open Food Facts dataset import and read foundation that the new backend retains.
-- `backend/src/lifegoods/identifiers/` contains Barcode validation and algorithms that should be evaluated for reuse.
-- `backend/src/lifegoods/catalog/`, `reference_datasets/`, and `package_matches/` are legacy-domain modules pending the backend refactor.
+- `backend/src/lifegoods/product_lookup/` encapsulates stable Product Lookup, projection, caching, and rate limiting.
+- `backend/src/lifegoods/open_food_facts/` contains the local Open Food Facts dataset import and read foundation.
+- `backend/src/lifegoods/identifiers/` contains Barcode validation and normalization.
 - FastAPI owns the frontend contract. `frontend/openapi.json` and `frontend/src/api/generated/` are generated files.
 
 ## Current commands
 
 - Requirements are Node.js 24, pnpm, Python 3.13, uv, and Docker Compose.
 - Install with `pnpm install` and `pnpm backend:install`.
-- The current checkout still starts PostgreSQL, MongoDB, and Redis with `docker compose -f infra/compose.yaml up -d` and applies existing migrations with `pnpm db:migrate`.
+- Start MongoDB and Redis with `docker compose -f infra/compose.yaml up -d`.
 - Inspect and activate the local Open Food Facts snapshot with `pnpm off:dataset -- list` and `pnpm off:dataset -- activate <version_id>`.
 - Run `pnpm backend:dev` and `pnpm dev` in separate terminals for HTTP development at `http://localhost:5173`.
 - Use `pnpm dev:https` for camera testing at `https://localhost:5173`.

@@ -1,0 +1,46 @@
+{
+  "base_commit": "062d01177c7254ac10056931b74674f7103631c1",
+  "checks": [
+    {
+      "command": "pnpm test",
+      "exit_code": 0,
+      "frontend_passed": 95,
+      "backend_passed": 409,
+      "backend_integration_skipped": 18,
+      "warnings": "8 existing mongomock UTC deprecations"
+    },
+    {
+      "command": "pnpm typecheck",
+      "exit_code": 0,
+      "result": "TypeScript and Pyright pass"
+    },
+    {
+      "command": "pnpm api:check",
+      "exit_code": 0,
+      "result": "API regenerated; no OpenAPI/client drift"
+    },
+    {
+      "command": "pnpm lint",
+      "exit_code": 0
+    },
+    {
+      "command": "pnpm build",
+      "exit_code": 0,
+      "warnings": "Existing Vite chunk >500kB warning"
+    },
+    {
+      "command": "uv run --project backend pytest backend/tests/test_product_search_api.py",
+      "exit_code": 0,
+      "passed": 29
+    },
+    {
+      "command": "uv run --project backend ruff format --check backend/src backend/tests backend/scripts",
+      "exit_code": 1,
+      "result": "44 existing files would be reformatted; acceptance runner passes its targeted format check"
+    }
+  ],
+  "notes": [
+    "Existing .env parse warning at line48 appeared during application startup/API export; no env files changed.",
+    "Service integration fixtures that replace activation metadata were not enabled; real full-dataset HTTP and executionStats evidence is separate."
+  ]
+}

@@ -1,3 +1,5 @@
+from typing import Any
+
 import mongomock
 import mongomock.collection
 import pytest
@@ -26,9 +28,9 @@ def test_importer_does_not_create_a_custom_unique_id_index(
 
     def reject_custom_id_index(
         collection: mongomock.collection.Collection,
-        keys: object,
-        *args: object,
-        **kwargs: object,
+        keys: Any,
+        *args: Any,
+        **kwargs: Any,
     ) -> str:
         if keys == [("_id", 1)] and kwargs.get("unique") is True:
             raise AssertionError("MongoDB rejects custom unique indexes on _id")

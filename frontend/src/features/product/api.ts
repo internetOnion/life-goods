@@ -1,9 +1,12 @@
-import type { ProductLookupResponse } from "@/api/generated"
+import type { ProductProjectionResponse } from "@/api/generated"
+import type { ProductLookupResponse } from "./types"
 import staticProducts from "@/data/products.json"
 import { normalizeIdentifier } from "@/lib/identifier"
 import { unavailableAllergenAnalysis } from "./defaults"
 
-export type ProductLookup = (barcode: string) => Promise<ProductLookupResponse>
+export type ProductLookup = (
+    barcode: string,
+) => Promise<ProductLookupResponse | ProductProjectionResponse>
 
 type StaticProduct = {
     meta: ProductLookupResponse["meta"]
@@ -21,7 +24,9 @@ const staticProductByBarcode = new Map(
  * Looks up a Product from the checked-in Dataset Snapshot used by the frontend.
  * This keeps the Product page usable while the database-backed API is offline.
  */
-export const lookupProduct: ProductLookup = async (barcode) => {
+export const lookupProduct = (
+    barcode: string,
+): Promise<ProductLookupResponse> => {
     const normalizedBarcode = normalizeIdentifier(barcode)
     const product = staticProductByBarcode.get(normalizedBarcode)
 
@@ -37,14 +42,14 @@ export const lookupProduct: ProductLookup = async (barcode) => {
             code: "product_not_found",
             message: "Product not found",
         }
-        throw error
+        return Promise.reject(error)
     }
 
-    return {
+    return Promise.resolve({
         data: {
             source_record: product.source_record,
             allergen_analysis: unavailableAllergenAnalysis,
         },
         meta: product.meta,
-    }
+    })
 }

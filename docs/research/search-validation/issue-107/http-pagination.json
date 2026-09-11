@@ -1,0 +1,1081 @@
+{
+  "checks": [
+    {
+      "params": {
+        "q": "8847100567574"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "products": [
+            {
+              "barcode": "8847100567574",
+              "name": {
+                "value": "កូកា-កូឡា",
+                "language": "km",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "Coca-Cola"
+              ],
+              "quantity": null,
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/884/710/056/7574/front_km.10.400.jpg",
+                "language": "km",
+                "source_field": "images.selected.front.km.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/8847100567574"
+              }
+            }
+          ]
+        },
+        "meta": {
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org"
+          },
+          "dataset": {
+            "version": "9f6d5359fa944e458804c1b63e7365a7",
+            "retrieved_at": "2026-08-27T14:14:59.017000Z"
+          },
+          "pagination": {
+            "next_cursor": null
+          }
+        }
+      },
+      "expected_codes": [
+        "8847100567574"
+      ],
+      "passed": true
+    },
+    {
+      "params": {
+        "q": " 8847-100 567574 "
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "products": [
+            {
+              "barcode": "8847100567574",
+              "name": {
+                "value": "កូកា-កូឡា",
+                "language": "km",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "Coca-Cola"
+              ],
+              "quantity": null,
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/884/710/056/7574/front_km.10.400.jpg",
+                "language": "km",
+                "source_field": "images.selected.front.km.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/8847100567574"
+              }
+            }
+          ]
+        },
+        "meta": {
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org"
+          },
+          "dataset": {
+            "version": "9f6d5359fa944e458804c1b63e7365a7",
+            "retrieved_at": "2026-08-27T14:14:59.017000Z"
+          },
+          "pagination": {
+            "next_cursor": null
+          }
+        }
+      },
+      "expected_codes": [
+        "8847100567574"
+      ],
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "0000105000011"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "products": [
+            {
+              "barcode": "0000105000011",
+              "name": {
+                "value": "Chamomile Herbal Tea",
+                "language": "en",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "Lagg's"
+              ],
+              "quantity": "1 g",
+              "thumbnail": null,
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/0000105000011"
+              }
+            }
+          ]
+        },
+        "meta": {
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org"
+          },
+          "dataset": {
+            "version": "9f6d5359fa944e458804c1b63e7365a7",
+            "retrieved_at": "2026-08-27T14:14:59.017000Z"
+          },
+          "pagination": {
+            "next_cursor": null
+          }
+        }
+      },
+      "expected_codes": [
+        "0000105000011"
+      ],
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "9999999876547"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "products": []
+        },
+        "meta": {
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org"
+          },
+          "dataset": {
+            "version": "9f6d5359fa944e458804c1b63e7365a7",
+            "retrieved_at": "2026-08-27T14:14:59.017000Z"
+          },
+          "pagination": {
+            "next_cursor": null
+          }
+        }
+      },
+      "expected_codes": [],
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "8847100567575"
+      },
+      "status": 422,
+      "body": {
+        "error": {
+          "code": "invalid_barcode",
+          "message": "Barcode is invalid"
+        }
+      },
+      "expected_codes": null,
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "!!!"
+      },
+      "status": 422,
+      "body": {
+        "error": {
+          "code": "invalid_query",
+          "message": "Query cannot be empty or contain only punctuation"
+        }
+      },
+      "expected_codes": null,
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "x"
+      },
+      "status": 422,
+      "body": {
+        "error": {
+          "code": "invalid_query",
+          "message": "Query must be between 2 and 200 characters"
+        }
+      },
+      "expected_codes": null,
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "status": 422,
+      "body": {
+        "error": {
+          "code": "invalid_query",
+          "message": "Query must be between 2 and 200 characters"
+        }
+      },
+      "expected_codes": null,
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "a b c d e f g h i j k"
+      },
+      "status": 422,
+      "body": {
+        "error": {
+          "code": "invalid_query",
+          "message": "Query must contain at most 10 terms"
+        }
+      },
+      "expected_codes": null,
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "milk",
+        "cursor": "invalid"
+      },
+      "status": 422,
+      "body": {
+        "error": {
+          "code": "invalid_cursor",
+          "message": "Pagination cursor is invalid"
+        }
+      },
+      "expected_codes": null,
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "8847100567574",
+        "cursor": "invalid"
+      },
+      "status": 422,
+      "body": {
+        "error": {
+          "code": "invalid_cursor",
+          "message": "Pagination cursor is invalid"
+        }
+      },
+      "expected_codes": [
+        "8847100567574"
+      ],
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "zzlifegoodsabsent107"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "products": []
+        },
+        "meta": {
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org"
+          },
+          "dataset": {
+            "version": "9f6d5359fa944e458804c1b63e7365a7",
+            "retrieved_at": "2026-08-27T14:14:59.017000Z"
+          },
+          "pagination": {
+            "next_cursor": null
+          }
+        }
+      },
+      "expected_codes": [],
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "1664"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "products": [
+            {
+              "barcode": "06801786",
+              "name": {
+                "value": "1664",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664",
+                "Kronenbourg"
+              ],
+              "quantity": null,
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/06801786/front_fr.7.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/06801786"
+              }
+            },
+            {
+              "barcode": "3080210001100",
+              "name": {
+                "value": "1664",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "330 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/000/1100/front_fr.201.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080210001100"
+              }
+            },
+            {
+              "barcode": "3080216047225",
+              "name": {
+                "value": "1664",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664",
+                "BK",
+                "Kronenbourg"
+              ],
+              "quantity": "12x25cl",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/604/7225/front_fr.3.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216047225"
+              }
+            },
+            {
+              "barcode": "3080216049830",
+              "name": {
+                "value": "1664",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "20",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/604/9830/front_fr.4.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216049830"
+              }
+            },
+            {
+              "barcode": "3080216052885",
+              "name": {
+                "value": "1664",
+                "language": "en",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "250 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/605/2885/front_en.391.400.jpg",
+                "language": "en",
+                "source_field": "images.selected.front.en.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216052885"
+              }
+            },
+            {
+              "barcode": "3080216055756",
+              "name": {
+                "value": "1664 0,0% Bière blonde sans alcool 33 cl",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "0%",
+                "1664",
+                "1664 0",
+                "Kronenbourg"
+              ],
+              "quantity": "330 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/605/5756/front_fr.210.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216055756"
+              }
+            },
+            {
+              "barcode": "3080216053400",
+              "name": {
+                "value": "1664 10x25cl 1664 blonde 5.5 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664",
+                "Kronenbourg"
+              ],
+              "quantity": "2500 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/605/3400/front_fr.44.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216053400"
+              }
+            },
+            {
+              "barcode": "3080216054230",
+              "name": {
+                "value": "1664 12x25cl 1664 5.5 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "3000 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/605/4230/front_fr.154.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216054230"
+              }
+            },
+            {
+              "barcode": "3080216049809",
+              "name": {
+                "value": "1664 - 12x25cl 1664 - 5.50 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "3000 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/604/9809/front_fr.15.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216049809"
+              }
+            },
+            {
+              "barcode": "3080216036182",
+              "name": {
+                "value": "1664 12x25cl 1664 blanc 5.0 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664",
+                "1664 Blanc"
+              ],
+              "quantity": "3000 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/603/6182/front_fr.111.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216036182"
+              }
+            },
+            {
+              "barcode": "3080216048604",
+              "name": {
+                "value": "1664 - 12x25cl 1664 blonde sans alcool - 0.40 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "3000 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/604/8604/front_fr.26.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216048604"
+              }
+            },
+            {
+              "barcode": "3173600001122",
+              "name": {
+                "value": "1664 12x25cl 1664 gold 6.1 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664",
+                "1664 Gold"
+              ],
+              "quantity": "3000 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/317/360/000/1122/front_fr.53.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3173600001122"
+              }
+            },
+            {
+              "barcode": "3080216029535",
+              "name": {
+                "value": "1664 - 12x25cl 1664 millesime 2017 - 6.70 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "3000 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/602/9535/front_fr.6.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216029535"
+              }
+            },
+            {
+              "barcode": "3080216020327",
+              "name": {
+                "value": "1664 12x33cl 1664 5.5 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "3960 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/602/0327/front_fr.72.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216020327"
+              }
+            },
+            {
+              "barcode": "3080216048376",
+              "name": {
+                "value": "1664 12x33cl can 1664 5.5 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "12x33cl",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/604/8376/front_fr.61.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216048376"
+              }
+            },
+            {
+              "barcode": "3080216030104",
+              "name": {
+                "value": "1664 15x25cl 1664 format special 5.5 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "3750 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/603/0104/front_fr.19.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216030104"
+              }
+            },
+            {
+              "barcode": "3080216052960",
+              "name": {
+                "value": "1664 18x25cl 1664 + 6 bouteilles offerte 5.5 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "6000 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/605/2960/front_fr.51.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216052960"
+              }
+            },
+            {
+              "barcode": "3080216052700",
+              "name": {
+                "value": "1664 - 20x25cl 1664 - 5.50 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "5000 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/605/2700/front_fr.15.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216052700"
+              }
+            },
+            {
+              "barcode": "3080216054278",
+              "name": {
+                "value": "1664 20x25cl 1664 fs 5.5 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "5000 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/605/4278/front_fr.98.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216054278"
+              }
+            },
+            {
+              "barcode": "3080216024431",
+              "name": {
+                "value": "1664 24x25cl 1664 maxi format 5.5 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "6000 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/602/4431/front_fr.35.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216024431"
+              }
+            }
+          ]
+        },
+        "meta": {
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org"
+          },
+          "dataset": {
+            "version": "9f6d5359fa944e458804c1b63e7365a7",
+            "retrieved_at": "2026-08-27T14:14:59.017000Z"
+          },
+          "pagination": {
+            "next_cursor": "eyJmIjoiNWFjYTZmMDhiNjc4MDE1NyIsInIiOjAsIm4iOiIxNjY0IDI0eDI1Y2wgMTY2NCBtYXhpIGZvcm1hdCA1IDUgZGVncmUgYWxjb29sIiwiYyI6IjMwODAyMTYwMjQ0MzEifQ"
+          }
+        }
+      },
+      "expected_codes": null,
+      "passed": true
+    }
+  ],
+  "pagination": {
+    "query": "Oreo Oreo Birthday",
+    "pages": [
+      {
+        "id": "exhaustive-pagination",
+        "status": 200,
+        "http_ms": 54.170167073607445,
+        "error": null,
+        "body": {
+          "data": {
+            "products": [
+              {
+                "barcode": "55905886",
+                "name": {
+                  "value": "Birthday Cake",
+                  "language": "en",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Oreo"
+                ],
+                "quantity": null,
+                "thumbnail": null,
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/55905886"
+                }
+              },
+              {
+                "barcode": "0044000060411",
+                "name": {
+                  "value": "Birthday Cake Flavor Creme Oreo Chocolate Sandwich Cookies",
+                  "language": "en",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Oreo"
+                ],
+                "quantity": null,
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/004/400/006/0411/front_en.23.400.jpg",
+                  "language": "en",
+                  "source_field": "images.selected.front.en.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/0044000060411"
+                }
+              },
+              {
+                "barcode": "0066721026637",
+                "name": {
+                  "value": "Birthday Cake Flavour OREO Chocolate Sandwich Cookies",
+                  "language": "en",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Oreo"
+                ],
+                "quantity": null,
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/006/672/102/6637/front_fr.3.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/0066721026637"
+                }
+              },
+              {
+                "barcode": "0066721005908",
+                "name": {
+                  "value": "Birthday cake Oreo cookies",
+                  "language": "en",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Oreo",
+                  "Christie"
+                ],
+                "quantity": null,
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/006/672/100/5908/front_en.10.400.jpg",
+                  "language": "en",
+                  "source_field": "images.selected.front.en.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/0066721005908"
+                }
+              },
+              {
+                "barcode": "0810085816164",
+                "name": {
+                  "value": "Birthday cake oreo protien",
+                  "language": "en",
+                  "source_field": "product_name"
+                },
+                "brands": [],
+                "quantity": null,
+                "thumbnail": null,
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/0810085816164"
+                }
+              },
+              {
+                "barcode": "7622210851505",
+                "name": {
+                  "value": "Birthday Party",
+                  "language": "fr",
+                  "source_field": "product_name_fr"
+                },
+                "brands": [
+                  "Oreo"
+                ],
+                "quantity": "154",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/762/221/085/1505/front_nl.13.400.jpg",
+                  "language": "nl",
+                  "source_field": "images.selected.front.nl.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/7622210851505"
+                }
+              },
+              {
+                "barcode": "0044000032715",
+                "name": {
+                  "value": "Nabisco oreo cookies birthday cake 1x15.25 oz",
+                  "language": "en",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Oreo"
+                ],
+                "quantity": null,
+                "thumbnail": null,
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/0044000032715"
+                }
+              },
+              {
+                "barcode": "0044000032708",
+                "name": {
+                  "value": "Nabisco oreo cookies birthday cake 1x15.250 oz",
+                  "language": "en",
+                  "source_field": "product_name"
+                },
+                "brands": [],
+                "quantity": null,
+                "thumbnail": null,
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/0044000032708"
+                }
+              },
+              {
+                "barcode": "7622210839442",
+                "name": {
+                  "value": "Oreo Birthday Party",
+                  "language": "fr",
+                  "source_field": "product_name_fr"
+                },
+                "brands": [
+                  "Mondelez International"
+                ],
+                "quantity": "150g",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/762/221/083/9442/front_en.40.400.jpg",
+                  "language": "en",
+                  "source_field": "images.selected.front.en.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/7622210839442"
+                }
+              },
+              {
+                "barcode": "0066721025791",
+                "name": {
+                  "value": "oREO birthday",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Oreo"
+                ],
+                "quantity": null,
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/006/672/102/5791/front_fr.3.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/0066721025791"
+                }
+              },
+              {
+                "barcode": "0044000081515",
+                "name": {
+                  "value": "Oreo birthday cake (limited edition)",
+                  "language": "en",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Oreo"
+                ],
+                "quantity": null,
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/004/400/008/1515/front_en.8.400.jpg",
+                  "language": "en",
+                  "source_field": "images.selected.front.en.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/0044000081515"
+                }
+              },
+              {
+                "barcode": "7622201677589",
+                "name": {
+                  "value": "Oreo birthday sprinkles",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Oreo"
+                ],
+                "quantity": null,
+                "thumbnail": null,
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/7622201677589"
+                }
+              },
+              {
+                "barcode": "0044000035815",
+                "name": {
+                  "value": "Oreo cookies birthday cake 1x18.4 oz",
+                  "language": "en",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "BIBA"
+                ],
+                "quantity": null,
+                "thumbnail": null,
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/0044000035815"
+                }
+              },
+              {
+                "barcode": "6901668005946",
+                "name": {
+                  "value": "Oreo Birthday",
+                  "language": "de",
+                  "source_field": "product_name_de"
+                },
+                "brands": [
+                  "Oreo"
+                ],
+                "quantity": null,
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/690/166/800/5946/front_en.15.400.jpg",
+                  "language": "en",
+                  "source_field": "images.selected.front.en.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/6901668005946"
+                }
+              }
+            ]
+          },
+          "meta": {
+            "source": {
+              "name": "Open Food Facts",
+              "product_url": "https://world.openfoodfacts.org"
+            },
+            "dataset": {
+              "version": "9f6d5359fa944e458804c1b63e7365a7",
+              "retrieved_at": "2026-08-27T14:14:59.017000Z"
+            },
+            "pagination": {
+              "next_cursor": null
+            }
+          }
+        }
+      }
+    ],
+    "terminated": true,
+    "unique": true,
+    "result_count": 14,
+    "comparison": {
+      "database_codes": [
+        "55905886",
+        "0044000060411",
+        "0066721026637",
+        "0066721005908",
+        "0810085816164",
+        "7622210851505",
+        "0044000032715",
+        "0044000032708",
+        "7622210839442",
+        "0066721025791",
+        "0044000081515",
+        "7622201677589",
+        "0044000035815",
+        "6901668005946"
+      ],
+      "within_comparison_bound": true,
+      "same_order_no_omissions": true
+    },
+    "mismatched_cursor": null
+  }
+}

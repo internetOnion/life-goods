@@ -1,0 +1,1680 @@
+{
+  "checks": [
+    {
+      "params": {
+        "q": "8847100567574"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "products": [
+            {
+              "barcode": "8847100567574",
+              "name": {
+                "value": "កូកា-កូឡា",
+                "language": "km",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "Coca-Cola"
+              ],
+              "quantity": null,
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/884/710/056/7574/front_km.10.400.jpg",
+                "language": "km",
+                "source_field": "images.selected.front.km.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/8847100567574"
+              }
+            }
+          ]
+        },
+        "meta": {
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org"
+          },
+          "dataset": {
+            "version": "9f6d5359fa944e458804c1b63e7365a7",
+            "retrieved_at": "2026-08-27T14:14:59.017000Z"
+          },
+          "pagination": {
+            "next_cursor": null
+          }
+        }
+      },
+      "expected_codes": [
+        "8847100567574"
+      ],
+      "passed": true
+    },
+    {
+      "params": {
+        "q": " 8847-100 567574 "
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "products": [
+            {
+              "barcode": "8847100567574",
+              "name": {
+                "value": "កូកា-កូឡា",
+                "language": "km",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "Coca-Cola"
+              ],
+              "quantity": null,
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/884/710/056/7574/front_km.10.400.jpg",
+                "language": "km",
+                "source_field": "images.selected.front.km.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/8847100567574"
+              }
+            }
+          ]
+        },
+        "meta": {
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org"
+          },
+          "dataset": {
+            "version": "9f6d5359fa944e458804c1b63e7365a7",
+            "retrieved_at": "2026-08-27T14:14:59.017000Z"
+          },
+          "pagination": {
+            "next_cursor": null
+          }
+        }
+      },
+      "expected_codes": [
+        "8847100567574"
+      ],
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "0000105000011"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "products": [
+            {
+              "barcode": "0000105000011",
+              "name": {
+                "value": "Chamomile Herbal Tea",
+                "language": "en",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "Lagg's"
+              ],
+              "quantity": "1 g",
+              "thumbnail": null,
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/0000105000011"
+              }
+            }
+          ]
+        },
+        "meta": {
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org"
+          },
+          "dataset": {
+            "version": "9f6d5359fa944e458804c1b63e7365a7",
+            "retrieved_at": "2026-08-27T14:14:59.017000Z"
+          },
+          "pagination": {
+            "next_cursor": null
+          }
+        }
+      },
+      "expected_codes": [
+        "0000105000011"
+      ],
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "9999999876547"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "products": []
+        },
+        "meta": {
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org"
+          },
+          "dataset": {
+            "version": "9f6d5359fa944e458804c1b63e7365a7",
+            "retrieved_at": "2026-08-27T14:14:59.017000Z"
+          },
+          "pagination": {
+            "next_cursor": null
+          }
+        }
+      },
+      "expected_codes": [],
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "8847100567575"
+      },
+      "status": 422,
+      "body": {
+        "error": {
+          "code": "invalid_barcode",
+          "message": "Barcode is invalid"
+        }
+      },
+      "expected_codes": null,
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "!!!"
+      },
+      "status": 422,
+      "body": {
+        "error": {
+          "code": "invalid_query",
+          "message": "Query cannot be empty or contain only punctuation"
+        }
+      },
+      "expected_codes": null,
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "x"
+      },
+      "status": 422,
+      "body": {
+        "error": {
+          "code": "invalid_query",
+          "message": "Query must be between 2 and 200 characters"
+        }
+      },
+      "expected_codes": null,
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "status": 422,
+      "body": {
+        "error": {
+          "code": "invalid_query",
+          "message": "Query must be between 2 and 200 characters"
+        }
+      },
+      "expected_codes": null,
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "a b c d e f g h i j k"
+      },
+      "status": 422,
+      "body": {
+        "error": {
+          "code": "invalid_query",
+          "message": "Query must contain at most 10 terms"
+        }
+      },
+      "expected_codes": null,
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "milk",
+        "cursor": "invalid"
+      },
+      "status": 422,
+      "body": {
+        "error": {
+          "code": "invalid_cursor",
+          "message": "Pagination cursor is invalid"
+        }
+      },
+      "expected_codes": null,
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "8847100567574",
+        "cursor": "invalid"
+      },
+      "status": 422,
+      "body": {
+        "error": {
+          "code": "invalid_cursor",
+          "message": "Pagination cursor is invalid"
+        }
+      },
+      "expected_codes": [
+        "8847100567574"
+      ],
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "zzlifegoodsabsent107"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "products": []
+        },
+        "meta": {
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org"
+          },
+          "dataset": {
+            "version": "9f6d5359fa944e458804c1b63e7365a7",
+            "retrieved_at": "2026-08-27T14:14:59.017000Z"
+          },
+          "pagination": {
+            "next_cursor": null
+          }
+        }
+      },
+      "expected_codes": [],
+      "passed": true
+    },
+    {
+      "params": {
+        "q": "1664"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "products": [
+            {
+              "barcode": "06801786",
+              "name": {
+                "value": "1664",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664",
+                "Kronenbourg"
+              ],
+              "quantity": null,
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/06801786/front_fr.7.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/06801786"
+              }
+            },
+            {
+              "barcode": "3080210001100",
+              "name": {
+                "value": "1664",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "330 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/000/1100/front_fr.201.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080210001100"
+              }
+            },
+            {
+              "barcode": "3080216047225",
+              "name": {
+                "value": "1664",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664",
+                "BK",
+                "Kronenbourg"
+              ],
+              "quantity": "12x25cl",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/604/7225/front_fr.3.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216047225"
+              }
+            },
+            {
+              "barcode": "3080216049830",
+              "name": {
+                "value": "1664",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "20",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/604/9830/front_fr.4.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216049830"
+              }
+            },
+            {
+              "barcode": "3080216052885",
+              "name": {
+                "value": "1664",
+                "language": "en",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "250 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/605/2885/front_en.391.400.jpg",
+                "language": "en",
+                "source_field": "images.selected.front.en.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216052885"
+              }
+            },
+            {
+              "barcode": "3080216055756",
+              "name": {
+                "value": "1664 0,0% Bière blonde sans alcool 33 cl",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "0%",
+                "1664",
+                "1664 0",
+                "Kronenbourg"
+              ],
+              "quantity": "330 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/605/5756/front_fr.210.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216055756"
+              }
+            },
+            {
+              "barcode": "3080216053400",
+              "name": {
+                "value": "1664 10x25cl 1664 blonde 5.5 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664",
+                "Kronenbourg"
+              ],
+              "quantity": "2500 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/605/3400/front_fr.44.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216053400"
+              }
+            },
+            {
+              "barcode": "3080216054230",
+              "name": {
+                "value": "1664 12x25cl 1664 5.5 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "3000 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/605/4230/front_fr.154.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216054230"
+              }
+            },
+            {
+              "barcode": "3080216049809",
+              "name": {
+                "value": "1664 - 12x25cl 1664 - 5.50 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "3000 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/604/9809/front_fr.15.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216049809"
+              }
+            },
+            {
+              "barcode": "3080216036182",
+              "name": {
+                "value": "1664 12x25cl 1664 blanc 5.0 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664",
+                "1664 Blanc"
+              ],
+              "quantity": "3000 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/603/6182/front_fr.111.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216036182"
+              }
+            },
+            {
+              "barcode": "3080216048604",
+              "name": {
+                "value": "1664 - 12x25cl 1664 blonde sans alcool - 0.40 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "3000 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/604/8604/front_fr.26.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216048604"
+              }
+            },
+            {
+              "barcode": "3173600001122",
+              "name": {
+                "value": "1664 12x25cl 1664 gold 6.1 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664",
+                "1664 Gold"
+              ],
+              "quantity": "3000 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/317/360/000/1122/front_fr.53.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3173600001122"
+              }
+            },
+            {
+              "barcode": "3080216029535",
+              "name": {
+                "value": "1664 - 12x25cl 1664 millesime 2017 - 6.70 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "3000 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/602/9535/front_fr.6.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216029535"
+              }
+            },
+            {
+              "barcode": "3080216020327",
+              "name": {
+                "value": "1664 12x33cl 1664 5.5 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "3960 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/602/0327/front_fr.72.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216020327"
+              }
+            },
+            {
+              "barcode": "3080216048376",
+              "name": {
+                "value": "1664 12x33cl can 1664 5.5 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "12x33cl",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/604/8376/front_fr.61.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216048376"
+              }
+            },
+            {
+              "barcode": "3080216030104",
+              "name": {
+                "value": "1664 15x25cl 1664 format special 5.5 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "3750 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/603/0104/front_fr.19.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216030104"
+              }
+            },
+            {
+              "barcode": "3080216052960",
+              "name": {
+                "value": "1664 18x25cl 1664 + 6 bouteilles offerte 5.5 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "6000 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/605/2960/front_fr.51.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216052960"
+              }
+            },
+            {
+              "barcode": "3080216052700",
+              "name": {
+                "value": "1664 - 20x25cl 1664 - 5.50 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "5000 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/605/2700/front_fr.15.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216052700"
+              }
+            },
+            {
+              "barcode": "3080216054278",
+              "name": {
+                "value": "1664 20x25cl 1664 fs 5.5 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "5000 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/605/4278/front_fr.98.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216054278"
+              }
+            },
+            {
+              "barcode": "3080216024431",
+              "name": {
+                "value": "1664 24x25cl 1664 maxi format 5.5 degre alcool",
+                "language": "fr",
+                "source_field": "product_name"
+              },
+              "brands": [
+                "1664"
+              ],
+              "quantity": "6000 ml",
+              "thumbnail": {
+                "url": "https://images.openfoodfacts.org/images/products/308/021/602/4431/front_fr.35.400.jpg",
+                "language": "fr",
+                "source_field": "images.selected.front.fr.rev"
+              },
+              "source": {
+                "name": "Open Food Facts",
+                "product_url": "https://world.openfoodfacts.org/product/3080216024431"
+              }
+            }
+          ]
+        },
+        "meta": {
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org"
+          },
+          "dataset": {
+            "version": "9f6d5359fa944e458804c1b63e7365a7",
+            "retrieved_at": "2026-08-27T14:14:59.017000Z"
+          },
+          "pagination": {
+            "next_cursor": "eyJmIjoiNWFjYTZmMDhiNjc4MDE1NyIsInIiOjAsIm4iOiIxNjY0IDI0eDI1Y2wgMTY2NCBtYXhpIGZvcm1hdCA1IDUgZGVncmUgYWxjb29sIiwiYyI6IjMwODAyMTYwMjQ0MzEifQ"
+          }
+        }
+      },
+      "expected_codes": null,
+      "passed": true
+    }
+  ],
+  "pagination": {
+    "query": "Lutti Lutti Bubblizz",
+    "pages": [
+      {
+        "id": "exhaustive-pagination",
+        "status": 200,
+        "http_ms": 9.233291959390044,
+        "error": null,
+        "body": {
+          "data": {
+            "products": [
+              {
+                "barcode": "3116740033875",
+                "name": {
+                  "value": "250G BUBBLIZZ LUTTI",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": "250 g",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/311/674/003/3875/front_fr.92.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3116740033875"
+                }
+              },
+              {
+                "barcode": "3664346347884",
+                "name": {
+                  "value": "LUTTI Bubblizz Balls",
+                  "language": "nl",
+                  "source_field": "product_name_nl"
+                },
+                "brands": [
+                  "LUTTI"
+                ],
+                "quantity": "180g",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/366/434/634/7884/front_en.3.400.jpg",
+                  "language": "en",
+                  "source_field": "images.selected.front.en.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3664346347884"
+                }
+              },
+              {
+                "barcode": "3116740024408",
+                "name": {
+                  "value": "Bubblizz",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": "1,35 kg",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/311/674/002/4408/front_fr.14.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3116740024408"
+                }
+              },
+              {
+                "barcode": "3116740032304",
+                "name": {
+                  "value": "Bubblizz",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": null,
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/311/674/003/2304/front_fr.4.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3116740032304"
+                }
+              },
+              {
+                "barcode": "3116740034353",
+                "name": {
+                  "value": "Bubblizz",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": null,
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/311/674/003/4353/front_fr.13.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3116740034353"
+                }
+              },
+              {
+                "barcode": "3116740035190",
+                "name": {
+                  "value": "Bubblizz",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": null,
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/311/674/003/5190/front_fr.18.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3116740035190"
+                }
+              },
+              {
+                "barcode": "3116740036180",
+                "name": {
+                  "value": "BUBBLIZZ",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": "600 g",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/311/674/003/6180/front_fr.3.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3116740036180"
+                }
+              },
+              {
+                "barcode": "3664346338394",
+                "name": {
+                  "value": "Bubblizz",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": "170 g",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/366/434/633/8394/front_fr.14.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3664346338394"
+                }
+              },
+              {
+                "barcode": "5410057186292",
+                "name": {
+                  "value": "Bubblizz",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": "1,6kg",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/541/005/718/6292/front_fr.3.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/5410057186292"
+                }
+              },
+              {
+                "barcode": "5410057196314",
+                "name": {
+                  "value": "Lutti Bubblizz",
+                  "language": "at",
+                  "source_field": "product_name_at"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": "150 g",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/541/005/719/6314/front_de.18.400.jpg",
+                  "language": "de",
+                  "source_field": "images.selected.front.de.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/5410057196314"
+                }
+              },
+              {
+                "barcode": "3116740033332",
+                "name": {
+                  "value": "Bubblizz air",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": "900 g",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/311/674/003/3332/front_fr.4.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3116740033332"
+                }
+              },
+              {
+                "barcode": "0838948010511",
+                "name": {
+                  "value": "Bubblizz BOMB",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": null,
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/083/894/801/0511/front_fr.10.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/0838948010511"
+                }
+              },
+              {
+                "barcode": "3116740032243",
+                "name": {
+                  "value": "Bubblizz Bomb",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": "145 g",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/311/674/003/2243/front_fr.5.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3116740032243"
+                }
+              },
+              {
+                "barcode": "3116740032137",
+                "name": {
+                  "value": "Bubblizz - Confiserie gélifiée aromatisée",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": "370 g",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/311/674/003/2137/front_fr.7.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3116740032137"
+                }
+              },
+              {
+                "barcode": "3664346334082",
+                "name": {
+                  "value": "Bubblizz Dooo",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": null,
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/366/434/633/4082/front_fr.3.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3664346334082"
+                }
+              },
+              {
+                "barcode": "3116740032151",
+                "name": {
+                  "value": "Bubblizz fil",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": "180 g",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/311/674/003/2151/front_fr.7.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3116740032151"
+                }
+              },
+              {
+                "barcode": "3116740032915",
+                "name": {
+                  "value": "Bubblizz Jumbo XL",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": null,
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/311/674/003/2915/front_fr.3.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3116740032915"
+                }
+              },
+              {
+                "barcode": "5400787048458",
+                "name": {
+                  "value": "Bubblizz - Lutti",
+                  "language": "en",
+                  "source_field": "product_name"
+                },
+                "brands": [],
+                "quantity": null,
+                "thumbnail": null,
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/5400787048458"
+                }
+              },
+              {
+                "barcode": "3664346340694",
+                "name": {
+                  "value": "Bubblizz mini surf",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "lutti"
+                ],
+                "quantity": null,
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/366/434/634/0694/front_fr.19.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3664346340694"
+                }
+              },
+              {
+                "barcode": "3664346340700",
+                "name": {
+                  "value": "Bubblizz Mini Surf",
+                  "language": "en",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": "100g",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/366/434/634/0700/front_en.19.400.jpg",
+                  "language": "en",
+                  "source_field": "images.selected.front.en.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3664346340700"
+                }
+              }
+            ]
+          },
+          "meta": {
+            "source": {
+              "name": "Open Food Facts",
+              "product_url": "https://world.openfoodfacts.org"
+            },
+            "dataset": {
+              "version": "9f6d5359fa944e458804c1b63e7365a7",
+              "retrieved_at": "2026-08-27T14:14:59.017000Z"
+            },
+            "pagination": {
+              "next_cursor": "eyJmIjoiNTA4MGMzMzI0YTNkZGE4YyIsInIiOjIsIm4iOiJidWJibGl6eiBtaW5pIHN1cmYiLCJjIjoiMzY2NDM0NjM0MDcwMCJ9"
+            }
+          }
+        }
+      },
+      {
+        "id": "exhaustive-pagination",
+        "status": 200,
+        "http_ms": 6.086291978135705,
+        "error": null,
+        "body": {
+          "data": {
+            "products": [
+              {
+                "barcode": "3664346354790",
+                "name": {
+                  "value": "Bubblizz mix",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": "500 g",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/366/434/635/4790/front_fr.3.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3664346354790"
+                }
+              },
+              {
+                "barcode": "00044226",
+                "name": {
+                  "value": "Bubblizz Original",
+                  "language": "en",
+                  "source_field": "product_name_en"
+                },
+                "brands": [
+                  "Lutti",
+                  "Carambar"
+                ],
+                "quantity": null,
+                "thumbnail": null,
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/00044226"
+                }
+              },
+              {
+                "barcode": "0400963018942",
+                "name": {
+                  "value": "Bubblizz Original",
+                  "language": "en",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": null,
+                "thumbnail": null,
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/0400963018942"
+                }
+              },
+              {
+                "barcode": "3116740032366",
+                "name": {
+                  "value": "Bubblizz Original",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": "100 g",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/311/674/003/2366/front_fr.15.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3116740032366"
+                }
+              },
+              {
+                "barcode": "3664346333443",
+                "name": {
+                  "value": "Bubblizz original",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": null,
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/366/434/633/3443/front_fr.3.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3664346333443"
+                }
+              },
+              {
+                "barcode": "3664346347426",
+                "name": {
+                  "value": "Bubblizz Original",
+                  "language": "en",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": null,
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/366/434/634/7426/front_en.38.400.jpg",
+                  "language": "en",
+                  "source_field": "images.selected.front.en.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3664346347426"
+                }
+              },
+              {
+                "barcode": "5410057169110",
+                "name": {
+                  "value": "Bubblizz Original",
+                  "language": "nl",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": "275 g",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/541/005/716/9110/front_fr.23.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/5410057169110"
+                }
+              },
+              {
+                "barcode": "3664346352857",
+                "name": {
+                  "value": "Bubblizz sweety",
+                  "language": "fr",
+                  "source_field": "product_name_fr"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": "350g",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/366/434/635/2857/front_en.7.400.jpg",
+                  "language": "en",
+                  "source_field": "images.selected.front.en.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3664346352857"
+                }
+              },
+              {
+                "barcode": "3116740036555",
+                "name": {
+                  "value": "Bubblizz xl",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": "1 kg",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/311/674/003/6555/front_fr.14.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3116740036555"
+                }
+              },
+              {
+                "barcode": "3116740033950",
+                "name": {
+                  "value": "Bubblizz 130g Lutti",
+                  "language": "en",
+                  "source_field": "product_name_en"
+                },
+                "brands": [
+                  "Conaxess trade norway"
+                ],
+                "quantity": "130 g",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/311/674/003/3950/front_fr.19.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3116740033950"
+                }
+              },
+              {
+                "barcode": "3116740018858",
+                "name": {
+                  "value": "Lutti bubblizz",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": null,
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/311/674/001/8858/front_fr.14.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3116740018858"
+                }
+              },
+              {
+                "barcode": "3664346354882",
+                "name": {
+                  "value": "LUTTI bubblizz",
+                  "language": "nl",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "LUTTI"
+                ],
+                "quantity": "100g",
+                "thumbnail": null,
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3664346354882"
+                }
+              },
+              {
+                "barcode": "3664346332507",
+                "name": {
+                  "value": "Lutti Bubblizz doux",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": "180",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/366/434/633/2507/front_fr.5.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3664346332507"
+                }
+              },
+              {
+                "barcode": "3664346346443",
+                "name": {
+                  "value": "Lutti Bubblizz Fizz",
+                  "language": "fr",
+                  "source_field": "product_name_fr"
+                },
+                "brands": [],
+                "quantity": null,
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/366/434/634/6443/front_en.8.400.jpg",
+                  "language": "en",
+                  "source_field": "images.selected.front.en.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3664346346443"
+                }
+              },
+              {
+                "barcode": "3116740036548",
+                "name": {
+                  "value": "Lutti Bubblizz Tendre",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": "200 g",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/311/674/003/6548/front_fr.20.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3116740036548"
+                }
+              },
+              {
+                "barcode": "3664346354189",
+                "name": {
+                  "value": "LUTTI Clip. Papier Bubblizz Megafizz",
+                  "language": "nl",
+                  "source_field": "product_name_nl"
+                },
+                "brands": [
+                  "LUTTI"
+                ],
+                "quantity": "15g",
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/366/434/635/4189/front_fr.3.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3664346354189"
+                }
+              },
+              {
+                "barcode": "3116740028543",
+                "name": {
+                  "value": "Lutti Spaghetti Gum Bubblizz",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [],
+                "quantity": null,
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/311/674/002/8543/front_fr.3.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3116740028543"
+                }
+              },
+              {
+                "barcode": "3116740035411",
+                "name": {
+                  "value": "Mini bubblizz",
+                  "language": "fr",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Lutti"
+                ],
+                "quantity": null,
+                "thumbnail": {
+                  "url": "https://images.openfoodfacts.org/images/products/311/674/003/5411/front_fr.3.400.jpg",
+                  "language": "fr",
+                  "source_field": "images.selected.front.fr.rev"
+                },
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/3116740035411"
+                }
+              },
+              {
+                "barcode": "7039010593533",
+                "name": {
+                  "value": "Smågodt Bubblizz Original",
+                  "language": "nb",
+                  "source_field": "product_name"
+                },
+                "brands": [
+                  "Fun Light",
+                  "Lutti",
+                  "Orkla",
+                  "Orkla Foods"
+                ],
+                "quantity": "0,8L",
+                "thumbnail": null,
+                "source": {
+                  "name": "Open Food Facts",
+                  "product_url": "https://world.openfoodfacts.org/product/7039010593533"
+                }
+              }
+            ]
+          },
+          "meta": {
+            "source": {
+              "name": "Open Food Facts",
+              "product_url": "https://world.openfoodfacts.org"
+            },
+            "dataset": {
+              "version": "9f6d5359fa944e458804c1b63e7365a7",
+              "retrieved_at": "2026-08-27T14:14:59.017000Z"
+            },
+            "pagination": {
+              "next_cursor": null
+            }
+          }
+        }
+      }
+    ],
+    "terminated": true,
+    "unique": true,
+    "result_count": 39,
+    "comparison": {
+      "database_codes": [
+        "3116740033875",
+        "3664346347884",
+        "3116740024408",
+        "3116740032304",
+        "3116740034353",
+        "3116740035190",
+        "3116740036180",
+        "3664346338394",
+        "5410057186292",
+        "5410057196314",
+        "3116740033332",
+        "0838948010511",
+        "3116740032243",
+        "3116740032137",
+        "3664346334082",
+        "3116740032151",
+        "3116740032915",
+        "5400787048458",
+        "3664346340694",
+        "3664346340700",
+        "3664346354790",
+        "00044226",
+        "0400963018942",
+        "3116740032366",
+        "3664346333443",
+        "3664346347426",
+        "5410057169110",
+        "3664346352857",
+        "3116740036555",
+        "3116740033950",
+        "3116740018858",
+        "3664346354882",
+        "3664346332507",
+        "3664346346443",
+        "3116740036548",
+        "3664346354189",
+        "3116740028543",
+        "3116740035411",
+        "7039010593533"
+      ],
+      "within_comparison_bound": true,
+      "same_order_no_omissions": true
+    },
+    "mismatched_cursor": {
+      "status": 422,
+      "body": {
+        "error": {
+          "code": "invalid_cursor",
+          "message": "Pagination cursor is invalid"
+        }
+      }
+    },
+    "malformed_cursor": {
+      "mutation": "Append four non-base64 exclamation marks",
+      "status": 422,
+      "body": {
+        "error": {
+          "code": "invalid_cursor",
+          "message": "Pagination cursor is invalid"
+        }
+      },
+      "passed": true
+    }
+  }
+}

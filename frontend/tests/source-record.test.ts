@@ -5,7 +5,9 @@ import type {
     ProductLookupResponse,
 } from "../src/api/generated"
 import { unavailableAllergenAnalysis } from "../src/features/product/defaults"
+import { adaptProductLookup } from "../src/features/product/adapter"
 import { adaptSourceRecord } from "../src/features/product/sourceRecord"
+import { productResponse } from "./product-fixtures"
 
 const meta = {
     lookup: { barcode: "4006381333931" },
@@ -438,5 +440,15 @@ describe("raw Open Food Facts Source Record presentation adapter", () => {
             completeness: 0.82,
             dataQualityWarnings: ["nutrition value very high for category"],
         })
+    })
+
+    test("adapts ProductProjectionResponse into candidate representation", () => {
+        const projectionResponse = productResponse()
+        const adapted = adaptProductLookup(projectionResponse)
+
+        expect(adapted.normalizedIdentifier).toBe("4006381333931")
+        expect(adapted.offView.productName).toBe("Dark Chocolate")
+        expect(adapted.offView.brands).toEqual(["Example Foods"])
+        expect(adapted.offView.barcode).toBe("4006381333931")
     })
 })

@@ -111,7 +111,9 @@ describe("Life Goods routes", () => {
         renderRoute("/")
         const searchLink = screen.getByRole("link", { name: "Search" })
         await user.click(searchLink)
-        expect(screen.getByRole("textbox", { name: "Search" })).not.toHaveFocus()
+        expect(
+            screen.getByRole("textbox", { name: "Search" }),
+        ).not.toHaveFocus()
     })
 
     test("clicking Learn in the bottom navigation opens the guide grid", async () => {

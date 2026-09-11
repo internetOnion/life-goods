@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetExperimentalProductData, GetExperimentalProductErrors, GetExperimentalProductResponses, GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetPackageMatchesData, GetPackageMatchesErrors, GetPackageMatchesResponses, MatchExperimentalIngredientsData, MatchExperimentalIngredientsErrors, MatchExperimentalIngredientsResponses, SearchPackageMatchesData, SearchPackageMatchesErrors, SearchPackageMatchesResponses, SearchPackagesData, SearchPackagesErrors, SearchPackagesResponses } from './types.gen';
+import type { GetExperimentalProductData, GetExperimentalProductErrors, GetExperimentalProductResponses, GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetProductData, GetProductErrors, GetProductResponses, MatchExperimentalIngredientsData, MatchExperimentalIngredientsErrors, MatchExperimentalIngredientsResponses, SearchProductsData, SearchProductsErrors, SearchProductsResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -35,7 +35,8 @@ export const matchExperimentalIngredients = <ThrowOnError extends boolean = fals
 
 /**
  * Look up an experimental raw Product
- * Looks up a Barcode in the selected local Open Food Facts Dataset Snapshot and returns the raw Source Record. This experimental contract is unstable.
+ * Looks up a Barcode in the selected local Open Food Facts Dataset Snapshot and returns the raw Source Record. This experimental contract is deprecated.
+ * @deprecated
  */
 export const getExperimentalProduct = <ThrowOnError extends boolean = false>(options: Options<GetExperimentalProductData, ThrowOnError>) => {
     return (options.client ?? client).get<GetExperimentalProductResponses, GetExperimentalProductErrors, ThrowOnError>({
@@ -55,33 +56,23 @@ export const getOpenFoodFactsImage = <ThrowOnError extends boolean = false>(opti
 };
 
 /**
- * Find Package Match candidates
- * Looks up candidate Package Matches using the active Open Food Facts Dataset Version. Open Food Facts fields are external Evidence, and a returned match does not prove identity with the physical package in a shopper's possession.
+ * Search Products
+ * Searches Products in the selected local Open Food Facts Dataset Snapshot by Barcode, name, or brand. Earlier terms require complete tokens; the final term supports an unfinished prefix.
  */
-export const getPackageMatches = <ThrowOnError extends boolean = false>(options: Options<GetPackageMatchesData, ThrowOnError>) => {
-    return (options.client ?? client).get<GetPackageMatchesResponses, GetPackageMatchesErrors, ThrowOnError>({
-        url: '/api/v1/package-matches',
+export const searchProducts = <ThrowOnError extends boolean = false>(options: Options<SearchProductsData, ThrowOnError>) => {
+    return (options.client ?? client).get<SearchProductsResponses, SearchProductsErrors, ThrowOnError>({
+        url: '/api/v1/products/search',
         ...options
     });
 };
 
 /**
- * Search Package Match candidates
- * Searches the active local Open Food Facts Dataset Version by product name, brand, or explicit manufacturing country. Results are external Evidence and do not prove product origin or identity.
+ * Look up a Product
+ * Looks up a Barcode in the selected local Open Food Facts Dataset Snapshot and returns a stable Product projection.
  */
-export const searchPackageMatches = <ThrowOnError extends boolean = false>(options: Options<SearchPackageMatchesData, ThrowOnError>) => {
-    return (options.client ?? client).get<SearchPackageMatchesResponses, SearchPackageMatchesErrors, ThrowOnError>({
-        url: '/api/v1/package-matches/search',
-        ...options
-    });
-};
-
-/**
- * Search Packages
- */
-export const searchPackages = <ThrowOnError extends boolean = false>(options: Options<SearchPackagesData, ThrowOnError>) => {
-    return (options.client ?? client).get<SearchPackagesResponses, SearchPackagesErrors, ThrowOnError>({
-        url: '/api/v1/package-search',
+export const getProduct = <ThrowOnError extends boolean = false>(options: Options<GetProductData, ThrowOnError>) => {
+    return (options.client ?? client).get<GetProductResponses, GetProductErrors, ThrowOnError>({
+        url: '/api/v1/products/{barcode}',
         ...options
     });
 };

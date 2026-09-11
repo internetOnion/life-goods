@@ -3,7 +3,7 @@ import { useSyncExternalStore } from "react"
 import type { LearnLocale } from "./types"
 
 export const learnTranslations = {
-    km: {
+    kh: {
         learn: {
             title: "ស្វែងយល់",
             intro: "រៀនអានស្លាកកញ្ចប់ និងយល់ថាភស្តុតាងអាចប្រាប់អ្វីបានខ្លះ។",
@@ -206,7 +206,7 @@ export const learnI18n = {
         return activeLocale
     },
     changeLanguage(language: string) {
-        activeLocale = language === "km" ? "km" : "en"
+        activeLocale = language === "kh" || language === "km" ? "kh" : "en"
         listeners.forEach((listener) => listener())
         return Promise.resolve(learnI18n)
     },
