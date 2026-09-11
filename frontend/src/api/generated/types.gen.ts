@@ -5,6 +5,15 @@ export type ClientOptions = {
 };
 
 /**
+ * AllergenAnalysisResponse
+ */
+export type AllergenAnalysisResponse = {
+    comparison: AllergenComparisonResponse;
+    ingredient_matching: IngredientMatchingAllergenResponse;
+    off: OffAllergenAnalysisResponse;
+};
+
+/**
  * AllergenAssessmentOutcome
  */
 export type AllergenAssessmentOutcome = 'DECLARED_CONTAINS' | 'DECLARED_MAY_CONTAIN' | 'DERIVED_FROM_INGREDIENT' | 'NO_DECLARATION_DETECTED_IN_READABLE_LABEL' | 'LABEL_INCOMPLETE_OR_UNREADABLE' | 'NOT_ASSESSED';
@@ -46,6 +55,32 @@ export type AllergenAssessmentResponse = {
 export type AllergenAssessmentStatus = 'COMPLETED' | 'NOT_ASSESSED';
 
 /**
+ * AllergenComparisonResponse
+ */
+export type AllergenComparisonResponse = {
+    /**
+     * In Both
+     */
+    in_both: Array<string>;
+    /**
+     * Ingredient Matching Only
+     */
+    ingredient_matching_only: Array<string>;
+    /**
+     * Off Only
+     */
+    off_only: Array<string>;
+    /**
+     * Sets Equal
+     */
+    sets_equal: boolean | null;
+    /**
+     * State
+     */
+    state: 'available' | 'unavailable';
+};
+
+/**
  * AllergenConceptOutcomeResponse
  */
 export type AllergenConceptOutcomeResponse = {
@@ -74,6 +109,54 @@ export type AllergenConceptOutcomeResponse = {
      * Rule Ids
      */
     rule_ids?: Array<string>;
+};
+
+/**
+ * AllergenEvidenceResponse
+ */
+export type AllergenEvidenceResponse = {
+    /**
+     * Alias
+     */
+    alias: string;
+    /**
+     * Allergens
+     */
+    allergens: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Ambiguous
+     */
+    ambiguous: boolean;
+    /**
+     * End
+     */
+    end: number;
+    /**
+     * Ingredient Tags
+     */
+    ingredient_tags: Array<string>;
+    /**
+     * Matched Text
+     */
+    matched_text: string;
+    /**
+     * Name
+     */
+    name: string | null;
+    /**
+     * Parents
+     */
+    parents: Array<string>;
+    /**
+     * Qualification
+     */
+    qualification: 'positive_mention' | 'precautionary_statement' | 'negated_mention' | 'unresolved_context';
+    /**
+     * Start
+     */
+    start: number;
 };
 
 /**
@@ -144,9 +227,41 @@ export type AllergenFindingResponse = {
 };
 
 /**
+ * AllergenInputResponse
+ */
+export type AllergenInputResponse = {
+    /**
+     * Language
+     */
+    language: string;
+    /**
+     * Source Field
+     */
+    source_field: string;
+};
+
+/**
  * AllergenRelationshipType
  */
 export type AllergenRelationshipType = 'EXACT_NAME' | 'SPELLING_VARIANT' | 'DERIVED_FROM' | 'CONTAINS_SOURCE' | 'PRECAUTIONARY_PHRASE';
+
+/**
+ * AllergenUnmatchedSpanResponse
+ */
+export type AllergenUnmatchedSpanResponse = {
+    /**
+     * End
+     */
+    end: number;
+    /**
+     * Start
+     */
+    start: number;
+    /**
+     * Text
+     */
+    text: string;
+};
 
 /**
  * AssessmentReferenceDatasetVersionResponse
@@ -248,16 +363,6 @@ export type ExternalDatasetVersionResponse = {
      * Source Url
      */
     source_url: string;
-};
-
-/**
- * HTTPValidationError
- */
-export type HttpValidationError = {
-    /**
-     * Detail
-     */
-    detail?: Array<ValidationError>;
 };
 
 /**
@@ -454,6 +559,10 @@ export type IngredientMatchDetailResponse = {
      */
     parents: Array<string>;
     /**
+     * Qualification
+     */
+    qualification: 'positive_mention' | 'precautionary_statement' | 'negated_mention' | 'unresolved_context';
+    /**
      * Start
      */
     start: number;
@@ -464,15 +573,24 @@ export type IngredientMatchDetailResponse = {
 };
 
 /**
+ * IngredientMatchErrorDetail
+ */
+export type IngredientMatchErrorDetail = {
+    /**
+     * Code
+     */
+    code: 'invalid_ingredient_text' | 'prototype_unavailable';
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
  * IngredientMatchErrorResponse
  */
 export type IngredientMatchErrorResponse = {
-    /**
-     * Error
-     */
-    error: {
-        [key: string]: string;
-    };
+    error: IngredientMatchErrorDetail;
 };
 
 /**
@@ -508,9 +626,74 @@ export type IngredientMatchSourceResponse = {
     taxonomy_sha256: string;
 };
 
+/**
+ * IngredientMatchingAllergenResponse
+ */
+export type IngredientMatchingAllergenResponse = {
+    /**
+     * Allergen Taxonomy Sha256
+     */
+    allergen_taxonomy_sha256?: string | null;
+    /**
+     * Evidence
+     */
+    evidence: Array<AllergenEvidenceResponse>;
+    input?: AllergenInputResponse | null;
+    /**
+     * Limitations
+     */
+    limitations: Array<string>;
+    /**
+     * Qualifications
+     */
+    qualifications: Array<AllergenEvidenceResponse>;
+    /**
+     * Quality
+     */
+    quality?: 'clear' | 'ambiguous' | 'insufficient' | null;
+    /**
+     * Reason
+     */
+    reason?: string | null;
+    /**
+     * State
+     */
+    state: 'completed' | 'unavailable';
+    /**
+     * Tags
+     */
+    tags: Array<string>;
+    /**
+     * Taxonomy Sha256
+     */
+    taxonomy_sha256?: string | null;
+    /**
+     * Unmatched Spans
+     */
+    unmatched_spans: Array<AllergenUnmatchedSpanResponse>;
+    /**
+     * Unmatched Texts
+     */
+    unmatched_texts: Array<string>;
+};
+
 export type JsonValue = boolean | number | number | string | Array<JsonValue> | {
     [key: string]: JsonValue;
 } | null;
+
+/**
+ * OffAllergenAnalysisResponse
+ */
+export type OffAllergenAnalysisResponse = {
+    /**
+     * State
+     */
+    state: 'available' | 'empty' | 'missing' | 'invalid';
+    /**
+     * Tags
+     */
+    tags: Array<string>;
+};
 
 /**
  * OpenFoodFactsLookupResponse
@@ -811,6 +994,7 @@ export type PackageSearchNameResponse = {
  * ProductLookupDataResponse
  */
 export type ProductLookupDataResponse = {
+    allergen_analysis: AllergenAnalysisResponse;
     /**
      * Source Record
      */
@@ -889,34 +1073,6 @@ export type SourceAttributionResponse = {
      * Product Url
      */
     product_url: string;
-};
-
-/**
- * ValidationError
- */
-export type ValidationError = {
-    /**
-     * Context
-     */
-    ctx?: {
-        [key: string]: unknown;
-    };
-    /**
-     * Input
-     */
-    input?: unknown;
-    /**
-     * Location
-     */
-    loc: Array<string | number>;
-    /**
-     * Message
-     */
-    msg: string;
-    /**
-     * Error Type
-     */
-    type: string;
 };
 
 /**
@@ -1074,9 +1230,9 @@ export type MatchExperimentalIngredientsData = {
 
 export type MatchExperimentalIngredientsErrors = {
     /**
-     * Validation Error
+     * Unprocessable Content
      */
-    422: HttpValidationError;
+    422: IngredientMatchErrorResponse;
     /**
      * Service Unavailable
      */

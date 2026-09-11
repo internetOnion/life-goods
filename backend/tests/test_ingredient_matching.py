@@ -8,6 +8,7 @@ from lifegoods.ingredient_matching.importer import import_ingredient_taxonomy
 from lifegoods.ingredient_matching.models import (
     IngredientMatcher,
     IngredientMatchingUnavailableError,
+    IngredientUnmatchedSpan,
 )
 from lifegoods.ingredient_matching.router import get_ingredient_matcher, router
 
@@ -94,6 +95,92 @@ def test_matcher_uses_longest_phrase_and_respects_word_boundaries() -> None:
     assert result.ingredient_tags[-1] == "en:milk-powder"
 
 
+@pytest.mark.parametrize("text", ["coconut, milk", "almond, milk", "rice, milk"])
+def test_matcher_does_not_cross_ingredient_separators(text: str) -> None:
+    matcher = _matcher()
+
+    result = matcher.match(text)
+
+    assert [match.matched_text for match in result.matches] == [
+        text.split(", ")[0],
+        "milk",
+    ]
+    assert result.matches[-1].allergen_paths
+
+
+def test_matcher_preserves_compound_aliases_inside_one_ingredient() -> None:
+    matcher = _matcher()
+
+    result = matcher.match("coconut milk, milk powder, soy-lecithin")
+
+    assert [match.matched_text for match in result.matches] == [
+        "coconut milk",
+        "milk powder",
+        "soy-lecithin",
+    ]
+    assert result.matches[0].allergen_paths == ()
+    assert result.matches[1].allergen_paths
+
+
+def test_matcher_returns_complete_original_text_spans_for_unmatched_words() -> None:
+    matcher = _matcher()
+
+    result = matcher.match("milk, mystery ingredient")
+
+    assert result.unmatched_texts == ("mystery", "ingredient")
+    assert result.unmatched_spans == (
+        IngredientUnmatchedSpan(text="mystery", start=6, end=13),
+        IngredientUnmatchedSpan(text="ingredient", start=14, end=24),
+    )
+
+
+def test_matcher_maps_unmatched_spans_after_unicode_normalization() -> None:
+    matcher = _matcher()
+
+    result = matcher.match("ＭＩＬＫ, mystery")
+
+    assert result.matches[0].matched_text == "ＭＩＬＫ"
+    assert result.matches[0].start == 0
+    assert result.matches[0].end == 4
+    assert result.unmatched_spans == (
+        IngredientUnmatchedSpan(text="mystery", start=6, end=13),
+    )
+
+
+@pytest.mark.parametrize(
+    ("text", "qualification"),
+    [
+        ("may contain peanuts", "precautionary_statement"),
+        (
+            "produced in a facility that also processes tree nuts",
+            "precautionary_statement",
+        ),
+        ("milk-free", "negated_mention"),
+        ("natural flavors", "unresolved_context"),
+    ],
+)
+def test_matcher_classifies_qualified_and_unresolved_mentions(
+    text: str, qualification: str
+) -> None:
+    matcher = _matcher()
+
+    result = matcher.match(text)
+
+    assert result.matches
+    assert {match.qualification for match in result.matches} == {qualification}
+
+
+def test_matcher_keeps_positive_mentions_separate_from_precautionary_mentions() -> None:
+    matcher = _matcher()
+
+    result = matcher.match("wheat flour, may contain peanuts")
+
+    assert [(match.matched_text, match.qualification) for match in result.matches] == [
+        ("wheat flour", "positive_mention"),
+        ("peanuts", "precautionary_statement"),
+    ]
+
+
 def test_matching_route_returns_source_attribution_and_stable_errors() -> None:
     app = FastAPI()
     app.include_router(router)
@@ -111,6 +198,9 @@ def test_matching_route_returns_source_attribution_and_stable_errors() -> None:
 
     assert response.status_code == 200
     assert response.json()["data"]["ingredient_tags"] == ["en:milk-powder"]
+    assert response.json()["data"]["matches"][0]["qualification"] == (
+        "positive_mention"
+    )
     assert response.json()["source"]["name"] == "Open Food Facts"
     assert blank.status_code == 422
 

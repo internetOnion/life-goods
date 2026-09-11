@@ -11,6 +11,9 @@ describe("static Product Lookup", () => {
         expect(response.data.source_record.product_name_en).toBe(
             "nutella biscuits",
         )
+        expect(response.data.allergen_analysis.ingredient_matching.state).toBe(
+            "unavailable",
+        )
     })
 
     test("returns the Nutella Source Record from frontend data", async () => {

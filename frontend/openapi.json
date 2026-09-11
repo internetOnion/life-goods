@@ -1,6 +1,26 @@
 {
   "components": {
     "schemas": {
+      "AllergenAnalysisResponse": {
+        "properties": {
+          "comparison": {
+            "$ref": "#/components/schemas/AllergenComparisonResponse"
+          },
+          "ingredient_matching": {
+            "$ref": "#/components/schemas/IngredientMatchingAllergenResponse"
+          },
+          "off": {
+            "$ref": "#/components/schemas/OffAllergenAnalysisResponse"
+          }
+        },
+        "required": [
+          "off",
+          "ingredient_matching",
+          "comparison"
+        ],
+        "title": "AllergenAnalysisResponse",
+        "type": "object"
+      },
       "AllergenAssessmentOutcome": {
         "enum": [
           "DECLARED_CONTAINS",
@@ -100,6 +120,59 @@
         "title": "AllergenAssessmentStatus",
         "type": "string"
       },
+      "AllergenComparisonResponse": {
+        "properties": {
+          "in_both": {
+            "items": {
+              "type": "string"
+            },
+            "title": "In Both",
+            "type": "array"
+          },
+          "ingredient_matching_only": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Ingredient Matching Only",
+            "type": "array"
+          },
+          "off_only": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Off Only",
+            "type": "array"
+          },
+          "sets_equal": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sets Equal"
+          },
+          "state": {
+            "enum": [
+              "available",
+              "unavailable"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "in_both",
+          "off_only",
+          "ingredient_matching_only",
+          "sets_equal"
+        ],
+        "title": "AllergenComparisonResponse",
+        "type": "object"
+      },
       "AllergenConceptOutcomeResponse": {
         "properties": {
           "concept_id": {
@@ -152,6 +225,87 @@
           "outcome"
         ],
         "title": "AllergenConceptOutcomeResponse",
+        "type": "object"
+      },
+      "AllergenEvidenceResponse": {
+        "properties": {
+          "alias": {
+            "title": "Alias",
+            "type": "string"
+          },
+          "allergens": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Allergens",
+            "type": "array"
+          },
+          "ambiguous": {
+            "title": "Ambiguous",
+            "type": "boolean"
+          },
+          "end": {
+            "title": "End",
+            "type": "integer"
+          },
+          "ingredient_tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Ingredient Tags",
+            "type": "array"
+          },
+          "matched_text": {
+            "title": "Matched Text",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "parents": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Parents",
+            "type": "array"
+          },
+          "qualification": {
+            "enum": [
+              "positive_mention",
+              "precautionary_statement",
+              "negated_mention",
+              "unresolved_context"
+            ],
+            "title": "Qualification",
+            "type": "string"
+          },
+          "start": {
+            "title": "Start",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "matched_text",
+          "start",
+          "end",
+          "alias",
+          "ingredient_tags",
+          "name",
+          "parents",
+          "ambiguous",
+          "qualification",
+          "allergens"
+        ],
+        "title": "AllergenEvidenceResponse",
         "type": "object"
       },
       "AllergenFindingResponse": {
@@ -289,6 +443,24 @@
         "title": "AllergenFindingResponse",
         "type": "object"
       },
+      "AllergenInputResponse": {
+        "properties": {
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "source_field": {
+            "title": "Source Field",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_field",
+          "language"
+        ],
+        "title": "AllergenInputResponse",
+        "type": "object"
+      },
       "AllergenRelationshipType": {
         "enum": [
           "EXACT_NAME",
@@ -299,6 +471,29 @@
         ],
         "title": "AllergenRelationshipType",
         "type": "string"
+      },
+      "AllergenUnmatchedSpanResponse": {
+        "properties": {
+          "end": {
+            "title": "End",
+            "type": "integer"
+          },
+          "start": {
+            "title": "Start",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "start",
+          "end"
+        ],
+        "title": "AllergenUnmatchedSpanResponse",
+        "type": "object"
       },
       "AssessmentReferenceDatasetVersionResponse": {
         "properties": {
@@ -455,19 +650,6 @@
           "sha256"
         ],
         "title": "ExternalDatasetVersionResponse",
-        "type": "object"
-      },
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "title": "Detail",
-            "type": "array"
-          }
-        },
-        "title": "HTTPValidationError",
         "type": "object"
       },
       "HalalClassification": {
@@ -844,6 +1026,16 @@
             "title": "Parents",
             "type": "array"
           },
+          "qualification": {
+            "enum": [
+              "positive_mention",
+              "precautionary_statement",
+              "negated_mention",
+              "unresolved_context"
+            ],
+            "title": "Qualification",
+            "type": "string"
+          },
           "start": {
             "title": "Start",
             "type": "integer"
@@ -864,19 +1056,38 @@
           "tags",
           "name",
           "parents",
-          "ambiguous"
+          "ambiguous",
+          "qualification"
         ],
         "title": "IngredientMatchDetailResponse",
+        "type": "object"
+      },
+      "IngredientMatchErrorDetail": {
+        "properties": {
+          "code": {
+            "enum": [
+              "invalid_ingredient_text",
+              "prototype_unavailable"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "IngredientMatchErrorDetail",
         "type": "object"
       },
       "IngredientMatchErrorResponse": {
         "properties": {
           "error": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "title": "Error",
-            "type": "object"
+            "$ref": "#/components/schemas/IngredientMatchErrorDetail"
           }
         },
         "required": [
@@ -935,6 +1146,130 @@
         "title": "IngredientMatchSourceResponse",
         "type": "object"
       },
+      "IngredientMatchingAllergenResponse": {
+        "properties": {
+          "allergen_taxonomy_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allergen Taxonomy Sha256"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/AllergenEvidenceResponse"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "input": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AllergenInputResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "qualifications": {
+            "items": {
+              "$ref": "#/components/schemas/AllergenEvidenceResponse"
+            },
+            "title": "Qualifications",
+            "type": "array"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "enum": [
+                  "clear",
+                  "ambiguous",
+                  "insufficient"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "state": {
+            "enum": [
+              "completed",
+              "unavailable"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "taxonomy_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxonomy Sha256"
+          },
+          "unmatched_spans": {
+            "items": {
+              "$ref": "#/components/schemas/AllergenUnmatchedSpanResponse"
+            },
+            "title": "Unmatched Spans",
+            "type": "array"
+          },
+          "unmatched_texts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unmatched Texts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "state",
+          "tags",
+          "evidence",
+          "qualifications",
+          "limitations",
+          "unmatched_texts",
+          "unmatched_spans"
+        ],
+        "title": "IngredientMatchingAllergenResponse",
+        "type": "object"
+      },
       "JsonValue": {
         "anyOf": [
           {
@@ -965,6 +1300,33 @@
             "type": "null"
           }
         ]
+      },
+      "OffAllergenAnalysisResponse": {
+        "properties": {
+          "state": {
+            "enum": [
+              "available",
+              "empty",
+              "missing",
+              "invalid"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "state",
+          "tags"
+        ],
+        "title": "OffAllergenAnalysisResponse",
+        "type": "object"
       },
       "OpenFoodFactsLookupResponse": {
         "properties": {
@@ -1520,6 +1882,9 @@
       },
       "ProductLookupDataResponse": {
         "properties": {
+          "allergen_analysis": {
+            "$ref": "#/components/schemas/AllergenAnalysisResponse"
+          },
           "source_record": {
             "additionalProperties": {
               "$ref": "#/components/schemas/JsonValue"
@@ -1529,7 +1894,8 @@
           }
         },
         "required": [
-          "source_record"
+          "source_record",
+          "allergen_analysis"
         ],
         "title": "ProductLookupDataResponse",
         "type": "object"
@@ -1661,46 +2027,6 @@
           "product_url"
         ],
         "title": "SourceAttributionResponse",
-        "type": "object"
-      },
-      "ValidationError": {
-        "properties": {
-          "ctx": {
-            "title": "Context",
-            "type": "object"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "title": "Location",
-            "type": "array"
-          },
-          "msg": {
-            "title": "Message",
-            "type": "string"
-          },
-          "type": {
-            "title": "Error Type",
-            "type": "string"
-          }
-        },
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError",
         "type": "object"
       },
       "lifegoods__package_matches__contracts__PackageSearchResponse": {
@@ -2066,11 +2392,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/IngredientMatchErrorResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Unprocessable Content"
           },
           "503": {
             "content": {

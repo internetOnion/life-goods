@@ -1,6 +1,7 @@
 import type { ProductLookupResponse } from "@/api/generated"
 import staticProducts from "@/data/products.json"
 import { normalizeIdentifier } from "@/lib/identifier"
+import { unavailableAllergenAnalysis } from "./defaults"
 
 export type ProductLookup = (barcode: string) => Promise<ProductLookupResponse>
 
@@ -40,7 +41,10 @@ export const lookupProduct: ProductLookup = async (barcode) => {
     }
 
     return {
-        data: { source_record: product.source_record },
+        data: {
+            source_record: product.source_record,
+            allergen_analysis: unavailableAllergenAnalysis,
+        },
         meta: product.meta,
     }
 }

@@ -29,8 +29,10 @@ class ProductAllergenAnalyzer:
                 "reason": _ingredient_unavailable_reason(source_record),
                 "tags": [],
                 "evidence": [],
+                "qualifications": [],
                 "limitations": [],
                 "unmatched_texts": [],
+                "unmatched_spans": [],
             }
         elif len(ingredient_input["text"]) > MAX_INGREDIENT_TEXT_LENGTH:
             ingredient_matching = {
@@ -38,8 +40,10 @@ class ProductAllergenAnalyzer:
                 "reason": "ingredient_text_too_long",
                 "tags": [],
                 "evidence": [],
+                "qualifications": [],
                 "limitations": ["ingredient_text_exceeds_matcher_limit"],
                 "unmatched_texts": [],
+                "unmatched_spans": [],
                 "input": _input_response(ingredient_input),
             }
         else:
@@ -61,8 +65,10 @@ class ProductAllergenAnalyzer:
                 "reason": "matcher_unavailable",
                 "tags": [],
                 "evidence": [],
+                "qualifications": [],
                 "limitations": [],
                 "unmatched_texts": [],
+                "unmatched_spans": [],
                 "input": _input_response(ingredient_input),
             }
         except (TypeError, KeyError, ValueError) as error:
@@ -78,8 +84,10 @@ class ProductAllergenAnalyzer:
                 "reason": "matcher_input_invalid",
                 "tags": [],
                 "evidence": [],
+                "qualifications": [],
                 "limitations": [],
                 "unmatched_texts": [],
+                "unmatched_spans": [],
                 "input": _input_response(ingredient_input),
             }
         except Exception as error:
@@ -95,8 +103,10 @@ class ProductAllergenAnalyzer:
                 "reason": "matcher_unavailable",
                 "tags": [],
                 "evidence": [],
+                "qualifications": [],
                 "limitations": [],
                 "unmatched_texts": [],
+                "unmatched_spans": [],
                 "input": _input_response(ingredient_input),
             }
 
@@ -105,6 +115,7 @@ class ProductAllergenAnalyzer:
                 path[-1]
                 for match in result.matches
                 if not match.ambiguous
+                and match.qualification == "positive_mention"
                 for path in match.allergen_paths
                 if path
             }
@@ -119,6 +130,7 @@ class ProductAllergenAnalyzer:
                 "name": match.name,
                 "parents": list(match.parents),
                 "ambiguous": match.ambiguous,
+                "qualification": match.qualification,
                 "allergens": [
                     {"tag": path[-1], "path": list(path)}
                     for path in match.allergen_paths
@@ -127,6 +139,9 @@ class ProductAllergenAnalyzer:
             }
             for match in result.matches
         ]
+        qualifications = [
+            item for item in evidence if item["qualification"] != "positive_mention"
+        ]
         limitations: list[str] = []
         if not result.matches:
             limitations.append("no_taxonomy_matches")
@@ -134,6 +149,8 @@ class ProductAllergenAnalyzer:
             limitations.append("ambiguous_matches_excluded")
         if result.unmatched_texts:
             limitations.append("unmatched_ingredient_text")
+        if qualifications:
+            limitations.append("qualified_mentions_excluded")
         if not derived_tags:
             limitations.append("no_reliable_allergen_relationships")
         return {
@@ -147,8 +164,17 @@ class ProductAllergenAnalyzer:
             ),
             "tags": derived_tags,
             "evidence": evidence,
+            "qualifications": qualifications,
             "limitations": limitations,
             "unmatched_texts": list(result.unmatched_texts),
+            "unmatched_spans": [
+                {
+                    "text": span.text,
+                    "start": span.start,
+                    "end": span.end,
+                }
+                for span in result.unmatched_spans
+            ],
             "input": _input_response(ingredient_input),
             "taxonomy_sha256": result.taxonomy_sha256,
             "allergen_taxonomy_sha256": result.allergen_taxonomy_sha256,

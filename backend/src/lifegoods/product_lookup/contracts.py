@@ -31,7 +31,19 @@ class AllergenEvidenceResponse(BaseModel):
     name: str | None
     parents: list[str]
     ambiguous: bool
+    qualification: Literal[
+        "positive_mention",
+        "precautionary_statement",
+        "negated_mention",
+        "unresolved_context",
+    ]
     allergens: list[dict[str, Any]]
+
+
+class AllergenUnmatchedSpanResponse(BaseModel):
+    text: str
+    start: int
+    end: int
 
 
 class IngredientMatchingAllergenResponse(BaseModel):
@@ -40,8 +52,10 @@ class IngredientMatchingAllergenResponse(BaseModel):
     quality: Literal["clear", "ambiguous", "insufficient"] | None = None
     tags: list[str]
     evidence: list[AllergenEvidenceResponse]
+    qualifications: list[AllergenEvidenceResponse]
     limitations: list[str]
     unmatched_texts: list[str]
+    unmatched_spans: list[AllergenUnmatchedSpanResponse]
     input: AllergenInputResponse | None = None
     taxonomy_sha256: str | None = None
     allergen_taxonomy_sha256: str | None = None

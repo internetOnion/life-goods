@@ -173,3 +173,24 @@ def test_experimental_product_lookup_is_typed_in_openapi(client: TestClient) -> 
         "source_record"
     ]
     assert source_record["type"] == "object"
+    assert "allergen_analysis" in schemas["ProductLookupDataResponse"]["required"]
+    assert "qualifications" in schemas["IngredientMatchingAllergenResponse"][
+        "required"
+    ]
+    assert "unmatched_spans" in schemas["IngredientMatchingAllergenResponse"][
+        "required"
+    ]
+    assert schemas["AllergenEvidenceResponse"]["properties"]["qualification"][
+        "enum"
+    ] == [
+        "positive_mention",
+        "precautionary_statement",
+        "negated_mention",
+        "unresolved_context",
+    ]
+    ingredient_operation = specification["paths"][
+        "/api/experimental/ingredient-matches"
+    ]["post"]
+    assert ingredient_operation["responses"]["422"]["content"]["application/json"][
+        "schema"
+    ] == {"$ref": "#/components/schemas/IngredientMatchErrorResponse"}

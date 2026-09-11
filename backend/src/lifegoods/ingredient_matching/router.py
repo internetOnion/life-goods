@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Body, Depends
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from lifegoods.ingredient_matching.models import (
     MAX_INGREDIENT_TEXT_LENGTH,
     IngredientMatch,
     IngredientMatcher,
     IngredientMatchingUnavailableError,
+    IngredientQualification,
 )
 
 router = APIRouter(prefix="/api/experimental", tags=["Ingredient Matching"])
@@ -23,6 +24,13 @@ class IngredientMatchRequest(BaseModel):
         description="English ingredient text to match against the prototype taxonomy.",
     )
 
+    @field_validator("ingredient_text")
+    @classmethod
+    def reject_blank_ingredient_text(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("ingredient_text must not be blank")
+        return value
+
 
 class IngredientMatchDetailResponse(BaseModel):
     matched_text: str
@@ -33,6 +41,7 @@ class IngredientMatchDetailResponse(BaseModel):
     name: str | None
     parents: list[str]
     ambiguous: bool
+    qualification: IngredientQualification
 
 
 class IngredientMatchDataResponse(BaseModel):
@@ -50,8 +59,13 @@ class IngredientMatchResponse(BaseModel):
     source: IngredientMatchSourceResponse
 
 
+class IngredientMatchErrorDetail(BaseModel):
+    code: Literal["invalid_ingredient_text", "prototype_unavailable"]
+    message: str
+
+
 class IngredientMatchErrorResponse(BaseModel):
-    error: dict[str, str]
+    error: IngredientMatchErrorDetail
 
 
 def get_ingredient_matcher() -> IngredientMatcher:
@@ -67,7 +81,10 @@ def get_ingredient_matcher() -> IngredientMatcher:
         "projection. This experimental contract is unstable and does not infer allergens."
     ),
     response_model=IngredientMatchResponse,
-    responses={503: {"model": IngredientMatchErrorResponse}},
+    responses={
+        422: {"model": IngredientMatchErrorResponse},
+        503: {"model": IngredientMatchErrorResponse},
+    },
 )
 def match_experimental_ingredients(
     request: Annotated[IngredientMatchRequest, Body()],
@@ -75,10 +92,15 @@ def match_experimental_ingredients(
 ) -> IngredientMatchResponse | JSONResponse:
     try:
         result = matcher.match(request.ingredient_text)
-    except ValueError as error:
+    except ValueError:
         return JSONResponse(
             status_code=422,
-            content={"error": {"code": "invalid_ingredient_text", "message": str(error)}},
+            content={
+                "error": {
+                    "code": "invalid_ingredient_text",
+                    "message": "Enter ingredient text from 1 to 2000 characters.",
+                }
+            },
         )
     except IngredientMatchingUnavailableError as error:
         return JSONResponse(
@@ -107,4 +129,5 @@ def _response_match(match: IngredientMatch) -> IngredientMatchDetailResponse:
         name=match.name,
         parents=list(match.parents),
         ambiguous=match.ambiguous,
+        qualification=match.qualification,
     )

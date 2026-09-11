@@ -122,8 +122,10 @@ def test_product_lookup_returns_complete_raw_source_record_with_provenance() -> 
                     "quality": None,
                     "tags": [],
                     "evidence": [],
+                    "qualifications": [],
                     "limitations": [],
                     "unmatched_texts": [],
+                    "unmatched_spans": [],
                     "input": {
                         "source_field": "ingredients_text_en",
                         "language": "en",
@@ -185,6 +187,204 @@ def test_product_lookup_compares_off_and_ingredient_allergens_when_off_is_empty(
         "sets_equal": False,
     }
     assert cached_response.json()["data"]["allergen_analysis"] == analysis
+
+
+def test_product_lookup_excludes_qualified_matches_from_positive_comparison() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "ingredients_text_en": "wheat flour, may contain peanuts",
+            "allergens_tags": ["en:gluten"],
+        }
+    )
+    import_ingredient_taxonomy(database)
+    matcher = IngredientMatcher(database, enabled=True)
+
+    with _client(database, ingredient_matcher=matcher) as client:
+        response = client.get("/api/experimental/products/4006381333931")
+        cached_response = client.get("/api/experimental/products/4006381333931")
+
+    analysis = response.json()["data"]["allergen_analysis"]
+    assert analysis["ingredient_matching"]["tags"] == ["en:gluten"]
+    assert [
+        item["qualification"] for item in analysis["ingredient_matching"]["qualifications"]
+    ] == ["precautionary_statement"]
+    assert analysis["comparison"] == {
+        "state": "available",
+        "in_both": ["en:gluten"],
+        "off_only": [],
+        "ingredient_matching_only": [],
+        "sets_equal": True,
+    }
+    assert cached_response.json()["data"]["allergen_analysis"] == analysis
+
+
+def test_product_lookup_keeps_invalid_off_tags_separate_from_matching() -> None:
+    database = _dataset_database()
+    source_record = {
+        "code": "4006381333931",
+        "ingredients_text_en": "milk",
+        "allergens_tags": ["en:milk", 42],
+    }
+    expected_source_record = dict(source_record)
+    database[COLLECTION_NAME].insert_one(source_record)
+    import_ingredient_taxonomy(database)
+    matcher = IngredientMatcher(database, enabled=True)
+
+    with _client(database, ingredient_matcher=matcher) as client:
+        response = client.get("/api/experimental/products/4006381333931")
+
+    body = response.json()
+    assert body["data"]["source_record"] == expected_source_record
+    assert body["data"]["allergen_analysis"]["off"] == {
+        "state": "invalid",
+        "tags": ["en:milk"],
+    }
+    assert body["data"]["allergen_analysis"]["comparison"]["state"] == "unavailable"
+
+
+@pytest.mark.parametrize(
+    ("source_record", "reason"),
+    [
+        ({"allergens_tags": []}, "ingredient_text_unavailable"),
+        (
+            {"ingredients_text": "lait", "lang": "fr", "allergens_tags": []},
+            "ingredient_language_unsupported",
+        ),
+        (
+            {
+                "ingredients_text_en": "x" * 2001,
+                "allergens_tags": [],
+            },
+            "ingredient_text_too_long",
+        ),
+    ],
+    ids=["missing-text", "unsupported-language", "text-too-long"],
+)
+def test_product_lookup_reports_ingredient_matching_unavailable_reasons(
+    source_record: dict[str, object], reason: str
+) -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {"code": "4006381333931", **source_record}
+    )
+    import_ingredient_taxonomy(database)
+    matcher = IngredientMatcher(database, enabled=True)
+
+    with _client(database, ingredient_matcher=matcher) as client:
+        response = client.get("/api/experimental/products/4006381333931")
+
+    analysis = response.json()["data"]["allergen_analysis"]["ingredient_matching"]
+    assert analysis["state"] == "unavailable"
+    assert analysis["reason"] == reason
+
+
+def test_product_lookup_remains_available_when_matcher_is_disabled() -> None:
+    database = _dataset_database()
+    source_record = {
+        "code": "4006381333931",
+        "ingredients_text_en": "milk",
+        "allergens_tags": [],
+    }
+    expected_source_record = dict(source_record)
+    database[COLLECTION_NAME].insert_one(source_record)
+    matcher = IngredientMatcher(database, enabled=False)
+
+    with _client(database, ingredient_matcher=matcher) as client:
+        response = client.get("/api/experimental/products/4006381333931")
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["data"]["source_record"] == expected_source_record
+    assert body["data"]["allergen_analysis"]["ingredient_matching"]["reason"] == (
+        "matcher_unavailable"
+    )
+
+
+def test_ingredient_match_post_allows_configured_origin_cors_preflight() -> None:
+    database = _dataset_database()
+    import_ingredient_taxonomy(database)
+    matcher = IngredientMatcher(database, enabled=True)
+
+    with _client(database, ingredient_matcher=matcher) as client:
+        response = client.options(
+            "/api/experimental/ingredient-matches",
+            headers={
+                "Origin": "http://localhost:5173",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert "POST" in response.headers["access-control-allow-methods"]
+
+
+def test_ingredient_match_post_rejects_unconfigured_origin_cors_preflight() -> None:
+    database = _dataset_database()
+
+    with _client(database) as client:
+        response = client.options(
+            "/api/experimental/ingredient-matches",
+            headers={
+                "Origin": "https://unconfigured.example",
+                "Access-Control-Request-Method": "POST",
+            },
+        )
+
+    assert response.status_code == 400
+    assert "access-control-allow-origin" not in response.headers
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        None,
+        {},
+        {"ingredient_text": ""},
+        {"ingredient_text": "   "},
+        {"ingredient_text": "x" * 2001},
+    ],
+    ids=["missing-body", "missing-field", "blank", "whitespace", "too-long"],
+)
+def test_ingredient_match_validation_uses_one_stable_error_envelope(payload) -> None:
+    database = _dataset_database()
+
+    with _client(database) as client:
+        response = (
+            client.post("/api/experimental/ingredient-matches")
+            if payload is None
+            else client.post("/api/experimental/ingredient-matches", json=payload)
+        )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "error": {
+            "code": "invalid_ingredient_text",
+            "message": "Enter ingredient text from 1 to 2000 characters.",
+        }
+    }
+
+
+def test_ingredient_match_malformed_json_uses_the_same_error_envelope() -> None:
+    database = _dataset_database()
+
+    with _client(database) as client:
+        response = client.post(
+            "/api/experimental/ingredient-matches",
+            content="{not-json",
+            headers={"content-type": "application/json"},
+        )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "error": {
+            "code": "invalid_ingredient_text",
+            "message": "Enter ingredient text from 1 to 2000 characters.",
+        }
+    }
 
 
 def test_product_lookup_preserves_sparse_source_record_without_inference() -> None:

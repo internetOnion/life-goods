@@ -135,8 +135,10 @@ def get_experimental_product(
                             "reason": "analyzer_unavailable",
                             "tags": [],
                             "evidence": [],
+                            "qualifications": [],
                             "limitations": [],
                             "unmatched_texts": [],
+                            "unmatched_spans": [],
                         },
                         "comparison": {
                             "state": "unavailable",

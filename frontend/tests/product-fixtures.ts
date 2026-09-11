@@ -1,10 +1,12 @@
 import type { ProductLookupResponse } from "../src/api/generated"
+import { unavailableAllergenAnalysis } from "../src/features/product/defaults"
 
 export function productResponse(
     sourceRecord: ProductLookupResponse["data"]["source_record"] = {},
 ): ProductLookupResponse {
     return {
         data: {
+            allergen_analysis: unavailableAllergenAnalysis,
             source_record: {
                 code: "4006381333931",
                 product_name_en: "Dark Chocolate",

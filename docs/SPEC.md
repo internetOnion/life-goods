@@ -75,6 +75,28 @@ Missing, unsupported, ambiguous, or insufficient ingredient evidence is returned
 does not mean that the Product has no allergens. The analysis is source comparison, not a Life
 Goods safety, allergen-free, or verification verdict.
 
+`ingredient_matching.evidence` retains the matched Original Text span, taxonomy relationship,
+and one of these bounded qualification values:
+
+- `positive_mention`: reliable ingredient evidence eligible for derived tags;
+- `precautionary_statement`: a supported cross-contact statement such as `may contain`;
+- `negated_mention`: a supported negated form such as `milk-free`; or
+- `unresolved_context`: recognized wording whose allergen relationship or context is not
+  supported.
+
+Only unambiguous `positive_mention` evidence with a supported allergen relationship contributes
+to `ingredient_matching.tags` or the comparison sets. `qualifications` exposes non-positive
+qualified evidence separately, while `unmatched_spans` reports each unmatched Original Text
+token with its exact `text`, `start`, and `end` offsets. `unmatched_texts` remains the text-only
+projection for compatibility. These fields describe source evidence and coverage limitations;
+they never assert that a Product is allergen-free or safe.
+
+The matcher supports bounded English qualification forms only. It does not claim general
+natural-language or multilingual interpretation. A missing ingredient field, unsupported or
+unknown language, oversized text, disabled matcher, or unavailable matcher is represented as
+Source Data Unavailable with a reason, while Product Lookup continues to return the Source
+Record when possible.
+
 `source_record` contains the raw imported Open Food Facts document. The backend removes MongoDB `_id`, local import bookkeeping, and other storage-only metadata. It does not normalize or selectively project Open Food Facts fields in this experimental contract.
 
 This endpoint is intentionally unstable. After the English Product page reveals its actual needs, a stable Life Goods projection will graduate under `/api/v1/products/{barcode}`.
@@ -103,6 +125,19 @@ Required behavior:
 | Unexpected internal failure                         |       `500` | `internal_error`      |
 
 The service never falls back silently to the live Open Food Facts API.
+
+The experimental `POST /api/experimental/ingredient-matches` route accepts JSON from configured
+frontend origins. Its browser preflight permits `POST` only for those configured origins. Invalid,
+missing, blank, whitespace-only, or oversized requests use the same `422` envelope:
+
+```json
+{
+    "error": {
+        "code": "invalid_ingredient_text",
+        "message": "Enter ingredient text from 1 to 2000 characters."
+    }
+}
+```
 
 ## 4. Dataset Snapshot
 
