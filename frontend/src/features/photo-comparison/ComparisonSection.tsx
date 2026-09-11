@@ -30,6 +30,7 @@ interface ComparisonSectionProps {
     rightProduct: ProductSideState
     onCompare: () => void
     onFocusEvidence: (imageId: string) => void
+    compareButtonLabel?: string
 }
 
 export function ComparisonSection({
@@ -42,16 +43,17 @@ export function ComparisonSection({
     rightProduct,
     onCompare,
     onFocusEvidence,
+    compareButtonLabel,
 }: ComparisonSectionProps) {
     const amountRows = useMemo(
         () =>
-            comparison?.rows.filter((row) => row.row_kind !== "percentage") ||
+            comparison?.rows?.filter((row) => row.row_kind !== "percentage") ||
             [],
         [comparison],
     )
     const percentageRows = useMemo(
         () =>
-            comparison?.rows.filter((row) => row.row_kind === "percentage") ||
+            comparison?.rows?.filter((row) => row.row_kind === "percentage") ||
             [],
         [comparison],
     )
@@ -107,6 +109,10 @@ export function ComparisonSection({
                     <p className="mt-2 max-w-xl text-xs leading-relaxed text-neutral-400 sm:text-sm">
                         Derived from submitted physical label photo evidence.
                     </p>
+                    <p className="mt-1 text-xs text-neutral-400">
+                        Photos are sent to the configured AI provider for
+                        processing.
+                    </p>
                 </div>
 
                 <Button
@@ -116,7 +122,8 @@ export function ComparisonSection({
                     onClick={onCompare}
                     className="w-full shrink-0 border-neutral-700 bg-neutral-800 font-bold text-white hover:border-neutral-600 hover:bg-neutral-700 disabled:opacity-40 sm:w-auto"
                 >
-                    {isComparing ? "Comparing…" : "Compare Products"}
+                    {compareButtonLabel ||
+                        (isComparing ? "Comparing…" : "Compare Products")}
                 </Button>
             </div>
 

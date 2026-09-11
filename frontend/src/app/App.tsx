@@ -51,14 +51,16 @@ export function App({ lookup = lookupProduct, demoMode = false }: AppProps) {
                     element={<DataAndLicensesPage />}
                 />
                 <Route
-                    path={appRoutes.photoComparison}
+                    path={appRoutes.compare}
                     element={<PhotoComparisonPage />}
                 />
                 <Route
+                    path="/experimental/photo-comparison"
+                    element={<Navigate to={appRoutes.compare} replace />}
+                />
+                <Route
                     path="/photo-comparison"
-                    element={
-                        <Navigate to={appRoutes.photoComparison} replace />
-                    }
+                    element={<Navigate to={appRoutes.compare} replace />}
                 />
                 <Route path="*" element={<NotFoundPage />} />
             </Routes>

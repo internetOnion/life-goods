@@ -8,5 +8,6 @@ export const appRoutes = {
     allergies: "/allergies",
     product: "/products/:barcode",
     dataAndLicenses: "/data-and-licenses",
-    photoComparison: "/experimental/photo-comparison",
+    compare: "/compare",
+    photoComparison: "/compare",
 } as const

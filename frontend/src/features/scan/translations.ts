@@ -5,6 +5,8 @@ export const scanTranslations = {
             cameraLabel: "Barcode scanner",
             searchPlaceholder: "Search products...",
             searchLabel: "Search",
+            compareProducts: "Compare Products",
+            compareProductsHint: "Compare nutrition labels using photos",
             privacyTitle: "Your camera stays private",
             privacyBody:
                 "Barcode detection happens on this device. Life Goods does not upload, store, or share camera frames.",

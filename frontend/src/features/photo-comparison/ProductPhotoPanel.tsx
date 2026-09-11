@@ -36,7 +36,7 @@ interface ProductPhotoPanelProps {
     onRemovePhoto: (index: number) => void
     onReplacePhoto: (index: number, file: File) => void
     onClearPhotos: () => void
-    onExtract: () => void
+    onExtract?: () => void
     onSelectColumn: (columnId: string | null) => void
     onFocusEvidence: (imageId: string) => void
     onInspectPhoto?: (index: number) => void
@@ -61,8 +61,8 @@ export function ProductPhotoPanel({
     const extraction = product.extraction
     const selectedColumnId =
         product.selectedColumnId ||
-        (extraction?.nutrition_columns.length === 1
-            ? (extraction.nutrition_columns[0]?.column_id ?? null)
+        ((extraction?.nutrition_columns?.length ?? 0) === 1
+            ? (extraction?.nutrition_columns?.[0]?.column_id ?? null)
             : null)
     const packageQuantity = extraction?.package_quantity
 
@@ -268,17 +268,19 @@ export function ProductPhotoPanel({
 
                 {/* Panel Actions */}
                 <div className="mt-4 flex flex-wrap items-center gap-2.5">
-                    <Button
-                        type="button"
-                        variant="default"
-                        disabled={
-                            product.photos.length === 0 || product.loading
-                        }
-                        onClick={onExtract}
-                        className="font-bold shadow-xs"
-                    >
-                        {extractButtonLabel}
-                    </Button>
+                    {onExtract && (
+                        <Button
+                            type="button"
+                            variant="default"
+                            disabled={
+                                product.photos.length === 0 || product.loading
+                            }
+                            onClick={onExtract}
+                            className="font-bold shadow-xs"
+                        >
+                            {extractButtonLabel}
+                        </Button>
+                    )}
                     <Button
                         type="button"
                         variant="ghost"
@@ -304,7 +306,9 @@ export function ProductPhotoPanel({
                         !product.extraction &&
                             !product.loading &&
                             !product.error &&
-                            "text-neutral-500",
+                            (product.photos.length > 0
+                                ? "font-medium text-neutral-700"
+                                : "text-neutral-500"),
                     )}
                     role={product.error ? "alert" : "status"}
                 >
@@ -341,6 +345,8 @@ export function ProductPhotoPanel({
                                 </div>
                             </details>
                         </div>
+                    ) : product.photos.length > 0 ? (
+                        "Ready to compare"
                     ) : (
                         "Add photos to begin"
                     )}
@@ -457,9 +463,9 @@ export function ProductPhotoPanel({
                                         Preparation
                                     </dt>
                                     <dd className="font-medium text-neutral-900">
-                                        {extraction.nutrition_columns.length >
-                                        0 ? (
-                                            extraction.nutrition_columns
+                                        {(extraction.nutrition_columns
+                                            ?.length ?? 0) > 0 ? (
+                                            (extraction.nutrition_columns ?? [])
                                                 .map((col) =>
                                                     formatPreparationLabel(
                                                         col.preparation_state,
@@ -506,21 +512,22 @@ export function ProductPhotoPanel({
                         </section>
 
                         {/* Nutrition columns */}
-                        {extraction.nutrition_columns.length > 0 && (
+                        {(extraction.nutrition_columns?.length ?? 0) > 0 && (
                             <section className="mt-6 border-t border-neutral-200/80 pt-5">
                                 <div className="flex items-baseline justify-between gap-3">
                                     <h3 className="text-sm font-bold text-neutral-900">
                                         Nutrition columns
                                     </h3>
                                     <span className="font-mono text-xs text-neutral-500">
-                                        {extraction.nutrition_columns.length > 1
+                                        {(extraction.nutrition_columns
+                                            ?.length ?? 0) > 1
                                             ? "Select one for comparison"
                                             : "Sole column selected"}
                                     </span>
                                 </div>
 
                                 <div className="mt-3.5 space-y-3.5">
-                                    {extraction.nutrition_columns.map(
+                                    {(extraction.nutrition_columns ?? []).map(
                                         (column) => (
                                             <NutritionColumnCard
                                                 key={column.column_id}
@@ -626,8 +633,8 @@ function NutritionColumnCard({
             </div>
 
             <div className="mt-3 divide-y divide-neutral-100 border-t border-neutral-100 text-xs">
-                {column.fields.length > 0 ? (
-                    column.fields.map((field) => (
+                {(column.fields?.length ?? 0) > 0 ? (
+                    (column.fields ?? []).map((field) => (
                         <ObservationRow
                             key={field.field_id}
                             field={field}

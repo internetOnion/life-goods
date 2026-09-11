@@ -41,11 +41,18 @@ function createInitialProduct(
     }
 }
 
-export function PhotoComparisonPage() {
+export type PhotoComparisonPageProps = {
+    extractPhotos?: typeof extractProductPhotos
+    compare?: typeof compareProducts
+}
+
+export function PhotoComparisonPage({
+    extractPhotos = extractProductPhotos,
+    compare = compareProducts,
+}: PhotoComparisonPageProps = {}) {
     usePageMetadata({
-        title: "Photo comparison lab",
-        description:
-            "Experimental side-by-side product label photo evidence extraction and deterministic comparison.",
+        title: "Compare Products",
+        description: "Compare nutrition labels using photos.",
     })
 
     const [leftProduct, setLeftProduct] = useState<ProductSideState>(() =>
@@ -58,7 +65,9 @@ export function PhotoComparisonPage() {
     const [comparison, setComparison] = useState<ComparisonResponse | null>(
         null,
     )
-    const [isComparing, setIsComparing] = useState(false)
+    const [processingStep, setProcessingStep] = useState<
+        "idle" | "extracting_left" | "extracting_right" | "comparing"
+    >("idle")
     const [comparisonError, setComparisonError] = useState<string | null>(null)
     const [highlightedPhotoId, setHighlightedPhotoId] = useState<string | null>(
         null,
@@ -88,25 +97,78 @@ export function PhotoComparisonPage() {
     }, [])
 
     const isReadyToCompare = useMemo(() => {
-        const isReady = (prod: ProductSideState) =>
-            prod.extraction !== null &&
-            ["complete", "partial"].includes(prod.extraction.outcome) &&
-            (prod.extraction.nutrition_columns.length <= 1 ||
-                Boolean(prod.selectedColumnId))
-        return isReady(leftProduct) && isReady(rightProduct)
+        if (
+            leftProduct.photos.length === 0 ||
+            rightProduct.photos.length === 0
+        ) {
+            return false
+        }
+        if (
+            leftProduct.extraction &&
+            (leftProduct.extraction.nutrition_columns?.length ?? 0) > 1 &&
+            !leftProduct.selectedColumnId
+        ) {
+            return false
+        }
+        if (
+            rightProduct.extraction &&
+            (rightProduct.extraction.nutrition_columns?.length ?? 0) > 1 &&
+            !rightProduct.selectedColumnId
+        ) {
+            return false
+        }
+        return true
     }, [leftProduct, rightProduct])
+
+    const compareButtonLabel = useMemo(() => {
+        if (processingStep === "extracting_left") {
+            return `Reading ${leftProduct.title}…`
+        }
+        if (processingStep === "extracting_right") {
+            return `Reading ${rightProduct.title}…`
+        }
+        if (processingStep === "comparing") {
+            return "Comparing…"
+        }
+        return "Compare Products"
+    }, [processingStep, leftProduct.title, rightProduct.title])
 
     const comparisonStatus = useMemo(() => {
         if (comparisonError) return comparisonError
-        if (isComparing) return "Calculating explicit compatible values…"
+        if (processingStep === "extracting_left") {
+            return `Reading ${leftProduct.title} photos…`
+        }
+        if (processingStep === "extracting_right") {
+            return `Reading ${rightProduct.title} photos…`
+        }
+        if (processingStep === "comparing") {
+            return "Calculating explicit compatible values…"
+        }
         if (comparison) {
             return "Comparison is based on submitted photo evidence."
         }
-        if (isReadyToCompare) {
-            return "Both extractions are ready."
+        if (
+            leftProduct.photos.length === 0 ||
+            rightProduct.photos.length === 0
+        ) {
+            return "Add photos for both products to compare."
         }
-        return "Extract both Products to enable comparison."
-    }, [comparison, comparisonError, isComparing, isReadyToCompare])
+        if (
+            leftProduct.extraction &&
+            (leftProduct.extraction.nutrition_columns?.length ?? 0) > 1 &&
+            !leftProduct.selectedColumnId
+        ) {
+            return `Select a nutrition column for ${leftProduct.title} to continue.`
+        }
+        if (
+            rightProduct.extraction &&
+            (rightProduct.extraction.nutrition_columns?.length ?? 0) > 1 &&
+            !rightProduct.selectedColumnId
+        ) {
+            return `Select a nutrition column for ${rightProduct.title} to continue.`
+        }
+        return "Both products have photos. Ready to compare."
+    }, [comparison, comparisonError, processingStep, leftProduct, rightProduct])
 
     const invalidateComparison = () => {
         setComparison(null)
@@ -125,6 +187,7 @@ export function PhotoComparisonPage() {
         setLeftProduct(createInitialProduct("left", "Product A", "1"))
         setRightProduct(createInitialProduct("right", "Product B", "2"))
         setInspectionState({ isOpen: false, side: "left", index: 0 })
+        setProcessingStep("idle")
         invalidateComparison()
     }
 
@@ -331,102 +394,183 @@ export function PhotoComparisonPage() {
         }
     }
 
-    const handleExtract = async (side: "left" | "right") => {
-        const product = side === "left" ? leftProduct : rightProduct
-        const setProduct = side === "left" ? setLeftProduct : setRightProduct
-
-        if (product.photos.length === 0) return
-
-        const currentRevision = product.revision
-
-        setProduct((prev) => ({
-            ...prev,
-            loading: true,
-            error: "",
-        }))
-        invalidateComparison()
-
-        try {
-            const extraction = await extractProductPhotos(
-                product.id,
-                product.photos.map((p) => p.file),
-            )
-
-            setProduct((prev) => {
-                if (prev.revision !== currentRevision) return prev
-                const defaultColId =
-                    extraction.nutrition_columns.length === 1
-                        ? (extraction.nutrition_columns[0]?.column_id ?? null)
-                        : null
-
-                let updatedTitle = prev.title
-                const isDefaultTitle =
-                    prev.title === "Product A" || prev.title === "Product B"
-                if (isDefaultTitle) {
-                    const brand = extraction.identity?.brand?.value_text?.trim()
-                    const name = extraction.identity?.name?.value_text?.trim()
-                    const detected = [brand, name].filter(Boolean).join(" ")
-                    if (detected) {
-                        updatedTitle = detected
-                    }
-                }
-
-                return {
-                    ...prev,
-                    loading: false,
-                    extraction,
-                    selectedColumnId: defaultColId,
-                    title: updatedTitle,
-                    retry: false,
-                }
-            })
-        } catch (err: unknown) {
-            const message =
-                err instanceof Error
-                    ? err.message
-                    : "The extraction request failed. Check the provider and retry."
-            setProduct((prev) => {
-                if (prev.revision !== currentRevision) return prev
-                return {
-                    ...prev,
-                    loading: false,
-                    error: message,
-                    retry: true,
-                }
-            })
-        }
-    }
-
     const handleCompare = async () => {
         if (
-            !isReadyToCompare ||
-            !leftProduct.extraction ||
-            !rightProduct.extraction
+            leftProduct.photos.length === 0 ||
+            rightProduct.photos.length === 0 ||
+            processingStep !== "idle"
         ) {
             return
         }
 
-        setIsComparing(true)
         setComparisonError(null)
 
-        const payload = {
-            left: leftProduct.extraction,
-            right: rightProduct.extraction,
-            left_column_id: leftProduct.selectedColumnId || undefined,
-            right_column_id: rightProduct.selectedColumnId || undefined,
-        }
-
         try {
-            const result = await compareProducts(payload)
-            setComparison(result)
-        } catch (err: unknown) {
-            const message =
-                err instanceof Error
-                    ? err.message
-                    : "The comparison request failed. Retry when both extractions are ready."
-            setComparisonError(message)
+            let leftExt = leftProduct.extraction
+            if (!leftExt) {
+                setProcessingStep("extracting_left")
+                setLeftProduct((prev) => ({
+                    ...prev,
+                    loading: true,
+                    error: "",
+                }))
+                const currentRevision = leftProduct.revision
+                try {
+                    const ext = await extractPhotos(
+                        leftProduct.id,
+                        leftProduct.photos.map((p) => p.file),
+                    )
+                    leftExt = ext
+                    setLeftProduct((prev) => {
+                        if (prev.revision !== currentRevision) return prev
+                        const defaultColId =
+                            (ext.nutrition_columns?.length ?? 0) === 1
+                                ? (ext.nutrition_columns?.[0]?.column_id ??
+                                  null)
+                                : null
+
+                        let updatedTitle = prev.title
+                        const isDefaultTitle =
+                            prev.title === "Product A" ||
+                            prev.title === "Product B"
+                        if (isDefaultTitle) {
+                            const brand =
+                                ext.identity?.brand?.value_text?.trim()
+                            const name = ext.identity?.name?.value_text?.trim()
+                            const detected = [brand, name]
+                                .filter(Boolean)
+                                .join(" ")
+                            if (detected) {
+                                updatedTitle = detected
+                            }
+                        }
+
+                        return {
+                            ...prev,
+                            loading: false,
+                            extraction: ext,
+                            selectedColumnId: defaultColId,
+                            title: updatedTitle,
+                            retry: false,
+                        }
+                    })
+                } catch (err: unknown) {
+                    const message =
+                        err instanceof Error
+                            ? err.message
+                            : "The extraction request failed. Check the provider and retry."
+                    setLeftProduct((prev) => ({
+                        ...prev,
+                        loading: false,
+                        error: message,
+                        retry: true,
+                    }))
+                    return
+                }
+            }
+
+            let rightExt = rightProduct.extraction
+            if (!rightExt) {
+                setProcessingStep("extracting_right")
+                setRightProduct((prev) => ({
+                    ...prev,
+                    loading: true,
+                    error: "",
+                }))
+                const currentRevision = rightProduct.revision
+                try {
+                    const ext = await extractPhotos(
+                        rightProduct.id,
+                        rightProduct.photos.map((p) => p.file),
+                    )
+                    rightExt = ext
+                    setRightProduct((prev) => {
+                        if (prev.revision !== currentRevision) return prev
+                        const defaultColId =
+                            (ext.nutrition_columns?.length ?? 0) === 1
+                                ? (ext.nutrition_columns?.[0]?.column_id ??
+                                  null)
+                                : null
+
+                        let updatedTitle = prev.title
+                        const isDefaultTitle =
+                            prev.title === "Product A" ||
+                            prev.title === "Product B"
+                        if (isDefaultTitle) {
+                            const brand =
+                                ext.identity?.brand?.value_text?.trim()
+                            const name = ext.identity?.name?.value_text?.trim()
+                            const detected = [brand, name]
+                                .filter(Boolean)
+                                .join(" ")
+                            if (detected) {
+                                updatedTitle = detected
+                            }
+                        }
+
+                        return {
+                            ...prev,
+                            loading: false,
+                            extraction: ext,
+                            selectedColumnId: defaultColId,
+                            title: updatedTitle,
+                            retry: false,
+                        }
+                    })
+                } catch (err: unknown) {
+                    const message =
+                        err instanceof Error
+                            ? err.message
+                            : "The extraction request failed. Check the provider and retry."
+                    setRightProduct((prev) => ({
+                        ...prev,
+                        loading: false,
+                        error: message,
+                        retry: true,
+                    }))
+                    return
+                }
+            }
+
+            const leftColId =
+                leftProduct.selectedColumnId ||
+                ((leftExt.nutrition_columns?.length ?? 0) === 1
+                    ? (leftExt.nutrition_columns?.[0]?.column_id ?? null)
+                    : null)
+
+            const rightColId =
+                rightProduct.selectedColumnId ||
+                ((rightExt.nutrition_columns?.length ?? 0) === 1
+                    ? (rightExt.nutrition_columns?.[0]?.column_id ?? null)
+                    : null)
+
+            if ((leftExt.nutrition_columns?.length ?? 0) > 1 && !leftColId) {
+                return
+            }
+            if ((rightExt.nutrition_columns?.length ?? 0) > 1 && !rightColId) {
+                return
+            }
+
+            setProcessingStep("comparing")
+            const payload = {
+                left: leftExt,
+                right: rightExt,
+                left_column_id: leftColId || undefined,
+                right_column_id: rightColId || undefined,
+            }
+
+            try {
+                const result = await compare(payload)
+                setComparison(result)
+            } catch (err: unknown) {
+                const message =
+                    err instanceof Error
+                        ? err.message
+                        : "The comparison request failed. Retry when both extractions are ready."
+                setComparisonError(message)
+            }
         } finally {
-            setIsComparing(false)
+            setProcessingStep("idle")
         }
     }
 
@@ -480,7 +624,7 @@ export function PhotoComparisonPage() {
                             variant="accent"
                             className="shrink-0 font-mono text-[11px]"
                         >
-                            Photo Lab
+                            Compare Products
                         </Badge>
                     </div>
 
@@ -504,11 +648,11 @@ export function PhotoComparisonPage() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-2xl font-extrabold tracking-tight text-neutral-950 sm:text-3xl">
-                            Choose two Products
+                            Compare Products
                         </h1>
                         <p className="mt-1 text-xs text-neutral-500">
-                            JPEG or PNG · 1–6 photos each · add a package-weight
-                            photo when needed
+                            Compare nutrition labels using photos · 1–6 JPEG or
+                            PNG photos each
                         </p>
                     </div>
 
@@ -543,9 +687,6 @@ export function PhotoComparisonPage() {
                             handleReplacePhoto("left", index, file)
                         }
                         onClearPhotos={() => handleClearPhotos("left")}
-                        onExtract={() => {
-                            void handleExtract("left")
-                        }}
                         onSelectColumn={(colId) =>
                             handleSelectColumn("left", colId)
                         }
@@ -574,9 +715,6 @@ export function PhotoComparisonPage() {
                             handleReplacePhoto("right", index, file)
                         }
                         onClearPhotos={() => handleClearPhotos("right")}
-                        onExtract={() => {
-                            void handleExtract("right")
-                        }}
                         onSelectColumn={(colId) =>
                             handleSelectColumn("right", colId)
                         }
@@ -596,10 +734,11 @@ export function PhotoComparisonPage() {
                     comparison={comparison}
                     comparisonStatus={comparisonStatus}
                     comparisonError={comparisonError}
-                    isComparing={isComparing}
+                    isComparing={processingStep !== "idle"}
                     isReadyToCompare={isReadyToCompare}
                     leftProduct={leftProduct}
                     rightProduct={rightProduct}
+                    compareButtonLabel={compareButtonLabel}
                     onCompare={() => {
                         void handleCompare()
                     }}

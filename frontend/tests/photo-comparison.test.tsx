@@ -1,11 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { fireEvent, render, screen, within } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router"
 import { describe, expect, test, vi } from "vitest"
 
 import { App } from "../src/app/App"
 import { ComparisonSection } from "../src/features/photo-comparison/ComparisonSection"
+import { PhotoComparisonPage } from "../src/features/photo-comparison/PhotoComparisonPage"
 import { PhotoInspectionModal } from "../src/features/photo-comparison/PhotoInspectionModal"
 import { ProductPhotoPanel } from "../src/features/photo-comparison/ProductPhotoPanel"
 import type {
@@ -27,16 +28,19 @@ function renderRoute(path: string, lookup = vi.fn<ProductLookup>()) {
     )
 }
 
-describe("Photo comparison lab frontend page", () => {
-    test("renders the photo comparison lab under the hidden route /experimental/photo-comparison", () => {
-        renderRoute("/experimental/photo-comparison")
+describe("Compare Products frontend page (/compare)", () => {
+    test("renders Compare Products at /compare with AI disclosure and editable product titles", () => {
+        renderRoute("/compare")
 
-        // Heading
+        // Heading & Badge
         expect(
             screen.getByRole("heading", {
                 level: 1,
-                name: /Choose two Products/i,
+                name: "Compare Products",
             }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByText("Compare Products", { selector: "div" }),
         ).toBeInTheDocument()
 
         // Product panels
@@ -46,38 +50,67 @@ describe("Photo comparison lab frontend page", () => {
         expect(screen.getByDisplayValue("Product A")).toBeInTheDocument()
         expect(screen.getByDisplayValue("Product B")).toBeInTheDocument()
 
-        // Comparison section
+        // AI provider disclosure statement before submission
+        expect(
+            screen.getByText(
+                /Photos are sent to the configured AI provider for processing\./i,
+            ),
+        ).toBeInTheDocument()
+
+        // Comparison section & Compare button
         expect(
             screen.getByRole("heading", { level: 2, name: /Comparison/i }),
         ).toBeInTheDocument()
-        expect(screen.getByRole("button", { name: /Compare/i })).toBeDisabled()
-
-        // Hidden from primary navigation: primary nav must not contain a link to photo comparison
-        const navigation = screen.getByRole("navigation", {
-            name: "Primary navigation",
-        })
         expect(
-            within(navigation).queryByRole("link", {
-                name: /Photo/i,
-            }),
-        ).not.toBeInTheDocument()
+            screen.getByRole("button", { name: "Compare Products" }),
+        ).toBeDisabled()
     })
 
-    test("redirects alias /photo-comparison to /experimental/photo-comparison", () => {
+    test("redirects previous photo-comparison URLs to /compare", () => {
+        const { unmount } = renderRoute("/experimental/photo-comparison")
+        expect(
+            screen.getByRole("heading", {
+                level: 1,
+                name: "Compare Products",
+            }),
+        ).toBeInTheDocument()
+        unmount()
+
         renderRoute("/photo-comparison")
+        expect(
+            screen.getByRole("heading", {
+                level: 1,
+                name: "Compare Products",
+            }),
+        ).toBeInTheDocument()
+    })
+
+    test("renders a visible entry point alongside scanning that navigates to /compare", async () => {
+        const user = userEvent.setup()
+        renderRoute("/")
+
+        const compareLink = screen.getByRole("link", {
+            name: /Compare Products/i,
+        })
+        expect(compareLink).toBeInTheDocument()
+        expect(compareLink).toHaveAttribute("href", "/compare")
+        expect(
+            screen.getByText(/Compare nutrition labels using photos/i),
+        ).toBeInTheDocument()
+
+        await user.click(compareLink)
 
         expect(
             screen.getByRole("heading", {
                 level: 1,
-                name: /Choose two Products/i,
+                name: "Compare Products",
             }),
         ).toBeInTheDocument()
-        expect(screen.getByDisplayValue("Product A")).toBeInTheDocument()
     })
 
     test("allows editing product titles and resetting the session", async () => {
         const user = userEvent.setup()
-        renderRoute("/experimental/photo-comparison")
+        renderRoute("/compare")
 
         const productAInput = screen.getByDisplayValue("Product A")
         await user.clear(productAInput)
@@ -93,6 +126,183 @@ describe("Photo comparison lab frontend page", () => {
 
         expect(screen.getByDisplayValue("Product A")).toBeInTheDocument()
         expect(screen.getByDisplayValue("Product B")).toBeInTheDocument()
+    })
+
+    test("one Compare action orchestrates extraction of changed Products and deterministic comparison without separate operations", async () => {
+        const user = userEvent.setup()
+        const extractPhotosMock = vi.fn().mockImplementation((id: string) =>
+            Promise.resolve(
+                id === "left"
+                    ? {
+                          schema_version: 1,
+                          product_id: "left",
+                          images: [
+                              {
+                                  image_id: "img_mama_1",
+                                  original_image_id: "img_mama_1",
+                                  role: "label",
+                                  width: 800,
+                                  height: 600,
+                              },
+                          ],
+                          package_quantity: null,
+                          nutrition_columns: [
+                              {
+                                  column_id: "col1",
+                                  name: "Per 100g",
+                                  state: "readable",
+                                  basis: "per_100g",
+                                  fields: [],
+                              },
+                          ],
+                          outcome: "complete",
+                          provider: "google",
+                          model: "gemini",
+                          configuration_version: "1.0.0",
+                      }
+                    : {
+                          schema_version: 1,
+                          product_id: "right",
+                          images: [
+                              {
+                                  image_id: "img_b_1",
+                                  original_image_id: "img_b_1",
+                                  role: "label",
+                                  width: 800,
+                                  height: 600,
+                              },
+                          ],
+                          package_quantity: null,
+                          nutrition_columns: [
+                              {
+                                  column_id: "col2",
+                                  name: "Per 100g",
+                                  state: "readable",
+                                  basis: "per_100g",
+                                  fields: [],
+                              },
+                          ],
+                          outcome: "complete",
+                          provider: "google",
+                          model: "gemini",
+                          configuration_version: "1.0.0",
+                      },
+            ),
+        )
+
+        const compareMock = vi.fn().mockResolvedValue({
+            schema_version: 1,
+            calculated_from_submitted_evidence: true,
+            left_product_id: "left",
+            right_product_id: "right",
+            rows: [
+                {
+                    nutrient: "sodium",
+                    row_kind: "amount",
+                    state: "comparable",
+                    left: {
+                        column_id: "col1",
+                        observation: {
+                            field_id: "left_sod",
+                            nutrient: "sodium",
+                            label: "Sodium",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "1,380",
+                            unit_text: "mg",
+                            evidence: [{ image_id: "img_mama_1" }],
+                        },
+                    },
+                    right: {
+                        column_id: "col2",
+                        observation: {
+                            field_id: "right_sod",
+                            nutrient: "sodium",
+                            label: "Sodium",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "1.5",
+                            unit_text: "g",
+                            evidence: [{ image_id: "img_b_1" }],
+                        },
+                    },
+                    normalized_left: {
+                        value: "1380",
+                        unit: "mg",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                    normalized_right: {
+                        value: "1500",
+                        unit: "mg",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                },
+            ],
+        })
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+        render(
+            <QueryClientProvider client={queryClient}>
+                <MemoryRouter initialEntries={["/compare"]}>
+                    <PhotoComparisonPage
+                        extractPhotos={extractPhotosMock}
+                        compare={compareMock}
+                    />
+                </MemoryRouter>
+            </QueryClientProvider>,
+        )
+
+        // Shopper is not asked to run extraction and calculation as separate operations
+        expect(
+            screen.queryByRole("button", { name: /Read nutrition photos/i }),
+        ).not.toBeInTheDocument()
+
+        const compareButton = screen.getByRole("button", {
+            name: "Compare Products",
+        })
+        expect(compareButton).toBeDisabled()
+
+        // Upload photo for Product A
+        const inputLeft = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+        const fileLeft = new File(["left image"], "left.jpg", {
+            type: "image/jpeg",
+        })
+        fireEvent.change(inputLeft, { target: { files: [fileLeft] } })
+
+        // Compare button still disabled until both sides have photos
+        expect(compareButton).toBeDisabled()
+
+        // Upload photo for Product B
+        const inputRight = document.getElementById(
+            "upload-photos-right",
+        ) as HTMLInputElement
+        const fileRight = new File(["right image"], "right.jpg", {
+            type: "image/jpeg",
+        })
+        fireEvent.change(inputRight, { target: { files: [fileRight] } })
+
+        // Compare button is enabled now
+        expect(compareButton).toBeEnabled()
+
+        // Clicking Compare once orchestrates extractions and comparison
+        await user.click(compareButton)
+
+        expect(extractPhotosMock).toHaveBeenCalledTimes(2)
+        expect(extractPhotosMock).toHaveBeenCalledWith("left", [fileLeft])
+        expect(extractPhotosMock).toHaveBeenCalledWith("right", [fileRight])
+        expect(compareMock).toHaveBeenCalledTimes(1)
+
+        // Factual results rendered
+        expect(screen.getByText("Sodium")).toBeInTheDocument()
+        expect(screen.getByText("1,380 mg")).toBeInTheDocument()
     })
 })
 
@@ -212,13 +422,13 @@ describe("ComparisonSection Shopper-ready presentation", () => {
                     },
                 },
                 normalized_left: {
-                    value: 1380,
+                    value: "1380",
                     unit: "mg",
                     target_basis: "per_package",
                     inputs: [],
                 },
                 normalized_right: {
-                    value: 1500,
+                    value: "1500",
                     unit: "mg",
                     target_basis: "per_package",
                     inputs: [],
@@ -244,7 +454,7 @@ describe("ComparisonSection Shopper-ready presentation", () => {
                     },
                 },
                 normalized_right: {
-                    value: 1.2,
+                    value: "1.2",
                     unit: "mg",
                     target_basis: "per_package",
                     inputs: [],
@@ -283,13 +493,13 @@ describe("ComparisonSection Shopper-ready presentation", () => {
                     },
                 },
                 normalized_left: {
-                    value: 60,
+                    value: "60",
                     unit: "%",
                     target_basis: "per_package",
                     inputs: [],
                 },
                 normalized_right: {
-                    value: 65,
+                    value: "65",
                     unit: "%",
                     target_basis: "per_package",
                     inputs: [],
@@ -395,19 +605,19 @@ describe("ComparisonSection Shopper-ready presentation", () => {
                         },
                     },
                     normalized_left: {
-                        value: 5,
+                        value: "5",
                         unit: "g",
                         target_basis: "per_100g",
                         inputs: [],
                     },
                     normalized_right: {
-                        value: 2,
+                        value: "2",
                         unit: "g",
                         target_basis: "per_100g",
                         inputs: [],
                     },
                     derived_difference: {
-                        value: 3,
+                        value: "3",
                         unit: "g",
                         target_basis: "per_100g",
                         inputs: [],
@@ -484,13 +694,13 @@ describe("ComparisonSection Shopper-ready presentation", () => {
                         },
                     },
                     normalized_left: {
-                        value: 300,
+                        value: "300",
                         unit: "kcal",
                         target_basis: "per_package",
                         inputs: [],
                     },
                     normalized_right: {
-                        value: 350,
+                        value: "350",
                         unit: "kcal",
                         target_basis: "per_package",
                         inputs: [],
@@ -662,7 +872,7 @@ describe("Photo inspection and UX features", () => {
     })
 
     test("validates file upload format and size limits with helpful feedback in PhotoComparisonPage", () => {
-        renderRoute("/experimental/photo-comparison")
+        renderRoute("/compare")
 
         // Input 1 is for upload-photos-left
         const fileInput = document.getElementById(
@@ -691,6 +901,38 @@ describe("Photo inspection and UX features", () => {
 
         expect(
             screen.getByText(/File size exceeds 10 MiB limit/i),
+        ).toBeInTheDocument()
+
+        // 3. Camera capture works via camera input with capture attribute
+        const cameraInput = document.getElementById(
+            "camera-photos-left",
+        ) as HTMLInputElement
+        expect(cameraInput).toBeInTheDocument()
+        expect(cameraInput).toHaveAttribute("capture", "environment")
+
+        const cameraPhoto = new File(["camera photo 1"], "cam1.jpg", {
+            type: "image/jpeg",
+        })
+        fireEvent.change(cameraInput, { target: { files: [cameraPhoto] } })
+        expect(screen.getByText("Photo 1")).toBeInTheDocument()
+
+        // 4. Retaining 1 to 6 photos per Product; rejecting 7th photo with clear limit message
+        const remainingPhotos = Array.from(
+            { length: 5 },
+            (_, i) =>
+                new File([`photo ${i + 2}`], `p${i + 2}.jpg`, {
+                    type: "image/jpeg",
+                }),
+        )
+        fireEvent.change(fileInput, { target: { files: remainingPhotos } })
+        expect(screen.getByText("Photo 6")).toBeInTheDocument()
+
+        const seventhPhoto = new File(["extra photo"], "extra.jpg", {
+            type: "image/jpeg",
+        })
+        fireEvent.change(fileInput, { target: { files: [seventhPhoto] } })
+        expect(
+            screen.getByText(/Maximum of 6 photos per Product reached/i),
         ).toBeInTheDocument()
     })
 })
