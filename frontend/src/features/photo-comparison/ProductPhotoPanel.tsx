@@ -11,7 +11,6 @@ import { type RefObject, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
 import {
@@ -40,6 +39,7 @@ interface ProductPhotoPanelProps {
     onExtract: () => void
     onSelectColumn: (columnId: string | null) => void
     onFocusEvidence: (imageId: string) => void
+    onInspectPhoto?: (index: number) => void
 }
 
 export function ProductPhotoPanel({
@@ -54,6 +54,7 @@ export function ProductPhotoPanel({
     onExtract,
     onSelectColumn,
     onFocusEvidence,
+    onInspectPhoto,
 }: ProductPhotoPanelProps) {
     const [isDragging, setIsDragging] = useState(false)
 
@@ -78,12 +79,12 @@ export function ProductPhotoPanel({
             className="overflow-hidden rounded-2xl border-neutral-200/90 bg-white shadow-xs"
             aria-labelledby={`panel-heading-${product.id}`}
         >
-            <header className="flex flex-col gap-3 border-b border-neutral-200/80 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+            <header className="flex flex-col gap-3 border-b border-neutral-200/80 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
                 <div className="flex items-center gap-3">
                     <span className="bg-primary-100 text-primary-900 flex size-9 shrink-0 items-center justify-center rounded-xl font-mono text-sm font-bold select-none">
                         {product.number}
                     </span>
-                    <div>
+                    <div className="min-w-0 flex-1">
                         <h2
                             id={`panel-heading-${product.id}`}
                             className="sr-only"
@@ -103,7 +104,7 @@ export function ProductPhotoPanel({
                                 }
                             }}
                             aria-label={`${product.title} display name`}
-                            className="h-9 w-44 rounded-lg font-bold text-neutral-900 sm:w-52"
+                            className="h-9 w-full max-w-[220px] rounded-lg font-bold text-neutral-900 sm:w-52"
                         />
                         <p className="mt-1 text-xs text-neutral-500">
                             {product.photos.length} of 6 photos selected
@@ -112,7 +113,7 @@ export function ProductPhotoPanel({
                 </div>
             </header>
 
-            <div className="p-5 sm:p-6">
+            <div className="p-4 sm:p-5">
                 {/* Dropzone */}
                 <label
                     htmlFor={`upload-photos-${product.id}`}
@@ -162,6 +163,30 @@ export function ProductPhotoPanel({
                     />
                 </label>
 
+                {/* Mobile Camera Option */}
+                <div className="mt-2.5 flex items-center justify-center">
+                    <label
+                        htmlFor={`camera-photos-${product.id}`}
+                        className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3 text-xs font-semibold text-neutral-700 shadow-2xs select-none hover:bg-neutral-50 hover:text-neutral-900"
+                    >
+                        <Camera size={15} weight="bold" />
+                        <span>Take photo with camera</span>
+                        <Input
+                            id={`camera-photos-${product.id}`}
+                            type="file"
+                            accept="image/jpeg,image/png"
+                            capture="environment"
+                            className="sr-only"
+                            onChange={(e) => {
+                                if (e.target.files?.length) {
+                                    onAddFiles(Array.from(e.target.files))
+                                }
+                                e.target.value = ""
+                            }}
+                        />
+                    </label>
+                </div>
+
                 {/* Previews grid */}
                 {product.photos.length > 0 && (
                     <div
@@ -182,12 +207,21 @@ export function ProductPhotoPanel({
                                         "ring-primary-400 scale-[1.03] ring-4 ring-offset-2",
                                 )}
                             >
-                                <img
-                                    src={photo.url}
-                                    alt={`${product.title} photo ${index + 1}`}
-                                    className="size-full object-cover"
-                                />
-                                <span className="absolute bottom-1.5 left-1.5 rounded-md bg-neutral-950/80 px-2 py-0.5 font-mono text-[10px] font-bold text-white select-none">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => onInspectPhoto?.(index)}
+                                    className="size-full cursor-zoom-in rounded-none p-0 text-left hover:bg-transparent focus:outline-hidden"
+                                    title="Click to inspect full photo"
+                                    aria-label={`Inspect ${product.title} photo ${index + 1}`}
+                                >
+                                    <img
+                                        src={photo.url}
+                                        alt={`${product.title} photo ${index + 1}`}
+                                        className="size-full object-cover transition-transform duration-200 group-hover:scale-105"
+                                    />
+                                </Button>
+                                <span className="pointer-events-none absolute bottom-1.5 left-1.5 rounded-md bg-neutral-950/80 px-2 py-0.5 font-mono text-[10px] font-bold text-white select-none">
                                     Photo {index + 1}
                                 </span>
                                 <div className="absolute top-1.5 right-1.5 flex items-center gap-1 opacity-90 transition-opacity group-hover:opacity-100">
@@ -324,7 +358,66 @@ export function ProductPhotoPanel({
                             </div>
 
                             <dl className="mt-3.5 divide-y divide-neutral-100 rounded-xl border border-neutral-200/70 bg-neutral-50/50 text-xs">
-                                <div className="grid grid-cols-[8rem_minmax(0,1fr)] items-center gap-3 p-3">
+                                {(extraction.identity?.name?.value_text ||
+                                    extraction.identity?.brand?.value_text) && (
+                                    <div className="flex flex-col gap-1.5 p-3 sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:items-center sm:gap-3">
+                                        <dt className="font-bold text-neutral-500">
+                                            Detected product
+                                        </dt>
+                                        <dd className="font-medium text-neutral-900">
+                                            <span className="font-bold">
+                                                {[
+                                                    extraction.identity.brand
+                                                        ?.value_text,
+                                                    extraction.identity.name
+                                                        ?.value_text,
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(" ")}
+                                            </span>
+                                            {product.title !==
+                                                [
+                                                    extraction.identity.brand
+                                                        ?.value_text,
+                                                    extraction.identity.name
+                                                        ?.value_text,
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(" ") && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        const brand =
+                                                            extraction.identity
+                                                                ?.brand
+                                                                ?.value_text
+                                                        const name =
+                                                            extraction.identity
+                                                                ?.name
+                                                                ?.value_text
+                                                        const detected = [
+                                                            brand,
+                                                            name,
+                                                        ]
+                                                            .filter(Boolean)
+                                                            .join(" ")
+                                                        if (detected) {
+                                                            onTitleChange(
+                                                                detected,
+                                                            )
+                                                        }
+                                                    }}
+                                                    className="text-primary-700 hover:text-primary-900 ml-2 h-auto p-0 font-mono text-[11px] underline hover:bg-transparent"
+                                                >
+                                                    Use as title
+                                                </Button>
+                                            )}
+                                        </dd>
+                                    </div>
+                                )}
+                                <div className="flex flex-col gap-1.5 p-3 sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:items-center sm:gap-3">
                                     <dt className="font-bold text-neutral-500">
                                         Package weight
                                     </dt>
@@ -359,7 +452,7 @@ export function ProductPhotoPanel({
                                         )}
                                     </dd>
                                 </div>
-                                <div className="grid grid-cols-[8rem_minmax(0,1fr)] items-center gap-3 p-3">
+                                <div className="flex flex-col gap-1.5 p-3 sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:items-center sm:gap-3">
                                     <dt className="font-bold text-neutral-500">
                                         Preparation
                                     </dt>
@@ -380,7 +473,7 @@ export function ProductPhotoPanel({
                                         )}
                                     </dd>
                                 </div>
-                                <div className="grid grid-cols-[8rem_minmax(0,1fr)] items-center gap-3 p-3">
+                                <div className="flex flex-col gap-1.5 p-3 sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:items-center sm:gap-3">
                                     <dt className="font-bold text-neutral-500">
                                         Evidence images
                                     </dt>
@@ -513,34 +606,22 @@ function NutritionColumnCard({
                     </div>
                 </div>
 
-                {columns.length > 1 && (
-                    <div className="w-full sm:w-48">
-                        <label
-                            className="sr-only"
-                            htmlFor={`column-select-${product.id}-${column.column_id}`}
-                        >
-                            Column for {product.title}
-                        </label>
-                        <Select
-                            id={`column-select-${product.id}-${column.column_id}`}
-                            value={product.selectedColumnId || ""}
-                            onChange={(e) =>
-                                onSelectColumn(e.target.value || null)
-                            }
-                            aria-label={`Nutrition column for ${product.title}`}
-                            className="h-8 text-xs font-semibold"
-                        >
-                            <option value="">Not selected</option>
-                            {columns.map((item) => (
-                                <option
-                                    key={item.column_id}
-                                    value={item.column_id}
-                                >
-                                    {item.label || item.column_id}
-                                </option>
-                            ))}
-                        </Select>
-                    </div>
+                {columns.length > 1 ? (
+                    <Button
+                        type="button"
+                        variant={isSelected ? "default" : "outline"}
+                        size="sm"
+                        onClick={() =>
+                            onSelectColumn(isSelected ? null : column.column_id)
+                        }
+                        className="h-8 self-start text-xs font-semibold sm:self-auto"
+                    >
+                        {isSelected ? "Selected" : "Select column"}
+                    </Button>
+                ) : (
+                    <span className="self-start rounded-md bg-neutral-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-neutral-600 sm:self-auto">
+                        Sole column
+                    </span>
                 )}
             </div>
 

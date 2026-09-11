@@ -1,11 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, within } from "@testing-library/react"
+import { fireEvent, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router"
 import { describe, expect, test, vi } from "vitest"
 
 import { App } from "../src/app/App"
 import { ComparisonSection } from "../src/features/photo-comparison/ComparisonSection"
+import { PhotoInspectionModal } from "../src/features/photo-comparison/PhotoInspectionModal"
+import { ProductPhotoPanel } from "../src/features/photo-comparison/ProductPhotoPanel"
 import type {
     ComparisonResponse,
     ProductSideState,
@@ -327,7 +329,7 @@ describe("ComparisonSection Shopper-ready presentation", () => {
         // 3. Check single qualification banner
         expect(
             screen.getByText(
-                /These are amounts reported per package, not an equal-weight comparison/i,
+                /Amounts reported per package, not an equal-weight comparison/i,
             ),
         ).toBeInTheDocument()
 
@@ -351,5 +353,344 @@ describe("ComparisonSection Shopper-ready presentation", () => {
 
         // 6. Check photo evidence buttons show readable sequence numbers
         expect(screen.getAllByText(/View photo 1/i).length).toBeGreaterThan(0)
+    })
+
+    test("displays equal-weight comparison notice when target basis is per_100g and provides directional differences", () => {
+        const per100gComparison: ComparisonResponse = {
+            schema_version: 1,
+            calculated_from_submitted_evidence: true,
+            left_product_id: "left",
+            right_product_id: "right",
+            rows: [
+                {
+                    nutrient: "sugar",
+                    row_kind: "amount",
+                    state: "comparable",
+                    left: {
+                        column_id: "col1",
+                        observation: {
+                            field_id: "f1",
+                            nutrient: "sugar",
+                            label: "Sugars",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "5",
+                            unit_text: "g",
+                            evidence: [{ image_id: "img1" }],
+                        },
+                    },
+                    right: {
+                        column_id: "col2",
+                        observation: {
+                            field_id: "f2",
+                            nutrient: "sugar",
+                            label: "Sugars",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "2",
+                            unit_text: "g",
+                            evidence: [{ image_id: "img2" }],
+                        },
+                    },
+                    normalized_left: {
+                        value: 5,
+                        unit: "g",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                    normalized_right: {
+                        value: 2,
+                        unit: "g",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                    derived_difference: {
+                        value: 3,
+                        unit: "g",
+                        target_basis: "per_100g",
+                        inputs: [],
+                    },
+                },
+            ],
+        }
+
+        render(
+            <ComparisonSection
+                comparison={per100gComparison}
+                comparisonStatus="Comparison ready"
+                comparisonError={null}
+                isComparing={false}
+                isReadyToCompare={true}
+                leftProduct={mockLeftProduct}
+                rightProduct={mockRightProduct}
+                onCompare={vi.fn()}
+                onFocusEvidence={vi.fn()}
+            />,
+        )
+
+        expect(
+            screen.getByText("Equal-weight comparison (per 100 g)"),
+        ).toBeInTheDocument()
+        expect(screen.getByText("Per 100 g (normalized)")).toBeInTheDocument()
+        expect(screen.getByText("+3 g")).toBeInTheDocument()
+        expect(
+            screen.getByText(`${mockLeftProduct.title} has more`),
+        ).toBeInTheDocument()
+    })
+
+    test("displays conditional state reason and assumptions", () => {
+        const conditionalComparison: ComparisonResponse = {
+            schema_version: 1,
+            calculated_from_submitted_evidence: true,
+            left_product_id: "left",
+            right_product_id: "right",
+            rows: [
+                {
+                    nutrient: "energy",
+                    row_kind: "amount",
+                    state: "conditional",
+                    reason: "Different preparation states: left is prepared, right is unprepared.",
+                    assumptions: [
+                        "Assuming dry weight yields similar calorie density.",
+                    ],
+                    left: {
+                        column_id: "col1",
+                        observation: {
+                            field_id: "f1",
+                            nutrient: "energy",
+                            label: "Energy",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "300",
+                            unit_text: "kcal",
+                            evidence: [{ image_id: "img1" }],
+                        },
+                    },
+                    right: {
+                        column_id: "col2",
+                        observation: {
+                            field_id: "f2",
+                            nutrient: "energy",
+                            label: "Energy",
+                            state: "readable",
+                            row_kind: "amount",
+                            qualifier: "exact",
+                            value_text: "350",
+                            unit_text: "kcal",
+                            evidence: [{ image_id: "img2" }],
+                        },
+                    },
+                    normalized_left: {
+                        value: 300,
+                        unit: "kcal",
+                        target_basis: "per_package",
+                        inputs: [],
+                    },
+                    normalized_right: {
+                        value: 350,
+                        unit: "kcal",
+                        target_basis: "per_package",
+                        inputs: [],
+                    },
+                },
+            ],
+        }
+
+        render(
+            <ComparisonSection
+                comparison={conditionalComparison}
+                comparisonStatus="Comparison ready"
+                comparisonError={null}
+                isComparing={false}
+                isReadyToCompare={true}
+                leftProduct={mockLeftProduct}
+                rightProduct={mockRightProduct}
+                onCompare={vi.fn()}
+                onFocusEvidence={vi.fn()}
+            />,
+        )
+
+        expect(screen.getByText("Conditional")).toBeInTheDocument()
+        expect(
+            screen.getByText(
+                "Different preparation states: left is prepared, right is unprepared.",
+            ),
+        ).toBeInTheDocument()
+        expect(
+            screen.getAllByText(
+                "Assuming dry weight yields similar calorie density.",
+            ).length,
+        ).toBeGreaterThan(0)
+    })
+})
+
+describe("Photo inspection and UX features", () => {
+    test("PhotoInspectionModal allows zoom toggle, next/prev navigation, and keyboard esc to close", async () => {
+        const user = userEvent.setup()
+        const onClose = vi.fn()
+        const photos = [
+            {
+                file: new File(["1"], "photo1.jpg", { type: "image/jpeg" }),
+                url: "blob:http://localhost/1",
+                localId: "photo-1",
+            },
+            {
+                file: new File(["2"], "photo2.jpg", { type: "image/jpeg" }),
+                url: "blob:http://localhost/2",
+                localId: "photo-2",
+            },
+        ]
+
+        const { rerender } = render(
+            <PhotoInspectionModal
+                isOpen={true}
+                onClose={onClose}
+                photos={photos}
+                initialIndex={0}
+                title="Mama Instant Noodles"
+            />,
+        )
+
+        expect(screen.getByText("Mama Instant Noodles")).toBeInTheDocument()
+        expect(screen.getByText("Photo 1 of 2")).toBeInTheDocument()
+
+        // Zoom toggle
+        const zoomButton = screen.getByRole("button", { name: /Zoom in/i })
+        await user.click(zoomButton)
+        expect(
+            screen.getByRole("button", { name: /Fit to screen/i }),
+        ).toBeInTheDocument()
+
+        // Navigate next
+        const nextButton = screen.getByRole("button", { name: /Next photo/i })
+        await user.click(nextButton)
+        expect(screen.getByText("Photo 2 of 2")).toBeInTheDocument()
+
+        // Escape closes
+        await user.keyboard("{Escape}")
+        expect(onClose).toHaveBeenCalledTimes(1)
+
+        // Modal closed renders nothing
+        rerender(
+            <PhotoInspectionModal
+                isOpen={false}
+                onClose={onClose}
+                photos={photos}
+                initialIndex={0}
+                title="Mama Instant Noodles"
+            />,
+        )
+        expect(
+            screen.queryByText("Mama Instant Noodles"),
+        ).not.toBeInTheDocument()
+    })
+
+    test("ProductPhotoPanel shows detected product identity and allows applying it as title", async () => {
+        const user = userEvent.setup()
+        const onTitleChange = vi.fn()
+
+        const productWithIdentity: ProductSideState = {
+            id: "left",
+            title: "Product A",
+            number: "1",
+            photos: [],
+            extraction: {
+                schema_version: 1,
+                product_id: "left",
+                identity: {
+                    brand: {
+                        field_id: "brand1",
+                        label: "Brand",
+                        value_text: "Mee Chiet",
+                        state: "readable",
+                        evidence: [],
+                    },
+                    name: {
+                        field_id: "name1",
+                        label: "Name",
+                        value_text: "Beef Flavor Noodles",
+                        state: "readable",
+                        evidence: [],
+                    },
+                },
+                images: [],
+                package_quantity: null,
+                nutrition_columns: [],
+                outcome: "complete",
+                provider: "google",
+                model: "gemini",
+                configuration_version: "1.0.0",
+            },
+            selectedColumnId: null,
+            loading: false,
+            error: "",
+            retry: false,
+            revision: 1,
+        }
+
+        render(
+            <ProductPhotoPanel
+                product={productWithIdentity}
+                highlightedPhotoId={null}
+                previewRefs={{ current: {} }}
+                onTitleChange={onTitleChange}
+                onAddFiles={vi.fn()}
+                onRemovePhoto={vi.fn()}
+                onReplacePhoto={vi.fn()}
+                onClearPhotos={vi.fn()}
+                onExtract={vi.fn()}
+                onSelectColumn={vi.fn()}
+                onFocusEvidence={vi.fn()}
+            />,
+        )
+
+        expect(screen.getByText("Detected product")).toBeInTheDocument()
+        expect(
+            screen.getByText("Mee Chiet Beef Flavor Noodles"),
+        ).toBeInTheDocument()
+
+        const useAsTitleBtn = screen.getByRole("button", {
+            name: /Use as title/i,
+        })
+        await user.click(useAsTitleBtn)
+        expect(onTitleChange).toHaveBeenCalledWith(
+            "Mee Chiet Beef Flavor Noodles",
+        )
+    })
+
+    test("validates file upload format and size limits with helpful feedback in PhotoComparisonPage", () => {
+        renderRoute("/experimental/photo-comparison")
+
+        // Input 1 is for upload-photos-left
+        const fileInput = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+        expect(fileInput).toBeInTheDocument()
+
+        // 1. Upload unsupported format (PDF)
+        const pdfFile = new File(["dummy pdf content"], "doc.pdf", {
+            type: "application/pdf",
+        })
+        fireEvent.change(fileInput, { target: { files: [pdfFile] } })
+
+        expect(
+            screen.getByText(
+                /Unsupported file format: only JPEG and PNG photos are supported/i,
+            ),
+        ).toBeInTheDocument()
+
+        // 2. Upload oversized file (> 10 MiB)
+        const hugeBlob = new Array(11 * 1024 * 1024).fill("a").join("")
+        const largeFile = new File([hugeBlob], "huge.jpg", {
+            type: "image/jpeg",
+        })
+        fireEvent.change(fileInput, { target: { files: [largeFile] } })
+
+        expect(
+            screen.getByText(/File size exceeds 10 MiB limit/i),
+        ).toBeInTheDocument()
     })
 })

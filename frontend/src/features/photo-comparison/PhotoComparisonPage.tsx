@@ -10,12 +10,17 @@ import { usePageMetadata } from "@/lib/metadata"
 
 import { compareProducts, extractProductPhotos } from "./api"
 import { ComparisonSection } from "./ComparisonSection"
+import { PhotoInspectionModal } from "./PhotoInspectionModal"
 import { ProductPhotoPanel } from "./ProductPhotoPanel"
 import type {
     ComparisonResponse,
     ProductPhoto,
     ProductSideState,
 } from "./types"
+
+const MAX_PHOTOS = 6
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 // 10 MiB
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png"]
 
 function createInitialProduct(
     id: "left" | "right",
@@ -58,6 +63,15 @@ export function PhotoComparisonPage() {
     const [highlightedPhotoId, setHighlightedPhotoId] = useState<string | null>(
         null,
     )
+    const [inspectionState, setInspectionState] = useState<{
+        isOpen: boolean
+        side: "left" | "right"
+        index: number
+    }>({
+        isOpen: false,
+        side: "left",
+        index: 0,
+    })
 
     const previewRefs = useRef<Record<string, HTMLElement | null>>({})
     const activeUrlsRef = useRef<Set<string>>(new Set())
@@ -110,6 +124,7 @@ export function PhotoComparisonPage() {
         }
         setLeftProduct(createInitialProduct("left", "Product A", "1"))
         setRightProduct(createInitialProduct("right", "Product B", "2"))
+        setInspectionState({ isOpen: false, side: "left", index: 0 })
         invalidateComparison()
     }
 
@@ -122,17 +137,52 @@ export function PhotoComparisonPage() {
     }
 
     const handleAddFiles = (side: "left" | "right", files: File[]) => {
-        const updater = (prev: ProductSideState): ProductSideState => {
-            const available = 6 - prev.photos.length
-            if (available <= 0) return prev
+        const setProduct = side === "left" ? setLeftProduct : setRightProduct
+
+        setProduct((prev) => {
+            const available = MAX_PHOTOS - prev.photos.length
+            if (available <= 0) {
+                return {
+                    ...prev,
+                    error: "Maximum of 6 photos per Product reached.",
+                }
+            }
+
+            const validationErrors: string[] = []
+            const oversizedFiles = files.filter(
+                (f) => f.size > MAX_FILE_SIZE_BYTES,
+            )
+            const invalidTypeFiles = files.filter(
+                (f) => !ALLOWED_IMAGE_TYPES.includes(f.type),
+            )
+
+            if (invalidTypeFiles.length > 0) {
+                validationErrors.push(
+                    "Unsupported file format: only JPEG and PNG photos are supported.",
+                )
+            }
+            if (oversizedFiles.length > 0) {
+                validationErrors.push(
+                    `File size exceeds 10 MiB limit (${oversizedFiles.map((f) => f.name).join(", ")}).`,
+                )
+            }
 
             const validFiles = files
-                .filter((file) =>
-                    ["image/jpeg", "image/png"].includes(file.type),
+                .filter(
+                    (file) =>
+                        ALLOWED_IMAGE_TYPES.includes(file.type) &&
+                        file.size <= MAX_FILE_SIZE_BYTES,
                 )
                 .slice(0, available)
 
-            if (validFiles.length === 0) return prev
+            if (validFiles.length === 0) {
+                return {
+                    ...prev,
+                    error:
+                        validationErrors.join(" ") ||
+                        "No valid JPEG or PNG images to add.",
+                }
+            }
 
             const newPhotos: ProductPhoto[] = validFiles.map((file) => {
                 const url = URL.createObjectURL(file)
@@ -150,18 +200,13 @@ export function PhotoComparisonPage() {
                 revision: prev.revision + 1,
                 extraction: null,
                 selectedColumnId: null,
-                error: "",
+                error: validationErrors.join(" "),
                 retry: false,
                 loading: false,
             }
-        }
+        })
 
         invalidateComparison()
-        if (side === "left") {
-            setLeftProduct(updater)
-        } else {
-            setRightProduct(updater)
-        }
     }
 
     const handleRemovePhoto = (side: "left" | "right", index: number) => {
@@ -197,9 +242,25 @@ export function PhotoComparisonPage() {
         index: number,
         file: File,
     ) => {
-        if (!["image/jpeg", "image/png"].includes(file.type)) return
+        const setProduct = side === "left" ? setLeftProduct : setRightProduct
 
-        const updater = (prev: ProductSideState): ProductSideState => {
+        if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+            setProduct((prev) => ({
+                ...prev,
+                error: "Unsupported file format: only JPEG and PNG photos are supported.",
+            }))
+            return
+        }
+
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+            setProduct((prev) => ({
+                ...prev,
+                error: `File size exceeds 10 MiB limit (${file.name}).`,
+            }))
+            return
+        }
+
+        setProduct((prev) => {
             const oldPhoto = prev.photos[index]
             if (oldPhoto) {
                 URL.revokeObjectURL(oldPhoto.url)
@@ -227,14 +288,9 @@ export function PhotoComparisonPage() {
                 retry: false,
                 loading: false,
             }
-        }
+        })
 
         invalidateComparison()
-        if (side === "left") {
-            setLeftProduct(updater)
-        } else {
-            setRightProduct(updater)
-        }
     }
 
     const handleClearPhotos = (side: "left" | "right") => {
@@ -302,11 +358,25 @@ export function PhotoComparisonPage() {
                     extraction.nutrition_columns.length === 1
                         ? (extraction.nutrition_columns[0]?.column_id ?? null)
                         : null
+
+                let updatedTitle = prev.title
+                const isDefaultTitle =
+                    prev.title === "Product A" || prev.title === "Product B"
+                if (isDefaultTitle) {
+                    const brand = extraction.identity?.brand?.value_text?.trim()
+                    const name = extraction.identity?.name?.value_text?.trim()
+                    const detected = [brand, name].filter(Boolean).join(" ")
+                    if (detected) {
+                        updatedTitle = detected
+                    }
+                }
+
                 return {
                     ...prev,
                     loading: false,
                     extraction,
                     selectedColumnId: defaultColId,
+                    title: updatedTitle,
                     retry: false,
                 }
             })
@@ -361,7 +431,10 @@ export function PhotoComparisonPage() {
     }
 
     const handleFocusEvidence = (imageId: string) => {
-        const checkSide = (prod: ProductSideState): boolean => {
+        const checkSide = (
+            prod: ProductSideState,
+            side: "left" | "right",
+        ): boolean => {
             const index = prod.extraction?.images?.findIndex(
                 (img) => img.image_id === imageId,
             )
@@ -375,22 +448,27 @@ export function PhotoComparisonPage() {
                         current === photo.localId ? null : current,
                     )
                 }, 1600)
+                setInspectionState({
+                    isOpen: true,
+                    side,
+                    index,
+                })
                 return true
             }
             return false
         }
 
-        if (!checkSide(leftProduct)) {
-            checkSide(rightProduct)
+        if (!checkSide(leftProduct, "left")) {
+            checkSide(rightProduct, "right")
         }
     }
 
     return (
-        <div className="min-h-screen bg-neutral-50 pb-20 text-neutral-900">
+        <div className="min-h-full pb-8 text-neutral-900">
             {/* Topbar Header */}
             <header className="sticky top-0 z-30 border-b border-neutral-200/80 bg-white/90 backdrop-blur-md">
-                <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center gap-3">
+                <div className="mx-auto flex h-16 max-w-xl items-center justify-between px-4 sm:px-6">
+                    <div className="flex items-center gap-2.5">
                         <Link
                             to={appRoutes.home}
                             className="flex items-center gap-2.5 transition-opacity hover:opacity-90"
@@ -400,7 +478,7 @@ export function PhotoComparisonPage() {
                         </Link>
                         <Badge
                             variant="accent"
-                            className="font-mono text-[11px]"
+                            className="shrink-0 font-mono text-[11px]"
                         >
                             Photo Lab
                         </Badge>
@@ -410,15 +488,18 @@ export function PhotoComparisonPage() {
                         variant="ghost"
                         size="sm"
                         asChild
-                        className="text-xs font-semibold text-neutral-600 hover:text-neutral-950"
+                        className="shrink-0 text-xs font-semibold text-neutral-600 hover:text-neutral-950"
                     >
-                        <Link to={appRoutes.home}>Return to Scan</Link>
+                        <Link to={appRoutes.home}>
+                            <span className="hidden sm:inline">Return to </span>
+                            Scan
+                        </Link>
                     </Button>
                 </div>
             </header>
 
             {/* Main Content */}
-            <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+            <main className="mx-auto w-full max-w-xl px-4 py-6 sm:px-6 sm:py-8">
                 {/* Header / Toolbar */}
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
@@ -442,9 +523,9 @@ export function PhotoComparisonPage() {
                     </Button>
                 </div>
 
-                {/* Two side-by-side Product Panels */}
+                {/* Product Panels */}
                 <section
-                    className="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-2"
+                    className="mt-6 grid grid-cols-1 items-start gap-6"
                     aria-label="Product photo panels"
                 >
                     <ProductPhotoPanel
@@ -469,6 +550,13 @@ export function PhotoComparisonPage() {
                             handleSelectColumn("left", colId)
                         }
                         onFocusEvidence={handleFocusEvidence}
+                        onInspectPhoto={(index) =>
+                            setInspectionState({
+                                isOpen: true,
+                                side: "left",
+                                index,
+                            })
+                        }
                     />
 
                     <ProductPhotoPanel
@@ -493,6 +581,13 @@ export function PhotoComparisonPage() {
                             handleSelectColumn("right", colId)
                         }
                         onFocusEvidence={handleFocusEvidence}
+                        onInspectPhoto={(index) =>
+                            setInspectionState({
+                                isOpen: true,
+                                side: "right",
+                                index,
+                            })
+                        }
                     />
                 </section>
 
@@ -511,6 +606,25 @@ export function PhotoComparisonPage() {
                     onFocusEvidence={handleFocusEvidence}
                 />
             </main>
+
+            {/* Photo Inspection Modal */}
+            <PhotoInspectionModal
+                isOpen={inspectionState.isOpen}
+                onClose={() =>
+                    setInspectionState((prev) => ({ ...prev, isOpen: false }))
+                }
+                photos={
+                    inspectionState.side === "left"
+                        ? leftProduct.photos
+                        : rightProduct.photos
+                }
+                initialIndex={inspectionState.index}
+                title={
+                    inspectionState.side === "left"
+                        ? leftProduct.title
+                        : rightProduct.title
+                }
+            />
         </div>
     )
 }

@@ -70,10 +70,27 @@ _UNIT_ALIASES: dict[str, MeasurementUnit] = {
     "ลิตร": MeasurementUnit.L,
     "kcal": MeasurementUnit.KCAL,
     "cal": MeasurementUnit.KCAL,
+    "calories": MeasurementUnit.KCAL,
+    "calorie": MeasurementUnit.KCAL,
+    "កាឡូរី": MeasurementUnit.KCAL,
     "kj": MeasurementUnit.KJ,
+    "kilojoules": MeasurementUnit.KJ,
+    "kilojoule": MeasurementUnit.KJ,
     "percent": MeasurementUnit.PERCENT,
     "%": MeasurementUnit.PERCENT,
     "count": MeasurementUnit.COUNT,
+}
+
+_SPECIAL_UNIT_DEFINITIONS: dict[str, tuple[MeasurementUnit, Decimal]] = {
+    "oz": (MeasurementUnit.G, Decimal("28.3495")),
+    "ounce": (MeasurementUnit.G, Decimal("28.3495")),
+    "ounces": (MeasurementUnit.G, Decimal("28.3495")),
+    "fl oz": (MeasurementUnit.ML, Decimal("29.5735")),
+    "fl. oz.": (MeasurementUnit.ML, Decimal("29.5735")),
+    "fl. oz": (MeasurementUnit.ML, Decimal("29.5735")),
+    "floz": (MeasurementUnit.ML, Decimal("29.5735")),
+    "fluid ounce": (MeasurementUnit.ML, Decimal("29.5735")),
+    "fluid ounces": (MeasurementUnit.ML, Decimal("29.5735")),
 }
 
 _UNIT_FACTORS: dict[MeasurementUnit, tuple[MeasurementUnit, Decimal]] = {
@@ -94,31 +111,55 @@ _NUTRIENT_ALIASES: dict[str, str] = {
     "energy value": "energy",
     "calories": "energy",
     "calorie": "energy",
+    "ថាមពល": "energy",
+    "កាឡូរី": "energy",
     "fat": "fat",
     "total fat": "fat",
+    "ជាតិខ្លាញ់": "fat",
+    "ជាតិខ្លាញ់សរុប": "fat",
+    "ខ្លាញ់": "fat",
+    "ខ្លាញ់សរុប": "fat",
     "ไขมัน": "fat",
     "saturated fat": "saturated_fat",
     "saturates": "saturated_fat",
+    "ខ្លាញ់ឆ្អែត": "saturated_fat",
+    "ជាតិខ្លាញ់ឆ្អែត": "saturated_fat",
     "trans fat": "trans_fat",
+    "ខ្លាញ់មិនឆ្អែត": "trans_fat",
     "carbohydrate": "carbohydrate",
     "carbohydrates": "carbohydrate",
     "total carbohydrate": "carbohydrate",
-    "คาร์โบไฮเดรต": "carbohydrate",
+    "កាបូអ៊ីដ្រាត": "carbohydrate",
+    "កាបូអ៊ីដ្រាតសរុប": "carbohydrate",
+    "កាបូនអ៊ីដ្រាត": "carbohydrate",
+    "คาร์โบไฮเดรត": "carbohydrate",
     "sugars": "sugars",
     "sugar": "sugars",
     "added sugars": "added_sugars",
+    "ជាតិស្ករ": "sugars",
+    "ស្ករ": "sugars",
+    "ស្ករសរុប": "sugars",
     "fiber": "fiber",
     "fibre": "fiber",
     "dietary fiber": "fiber",
+    "ជាតិសរសៃ": "fiber",
     "protein": "protein",
+    "ប្រូតេអ៊ីន": "protein",
     "โปรตีน": "protein",
     "sodium": "sodium",
+    "សូដ្យូម": "sodium",
     "โซเดียม": "sodium",
     "potassium": "potassium",
+    "ប៉ូតាស្យូម": "potassium",
     "calcium": "calcium",
+    "កាល់ស្យូម": "calcium",
     "iron": "iron",
+    "ជាតិដែក": "iron",
     "salt": "salt",
+    "អំបិល": "salt",
     "cholesterol": "cholesterol",
+    "កូឡេស្តេរ៉ុល": "cholesterol",
+    "កូឡេស្តេរ៉ូល": "cholesterol",
     "vitamin a": "vitamin_a",
     "វីតាមីន a": "vitamin_a",
     "vitamin b1": "vitamin_b1",
@@ -218,6 +259,8 @@ def normalize_unit(unit_text: str | None) -> tuple[MeasurementUnit | None, Decim
     if not unit_text:
         return None, None
     cleaned = " ".join(unicodedata.normalize("NFKC", unit_text).casefold().split())
+    if cleaned in _SPECIAL_UNIT_DEFINITIONS:
+        return _SPECIAL_UNIT_DEFINITIONS[cleaned]
     unit = _UNIT_ALIASES.get(cleaned)
     if unit is None:
         return None, None
@@ -226,11 +269,30 @@ def normalize_unit(unit_text: str | None) -> tuple[MeasurementUnit | None, Decim
 
 
 def _normalize_value(
-    value_text: str | None, unit_text: str | None, *, allow_zero: bool
+    value_text: str | None,
+    unit_text: str | None,
+    *,
+    allow_zero: bool,
+    nutrient: str | None = None,
+    label: str | None = None,
 ) -> tuple[Decimal | None, MeasurementUnit | None]:
     value = _parse_decimal(value_text)
+    if value is None:
+        return None, None
     unit, factor = normalize_unit(unit_text)
-    if value is None or unit is None or factor is None:
+    if (unit is None or factor is None) and unit_text is None:
+        label_lower = (label or "").casefold()
+        if (
+            nutrient == "energy"
+            or "calorie" in label_lower
+            or "calories" in label_lower
+            or label_lower in {"cal", "kcal"}
+            or "កាឡូរី" in label_lower
+            or "ថាមពល" in label_lower
+        ):
+            unit = MeasurementUnit.KCAL
+            factor = Decimal("1")
+    if unit is None or factor is None:
         return None, None
     normalized = value * factor
     if not normalized.is_finite() or (not allow_zero and normalized <= 0):
@@ -335,8 +397,14 @@ def _field(value: Any, description: str) -> FieldObservation:
     state = _state(raw.get("state"), description)
     value_text = _optional_text(raw.get("value_text"), f"{description} value", 256)
     unit_text = _optional_text(raw.get("unit_text"), f"{description} unit", 64)
+    label = _optional_text(raw.get("label"), f"{description} label", 256)
+    nutrient = canonical_nutrient(
+        _optional_text(raw.get("nutrient"), "nutrient", 128)
+    ) or canonical_nutrient(label)
     normalized_value, normalized_unit = (
-        _normalize_value(value_text, unit_text, allow_zero=True)
+        _normalize_value(
+            value_text, unit_text, allow_zero=True, nutrient=nutrient, label=label
+        )
         if state is FieldState.READABLE
         else (None, None)
     )
@@ -350,8 +418,8 @@ def _field(value: Any, description: str) -> FieldObservation:
     try:
         return FieldObservation(
             field_id=_required_text(raw.get("field_id") or uuid4().hex, f"{description} ID", 128),
-            nutrient=canonical_nutrient(_optional_text(raw.get("nutrient"), "nutrient", 128)),
-            label=_optional_text(raw.get("label"), f"{description} label", 256),
+            nutrient=nutrient,
+            label=label,
             value_text=value_text,
             unit_text=unit_text,
             original_script=_optional_text(

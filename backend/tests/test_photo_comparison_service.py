@@ -16,6 +16,7 @@ from lifegoods.photo_comparison.contracts import (
     ComparisonRequest,
     ComparisonState,
     ExtractionOutcome,
+    ImageEvidence,
     PreparationState,
 )
 from lifegoods.photo_comparison.examples import (
@@ -541,4 +542,141 @@ def test_unmatched_rows_display_clean_nutrient_names() -> None:
     assert b5_row.left is None
     assert b5_row.right is not None
     assert "not found in photos" in (b5_row.reason or "").lower()
+
+
+def test_unitless_calories_normalized_and_comparable() -> None:
+    from lifegoods.photo_comparison.contracts import MeasurementUnit
+    raw_response = {
+        "nutrition_columns": [
+            {
+                "label": "Nutrition Facts",
+                "basis": "per_package",
+                "preparation_state": "as_sold",
+                "basis_evidence": [{"image_id": "img-1"}],
+                "preparation_evidence": [{"image_id": "img-1"}],
+                "fields": [
+                    {
+                        "label": "Calories",
+                        "value_text": "280",
+                        "unit_text": None,
+                        "original_script": "Calories 280",
+                        "language": "en",
+                        "state": "readable",
+                        "qualifier": "exact",
+                        "row_kind": "amount",
+                        "evidence": [{"image_id": "img-1"}],
+                    }
+                ],
+            }
+        ],
+        "package_quantity": {
+            "value_text": "60",
+            "unit_text": "g",
+            "language": "en",
+            "state": "readable",
+            "evidence": [{"image_id": "img-1"}],
+        },
+        "retake_reasons": [],
+    }
+    img_a = ImageEvidence(
+        image_id="img-1", original_image_id="img-1", role="label", width=800, height=600
+    )
+    extraction_a = build_extraction(
+        raw_response,
+        product_id="left",
+        images=[img_a],
+        provider="google",
+        model="gemini-3.8-flash",
+    )
+    field_a = extraction_a.nutrition_columns[0].fields[0]
+    assert field_a.nutrient == "energy"
+    assert field_a.normalized_value == Decimal("280")
+    assert field_a.normalized_unit is MeasurementUnit.KCAL
+
+    # Second product with Calories 320
+    raw_b = dict(raw_response)
+    raw_b["package_quantity"] = {
+        "value_text": "60",
+        "unit_text": "g",
+        "language": "en",
+        "state": "readable",
+        "evidence": [{"image_id": "img-2"}],
+    }
+    raw_b["nutrition_columns"] = [
+        {
+            "label": "Nutrition Facts",
+            "basis": "per_package",
+            "preparation_state": "as_sold",
+            "basis_evidence": [{"image_id": "img-2"}],
+            "preparation_evidence": [{"image_id": "img-2"}],
+            "fields": [
+                {
+                    "label": "Calories",
+                    "value_text": "320",
+                    "unit_text": None,
+                    "original_script": "Calories 320",
+                    "language": "en",
+                    "state": "readable",
+                    "qualifier": "exact",
+                    "row_kind": "amount",
+                    "evidence": [{"image_id": "img-2"}],
+                }
+            ],
+        }
+    ]
+    img_b = ImageEvidence(
+        image_id="img-2", original_image_id="img-2", role="label", width=800, height=600
+    )
+    extraction_b = build_extraction(
+        raw_b,
+        product_id="right",
+        images=[img_b],
+        provider="google",
+        model="gemini-3.8-flash",
+    )
+
+    req = ComparisonRequest(left=extraction_a, right=extraction_b)
+    resp = compare(req)
+    assert len(resp.rows) == 1
+    cal_row = resp.rows[0]
+    assert cal_row.nutrient == "energy"
+    assert cal_row.state is ComparisonState.COMPARABLE
+    assert cal_row.derived_difference is not None
+    assert cal_row.derived_difference.value == Decimal("-40")
+    assert cal_row.derived_difference.unit is MeasurementUnit.KCAL
+
+
+def test_khmer_nutrient_aliases_canonicalized() -> None:
+    from lifegoods.photo_comparison.normalization import canonical_nutrient
+    assert canonical_nutrient("ថាមពល") == "energy"
+    assert canonical_nutrient("កាឡូរី") == "energy"
+    assert canonical_nutrient("ជាតិខ្លាញ់") == "fat"
+    assert canonical_nutrient("ខ្លាញ់ឆ្អែត") == "saturated_fat"
+    assert canonical_nutrient("កាបូអ៊ីដ្រាត") == "carbohydrate"
+    assert canonical_nutrient("ជាតិស្ករ") == "sugars"
+    assert canonical_nutrient("ជាតិសរសៃ") == "fiber"
+    assert canonical_nutrient("ប្រូតេអ៊ីន") == "protein"
+    assert canonical_nutrient("សូដ្យូម") == "sodium"
+    assert canonical_nutrient("អំបិល") == "salt"
+    assert canonical_nutrient("កូឡេស្តេរ៉ុល") == "cholesterol"
+    assert canonical_nutrient("កាល់ស្យូម") == "calcium"
+    assert canonical_nutrient("ជាតិដែក") == "iron"
+    assert canonical_nutrient("ប៉ូតាស្យូម") == "potassium"
+
+
+def test_special_unit_normalization_and_quantities() -> None:
+    from lifegoods.photo_comparison.contracts import MeasurementUnit
+    from lifegoods.photo_comparison.normalization import normalize_unit
+    unit, factor = normalize_unit("oz")
+    assert unit is MeasurementUnit.G
+    assert factor == Decimal("28.3495")
+
+    unit_floz, factor_floz = normalize_unit("fl oz")
+    assert unit_floz is MeasurementUnit.ML
+    assert factor_floz == Decimal("29.5735")
+
+    unit_kj, factor_kj = normalize_unit("kJ")
+    assert unit_kj is MeasurementUnit.KJ
+    assert factor_kj == Decimal("1")
+
 
