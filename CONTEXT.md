@@ -26,6 +26,16 @@ _Avoid_: Package Match, verification, identification proof
 A request to find possible Products matching a Barcode, name, or brand in the selected Dataset Snapshot.
 _Avoid_: Live search, external query, catalog search
 
+## Comparison
+
+**Compare Products**:
+A comparison of nutrition values read from photos of two Products, separate from Product Lookup, Product Search, and Source Record data.
+_Avoid_: Photo verification, package match, overall winner, Life Goods score
+
+**Photo Evidence**:
+Text and values extracted from a Shopper's label photos for Compare Products. It is not a Source Record or Original Text.
+_Avoid_: Source Record, Original Text, verified label
+
 ## Source data
 
 **Source Record**:

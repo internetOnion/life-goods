@@ -19,7 +19,7 @@ The MVP:
 - later generates Khmer Translation on demand while preserving Original Text; and
 - remains anonymous and read-only.
 
-The MVP does not own a Product catalog, accept contributions, upload package photos, or verify source data. It does not produce health, safety, allergen-free, Halal, authenticity, legal, compliance, or purchase verdicts.
+The MVP does not own a Product catalog, accept contributions, or verify source data. Barcode camera frames stay on the device. Compare Products is the one bounded exception that sends package photos for provider processing, retaining no photos or comparison history. The MVP does not produce health, safety, allergen-free, Halal, authenticity, legal, compliance, or purchase verdicts.
 
 ## 2. Current milestone
 
@@ -213,8 +213,9 @@ Translation provider and model selection are deferred until this phase.
 
 ## 9. Privacy and measurement
 
-- Decode camera frames on the device and send only the normalized Barcode for lookup.
-- Do not upload or retain camera frames or package photos.
+- Decode Barcode camera frames on the device and send only the normalized Barcode for lookup.
+- Do not upload or retain Barcode camera frames.
+- For Compare Products, send only the submitted label photos to the configured provider for processing, and retain no photos, extracted label text, comparison history, or persistent Shopper identifiers.
 - Do not create accounts, server-side scan history, saved Products, or personalization in the MVP.
 - Do not retain Barcode-level analytics, persistent IP identifiers, or per-Shopper histories.
 - Permit aggregate counts for lookup volume, found/not-found rate, latency, cache performance, and error rate.
@@ -889,14 +890,24 @@ original issue #107 artifacts and the historical failure record above are retain
 
 Earlier fix iterations recorded timeouts, including a run overlapping a full Source Record count. Those failed runs remain in the PR evidence; the final run used grouped complete-tier retrieval with no concurrent database workload. This is not a guarantee of cold-cache or contended-load performance.
 
-## 28. Isolated package-photo comparison prototype (Issue #110)
+## 28. Compare Products from nutrition-label photos (Issues #110, #117)
 
-The #109 research sprint defines a temporary, local-only exception to the MVP
-boundary for comparing nutrition evidence from package photos. It is disabled by
-default and has no frontend route, public deployment, application-side image
-store, server-side session, or durable Product data. The exception does not alter
-Product Lookup, Product Search, Dataset Snapshot, Source Record, Source
-Attribution, or Khmer Translation semantics.
+Compare Products, presented as “Compare nutrition labels using photos,” is an
+intended Life Goods capability with a direct entry point alongside Barcode
+scanning. A Shopper photographs Product A and Product B, taps Compare, and
+receives readable nutrition differences with a clearly stated comparison basis.
+It works without a Barcode or Source Record, so missing or incomplete source data
+does not prevent comparison. Compare Products helps a Shopper interpret label
+differences without declaring an overall winner or producing health, safety, or
+purchase verdicts.
+
+Photo comparison is the one bounded exception to the read-only, no-upload MVP
+boundary. Photos are sent to the configured AI provider for processing and are
+never retained by Life Goods as Product data, Source Records, comparison history,
+or Khmer Translation input. Extracted values remain submitted Photo Evidence,
+kept separate from Open Food Facts data. The exception does not alter Product
+Lookup, Product Search, Dataset Snapshot, Source Record, Source Attribution, or
+Khmer Translation semantics.
 
 Photo-derived text is evidence submitted for comparison. It is not an Open Food
 Facts Source Record and is not the glossary-defined Original Text. The contract
@@ -926,48 +937,85 @@ and combined rows remain distinct from amount rows. Package and serving
 quantities require explicit positive normalized values and units when they are
 normalized.
 
-The feature-first local implementation exposes the experimental extraction and
-comparison surfaces only through a standalone loopback app started with
-`pnpm photo-comparison:dev`. The ordinary `create_app()` API, its OpenAPI
-document, and the Shopper frontend do not register these routes. The standalone
-app serves the browser test page at `/` and Scalar documentation at `/scalar`.
+A single Compare action orchestrates extraction for Products whose photo sets
+have changed and then deterministic comparison; the Shopper does not run
+extraction and calculation as separate operations. Extraction is sequenced within
+provider concurrency limits, an unchanged Product's in-memory extraction is
+reused, and duplicate submissions are prevented. Photos are not uploaded
+automatically on every edit, and paid provider calls are not retried invisibly.
+Before submission, the interface explains that photos are sent to the configured
+AI provider for processing.
 
-The extraction and comparison surfaces are:
+The visible states are ready for photos, reading labels, needs clarification or
+retake, comparing, results, and recoverable failure. Successful extraction and
+current photos survive a failure, and retrying processes only failed or changed
+work. Replacing or removing photos, changing selected columns, resetting, and
+leaving the feature prevent earlier responses from restoring stale results;
+requests are cancelled where possible, and responses belonging to superseded
+state are independently rejected. Reset starts a new pair without earlier photos
+or results.
 
-- `POST /api/experimental/photo-comparison/extractions`, accepting a bounded
-  multipart request with one or more repeated `photos` fields for one Product
-  and returning a validated extraction;
-- `POST /api/experimental/photo-comparison/comparisons`, accepting two
-  validated extraction objects in a JSON `{ "left": ..., "right": ... }`
-  request and returning comparison rows. Optional `left_column_id` and
-  `right_column_id` values select the nutrition column for each Product; a
-  selection is required when that Product has multiple columns and a sole
-  column is selected automatically.
+Extraction and comparison are registered by the ordinary Life Goods FastAPI
+application. FastAPI remains the frontend contract authority, and the OpenAPI
+document and generated frontend client/types are the frontend wire contract. The
+standalone development entry point started with `pnpm photo-comparison:dev`
+remains available as a thin consumer of the same shared behavior rather than a
+second implementation. The stable endpoints are:
 
-The local page accepts one to six JPEG/PNG photos per Product, shows previews,
-supports add/remove/replace, and submits the complete current photo set on
-each extraction or explicit retry. A changed photo invalidates that Product's
-extraction and the previous comparison. The page keeps the session in memory
-and provides Reset; it has no saved history or manual transcription editor.
+- `POST /api/v1/photo-comparison/extractions`, accepting a bounded multipart
+  request with one or more repeated `photos` fields for one Product and
+  returning a validated extraction;
+- `POST /api/v1/photo-comparison/comparisons`, accepting two validated
+  extraction objects in a JSON `{ "left": ..., "right": ... }` request and
+  returning comparison rows. Optional `left_column_id` and `right_column_id`
+  values select the nutrition column for each Product; a selection is required
+  when that Product has multiple columns, and a sole column is selected
+  automatically. Client-submitted extraction objects are revalidated at this
+  boundary because they cannot be certified as provider-produced.
+
+Compare Products is reachable at `/compare`, with a visible entry point alongside
+scanning; previously published photo-comparison URLs redirect to `/compare`. The
+page accepts one to six JPEG/PNG photos per Product through camera capture or
+file selection, shows previews that can be enlarged, supports add/remove/replace,
+and presents distinct editable Product A and Product B identities. A wrapped
+label or separate package-weight panel can be included across multiple photos.
+Unsupported formats receive a clear unsupported-format message instead of
+promised conversion. When a label contains a sole nutrition column it is
+selected automatically; when several columns exist, the Shopper chooses one with
+its plainly labeled basis and preparation state before continuing, and an
+ambiguous column is never selected silently.
+
+Results lead with Product identities, the comparison basis, and the nutrition
+comparison. Factual differences use deterministic localized templates rather than
+a second generative interpretation call. Equal values are shown clearly. Missing,
+unreadable, conflicting, qualified, or incompatible values are explained rather
+than shown as zero or as an absence, and usable partial results remain available
+when only some fields are readable. Reported inputs, source-photo evidence, and
+derivation details remain behind accessible disclosure controls. Results contain
+no overall score, winner, or good/bad health color. The page keeps the session in
+memory and provides Reset; it retains no saved history and no manual transcription
+editor.
 
 Image input is bounded at 10 MiB per photo, 32 MiB per multipart request, and
 25 megapixels per image. Pillow validates actual JPEG/PNG content, applies EXIF
-orientation, and re-encodes without metadata. The local process admits one
-active Gemini request, ten extraction requests per minute, a 60-second provider
-deadline, and a 1 MiB JSON response. Temporary image buffers are closed on
-success, rejection, exception, and cancellation. Application-side photos,
-photo-derived text, prompts, provider bodies, and provider responses do not
-enter ordinary logs, databases, or translation caches. Gemini-side retention
-remains governed by the configured provider.
+orientation, and re-encodes without metadata. Anonymous admission limits are
+enforced through shared, deployment-aware infrastructure rather than a single
+process-local counter, with initial defaults of one active Gemini request, ten
+extraction requests per minute, a 60-second provider deadline, and a 1 MiB JSON
+response. Temporary image buffers are closed on success, rejection, exception,
+cancellation, reset, and unmount. Application-side photos, photo-derived text,
+prompts, provider bodies, and provider responses do not enter ordinary logs,
+databases, or translation caches. Gemini-side retention remains governed by the
+configured provider.
 
 Gemini extraction uses the existing API-key setting and the exact
 `gemini-3.8-flash` model with a dedicated visible-evidence prompt. It requests
 structured JSON, rejects malformed output or unknown image references, and
 normalizes only explicit numerals and units locally. Missing credentials,
 unsupported provider behavior, timeout, and provider failure return typed errors;
-the app never substitutes fake results or another model. The browser page then
-shows reported values, original-script evidence, image links, bases, partial or
-retake information, assumptions, and conditional/unavailable comparison rows.
+the app never substitutes fake results or another model. The results view shows
+reported values, original-script evidence, image links, bases, partial or retake
+information, assumptions, and conditional/unavailable comparison rows.
 
 Extraction configuration `photo-extraction-v3` requests compact visible evidence
 with low thinking and a 16,384-token output budget. The provider schema omits
@@ -984,18 +1032,18 @@ unit, target basis, and derivation inputs pointing to the reported field and
 any quantity used. Percentage and combined rows remain represented but cannot
 enter the individual amount comparison.
 
-The routes are not registered by Issue #110. Later integration must revalidate
-client-submitted extraction objects at the comparison boundary, because they
-cannot be certified as provider-produced. Comparison rows retain both reported
-inputs, optional normalized values, calculation basis, assumptions, evidence,
-and a state of comparable, conditional, or not-comparable. Unknown preparation
-states can support a reported side-by-side view and an explicitly conditional
-derivation, but cannot produce a definitive difference or winner. Missing,
-unreadable, conflicting, qualified, or incompatible values cannot produce a
-numeric difference. No comparison contract contains a health, safety, or
-purchase judgment.
+Compatible units and preparation states are required for definitive numeric
+differences. Comparison rows retain both reported inputs, optional normalized
+values, calculation basis, assumptions, evidence, and a state of comparable,
+conditional, or not-comparable. Unknown preparation states can support a reported
+side-by-side view and an explicitly conditional derivation, but cannot produce a
+definitive difference or winner. Missing, unreadable, conflicting, qualified,
+incompatible, or zero-versus-missing values cannot produce a numeric difference,
+and mass remains distinct from volume without supported conversion evidence.
+Serving weights and package quantities are never invented. No comparison
+contract contains a health, safety, or purchase judgment.
 
-Experimental errors use the same JSON envelope for every failure:
+Photo comparison errors use the same JSON envelope for every failure:
 
 ```json
 {
@@ -1011,9 +1059,9 @@ unsupported image format (`415`), rate or capacity limits (`429`), invalid
 provider output (`502`), provider unavailable (`503`), provider timeout (`504`),
 and unexpected internal failure (`500`).
 
-The local implementation enforces bounded upload and response sizes, JPEG/PNG-only
-input, finite request/image/pixel/concurrency limits, temporary resource cleanup,
-and sanitized failure responses before making provider calls. Photos, package
+The capability enforces bounded upload and response sizes, JPEG/PNG-only input,
+finite request/image/pixel/concurrency limits, temporary resource cleanup, and
+sanitized failure responses before making provider calls. Photos, package
 text, prompts, provider payloads, and response bodies stay out of ordinary logs,
 metrics, MongoDB, and translation artifacts. Provider-side retention is
 documented separately from application cleanup. The contract-only issue provides
@@ -1021,13 +1069,10 @@ executable examples for a normal pair, missing weight, multiple columns,
 conflicting photos, and unknown preparation states; it does not claim that
 owner-checked seed transcriptions are reproducible image evidence.
 
-The sprint deliberately follows a feature-first sequence: implement #112 and
-#113, connect them in #114, run focused and normal repository checks, then try
-the available real photos and record practical findings under
-`docs/research/photo-comparison/`. #111's reviewed dataset and transcription
-tool remain deferred and are not treated as completed requirements. Public
-deployment, ordinary Shopper integration, and formal evaluation remain later
-work.
+Compare Products preserves the existing deterministic comparison engine and
+semantics rather than introducing a second comparison engine. The reviewed
+multilingual corpus and transcription tool from #111 remain deferred and are not
+treated as completed requirements.
 
 The integration defaults are one to six JPEG or PNG photos per Product, 10 MiB
 per photo, 32 MiB per request, 25 megapixels per decoded image, 1 MiB per
@@ -1038,8 +1083,8 @@ provider calls. The typed failure mapping is documented above. Partial and
 retake-required extractions remain successful domain responses with explicit
 outcomes and reasons.
 
-The later route integration is disabled by default, binds only to the local
-development loopback interface, and is absent from OpenAPI while disabled. It
-must release temporary image resources on success, rejection, exception, and
-cancellation. Application cleanup does not make a zero-retention promise for
-the provider; provider-side retention is documented separately.
+Photos are processed transiently: application resources are released on success,
+rejection, exception, cancellation, reset, and unmount, and no photos, extracted
+label text, or comparison history are retained. Application cleanup does not make
+a zero-retention promise for the provider; provider-side retention is documented
+separately.

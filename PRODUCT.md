@@ -14,7 +14,7 @@ The first audience is Khmer-speaking Shoppers using a mobile phone while shoppin
 
 ## Product Purpose
 
-Life Goods makes Open Food Facts data easier to access and understand without creating a separate food catalog or verification system. A Shopper scans a packaged-food Barcode and receives a readable presentation of the available Source Record. Typed Barcode entry is the fallback when scanning is unavailable or unsuccessful.
+Life Goods makes Open Food Facts data easier to access and understand without creating a separate food catalog or verification system. A Shopper scans a packaged-food Barcode and receives a readable presentation of the available Source Record. Typed Barcode entry is the fallback when scanning is unavailable or unsuccessful. When a Barcode or Source Record cannot help, a Shopper can instead compare two Products from photos of their nutrition labels.
 
 The English prototype explores a mobile information architecture against complete, sparse, multilingual, irregular, and data-rich Source Records. The public MVP follows with Khmer localization, on-demand Khmer Translation, and Original Text available per translated field.
 
@@ -31,26 +31,42 @@ The primary workflow happens one-handed on a mobile phone in a shop. The Shopper
 ## Capabilities and Constraints
 
 - Mobile-first progressive web application with anonymous, read-only use
-- On-device Barcode decoding; camera frames and package photos are not uploaded or retained
+- On-device Barcode decoding; Barcode camera frames are not uploaded or retained
 - Product Lookup against one static, locally hosted Open Food Facts Dataset Snapshot
+- Compare Products from nutrition-label photos, including when a Barcode or Source Record is unavailable, with transient provider processing and no retained comparison history
 - Independent ingredient-text allergen evidence compared with Open Food Facts allergen tags
 - English information-architecture prototype before the Khmer public MVP
 - On-demand Khmer Translation in the public MVP, with Original Text available per translated field
 - Translation failure falls back to Original Text instead of failing Product Lookup
 - Visible Source Attribution on every Product page and a global data-and-licenses notice
-- Privacy-preserving aggregate operational metrics only; no accounts, saved Products, persistent scan history, personalization, Barcode-level analytics, or persistent Shopper identifiers
+- Privacy-preserving aggregate operational metrics only; no accounts, saved Products, persistent scan history, comparison history, personalization, Barcode-level analytics, persistent Shopper identifiers, or retained comparison photos
 - No Product contributions, corrections, moderation, verification, live Open Food Facts fallback, or automatic Dataset Snapshot updates
-- No health, safety, allergen-free, Halal, authenticity, legal, compliance, or purchase verdicts
+- No health, safety, allergen-free, Halal, authenticity, legal, compliance, or purchase verdicts, and no overall comparison winner or Life Goods comparison score
 
 When available, ingredient-text allergen evidence is shown separately from Open Food Facts
 allergen tags. The comparison describes agreement and differences between two source-based
 signals; it does not verify either source or make an allergen-free or safety claim.
 
-The experimental sprint may temporarily accept package photos for a local, opt-in
-research prototype when normal source data is unavailable or incomplete. This
-exception retains photo-derived evidence and uncertainty separately from Open
-Food Facts Source Records, does not create Product contributions or verification,
-and is not enabled for ordinary Shopper use or public deployment.
+## Compare Products
+
+Compare Products, described as “Compare nutrition labels using photos,” is an
+intended Life Goods capability with a direct entry point alongside Barcode
+scanning. A Shopper photographs Product A and Product B, taps Compare, and
+receives readable nutrition differences with a clearly stated comparison basis.
+It works without a Barcode or Source Record, so missing or incomplete source data
+does not prevent comparison. Compare Products helps a Shopper interpret label
+differences; it does not declare an overall winner or a health, safety, or
+purchase verdict.
+
+Photo comparison is the one bounded exception to the read-only, no-upload MVP
+boundary. Photos submitted for comparison are sent to the configured AI provider
+for processing and are never retained by Life Goods as Product data, Source
+Records, comparison history, or Khmer Translation input. Extracted values remain
+submitted Photo Evidence: they are kept separate from Open Food Facts data, are
+not a Source Record, and are not glossary-defined Original Text. The exception
+does not create Product contributions, corrections, or verification, and it does
+not change Product Lookup, Product Search, Dataset Snapshot, Source Attribution,
+or Khmer Translation behavior.
 
 Source Assessments such as Nutri-Score, NOVA, Green-Score, and nutrient-level classifications remain visibly attributed Open Food Facts calculations. Life Goods does not verify, recalculate, or adopt them as its own judgments. Source Data Unavailable is unknown, not evidence that a Product has or lacks a property.
 
