@@ -58,4 +58,8 @@ Do not extend those concepts unless the new specification explicitly requires th
 
 ## Issue tracking
 
-Issues and implementation tickets use GitHub Issues for `internetOnion/life-goods`. Use the canonical `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix` labels. The previous Wave taxonomy is obsolete and should not guide new work.
+Issues and implementation tickets use GitHub Issues for `internetOnion/life-goods`.
+- **Triage & Status**: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `in-progress`, `blocked`, and `wontfix`.
+- **Hierarchy & Scope**: `epic` (parent tracking issues), `backend`, `frontend`, and `documentation`.
+The previous Wave taxonomy has been retired and removed.
+
