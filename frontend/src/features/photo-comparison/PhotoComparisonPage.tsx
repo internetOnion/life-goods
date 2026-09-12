@@ -3,7 +3,6 @@ import {
     ArrowLeft,
     ArrowRight,
     Scales,
-    X,
 } from "@phosphor-icons/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
@@ -19,6 +18,7 @@ import {
     PhotoComparisonApiError,
 } from "./api"
 import { ColumnSelectionModal } from "./ColumnSelectionModal"
+import { ComparisonProcessingSheet } from "./ComparisonProcessingSheet"
 import { ComparisonSection } from "./ComparisonSection"
 import { CompareStepper } from "./CompareStepper"
 import {
@@ -40,7 +40,7 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 // 10 MiB
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png"]
 type CompareSide = "left" | "right"
 type CompareFlowPhase =
-    "intro" | "capture" | "review" | "ready" | "processing" | "results"
+    "intro" | "capture" | "review" | "processing" | "results"
 
 function createInitialProduct(
     id: "left" | "right",
@@ -120,6 +120,9 @@ export function PhotoComparisonPage({
         "idle" | "extracting_left" | "extracting_right" | "comparing"
     >("idle")
     const [comparisonError, setComparisonError] = useState<string | null>(null)
+    const [comparisonNotice, setComparisonNotice] = useState<string | null>(
+        null,
+    )
 
     const [columnModalSide, setColumnModalSide] = useState<
         "left" | "right" | null
@@ -170,6 +173,16 @@ export function PhotoComparisonPage({
         }
     }, [flowPhase, setPrimaryNavigationHidden])
 
+    useEffect(() => {
+        if (
+            flowPhase === "results" &&
+            typeof window !== "undefined" &&
+            typeof window.scrollTo === "function"
+        ) {
+            window.scrollTo(0, 0)
+        }
+    }, [flowPhase])
+
     const getProductForSide = (side: CompareSide) =>
         side === "left" ? leftProduct : rightProduct
 
@@ -204,7 +217,12 @@ export function PhotoComparisonPage({
             return
         }
 
-        setFlowPhase(comparison ? "results" : "ready")
+        if (comparison) {
+            setFlowPhase("results")
+            return
+        }
+
+        void handleCompare()
     }
 
     const handleEditSide = (side: CompareSide) => {
@@ -348,11 +366,13 @@ export function PhotoComparisonPage({
         comparisonRequestIdRef.current += 1
         setComparison(null)
         setComparisonError(null)
+        setComparisonNotice(null)
     }
 
     const resetSideProcessing = (side: "left" | "right") => {
         abortInFlightExtraction(side)
         invalidateComparison()
+        setFlowPhase("review")
         setProcessingStep((step) => {
             if (side === "left" && step === "extracting_left") return "idle"
             if (side === "right" && step === "extracting_right") return "idle"
@@ -367,12 +387,8 @@ export function PhotoComparisonPage({
         abortInFlightComparison()
         comparisonRequestIdRef.current += 1
         setProcessingStep("idle")
-        setFlowPhase(
-            leftProductRef.current.photos.length > 0 &&
-                rightProductRef.current.photos.length > 0
-                ? "ready"
-                : "review",
-        )
+        setFlowPhase("review")
+        setComparisonNotice("Comparison cancelled. Your photos are still here.")
         setLeftProduct((prev) => ({ ...prev, loading: false }))
         setRightProduct((prev) => ({ ...prev, loading: false }))
     }
@@ -708,7 +724,7 @@ export function PhotoComparisonPage({
                             "The comparison request failed.",
                         ),
                     )
-                    setFlowPhase("ready")
+                    setFlowPhase("review")
                 } finally {
                     if (compareAbortControllerRef.current === compController) {
                         compareAbortControllerRef.current = null
@@ -736,6 +752,7 @@ export function PhotoComparisonPage({
 
         setFlowPhase("processing")
         setComparisonError(null)
+        setComparisonNotice(null)
         const compareSessionId = sessionIdRef.current
         const initialLeftRevision = leftProductRef.current.revision
         const initialRightRevision = rightProductRef.current.revision
@@ -836,7 +853,7 @@ export function PhotoComparisonPage({
                             retry: true,
                         }
                     })
-                    setFlowPhase("ready")
+                    setFlowPhase("review")
                     return
                 } finally {
                     if (leftAbortControllerRef.current === controller) {
@@ -951,7 +968,7 @@ export function PhotoComparisonPage({
                             retry: true,
                         }
                     })
-                    setFlowPhase("ready")
+                    setFlowPhase("review")
                     return
                 } finally {
                     if (rightAbortControllerRef.current === controller) {
@@ -983,12 +1000,12 @@ export function PhotoComparisonPage({
 
             if ((leftExt.nutrition_columns?.length ?? 0) > 1 && !leftColId) {
                 setColumnModalSide("left")
-                setFlowPhase("ready")
+                setFlowPhase("review")
                 return
             }
             if ((rightExt.nutrition_columns?.length ?? 0) > 1 && !rightColId) {
                 setColumnModalSide("right")
-                setFlowPhase("ready")
+                setFlowPhase("review")
                 return
             }
 
@@ -1035,7 +1052,7 @@ export function PhotoComparisonPage({
                         "The comparison request failed. Retry when both extractions are ready.",
                     ),
                 )
-                setFlowPhase("ready")
+                setFlowPhase("review")
             } finally {
                 if (compareAbortControllerRef.current === compController) {
                     compareAbortControllerRef.current = null
@@ -1084,16 +1101,11 @@ export function PhotoComparisonPage({
         }
     }
 
-    const currentCompareStep: 1 | 2 | 3 =
-        flowPhase === "ready" ||
-        flowPhase === "processing" ||
-        flowPhase === "results"
-            ? 3
-            : activeSide === "left"
-              ? 1
-              : 2
+    const isResultsPage = Boolean(comparison) && flowPhase === "results"
 
-    const handleStepChange = (step: 1 | 2 | 3) => {
+    const currentCompareStep: 1 | 2 = activeSide === "left" ? 1 : 2
+
+    const handleStepChange = (step: 1 | 2) => {
         if (processingStep !== "idle") return
 
         if (step === 1) {
@@ -1106,24 +1118,12 @@ export function PhotoComparisonPage({
             return
         }
 
-        if (step === 2) {
-            if (comparison) {
-                handleEditSide("right")
-                return
-            }
-            setActiveSide("right")
-            setFlowPhase(rightProduct.photos.length > 0 ? "review" : "capture")
-            return
-        }
-
         if (comparison) {
-            setFlowPhase("results")
+            handleEditSide("right")
             return
         }
-
-        if (isReadyToCompare) {
-            setFlowPhase("ready")
-        }
+        setActiveSide("right")
+        setFlowPhase(rightProduct.photos.length > 0 ? "review" : "capture")
     }
 
     return (
@@ -1131,62 +1131,60 @@ export function PhotoComparisonPage({
             {/* Main Content */}
             <main className="mx-auto w-full max-w-3xl px-4 py-5 pb-32 sm:px-6 sm:py-7 sm:pb-12">
                 {/* Header / Toolbar */}
-                <div className="flex flex-col gap-2">
-                    <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                            <h1 className="text-2xl font-extrabold tracking-tight text-neutral-950 sm:text-3xl">
-                                Compare Products
-                            </h1>
-                            <p className="mt-1 text-xs text-neutral-500 sm:text-sm">
-                                Compare nutrition from two label photos.
-                            </p>
-                        </div>
-                        {flowPhase !== "intro" && (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                onClick={handleResetSession}
-                                aria-label="Reset session"
-                                title="Reset session"
-                                className="size-10 shrink-0 rounded-xl text-neutral-700 hover:text-neutral-900 sm:size-11"
-                            >
-                                <ArrowCounterClockwise
-                                    size={18}
-                                    weight="bold"
-                                />
-                            </Button>
-                        )}
+                {isResultsPage ? (
+                    <div className="flex items-center justify-between gap-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => handleEditSide(activeSide)}
+                            className="gap-1.5 font-semibold text-neutral-700 hover:text-neutral-900"
+                        >
+                            <ArrowLeft size={17} weight="bold" />
+                            <span>Edit products</span>
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={handleResetSession}
+                            aria-label="Reset session"
+                            title="Reset session"
+                            className="size-10 shrink-0 rounded-xl text-neutral-700 hover:text-neutral-900 sm:size-11"
+                        >
+                            <ArrowCounterClockwise size={18} weight="bold" />
+                        </Button>
                     </div>
-
-                    {(processingStep !== "idle" ||
-                        leftProduct.photos.length > 0 ||
-                        rightProduct.photos.length > 0) && (
-                        <div className="flex flex-wrap items-center gap-2">
-                            {processingStep !== "idle" && (
-                                <>
-                                    {!getProductForSide(activeSide).loading && (
-                                        <p
-                                            className="text-primary-700 text-xs font-semibold"
-                                            role="status"
-                                        >
-                                            {comparisonStatus}
-                                        </p>
-                                    )}
+                ) : (
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                                <h1 className="text-2xl font-extrabold tracking-tight text-neutral-950 sm:text-3xl">
+                                    Compare Products
+                                </h1>
+                                <p className="mt-1 text-xs text-neutral-500 sm:text-sm">
+                                    Compare nutrition from two label photos.
+                                </p>
+                            </div>
+                            {flowPhase !== "intro" &&
+                                flowPhase !== "processing" && (
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        onClick={handleCancelProcessing}
-                                        className="gap-1.5 font-semibold text-neutral-700 hover:text-neutral-900"
+                                        size="icon"
+                                        onClick={handleResetSession}
+                                        aria-label="Reset session"
+                                        title="Reset session"
+                                        className="size-10 shrink-0 rounded-xl text-neutral-700 hover:text-neutral-900 sm:size-11"
                                     >
-                                        <X size={15} weight="bold" />
-                                        <span>Cancel</span>
+                                        <ArrowCounterClockwise
+                                            size={18}
+                                            weight="bold"
+                                        />
                                     </Button>
-                                </>
-                            )}
+                                )}
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
 
                 <Input
                     ref={(element) => {
@@ -1296,144 +1294,193 @@ export function PhotoComparisonPage({
                         )),
                     )}
 
-                {flowPhase !== "intro" && (
-                    <div className="mt-3 mb-3 sm:mt-4 sm:mb-4">
-                        <CompareStepper
-                            currentStep={currentCompareStep}
-                            onStepChange={handleStepChange}
-                            productACount={leftProduct.photos.length}
-                            productBCount={rightProduct.photos.length}
-                            isReadyToCompare={isReadyToCompare}
-                            hasComparison={Boolean(comparison)}
-                            disabled={processingStep !== "idle"}
-                        />
-                    </div>
-                )}
-
-                <div
-                    className={
-                        flowPhase === "intro"
-                            ? "mt-5 rounded-2xl border border-neutral-200/90 bg-white p-4 shadow-xs sm:mt-6 sm:p-6"
-                            : ""
-                    }
-                >
-                    {flowPhase === "intro" ? (
-                        <section
-                            className=""
-                            aria-labelledby="compare-intro-heading"
-                        >
-                            <div className="flex items-start gap-3">
-                                <span className="bg-primary-100 text-primary-800 flex size-10 shrink-0 items-center justify-center rounded-xl">
-                                    <Scales size={25} weight="bold" />
-                                </span>
-                                <div className="min-w-0">
-                                    <h2
-                                        id="compare-intro-heading"
-                                        className="text-xl font-extrabold tracking-tight text-neutral-950 sm:text-2xl"
-                                    >
-                                        Compare two Products
-                                    </h2>
-                                    <p className="mt-2 text-sm leading-relaxed text-neutral-600 sm:text-base">
-                                        Add a clear Nutrition Facts photo for
-                                        each Product. You can take a photo or
-                                        choose one from your library.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-                                <Button
-                                    type="button"
-                                    onClick={handleStartProductCapture}
-                                    className="shadow-action-lift h-12 gap-2 rounded-xl px-5 font-extrabold"
-                                >
-                                    <ArrowRight size={19} weight="bold" />
-                                    <span>Get started</span>
-                                </Button>
-                            </div>
-
-                            {(leftProduct.error || rightProduct.error) && (
-                                <p
-                                    className="border-error-200 bg-error-50 text-error-800 mt-4 rounded-xl border p-3 text-sm font-medium"
-                                    role="alert"
-                                >
-                                    {leftProduct.error || rightProduct.error}
-                                </p>
-                            )}
-                        </section>
-                    ) : flowPhase !== "results" || !comparison ? (
-                        <section
-                            aria-label="Guided Product capture"
-                            className="mt-3 sm:mt-4"
-                        >
-                            <ProductPhotoPanel
-                                product={
-                                    activeSide === "left"
-                                        ? leftProduct
-                                        : rightProduct
-                                }
-                                highlightedPhotoId={highlightedPhotoId}
-                                previewRefs={previewRefs}
-                                onTitleChange={(title) =>
-                                    handleTitleChange(activeSide, title)
-                                }
-                                onAddFiles={(files) =>
-                                    handleAddFiles(activeSide, files)
-                                }
-                                onRemovePhoto={(index) =>
-                                    handleRemovePhoto(activeSide, index)
-                                }
-                                onReplacePhoto={(index, file) =>
-                                    handleReplacePhoto(activeSide, index, file)
-                                }
-                                onClearPhotos={() =>
-                                    handleClearPhotos(activeSide)
-                                }
-                                onOpenCamera={() =>
-                                    handleOpenDeviceCamera(activeSide)
-                                }
-                                onOpenLibrary={() =>
-                                    handleOpenLibrary(activeSide)
-                                }
-                                onSelectColumn={(colId) =>
-                                    handleSelectColumn(activeSide, colId)
-                                }
-                                onFocusEvidence={handleFocusEvidence}
-                                onInspectPhoto={(index) =>
-                                    setInspectionState({
-                                        isOpen: true,
-                                        side: activeSide,
-                                        index,
-                                    })
-                                }
+                {!isResultsPage &&
+                    flowPhase !== "intro" &&
+                    flowPhase !== "processing" && (
+                        <div className="mt-3 mb-3 sm:mt-4 sm:mb-4">
+                            <CompareStepper
+                                currentStep={currentCompareStep}
+                                onStepChange={handleStepChange}
+                                productACount={leftProduct.photos.length}
+                                productBCount={rightProduct.photos.length}
+                                disabled={processingStep !== "idle"}
                             />
+                        </div>
+                    )}
 
-                            {!comparison &&
-                                leftProduct.extraction &&
-                                rightProduct.extraction &&
-                                ((leftProduct.extraction.nutrition_columns
-                                    ?.length ?? 0) > 1 ||
-                                    (rightProduct.extraction.nutrition_columns
-                                        ?.length ?? 0) > 1) && (
-                                    <section
-                                        className="mt-3 border-y border-neutral-200/80 py-3"
-                                        aria-labelledby="compare-basis-heading"
+                {!isResultsPage && (
+                    <div
+                        className={
+                            flowPhase === "intro"
+                                ? "mt-5 rounded-2xl border border-neutral-200/90 bg-white p-4 shadow-xs sm:mt-6 sm:p-6"
+                                : ""
+                        }
+                    >
+                        {flowPhase === "processing" ? (
+                            <ComparisonProcessingSheet
+                                processingStep={processingStep}
+                                leftProduct={leftProduct}
+                                rightProduct={rightProduct}
+                                onCancel={handleCancelProcessing}
+                            />
+                        ) : flowPhase === "intro" ? (
+                            <section
+                                className=""
+                                aria-labelledby="compare-intro-heading"
+                            >
+                                <div className="flex items-start gap-3">
+                                    <span className="bg-primary-100 text-primary-800 flex size-10 shrink-0 items-center justify-center rounded-xl">
+                                        <Scales size={25} weight="bold" />
+                                    </span>
+                                    <div className="min-w-0">
+                                        <h2
+                                            id="compare-intro-heading"
+                                            className="text-xl font-extrabold tracking-tight text-neutral-950 sm:text-2xl"
+                                        >
+                                            Compare two Products
+                                        </h2>
+                                        <p className="mt-2 text-sm leading-relaxed text-neutral-600 sm:text-base">
+                                            Add a clear Nutrition Facts photo
+                                            for each Product. You can take a
+                                            photo or choose one from your
+                                            library.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+                                    <Button
+                                        type="button"
+                                        onClick={handleStartProductCapture}
+                                        className="shadow-action-lift h-12 gap-2 rounded-xl px-5 font-extrabold"
                                     >
-                                        <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
-                                            <h3
-                                                id="compare-basis-heading"
-                                                className="text-sm font-extrabold text-neutral-900"
-                                            >
-                                                Choose the nutrition basis
-                                            </h3>
-                                            <p className="text-xs text-neutral-500">
-                                                You can change this while a
-                                                comparison is in progress.
-                                            </p>
-                                        </div>
-                                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                                            {(["left", "right"] as const).map(
-                                                (side) => {
+                                        <ArrowRight size={19} weight="bold" />
+                                        <span>Get started</span>
+                                    </Button>
+                                </div>
+
+                                {(leftProduct.error || rightProduct.error) && (
+                                    <p
+                                        className="border-error-200 bg-error-50 text-error-800 mt-4 rounded-xl border p-3 text-sm font-medium"
+                                        role="alert"
+                                    >
+                                        {leftProduct.error ||
+                                            rightProduct.error}
+                                    </p>
+                                )}
+                            </section>
+                        ) : flowPhase !== "results" || !comparison ? (
+                            <section
+                                aria-label="Guided Product capture"
+                                className="mt-3 sm:mt-4"
+                            >
+                                <ProductPhotoPanel
+                                    product={
+                                        activeSide === "left"
+                                            ? leftProduct
+                                            : rightProduct
+                                    }
+                                    highlightedPhotoId={highlightedPhotoId}
+                                    previewRefs={previewRefs}
+                                    onTitleChange={(title) =>
+                                        handleTitleChange(activeSide, title)
+                                    }
+                                    onAddFiles={(files) =>
+                                        handleAddFiles(activeSide, files)
+                                    }
+                                    onRemovePhoto={(index) =>
+                                        handleRemovePhoto(activeSide, index)
+                                    }
+                                    onReplacePhoto={(index, file) =>
+                                        handleReplacePhoto(
+                                            activeSide,
+                                            index,
+                                            file,
+                                        )
+                                    }
+                                    onClearPhotos={() =>
+                                        handleClearPhotos(activeSide)
+                                    }
+                                    onOpenCamera={() =>
+                                        handleOpenDeviceCamera(activeSide)
+                                    }
+                                    onOpenLibrary={() =>
+                                        handleOpenLibrary(activeSide)
+                                    }
+                                    onSelectColumn={(colId) =>
+                                        handleSelectColumn(activeSide, colId)
+                                    }
+                                    onFocusEvidence={handleFocusEvidence}
+                                    onInspectPhoto={(index) =>
+                                        setInspectionState({
+                                            isOpen: true,
+                                            side: activeSide,
+                                            index,
+                                        })
+                                    }
+                                />
+
+                                {comparisonNotice && (
+                                    <p
+                                        className="bg-primary-50 text-primary-950 mt-3 rounded-xl px-3 py-2.5 text-sm leading-relaxed font-bold"
+                                        role="status"
+                                    >
+                                        {comparisonNotice}
+                                    </p>
+                                )}
+
+                                {!comparison &&
+                                    activeSide === "right" &&
+                                    (comparisonError ||
+                                        (processingStep === "idle" &&
+                                            leftProduct.photos.length > 0 &&
+                                            rightProduct.photos.length > 0 &&
+                                            !isReadyToCompare)) && (
+                                        <p
+                                            className={cn(
+                                                "mt-3 text-sm leading-relaxed font-bold",
+                                                comparisonError
+                                                    ? "text-error-700"
+                                                    : "text-neutral-900",
+                                            )}
+                                            role={
+                                                comparisonError
+                                                    ? "alert"
+                                                    : "status"
+                                            }
+                                        >
+                                            {comparisonStatus}
+                                        </p>
+                                    )}
+
+                                {!comparison &&
+                                    leftProduct.extraction &&
+                                    rightProduct.extraction &&
+                                    ((leftProduct.extraction.nutrition_columns
+                                        ?.length ?? 0) > 1 ||
+                                        (rightProduct.extraction
+                                            .nutrition_columns?.length ?? 0) >
+                                            1) && (
+                                        <section
+                                            className="mt-3 border-y border-neutral-200/80 py-3"
+                                            aria-labelledby="compare-basis-heading"
+                                        >
+                                            <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
+                                                <h3
+                                                    id="compare-basis-heading"
+                                                    className="text-sm font-extrabold text-neutral-900"
+                                                >
+                                                    Choose the nutrition basis
+                                                </h3>
+                                                <p className="text-xs text-neutral-500">
+                                                    You can change this while a
+                                                    comparison is in progress.
+                                                </p>
+                                            </div>
+                                            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                                                {(
+                                                    ["left", "right"] as const
+                                                ).map((side) => {
                                                     const product =
                                                         getProductForSide(side)
                                                     const columns =
@@ -1508,149 +1555,124 @@ export function PhotoComparisonPage({
                                                             </div>
                                                         </div>
                                                     )
-                                                },
-                                            )}
-                                        </div>
-                                    </section>
-                                )}
+                                                })}
+                                            </div>
+                                        </section>
+                                    )}
 
-                            {(flowPhase === "capture" ||
-                                flowPhase === "review") && (
-                                <div
-                                    role="group"
-                                    aria-label="Photo capture navigation"
-                                    data-glass-surface=""
-                                    className="glass-surface fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-full p-1.5 backdrop-blur-xl"
-                                >
-                                    {activeSide === "left" && (
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            aria-label={
-                                                comparison
-                                                    ? "Back to comparison results"
-                                                    : "Back to start"
-                                            }
-                                            disabled={processingStep !== "idle"}
-                                            onClick={() =>
-                                                handleBackFromSide("left")
-                                            }
-                                            className="h-11 gap-1.5 rounded-full px-4 text-sm font-bold text-neutral-700 hover:bg-white/70 hover:text-neutral-950"
-                                        >
-                                            <ArrowLeft
-                                                size={17}
-                                                weight="bold"
-                                            />
-                                            <span>Back</span>
-                                        </Button>
-                                    )}
-                                    {activeSide === "right" && (
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            aria-label="Back to Product A"
-                                            onClick={() =>
-                                                handleBackFromSide("right")
-                                            }
-                                            className="h-11 gap-1.5 rounded-full px-4 text-sm font-bold text-neutral-700 hover:bg-white/70 hover:text-neutral-950"
-                                        >
-                                            <ArrowLeft
-                                                size={17}
-                                                weight="bold"
-                                            />
-                                            <span>Back</span>
-                                        </Button>
-                                    )}
-                                    <Button
-                                        type="button"
-                                        aria-label={
-                                            activeSide === "left"
-                                                ? "Continue to Product B"
-                                                : comparison
-                                                  ? "Return to comparison results"
-                                                  : "Review both Products"
-                                        }
-                                        disabled={
-                                            processingStep !== "idle" ||
-                                            (activeSide === "left"
-                                                ? leftProduct.photos.length ===
-                                                  0
-                                                : rightProduct.photos.length ===
-                                                  0)
-                                        }
-                                        onClick={() =>
-                                            handleContinueFromSide(activeSide)
-                                        }
-                                        className="shadow-action-lift bg-primary-600 hover:bg-primary-700 h-11 gap-1.5 rounded-full px-4 text-sm font-extrabold"
+                                {(flowPhase === "capture" ||
+                                    flowPhase === "review") && (
+                                    <div
+                                        role="group"
+                                        aria-label="Photo capture navigation"
+                                        data-glass-surface=""
+                                        className="glass-surface fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-full p-1.5 backdrop-blur-xl"
                                     >
-                                        <span>
-                                            {activeSide === "left"
-                                                ? "Next"
-                                                : comparison
-                                                  ? "Results"
-                                                  : "Review"}
-                                        </span>
-                                        <ArrowRight size={17} weight="bold" />
-                                    </Button>
-                                </div>
-                            )}
-                        </section>
-                    ) : null}
-
-                    {!comparison &&
-                        (flowPhase === "ready" ||
-                            (flowPhase === "processing" &&
-                                processingStep === "idle")) && (
-                            <div className="mt-4 flex flex-col gap-3 border-t border-neutral-200/80 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                                <div className="min-w-0">
-                                    <p
-                                        className={cn(
-                                            "text-sm leading-relaxed",
-                                            comparisonError
-                                                ? "text-error-700 font-bold"
-                                                : isReadyToCompare
-                                                  ? "font-bold text-neutral-900"
-                                                  : "font-medium text-neutral-700",
+                                        {activeSide === "left" && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                aria-label={
+                                                    comparison
+                                                        ? "Back to comparison results"
+                                                        : "Back to start"
+                                                }
+                                                disabled={
+                                                    processingStep !== "idle"
+                                                }
+                                                onClick={() =>
+                                                    handleBackFromSide("left")
+                                                }
+                                                className="h-11 gap-1.5 rounded-full px-4 text-sm font-bold text-neutral-700 hover:bg-white/70 hover:text-neutral-950"
+                                            >
+                                                <ArrowLeft
+                                                    size={17}
+                                                    weight="bold"
+                                                />
+                                                <span>Back</span>
+                                            </Button>
                                         )}
-                                        role={
-                                            comparisonError ? "alert" : "status"
-                                        }
-                                    >
-                                        {comparisonStatus}
-                                    </p>
-                                    <p className="mt-1 text-xs leading-relaxed text-neutral-500">
-                                        Photos are processed by the configured
-                                        AI provider and are not retained by Life
-                                        Goods.
-                                    </p>
-                                </div>
-                                <Button
-                                    type="button"
-                                    variant="default"
-                                    size="default"
-                                    disabled={
-                                        !isReadyToCompare ||
-                                        processingStep !== "idle"
-                                    }
-                                    onClick={() => void handleCompare()}
-                                    className="shadow-action-lift h-11 gap-2 self-start rounded-xl px-5 font-extrabold sm:self-auto"
-                                >
-                                    <Scales size={18} weight="bold" />
-                                    <span>{compareButtonLabel}</span>
-                                </Button>
-                            </div>
-                        )}
-                </div>
+                                        {activeSide === "right" && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                aria-label="Back to Product A"
+                                                disabled={
+                                                    processingStep !== "idle"
+                                                }
+                                                onClick={() =>
+                                                    handleBackFromSide("right")
+                                                }
+                                                className="h-11 gap-1.5 rounded-full px-4 text-sm font-bold text-neutral-700 hover:bg-white/70 hover:text-neutral-950"
+                                            >
+                                                <ArrowLeft
+                                                    size={17}
+                                                    weight="bold"
+                                                />
+                                                <span>Back</span>
+                                            </Button>
+                                        )}
+                                        <Button
+                                            type="button"
+                                            variant="default"
+                                            aria-label={
+                                                activeSide === "left"
+                                                    ? "Continue to Product B"
+                                                    : comparison
+                                                      ? "Return to comparison results"
+                                                      : compareButtonLabel
+                                            }
+                                            disabled={
+                                                activeSide === "left"
+                                                    ? leftProduct.photos
+                                                          .length === 0
+                                                    : rightProduct.photos
+                                                          .length === 0
+                                            }
+                                            onClick={() => {
+                                                handleContinueFromSide(
+                                                    activeSide,
+                                                )
+                                            }}
+                                            className="shadow-action-lift bg-primary-600 hover:bg-primary-700 h-11 gap-1.5 rounded-full px-4 text-sm font-extrabold"
+                                        >
+                                            <span>
+                                                {activeSide === "left"
+                                                    ? "Next"
+                                                    : comparison
+                                                      ? "Results"
+                                                      : compareButtonLabel}
+                                            </span>
+                                            {activeSide === "right" &&
+                                            !comparison ? (
+                                                <Scales
+                                                    size={17}
+                                                    weight="bold"
+                                                />
+                                            ) : (
+                                                <ArrowRight
+                                                    size={17}
+                                                    weight="bold"
+                                                />
+                                            )}
+                                        </Button>
+                                    </div>
+                                )}
+                            </section>
+                        ) : null}
+                    </div>
+                )}
 
-                {/* Results panel */}
-                {comparison && flowPhase === "results" && (
-                    <div
-                        id="compare-step-panel-3"
+                {/* Results page */}
+                {isResultsPage && (
+                    <section
+                        id="compare-results-page"
                         role="region"
                         aria-label="Comparison results"
-                        className="mt-3 flex flex-col gap-4 sm:mt-4"
+                        className="flex flex-col gap-4"
                     >
-                        {/* Multi-column basis selector in Step 3 */}
+                        <h1 className="sr-only">Comparison results</h1>
+                        {/* Multi-column basis selector on the results page */}
                         {((leftProduct.extraction?.nutrition_columns?.length ??
                             0) > 1 ||
                             (rightProduct.extraction?.nutrition_columns
@@ -1764,7 +1786,7 @@ export function PhotoComparisonPage({
                             }}
                             onFocusEvidence={handleFocusEvidence}
                         />
-                    </div>
+                    </section>
                 )}
             </main>
 

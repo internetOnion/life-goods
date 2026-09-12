@@ -996,7 +996,9 @@ Compare Products is reachable at `/compare` as a destination in the primary
 navigation; previously published photo-comparison URLs redirect to `/compare`. The
 page accepts one to three JPEG/PNG photos per Product through camera capture or
 file selection, shows previews that can be enlarged, supports add/remove/replace,
-and presents distinct editable Product A and Product B identities. A wrapped
+and presents distinct editable Product A and Product B identities. Capture uses a
+two-step Product A → Product B control, and comparison results render on their
+own page with a clear return to edit either Product. A wrapped
 label or separate package-weight panel can be included across multiple photos.
 Unsupported formats receive a clear unsupported-format message instead of
 promised conversion. When a label contains a sole nutrition column it is

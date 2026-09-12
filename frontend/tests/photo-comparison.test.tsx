@@ -33,11 +33,11 @@ function renderRoute(path: string, lookup = vi.fn<ProductLookup>()) {
     )
 }
 
-async function openCompareReview(user: ReturnType<typeof userEvent.setup>) {
-    await user.click(
-        screen.getByRole("button", { name: /Review both Products/i }),
+function openCompareReview(user: ReturnType<typeof userEvent.setup>) {
+    void user
+    return Promise.resolve(
+        screen.getByRole("button", { name: "Compare Products" }),
     )
-    return screen.getByRole("button", { name: "Compare Products" })
 }
 
 describe("CameraCaptureSheet", () => {
@@ -530,7 +530,7 @@ describe("Compare Products frontend page (/compare)", () => {
         )
     })
 
-    test("guides the Shopper through Product A, Product B, review, and reset", async () => {
+    test("guides the Shopper through Product A, Product B, and reset", async () => {
         const user = userEvent.setup()
         renderRoute("/compare")
 
@@ -593,17 +593,17 @@ describe("Compare Products frontend page (/compare)", () => {
             type: "image/jpeg",
         })
         fireEvent.change(uploadRight, { target: { files: [dummyFileB] } })
-        await user.click(
-            screen.getByRole("button", { name: /Review both Products/i }),
-        )
         expect(
             screen.getByRole("button", { name: "Compare Products" }),
         ).toBeEnabled()
         expect(
-            screen.getByText(
+            screen.queryByRole("button", { name: /Review both Products/i }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByText(
                 /Photos are processed by the configured AI provider and are not retained by Life Goods\./i,
             ),
-        ).toBeInTheDocument()
+        ).not.toBeInTheDocument()
 
         const resetButton = screen.getByRole("button", {
             name: /Reset session/i,
@@ -850,9 +850,6 @@ describe("Compare Products frontend page (/compare)", () => {
         })
         fireEvent.change(inputRight, { target: { files: [fileRight] } })
 
-        await user.click(
-            screen.getByRole("button", { name: /Review both Products/i }),
-        )
         const compareButton = screen.getByRole("button", {
             name: "Compare Products",
         })
@@ -884,35 +881,48 @@ describe("Compare Products frontend page (/compare)", () => {
         expect(screen.getByText("Sodium")).toBeInTheDocument()
         expect(screen.getAllByText("1,380 mg").length).toBeGreaterThan(0)
 
-        // Step navigation hides, but does not invalidate, the in-memory result.
-        await user.click(screen.getByRole("tab", { name: /Product A/i }))
+        // Comparison results render on their own page: no Compare tab, and the
+        // two-step capture stepper is not on screen.
+        expect(
+            screen.getByRole("region", { name: "Comparison results" }),
+        ).toBeInTheDocument()
+        expect(
+            screen.queryByRole("tab", { name: /Compare/i }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("tab", { name: /Product A/i }),
+        ).not.toBeInTheDocument()
+
+        // Editing returns to the two-step capture while keeping the result.
+        await user.click(screen.getByRole("button", { name: /Edit products/i }))
         expect(
             screen.queryByRole("region", { name: "Comparison results" }),
         ).not.toBeInTheDocument()
+        expect(screen.getByRole("tab", { name: /Product B/i })).toHaveAttribute(
+            "aria-selected",
+            "true",
+        )
+        await user.click(screen.getByRole("tab", { name: /Product A/i }))
         expect(screen.getByRole("tab", { name: /Product A/i })).toHaveAttribute(
             "aria-selected",
             "true",
         )
+        await user.click(screen.getByRole("tab", { name: /Product B/i }))
 
-        await user.click(screen.getByRole("tab", { name: /Compare/i }))
+        // Returning to the results page does not re-run extraction or comparison.
+        await user.click(
+            screen.getByRole("button", {
+                name: /Return to comparison results/i,
+            }),
+        )
         expect(
             screen.getByRole("region", { name: "Comparison results" }),
         ).toBeInTheDocument()
         expect(extractPhotosMock).toHaveBeenCalledTimes(2)
         expect(compareMock).toHaveBeenCalledTimes(1)
 
-        await user.click(screen.getByRole("tab", { name: /Product B/i }))
-        expect(
-            screen.queryByRole("region", { name: "Comparison results" }),
-        ).not.toBeInTheDocument()
-        await user.click(screen.getByRole("tab", { name: /Compare/i }))
-        expect(
-            screen.getByRole("region", { name: "Comparison results" }),
-        ).toBeInTheDocument()
-        expect(compareMock).toHaveBeenCalledTimes(1)
-
         // A real input mutation still invalidates the stale result.
-        await user.click(screen.getByRole("tab", { name: /Product A/i }))
+        await user.click(screen.getByRole("button", { name: /Edit products/i }))
         const replacementInput = document.getElementById(
             "upload-photos-left",
         ) as HTMLInputElement
@@ -925,9 +935,14 @@ describe("Compare Products frontend page (/compare)", () => {
                 ],
             },
         })
-        await user.click(screen.getByRole("tab", { name: /Compare/i }))
         expect(
             screen.queryByRole("region", { name: "Comparison results" }),
+        ).not.toBeInTheDocument()
+        await user.click(screen.getByRole("tab", { name: /Product B/i }))
+        expect(
+            screen.queryByRole("button", {
+                name: /Return to comparison results/i,
+            }),
         ).not.toBeInTheDocument()
         expect(
             screen.getByRole("button", { name: "Compare Products" }),
@@ -1379,12 +1394,12 @@ describe("ComparisonSection Shopper-ready presentation", () => {
             />,
         )
 
-        expect(screen.getByText("Conditional")).toBeInTheDocument()
+        expect(screen.queryByText("Conditional")).not.toBeInTheDocument()
         expect(
-            screen.getByText(
+            screen.queryByText(
                 "Different preparation states: left is prepared, right is unprepared.",
             ),
-        ).toBeInTheDocument()
+        ).not.toBeInTheDocument()
         expect(
             screen.getAllByText(
                 "Assuming dry weight yields similar calorie density.",
@@ -2481,13 +2496,14 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         expect(screen.getByText("500 mg")).toBeInTheDocument()
         expect(screen.getByText("vs 650 mg")).toBeInTheDocument()
 
-        // Conditional unknown preparation suppresses definitive difference
-        expect(screen.getByText("Conditional")).toBeInTheDocument()
+        // Conditional normalization details do not occupy the Shopper-facing
+        // Difference column, while the underlying assumptions remain disclosed.
+        expect(screen.queryByText("Conditional")).not.toBeInTheDocument()
         expect(
-            screen.getByText(
+            screen.queryByText(
                 "Preparation state is unknown, so the normalized values are conditional.",
             ),
-        ).toBeInTheDocument()
+        ).not.toBeInTheDocument()
         expect(
             screen.getAllByText(
                 "Preparation state is unknown for at least one Product.",
@@ -2977,11 +2993,10 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         ).toBeEnabled()
     })
 
-    test("changing columns during comparison cancels in-flight comparison and rejects out-of-order responses", async () => {
+    test("hides column controls during comparison and rejects a cancelled response", async () => {
         const user = userEvent.setup()
 
         const deferredCompare1 = createDeferred<ComparisonResponse>()
-        const deferredCompare2 = createDeferred<ComparisonResponse>()
         const capturedSignals: AbortSignal[] = []
 
         const leftExtractionWithTwoCols: Extraction = {
@@ -3037,7 +3052,6 @@ describe("Compare Products obsolete-response safety (#125)", () => {
             )
         })
 
-        let compareCallCount = 0
         const compareMock = vi
             .fn()
             .mockImplementation(
@@ -3045,13 +3059,9 @@ describe("Compare Products obsolete-response safety (#125)", () => {
                     _payload: ComparisonRequest,
                     options?: { signal?: AbortSignal },
                 ) => {
-                    compareCallCount++
                     const sig = options?.signal
                     if (sig) capturedSignals.push(sig)
-                    if (compareCallCount === 1) {
-                        return deferredCompare1.promise
-                    }
-                    return deferredCompare2.promise
+                    return deferredCompare1.promise
                 },
             )
 
@@ -3107,15 +3117,17 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         expect(compareMock).toHaveBeenCalledTimes(1)
         expect(capturedSignals[0]?.aborted).toBe(false)
 
-        // While first comparison is in flight, user switches to the second column: "col_prep"
-        const selectPrepCol = screen.getByRole("button", {
-            name: /Select column/i,
-        })
-        await user.click(selectPrepCol)
+        // Editing is unavailable while the provider request is in flight.
+        expect(
+            screen.queryByRole("button", { name: /Select column/i }),
+        ).not.toBeInTheDocument()
+        await user.click(
+            screen.getByRole("button", { name: "Cancel comparison" }),
+        )
 
-        // First comparison request should be cancelled/aborted
+        // The request is cancelled and its eventual response is rejected.
         expect(capturedSignals[0]?.aborted).toBe(true)
-        expect(compareMock).toHaveBeenCalledTimes(2)
+        expect(compareMock).toHaveBeenCalledTimes(1)
 
         // Now resolve the older comparison 1 FIRST (out-of-order resolution) with obsolete data
         deferredCompare1.resolve({
@@ -3138,31 +3150,10 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         // Obsolete response 1 must be rejected and NOT rendered!
         expect(screen.queryByText("Stale Result")).not.toBeInTheDocument()
 
-        // Now resolve comparison 2 with current data
-        deferredCompare2.resolve({
-            schema_version: 1,
-            calculated_from_submitted_evidence: true,
-            left_product_id: "left",
-            right_product_id: "right",
-            rows: [
-                {
-                    row_kind: "amount",
-                    nutrient: "fresh_result",
-                    state: "not_comparable",
-                    reason: "Fresh reason from col prep",
-                },
-            ],
-        })
-
-        // Fresh result 2 is rendered!
-        expect(await screen.findByText("Fresh Result")).toBeInTheDocument()
         expect(screen.queryByText("Stale Result")).not.toBeInTheDocument()
-        expect(
-            screen.queryByText("Fresh reason from col prep"),
-        ).not.toBeInTheDocument()
     })
 
-    test("resetting during extraction cancels request and prevents stale results from reappearing", async () => {
+    test("cancelling during extraction prevents stale results from reappearing", async () => {
         const user = userEvent.setup()
         let capturedSignal: AbortSignal | undefined
         const deferredLeft = createDeferred<Extraction>()
@@ -3241,8 +3232,12 @@ describe("Compare Products obsolete-response safety (#125)", () => {
             screen.getByText("Reading Product A photos…"),
         ).toBeInTheDocument()
 
-        // Tap Reset session while extraction is in flight
-        await user.click(screen.getByRole("button", { name: /Reset session/i }))
+        expect(
+            screen.queryByRole("button", { name: /Reset session/i }),
+        ).not.toBeInTheDocument()
+        await user.click(
+            screen.getByRole("button", { name: "Cancel comparison" }),
+        )
 
         // Request was aborted
         expect(capturedSignal?.aborted).toBe(true)
@@ -3265,23 +3260,20 @@ describe("Compare Products obsolete-response safety (#125)", () => {
 
         await Promise.resolve()
 
-        // Page must remain in reset state!
+        // Page remains in review with the submitted photos intact.
         expect(
-            screen.getByRole("heading", {
-                level: 2,
-                name: "Compare two Products",
-            }),
+            screen.getByText(
+                "Comparison cancelled. Your photos are still here.",
+            ),
         ).toBeInTheDocument()
         expect(
             screen.queryByDisplayValue("Zombie Product"),
         ).not.toBeInTheDocument()
         expect(compareMock).not.toHaveBeenCalled()
-        expect(
-            screen.queryByRole("button", { name: "Compare Products" }),
-        ).not.toBeInTheDocument()
+        expect(screen.getByText("Photo 1")).toBeInTheDocument()
     })
 
-    test("resetting during comparison cancels request and prevents stale comparison from reappearing", async () => {
+    test("cancelling during comparison prevents stale comparison from reappearing", async () => {
         const user = userEvent.setup()
         let capturedSignal: AbortSignal | undefined
         const deferredCompare = createDeferred<ComparisonResponse>()
@@ -3359,8 +3351,9 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         expect(screen.getByText("Comparing nutrition…")).toBeInTheDocument()
         expect(capturedSignal?.aborted).toBe(false)
 
-        // Reset session while comparison is in flight
-        await user.click(screen.getByRole("button", { name: /Reset session/i }))
+        await user.click(
+            screen.getByRole("button", { name: "Cancel comparison" }),
+        )
 
         // Comparison was aborted
         expect(capturedSignal?.aborted).toBe(true)
@@ -3388,8 +3381,10 @@ describe("Compare Products obsolete-response safety (#125)", () => {
             screen.queryByText("Ghost Energy Reason"),
         ).not.toBeInTheDocument()
         expect(
-            screen.queryByRole("button", { name: "Compare Products" }),
-        ).not.toBeInTheDocument()
+            screen.getByText(
+                "Comparison cancelled. Your photos are still here.",
+            ),
+        ).toBeInTheDocument()
     })
 
     test("leaving the page unmounts and cancels in-flight extraction and comparison requests", async () => {
@@ -3640,9 +3635,13 @@ describe("Compare Products obsolete-response safety (#125)", () => {
             screen.getByText("Reading Product A photos…"),
         ).toBeInTheDocument()
 
-        // User clears Product B photo while Product A extraction is pending
-        const removeRightBtn = screen.getByLabelText("Remove photo 1")
-        fireEvent.click(removeRightBtn)
+        // Photo editing is unavailable while Product A extraction is pending.
+        expect(
+            screen.queryByLabelText("Remove photo 1"),
+        ).not.toBeInTheDocument()
+        fireEvent.click(
+            screen.getByRole("button", { name: "Cancel comparison" }),
+        )
 
         // Old Product A extraction resolves
         deferredLeft.resolve({
@@ -3858,14 +3857,111 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         await user.click(await openCompareReview(user))
 
         // Cancel button is visible while in-flight
-        const cancelBtn = screen.getByRole("button", { name: "Cancel" })
+        const cancelBtn = screen.getByRole("button", {
+            name: "Cancel comparison",
+        })
         expect(cancelBtn).toBeInTheDocument()
 
         // Tap Cancel
         await user.click(cancelBtn)
         expect(capturedSignal?.aborted).toBe(true)
         expect(
-            screen.queryByRole("button", { name: "Cancel" }),
+            screen.queryByRole("button", { name: "Cancel comparison" }),
         ).not.toBeInTheDocument()
+    })
+})
+
+describe("Compare Products processing experience", () => {
+    test("replaces editing with truthful staged progress and preserves photos on cancel", async () => {
+        const user = userEvent.setup()
+        let capturedSignal: AbortSignal | undefined
+        const extractPhotosMock = vi.fn(
+            (
+                _id: string,
+                _photos: File[],
+                options?: { signal?: AbortSignal },
+            ) => {
+                capturedSignal = options?.signal
+                return new Promise<Extraction>(() => undefined)
+            },
+        )
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+
+        render(
+            <QueryClientProvider client={queryClient}>
+                <MemoryRouter initialEntries={["/compare"]}>
+                    <PhotoComparisonPage extractPhotos={extractPhotosMock} />
+                </MemoryRouter>
+            </QueryClientProvider>,
+        )
+
+        const inputLeft = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+        const inputRight = document.getElementById(
+            "upload-photos-right",
+        ) as HTMLInputElement
+        fireEvent.change(inputLeft, {
+            target: {
+                files: [new File(["left"], "left.jpg", { type: "image/jpeg" })],
+            },
+        })
+        await user.click(
+            screen.getByRole("button", { name: /Continue to Product B/i }),
+        )
+        fireEvent.change(inputRight, {
+            target: {
+                files: [
+                    new File(["right"], "right.jpg", {
+                        type: "image/jpeg",
+                    }),
+                ],
+            },
+        })
+
+        await user.click(
+            screen.getByRole("button", { name: "Compare Products" }),
+        )
+
+        expect(
+            screen.getByRole("heading", { name: "Reading your labels" }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByText("Reading Product A photos…"),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("list", { name: "Comparison progress" }),
+        ).toHaveTextContent("Read Product A label")
+        expect(
+            screen.getByText(
+                /Photos are sent to the configured processing provider/i,
+            ),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: "Cancel comparison" }),
+        ).toBeInTheDocument()
+        expect(
+            screen.queryByRole("button", { name: "Reset session" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("group", { name: "Photo capture navigation" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("tab", { name: /Product A/i }),
+        ).not.toBeInTheDocument()
+
+        await user.click(
+            screen.getByRole("button", { name: "Cancel comparison" }),
+        )
+
+        expect(capturedSignal?.aborted).toBe(true)
+        expect(
+            screen.getByText(
+                "Comparison cancelled. Your photos are still here.",
+            ),
+        ).toBeInTheDocument()
+        expect(screen.getByText("Photo 1")).toBeInTheDocument()
     })
 })

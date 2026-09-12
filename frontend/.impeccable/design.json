@@ -203,7 +203,7 @@
     ],
     "narrative": {
         "northStar": "The Source Reader",
-        "overview": "Life Goods is a calm, grounded reading tool for attributed source data, not a verdict dashboard. A cool slate canvas holds narrow white sheets of Open Food Facts information; amber exists only to move the Shopper forward, and blue exists only to name the source. Density is generous but ordered: one 36rem reading rail, dividers instead of boxes, monospaced identifiers wherever a machine value appears. The dark scanner aperture is the single moment of high drama, and it exists to make a privacy promise before it asks for the camera.\n\nThe interface is compact, mobile-first, and privacy-forward. Missing source data is never decorated, softened, or inferred: it reads exactly Source Data Unavailable — the interface's most important sentence.\n\nCompare Products uses a three-step Product A, Product B, and Compare path. The stepper gets 0.75rem vertical separation on mobile and 1rem from the sm breakpoint while retaining 44px controls.",
+        "overview": "Life Goods is a calm, grounded reading tool for attributed source data, not a verdict dashboard. A cool slate canvas holds narrow white sheets of Open Food Facts information; amber exists only to move the Shopper forward, and blue exists only to name the source. Density is generous but ordered: one 36rem reading rail, dividers instead of boxes, monospaced identifiers wherever a machine value appears. The dark scanner aperture is the single moment of high drama, and it exists to make a privacy promise before it asks for the camera.\n\nThe interface is compact, mobile-first, and privacy-forward. Missing source data is never decorated, softened, or inferred: it reads exactly Source Data Unavailable — the interface's most important sentence.\n\nCompare Products captures Product A and Product B in a two-step control, then renders comparison results on their own page with a return to edit either Product. The stepper gets 0.75rem vertical separation on mobile and 1rem from the sm breakpoint while retaining 44px controls.",
         "keyCharacteristics": [
             "Narrow, one-handed reading column on a cool slate canvas",
             "White source sheets carry the content; the canvas is only a field",
@@ -211,7 +211,7 @@
             "Dark camera glass separated from reading surfaces",
             "Compact rounded controls and mono identifiers",
             "Dividers and disclosure instead of dashboard tiles",
-            "A three-step Compare Products path with deliberate vertical rhythm"
+            "A two-step Compare Products capture with results on their own page"
         ],
         "rules": [
             {

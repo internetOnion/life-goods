@@ -1,15 +1,13 @@
-import { Check, Scales } from "@phosphor-icons/react"
+import { Check } from "@phosphor-icons/react"
 
 import { GlassButton as Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 export interface CompareStepperProps {
-    currentStep: 1 | 2 | 3
-    onStepChange: (step: 1 | 2 | 3) => void
+    currentStep: 1 | 2
+    onStepChange: (step: 1 | 2) => void
     productACount: number
     productBCount: number
-    isReadyToCompare: boolean
-    hasComparison: boolean
     disabled?: boolean
 }
 
@@ -18,8 +16,6 @@ export function CompareStepper({
     onStepChange,
     productACount,
     productBCount,
-    isReadyToCompare,
-    hasComparison,
     disabled = false,
 }: CompareStepperProps) {
     const steps = [
@@ -27,19 +23,11 @@ export function CompareStepper({
             number: 1 as const,
             label: "Product A",
             completed: productACount > 0,
-            accessible: true,
         },
         {
             number: 2 as const,
             label: "Product B",
             completed: productBCount > 0,
-            accessible: true,
-        },
-        {
-            number: 3 as const,
-            label: "Compare",
-            completed: hasComparison,
-            accessible: isReadyToCompare,
         },
     ]
 
@@ -48,11 +36,11 @@ export function CompareStepper({
             <ol
                 role="tablist"
                 aria-label="Select compare step"
-                className="grid grid-cols-3 gap-1 rounded-xl bg-neutral-100 p-1 sm:gap-2"
+                className="grid grid-cols-2 gap-1 rounded-xl bg-neutral-100 p-1 sm:gap-2"
             >
                 {steps.map((step) => {
                     const isActive = currentStep === step.number
-                    const isStepAccessible = step.accessible && !disabled
+                    const isStepAccessible = !disabled
 
                     return (
                         <li
@@ -93,9 +81,7 @@ export function CompareStepper({
                                               : "bg-neutral-200 text-neutral-600",
                                     )}
                                 >
-                                    {step.number === 3 && step.completed ? (
-                                        <Scales size={13} weight="bold" />
-                                    ) : step.completed && !isActive ? (
+                                    {step.completed && !isActive ? (
                                         <Check size={13} weight="bold" />
                                     ) : (
                                         step.number

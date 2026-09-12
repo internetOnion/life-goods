@@ -464,7 +464,7 @@ function AmountTableRow({
         row.nutrient,
         row.left?.observation.label || row.right?.observation.label,
     )
-    const hasVisibleDifference = row.state !== "not_comparable"
+    const hasVisibleDifference = row.state === "comparable"
 
     return (
         <tr className="grid grid-cols-2 gap-x-3 gap-y-2 border-b border-neutral-200/90 py-3 last:border-b-0 sm:table-row sm:border-0 sm:py-0 sm:hover:bg-neutral-50/70">
@@ -853,21 +853,6 @@ function DifferenceCell({
     leftProduct: ProductSideState
     rightProduct: ProductSideState
 }) {
-    if (row.state === "conditional") {
-        return (
-            <div>
-                <Badge variant="warning" className="text-xs font-semibold">
-                    Conditional
-                </Badge>
-                {row.reason && (
-                    <div className="text-warning-900 mt-1 text-xs leading-relaxed">
-                        {row.reason}
-                    </div>
-                )}
-            </div>
-        )
-    }
-
     if (row.derived_difference) {
         const rawVal = row.derived_difference.value
         const diffNum =
