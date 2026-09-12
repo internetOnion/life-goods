@@ -147,6 +147,32 @@ describe("selected concern matching", () => {
         expect(matches[0]?.ingredientTexts).toEqual(["whey", "casein"])
     })
 
+    test("keeps identical wording for each supporting allergen tag", () => {
+        const matches = findSelectedConcernMatches(
+            ["milk", "peanuts"],
+            analysis({
+                ingredient_matching: {
+                    ...analysis().ingredient_matching,
+                    evidence: [
+                        evidence(
+                            "may contain",
+                            "en:milk",
+                            "precautionary_statement",
+                        ),
+                        evidence(
+                            "may contain",
+                            "en:peanuts",
+                            "precautionary_statement",
+                        ),
+                    ],
+                },
+            }),
+        )
+
+        expect(matches[0]?.precautionaryStatements).toEqual(["may contain"])
+        expect(matches[1]?.precautionaryStatements).toEqual(["may contain"])
+    })
+
     test("keeps ingredient, precautionary, declaration, trace, negated, and unclear sources", () => {
         const matches = findSelectedConcernMatches(
             ["peanuts"],
@@ -232,6 +258,41 @@ describe("selected concern matching", () => {
         expect(matches[0]?.ingredientTexts).toEqual([])
         expect(matches[0]?.offDeclaration).toBe(false)
         expect(matches[0]?.offTrace).toBe(false)
+    })
+
+    test("does not treat non-positive or incomplete evidence as a compact match", () => {
+        for (const qualification of [
+            "precautionary_statement",
+            "negated_mention",
+            "unresolved_context",
+        ] as const) {
+            const matches = findSelectedConcernMatches(
+                ["milk"],
+                analysis({
+                    ingredient_matching: {
+                        ...analysis().ingredient_matching,
+                        evidence: [
+                            evidence("milk wording", "en:milk", qualification),
+                        ],
+                    },
+                }),
+            )
+
+            expect(matches[0]?.hasCompactMatch).toBe(false)
+        }
+
+        const incompleteMatches = findSelectedConcernMatches(
+            ["milk"],
+            analysis({
+                ingredient_matching: {
+                    ...analysis().ingredient_matching,
+                    state: "unavailable",
+                    evidence: [evidence("milk", "en:milk")],
+                },
+            }),
+        )
+
+        expect(incompleteMatches[0]?.hasCompactMatch).toBe(false)
     })
 
     test("reports missing or incomplete backend checks as information gaps", () => {

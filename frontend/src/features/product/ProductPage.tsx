@@ -30,7 +30,8 @@ import { SymbolsCard } from "./cards/SymbolsCard"
 import { NutrientLevelsCard } from "./cards/scores/NutrientLevelsCard"
 import { SourceAssessmentsCard } from "./cards/scores/SourceAssessmentsCard"
 import {
-    consumeMigrationNotice,
+    allConcernIds,
+    findConcernMatches,
     findSelectedConcernMatches,
     useSelectedConcernStorage,
 } from "@/features/concerns/matching"
@@ -90,6 +91,15 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                 labelEvidence,
             ),
         [candidate?.allergen_analysis, labelEvidence, selectedConcernIds],
+    )
+    const allConcernMatches = useMemo(
+        () =>
+            findConcernMatches(
+                allConcernIds(),
+                candidate?.allergen_analysis,
+                labelEvidence,
+            ),
+        [candidate?.allergen_analysis, labelEvidence],
     )
     const hasNutriScore = Boolean(
         offView?.nutriscoreGrade && offView.nutriscoreGrade !== "unknown",
@@ -259,9 +269,6 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                             manufacturingPlace={offView.manufacturingPlaces}
                             headingRef={headingRef}
                             selectedConcernMatches={selectedConcernMatches}
-                            hasSelectedConcerns={selectedConcernIds.length > 0}
-                            migrationNotice={concernStorage.migrationNotice}
-                            onDismissMigrationNotice={consumeMigrationNotice}
                         />
 
                         {hasSourceAssessments && (
@@ -344,6 +351,7 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                 <AllergenCard
                                     analysis={candidate.allergen_analysis}
                                     labelEvidence={labelEvidence}
+                                    concernMatches={allConcernMatches}
                                 />
                                 <HalalCard
                                     assessment={
@@ -398,6 +406,7 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                 <AllergenCard
                                     analysis={candidate.allergen_analysis}
                                     labelEvidence={labelEvidence}
+                                    concernMatches={allConcernMatches}
                                 />
                                 <HalalCard
                                     assessment={

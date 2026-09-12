@@ -51,12 +51,13 @@ allergen tags. The comparison describes agreement and differences between two so
 signals; it does not verify either source or make an allergen-free or safety claim.
 
 Shopper choices use the 13 agreed Open Food Facts allergen groups and exact tags. They are
-browser-only display preferences. Product pages use only passed-through backend allergen
-analysis for ingredient matches: raw ingredient text, legacy assessments, and unambiguous
-frontend keyword guesses cannot create a match. Ingredient evidence, precautionary “May
-contain” wording, Open Food Facts declarations, Open Food Facts traces, negated wording,
-unclear wording, and missing or incomplete checks remain separate signals. No available match
-means only that the available Source Record evidence did not identify a selected group.
+browser-only display preferences. Immediately after a Product name, the Product page shows a
+short notice labeled “Selected allergens found” followed by the matched names only when a selected group has completed, unambiguous backend ingredient
+evidence or an exact Open Food Facts declaration. Raw ingredient text, legacy assessments, and
+frontend keyword guesses cannot create a match. “May contain” wording, Open Food Facts traces,
+negated wording, unclear wording, and missing or incomplete checks remain in the detailed source
+sections below and do not create the compact notice. When no selected group matches, the notice
+is hidden.
 
 Source Assessments such as Nutri-Score, NOVA, Green-Score, and nutrient-level classifications remain visibly attributed Open Food Facts calculations. Life Goods does not verify, recalculate, or adopt them as its own judgments. Source Data Unavailable is unknown, not evidence that a Product has or lacks a property.
 

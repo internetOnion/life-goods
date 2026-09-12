@@ -21,9 +21,14 @@ export {
     useSelectedConcernStorage,
 } from "./storage"
 
+export function allConcernIds(): ConcernId[] {
+    return ALLERGEN_OPTIONS.map(({ id }) => id)
+}
+
 export interface ConcernMatch {
     concernId: ConcernId
     concernLabel: string
+    hasCompactMatch: boolean
     ingredientTexts: string[]
     precautionaryStatements: string[]
     offDeclaration: boolean
@@ -83,7 +88,11 @@ function uniqueEvidence(
 ): AllergenEvidenceResponse[] {
     const seen = new Set<string>()
     return evidence.filter((item) => {
-        const key = `${item.start}:${item.end}:${item.qualification}:${item.matched_text}`
+        const tags = item.allergens
+            .map(({ tag }) => tag)
+            .sort()
+            .join(",")
+        const key = `${item.start}:${item.end}:${item.qualification}:${item.matched_text}:${tags}`
         if (seen.has(key)) return false
         seen.add(key)
         return true
@@ -92,6 +101,14 @@ function uniqueEvidence(
 
 export function findSelectedConcernMatches(
     selectedConcernIds: readonly ConcernId[],
+    analysis: AllergenAnalysisResponse | null | undefined,
+    labelEvidence: PackageMatchEvidenceResponse[] = [],
+): ConcernMatch[] {
+    return findConcernMatches(selectedConcernIds, analysis, labelEvidence)
+}
+
+export function findConcernMatches(
+    concernIds: readonly ConcernId[],
     analysis: AllergenAnalysisResponse | null | undefined,
     labelEvidence: PackageMatchEvidenceResponse[] = [],
 ): ConcernMatch[] {
@@ -107,7 +124,7 @@ export function findSelectedConcernMatches(
         tagValues(labelEvidence, ["trace_tag", "trace_tags"]),
     )
 
-    return selectedConcernIds.flatMap((concernId) => {
+    return concernIds.flatMap((concernId) => {
         const option = ALLERGEN_OPTIONS.find(({ id }) => id === concernId)
         if (!option) return []
 
@@ -151,6 +168,7 @@ export function findSelectedConcernMatches(
             {
                 concernId,
                 concernLabel: option.label,
+                hasCompactMatch: ingredientTexts.length > 0 || offDeclaration,
                 ingredientTexts,
                 precautionaryStatements,
                 offDeclaration,

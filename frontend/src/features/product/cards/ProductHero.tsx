@@ -1,6 +1,5 @@
 import { Check, Copy, ZoomIn } from "lucide-react"
-import React, { useEffect, useState } from "react"
-import { Link } from "react-router"
+import React, { useState } from "react"
 
 import { PackageImagePlaceholder } from "@/components/illustrations"
 import { Badge } from "@/components/ui/badge"
@@ -20,9 +19,6 @@ interface ProductHeroProps {
     manufacturingPlace?: string | null
     headingRef?: React.Ref<HTMLHeadingElement>
     selectedConcernMatches?: ConcernMatch[]
-    hasSelectedConcerns?: boolean
-    migrationNotice?: boolean
-    onDismissMigrationNotice?: () => void
 }
 
 export const ProductHero: React.FC<ProductHeroProps> = ({
@@ -32,21 +28,11 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
     manufacturingPlace,
     headingRef,
     selectedConcernMatches = [],
-    hasSelectedConcerns = false,
-    migrationNotice = false,
-    onDismissMigrationNotice,
 }) => {
     const [selectedImageIndex, setSelectedImageIndex] = useState(0)
     const [isZoomOpen, setIsZoomOpen] = useState(false)
     const [isCopied, setIsCopied] = useState(false)
     const [imageFailed, setImageFailed] = useState(false)
-    const [showMigrationNotice, setShowMigrationNotice] =
-        useState(migrationNotice)
-
-    useEffect(() => {
-        if (migrationNotice) setShowMigrationNotice(true)
-    }, [migrationNotice])
-
     const identityEvidence = candidate.identity_evidence || []
     const labelEvidence = candidate.label_evidence || []
     const images = candidate.reference_images || []
@@ -116,6 +102,13 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
           ? halalClaimItem.value.trim().length > 0
           : Boolean(halalClaimItem?.value)
     const hasLabelHighlights = additivesCount > 0 || hasHalalClaim
+    const matchedConcernLabels = [
+        ...new Set(
+            selectedConcernMatches
+                .filter((match) => match.hasCompactMatch)
+                .map((match) => match.concernLabel),
+        ),
+    ]
 
     const handleCopyBarcode = () => {
         void navigator.clipboard.writeText(identifier)
@@ -223,176 +216,16 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                         {productName}
                     </h1>
 
-                    {(hasSelectedConcerns || showMigrationNotice) && (
+                    {matchedConcernLabels.length > 0 && (
                         <div
                             role="status"
-                            aria-label={
-                                hasSelectedConcerns
-                                    ? "Selected allergen matches"
-                                    : "Selection migration notice"
-                            }
-                            className="border-warning-200 bg-warning-50 space-y-2 rounded-xl border p-3 text-sm"
+                            aria-label={`Selected allergens found: ${matchedConcernLabels.join(", ")}`}
+                            className="border-warning-200 bg-warning-50 text-warning-950 rounded-xl border p-3 text-sm font-semibold"
                         >
-                            {showMigrationNotice && (
-                                <div className="border-warning-200 flex items-start justify-between gap-3 border-b pb-2">
-                                    <p className="text-warning-950">
-                                        Some saved choices were renamed or
-                                        removed. Please review your choices.
-                                    </p>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-warning-800 shrink-0 px-2 text-xs font-bold"
-                                        onClick={() => {
-                                            setShowMigrationNotice(false)
-                                            onDismissMigrationNotice?.()
-                                        }}
-                                    >
-                                        Dismiss
-                                    </Button>
-                                </div>
-                            )}
-                            {hasSelectedConcerns && (
-                                <>
-                                    {selectedConcernMatches.every(
-                                        (match) =>
-                                            match.ingredientTexts.length ===
-                                                0 &&
-                                            match.precautionaryStatements
-                                                .length === 0 &&
-                                            !match.offDeclaration &&
-                                            !match.offTrace,
-                                    ) && (
-                                        <p className="text-warning-950">
-                                            We found no matches. Some
-                                            information may be missing.
-                                        </p>
-                                    )}
-                                    {selectedConcernMatches.map((match) => (
-                                        <div
-                                            key={match.concernId}
-                                            className="text-warning-950 space-y-2"
-                                        >
-                                            <h2 className="font-bold">
-                                                {match.concernLabel}
-                                            </h2>
-                                            {match.ingredientTexts.length >
-                                                0 && (
-                                                <div className="space-y-1 pl-3">
-                                                    <h3 className="text-xs font-bold uppercase">
-                                                        Ingredient matches
-                                                    </h3>
-                                                    {match.ingredientTexts.map(
-                                                        (text) => (
-                                                            <p
-                                                                key={`ingredient-${text}`}
-                                                                className="font-semibold"
-                                                            >
-                                                                {
-                                                                    match.concernLabel
-                                                                }{" "}
-                                                                — found through
-                                                                {" “"}
-                                                                {text}
-                                                                {
-                                                                    "” in the ingredient text."
-                                                                }
-                                                            </p>
-                                                        ),
-                                                    )}
-                                                </div>
-                                            )}
-                                            {match.precautionaryStatements
-                                                .length > 0 && (
-                                                <div className="space-y-1 pl-3">
-                                                    <h3 className="text-xs font-bold uppercase">
-                                                        May contain
-                                                    </h3>
-                                                    {match.precautionaryStatements.map(
-                                                        (text) => (
-                                                            <p
-                                                                key={`precautionary-${text}`}
-                                                            >
-                                                                May contain “
-                                                                {text}”.
-                                                            </p>
-                                                        ),
-                                                    )}
-                                                </div>
-                                            )}
-                                            {match.offDeclaration && (
-                                                <div className="space-y-1 pl-3">
-                                                    <h3 className="text-xs font-bold uppercase">
-                                                        Open Food Facts
-                                                        declarations
-                                                    </h3>
-                                                    <p>
-                                                        {match.concernLabel} —
-                                                        Also listed by Open Food
-                                                        Facts.
-                                                    </p>
-                                                </div>
-                                            )}
-                                            {match.offTrace && (
-                                                <div className="space-y-1 pl-3">
-                                                    <h3 className="text-xs font-bold uppercase">
-                                                        Open Food Facts traces
-                                                    </h3>
-                                                    <p>
-                                                        {match.concernLabel} —
-                                                        listed as a trace by
-                                                        Open Food Facts.
-                                                    </p>
-                                                </div>
-                                            )}
-                                            {match.negatedWording.length >
-                                                0 && (
-                                                <div className="space-y-1 pl-3 text-xs">
-                                                    <h3 className="font-bold uppercase">
-                                                        Negated wording
-                                                    </h3>
-                                                    <p>
-                                                        {match.negatedWording.join(
-                                                            ", ",
-                                                        )}
-                                                    </p>
-                                                </div>
-                                            )}
-                                            {match.unclearWording.length >
-                                                0 && (
-                                                <div className="space-y-1 pl-3 text-xs">
-                                                    <h3 className="font-bold uppercase">
-                                                        Unclear wording
-                                                    </h3>
-                                                    <p>
-                                                        {match.unclearWording.join(
-                                                            ", ",
-                                                        )}
-                                                    </p>
-                                                </div>
-                                            )}
-                                            {match.informationGap && (
-                                                <div className="space-y-1 pl-3 text-xs">
-                                                    <h3 className="font-bold uppercase">
-                                                        Information gaps
-                                                    </h3>
-                                                    <p>
-                                                        Some allergen checks are
-                                                        missing or incomplete.
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                    <Link
-                                        to="/concerns"
-                                        className="text-warning-800 text-xs font-bold underline"
-                                    >
-                                        Edit selections
-                                    </Link>
-                                </>
-                            )}
+                            <p className="text-caption mb-1 font-medium">
+                                Selected allergens found
+                            </p>
+                            <p>{matchedConcernLabels.join(", ")}</p>
                         </div>
                     )}
 

@@ -4,11 +4,13 @@ import React from "react"
 import type { AllergenAnalysisResponse } from "@/api/generated"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import type { ConcernMatch } from "@/features/concerns/matching"
 import type { PackageMatchEvidenceResponse } from "@/features/product/types"
 
 interface AllergenCardProps {
     analysis?: AllergenAnalysisResponse | null
     labelEvidence?: PackageMatchEvidenceResponse[]
+    concernMatches?: ConcernMatch[]
 }
 
 function displayTag(tag: string): string {
@@ -40,9 +42,20 @@ function evidenceTags(
     ]
 }
 
+function hasDetailedEvidence(match: ConcernMatch): boolean {
+    return (
+        match.ingredientTexts.length > 0 ||
+        match.precautionaryStatements.length > 0 ||
+        match.negatedWording.length > 0 ||
+        match.unclearWording.length > 0 ||
+        match.informationGap
+    )
+}
+
 export const AllergenCard: React.FC<AllergenCardProps> = ({
     analysis,
     labelEvidence,
+    concernMatches = [],
 }) => {
     const declarationTags =
         analysis?.off.state === "available"
@@ -109,6 +122,96 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                 </Badge>
                             ))}
                         </div>
+                    </section>
+                )}
+
+                {concernMatches.some(hasDetailedEvidence) && (
+                    <section
+                        aria-labelledby="allergen-evidence-heading"
+                        className="space-y-3 border-t border-neutral-100 pt-3"
+                    >
+                        <h3
+                            id="allergen-evidence-heading"
+                            className="text-xs font-bold tracking-[0.06em] text-neutral-500 uppercase sm:text-sm"
+                        >
+                            Ingredient and wording evidence
+                        </h3>
+                        {concernMatches
+                            .filter(hasDetailedEvidence)
+                            .map((match) => (
+                                <div
+                                    key={match.concernId}
+                                    className="space-y-2 text-sm text-neutral-700"
+                                >
+                                    <p className="font-semibold text-neutral-900">
+                                        {match.concernLabel}
+                                    </p>
+                                    {match.ingredientTexts.length > 0 && (
+                                        <div className="pl-3">
+                                            <p className="text-xs font-bold tracking-[0.04em] text-neutral-500 uppercase">
+                                                Ingredient matches
+                                            </p>
+                                            {match.ingredientTexts.map(
+                                                (text) => (
+                                                    <p
+                                                        key={`ingredient-${text}`}
+                                                    >
+                                                        Found through “{text}”
+                                                        in the ingredient text.
+                                                    </p>
+                                                ),
+                                            )}
+                                        </div>
+                                    )}
+                                    {match.precautionaryStatements.length >
+                                        0 && (
+                                        <div className="pl-3">
+                                            <p className="text-xs font-bold tracking-[0.04em] text-neutral-500 uppercase">
+                                                May contain
+                                            </p>
+                                            {match.precautionaryStatements.map(
+                                                (text) => (
+                                                    <p
+                                                        key={`precautionary-${text}`}
+                                                    >
+                                                        {text}
+                                                    </p>
+                                                ),
+                                            )}
+                                        </div>
+                                    )}
+                                    {match.negatedWording.length > 0 && (
+                                        <div className="pl-3">
+                                            <p className="text-xs font-bold tracking-[0.04em] text-neutral-500 uppercase">
+                                                Negated wording
+                                            </p>
+                                            <p>
+                                                {match.negatedWording.join(
+                                                    ", ",
+                                                )}
+                                            </p>
+                                        </div>
+                                    )}
+                                    {match.unclearWording.length > 0 && (
+                                        <div className="pl-3">
+                                            <p className="text-xs font-bold tracking-[0.04em] text-neutral-500 uppercase">
+                                                Unclear wording
+                                            </p>
+                                            <p>
+                                                {match.unclearWording.join(
+                                                    ", ",
+                                                )}
+                                            </p>
+                                        </div>
+                                    )}
+                                    {match.informationGap && (
+                                        <p className="pl-3 text-xs text-neutral-500">
+                                            Some allergen checks are missing or
+                                            incomplete.
+                                        </p>
+                                    )}
+                                </div>
+                            ))}
                     </section>
                 )}
 

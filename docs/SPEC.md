@@ -81,8 +81,9 @@ does not mean that the Product has no allergens. The analysis is source comparis
 Goods safety, allergen-free, or verification verdict.
 
 The frontend may store a Shopper's selected allergen groups on the device. Product pages show
-selected positive ingredient matches below the Product name. Precautionary statements, Open Food
-Facts declarations, traces, and unavailable evidence remain separate. No match means only that
+selected positive ingredient matches and exact Open Food Facts declarations below the Product
+name in a compact notice labeled “Selected allergens found”, followed by the matched names. Precautionary statements, Open Food Facts traces, and
+unavailable evidence remain separate in the detailed source sections. No match means only that
 available evidence did not identify a selected group.
 
 The browser-only choices are exactly these 13 Open Food Facts tags: `en:celery`,
@@ -96,16 +97,14 @@ converted to Gluten and Lactose is not converted to Milk. A dismissible notice e
 rename or removal. Invalid or blocked storage must not crash the page; a failed write keeps the
 current choices in memory for the current tab and explains that they will last only for the visit.
 
-The selected-match notice appears once immediately after the Product name and before other
-Product details. It uses `data.allergen_analysis` passed through the frontend adapter. Only
-completed, unambiguous `positive_mention` backend evidence with an exact selected Open Food
-Facts tag can produce an ingredient match. Frontend ingredient keyword matching and the legacy
-assessment fallback are not used. Each distinct supporting ingredient remains separate. The
-notice separately labels ingredient matches, “May contain” statements, Open Food Facts
-declarations, Open Food Facts traces, negated wording, unclear wording, and missing or
-incomplete checks. If choices exist but none of those available evidence sources matches, it
-shows exactly: “We found no matches. Some information may be missing.” Full allergen and trace
-lists remain below the notice, including groups that were not selected.
+When a selected group has a completed, unambiguous `positive_mention` backend ingredient match
+or an exact Open Food Facts declaration, a compact selected-match notice appears once immediately
+after the Product name and before other Product details. It contains the label “Selected allergens found” and the distinct matched
+allergen names, such as “Milk, Nuts”. Frontend ingredient keyword matching and the legacy
+assessment fallback are not used. The notice is hidden when no selected group has either of
+those matches. “May contain” statements, Open Food Facts traces, negated wording, unclear
+wording, and missing or incomplete checks do not create this compact notice; the full source
+evidence remains available in the allergen and trace sections below.
 
 `ingredient_matching.evidence` retains the matched Original Text span, taxonomy relationship,
 and one of these bounded qualification values:
@@ -373,10 +372,10 @@ Durable translation storage and multi-instance concurrency are coordinated throu
 The stable Product Lookup endpoint integrates optional on-demand Khmer Translation co-located with semantic fields:
 
 1. **Request & Contract**:
-   - `GET /api/v1/products/{barcode}?language=kh`
-   - Requests without `language=kh` return the stable Product projection and Original Text without generating translation (`meta.translation.status="not_requested"`).
-   - The application request and locale value is `kh`. External Source Record language tags, including `km`, retain their original metadata. Any other unsupported language parameter value returns HTTP 422 with stable error code `unsupported_language`.
-   - The stable response also includes `data.allergen_analysis`, preserving the distinction between Open Food Facts tags, matcher-derived tags, qualifications, unmatched spans, and comparison sets.
+    - `GET /api/v1/products/{barcode}?language=kh`
+    - Requests without `language=kh` return the stable Product projection and Original Text without generating translation (`meta.translation.status="not_requested"`).
+    - The application request and locale value is `kh`. External Source Record language tags, including `km`, retain their original metadata. Any other unsupported language parameter value returns HTTP 422 with stable error code `unsupported_language`.
+    - The stable response also includes `data.allergen_analysis`, preserving the distinction between Open Food Facts tags, matcher-derived tags, qualifications, unmatched spans, and comparison sets.
 
 2. **Field-Level Co-Location**:
     - Semantic fields eligible for translation (`identity.name`, `identity.generic_name`, `ingredients_text`, `categories_text`) carry individual translation states: `not_requested`, `source_khmer_available`, `original_text_preserved`, `generated`, `source_data_unavailable`, or `translation_unavailable`.
