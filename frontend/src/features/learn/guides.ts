@@ -24,13 +24,6 @@ export const LEARN_GUIDES: LearnGuide[] = [
             (_, index) => `LABEL_${String(index + 1).padStart(3, "0")}`,
         ),
         featured: true,
-        table: {
-            caption: {
-                kh: "បញ្ជីពិនិត្យព័ត៌មានលើស្លាក",
-                en: "Food-label information checklist",
-            },
-            ...commonTableHeadings,
-        },
     },
     {
         slug: "food-scores",
@@ -88,7 +81,7 @@ export const LEARN_GUIDES: LearnGuide[] = [
             en: "Read the core Codex allergen list separately from additional allergens that may depend on a country or region.",
         },
         entryIds: Array.from(
-            { length: 4 },
+            { length: 5 },
             (_, index) =>
                 `ALLERGEN_LEARN_${String(index + 1).padStart(3, "0")}`,
         ),
