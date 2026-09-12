@@ -72,7 +72,9 @@ describe("Learn source content and Allergies demos", () => {
         expect(
             screen.queryByText("Contains and may contain"),
         ).not.toBeInTheDocument()
-        expect(screen.getByText("Showing 1 lessons")).toBeVisible()
+        expect(
+            screen.getByRole("heading", { name: "Lessons by category" }),
+        ).toBeVisible()
         expect(
             screen.queryByRole("status", { name: "Demo data is active" }),
         ).not.toBeInTheDocument()
@@ -122,14 +124,14 @@ describe("Learn source content and Allergies demos", () => {
         renderRoute("/learn", false)
         const search = screen.getByRole("searchbox", { name: "Search topics" })
 
-        for (const [query, count] of [
-            ["How to read a food label", 8],
-            ["Ministry of Commerce", 3],
-            ["NS/RKM/0622/006", 1],
+        for (const [query, expectedText] of [
+            ["How to read a food label", "Name of the food"],
+            ["Ministry of Commerce", "Law on Food Safety"],
+            ["NS/RKM/0622/006", "Law on Food Safety"],
         ] as const) {
             await user.clear(search)
             await user.type(search, query)
-            expect(screen.getByText(`Showing ${count} lessons`)).toBeVisible()
+            expect(screen.getAllByText(expectedText)[0]).toBeVisible()
         }
 
         for (const [query, title] of [

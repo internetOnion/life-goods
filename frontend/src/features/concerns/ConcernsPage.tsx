@@ -6,7 +6,6 @@ import {
     FlaskIcon,
     GrainsIcon,
     GrainsSlashIcon,
-    InfoIcon,
     ShrimpIcon,
     TestTubeIcon,
     XIcon,
@@ -232,34 +231,6 @@ export function ConcernsPage() {
                     })}
                 </fieldset>
             </section>
-
-            <aside className="border-warning-200 bg-warning-50 mt-8 rounded-2xl border p-4.5 sm:p-5">
-                <div className="flex items-start gap-3">
-                    <InfoIcon
-                        size={22}
-                        weight="bold"
-                        className="text-warning-700 mt-0.5 shrink-0"
-                        aria-hidden="true"
-                    />
-                    <div>
-                        <h3 className="text-warning-950 text-sm font-extrabold">
-                            Important Safety & Data Boundary
-                        </h3>
-                        <p className="text-warning-900 mt-1.5 text-xs leading-relaxed sm:text-sm">
-                            Selections are saved only on your device. When
-                            reading Product data, Life Goods checks declared
-                            ingredients provided in the external Open Food Facts
-                            Source Record.
-                        </p>
-                        <p className="text-warning-900 mt-2 text-xs leading-relaxed sm:text-sm">
-                            An absence of a declaration is{" "}
-                            <strong>Source Data Unavailable</strong>, not proof
-                            that an allergen is absent. Life Goods does not make
-                            safety, health, or allergen-free claims.
-                        </p>
-                    </div>
-                </div>
-            </aside>
         </main>
     )
 }

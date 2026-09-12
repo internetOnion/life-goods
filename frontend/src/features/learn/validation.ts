@@ -1,7 +1,7 @@
 import { LEARN_ENTRIES } from "./entries"
 import { LEARN_GUIDES } from "./guides"
 import { LEARN_SOURCES } from "./sources"
-import type { LocalizedText } from "./types"
+import type { LearnEntry, LocalizedText } from "./types"
 
 function hasBothLanguages(value: LocalizedText) {
     return value.kh.trim().length > 0 && value.en.trim().length > 0
@@ -14,6 +14,50 @@ function duplicates(values: string[]) {
         seen.add(value)
         return false
     })
+}
+
+export function allergenIngredientGroupErrors(entry: LearnEntry): string[] {
+    const errors: string[] = []
+    const allergenGroups = entry.allergenIngredientGroups ?? []
+
+    if (allergenGroups.length > 0 && entry.category !== "allergens")
+        errors.push(
+            `Learn entry ${entry.id} has allergen ingredient groups outside the allergens category`,
+        )
+    for (const duplicate of duplicates(
+        allergenGroups.map((group) => group.key),
+    ))
+        errors.push(
+            `Learn entry ${entry.id} has duplicate allergen group key: ${duplicate}`,
+        )
+    for (const group of allergenGroups) {
+        if (!group.key.trim())
+            errors.push(
+                `Learn entry ${entry.id} has an allergen group without a key`,
+            )
+        if (
+            !hasBothLanguages(group.name) ||
+            !hasBothLanguages(group.labelMeaning)
+        )
+            errors.push(
+                `Learn entry ${entry.id} allergen group ${group.key} is missing Khmer or English content`,
+            )
+        if (group.examples.length === 0)
+            errors.push(
+                `Learn entry ${entry.id} allergen group ${group.key} has no ingredient examples`,
+            )
+        for (const example of group.examples) {
+            if (
+                !hasBothLanguages(example.name) ||
+                (example.note && !hasBothLanguages(example.note))
+            )
+                errors.push(
+                    `Learn entry ${entry.id} allergen group ${group.key} has an incomplete bilingual example`,
+                )
+        }
+    }
+
+    return errors
 }
 
 export function learnCatalogErrors(): string[] {
@@ -65,6 +109,7 @@ export function learnCatalogErrors(): string[] {
                     `Learn entry ${entry.id} has an incomplete bilingual fact`,
                 )
         }
+        errors.push(...allergenIngredientGroupErrors(entry))
         for (const reference of entry.sourceRefs) {
             if (!sourceIds.has(reference.sourceId))
                 errors.push(

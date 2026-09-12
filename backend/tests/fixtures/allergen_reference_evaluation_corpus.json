@@ -1,0 +1,420 @@
+{
+  "version": "1.0.0",
+  "created_at": "2026-09-11",
+  "description": "Reviewed benchmark corpus for evaluating ingredient-to-allergen reference sources under Asian and Codex 2026 scope.",
+  "categories": [
+    "crustaceans",
+    "molluscs",
+    "fish",
+    "egg",
+    "milk",
+    "wheat",
+    "peanut",
+    "tree_nuts",
+    "soy",
+    "sesame",
+    "buckwheat"
+  ],
+  "cases": [
+    {
+      "id": "case-01",
+      "input_text": "shrimp",
+      "target_category": "crustaceans",
+      "expected_relationship": "source_food",
+      "expected_outcome": "positive_match",
+      "citation": "Codex CXS 1-1985 (2026) s4.2.1.4(b); SEA priority 1"
+    },
+    {
+      "id": "case-02",
+      "input_text": "prawn powder",
+      "target_category": "crustaceans",
+      "expected_relationship": "derived_from",
+      "expected_outcome": "positive_match",
+      "citation": "Codex CXS 1-1985 (2026) s4.2.1.4(b); FoodOn FOODON:03301416"
+    },
+    {
+      "id": "case-03",
+      "input_text": "crab meat",
+      "target_category": "crustaceans",
+      "expected_relationship": "source_food",
+      "expected_outcome": "positive_match",
+      "citation": "Codex CXS 1-1985 (2026) s4.2.1.4(b); Japan CAA mandatory list"
+    },
+    {
+      "id": "case-04",
+      "input_text": "lobster",
+      "target_category": "crustaceans",
+      "expected_relationship": "source_food",
+      "expected_outcome": "positive_match",
+      "citation": "Codex CXS 1-1985 (2026) s4.2.1.4(b); FSA allergen code 02"
+    },
+    {
+      "id": "case-05",
+      "input_text": "squid",
+      "target_category": "molluscs",
+      "expected_relationship": "source_food",
+      "expected_outcome": "positive_match",
+      "citation": "Vietnam adult survey (Le et al. 2020); FSA allergen code 08"
+    },
+    {
+      "id": "case-06",
+      "input_text": "oyster sauce",
+      "target_category": "molluscs",
+      "expected_relationship": "derived_from",
+      "expected_outcome": "positive_match",
+      "citation": "Southeast Asian regional foods; FSA allergen code 08"
+    },
+    {
+      "id": "case-07",
+      "input_text": "salmon",
+      "target_category": "fish",
+      "expected_relationship": "source_food",
+      "expected_outcome": "positive_match",
+      "citation": "Codex CXS 1-1985 (2026) s4.2.1.4(d); FSA allergen code 04"
+    },
+    {
+      "id": "case-08",
+      "input_text": "anchovy extract",
+      "target_category": "fish",
+      "expected_relationship": "derived_from",
+      "expected_outcome": "positive_match",
+      "citation": "Codex CXS 1-1985 (2026) s4.2.1.4(d); FoodOn FOODON:03301418"
+    },
+    {
+      "id": "case-09",
+      "input_text": "fish gelatin",
+      "target_category": "fish",
+      "expected_relationship": "derived_from",
+      "expected_outcome": "conditional_or_positive_match",
+      "citation": "Codex CXS 1-1985 (2026) derivative exemption provision; Japan CAA"
+    },
+    {
+      "id": "case-10",
+      "input_text": "egg",
+      "target_category": "egg",
+      "expected_relationship": "source_food",
+      "expected_outcome": "positive_match",
+      "citation": "Codex CXS 1-1985 (2026) s4.2.1.4(c); FSA allergen code 03"
+    },
+    {
+      "id": "case-11",
+      "input_text": "egg white powder",
+      "target_category": "egg",
+      "expected_relationship": "derived_from",
+      "expected_outcome": "positive_match",
+      "citation": "Codex CXS 1-1985 (2026) s4.2.1.4(c); FoodOn FOODON:03301419"
+    },
+    {
+      "id": "case-12",
+      "input_text": "ovalbumin",
+      "target_category": "egg",
+      "expected_relationship": "derived_from",
+      "expected_outcome": "positive_match",
+      "citation": "WHO/IUIS Gal d 2; FARE Egg avoidance list"
+    },
+    {
+      "id": "case-13",
+      "input_text": "eggplant",
+      "target_category": "none",
+      "expected_relationship": "does_not_contain",
+      "expected_outcome": "negative_control",
+      "citation": "False friend; Solanum melongena (botanical, unrelated to avian egg)"
+    },
+    {
+      "id": "case-14",
+      "input_text": "cow milk",
+      "target_category": "milk",
+      "expected_relationship": "source_food",
+      "expected_outcome": "positive_match",
+      "citation": "Codex CXS 1-1985 (2026) s4.2.1.4(f); FSA allergen code 07"
+    },
+    {
+      "id": "case-15",
+      "input_text": "whey",
+      "target_category": "milk",
+      "expected_relationship": "derived_from",
+      "expected_outcome": "positive_match",
+      "citation": "Codex CXS 1-1985 (2026) s4.2.1.4(f); FoodOn FOODON:03301420"
+    },
+    {
+      "id": "case-16",
+      "input_text": "casein",
+      "target_category": "milk",
+      "expected_relationship": "derived_from",
+      "expected_outcome": "positive_match",
+      "citation": "Codex CXS 1-1985 (2026) s4.2.1.4(f); Japan CAA specified dairy ingredients"
+    },
+    {
+      "id": "case-17",
+      "input_text": "ghee",
+      "target_category": "milk",
+      "expected_relationship": "derived_from",
+      "expected_outcome": "positive_match",
+      "citation": "Dairy fat derivative; FARE Milk avoidance list"
+    },
+    {
+      "id": "case-18",
+      "input_text": "coconut milk",
+      "target_category": "none",
+      "expected_relationship": "does_not_contain",
+      "expected_outcome": "negative_control",
+      "citation": "False friend; plant emulsion from Cocos nucifera, not mammalian dairy"
+    },
+    {
+      "id": "case-19",
+      "input_text": "cocoa butter",
+      "target_category": "none",
+      "expected_relationship": "does_not_contain",
+      "expected_outcome": "negative_control",
+      "citation": "False friend; fat from Theobroma cacao, not dairy butter"
+    },
+    {
+      "id": "case-20",
+      "input_text": "calcium lactate",
+      "target_category": "none",
+      "expected_relationship": "does_not_contain",
+      "expected_outcome": "negative_control",
+      "citation": "False friend; lactic acid salt, does not contain milk protein"
+    },
+    {
+      "id": "case-21",
+      "input_text": "lactic acid",
+      "target_category": "none",
+      "expected_relationship": "does_not_contain",
+      "expected_outcome": "negative_control",
+      "citation": "False friend; fermentation byproduct, not dairy allergen"
+    },
+    {
+      "id": "case-22",
+      "input_text": "wheat flour",
+      "target_category": "wheat",
+      "expected_relationship": "derived_from",
+      "expected_outcome": "positive_match",
+      "citation": "Codex CXS 1-1985 (2026) s4.2.1.4(a); FSA allergen code 05"
+    },
+    {
+      "id": "case-23",
+      "input_text": "semolina",
+      "target_category": "wheat",
+      "expected_relationship": "derived_from",
+      "expected_outcome": "positive_match",
+      "citation": "Durum wheat endosperm; Codex CXS 1-1985 s4.2.1.4(a)"
+    },
+    {
+      "id": "case-24",
+      "input_text": "spelt",
+      "target_category": "wheat",
+      "expected_relationship": "species_member",
+      "expected_outcome": "positive_match",
+      "citation": "Triticum spelta; Codex CXS 1-1985 (2026) s4.2.1.4(a)"
+    },
+    {
+      "id": "case-25",
+      "input_text": "buckwheat",
+      "target_category": "buckwheat",
+      "expected_relationship": "source_food",
+      "expected_outcome": "positive_match",
+      "citation": "Fagopyrum esculentum; Japan CAA mandatory; Codex 2026 s4.2.1.5"
+    },
+    {
+      "id": "case-26",
+      "input_text": "buckwheat",
+      "target_category": "wheat",
+      "expected_relationship": "does_not_contain",
+      "expected_outcome": "negative_control",
+      "citation": "False friend; polygonaceous seed, unrelated to wheat (Triticum)"
+    },
+    {
+      "id": "case-27",
+      "input_text": "peanut",
+      "target_category": "peanut",
+      "expected_relationship": "source_food",
+      "expected_outcome": "positive_match",
+      "citation": "Codex CXS 1-1985 (2026) s4.2.1.4(e); FSA allergen code 11"
+    },
+    {
+      "id": "case-28",
+      "input_text": "peanut butter",
+      "target_category": "peanut",
+      "expected_relationship": "derived_from",
+      "expected_outcome": "positive_match",
+      "citation": "Codex CXS 1-1985 (2026) s4.2.1.4(e); FoodOn FOODON:03301422"
+    },
+    {
+      "id": "case-29",
+      "input_text": "arachis oil",
+      "target_category": "peanut",
+      "expected_relationship": "derived_from",
+      "expected_outcome": "positive_match",
+      "citation": "Peanut synonym/derivative; FARE Peanut avoidance list"
+    },
+    {
+      "id": "case-30",
+      "input_text": "walnut",
+      "target_category": "tree_nuts",
+      "expected_relationship": "source_food",
+      "expected_outcome": "positive_match",
+      "citation": "Codex CXS 1-1985 (2026) s4.2.1.4(g); Japan CAA mandatory list"
+    },
+    {
+      "id": "case-31",
+      "input_text": "cashew",
+      "target_category": "tree_nuts",
+      "expected_relationship": "source_food",
+      "expected_outcome": "positive_match",
+      "citation": "Codex CXS 1-1985 (2026) s4.2.1.4(g); FSA allergen code 10"
+    },
+    {
+      "id": "case-32",
+      "input_text": "almond paste",
+      "target_category": "tree_nuts",
+      "expected_relationship": "derived_from",
+      "expected_outcome": "positive_match",
+      "citation": "Marzipan/almond derivative; Codex CXS 1-1985 s4.2.1.4(g)"
+    },
+    {
+      "id": "case-33",
+      "input_text": "butternut squash",
+      "target_category": "none",
+      "expected_relationship": "does_not_contain",
+      "expected_outcome": "negative_control",
+      "citation": "False friend; Cucurbita moschata, contains neither tree nuts nor butter"
+    },
+    {
+      "id": "case-34",
+      "input_text": "soybean",
+      "target_category": "soy",
+      "expected_relationship": "source_food",
+      "expected_outcome": "positive_match",
+      "citation": "Codex CXS 1-1985 (2026) s4.2.1.5; FSA allergen code 13"
+    },
+    {
+      "id": "case-35",
+      "input_text": "soy lecithin",
+      "target_category": "soy",
+      "expected_relationship": "derived_from",
+      "expected_outcome": "positive_match",
+      "citation": "Codex CXS 1-1985 (2026) s4.2.1.5; FoodOn FOODON:03301423"
+    },
+    {
+      "id": "case-36",
+      "input_text": "tofu",
+      "target_category": "soy",
+      "expected_relationship": "derived_from",
+      "expected_outcome": "positive_match",
+      "citation": "Coagulated soybean curd; FoodOn FOODON:03301424"
+    },
+    {
+      "id": "case-37",
+      "input_text": "sesame seeds",
+      "target_category": "sesame",
+      "expected_relationship": "source_food",
+      "expected_outcome": "positive_match",
+      "citation": "Codex CXS 1-1985 (2026) s4.2.1.4(h); FSA allergen code 12"
+    },
+    {
+      "id": "case-38",
+      "input_text": "tahini",
+      "target_category": "sesame",
+      "expected_relationship": "derived_from",
+      "expected_outcome": "positive_match",
+      "citation": "Sesame seed paste; FoodOn FOODON:03301425"
+    },
+    {
+      "id": "case-39",
+      "input_text": "may contain peanuts",
+      "target_category": "peanut",
+      "expected_relationship": "precautionary",
+      "expected_outcome": "precautionary_mention",
+      "citation": "Precautionary cross-contact statement; must not be treated as positive ingredient"
+    },
+    {
+      "id": "case-40",
+      "input_text": "produced in a facility that also processes tree nuts",
+      "target_category": "tree_nuts",
+      "expected_relationship": "precautionary",
+      "expected_outcome": "precautionary_mention",
+      "citation": "Facility cross-contact disclaimer; not ingredient membership"
+    },
+    {
+      "id": "case-41",
+      "input_text": "milk-free",
+      "target_category": "milk",
+      "expected_relationship": "negated",
+      "expected_outcome": "negated_mention",
+      "citation": "Negated claim phrase; must not produce positive milk allergen signal"
+    },
+    {
+      "id": "case-42",
+      "input_text": "gluten-free oats",
+      "target_category": "wheat",
+      "expected_relationship": "does_not_contain",
+      "expected_outcome": "negative_control",
+      "citation": "Avena sativa certified free of wheat/rye/barley contamination"
+    },
+    {
+      "id": "case-43",
+      "input_text": "natural flavors",
+      "target_category": "none",
+      "expected_relationship": "unresolved",
+      "expected_outcome": "ambiguous_outcome",
+      "citation": "Collective term; composition unknown without manufacturer disclosure"
+    },
+    {
+      "id": "case-44",
+      "input_text": "spices",
+      "target_category": "none",
+      "expected_relationship": "unresolved",
+      "expected_outcome": "ambiguous_outcome",
+      "citation": "Collective term; may include mustard or celery depending on formulation"
+    },
+    {
+      "id": "case-45",
+      "input_text": "vegetable oil",
+      "target_category": "none",
+      "expected_relationship": "unresolved",
+      "expected_outcome": "ambiguous_outcome",
+      "citation": "Collective term; source plant unspecified (palm, canola, soy, etc.)"
+    },
+    {
+      "id": "case-46",
+      "input_text": "cane sugar",
+      "target_category": "none",
+      "expected_relationship": "none",
+      "expected_outcome": "unsupported",
+      "citation": "Non-allergenic baseline sucrose (Saccharum officinarum)"
+    },
+    {
+      "id": "case-47",
+      "input_text": "salt",
+      "target_category": "none",
+      "expected_relationship": "none",
+      "expected_outcome": "unsupported",
+      "citation": "Mineral compound NaCl; non-allergenic baseline"
+    },
+    {
+      "id": "case-48",
+      "input_text": "water",
+      "target_category": "none",
+      "expected_relationship": "none",
+      "expected_outcome": "unsupported",
+      "citation": "Inorganic carrier liquid H2O; non-allergenic baseline"
+    },
+    {
+      "id": "case-49",
+      "input_text": "white rice",
+      "target_category": "none",
+      "expected_relationship": "none",
+      "expected_outcome": "unsupported",
+      "citation": "Oryza sativa staple; not a Codex or Asian priority allergen group"
+    },
+    {
+      "id": "case-50",
+      "input_text": "tapioca starch",
+      "target_category": "none",
+      "expected_relationship": "none",
+      "expected_outcome": "unsupported",
+      "citation": "Manihot esculenta starch; gluten-free staple starch"
+    }
+  ]
+}

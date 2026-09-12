@@ -1,6 +1,201 @@
 {
   "components": {
     "schemas": {
+      "AllergenAnalysisResponse": {
+        "properties": {
+          "comparison": {
+            "$ref": "#/components/schemas/AllergenComparisonResponse"
+          },
+          "ingredient_matching": {
+            "$ref": "#/components/schemas/IngredientMatchingAllergenResponse"
+          },
+          "off": {
+            "$ref": "#/components/schemas/OffAllergenAnalysisResponse"
+          }
+        },
+        "required": [
+          "off",
+          "ingredient_matching",
+          "comparison"
+        ],
+        "title": "AllergenAnalysisResponse",
+        "type": "object"
+      },
+      "AllergenComparisonResponse": {
+        "properties": {
+          "in_both": {
+            "items": {
+              "type": "string"
+            },
+            "title": "In Both",
+            "type": "array"
+          },
+          "ingredient_matching_only": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Ingredient Matching Only",
+            "type": "array"
+          },
+          "off_only": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Off Only",
+            "type": "array"
+          },
+          "sets_equal": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sets Equal"
+          },
+          "state": {
+            "enum": [
+              "available",
+              "unavailable"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "in_both",
+          "off_only",
+          "ingredient_matching_only",
+          "sets_equal"
+        ],
+        "title": "AllergenComparisonResponse",
+        "type": "object"
+      },
+      "AllergenEvidenceResponse": {
+        "properties": {
+          "alias": {
+            "title": "Alias",
+            "type": "string"
+          },
+          "allergens": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Allergens",
+            "type": "array"
+          },
+          "ambiguous": {
+            "title": "Ambiguous",
+            "type": "boolean"
+          },
+          "end": {
+            "title": "End",
+            "type": "integer"
+          },
+          "ingredient_tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Ingredient Tags",
+            "type": "array"
+          },
+          "matched_text": {
+            "title": "Matched Text",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "parents": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Parents",
+            "type": "array"
+          },
+          "qualification": {
+            "enum": [
+              "positive_mention",
+              "precautionary_statement",
+              "negated_mention",
+              "unresolved_context"
+            ],
+            "title": "Qualification",
+            "type": "string"
+          },
+          "start": {
+            "title": "Start",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "matched_text",
+          "start",
+          "end",
+          "alias",
+          "ingredient_tags",
+          "name",
+          "parents",
+          "ambiguous",
+          "qualification",
+          "allergens"
+        ],
+        "title": "AllergenEvidenceResponse",
+        "type": "object"
+      },
+      "AllergenInputResponse": {
+        "properties": {
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "source_field": {
+            "title": "Source Field",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_field",
+          "language"
+        ],
+        "title": "AllergenInputResponse",
+        "type": "object"
+      },
+      "AllergenUnmatchedSpanResponse": {
+        "properties": {
+          "end": {
+            "title": "End",
+            "type": "integer"
+          },
+          "start": {
+            "title": "Start",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "start",
+          "end"
+        ],
+        "title": "AllergenUnmatchedSpanResponse",
+        "type": "object"
+      },
       "DatasetSnapshotResponse": {
         "properties": {
           "retrieved_at": {
@@ -164,36 +359,309 @@
         "title": "GradedSourceAssessment",
         "type": "object"
       },
-      "JsonValue": {
-        "anyOf": [
-          {
-            "type": "boolean"
-          },
-          {
-            "type": "integer"
-          },
-          {
-            "type": "number"
-          },
-          {
-            "type": "string"
-          },
-          {
+      "IngredientMatchDataResponse": {
+        "properties": {
+          "ingredient_tags": {
             "items": {
-              "$ref": "#/components/schemas/JsonValue"
+              "type": "string"
             },
+            "title": "Ingredient Tags",
             "type": "array"
           },
-          {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/JsonValue"
+          "matches": {
+            "items": {
+              "$ref": "#/components/schemas/IngredientMatchDetailResponse"
             },
-            "type": "object"
-          },
-          {
-            "type": "null"
+            "title": "Matches",
+            "type": "array"
           }
-        ]
+        },
+        "required": [
+          "ingredient_tags",
+          "matches"
+        ],
+        "title": "IngredientMatchDataResponse",
+        "type": "object"
+      },
+      "IngredientMatchDetailResponse": {
+        "properties": {
+          "alias": {
+            "title": "Alias",
+            "type": "string"
+          },
+          "ambiguous": {
+            "title": "Ambiguous",
+            "type": "boolean"
+          },
+          "end": {
+            "title": "End",
+            "type": "integer"
+          },
+          "matched_text": {
+            "title": "Matched Text",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "parents": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Parents",
+            "type": "array"
+          },
+          "qualification": {
+            "enum": [
+              "positive_mention",
+              "precautionary_statement",
+              "negated_mention",
+              "unresolved_context"
+            ],
+            "title": "Qualification",
+            "type": "string"
+          },
+          "start": {
+            "title": "Start",
+            "type": "integer"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "matched_text",
+          "start",
+          "end",
+          "alias",
+          "tags",
+          "name",
+          "parents",
+          "ambiguous",
+          "qualification"
+        ],
+        "title": "IngredientMatchDetailResponse",
+        "type": "object"
+      },
+      "IngredientMatchErrorDetail": {
+        "properties": {
+          "code": {
+            "enum": [
+              "invalid_ingredient_text",
+              "prototype_unavailable"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "IngredientMatchErrorDetail",
+        "type": "object"
+      },
+      "IngredientMatchErrorResponse": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/IngredientMatchErrorDetail"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "IngredientMatchErrorResponse",
+        "type": "object"
+      },
+      "IngredientMatchRequest": {
+        "properties": {
+          "ingredient_text": {
+            "description": "English ingredient text to match against the prototype taxonomy.",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Ingredient Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ingredient_text"
+        ],
+        "title": "IngredientMatchRequest",
+        "type": "object"
+      },
+      "IngredientMatchResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/IngredientMatchDataResponse"
+          },
+          "source": {
+            "$ref": "#/components/schemas/IngredientMatchSourceResponse"
+          }
+        },
+        "required": [
+          "data",
+          "source"
+        ],
+        "title": "IngredientMatchResponse",
+        "type": "object"
+      },
+      "IngredientMatchSourceResponse": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "taxonomy_sha256": {
+            "title": "Taxonomy Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "taxonomy_sha256"
+        ],
+        "title": "IngredientMatchSourceResponse",
+        "type": "object"
+      },
+      "IngredientMatchingAllergenResponse": {
+        "properties": {
+          "allergen_taxonomy_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allergen Taxonomy Sha256"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/AllergenEvidenceResponse"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "input": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AllergenInputResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "qualifications": {
+            "items": {
+              "$ref": "#/components/schemas/AllergenEvidenceResponse"
+            },
+            "title": "Qualifications",
+            "type": "array"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "enum": [
+                  "clear",
+                  "ambiguous",
+                  "insufficient"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "state": {
+            "enum": [
+              "completed",
+              "unavailable"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "taxonomy_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxonomy Sha256"
+          },
+          "unmatched_spans": {
+            "items": {
+              "$ref": "#/components/schemas/AllergenUnmatchedSpanResponse"
+            },
+            "title": "Unmatched Spans",
+            "type": "array"
+          },
+          "unmatched_texts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unmatched Texts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "state",
+          "tags",
+          "evidence",
+          "qualifications",
+          "limitations",
+          "unmatched_texts",
+          "unmatched_spans"
+        ],
+        "title": "IngredientMatchingAllergenResponse",
+        "type": "object"
       },
       "NovaSourceAssessment": {
         "properties": {
@@ -317,6 +785,33 @@
           "label"
         ],
         "title": "NutritionRow",
+        "type": "object"
+      },
+      "OffAllergenAnalysisResponse": {
+        "properties": {
+          "state": {
+            "enum": [
+              "available",
+              "empty",
+              "missing",
+              "invalid"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "state",
+          "tags"
+        ],
+        "title": "OffAllergenAnalysisResponse",
         "type": "object"
       },
       "OriginalText": {
@@ -545,22 +1040,6 @@
         "title": "ProductIdentityProjection",
         "type": "object"
       },
-      "ProductLookupDataResponse": {
-        "properties": {
-          "source_record": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/JsonValue"
-            },
-            "title": "Source Record",
-            "type": "object"
-          }
-        },
-        "required": [
-          "source_record"
-        ],
-        "title": "ProductLookupDataResponse",
-        "type": "object"
-      },
       "ProductLookupErrorCode": {
         "enum": [
           "invalid_barcode",
@@ -624,26 +1103,6 @@
         "title": "ProductLookupErrorResponse",
         "type": "object"
       },
-      "ProductLookupMetaResponse": {
-        "properties": {
-          "dataset": {
-            "$ref": "#/components/schemas/DatasetSnapshotResponse"
-          },
-          "lookup": {
-            "$ref": "#/components/schemas/ProductLookupMetadataResponse"
-          },
-          "source": {
-            "$ref": "#/components/schemas/SourceAttributionResponse"
-          }
-        },
-        "required": [
-          "lookup",
-          "source",
-          "dataset"
-        ],
-        "title": "ProductLookupMetaResponse",
-        "type": "object"
-      },
       "ProductLookupMetadataResponse": {
         "properties": {
           "barcode": {
@@ -655,22 +1114,6 @@
           "barcode"
         ],
         "title": "ProductLookupMetadataResponse",
-        "type": "object"
-      },
-      "ProductLookupResponse": {
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/ProductLookupDataResponse"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/ProductLookupMetaResponse"
-          }
-        },
-        "required": [
-          "data",
-          "meta"
-        ],
-        "title": "ProductLookupResponse",
         "type": "object"
       },
       "ProductProjection": {
@@ -782,12 +1225,16 @@
       },
       "ProductProjectionData": {
         "properties": {
+          "allergen_analysis": {
+            "$ref": "#/components/schemas/AllergenAnalysisResponse"
+          },
           "product": {
             "$ref": "#/components/schemas/ProductProjection"
           }
         },
         "required": [
-          "product"
+          "product",
+          "allergen_analysis"
         ],
         "title": "ProductProjectionData",
         "type": "object"
@@ -1501,89 +1948,55 @@
   },
   "openapi": "3.1.0",
   "paths": {
-    "/api/experimental/products/{barcode}": {
-      "get": {
-        "deprecated": true,
-        "description": "Looks up a Barcode in the selected local Open Food Facts Dataset Snapshot and returns the raw Source Record. This experimental contract is deprecated.",
-        "operationId": "getExperimentalProduct",
-        "parameters": [
-          {
-            "description": "GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode.",
-            "in": "path",
-            "name": "barcode",
-            "required": true,
-            "schema": {
-              "description": "GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode.",
-              "title": "Barcode",
-              "type": "string"
+    "/api/experimental/ingredient-matches": {
+      "post": {
+        "description": "Matches English ingredient text against a disposable Open Food Facts taxonomy projection. This experimental contract is unstable and does not infer allergens.",
+        "operationId": "matchExperimentalIngredients",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngredientMatchRequest"
+              }
             }
-          }
-        ],
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProductLookupResponse"
+                  "$ref": "#/components/schemas/IngredientMatchResponse"
                 }
               }
             },
             "description": "Successful Response"
           },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductLookupErrorResponse"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
           "422": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProductLookupErrorResponse"
+                  "$ref": "#/components/schemas/IngredientMatchErrorResponse"
                 }
               }
             },
             "description": "Unprocessable Content"
           },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductLookupErrorResponse"
-                }
-              }
-            },
-            "description": "Too Many Requests"
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductLookupErrorResponse"
-                }
-              }
-            },
-            "description": "Internal Server Error"
-          },
           "503": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProductLookupErrorResponse"
+                  "$ref": "#/components/schemas/IngredientMatchErrorResponse"
                 }
               }
             },
             "description": "Service Unavailable"
           }
         },
-        "summary": "Look up an experimental raw Product",
+        "summary": "Match experimental ingredient taxonomy entries",
         "tags": [
-          "Products"
+          "Ingredient Matching"
         ]
       }
     },

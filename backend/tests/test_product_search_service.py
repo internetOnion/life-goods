@@ -264,7 +264,6 @@ def test_search_service_pagination_and_cursor_continuation() -> None:
     assert len(all_codes) == 25
     assert len(set(all_codes)) == 25
 
-
 def test_search_service_rejects_mismatched_cursor() -> None:
     database, version_id, search_col_name = _setup_search_database()
     source = OpenFoodFactsDatasetSource(database)

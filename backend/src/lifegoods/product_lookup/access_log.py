@@ -1,11 +1,6 @@
 import logging
 
-PRODUCT_LOOKUP_PATH_PREFIXES = (
-    "/api/v1/products/",
-    "/api/experimental/products/",
-)
-PRODUCT_LOOKUP_PATH_PREFIX = "/api/experimental/products/"
-REDACTED_PRODUCT_LOOKUP_PATH = f"{PRODUCT_LOOKUP_PATH_PREFIX}[redacted]"
+PRODUCT_LOOKUP_PATH_PREFIX = "/api/v1/products/"
 
 
 class ProductLookupAccessLogFilter(logging.Filter):
@@ -22,19 +17,11 @@ class ProductLookupAccessLogFilter(logging.Filter):
             sanitized[2] = "/api/v1/products/search"
             record.args = tuple(sanitized)
             return True
-        matched_prefix = next(
-            (
-                prefix
-                for prefix in PRODUCT_LOOKUP_PATH_PREFIXES
-                if path.startswith(prefix)
-            ),
-            None,
-        )
-        if matched_prefix is None:
+        if not path.startswith(PRODUCT_LOOKUP_PATH_PREFIX):
             return True
         sanitized = list(arguments)
         sanitized[0] = "[redacted]"
-        sanitized[2] = f"{matched_prefix}[redacted]"
+        sanitized[2] = f"{PRODUCT_LOOKUP_PATH_PREFIX}[redacted]"
         record.args = tuple(sanitized)
         return True
 

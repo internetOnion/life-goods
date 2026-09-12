@@ -1,4 +1,5 @@
 import type { ProductLookupResponse } from "@/features/product/types"
+import { unavailableAllergenAnalysis } from "@/features/product/defaults"
 import type { ProductSummary } from "@/api/generated"
 
 const OPEN_FOOD_FACTS_SEARCH_URL =
@@ -209,7 +210,10 @@ export function getCachedOpenFoodFactsProduct(
     if (!cached) return null
 
     return {
-        data: { source_record: cached.record },
+        data: {
+            source_record: cached.record,
+            allergen_analysis: unavailableAllergenAnalysis,
+        },
         meta: {
             lookup: { barcode },
             source: {

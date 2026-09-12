@@ -29,6 +29,18 @@ export type LearnFact = {
     detail?: LocalizedText
 }
 
+export type AllergenIngredientExample = {
+    name: LocalizedText
+    note?: LocalizedText
+}
+
+export type AllergenIngredientGroup = {
+    key: string
+    name: LocalizedText
+    examples: AllergenIngredientExample[]
+    labelMeaning: LocalizedText
+}
+
 export type LearnEntry = {
     id: string
     slug: string
@@ -37,10 +49,11 @@ export type LearnEntry = {
     summary: LocalizedText
     body: LocalizedText
     facts?: LearnFact[]
+    allergenIngredientGroups?: AllergenIngredientGroup[]
     doesNotImply: LocalizedText
     sourceRefs: LearnSourceReference[]
     relatedEntryIds: string[]
-    reviewState: "approved"
+    reviewState: "draft" | "approved"
 }
 
 export type LearnGuide = {
@@ -50,7 +63,7 @@ export type LearnGuide = {
     intro: LocalizedText
     entryIds: string[]
     featured: boolean
-    table: {
+    table?: {
         caption: LocalizedText
         itemHeading: LocalizedText
         meaningHeading: LocalizedText
