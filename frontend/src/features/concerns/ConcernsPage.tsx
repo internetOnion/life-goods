@@ -25,8 +25,9 @@ import {
     SoybeanIcon,
     TreeNutIcon,
 } from "./AllergenIcons"
+import { SELECTED_CONCERNS_STORAGE_KEY } from "./matching"
 
-const STORAGE_KEY = "lifegoods_selected_concerns"
+const STORAGE_KEY = SELECTED_CONCERNS_STORAGE_KEY
 
 export const ALLERGEN_OPTIONS = [
     { id: "dairy", label: "Dairy", icon: CheeseIcon },
@@ -108,21 +109,21 @@ export function ConcernsPage() {
     )
 
     return (
-        <main className="mx-auto w-full max-w-xl px-4 py-8 sm:px-6 sm:py-12">
+        <main className="page-rail sm:px-6 sm:py-12">
             <h1
                 ref={headingRef}
                 tabIndex={-1}
-                className="text-3xl leading-tight font-extrabold tracking-[-0.03em] text-neutral-950 sm:text-4xl"
+                className="text-display leading-[1.12] font-extrabold tracking-[-0.03em] text-balance text-neutral-950"
             >
                 Dietary & Allergy Concerns
             </h1>
-            <p className="mt-2 text-sm leading-relaxed text-neutral-600 sm:text-base">
+            <p className="mt-3 text-base leading-relaxed text-neutral-600">
                 Select ingredients or allergens you want to be mindful of when
                 reviewing Product labels.
             </p>
 
             <section
-                className="mt-8 rounded-2xl border border-neutral-200 bg-white p-4 shadow-xs sm:p-5"
+                className="mt-8 rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6"
                 aria-labelledby="selected-concerns-heading"
             >
                 <div className="flex items-center justify-between gap-3 border-b border-neutral-100 pb-3">
@@ -177,7 +178,7 @@ export function ConcernsPage() {
             >
                 <h2
                     id="allergen-options-heading"
-                    className="text-sm font-extrabold tracking-wider text-neutral-900 uppercase"
+                    className="text-base font-extrabold tracking-[-0.01em] text-neutral-950"
                 >
                     Available Allergens & Ingredients
                 </h2>
@@ -194,7 +195,7 @@ export function ConcernsPage() {
                             <label
                                 key={opt.id}
                                 htmlFor={inputId}
-                                className={`flex cursor-pointer items-center gap-3.5 rounded-xl border p-3.5 transition-all select-none ${
+                                className={`focus-within:ring-primary-500 flex min-h-16 cursor-pointer items-center gap-3.5 rounded-xl border p-3.5 transition-colors select-none focus-within:ring-2 focus-within:ring-offset-2 ${
                                     isChecked
                                         ? "border-primary-400 bg-primary-50/70 text-neutral-950 shadow-xs"
                                         : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50/60"

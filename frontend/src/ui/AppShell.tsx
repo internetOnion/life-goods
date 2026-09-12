@@ -3,10 +3,11 @@ import {
     ListChecksIcon,
     ScanIcon,
 } from "@phosphor-icons/react"
-import { type ReactNode, useEffect } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { NavLink, useLocation } from "react-router"
 
 import { appRoutes } from "@/app/routes"
+import { SplashScreen } from "@/components/brand/SplashScreen"
 import { cn } from "@/lib/utils"
 
 type AppShellProps = {
@@ -34,7 +35,22 @@ const navigation = [
 
 export function AppShell({ children }: AppShellProps) {
     const location = useLocation()
-    const isSearchRoute = location.pathname === appRoutes.search
+    const [showSplash, setShowSplash] = useState(true)
+    const isSearchRoute = location.pathname.startsWith(appRoutes.search)
+
+    useEffect(() => {
+        const prefersReducedMotion =
+            typeof window !== "undefined" &&
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        const splashDuration = prefersReducedMotion ? 250 : 2600
+        const timeoutId = window.setTimeout(
+            () => setShowSplash(false),
+            splashDuration,
+        )
+
+        return () => window.clearTimeout(timeoutId)
+    }, [])
 
     useEffect(() => {
         document.documentElement.lang = "en"
@@ -50,7 +66,8 @@ export function AppShell({ children }: AppShellProps) {
     }, [location.pathname])
 
     return (
-        <div className="bg-background text-foreground flex min-h-svh flex-col">
+        <div className="bg-background text-foreground flex min-h-svh min-w-0 flex-col">
+            {showSplash && <SplashScreen />}
             <div
                 className={cn(
                     "flex-1 pt-[env(safe-area-inset-top,0px)]",
@@ -67,7 +84,7 @@ export function AppShell({ children }: AppShellProps) {
                     className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/95 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-md select-none"
                     aria-label="Primary navigation"
                 >
-                    <div className="mx-auto grid h-16 w-full max-w-xl grid-cols-3 items-center px-4">
+                    <div className="mx-auto grid h-[4.75rem] w-full max-w-2xl grid-cols-3 items-center gap-1.5 px-3 sm:px-0">
                         {navigation.map(
                             ({ to, label, icon: Icon, ...props }) => {
                                 const isEnd =
@@ -81,9 +98,11 @@ export function AppShell({ children }: AppShellProps) {
                                         aria-label={label}
                                         className={({ isActive }) =>
                                             cn(
-                                                "group relative flex min-w-0 flex-col items-center justify-center px-1 py-1 text-center transition-all duration-150 select-none",
-                                                "focus-visible:ring-ring rounded-xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
-                                                isActive && "text-primary-800",
+                                                "group relative flex h-[3.5rem] min-w-0 flex-col items-center justify-center rounded-2xl px-2 py-1.5 text-center transition-colors duration-150 select-none",
+                                                "focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
+                                                isActive
+                                                    ? "text-primary-800"
+                                                    : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900",
                                             )
                                         }
                                     >
@@ -91,7 +110,7 @@ export function AppShell({ children }: AppShellProps) {
                                             <>
                                                 <span
                                                     className={cn(
-                                                        "grid size-8 place-items-center rounded-full transition-all duration-150",
+                                                        "grid size-7 place-items-center rounded-xl transition-colors duration-150",
                                                         isActive
                                                             ? "text-primary-800"
                                                             : "text-neutral-500 group-hover:text-neutral-900",
@@ -109,7 +128,7 @@ export function AppShell({ children }: AppShellProps) {
                                                 </span>
                                                 <span
                                                     className={cn(
-                                                        "mt-0.5 max-w-full truncate text-[0.6875rem] leading-none transition-colors",
+                                                        "mt-0.5 max-w-full truncate text-sm leading-5 transition-colors",
                                                         isActive
                                                             ? "text-primary-800 font-extrabold"
                                                             : "font-semibold text-neutral-500 group-hover:text-neutral-900",

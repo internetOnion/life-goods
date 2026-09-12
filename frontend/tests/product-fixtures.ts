@@ -33,6 +33,7 @@ export function productResponse(
         environmental_score_grade: "c",
         packaging_text_en: "Paper wrapper",
         origins_tags: ["en:cambodia"],
+        manufacturing_places: "Cambodia",
         last_modified_t: 1787462400,
         ...sourceRecord,
     }

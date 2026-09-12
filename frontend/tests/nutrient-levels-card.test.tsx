@@ -49,16 +49,16 @@ describe("NutrientLevelsCard (Yuka-style)", () => {
         // Signals are exposed
         const badges = screen.getAllByTestId("nutrient-badge")
         expect(badges).toHaveLength(4)
-        expect(badges[0]).toHaveTextContent("Moderate")
+        expect(badges[0]).toHaveTextContent("Medium")
         expect(badges[1]).toHaveTextContent("Low")
         expect(badges[2]).toHaveTextContent("High")
         expect(badges[3]).toHaveTextContent("Low")
 
         // Metric names and amounts are visible in the row
         expect(screen.getByText("Fat")).toBeVisible()
-        expect(screen.getByText("· 12.5g")).toBeVisible()
+        expect(screen.getByText("12.50g")).toBeVisible()
         expect(screen.getByText("Saturated Fat")).toBeVisible()
-        expect(screen.getByText("· 1.2g")).toBeVisible()
+        expect(screen.getByText("1.20g")).toBeVisible()
 
         // Scale tracks (bars) are hidden under dropdown by default
         expect(screen.queryByTestId("scale-track")).not.toBeInTheDocument()
@@ -75,7 +75,7 @@ describe("NutrientLevelsCard (Yuka-style)", () => {
 
         // Find the fat button row and click it
         const fatButton = screen.getByRole("button", {
-            name: /fat · 12\.5g moderate/i,
+            name: /fat · 12\.50g per 100g medium/i,
         })
         expect(fatButton).toHaveAttribute("aria-expanded", "false")
 
@@ -85,7 +85,10 @@ describe("NutrientLevelsCard (Yuka-style)", () => {
         // Now scale track is visible
         expect(screen.getByTestId("scale-track")).toBeVisible()
         expect(screen.getByTestId("scale-needle")).toBeVisible()
-        expect(screen.getByText("≤3g")).toBeVisible()
+        expect(screen.getByText("0")).toBeVisible()
+        expect(screen.getByText("3")).toBeVisible()
+        expect(screen.getByText("17.5")).toBeVisible()
+        expect(screen.getByText("20+")).toBeVisible()
 
         // Click again to collapse
         await user.click(fatButton)
@@ -145,6 +148,10 @@ describe("NutrientLevelsCard (Yuka-style)", () => {
             ),
         ).not.toBeInTheDocument()
 
+        expect(
+            screen.queryByRole("link", { name: /official UK guidance/i }),
+        ).not.toBeInTheDocument()
+
         // Click to expand standards table
         await user.click(standardsButton)
         expect(
@@ -152,6 +159,13 @@ describe("NutrientLevelsCard (Yuka-style)", () => {
                 /Nutritional benchmark standards were established/i,
             ),
         ).toBeVisible()
+        expect(
+            screen.getByRole("link", { name: /official UK guidance/i }),
+        ).toHaveAttribute(
+            "href",
+            "https://www.gov.uk/government/publications/nutrition-labelling",
+        )
+        expect(screen.getByText(/> 3\.0g to ≤ 17\.5g/)).toBeVisible()
 
         // Click again to collapse
         await user.click(standardsButton)
@@ -160,5 +174,33 @@ describe("NutrientLevelsCard (Yuka-style)", () => {
                 /Nutritional benchmark standards were established/i,
             ),
         ).not.toBeInTheDocument()
+    })
+
+    test("only uses per-100g values and normalizes milligrams to grams", () => {
+        const servingEvidence: PackageMatchEvidenceResponse = {
+            field: "nutrition",
+            value: {
+                fat_serving: 12.5,
+                fat_serving_unit: "g",
+                salt_100g: 300,
+                salt_unit: "mg",
+            },
+            source_field: "nutriments",
+            source_name: "Open Food Facts",
+            source_url: "https://world.openfoodfacts.org",
+            language: "en",
+            observed_at: "2026-08-27T08:00:00Z",
+            retrieved_at: "2026-08-27T08:00:00Z",
+        }
+
+        render(
+            <NutrientLevelsCard
+                levels={{ fat: "moderate", salt: "low" }}
+                labelEvidence={[servingEvidence]}
+            />,
+        )
+
+        expect(screen.queryByText("12.50g")).not.toBeInTheDocument()
+        expect(screen.getByText("0.30g")).toBeVisible()
     })
 })

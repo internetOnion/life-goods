@@ -15,11 +15,12 @@ import {
     XIcon,
 } from "@phosphor-icons/react"
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react"
-import { Link, useParams } from "react-router"
+import { Link, useLocation, useParams } from "react-router"
 
 import { appRoutes } from "@/app/routes"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { getProductLessonLocationState } from "@/features/product/navigation"
 import { usePageMetadata } from "@/lib/metadata"
 
 import {
@@ -61,9 +62,6 @@ const SUPPORTING_ENTRIES = KNOWLEDGE_ENTRIES.filter(
     (entry): entry is SourcedKnowledgeEntry =>
         entry.kind === "sourced" && !MERGED_SUPPORTING_SLUGS.has(entry.slug),
 )
-
-const LEARN_PAGE_TITLE_CLASS =
-    "max-w-full break-words text-3xl leading-tight font-extrabold tracking-[-0.03em] text-balance sm:text-4xl"
 
 function currentLocale(language: string | undefined): LearnLocale {
     return language === "en" ? "en" : "kh"
@@ -356,11 +354,11 @@ function LearnIndexPage({ locale }: LearnIndexPageProps) {
     }
 
     return (
-        <main className="mx-auto w-full max-w-xl px-4 py-8 pb-[calc(6.4rem_+_env(safe-area-inset-bottom))] sm:px-6 sm:py-12">
+        <main className="page-rail sm:px-6 sm:py-12">
             <h1
                 ref={headingRef}
                 tabIndex={-1}
-                className={`${LEARN_PAGE_TITLE_CLASS} text-neutral-950`}
+                className="text-display-learn leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
             >
                 {t("learn.title")}
             </h1>
@@ -583,7 +581,7 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
     return (
         <>
             {entry?.kind === "simulated" ? <LearnDemoNotice active /> : null}
-            <main className="mx-auto w-full max-w-xl min-w-0 px-4 pt-8 pb-[calc(3rem_+_env(safe-area-inset-bottom))] sm:px-6 sm:pt-12">
+            <main className="page-rail min-w-0 sm:px-6 sm:py-12">
                 <Link
                     className="text-primary hover:bg-accent focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-bold no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none"
                     to={appRoutes.learn}
@@ -600,7 +598,7 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
                         <h1
                             ref={headingRef}
                             tabIndex={-1}
-                            className={`${LEARN_PAGE_TITLE_CLASS} mt-2`}
+                            className="text-display mt-2 leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
                         >
                             {localized(entry.title, contentLocale)}
                         </h1>
@@ -610,7 +608,7 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
                                 {t("learn.englishContent")}
                             </p>
                         ) : null}
-                        <p className="text-muted-foreground mt-4 max-w-[65ch] text-[1.08rem] leading-loose">
+                        <p className="text-muted-foreground text-body-lg mt-4 max-w-[65ch] leading-loose">
                             {localized(entry.summary, contentLocale)}
                         </p>
 
@@ -651,7 +649,7 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
                                     {t("learn.sourceSummaryHint")}
                                 </p>
                             ) : null}
-                            <p className="mt-3 max-w-[70ch] text-[1.05rem] leading-loose break-words">
+                            <p className="text-body-lg mt-3 max-w-[70ch] leading-loose break-words">
                                 {localized(entry.body, contentLocale)}
                             </p>
                             {entry.kind === "sourced" &&
@@ -660,7 +658,7 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
                                     <h3 className="mt-7 text-lg leading-relaxed font-bold">
                                         {t("learn.keyPointsTitle")}
                                     </h3>
-                                    <ul className="marker:text-primary mt-3 max-w-[70ch] list-disc space-y-3 pl-6 text-[1.05rem] leading-loose break-words">
+                                    <ul className="marker:text-primary text-body-lg mt-3 max-w-[70ch] list-disc space-y-3 pl-6 leading-loose break-words">
                                         {(entry.keyPoints ?? []).map(
                                             (point, index) => (
                                                 <li
@@ -859,11 +857,11 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
                             id="missing-article"
                             ref={headingRef}
                             tabIndex={-1}
-                            className={LEARN_PAGE_TITLE_CLASS}
+                            className="text-display leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
                         >
                             {t("learn.unavailableTitle")}
                         </h1>
-                        <p className="text-muted-foreground mt-3 max-w-[62ch] text-[1.05rem] leading-loose">
+                        <p className="text-muted-foreground text-body-lg mt-3 max-w-[62ch] leading-loose">
                             {t("learn.unavailableBody")}
                         </p>
                     </section>
@@ -903,7 +901,7 @@ export function LearnGuidePage() {
                         <h1
                             ref={headingRef}
                             tabIndex={-1}
-                            className={`${LEARN_PAGE_TITLE_CLASS} text-neutral-950`}
+                            className="text-display leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
                         >
                             {localized(guide.title, locale)}
                         </h1>
@@ -967,11 +965,11 @@ export function LearnGuidePage() {
                         id="missing-guide"
                         ref={headingRef}
                         tabIndex={-1}
-                        className={LEARN_PAGE_TITLE_CLASS}
+                        className="text-display leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
                     >
                         {t("learn.unavailableGuideTitle")}
                     </h1>
-                    <p className="text-muted-foreground mt-3 max-w-[62ch] text-[1.05rem] leading-loose">
+                    <p className="text-muted-foreground text-body-lg mt-3 max-w-[62ch] leading-loose">
                         {t("learn.unavailableBody")}
                     </p>
                 </section>
@@ -1194,6 +1192,8 @@ function StructuredLearnArticle({
     locale: LearnLocale
 }) {
     const { t } = useTranslation()
+    const location = useLocation()
+    const productReturn = getProductLessonLocationState(location.state)
     const guide = LEARN_GUIDES.find(
         (candidate) => candidate.category === entry.category,
     )
@@ -1202,17 +1202,27 @@ function StructuredLearnArticle({
         const source = LEARN_SOURCE_BY_ID.get(reference.sourceId)
         return source ? [{ reference, source }] : []
     })
+    const backTo =
+        productReturn?.returnTo ??
+        (guide ? guidePath(guide.slug) : appRoutes.learn)
 
     return (
         <main className="mx-auto w-full max-w-xl min-w-0 px-4 pt-8 pb-[calc(3rem_+_env(safe-area-inset-bottom))] sm:px-6 sm:pt-12">
             <Link
                 className="text-primary hover:bg-accent focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-bold no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none"
-                to={guide ? guidePath(guide.slug) : appRoutes.learn}
+                to={backTo}
+                state={
+                    productReturn
+                        ? { restoreScrollY: productReturn.returnScrollY }
+                        : undefined
+                }
             >
                 <ArrowLeftIcon aria-hidden="true" size={20} weight="bold" />
-                {guide
-                    ? localized(guide.title, locale)
-                    : t("learn.backToLearn")}
+                {productReturn
+                    ? t("learn.backToProduct")
+                    : guide
+                      ? localized(guide.title, locale)
+                      : t("learn.backToLearn")}
             </Link>
             <article className="mt-7" lang={locale}>
                 <p className="text-primary text-sm leading-relaxed font-bold tabular-nums">
@@ -1221,11 +1231,11 @@ function StructuredLearnArticle({
                 <h1
                     ref={headingRef}
                     tabIndex={-1}
-                    className={`${LEARN_PAGE_TITLE_CLASS} mt-2`}
+                    className="text-display mt-2 leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
                 >
                     {localized(entry.title, locale)}
                 </h1>
-                <p className="text-muted-foreground mt-4 max-w-[65ch] text-[1.08rem] leading-loose">
+                <p className="text-muted-foreground text-body-lg mt-4 max-w-[65ch] leading-loose">
                     {localized(entry.summary, locale)}
                 </p>
                 {guide && stepIndex >= 0 ? (

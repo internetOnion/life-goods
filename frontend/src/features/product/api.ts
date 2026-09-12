@@ -2,6 +2,7 @@ import type { ProductProjectionResponse } from "@/api/generated"
 import type { ProductLookupResponse } from "./types"
 import staticProducts from "@/data/products.json"
 import { normalizeIdentifier } from "@/lib/identifier"
+import { getCachedOpenFoodFactsProduct } from "@/features/search/openFoodFacts"
 import { unavailableAllergenAnalysis } from "./defaults"
 
 export type ProductLookup = (
@@ -21,8 +22,8 @@ const staticProductByBarcode = new Map(
 )
 
 /**
- * Looks up a Product from the checked-in Dataset Snapshot used by the frontend.
- * This keeps the Product page usable while the database-backed API is offline.
+ * Looks up a Product from the checked-in Dataset Snapshot or a Product recently
+ * returned by the temporary Open Food Facts brand-search fallback.
  */
 export const lookupProduct = (
     barcode: string,
@@ -31,6 +32,9 @@ export const lookupProduct = (
     const product = staticProductByBarcode.get(normalizedBarcode)
 
     if (!product) {
+        const cachedProduct = getCachedOpenFoodFactsProduct(normalizedBarcode)
+        if (cachedProduct) return Promise.resolve(cachedProduct)
+
         const error = new Error("Product not found") as Error & {
             status: number
             code: string

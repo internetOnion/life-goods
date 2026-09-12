@@ -53,10 +53,10 @@ describe("camera Barcode scanner", () => {
         renderPage()
         expect(startMock).not.toHaveBeenCalled()
         expect(
-            screen.getByRole("heading", { name: "Your camera stays private" }),
+            screen.getByRole("heading", { name: "Private camera scanning" }),
         ).toBeVisible()
         expect(
-            screen.getByText(/does not upload, store, or share/),
+            screen.getByText("Scanning happens on your device."),
         ).toBeVisible()
         expect(screen.getByRole("link", { name: "Search" })).toHaveAttribute(
             "href",

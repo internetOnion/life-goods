@@ -249,20 +249,35 @@ class OpenFoodFactsDatasetSource:
         escaped_final_term = re.escape(final_term)
 
         match_conditions: list[dict[str, Any]] = [
-            {"$or": [{"name_tokens": t}, {"brand_tokens": t}]} for t in earlier_terms
+            {
+                "$or": [
+                    {"name_tokens": t},
+                    {"brand_tokens": t},
+                    {"country_tokens": t},
+                ]
+            }
+            for t in earlier_terms
         ]
         match_conditions.append(
             {
                 "$or": [
                     {"name_tokens": {"$regex": f"^{escaped_final_term}"}},
                     {"brand_tokens": {"$regex": f"^{escaped_final_term}"}},
+                    {"country_tokens": {"$regex": f"^{escaped_final_term}"}},
                 ]
             }
         )
 
-        complete_final = {"$or": [{"name_tokens": final_term}, {"brand_tokens": final_term}]}
+        complete_final = {
+            "$or": [
+                {"name_tokens": final_term},
+                {"brand_tokens": final_term},
+                {"country_tokens": final_term},
+            ]
+        }
         exact_brand = {"brand_values": normalized_query}
         exact_name = {"name_values": normalized_query}
+        exact_country = {"country_values": normalized_query}
         complete_conditions = match_conditions[:-1] + [complete_final]
         results: list[dict[str, Any]] = []
         deadline = monotonic() + 2
@@ -273,7 +288,8 @@ class OpenFoodFactsDatasetSource:
                 if not prefix_only and cursor is not None and cursor.rank == 3:
                     continue
                 conditions = (
-                    match_conditions + [{"$nor": [exact_brand, exact_name, complete_final]}]
+                    match_conditions
+                    + [{"$nor": [exact_brand, exact_name, exact_country, complete_final]}]
                     if prefix_only
                     else complete_conditions
                 )

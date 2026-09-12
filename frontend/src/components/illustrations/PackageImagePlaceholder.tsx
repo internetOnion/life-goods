@@ -81,7 +81,7 @@ export function PackageImagePlaceholder({
                 </g>
             </svg>
 
-            <span className="mt-2 max-w-[14ch] text-[11px] leading-tight font-bold tracking-tight text-balance text-neutral-500 sm:text-xs">
+            <span className="text-caption mt-2 max-w-[14ch] leading-tight font-bold tracking-tight text-balance text-neutral-500 sm:text-xs">
                 {label}
             </span>
         </div>

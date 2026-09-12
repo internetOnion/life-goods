@@ -470,6 +470,8 @@ def extract_front_image(
             source_field=f"images.selected.front.{lang}.rev",
         )
     return None
+
+
 _extract_front_image = extract_front_image
 
 
@@ -622,9 +624,10 @@ def _extract_category_items(
             language = record_language
         else:
             language = _language_from_field(field_name, "categories")
-            if (
-                language is None
-                or field_name in ("categories_tags", "categories_hierarchy", "categories_lc")
+            if language is None or field_name in (
+                "categories_tags",
+                "categories_hierarchy",
+                "categories_lc",
             ):
                 continue
 
@@ -733,9 +736,7 @@ def _extract_packaging_materials_references(
     for tag in _split_values(record.get("packaging_materials_tags")):
         if tag not in seen_ids:
             seen_ids.add(tag)
-            references.append(
-                TaxonomyReference(id=tag, source_field="packaging_materials_tags")
-            )
+            references.append(TaxonomyReference(id=tag, source_field="packaging_materials_tags"))
 
     pk_materials = record.get("packagings_materials")
     if isinstance(pk_materials, dict):
@@ -818,6 +819,14 @@ def extract_brands(record: dict[str, Any]) -> list[str]:
     return _list_values(record, "brands", "brands_tags")
 
 
+def extract_countries(record: dict[str, Any]) -> list[str]:
+    return _list_values(record, "countries", "countries_tags")
+
+
+def extract_manufacturing_places(record: dict[str, Any]) -> list[str]:
+    return _list_values(record, "manufacturing_places", "manufacturing_places_tags")
+
+
 def extract_quantity(record: dict[str, Any]) -> str | None:
     return _text_value(record.get("quantity"))
 
@@ -829,15 +838,12 @@ def project_product_summary(
 ) -> ProductSummary:
     record = source_record or {}
     record_language = _source_language(record)
-    resolved_barcode = (
-        barcode
-        if barcode is not None
-        else _text_value(record.get("code")) or ""
-    )
+    resolved_barcode = barcode if barcode is not None else _text_value(record.get("code")) or ""
     return ProductSummary(
         barcode=resolved_barcode,
         name=extract_preferred_name(record, record_language),
         brands=extract_brands(record),
+        manufacturing_places=extract_manufacturing_places(record),
         quantity=extract_quantity(record),
         thumbnail=extract_front_image(record, resolved_barcode, record_language),
         source=SourceAttributionResponse(

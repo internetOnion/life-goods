@@ -37,7 +37,7 @@ export const PhotosGalleryCard: React.FC<PhotosGalleryCardProps> = ({
                     <p className="text-xs font-semibold text-neutral-700">
                         Source Data Unavailable
                     </p>
-                    <p className="text-[11px] text-neutral-500">
+                    <p className="text-caption text-neutral-500">
                         No package photographs archived in the source record.
                     </p>
                 </CardContent>
@@ -64,7 +64,7 @@ export const PhotosGalleryCard: React.FC<PhotosGalleryCardProps> = ({
                     <CardTitle className="text-sm font-semibold text-neutral-900">
                         Photo Archive & Packaging Scans
                     </CardTitle>
-                    <Badge variant="subtle" className="font-mono text-[10px]">
+                    <Badge variant="subtle" className="text-micro font-mono">
                         {photos.length} Total
                     </Badge>
                 </div>
@@ -121,7 +121,7 @@ export const PhotosGalleryCard: React.FC<PhotosGalleryCardProps> = ({
                             <div className="absolute top-2 left-2">
                                 <Badge
                                     variant="subtle"
-                                    className="bg-white/90 text-[10px] font-semibold text-neutral-800 uppercase backdrop-blur-xs"
+                                    className="text-micro bg-white/90 font-semibold text-neutral-800 uppercase backdrop-blur-xs"
                                 >
                                     {photo.role}
                                 </Badge>
@@ -158,7 +158,7 @@ export const PhotosGalleryCard: React.FC<PhotosGalleryCardProps> = ({
                                 />
                             </div>
 
-                            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-neutral-800 pt-2 text-[11px] text-neutral-400">
+                            <div className="text-caption flex flex-wrap items-center justify-between gap-2 border-t border-neutral-800 pt-2 text-neutral-400">
                                 <div className="flex items-center gap-3">
                                     {selectedPhoto.uploader && (
                                         <span className="flex items-center gap-1">

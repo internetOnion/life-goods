@@ -96,10 +96,117 @@
     --font-mono:
         "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Code",
         "Segoe UI Mono", monospace;
+
+    /*
+     * Typography tokens: all font sizes used by the UI live here. Use the
+     * matching Tailwind utilities (for example, text-body-lg or text-caption)
+     * instead of adding arbitrary values in component markup.
+     */
+    --text-micro: 0.625rem;
+    --text-caption: 0.6875rem;
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-body-lg: 1.0625rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.25rem;
+    --text-2xl: 1.5rem;
+    --text-3xl: 1.875rem;
+    --text-4xl: 2.25rem;
+    --text-5xl: 3rem;
+    --text-display-product: clamp(1.75rem, 6vw, 2.5rem);
+    --text-display: clamp(1.75rem, 6vw, 2.5rem);
+    --text-display-learn: clamp(1.75rem, 6vw, 2.5rem);
+    --text-display-splash: clamp(2rem, 9vw, 4.75rem);
+
     --shadow-source-sheet: 0 14px 38px -28px rgba(19, 21, 25, 0.55);
     --shadow-source-sheet-body: 0 14px 38px -28px rgba(19, 21, 25, 0.42);
     --shadow-action-lift: 0 8px 20px -14px rgba(90, 50, 11, 0.8);
+    --radius-source-sheet: 1rem;
+    --radius-control: 0.75rem;
     --animate-scan-laser: scan-laser 2.2s ease-in-out infinite;
+    --animate-splash-mark-entrance: splash-mark-entrance 2.2s
+        cubic-bezier(0.16, 1, 0.3, 1) both;
+    --animate-splash-wordmark-entrance: splash-wordmark-entrance 2.2s
+        cubic-bezier(0.16, 1, 0.3, 1) both;
+    --animate-splash-screen-exit: splash-screen-exit 360ms
+        cubic-bezier(0.16, 1, 0.3, 1) 2.2s forwards;
+    --animate-splash-mark-reduced: splash-mark-reduced 120ms ease-out both;
+    --animate-splash-wordmark-reduced: splash-wordmark-reduced 120ms ease-out
+        both;
+    --animate-splash-screen-exit-reduced: splash-screen-exit 120ms ease-out
+        120ms forwards;
+}
+
+@keyframes splash-mark-entrance {
+    0%,
+    8% {
+        opacity: 1;
+        transform: translateX(clamp(4.75rem, 14vw, 13rem)) rotate(0deg);
+    }
+    42% {
+        opacity: 1;
+        transform: translateX(clamp(4.75rem, 14vw, 13rem)) rotate(360deg);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) rotate(360deg);
+    }
+}
+
+@keyframes splash-wordmark-entrance {
+    0%,
+    34% {
+        opacity: 0;
+        transform: translateX(
+                calc(
+                    -1 *
+                        (
+                            clamp(5rem, 23vw, 9rem) / 2 +
+                                clamp(0.5rem, 1.5vw, 1.125rem) / 2
+                        )
+                )
+            )
+            scale(0.96);
+    }
+    46% {
+        opacity: 0.3;
+        transform: translateX(
+                calc(
+                    -1 *
+                        (
+                            clamp(5rem, 23vw, 9rem) / 2 +
+                                clamp(0.5rem, 1.5vw, 1.125rem) / 2
+                        )
+                )
+            )
+            scale(0.98);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes splash-mark-reduced {
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes splash-wordmark-reduced {
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes splash-screen-exit {
+    to {
+        opacity: 0;
+        visibility: hidden;
+    }
 }
 
 @keyframes scan-laser {
@@ -114,6 +221,50 @@
     100% {
         top: 90%;
         opacity: 0;
+    }
+}
+
+::view-transition-group(search-bar) {
+    animation-duration: 380ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: visible;
+}
+
+::view-transition-image-pair(search-bar) {
+    isolation: isolate;
+}
+
+::view-transition-old(search-bar) {
+    animation: search-bar-exit 150ms ease-out both;
+    transform-origin: center;
+}
+
+::view-transition-new(search-bar) {
+    animation: search-bar-enter 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform-origin: center;
+}
+
+@keyframes search-bar-exit {
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes search-bar-enter {
+    0% {
+        opacity: 0.35;
+        filter: blur(2px);
+        transform: scale(0.94);
+    }
+    65% {
+        opacity: 1;
+        filter: blur(0);
+        transform: scale(1.015);
+    }
+    100% {
+        opacity: 1;
+        filter: blur(0);
+        transform: scale(1);
     }
 }
 
@@ -146,6 +297,7 @@ body {
     cursor: default;
     font-family: var(--font-sans);
     font-synthesis: none;
+    font-size: var(--text-base);
     line-height: 1.6;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -249,6 +401,15 @@ h2[tabindex="-1"]:focus {
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
+
+    ::view-transition-group(search-bar),
+    ::view-transition-image-pair(search-bar),
+    ::view-transition-old(search-bar),
+    ::view-transition-new(search-bar) {
+        animation-duration: 0.01ms !important;
+        filter: none !important;
+        transform: none !important;
+    }
 }
 
 @utility no-scrollbar {
@@ -257,6 +418,27 @@ h2[tabindex="-1"]:focus {
     &::-webkit-scrollbar {
         display: none;
     }
+}
+
+@utility page-rail {
+    margin-inline: auto;
+    width: 100%;
+    max-width: 36rem;
+    min-width: 0;
+    padding-inline: 1rem;
+    padding-block: 2rem;
+}
+
+@utility page-rail-tight {
+    padding-block: 0.75rem 2rem;
+}
+
+@utility source-sheet {
+    border: 1px solid
+        color-mix(in srgb, var(--color-neutral-200) 80%, transparent);
+    border-radius: var(--radius-source-sheet);
+    background: var(--color-card);
+    box-shadow: var(--shadow-source-sheet);
 }
 
 @utility scrollbar-subtle {

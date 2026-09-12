@@ -1,7 +1,7 @@
 import React from "react"
+import { ChevronRight } from "lucide-react"
 
-import { Card } from "@/components/ui/card"
-import { cn } from "@/lib/utils"
+import { ScoreLessonLink } from "./ScoreLessonLink"
 
 interface EcoScoreBannerProps {
     grade?: "a" | "b" | "c" | "d" | "e" | "unknown" | null
@@ -11,89 +11,50 @@ interface EcoScoreBannerProps {
 interface EcoGradeConfig {
     key: string
     label: string
-    color: string
-    textColor: string
-    secondaryColor: string
-    pillarColor: string
-    cardBg: string
-    badgeBg: string
     desc: string
+    surfaceClassName: string
 }
 
 const ECO_GRADES: EcoGradeConfig[] = [
     {
         key: "a",
         label: "A",
-        color: "bg-[#038141]",
-        textColor: "text-[#026B36]",
-        secondaryColor: "text-[#1B5E36]",
-        pillarColor: "text-[#1B5E36]",
-        cardBg: "bg-[#EFF8F2] border-[#CDE5D4]",
-        badgeBg: "bg-white/85 border-[#C5DFCC] text-[#026B36]",
         desc: "Very low environmental impact",
+        surfaceClassName: "bg-emerald-50 hover:bg-emerald-100",
     },
     {
         key: "b",
         label: "B",
-        color: "bg-[#85BB2F]",
-        textColor: "text-[#4A7F1A]",
-        secondaryColor: "text-[#416E18]",
-        pillarColor: "text-[#416E18]",
-        cardBg: "bg-[#F5FAF0] border-[#D9EBCF]",
-        badgeBg: "bg-white/85 border-[#CEE4C1] text-[#4A7F1A]",
         desc: "Low environmental impact",
+        surfaceClassName: "bg-lime-50 hover:bg-lime-100",
     },
     {
         key: "c",
         label: "C",
-        color: "bg-[#FECB02]",
-        textColor: "text-[#997003]",
-        secondaryColor: "text-[#856103]",
-        pillarColor: "text-[#856103]",
-        cardBg: "bg-[#FDF9EE] border-[#F5E4BA]",
-        badgeBg: "bg-white/85 border-[#EED59B] text-[#997003]",
         desc: "Moderate environmental impact",
+        surfaceClassName: "bg-amber-50 hover:bg-amber-100",
     },
     {
         key: "d",
         label: "D",
-        color: "bg-[#EE8100]",
-        textColor: "text-[#B85704]",
-        secondaryColor: "text-[#8E4410]",
-        pillarColor: "text-[#8E4410]",
-        cardBg: "bg-[#FAF3EC] border-[#F1D8C5]",
-        badgeBg: "bg-white/85 border-[#E7C6AF] text-[#B85704]",
         desc: "High environmental impact",
+        surfaceClassName: "bg-orange-50 hover:bg-orange-100",
     },
     {
         key: "e",
         label: "E",
-        color: "bg-[#E63E11]",
-        textColor: "text-[#AC2301]",
-        secondaryColor: "text-[#87230A]",
-        pillarColor: "text-[#87230A]",
-        cardBg: "bg-[#FDF2F0] border-[#F4CDCA]",
-        badgeBg: "bg-white/85 border-[#ECC0BC] text-[#AC2301]",
         desc: "Very high environmental impact",
+        surfaceClassName: "bg-red-50 hover:bg-red-100",
     },
 ]
 
-const FALLBACK_CONFIG: Omit<EcoGradeConfig, "key" | "label"> = {
-    color: "bg-neutral-400",
-    textColor: "text-neutral-900",
-    secondaryColor: "text-neutral-600",
-    pillarColor: "text-neutral-500",
-    cardBg: "bg-[#F4F6F8]/90 border-[#D9E1E8]/90",
-    badgeBg: "bg-white/85 border-neutral-200 text-neutral-600",
-    desc: "Environmental impact not yet applicable for this category",
-}
-
 function getEcoScoreAsset(grade?: string | null): string {
-    if (!grade || grade === "unknown")
+    if (!grade || grade === "unknown") {
         return "/assets/scores/ecoscore-not-applicable.svg"
+    }
     const normalized = grade.toLowerCase()
     if (["a", "b", "c", "d", "e"].includes(normalized)) {
-        return `/assets/scores/ecoscore-${normalized}.svg`
+        return "/assets/scores/ecoscore-" + normalized + ".svg"
     }
     if (normalized === "not-applicable" || normalized === "not_applicable") {
         return "/assets/scores/ecoscore-not-applicable.svg"
@@ -101,82 +62,45 @@ function getEcoScoreAsset(grade?: string | null): string {
     return "/assets/scores/ecoscore-unknown.svg"
 }
 
-export const EcoScoreBanner: React.FC<EcoScoreBannerProps> = ({
-    grade,
-    score,
-}) => {
+export const EcoScoreBanner: React.FC<EcoScoreBannerProps> = ({ grade }) => {
     const normalizedGrade = grade ? grade.toLowerCase() : null
-    const activeGrade = ECO_GRADES.find((g) => g.key === normalizedGrade)
-    const config = activeGrade || FALLBACK_CONFIG
+    const activeGrade = ECO_GRADES.find((item) => item.key === normalizedGrade)
+    if (!activeGrade) return null
 
     return (
-        <Card
-            className={cn(
-                "flex h-full flex-row items-center gap-3 rounded-2xl border p-3 transition-colors sm:flex-col sm:items-start sm:justify-between sm:gap-2 sm:p-3.5",
-                config.cardBg,
-            )}
+        <ScoreLessonLink
+            to="/learn/green-score"
+            className="focus-visible:ring-primary-500 block no-underline focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
         >
-            {/* Official Eco-Score Asset */}
-            <div className="flex w-[76px] shrink-0 items-center justify-center select-none sm:w-full sm:py-1">
-                <img
-                    src={getEcoScoreAsset(grade)}
-                    alt={
-                        activeGrade
-                            ? `Eco-Score Grade ${activeGrade.label}`
-                            : "Eco-Score Not Calculated"
-                    }
-                    className="drop-shadow-2xs h-9.5 w-auto max-w-full object-contain sm:h-11"
-                    loading="lazy"
-                />
-            </div>
-
-            {/* Content Side */}
-            <div className="flex min-w-0 flex-1 flex-col justify-between space-y-0.5 sm:w-full sm:space-y-1">
-                <div className="flex items-center justify-between gap-1.5">
-                    <span
-                        className={cn(
-                            "block truncate text-[11px] font-bold tracking-[0.06em] uppercase",
-                            config.pillarColor,
-                        )}
-                    >
-                        Eco-Score / Environmental Impact
-                    </span>
-                    {Boolean(activeGrade) &&
-                        score !== null &&
-                        score !== undefined && (
-                            <span
-                                className={cn(
-                                    "py-0.2 shrink-0 rounded-full border px-1.5 font-mono text-[11px] font-bold tabular-nums shadow-2xs",
-                                    config.badgeBg,
-                                )}
-                            >
-                                {score}/100
-                            </span>
-                        )}
+            <div
+                className={`flex min-h-20 flex-row items-center gap-3 px-4 py-3.5 transition-colors sm:px-5 ${activeGrade.surfaceClassName}`}
+            >
+                <div className="flex w-16 shrink-0 items-center justify-center select-none">
+                    <img
+                        src={getEcoScoreAsset(grade)}
+                        alt=""
+                        aria-hidden="true"
+                        className="h-auto max-h-11 w-auto max-w-full object-contain"
+                        loading="lazy"
+                    />
                 </div>
 
-                <div>
-                    <span
-                        className={cn(
-                            "block truncate text-sm leading-tight font-extrabold tracking-[-0.02em] sm:text-base",
-                            config.textColor,
-                        )}
-                    >
-                        {activeGrade
-                            ? `Grade ${activeGrade.label}`
-                            : "Eco-Score not calculated"}
-                    </span>
-
-                    <p
-                        className={cn(
-                            "mt-0.5 line-clamp-1 text-xs leading-normal font-medium sm:line-clamp-2 sm:text-[11px]",
-                            config.secondaryColor,
-                        )}
-                    >
-                        {config.desc}
+                <div className="min-w-0 flex-1">
+                    <p className="text-base leading-tight font-bold tracking-[-0.02em] text-neutral-950">
+                        <span>Green-Score</span>{" "}
+                        <span className="font-extrabold">
+                            {activeGrade.label}
+                        </span>
+                    </p>
+                    <p className="mt-1 text-sm leading-snug text-neutral-600">
+                        {activeGrade.desc}
                     </p>
                 </div>
+                <ChevronRight
+                    className="text-info-700 size-5 shrink-0"
+                    aria-hidden="true"
+                />
             </div>
-        </Card>
+        </ScoreLessonLink>
     )
 }

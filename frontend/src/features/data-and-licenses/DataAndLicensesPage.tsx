@@ -16,22 +16,22 @@ export function DataAndLicensesPage() {
     }, [])
 
     return (
-        <main className="mx-auto min-h-[calc(100svh-8rem)] w-full max-w-xl px-4 py-10 sm:px-6 sm:py-14">
+        <main className="page-rail min-h-[calc(100svh-8rem)] sm:px-6 sm:py-12">
             <h1
                 ref={headingRef}
                 tabIndex={-1}
-                className="text-4xl leading-tight font-extrabold tracking-[-0.03em] text-balance text-neutral-950"
+                className="text-display leading-[1.12] font-extrabold tracking-[-0.03em] text-balance text-neutral-950"
             >
                 Data and licenses
             </h1>
-            <p className="mt-4 text-lg leading-relaxed text-neutral-600">
+            <p className="mt-3 text-base leading-relaxed text-neutral-600">
                 Life Goods is a read-only presentation layer over a static local
                 Open Food Facts Dataset Snapshot. Local hosting does not verify
                 the data or make it a Life Goods catalog.
             </p>
 
             <section className="mt-10 border-t border-neutral-200 pt-8">
-                <h2 className="text-2xl font-extrabold text-neutral-950">
+                <h2 className="text-xl font-extrabold tracking-[-0.02em] text-neutral-950">
                     Open Food Facts
                 </h2>
                 <p className="mt-3 leading-relaxed text-neutral-600">
@@ -60,7 +60,7 @@ export function DataAndLicensesPage() {
             </section>
 
             <section className="mt-10 border-t border-neutral-200 pt-8">
-                <h2 className="text-2xl font-extrabold text-neutral-950">
+                <h2 className="text-xl font-extrabold tracking-[-0.02em] text-neutral-950">
                     Reuse terms
                 </h2>
                 <dl className="mt-4 divide-y divide-neutral-200 border-y border-neutral-200">

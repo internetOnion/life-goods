@@ -29,7 +29,7 @@ describe("Life Goods routes", () => {
             screen.getByRole("heading", { level: 1, name: "Scan a Barcode" }),
         ).toBeInTheDocument()
         expect(
-            screen.getByRole("heading", { name: "Your camera stays private" }),
+            screen.getByRole("heading", { name: "Private camera scanning" }),
         ).toBeVisible()
         const navigation = screen.getByRole("navigation", {
             name: "Primary navigation",
@@ -46,6 +46,12 @@ describe("Life Goods routes", () => {
         ).not.toBeInTheDocument()
         expect(screen.getByRole("link", { name: "Search" })).toBeVisible()
         expect(screen.getAllByText("Life Goods").length).toBeGreaterThan(0)
+        expect(
+            screen.queryByText("Read-only Open Food Facts data"),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("link", { name: "Data and licenses" }),
+        ).not.toBeInTheDocument()
         expect(document.documentElement).toHaveAttribute("lang", "en")
     })
 
@@ -84,6 +90,34 @@ describe("Life Goods routes", () => {
             screen.queryByRole("link", {
                 name: "https://world.openfoodfacts.org/data",
             }),
+        ).not.toBeInTheDocument()
+    })
+
+    test("opens the full recent Product views page", () => {
+        sessionStorage.setItem(
+            "lifegoods_scan_history_v1",
+            JSON.stringify([
+                {
+                    identifier: "3017620422003",
+                    name: "Nutella Spread 400g",
+                    brand: "Ferrero",
+                    manufacturingPlace: "France",
+                    timestamp: 1,
+                },
+            ]),
+        )
+
+        renderRoute("/search/recent")
+
+        expect(
+            screen.getByRole("heading", { name: "Products you viewed" }),
+        ).toHaveFocus()
+        expect(screen.getByText("Nutella Spread 400g")).toBeVisible()
+        expect(screen.getByText("Ferrero")).toBeVisible()
+        expect(screen.getByText("France")).toBeVisible()
+        expect(screen.getByText("3017620422003")).toBeVisible()
+        expect(
+            screen.queryByRole("navigation", { name: "Primary navigation" }),
         ).not.toBeInTheDocument()
     })
 

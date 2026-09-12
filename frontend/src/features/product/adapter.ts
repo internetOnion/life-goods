@@ -252,27 +252,19 @@ function rawFromProductProjection(
         brands: (product.identity.brands ?? []).join(", "),
         quantity: product.identity.quantity,
         lang: product.source.record_language,
-        categories_tags: (product.categories ?? []).map(
-            (c) => `en:${c.replace(/\s+/g, "-")}`,
-        ),
-        labels_tags: (product.labels ?? []).map(
-            (l) => `en:${l.replace(/\s+/g, "-")}`,
-        ),
-        countries_tags: (product.countries ?? []).map(
-            (c) => `en:${c.replace(/\s+/g, "-")}`,
-        ),
-        origins_tags: (product.environment?.origins ?? []).map(
-            (o) => `en:${o.replace(/\s+/g, "-")}`,
-        ),
+        categories_tags: product.categories ?? [],
+        additives_tags: product.additives ?? [],
+        labels_tags: product.labels ?? [],
+        countries_tags: product.countries ?? [],
+        origins_tags: product.environment?.origins ?? [],
         manufacturing_places: (
             product.environment?.manufacturing_places ?? []
         ).join(", "),
         creator: product.source.creator,
         last_modified_datetime: product.source.last_modified_at,
         completeness: product.source.completeness,
-        data_quality_warnings_tags: (
-            product.source.data_quality_warnings ?? []
-        ).map((w) => `en:${w.replace(/\s+/g, "-")}`),
+        data_quality_warnings_tags: product.source.data_quality_warnings ?? [],
+        languages_tags: product.source.languages ?? [],
     }
 
     if (product.front_image) {
@@ -727,7 +719,9 @@ export function adaptProductLookup(
     // Halal Label Claim
     if (Array.isArray(raw.labels_tags)) {
         const hasHalalClaim = (raw.labels_tags as string[]).some(
-            (l) => typeof l === "string" && l.toLowerCase() === "en:halal",
+            (label) =>
+                typeof label === "string" &&
+                label.toLowerCase().split(":").at(-1) === "halal",
         )
         if (hasHalalClaim) {
             labelEvidence.push({
@@ -951,6 +945,44 @@ export function extractOpenFoodFactsView(
             .map((c) => c.trim())
             .filter(Boolean)
     }
+
+    // Languages recorded on the label. Keep the source tag format so the UI
+    // can distinguish the language code from the taxonomy name.
+    const languages = Array.isArray(raw.languages_tags)
+        ? (raw.languages_tags as unknown[]).filter(
+              (language): language is string =>
+                  typeof language === "string" && Boolean(language.trim()),
+          )
+        : typeof raw.languages === "string"
+          ? raw.languages
+                .split(",")
+                .map((language) => language.trim())
+                .filter(Boolean)
+          : []
+
+    // Product Origin
+    const origins =
+        typeof raw.origins === "string" && raw.origins.trim()
+            ? raw.origins.trim()
+            : Array.isArray(raw.origins_tags)
+              ? (raw.origins_tags as unknown[])
+                    .filter(
+                        (origin): origin is string =>
+                            typeof origin === "string" &&
+                            Boolean(origin.trim()),
+                    )
+                    .map((origin) =>
+                        origin
+                            .replace(/^[a-z]{2}:/, "")
+                            .replace(/[_-]/g, " ")
+                            .trim()
+                            .replace(/^\w/, (character) =>
+                                character.toUpperCase(),
+                            ),
+                    )
+                    .filter(Boolean)
+                    .join(", ") || null
+              : null
 
     // Scores
     let nutriscoreGrade: OpenFoodFactsProductView["nutriscoreGrade"] = null
@@ -1195,7 +1227,7 @@ export function extractOpenFoodFactsView(
         categories,
         labels,
         stores,
-        origins: typeof raw.origins === "string" ? raw.origins : null,
+        origins,
         manufacturingPlaces:
             typeof raw.manufacturing_places === "string"
                 ? raw.manufacturing_places
@@ -1237,6 +1269,7 @@ export function extractOpenFoodFactsView(
         statesTags: Array.isArray(raw.states_tags)
             ? (raw.states_tags as string[])
             : [],
+        languages,
         dataQualityWarnings: Array.isArray(raw.data_quality_warnings_tags)
             ? (raw.data_quality_warnings_tags as string[])
             : [],

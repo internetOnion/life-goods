@@ -12,6 +12,7 @@ from search_database_support import test_connections as connections
 from lifegoods.core.settings import Settings
 from lifegoods.identifiers import calculate_check_digit
 from lifegoods.open_food_facts import (
+    SEARCH_SCHEMA_VERSION,
     VERSIONS_COLLECTION,
     OpenFoodFactsDatasetSource,
     build_search_index,
@@ -120,7 +121,7 @@ def test_build_search_index_lifecycle(
     assert version_doc["search_index"] == {
         "collection_name": search_col_name,
         "status": "READY",
-        "schema_version": 1,
+        "schema_version": SEARCH_SCHEMA_VERSION,
         "document_count": 5,
         "excluded_count": 2,
     }
@@ -129,6 +130,7 @@ def test_build_search_index_lifecycle(
     indexes = writer_db[search_col_name].index_information()
     assert "ix_search_name_tokens" in indexes
     assert "ix_search_brand_tokens" in indexes
+    assert "ix_search_country_tokens" in indexes
     assert "ix_search_sort" in indexes
 
     # Verify reader can validate readiness
