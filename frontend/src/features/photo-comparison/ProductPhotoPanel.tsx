@@ -7,9 +7,9 @@ import {
     WarningCircle,
     X,
 } from "@phosphor-icons/react"
-import { type RefObject, useState } from "react"
+import { type RefObject, useRef, useState } from "react"
 
-import { Button } from "@/components/ui/button"
+import { GlassButton as Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -37,6 +37,8 @@ interface ProductPhotoPanelProps {
     onRemovePhoto: (index: number) => void
     onReplacePhoto: (index: number, file: File) => void
     onClearPhotos: () => void
+    onOpenCamera?: () => void
+    onOpenLibrary?: () => void
     onExtract?: () => void
     onSelectColumn: (columnId: string | null) => void
     onFocusEvidence: (imageId: string) => void
@@ -52,12 +54,15 @@ export function ProductPhotoPanel({
     onRemovePhoto,
     onReplacePhoto,
     onClearPhotos,
+    onOpenCamera = () => undefined,
+    onOpenLibrary = () => undefined,
     onExtract,
     onSelectColumn,
     onFocusEvidence,
     onInspectPhoto,
 }: ProductPhotoPanelProps) {
     const [isDragging, setIsDragging] = useState(false)
+    const replaceInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
     const extraction = product.extraction
     const selectedColumnId =
@@ -66,6 +71,8 @@ export function ProductPhotoPanel({
             ? (extraction?.nutrition_columns?.[0]?.column_id ?? null)
             : null)
     const packageQuantity = extraction?.package_quantity
+    const nutritionColumns = extraction?.nutrition_columns ?? []
+    const hasMultipleNutritionColumns = nutritionColumns.length > 1
 
     const extractButtonLabel = product.loading
         ? "Reading photos…"
@@ -80,9 +87,9 @@ export function ProductPhotoPanel({
             className="overflow-hidden rounded-2xl border-neutral-200/90 bg-white shadow-xs"
             aria-labelledby={`panel-heading-${product.id}`}
         >
-            <header className="flex flex-col gap-3 border-b border-neutral-200/80 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-                <div className="flex items-center gap-3">
-                    <span className="bg-primary-100 text-primary-900 flex size-9 shrink-0 items-center justify-center rounded-xl font-mono text-sm font-bold select-none">
+            <header className="flex flex-col gap-3 border-b border-neutral-200/80 p-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4">
+                <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                    <span className="bg-primary-100 text-primary-900 flex size-8 shrink-0 items-center justify-center rounded-lg font-mono text-xs font-bold select-none">
                         {product.number}
                     </span>
                     <div className="min-w-0 flex-1">
@@ -105,93 +112,113 @@ export function ProductPhotoPanel({
                                 }
                             }}
                             aria-label={`${product.title} display name`}
-                            className="h-9 w-full max-w-[220px] rounded-lg font-bold text-neutral-900 sm:w-52"
+                            className="h-8 w-full max-w-[200px] rounded-lg text-sm font-bold text-neutral-900 sm:w-48"
                         />
-                        <p className="mt-1 text-xs text-neutral-500">
-                            {product.photos.length} of 6 photos selected
-                        </p>
                     </div>
+                </div>
+                <div className="flex items-center gap-2 border-t border-neutral-200/80 pt-2 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-4">
+                    <span className="text-[11px] font-semibold tracking-wide text-neutral-400 uppercase">
+                        Photos
+                    </span>
+                    <p className="shrink-0 text-xs font-medium text-neutral-600">
+                        {product.photos.length} of 6 selected
+                    </p>
                 </div>
             </header>
 
-            <div className="p-4 sm:p-5">
-                {/* Dropzone */}
-                <label
-                    htmlFor={`upload-photos-${product.id}`}
-                    onDragOver={(e) => {
-                        e.preventDefault()
-                        setIsDragging(true)
-                    }}
-                    onDragLeave={(e) => {
-                        e.preventDefault()
-                        setIsDragging(false)
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault()
-                        setIsDragging(false)
-                        if (e.dataTransfer.files?.length) {
-                            onAddFiles(Array.from(e.dataTransfer.files))
-                        }
-                    }}
-                    className={cn(
-                        "relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition-all select-none",
-                        isDragging
-                            ? "border-primary-500 bg-primary-50/50 ring-primary-500/20 ring-2"
-                            : "hover:border-primary-400 border-neutral-300 bg-neutral-50/70 hover:bg-neutral-100/70",
-                    )}
-                >
-                    <div className="bg-primary-100/80 text-primary-800 flex size-11 items-center justify-center rounded-xl">
-                        <UploadSimple size={22} weight="bold" />
-                    </div>
-                    <strong className="mt-2.5 text-sm font-bold text-neutral-900">
-                        Add label photos
-                    </strong>
-                    <span className="mt-1 text-xs text-neutral-500">
-                        Choose one or more JPEG/PNG files
-                    </span>
-                    <Input
-                        id={`upload-photos-${product.id}`}
-                        type="file"
-                        accept="image/jpeg,image/png"
-                        multiple
-                        className="sr-only"
-                        onChange={(e) => {
-                            if (e.target.files?.length) {
-                                onAddFiles(Array.from(e.target.files))
-                            }
-                            e.target.value = ""
-                        }}
-                    />
-                </label>
-
-                {/* Mobile Camera Option */}
-                <div className="mt-2.5 flex items-center justify-center">
-                    <label
-                        htmlFor={`camera-photos-${product.id}`}
-                        className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3 text-xs font-semibold text-neutral-700 shadow-2xs select-none hover:bg-neutral-50 hover:text-neutral-900"
-                    >
-                        <Camera size={15} weight="bold" />
-                        <span>Take photo with camera</span>
-                        <Input
-                            id={`camera-photos-${product.id}`}
-                            type="file"
-                            accept="image/jpeg,image/png"
-                            capture="environment"
-                            className="sr-only"
-                            onChange={(e) => {
-                                if (e.target.files?.length) {
-                                    onAddFiles(Array.from(e.target.files))
-                                }
-                                e.target.value = ""
+            <div className="p-3 sm:p-4">
+                {product.photos.length === 0 ? (
+                    <div className="flex flex-col gap-2">
+                        <div
+                            onDragOver={(e) => {
+                                e.preventDefault()
+                                setIsDragging(true)
                             }}
-                        />
-                    </label>
-                </div>
+                            onDragLeave={(e) => {
+                                e.preventDefault()
+                                setIsDragging(false)
+                            }}
+                            onDrop={(e) => {
+                                e.preventDefault()
+                                setIsDragging(false)
+                                if (e.dataTransfer.files?.length) {
+                                    onAddFiles(Array.from(e.dataTransfer.files))
+                                }
+                            }}
+                            className={cn(
+                                "relative flex flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-neutral-50/50 p-4 text-center text-neutral-950 transition-all select-none sm:p-6",
+                                isDragging
+                                    ? "border-primary-500 ring-primary-200 ring-2"
+                                    : "hover:border-primary-300",
+                            )}
+                        >
+                            <div className="bg-primary-100 text-primary-800 flex size-14 items-center justify-center rounded-2xl">
+                                <Camera size={27} weight="bold" />
+                            </div>
+                            <h3 className="mt-4 text-lg font-extrabold sm:text-xl">
+                                Add a Nutrition Facts photo
+                            </h3>
+                            <p className="mt-2 max-w-md text-sm leading-relaxed text-neutral-600">
+                                Use a clear, well-lit photo of the complete
+                                panel.
+                            </p>
+                            <Button
+                                type="button"
+                                onClick={onOpenCamera}
+                                className="bg-primary-300 hover:bg-primary-200 mt-5 h-12 gap-2 rounded-xl px-5 font-extrabold text-neutral-950"
+                            >
+                                <Camera size={18} weight="bold" />
+                                <span>Take photo</span>
+                            </Button>
+                        </div>
+
+                        <div className="flex flex-col items-center justify-between gap-2 border-t border-neutral-200/80 pt-3 text-center sm:flex-row sm:text-left">
+                            <span className="text-xs text-neutral-500">
+                                JPEG or PNG · up to 6 photos
+                            </span>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={onOpenLibrary}
+                                className="h-11 gap-2 rounded-xl px-4 font-bold text-neutral-800"
+                            >
+                                <UploadSimple size={17} weight="bold" />
+                                <span>Choose photo</span>
+                            </Button>
+                        </div>
+                    </div>
+                ) : (
+                    <div>
+                        {/* Compact add photo actions when photos already exist */}
+                        {product.photos.length < 6 && (
+                            <div className="mb-3 flex flex-wrap items-center gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={onOpenCamera}
+                                    className="h-10 gap-1.5 rounded-xl px-3 text-xs font-bold"
+                                >
+                                    <Camera size={15} weight="bold" />
+                                    <span>Add another photo</span>
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={onOpenLibrary}
+                                    className="h-10 gap-1.5 rounded-xl px-3 text-xs font-bold text-neutral-600"
+                                >
+                                    <UploadSimple size={15} weight="bold" />
+                                    <span>Choose another</span>
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Previews grid */}
                 {product.photos.length > 0 && (
                     <div
-                        className="mt-4 grid grid-cols-3 gap-2.5"
+                        className="mt-3 grid grid-cols-3 gap-2.5"
                         data-previews={product.id}
                     >
                         {product.photos.map((photo, index) => (
@@ -226,30 +253,42 @@ export function ProductPhotoPanel({
                                     Photo {index + 1}
                                 </span>
                                 <div className="absolute top-1.5 right-1.5 flex items-center gap-1 opacity-90 transition-opacity group-hover:opacity-100">
-                                    <label
-                                        htmlFor={`replace-file-${product.id}-${index}`}
-                                        className="hover:bg-primary-600 flex size-7 cursor-pointer items-center justify-center rounded-lg bg-neutral-950/80 text-white transition-colors"
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        onClick={() =>
+                                            replaceInputRefs.current[
+                                                photo.localId
+                                            ]?.click()
+                                        }
+                                        className="hover:bg-primary-600 size-8 rounded-lg bg-neutral-950/80 text-white hover:text-white"
                                         title={`Replace photo ${index + 1}`}
-                                        aria-label={`Replace photo ${index + 1}`}
                                     >
                                         <ArrowClockwise
                                             size={14}
                                             weight="bold"
                                         />
-                                        <Input
-                                            id={`replace-file-${product.id}-${index}`}
-                                            type="file"
-                                            accept="image/jpeg,image/png"
-                                            className="sr-only"
-                                            onChange={(e) => {
-                                                const file = e.target.files?.[0]
-                                                if (file) {
-                                                    onReplacePhoto(index, file)
-                                                }
-                                                e.target.value = ""
-                                            }}
-                                        />
-                                    </label>
+                                    </Button>
+                                    <Input
+                                        ref={(element) => {
+                                            replaceInputRefs.current[
+                                                photo.localId
+                                            ] = element
+                                        }}
+                                        id={`replace-file-${product.id}-${index}`}
+                                        type="file"
+                                        accept="image/jpeg,image/png"
+                                        tabIndex={-1}
+                                        className="sr-only"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0]
+                                            if (file) {
+                                                onReplacePhoto(index, file)
+                                            }
+                                            e.target.value = ""
+                                        }}
+                                    />
                                     <Button
                                         type="button"
                                         variant="ghost"
@@ -268,7 +307,7 @@ export function ProductPhotoPanel({
                 )}
 
                 {/* Panel Actions */}
-                <div className="mt-4 flex flex-wrap items-center gap-2.5">
+                <div className="mt-3 flex flex-wrap items-center gap-2.5">
                     {onExtract && (
                         <Button
                             type="button"
@@ -326,7 +365,7 @@ export function ProductPhotoPanel({
                             <div className="flex items-center gap-1.5 font-bold">
                                 {product.extraction.outcome === "complete" ? (
                                     <span className="text-success-800">
-                                        Extraction completed
+                                        Ready
                                     </span>
                                 ) : product.extraction.outcome === "partial" ? (
                                     <>
@@ -336,8 +375,7 @@ export function ProductPhotoPanel({
                                             className="text-warning-700 shrink-0"
                                         />
                                         <span className="text-warning-900">
-                                            Partial extraction: some label
-                                            fields could not be read
+                                            Some values could not be read
                                         </span>
                                     </>
                                 ) : (
@@ -348,8 +386,7 @@ export function ProductPhotoPanel({
                                             className="text-warning-700 shrink-0"
                                         />
                                         <span className="text-warning-950">
-                                            Photos difficult to read: retake
-                                            recommended
+                                            Retake photo
                                         </span>
                                     </>
                                 )}
@@ -357,16 +394,13 @@ export function ProductPhotoPanel({
                             {product.extraction.outcome ===
                                 "retake_required" && (
                                 <p className="text-warning-800 text-xs">
-                                    Photos could not be clearly read. Please add
-                                    or replace with well-lit, close-up photos of
-                                    the nutrition panel.
+                                    Add a clear close-up of the Nutrition Facts
+                                    panel.
                                 </p>
                             )}
                             {product.extraction.outcome === "partial" && (
                                 <p className="text-warning-800 text-xs">
-                                    Readable nutrients can still be compared.
-                                    Clearer photos can provide more complete
-                                    details.
+                                    Readable values can still be compared.
                                 </p>
                             )}
                             <details className="mt-1 cursor-pointer text-neutral-500">
@@ -392,24 +426,22 @@ export function ProductPhotoPanel({
                             </details>
                         </div>
                     ) : product.photos.length > 0 ? (
-                        "Ready to compare"
+                        "Photos ready"
                     ) : (
-                        "Add photos to begin"
+                        "Add a photo to begin"
                     )}
                 </div>
 
                 {/* Extraction Results */}
                 {extraction && (
-                    <div className="mt-6 border-t border-neutral-200/80 pt-5">
-                        {/* What the photos show */}
-                        <section>
-                            <div className="flex items-baseline justify-between gap-3">
-                                <h3 className="text-sm font-bold text-neutral-900">
-                                    What the photos show
-                                </h3>
-                            </div>
+                    <div className="mt-4 border-t border-neutral-200/80 pt-4">
+                        {/* Detected details */}
+                        <details>
+                            <summary className="focus-visible:ring-primary-500 flex min-h-11 cursor-pointer items-center rounded-lg text-sm font-bold text-neutral-900 select-none hover:text-neutral-700 focus-visible:ring-2 focus-visible:outline-none">
+                                Detected details
+                            </summary>
 
-                            <dl className="mt-3.5 divide-y divide-neutral-100 rounded-xl border border-neutral-200/70 bg-neutral-50/50 text-xs">
+                            <dl className="mt-2 divide-y divide-neutral-100 border-y border-neutral-200/70 text-xs">
                                 {(extraction.identity?.name?.value_text ||
                                     extraction.identity?.brand?.value_text) && (
                                     <div className="flex flex-col gap-1.5 p-3 sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:items-center sm:gap-3">
@@ -555,55 +587,57 @@ export function ProductPhotoPanel({
                                     </dd>
                                 </div>
                             </dl>
-                        </section>
+                        </details>
 
                         {/* Nutrition columns */}
-                        {(extraction.nutrition_columns?.length ?? 0) > 0 && (
-                            <section className="mt-6 border-t border-neutral-200/80 pt-5">
+                        {hasMultipleNutritionColumns ? (
+                            <section className="mt-4 border-t border-neutral-200/80 pt-4">
                                 <div className="flex items-baseline justify-between gap-3">
                                     <h3 className="text-sm font-bold text-neutral-900">
-                                        Nutrition columns
+                                        Choose a nutrition column
                                     </h3>
-                                    <span className="font-mono text-xs text-neutral-500">
-                                        {(extraction.nutrition_columns
-                                            ?.length ?? 0) > 1
-                                            ? "Select one for comparison"
-                                            : "Sole column selected"}
+                                    <span className="text-xs text-neutral-500">
+                                        Choose one for this Product.
                                     </span>
                                 </div>
 
-                                <div className="mt-3.5 space-y-3.5">
-                                    {(extraction.nutrition_columns ?? []).map(
-                                        (column) => (
-                                            <NutritionColumnCard
-                                                key={column.column_id}
-                                                column={column}
-                                                product={product}
-                                                isSelected={
-                                                    selectedColumnId ===
-                                                    column.column_id
-                                                }
-                                                onSelectColumn={onSelectColumn}
-                                                onFocusEvidence={
-                                                    onFocusEvidence
-                                                }
-                                            />
-                                        ),
-                                    )}
+                                <div className="mt-3 space-y-2.5">
+                                    {nutritionColumns.map((column) => (
+                                        <NutritionColumnCard
+                                            key={column.column_id}
+                                            column={column}
+                                            product={product}
+                                            isSelected={
+                                                selectedColumnId ===
+                                                column.column_id
+                                            }
+                                            onSelectColumn={onSelectColumn}
+                                            onFocusEvidence={onFocusEvidence}
+                                        />
+                                    ))}
                                 </div>
                             </section>
-                        )}
+                        ) : nutritionColumns.length === 1 ? (
+                            <p className="mt-3 text-xs text-neutral-500">
+                                Using{" "}
+                                {displayBasisLabel(nutritionColumns[0]?.basis)}{" "}
+                                ·{" "}
+                                {formatPreparationLabel(
+                                    nutritionColumns[0]?.preparation_state,
+                                )}
+                            </p>
+                        ) : null}
 
                         {/* Retake reasons */}
                         {extraction.retake_reasons &&
                             extraction.retake_reasons.length > 0 && (
-                                <div className="border-warning-200 bg-warning-50 text-warning-900 mt-5 rounded-2xl border p-4 text-xs">
+                                <div className="border-warning-200 bg-warning-50 text-warning-900 mt-4 rounded-xl border p-3 text-xs">
                                     <div className="text-warning-950 flex items-center gap-2 font-bold">
                                         <WarningCircle
                                             size={16}
                                             weight="bold"
                                         />
-                                        <span>Useful next photo</span>
+                                        <span>Retake suggestions</span>
                                     </div>
                                     <ul className="text-warning-800 mt-2 list-disc space-y-1 pl-4">
                                         {extraction.retake_reasons.map(
@@ -643,7 +677,7 @@ function NutritionColumnCard({
     return (
         <article
             className={cn(
-                "rounded-xl border bg-white p-4 transition-all",
+                "rounded-lg border bg-white p-3 transition-all",
                 isSelected
                     ? "border-primary-500 ring-primary-100 shadow-xs ring-2"
                     : "border-neutral-200/80 hover:border-neutral-300",
@@ -678,7 +712,7 @@ function NutritionColumnCard({
                 )}
             </div>
 
-            <div className="mt-3 divide-y divide-neutral-100 border-t border-neutral-100 text-xs">
+            <div className="scrollbar-subtle mt-3 max-h-48 divide-y divide-neutral-100 overflow-y-auto border-t border-neutral-100 pr-1 text-xs">
                 {(column.fields?.length ?? 0) > 0 ? (
                     (column.fields ?? []).map((field) => (
                         <ObservationRow

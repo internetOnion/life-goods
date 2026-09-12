@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { fireEvent, render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router"
-import { describe, expect, test, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 
 import { App } from "../src/app/App"
+import { CameraCaptureSheet } from "../src/features/photo-comparison/CameraCaptureSheet"
 import { ComparisonSection } from "../src/features/photo-comparison/ComparisonSection"
 import { PhotoComparisonPage } from "../src/features/photo-comparison/PhotoComparisonPage"
 import { PhotoInspectionModal } from "../src/features/photo-comparison/PhotoInspectionModal"
@@ -30,11 +31,436 @@ function renderRoute(path: string, lookup = vi.fn<ProductLookup>()) {
     )
 }
 
+async function openCompareReview(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(
+        screen.getByRole("button", { name: /Review both Products/i }),
+    )
+    return screen.getByRole("button", { name: "Compare Products" })
+}
+
+describe("CameraCaptureSheet", () => {
+    beforeEach(() => {
+        vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(
+            undefined,
+        )
+    })
+
+    afterEach(() => {
+        vi.unstubAllGlobals()
+        vi.restoreAllMocks()
+    })
+
+    function markVideoReady(video: HTMLElement) {
+        const videoElement = video as HTMLVideoElement
+        Object.defineProperty(videoElement, "videoWidth", {
+            configurable: true,
+            value: 1200,
+        })
+        Object.defineProperty(videoElement, "videoHeight", {
+            configurable: true,
+            value: 900,
+        })
+        videoElement.dispatchEvent(new Event("loadedmetadata"))
+    }
+
+    test("captures a still from the rear camera and supports retaking it", async () => {
+        const user = userEvent.setup()
+        const onCapture = vi.fn()
+        const track = { stop: vi.fn() }
+        const stream = {
+            getTracks: () => [track],
+        } as unknown as MediaStream
+        const getUserMedia = vi.fn().mockResolvedValue(stream)
+
+        vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } })
+        Object.defineProperty(window, "isSecureContext", {
+            configurable: true,
+            value: true,
+        })
+        vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+            drawImage: vi.fn(),
+        } as unknown as CanvasRenderingContext2D)
+        vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation(
+            (callback) => {
+                callback(new Blob(["photo"], { type: "image/jpeg" }))
+            },
+        )
+
+        render(
+            <CameraCaptureSheet
+                isOpen
+                productTitle="Product A"
+                productNumber="1"
+                onClose={vi.fn()}
+                onCapture={onCapture}
+                onUseDeviceCamera={vi.fn()}
+                onChooseFromLibrary={vi.fn()}
+            />,
+        )
+
+        const constraints = getUserMedia.mock.calls[0]?.[0] as
+            MediaStreamConstraints | undefined
+        expect(constraints?.video).toMatchObject({
+            facingMode: { ideal: "environment" },
+        })
+
+        const video = screen.getByLabelText("Live camera preview")
+        await waitFor(() => expect(video).toHaveProperty("srcObject", stream))
+        expect(video).toHaveProperty("srcObject", stream)
+        markVideoReady(video)
+        const takePhoto = await screen.findByRole("button", {
+            name: "Take photo",
+        })
+        await waitFor(() => expect(takePhoto).toBeEnabled())
+
+        await user.click(takePhoto)
+        expect(
+            await screen.findByRole("button", { name: "Use this photo" }),
+        ).toBeInTheDocument()
+
+        await user.click(screen.getByRole("button", { name: "Retake" }))
+        await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(2))
+
+        const retakeVideo = screen.getByLabelText("Live camera preview")
+        await waitFor(() =>
+            expect(retakeVideo).toHaveProperty("srcObject", stream),
+        )
+        markVideoReady(retakeVideo)
+        const retakeButton = await screen.findByRole("button", {
+            name: "Take photo",
+        })
+        await waitFor(() => expect(retakeButton).toBeEnabled())
+        await user.click(retakeButton)
+        await user.click(
+            await screen.findByRole("button", { name: "Use this photo" }),
+        )
+
+        expect(onCapture).toHaveBeenCalledTimes(1)
+        expect(onCapture.mock.calls[0]?.[0]).toEqual(expect.any(File))
+        expect(onCapture.mock.calls[0]?.[0]).toHaveProperty(
+            "type",
+            "image/jpeg",
+        )
+        expect(track.stop).toHaveBeenCalled()
+    })
+
+    test("keeps the video mounted and gates capture until metadata is ready", async () => {
+        const track = { stop: vi.fn() }
+        const stream = {
+            getTracks: () => [track],
+        } as unknown as MediaStream
+        const getUserMedia = vi.fn().mockResolvedValue(stream)
+        vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } })
+        Object.defineProperty(window, "isSecureContext", {
+            configurable: true,
+            value: true,
+        })
+
+        render(
+            <CameraCaptureSheet
+                isOpen
+                productTitle="Product A"
+                productNumber="1"
+                onClose={vi.fn()}
+                onCapture={vi.fn()}
+                onUseDeviceCamera={vi.fn()}
+                onChooseFromLibrary={vi.fn()}
+            />,
+        )
+
+        const video = screen.getByLabelText("Live camera preview")
+        const takePhoto = screen.getByRole("button", { name: "Take photo" })
+        expect(video).toBeInTheDocument()
+        expect(takePhoto).toBeDisabled()
+
+        await waitFor(() => expect(video).toHaveProperty("srcObject", stream))
+        expect(takePhoto).toBeDisabled()
+
+        markVideoReady(video)
+        await waitFor(() => expect(takePhoto).toBeEnabled())
+    })
+
+    test("surfaces toBlob failures with retry and recovery actions", async () => {
+        const user = userEvent.setup()
+        const track = { stop: vi.fn() }
+        const stream = {
+            getTracks: () => [track],
+        } as unknown as MediaStream
+        const getUserMedia = vi.fn().mockResolvedValue(stream)
+        vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } })
+        Object.defineProperty(window, "isSecureContext", {
+            configurable: true,
+            value: true,
+        })
+        vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+            drawImage: vi.fn(),
+        } as unknown as CanvasRenderingContext2D)
+        vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation(
+            (callback) => callback(null),
+        )
+
+        render(
+            <CameraCaptureSheet
+                isOpen
+                productTitle="Product A"
+                productNumber="1"
+                onClose={vi.fn()}
+                onCapture={vi.fn()}
+                onUseDeviceCamera={vi.fn()}
+                onChooseFromLibrary={vi.fn()}
+            />,
+        )
+
+        const video = screen.getByLabelText("Live camera preview")
+        await waitFor(() => expect(video).toHaveProperty("srcObject", stream))
+        markVideoReady(video)
+        const takePhoto = screen.getByRole("button", { name: "Take photo" })
+        await waitFor(() => expect(takePhoto).toBeEnabled())
+        await user.click(takePhoto)
+
+        expect(
+            await screen.findByText("Photo capture failed"),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByText(/camera could not create a photo/i),
+        ).toHaveAttribute("role", "alert")
+        expect(
+            screen.getByRole("button", { name: "Try again" }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: "Use device camera" }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: /Choose from library/i }),
+        ).toBeInTheDocument()
+    })
+
+    test("stops a late stream when the sheet closes before camera startup resolves", async () => {
+        let resolveCamera: (stream: MediaStream) => void = () => undefined
+        const getUserMedia = vi.fn(
+            () =>
+                new Promise<MediaStream>((resolve) => {
+                    resolveCamera = resolve
+                }),
+        )
+        const track = { stop: vi.fn() }
+        const stream = {
+            getTracks: () => [track],
+        } as unknown as MediaStream
+        vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } })
+        Object.defineProperty(window, "isSecureContext", {
+            configurable: true,
+            value: true,
+        })
+
+        const view = render(
+            <CameraCaptureSheet
+                isOpen
+                productTitle="Product A"
+                productNumber="1"
+                onClose={vi.fn()}
+                onCapture={vi.fn()}
+                onUseDeviceCamera={vi.fn()}
+                onChooseFromLibrary={vi.fn()}
+            />,
+        )
+        const video = screen.getByLabelText("Live camera preview")
+
+        view.rerender(
+            <CameraCaptureSheet
+                isOpen={false}
+                productTitle="Product A"
+                productNumber="1"
+                onClose={vi.fn()}
+                onCapture={vi.fn()}
+                onUseDeviceCamera={vi.fn()}
+                onChooseFromLibrary={vi.fn()}
+            />,
+        )
+        resolveCamera(stream)
+
+        await waitFor(() => expect(track.stop).toHaveBeenCalledTimes(1))
+        expect(video).toHaveProperty("srcObject", null)
+    })
+
+    test("does not let a stale camera response detach a newer stream", async () => {
+        let resolveFirst: (stream: MediaStream) => void = () => undefined
+        let resolveSecond: (stream: MediaStream) => void = () => undefined
+        const getUserMedia = vi
+            .fn()
+            .mockImplementationOnce(
+                () =>
+                    new Promise<MediaStream>((resolve) => {
+                        resolveFirst = resolve
+                    }),
+            )
+            .mockImplementationOnce(
+                () =>
+                    new Promise<MediaStream>((resolve) => {
+                        resolveSecond = resolve
+                    }),
+            )
+        const firstTrack = { stop: vi.fn() }
+        const secondTrack = { stop: vi.fn() }
+        const firstStream = {
+            getTracks: () => [firstTrack],
+        } as unknown as MediaStream
+        const secondStream = {
+            getTracks: () => [secondTrack],
+        } as unknown as MediaStream
+        vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } })
+        Object.defineProperty(window, "isSecureContext", {
+            configurable: true,
+            value: true,
+        })
+
+        const view = render(
+            <CameraCaptureSheet
+                isOpen
+                productTitle="Product A"
+                productNumber="1"
+                onClose={vi.fn()}
+                onCapture={vi.fn()}
+                onUseDeviceCamera={vi.fn()}
+                onChooseFromLibrary={vi.fn()}
+            />,
+        )
+
+        view.rerender(
+            <CameraCaptureSheet
+                isOpen={false}
+                productTitle="Product A"
+                productNumber="1"
+                onClose={vi.fn()}
+                onCapture={vi.fn()}
+                onUseDeviceCamera={vi.fn()}
+                onChooseFromLibrary={vi.fn()}
+            />,
+        )
+        view.rerender(
+            <CameraCaptureSheet
+                isOpen
+                productTitle="Product A"
+                productNumber="1"
+                onClose={vi.fn()}
+                onCapture={vi.fn()}
+                onUseDeviceCamera={vi.fn()}
+                onChooseFromLibrary={vi.fn()}
+            />,
+        )
+        await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(2))
+
+        resolveSecond(secondStream)
+        const video = screen.getByLabelText("Live camera preview")
+        await waitFor(() =>
+            expect(video).toHaveProperty("srcObject", secondStream),
+        )
+
+        resolveFirst(firstStream)
+        await waitFor(() => expect(firstTrack.stop).toHaveBeenCalledTimes(1))
+        expect(video).toHaveProperty("srcObject", secondStream)
+        expect(secondTrack.stop).not.toHaveBeenCalled()
+    })
+
+    test("falls back when permission is denied and exposes device and library actions", async () => {
+        const user = userEvent.setup()
+        const onUseDeviceCamera = vi.fn()
+        const onChooseFromLibrary = vi.fn()
+        const onClose = vi.fn()
+        const getUserMedia = vi
+            .fn()
+            .mockRejectedValue(new DOMException("Denied", "NotAllowedError"))
+
+        vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } })
+        Object.defineProperty(window, "isSecureContext", {
+            configurable: true,
+            value: true,
+        })
+
+        render(
+            <CameraCaptureSheet
+                isOpen
+                productTitle="Product B"
+                productNumber="2"
+                onClose={onClose}
+                onCapture={vi.fn()}
+                onUseDeviceCamera={onUseDeviceCamera}
+                onChooseFromLibrary={onChooseFromLibrary}
+            />,
+        )
+
+        expect(
+            await screen.findByText("Camera preview unavailable"),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByText(/Camera access was not granted/i),
+        ).toBeInTheDocument()
+
+        await user.click(
+            screen.getByRole("button", { name: "Use device camera" }),
+        )
+        await user.click(
+            screen.getByRole("button", { name: /Choose from library/i }),
+        )
+        expect(onUseDeviceCamera).toHaveBeenCalledTimes(1)
+        expect(onChooseFromLibrary).toHaveBeenCalledTimes(1)
+
+        await user.keyboard("{Escape}")
+        expect(onClose).toHaveBeenCalledTimes(1)
+    })
+
+    test("falls back without calling getUserMedia in an insecure context or unsupported browser", async () => {
+        const getUserMedia = vi.fn()
+        vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } })
+        Object.defineProperty(window, "isSecureContext", {
+            configurable: true,
+            value: false,
+        })
+
+        const { unmount } = render(
+            <CameraCaptureSheet
+                isOpen
+                productTitle="Product A"
+                productNumber="1"
+                onClose={vi.fn()}
+                onCapture={vi.fn()}
+                onUseDeviceCamera={vi.fn()}
+                onChooseFromLibrary={vi.fn()}
+            />,
+        )
+        expect(
+            await screen.findByText("Camera preview unavailable"),
+        ).toBeInTheDocument()
+        expect(getUserMedia).not.toHaveBeenCalled()
+
+        unmount()
+        vi.stubGlobal("navigator", {})
+        Object.defineProperty(window, "isSecureContext", {
+            configurable: true,
+            value: true,
+        })
+        render(
+            <CameraCaptureSheet
+                isOpen
+                productTitle="Product A"
+                productNumber="1"
+                onClose={vi.fn()}
+                onCapture={vi.fn()}
+                onUseDeviceCamera={vi.fn()}
+                onChooseFromLibrary={vi.fn()}
+            />,
+        )
+        expect(
+            await screen.findByText("Camera preview unavailable"),
+        ).toBeInTheDocument()
+    })
+})
+
 describe("Compare Products frontend page (/compare)", () => {
-    test("renders Compare Products at /compare with AI disclosure and editable product titles", () => {
+    test("renders a concise camera-first intro with AI disclosure and one clear first action", () => {
         renderRoute("/compare")
 
-        // Heading & Badge
+        // Heading & Action buttons
         expect(
             screen.getByRole("heading", {
                 level: 1,
@@ -42,30 +468,128 @@ describe("Compare Products frontend page (/compare)", () => {
             }),
         ).toBeInTheDocument()
         expect(
-            screen.getByText("Compare Products", { selector: "div" }),
-        ).toBeInTheDocument()
-
-        // Product panels
+            screen.queryByRole("link", { name: /Return to scan/i }),
+        ).not.toBeInTheDocument()
         expect(
-            screen.getByRole("region", { name: "Product photo panels" }),
+            screen.getByRole("button", { name: /Reset session/i }),
         ).toBeInTheDocument()
-        expect(screen.getByDisplayValue("Product A")).toBeInTheDocument()
-        expect(screen.getByDisplayValue("Product B")).toBeInTheDocument()
+        expect(
+            screen.getByRole("navigation", { name: "Primary navigation" }),
+        ).toBeVisible()
+
+        expect(
+            screen.getByRole("heading", {
+                level: 2,
+                name: "Add photos for both Products",
+            }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: /Take Product A photo/i }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: /Choose Product A photo/i }),
+        ).toBeInTheDocument()
 
         // AI provider disclosure statement before submission
         expect(
-            screen.getByText(
+            screen.getAllByText(
                 /Photos are sent to the configured AI provider for processing\./i,
-            ),
+            ).length,
+        ).toBeGreaterThan(0)
+
+        // The intro has one clear path and no duplicate disabled Compare action.
+        expect(
+            screen.queryByRole("button", { name: "Compare Products" }),
+        ).not.toBeInTheDocument()
+    })
+
+    test("replaces the shared primary navigation with a floating photo dock", () => {
+        renderRoute("/compare")
+
+        const uploadLeft = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+        fireEvent.change(uploadLeft, {
+            target: {
+                files: [new File(["a"], "a.jpg", { type: "image/jpeg" })],
+            },
+        })
+
+        expect(
+            screen.queryByRole("navigation", { name: "Primary navigation" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.getByRole("group", { name: "Photo capture navigation" }),
+        ).toHaveClass(
+            "fixed",
+            "rounded-full",
+            "backdrop-blur-xl",
+            "bottom-[calc(1rem+env(safe-area-inset-bottom,0px))]",
+        )
+    })
+
+    test("guides the Shopper through Product A, Product B, review, and reset", async () => {
+        const user = userEvent.setup()
+        renderRoute("/compare")
+
+        await user.click(
+            screen.getByRole("button", { name: /Take Product A photo/i }),
+        )
+        const cameraLeft = document.getElementById(
+            "camera-photos-left",
+        ) as HTMLInputElement
+        expect(cameraLeft).toHaveAttribute("capture", "environment")
+        expect(cameraLeft).toHaveAttribute("accept", "image/jpeg,image/png")
+
+        const dummyFileA = new File(["test-image-a"], "sample-a.jpg", {
+            type: "image/jpeg",
+        })
+        fireEvent.change(cameraLeft, { target: { files: [dummyFileA] } })
+        expect(screen.getByText("Photo 1")).toBeInTheDocument()
+
+        await user.click(
+            screen.getByRole("button", { name: /Continue to Product B/i }),
+        )
+        expect(
+            screen.getByText("Add a Nutrition Facts photo"),
         ).toBeInTheDocument()
 
-        // Comparison section & Compare button
-        expect(
-            screen.getByRole("heading", { level: 2, name: /Comparison/i }),
-        ).toBeInTheDocument()
+        const backBtn = screen.getByRole("button", {
+            name: /Back to Product A/i,
+        })
+        await user.click(backBtn)
+        expect(screen.getByDisplayValue("Product A")).toBeInTheDocument()
+
+        await user.click(
+            screen.getByRole("button", { name: /Continue to Product B/i }),
+        )
+        const uploadRight = document.getElementById(
+            "upload-photos-right",
+        ) as HTMLInputElement
+        const dummyFileB = new File(["test-image-b"], "sample-b.jpg", {
+            type: "image/jpeg",
+        })
+        fireEvent.change(uploadRight, { target: { files: [dummyFileB] } })
+        await user.click(
+            screen.getByRole("button", { name: /Review both Products/i }),
+        )
         expect(
             screen.getByRole("button", { name: "Compare Products" }),
-        ).toBeDisabled()
+        ).toBeEnabled()
+
+        const resetButton = screen.getByRole("button", {
+            name: /Reset session/i,
+        })
+        await user.click(resetButton)
+        expect(
+            screen.getByRole("heading", {
+                level: 2,
+                name: "Add photos for both Products",
+            }),
+        ).toBeInTheDocument()
+        expect(
+            screen.queryByRole("button", { name: "Compare Products" }),
+        ).not.toBeInTheDocument()
     })
 
     test("redirects previous photo-comparison URLs to /compare", () => {
@@ -114,6 +638,15 @@ describe("Compare Products frontend page (/compare)", () => {
         const user = userEvent.setup()
         renderRoute("/compare")
 
+        const inputLeft = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+        fireEvent.change(inputLeft, {
+            target: {
+                files: [new File(["a"], "a.jpg", { type: "image/jpeg" })],
+            },
+        })
+
         const productAInput = screen.getByDisplayValue("Product A")
         await user.clear(productAInput)
         await user.type(productAInput, "Mee Chiet Noodle")
@@ -126,8 +659,12 @@ describe("Compare Products frontend page (/compare)", () => {
         })
         await user.click(resetButton)
 
-        expect(screen.getByDisplayValue("Product A")).toBeInTheDocument()
-        expect(screen.getByDisplayValue("Product B")).toBeInTheDocument()
+        expect(
+            screen.getByRole("heading", {
+                level: 2,
+                name: "Add photos for both Products",
+            }),
+        ).toBeInTheDocument()
     })
 
     test("one Compare action orchestrates extraction of changed Products and deterministic comparison without separate operations", async () => {
@@ -265,11 +802,6 @@ describe("Compare Products frontend page (/compare)", () => {
             screen.queryByRole("button", { name: /Read nutrition photos/i }),
         ).not.toBeInTheDocument()
 
-        const compareButton = screen.getByRole("button", {
-            name: "Compare Products",
-        })
-        expect(compareButton).toBeDisabled()
-
         // Upload photo for Product A
         const inputLeft = document.getElementById(
             "upload-photos-left",
@@ -278,9 +810,6 @@ describe("Compare Products frontend page (/compare)", () => {
             type: "image/jpeg",
         })
         fireEvent.change(inputLeft, { target: { files: [fileLeft] } })
-
-        // Compare button still disabled until both sides have photos
-        expect(compareButton).toBeDisabled()
 
         // Upload photo for Product B
         const inputRight = document.getElementById(
@@ -291,7 +820,12 @@ describe("Compare Products frontend page (/compare)", () => {
         })
         fireEvent.change(inputRight, { target: { files: [fileRight] } })
 
-        // Compare button is enabled now
+        await user.click(
+            screen.getByRole("button", { name: /Review both Products/i }),
+        )
+        const compareButton = screen.getByRole("button", {
+            name: "Compare Products",
+        })
         expect(compareButton).toBeEnabled()
 
         // Clicking Compare once orchestrates extractions and comparison
@@ -524,7 +1058,7 @@ describe("ComparisonSection Shopper-ready presentation", () => {
         ],
     }
 
-    test("displays normalized amounts, printed labels, label percentages section, and no Source Data Unavailable", () => {
+    test("displays normalized amounts, printed labels, and a collapsed label percentages section", () => {
         render(
             <ComparisonSection
                 comparison={mockComparison}
@@ -552,20 +1086,20 @@ describe("ComparisonSection Shopper-ready presentation", () => {
         expect(screen.queryByText(/unmatched:/i)).not.toBeInTheDocument()
         expect(screen.queryByText(/fat:[a-f0-9]/i)).not.toBeInTheDocument()
 
-        // 3. Check single qualification banner
+        // 3. Check concise comparison basis
         expect(
-            screen.getByText(
-                /Amounts reported per package, not an equal-weight comparison/i,
-            ),
+            screen.getByText("Comparison basis: Per package"),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByText("Package sizes may differ."),
         ).toBeInTheDocument()
 
-        // 4. Check dedicated Label percentages section exists and pairs percentages together
-        expect(
-            screen.getByRole("heading", {
-                level: 3,
-                name: /Label percentages/i,
-            }),
-        ).toBeInTheDocument()
+        // 4. Label percentages remain available behind a closed disclosure.
+        const percentageDisclosure = screen
+            .getByText("Show label percentages")
+            .closest("details")
+        expect(percentageDisclosure).not.toBeNull()
+        expect(percentageDisclosure).not.toHaveAttribute("open")
         expect(screen.getByText("60 %")).toBeInTheDocument()
         expect(screen.getByText("65 %")).toBeInTheDocument()
 
@@ -657,9 +1191,11 @@ describe("ComparisonSection Shopper-ready presentation", () => {
         )
 
         expect(
-            screen.getByText("Equal-weight comparison (per 100 g)"),
+            screen.getByText("Comparison basis: Per 100 g"),
         ).toBeInTheDocument()
-        expect(screen.getByText("Per 100 g (normalized)")).toBeInTheDocument()
+        expect(
+            screen.getByText("Values use a common basis."),
+        ).toBeInTheDocument()
         expect(screen.getByText("+3 g")).toBeInTheDocument()
         expect(
             screen.getByText(`${mockLeftProduct.title} has more`),
@@ -1123,9 +1659,7 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         })
 
         // Tap Compare Products
-        const compareBtn = screen.getByRole("button", {
-            name: "Compare Products",
-        })
+        const compareBtn = await openCompareReview(user)
         await user.click(compareBtn)
 
         // Extraction runs for both
@@ -1146,9 +1680,6 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         expect(
             screen.getByText("Per serving · As prepared"),
         ).toBeInTheDocument()
-
-        // Sole column on Product B is labeled
-        expect(screen.getByText("Sole column")).toBeInTheDocument()
 
         // Select the dry column for Product A -> should continue automatically
         const selectDryColBtn = screen.getAllByRole("button", {
@@ -1286,12 +1817,16 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         expect(basisLabels.length).toBeGreaterThanOrEqual(2)
 
         // Leads with Product identities
-        expect(screen.getByText("Comparing Products")).toBeInTheDocument()
+        expect(
+            screen.getByRole("heading", {
+                name: "Product A vs Product B",
+            }),
+        ).toBeInTheDocument()
         expect(screen.getAllByText("Product A").length).toBeGreaterThan(0)
         expect(screen.getAllByText("Product B").length).toBeGreaterThan(0)
 
         // Evidence and details are placed behind accessible disclosure controls
-        const disclosures = screen.getAllByText("Evidence & details")
+        const disclosures = screen.getAllByText("Details")
         expect(disclosures.length).toBeGreaterThan(0)
     })
 
@@ -1437,13 +1972,17 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         )
 
         // 1. Leads with Product identities
-        expect(screen.getByText("Comparing Products")).toBeInTheDocument()
+        expect(
+            screen.getByRole("heading", {
+                name: "Crisps A vs Crisps B",
+            }),
+        ).toBeInTheDocument()
         expect(screen.getAllByText("Crisps A").length).toBeGreaterThan(0)
         expect(screen.getAllByText("Crisps B").length).toBeGreaterThan(0)
 
         // 2. Comparison basis notice
         expect(
-            screen.getByText("Equal-weight comparison (per 100 g)"),
+            screen.getByText("Comparison basis: Per 100 g"),
         ).toBeInTheDocument()
 
         // 3. Nutrition table leads with comparison
@@ -1453,8 +1992,14 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         expect(screen.getByText("Crisps A has more")).toBeInTheDocument()
 
         // 4. Details sit behind accessible disclosure controls
-        const disclosures = screen.getAllByText("Evidence & details")
+        const disclosures = screen.getAllByText("Details")
         expect(disclosures.length).toBeGreaterThan(0)
+        expect(
+            screen
+                .getByText("How this comparison was calculated")
+                .closest("details"),
+        ).not.toHaveAttribute("open")
+        expect(disclosures[0]?.closest("details")).not.toHaveAttribute("open")
 
         // Inside disclosure: reported printed values that differ from normalized
         expect(screen.getByText(/Printed:/i)).toBeInTheDocument()
@@ -2045,9 +2590,7 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
             },
         })
 
-        const compareBtn = screen.getByRole("button", {
-            name: "Compare Products",
-        })
+        const compareBtn = await openCompareReview(user)
         await user.click(compareBtn)
 
         // Product A succeeded, Product B failed with timeout
@@ -2123,12 +2666,10 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         )
 
         // Actionable guidance for unreadable photos
-        expect(
-            screen.getByText("Photos difficult to read: retake recommended"),
-        ).toBeInTheDocument()
+        expect(screen.getByText("Retake photo")).toBeInTheDocument()
         expect(
             screen.getByText(
-                /Photos could not be clearly read\. Please add or replace with well-lit, close-up photos/i,
+                /Add a clear close-up of the Nutrition Facts panel/i,
             ),
         ).toBeInTheDocument()
         expect(
@@ -2237,9 +2778,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         })
 
         // Tap Compare Products
-        const compareBtn = screen.getByRole("button", {
-            name: "Compare Products",
-        })
+        const compareBtn = await openCompareReview(user)
         await user.click(compareBtn)
 
         // Extraction for Left is in flight
@@ -2252,7 +2791,9 @@ describe("Compare Products obsolete-response safety (#125)", () => {
             )?.signal,
         ).toBeInstanceOf(AbortSignal)
         expect(capturedSignal?.aborted).toBe(false)
-        expect(screen.getByText("Reading Product A…")).toBeInTheDocument()
+        expect(
+            screen.getByText("Reading Product A photos…"),
+        ).toBeInTheDocument()
 
         // User replaces Left photo with a new photo while extraction is pending
         const replaceInput = document.getElementById(
@@ -2418,9 +2959,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         })
 
         // Tap Compare Products
-        await user.click(
-            screen.getByRole("button", { name: "Compare Products" }),
-        )
+        await user.click(await openCompareReview(user))
 
         // Both extractions succeed; pauses for column selection because Left has 2 columns
         expect(
@@ -2569,12 +3108,12 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         })
 
         // Tap Compare Products
-        await user.click(
-            screen.getByRole("button", { name: "Compare Products" }),
-        )
+        await user.click(await openCompareReview(user))
 
         expect(capturedSignal?.aborted).toBe(false)
-        expect(screen.getByText("Reading Product A…")).toBeInTheDocument()
+        expect(
+            screen.getByText("Reading Product A photos…"),
+        ).toBeInTheDocument()
 
         // Tap Reset session while extraction is in flight
         await user.click(screen.getByRole("button", { name: /Reset session/i }))
@@ -2601,15 +3140,19 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         await Promise.resolve()
 
         // Page must remain in reset state!
-        expect(screen.getByDisplayValue("Product A")).toBeInTheDocument()
-        expect(screen.getByDisplayValue("Product B")).toBeInTheDocument()
+        expect(
+            screen.getByRole("heading", {
+                level: 2,
+                name: "Add photos for both Products",
+            }),
+        ).toBeInTheDocument()
         expect(
             screen.queryByDisplayValue("Zombie Product"),
         ).not.toBeInTheDocument()
         expect(compareMock).not.toHaveBeenCalled()
         expect(
-            screen.getByRole("button", { name: "Compare Products" }),
-        ).toBeDisabled()
+            screen.queryByRole("button", { name: "Compare Products" }),
+        ).not.toBeInTheDocument()
     })
 
     test("resetting during comparison cancels request and prevents stale comparison from reappearing", async () => {
@@ -2684,12 +3227,10 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         })
 
         // Tap Compare Products
-        await user.click(
-            screen.getByRole("button", { name: "Compare Products" }),
-        )
+        await user.click(await openCompareReview(user))
 
         // Comparison is in flight
-        expect(screen.getByText("Comparing…")).toBeInTheDocument()
+        expect(screen.getByText("Comparing nutrition…")).toBeInTheDocument()
         expect(capturedSignal?.aborted).toBe(false)
 
         // Reset session while comparison is in flight
@@ -2721,11 +3262,12 @@ describe("Compare Products obsolete-response safety (#125)", () => {
             screen.queryByText("Ghost Energy Reason"),
         ).not.toBeInTheDocument()
         expect(
-            screen.getByRole("button", { name: "Compare Products" }),
-        ).toBeDisabled()
+            screen.queryByRole("button", { name: "Compare Products" }),
+        ).not.toBeInTheDocument()
     })
 
     test("leaving the page unmounts and cancels in-flight extraction and comparison requests", async () => {
+        const user = userEvent.setup()
         let extractionSignal: AbortSignal | undefined
         const deferredLeft = createDeferred<Extraction>()
 
@@ -2772,9 +3314,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         })
 
         // Tap Compare Products
-        fireEvent.click(
-            screen.getByRole("button", { name: "Compare Products" }),
-        )
+        fireEvent.click(await openCompareReview(user))
 
         expect(extractionSignal?.aborted).toBe(false)
 
@@ -2801,6 +3341,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
     })
 
     test("leaving the page unmounts and cancels in-flight comparison request", async () => {
+        const user = userEvent.setup()
         let compareSignal: AbortSignal | undefined
         const deferredCompare = createDeferred<ComparisonResponse>()
 
@@ -2871,11 +3412,11 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         })
 
         // Tap Compare Products
-        fireEvent.click(
-            screen.getByRole("button", { name: "Compare Products" }),
-        )
+        fireEvent.click(await openCompareReview(user))
 
-        expect(await screen.findByText("Comparing…")).toBeInTheDocument()
+        expect(
+            await screen.findByText("Comparing nutrition…"),
+        ).toBeInTheDocument()
         expect(compareSignal?.aborted).toBe(false)
 
         // Unmount
@@ -2895,6 +3436,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
     })
 
     test("modifying Product B photos while Product A extraction is in flight stops superseded comparison flow", async () => {
+        const user = userEvent.setup()
         let leftSignal: AbortSignal | undefined
         const deferredLeft = createDeferred<Extraction>()
 
@@ -2965,17 +3507,16 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         })
 
         // Tap Compare Products
-        fireEvent.click(
-            screen.getByRole("button", { name: "Compare Products" }),
-        )
+        fireEvent.click(await openCompareReview(user))
 
         expect(leftSignal?.aborted).toBe(false)
-        expect(screen.getByText("Reading Product A…")).toBeInTheDocument()
+        expect(
+            screen.getByText("Reading Product A photos…"),
+        ).toBeInTheDocument()
 
         // User clears Product B photo while Product A extraction is pending
-        const removeRightBtn = screen.getAllByLabelText("Remove photo 1")[1]
-        expect(removeRightBtn).toBeDefined()
-        fireEvent.click(removeRightBtn!)
+        const removeRightBtn = screen.getByLabelText("Remove photo 1")
+        fireEvent.click(removeRightBtn)
 
         // Old Product A extraction resolves
         deferredLeft.resolve({
@@ -2997,5 +3538,208 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         expect(extractPhotosMock.mock.calls[0]?.[0]).toBe("left")
         // Comparison was NOT triggered
         expect(compareMock).not.toHaveBeenCalled()
+    })
+
+    test("clarified UX: surfaces ColumnSelectionModal when comparing multi-column products and proceeds smoothly on selection", async () => {
+        const user = userEvent.setup()
+        const extractPhotosMock = vi.fn().mockImplementation((id: string) =>
+            Promise.resolve(
+                id === "left"
+                    ? {
+                          schema_version: 1,
+                          product_id: "left",
+                          identity: {
+                              brand: {
+                                  field_id: "b",
+                                  value_text: "Brand Alpha",
+                              },
+                              name: {
+                                  field_id: "n",
+                                  value_text: "Cereal A",
+                              },
+                          },
+                          images: [],
+                          package_quantity: null,
+                          nutrition_columns: [
+                              {
+                                  column_id: "col_100g",
+                                  label: "Per 100g basis",
+                                  state: "readable",
+                                  basis: "per_100g",
+                                  preparation_state: "as_sold",
+                                  fields: [],
+                              },
+                              {
+                                  column_id: "col_serv",
+                                  label: "Per serving basis",
+                                  state: "readable",
+                                  basis: "per_serving",
+                                  preparation_state: "as_prepared",
+                                  fields: [],
+                              },
+                          ],
+                          outcome: "complete",
+                          provider: "google",
+                          model: "gemini",
+                          configuration_version: "1.0.0",
+                      }
+                    : {
+                          schema_version: 1,
+                          product_id: "right",
+                          identity: {
+                              name: {
+                                  field_id: "n2",
+                                  value_text: "Cereal B",
+                              },
+                          },
+                          images: [],
+                          package_quantity: null,
+                          nutrition_columns: [
+                              {
+                                  column_id: "col_right_100g",
+                                  label: "Per 100g",
+                                  state: "readable",
+                                  basis: "per_100g",
+                                  fields: [],
+                              },
+                          ],
+                          outcome: "complete",
+                          provider: "google",
+                          model: "gemini",
+                          configuration_version: "1.0.0",
+                      },
+            ),
+        )
+
+        const compareMock = vi.fn().mockResolvedValue({
+            schema_version: 1,
+            calculated_from_submitted_evidence: true,
+            left_product_id: "left",
+            right_product_id: "right",
+            rows: [],
+        })
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+
+        render(
+            <QueryClientProvider client={queryClient}>
+                <MemoryRouter initialEntries={["/compare"]}>
+                    <PhotoComparisonPage
+                        extractPhotos={extractPhotosMock}
+                        compare={compareMock}
+                    />
+                </MemoryRouter>
+            </QueryClientProvider>,
+        )
+
+        // Upload photos for both products
+        const inputLeft = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+        const inputRight = document.getElementById(
+            "upload-photos-right",
+        ) as HTMLInputElement
+        fireEvent.change(inputLeft, {
+            target: {
+                files: [new File(["a"], "a.jpg", { type: "image/jpeg" })],
+            },
+        })
+        fireEvent.change(inputRight, {
+            target: {
+                files: [new File(["b"], "b.jpg", { type: "image/jpeg" })],
+            },
+        })
+
+        // Tap Compare Products
+        await user.click(await openCompareReview(user))
+
+        // ColumnSelectionModal is surfaced to clarify which column to use
+        expect(
+            screen.getByRole("dialog", {
+                name: /Select nutrition column for Brand Alpha Cereal A/i,
+            }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByText(
+                /This package label has multiple nutrition columns/i,
+            ),
+        ).toBeInTheDocument()
+
+        // Tap Choose this basis for the 100g column
+        const chooseBasisBtn = screen.getAllByRole("button", {
+            name: /Choose this basis/i,
+        })[0]
+        expect(chooseBasisBtn).toBeDefined()
+        await user.click(chooseBasisBtn!)
+
+        // Modal automatically dismisses and comparison proceeds
+        expect(compareMock).toHaveBeenCalledTimes(1)
+        expect(compareMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                left_column_id: "col_100g",
+                right_column_id: "col_right_100g",
+            }),
+            expect.anything(),
+        )
+    })
+
+    test("clarified UX: supports cancelling in-flight processing", async () => {
+        const user = userEvent.setup()
+        let capturedSignal: AbortSignal | undefined
+        const deferred = createDeferred<Extraction>()
+
+        const extractPhotosMock = vi
+            .fn()
+            .mockImplementation(
+                (_: string, __: File[], opts?: { signal?: AbortSignal }) => {
+                    capturedSignal = opts?.signal
+                    return deferred.promise
+                },
+            )
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+
+        render(
+            <QueryClientProvider client={queryClient}>
+                <MemoryRouter initialEntries={["/compare"]}>
+                    <PhotoComparisonPage extractPhotos={extractPhotosMock} />
+                </MemoryRouter>
+            </QueryClientProvider>,
+        )
+
+        const inputLeft = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+        const inputRight = document.getElementById(
+            "upload-photos-right",
+        ) as HTMLInputElement
+        fireEvent.change(inputLeft, {
+            target: {
+                files: [new File(["a"], "a.jpg", { type: "image/jpeg" })],
+            },
+        })
+        fireEvent.change(inputRight, {
+            target: {
+                files: [new File(["b"], "b.jpg", { type: "image/jpeg" })],
+            },
+        })
+
+        // Start comparing
+        await user.click(await openCompareReview(user))
+
+        // Cancel button is visible while in-flight
+        const cancelBtn = screen.getByRole("button", { name: "Cancel" })
+        expect(cancelBtn).toBeInTheDocument()
+
+        // Tap Cancel
+        await user.click(cancelBtn)
+        expect(capturedSignal?.aborted).toBe(true)
+        expect(
+            screen.queryByRole("button", { name: "Cancel" }),
+        ).not.toBeInTheDocument()
     })
 })

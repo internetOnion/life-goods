@@ -1,0 +1,117 @@
+import { Check, Scales } from "@phosphor-icons/react"
+
+import { GlassButton as Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+
+export interface CompareStepperProps {
+    currentStep: 1 | 2 | 3
+    onStepChange: (step: 1 | 2 | 3) => void
+    productACount: number
+    productBCount: number
+    isReadyToCompare: boolean
+    hasComparison: boolean
+    disabled?: boolean
+}
+
+export function CompareStepper({
+    currentStep,
+    onStepChange,
+    productACount,
+    productBCount,
+    isReadyToCompare,
+    hasComparison,
+    disabled = false,
+}: CompareStepperProps) {
+    const steps = [
+        {
+            number: 1 as const,
+            label: "Product A",
+            completed: productACount > 0,
+            accessible: true,
+        },
+        {
+            number: 2 as const,
+            label: "Product B",
+            completed: productBCount > 0,
+            accessible: true,
+        },
+        {
+            number: 3 as const,
+            label: "Compare",
+            completed: hasComparison,
+            accessible: isReadyToCompare,
+        },
+    ]
+
+    return (
+        <nav aria-label="Comparison steps" className="w-full">
+            <ol
+                role="tablist"
+                aria-label="Select compare step"
+                className="grid grid-cols-3 gap-1 rounded-xl bg-neutral-100 p-1 sm:gap-2"
+            >
+                {steps.map((step) => {
+                    const isActive = currentStep === step.number
+                    const isStepAccessible = step.accessible && !disabled
+
+                    return (
+                        <li
+                            key={step.number}
+                            role="presentation"
+                            className="min-w-0"
+                        >
+                            <Button
+                                type="button"
+                                role="tab"
+                                id={`compare-step-tab-${step.number}`}
+                                aria-controls={`compare-step-panel-${step.number}`}
+                                aria-selected={isActive}
+                                aria-disabled={!isStepAccessible}
+                                disabled={!isStepAccessible}
+                                onClick={() => {
+                                    if (isStepAccessible) {
+                                        onStepChange(step.number)
+                                    }
+                                }}
+                                variant="ghost"
+                                className={cn(
+                                    "flex h-11 w-full min-w-0 flex-row items-center justify-center gap-2 rounded-lg px-2 text-center transition-all sm:gap-2.5 sm:px-3",
+                                    isActive
+                                        ? "bg-white text-neutral-950 shadow-2xs ring-1 ring-neutral-200/90 hover:bg-white hover:text-neutral-950"
+                                        : isStepAccessible
+                                          ? "text-neutral-600 hover:bg-neutral-200/60 hover:text-neutral-900"
+                                          : "cursor-not-allowed text-neutral-400 opacity-60 hover:bg-transparent hover:text-neutral-400",
+                                )}
+                            >
+                                <span
+                                    className={cn(
+                                        "flex size-6 shrink-0 items-center justify-center rounded-lg font-mono text-xs font-bold transition-colors",
+                                        isActive
+                                            ? "bg-primary-600 text-white"
+                                            : step.completed
+                                              ? "bg-primary-100 text-primary-900"
+                                              : "bg-neutral-200 text-neutral-600",
+                                    )}
+                                >
+                                    {step.number === 3 && step.completed ? (
+                                        <Scales size={13} weight="bold" />
+                                    ) : step.completed && !isActive ? (
+                                        <Check size={13} weight="bold" />
+                                    ) : (
+                                        step.number
+                                    )}
+                                </span>
+
+                                <div className="min-w-0 text-center sm:text-left">
+                                    <div className="truncate text-xs leading-tight font-bold sm:text-sm">
+                                        {step.label}
+                                    </div>
+                                </div>
+                            </Button>
+                        </li>
+                    )
+                })}
+            </ol>
+        </nav>
+    )
+}

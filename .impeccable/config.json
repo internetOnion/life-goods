@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "frontend/src/features/photo-comparison/CameraCaptureSheet.tsx"
+        ],
+        "createdAt": "2026-09-12T08:09:44.915Z",
+        "reason": "user confirmed: amber framing brackets are explicitly required in the approved camera capture design"
+      }
+    ]
+  }
+}

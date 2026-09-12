@@ -7,7 +7,7 @@ import {
 } from "@phosphor-icons/react"
 import { useEffect, useState } from "react"
 
-import { Button } from "@/components/ui/button"
+import { GlassButton as Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 import type { ProductPhoto } from "./types"
@@ -70,15 +70,15 @@ export function PhotoInspectionModal({
             role="dialog"
             aria-modal="true"
             aria-label={`${displayTitle} photo inspection`}
-            className="fixed inset-0 z-50 flex flex-col justify-between bg-neutral-950/95 p-4 backdrop-blur-md select-none sm:p-6"
+            className="fixed inset-0 z-50 flex flex-col justify-between bg-neutral-50/95 p-4 text-neutral-950 backdrop-blur-md select-none sm:p-6"
         >
             {/* Header bar */}
-            <div className="flex items-center justify-between border-b border-neutral-800 pb-3 text-white">
+            <div className="flex items-center justify-between border-b border-neutral-200 pb-3 text-neutral-950">
                 <div className="min-w-0 pr-4">
                     <h3 className="truncate text-sm font-bold sm:text-base">
                         {displayTitle}
                     </h3>
-                    <p className="font-mono text-xs text-neutral-400">
+                    <p className="font-mono text-xs text-neutral-500">
                         Photo {currentIndex + 1} of {photos.length}
                     </p>
                 </div>
@@ -89,7 +89,7 @@ export function PhotoInspectionModal({
                         variant="subtle"
                         size="sm"
                         onClick={() => setIsZoomed((prev) => !prev)}
-                        className="h-8 gap-1.5 border-neutral-700 bg-neutral-800 text-xs font-semibold text-neutral-200 hover:bg-neutral-700"
+                        className="h-8 gap-1.5 border-neutral-300 bg-white text-xs font-semibold text-neutral-700 hover:bg-neutral-100 hover:text-neutral-950"
                         title={isZoomed ? "Fit to screen" : "Zoom in"}
                         aria-label={isZoomed ? "Fit to screen" : "Zoom in"}
                     >
@@ -111,7 +111,7 @@ export function PhotoInspectionModal({
                         variant="ghost"
                         size="icon-sm"
                         onClick={onClose}
-                        className="size-8 rounded-lg text-neutral-400 hover:bg-neutral-800 hover:text-white"
+                        className="size-8 rounded-lg text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950"
                         title="Close preview (Esc)"
                         aria-label="Close preview"
                     >
@@ -121,10 +121,10 @@ export function PhotoInspectionModal({
             </div>
 
             {/* Photo viewport */}
-            <div className="relative flex flex-1 items-center justify-center overflow-auto py-3">
+            <div className="relative flex flex-1 items-center justify-center overflow-auto rounded-2xl border border-neutral-200 bg-neutral-100 py-3 sm:py-4">
                 <div
                     className={cn(
-                        "relative flex items-center justify-center transition-transform duration-150",
+                        "relative flex items-center justify-center overflow-auto rounded-2xl bg-neutral-950/95 p-2 transition-transform duration-150 sm:p-4",
                         isZoomed
                             ? "min-h-full min-w-full cursor-zoom-out"
                             : "size-full cursor-zoom-in",
@@ -153,7 +153,7 @@ export function PhotoInspectionModal({
                             e.stopPropagation()
                             setCurrentIndex((prev) => prev - 1)
                         }}
-                        className="absolute left-2 z-10 size-10 rounded-full border border-neutral-700 bg-neutral-900/80 text-white hover:bg-neutral-800 sm:left-4"
+                        className="absolute left-2 z-10 size-10 rounded-full border border-white/30 bg-neutral-950/80 text-white hover:bg-neutral-800 sm:left-4"
                         title="Previous photo (Left arrow)"
                         aria-label="Previous photo"
                     >
@@ -170,7 +170,7 @@ export function PhotoInspectionModal({
                             e.stopPropagation()
                             setCurrentIndex((prev) => prev + 1)
                         }}
-                        className="absolute right-2 z-10 size-10 rounded-full border border-neutral-700 bg-neutral-900/80 text-white hover:bg-neutral-800 sm:right-4"
+                        className="absolute right-2 z-10 size-10 rounded-full border border-white/30 bg-neutral-950/80 text-white hover:bg-neutral-800 sm:right-4"
                         title="Next photo (Right arrow)"
                         aria-label="Next photo"
                     >
@@ -181,10 +181,12 @@ export function PhotoInspectionModal({
 
             {/* Thumbnails strip */}
             {photos.length > 1 && (
-                <div className="flex justify-center gap-2 overflow-x-auto border-t border-neutral-800 pt-3">
+                <div className="flex justify-center gap-2 overflow-x-auto border-t border-neutral-200 pt-3">
                     {photos.map((photo, index) => (
                         <Button
                             key={photo.localId}
+                            data-glass-thumbnail=""
+                            aria-pressed={index === currentIndex}
                             type="button"
                             variant="ghost"
                             onClick={() => {
@@ -195,7 +197,7 @@ export function PhotoInspectionModal({
                                 "size-12 shrink-0 overflow-hidden rounded-lg border-2 p-0 transition-all hover:bg-transparent",
                                 index === currentIndex
                                     ? "border-primary-400 ring-primary-400/30 scale-105 ring-2"
-                                    : "border-neutral-700 opacity-60 hover:opacity-90",
+                                    : "border-neutral-300 opacity-60 hover:opacity-90",
                             )}
                             title={`Jump to photo ${index + 1}`}
                             aria-label={`Jump to photo ${index + 1}`}

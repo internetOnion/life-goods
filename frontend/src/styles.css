@@ -1,5 +1,104 @@
 @import "tailwindcss";
 
+/* Opt-in control material: source content always stays on opaque sheets. */
+:root {
+    --glass-fill: #ffffff;
+    --glass-action-fill: #995613;
+    --glass-lift: 0 14px 40px -20px rgb(19 21 25 / 0.4);
+}
+
+@utility glass-surface {
+    background-color: var(--glass-fill);
+    border: 1px solid rgb(255 255 255 / 0.8);
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.65),
+        var(--glass-lift);
+}
+
+[data-glass] {
+    background-color: var(--glass-fill);
+    border: 1px solid rgb(255 255 255 / 0.8);
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.65),
+        var(--glass-lift);
+}
+
+[data-glass] {
+    min-height: 44px;
+    min-width: 44px;
+    border-radius: 9999px;
+    color: var(--color-neutral-800);
+    transition:
+        background-color 150ms ease-out,
+        transform 150ms ease-out;
+}
+
+[data-glass="primary"] {
+    background-color: var(--glass-action-fill);
+    border-color: rgb(255 255 255 / 0.25);
+    color: white;
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.25),
+        var(--shadow-action-lift);
+}
+
+[data-glass="neutral"]:hover:not(:disabled) {
+    background-color: white;
+}
+
+[data-glass="primary"]:hover:not(:disabled) {
+    background-color: var(--color-primary-700);
+}
+
+[data-glass][aria-selected="true"],
+[data-glass][aria-pressed="true"] {
+    background-color: var(--color-primary-100);
+    color: var(--color-primary-800);
+    border-color: var(--color-primary-300);
+}
+
+@supports (
+    (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+    :root {
+        --glass-fill: rgb(255 255 255 / 0.88);
+        --glass-action-fill: rgb(123 68 13 / 0.96);
+    }
+    [data-glass-surface],
+    [data-glass] {
+        -webkit-backdrop-filter: blur(20px) saturate(1.35);
+        backdrop-filter: blur(20px) saturate(1.35);
+    }
+    [data-glass-surface] [data-glass] {
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        box-shadow: none;
+    }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+    :root {
+        --glass-fill: #ffffff;
+        --glass-action-fill: #995613;
+    }
+    [data-glass-surface],
+    [data-glass] {
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-glass] {
+        transition: none;
+        transform: none;
+    }
+}
+
+[data-glass-thumbnail] {
+    border-radius: 0.75rem;
+    border-width: 2px;
+}
 @theme {
     --color-primary-50: #f8f5f1;
     --color-primary-100: #f3e8dd;

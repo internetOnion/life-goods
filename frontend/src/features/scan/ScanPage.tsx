@@ -2,7 +2,6 @@ import {
     ArrowClockwiseIcon,
     CameraIcon,
     CameraRotateIcon,
-    CheckCircleIcon,
     MagnifyingGlassIcon,
     PauseIcon,
     PlayIcon,
@@ -14,6 +13,7 @@ import { Link, useNavigate } from "react-router"
 
 import { appRoutes } from "@/app/routes"
 
+import { CameraAperture } from "@/components/camera/CameraAperture"
 import { Button } from "@/components/ui/button"
 import { PrivacyScannerIllustration } from "@/components/illustrations"
 import { BrandLockup } from "@/components/brand/BrandMark"
@@ -491,82 +491,19 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
 
                 {cameraState === "scanning" || cameraState === "acquired" ? (
                     <>
-                        <div className="pointer-events-none absolute inset-x-0 top-4 z-30 flex justify-center px-4">
-                            <div
-                                className={cn(
-                                    "inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-white ring-1 transition-all duration-150",
-                                    cameraState === "acquired"
-                                        ? "bg-emerald-950/90 text-emerald-300 shadow-[0_0_12px_rgba(130,185,110,0.4)] ring-emerald-500/60"
-                                        : "bg-black/70 ring-white/20",
-                                )}
-                            >
-                                {cameraState === "acquired" ? (
-                                    <CheckCircleIcon
-                                        className="size-4 text-[#82B96E]"
-                                        weight="fill"
-                                        aria-hidden="true"
-                                    />
-                                ) : (
-                                    <span
-                                        className="size-2 rounded-full bg-[#82B96E] motion-safe:animate-pulse"
-                                        aria-hidden="true"
-                                    />
-                                )}
-                                <span className="text-xs font-bold">
-                                    {cameraState === "acquired"
-                                        ? text.detected
-                                        : text.ready}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div
-                            className="pointer-events-none absolute inset-0 z-20 grid place-items-center p-6"
-                            aria-hidden="true"
-                        >
-                            <div
-                                className={cn(
-                                    "relative aspect-[3/2] w-full max-w-[19rem] rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.48)] ring-1 transition-all duration-150",
-                                    cameraState === "acquired"
-                                        ? "shadow-[0_0_0_9999px_rgba(0,0,0,0.55)] ring-[#82B96E] motion-safe:scale-[1.02]"
-                                        : "ring-white/30",
-                                )}
-                            >
-                                <ScanCorner
-                                    className="top-0 left-0"
-                                    isAcquired={cameraState === "acquired"}
-                                />
-                                <ScanCorner
-                                    className="top-0 right-0 rotate-90"
-                                    isAcquired={cameraState === "acquired"}
-                                />
-                                <ScanCorner
-                                    className="right-0 bottom-0 rotate-180"
-                                    isAcquired={cameraState === "acquired"}
-                                />
-                                <ScanCorner
-                                    className="bottom-0 left-0 -rotate-90"
-                                    isAcquired={cameraState === "acquired"}
-                                />
-                                {cameraState === "acquired" ? (
-                                    <div className="absolute inset-x-3 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-[#82B96E] shadow-[0_0_12px_rgba(130,185,110,0.9)] transition-all duration-150" />
-                                ) : (
-                                    <div className="motion-safe:animate-scan-laser absolute inset-x-3 top-[10%] h-0.5 rounded-full bg-[#E19447] shadow-[0_0_10px_rgba(225,148,71,0.9)]" />
-                                )}
-                                <span
-                                    className={cn(
-                                        "absolute inset-x-4 bottom-3 text-center text-xs font-semibold drop-shadow-sm transition-colors",
-                                        cameraState === "acquired"
-                                            ? "font-bold text-emerald-300"
-                                            : "text-white",
-                                    )}
-                                >
-                                    {cameraState === "acquired"
-                                        ? text.detected
-                                        : text.scanning}
-                                </span>
-                            </div>
-                        </div>
+                        <CameraAperture
+                            status={
+                                cameraState === "acquired"
+                                    ? text.detected
+                                    : text.ready
+                            }
+                            frameLabel={
+                                cameraState === "acquired"
+                                    ? text.detected
+                                    : text.scanning
+                            }
+                            isAcquired={cameraState === "acquired"}
+                        />
 
                         {cameraState === "scanning" ? (
                             <div className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-end gap-3 bg-gradient-to-t from-black/85 via-black/45 to-transparent p-4 pt-16">
@@ -668,34 +605,5 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                 </Link>
             </div>
         </main>
-    )
-}
-
-function ScanCorner({
-    className,
-    isAcquired = false,
-}: {
-    className: string
-    isAcquired?: boolean
-}) {
-    return (
-        <svg
-            className={cn(
-                "absolute size-8 transition-colors duration-150",
-                isAcquired ? "text-[#82B96E]" : "text-[#E7B583]",
-                className,
-            )}
-            viewBox="0 0 32 32"
-            fill="none"
-            aria-hidden="true"
-        >
-            <path
-                d="M3 23V10a7 7 0 0 1 7-7h13"
-                stroke="currentColor"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-        </svg>
     )
 }

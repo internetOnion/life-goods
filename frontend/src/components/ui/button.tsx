@@ -40,20 +40,36 @@ export interface ButtonProps
         React.ButtonHTMLAttributes<HTMLButtonElement>,
         VariantProps<typeof buttonVariants> {
     asChild?: boolean
+    appearance?: "glass"
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-    ({ className, variant, size, asChild = false, ...props }, ref) => {
+    (
+        { className, variant, size, appearance, asChild = false, ...props },
+        ref,
+    ) => {
         const Comp = asChild ? Slot : "button"
         return (
             <Comp
                 className={cn(buttonVariants({ variant, size, className }))}
                 ref={ref}
+                data-glass={
+                    appearance === "glass"
+                        ? variant === undefined || variant === "default"
+                            ? "primary"
+                            : "neutral"
+                        : undefined
+                }
                 {...props}
             />
         )
     },
 )
 Button.displayName = "Button"
+
+export const GlassButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
+    (props, ref) => <Button {...props} appearance="glass" ref={ref} />,
+)
+GlassButton.displayName = "GlassButton"
 
 export { Button, buttonVariants }
