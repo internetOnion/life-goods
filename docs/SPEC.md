@@ -270,10 +270,10 @@ Durable Khmer Translation artifacts are stored in an isolated MongoDB database (
 
 1. **Storage Isolation**: The application runtime connects to generated storage using dedicated credentials (`lifegoods_generated`) with least-privilege access restricted exclusively to `lifegoods_generated`. The Dataset Snapshot connection (`lifegoods_reader`) remains strictly read-only.
 2. **Collection and Index Requirements**:
-   - `translation_artifacts`: content-addressed immutable bundles (`content_hash + translation_config_fingerprint`), unique `artifact_id`, no automatic TTL.
-   - `translation_leases`: expiring cross-instance single-flight leases with TTL index on `expires_at` (`expireAfterSeconds=0`).
-   - `translation_cooldowns`: expiring temporary complete failure records with TTL index on `expires_at` (`expireAfterSeconds=0`).
-   - `translation_quarantines`: durable withdrawal records for invalid artifacts, no TTL.
+    - `translation_artifacts`: content-addressed immutable bundles (`content_hash + translation_config_fingerprint`), unique `artifact_id`, no automatic TTL.
+    - `translation_leases`: expiring cross-instance single-flight leases with TTL index on `expires_at` (`expireAfterSeconds=0`).
+    - `translation_cooldowns`: expiring temporary complete failure records with TTL index on `expires_at` (`expireAfterSeconds=0`).
+    - `translation_quarantines`: durable withdrawal records for invalid artifacts, no TTL.
 3. **Explicit Operator Initialization**: Web application startup never creates collections or indexes implicitly. Schema is initialized and verified idempotently via `pnpm generated-data:init` and `pnpm generated-data:verify`. Incompatible indexes fail explicitly.
 4. **Operational Specification**: Detailed procedures for credential rotation, backup and restore, and failure diagnosis are documented in [docs/generated-data-persistence.md](generated-data-persistence.md).
 
@@ -292,85 +292,83 @@ To establish empirical evidence for production model selection and quantitative 
 The translation domain is encapsulated behind the deep `KhmerTranslationModule` and provider adapters:
 
 1. **Eligible Fields & Selection**:
-   - Translations are generated strictly for `product_name`, `generic_name`, `ingredients_text`, and human-readable `categories`.
-   - Localized Original Text values are preserved with source field and language.
-   - Deterministic preference order: Source-provided Khmer (`kh`, `km`, and recognized variants, retaining source metadata), declared record language, English (`en`), and deterministic localized fallback.
-   - Conservative Khmer Unicode script recognition preserves `und` when language metadata is absent without claiming authoritative language tags.
-   - Source-provided Khmer yields `source_khmer_available` and missing fields yield `source_data_unavailable` without invoking the provider.
+    - Translations are generated strictly for `product_name`, `generic_name`, `ingredients_text`, and human-readable `categories`.
+    - Localized Original Text values are preserved with source field and language.
+    - Deterministic preference order: Source-provided Khmer (`kh`, `km`, and recognized variants, retaining source metadata), declared record language, English (`en`), and deterministic localized fallback.
+    - Conservative Khmer Unicode script recognition preserves `und` when language metadata is absent without claiming authoritative language tags.
+    - Source-provided Khmer yields `source_khmer_available` and missing fields yield `source_data_unavailable` without invoking the provider.
 
 2. **Deterministic Token & Placeholder Protection**:
-   - Brand names, numerical tokens, decimal separators, percentages, quantities, units, E-numbers, and INS codes are masked with opaque `__LG_TOK_n__` placeholders before provider requests and verified upon restoration.
+    - Brand names, numerical tokens, decimal separators, percentages, quantities, units, E-numbers, and INS codes are masked with opaque `__LG_TOK_n__` placeholders before provider requests and verified upon restoration.
 
 3. **Safe Ingredient Chunking**:
-   - Oversized ingredient lists are deterministically chunked at safe top-level punctuation delimiters (`[,;]`) without splitting nested parentheses `(...)` or brackets `[...]`. Chunks are translated and safely rejoined with no silent truncation.
+    - Oversized ingredient lists are deterministically chunked at safe top-level punctuation delimiters (`[,;]`) without splitting nested parentheses `(...)` or brackets `[...]`. Chunks are translated and safely rejoined with no silent truncation.
 
 4. **Independent Field Validation & Partial Outcomes**:
-   - Returned fields are validated independently for schema correctness, expected identifiers, placeholder integrity, output bounds, and valid Khmer script.
-   - If one field fails validation, valid fields survive as `generated` while the failed field transitions to `translation_unavailable`, yielding a `partial` overall status.
+    - Returned fields are validated independently for schema correctness, expected identifiers, placeholder integrity, output bounds, and valid Khmer script.
+    - If one field fails validation, valid fields survive as `generated` while the failed field transitions to `translation_unavailable`, yielding a `partial` overall status.
 
 5. **Gemini HTTP Adapter**:
-   - The provider transport timeout cap defaults to 12 seconds; retries at most once for transient network errors, HTTP 408, 429, and all 5xx responses using backoff. Both attempts and backoff share the remaining translation-stage budget (section 19).
-   - Strictly enforces that Barcodes, IP addresses, Dataset Snapshot identifiers, and Shopper data are never included in provider payloads.
-   - Standardizes on approved stable model `gemini-3.8-flash`; explicitly rejects moving aliases (e.g. `gemini-latest`) and deprecated models (`gemini-2.0-flash`).
+    - The provider transport timeout cap defaults to 12 seconds; retries at most once for transient network errors, HTTP 408, 429, and all 5xx responses using backoff. Both attempts and backoff share the remaining translation-stage budget (section 19).
+    - Strictly enforces that Barcodes, IP addresses, Dataset Snapshot identifiers, and Shopper data are never included in provider payloads.
+    - Standardizes on approved stable model `gemini-3.8-flash`; explicitly rejects moving aliases (e.g. `gemini-latest`) and deprecated models (`gemini-2.0-flash`).
 
 ## 16. Translation artifact persistence and cross-instance coordination (Issue #88)
 
 Durable translation storage and multi-instance concurrency are coordinated through content-addressed artifacts, single-flight leases, and fail-closed budgeting:
 
 1. **Content Addressing & Storage Identity**:
-   - Durable artifacts are keyed strictly by `content_hash + translation_config_fingerprint`.
-   - Stored documents and Redis entries retain no Barcodes, Snapshot versions, or Shopper identifiers. Identical canonical Product text across snapshots reuses existing artifacts automatically.
-   - Complete artifacts are durable. Valid partial results use a short-lived hot cache (the configured cooldown duration), after which generation may retry.
+    - Durable artifacts are keyed strictly by `content_hash + translation_config_fingerprint`.
+    - Stored documents and Redis entries retain no Barcodes, Snapshot versions, or Shopper identifiers. Identical canonical Product text across snapshots reuses existing artifacts automatically.
+    - Complete artifacts are durable. Valid partial results use a short-lived hot cache (the configured cooldown duration), after which generation may retry.
 
 2. **Cross-Instance Single Flight & Recovery**:
-   - Instances coordinate on-demand generation using expiring MongoDB leases (`translation_leases`) containing unique owner tokens.
-   - A single worker wins the lease and generates the artifact. Competing concurrent requests poll for the completed artifact within the shared translation-stage deadline (initially 12 seconds) and fall back gracefully to Original Text upon timeout.
-   - If an instance crashes mid-generation, expired leases (`expires_at <= now`) are safely taken over by subsequent requests or automatically pruned by MongoDB TTL background threads.
+    - Instances coordinate on-demand generation using expiring MongoDB leases (`translation_leases`) containing unique owner tokens.
+    - A single worker wins the lease and generates the artifact. Competing concurrent requests poll for the completed artifact within the shared translation-stage deadline (initially 12 seconds) and fall back gracefully to Original Text upon timeout.
+    - If an instance crashes mid-generation, expired leases (`expires_at <= now`) are safely taken over by subsequent requests or automatically pruned by MongoDB TTL background threads.
 
 3. **Failure Cooldown & Graceful Degradation**:
-   - Complete provider or validation failures (`overall_status=unavailable`) write temporary expiring cooldown records to `translation_cooldowns` (default 60s), suppressing duplicate failing provider calls.
-   - If the generated-data store becomes unavailable, new provider calls are held. If a write fails after successful generation, the result is returned to the current request and subsequent generation is held until store recovery.
+    - Complete provider or validation failures (`overall_status=unavailable`) write temporary expiring cooldown records to `translation_cooldowns` (default 60s), suppressing duplicate failing provider calls.
+    - If the generated-data store becomes unavailable, new provider calls are held. If a write fails after successful generation, the result is returned to the current request and subsequent generation is held until store recovery.
 
 4. **Project-Wide Generation Budgeting**:
-   - Shared Redis sliding-window budgeting enforces an authoritative generation quota across all backend instances.
-   - Unlike Product Lookup rate limiting which fails open to local limiting for Shopper availability, the translation generation budget fails closed on Redis outage to prevent unbounded external model costs.
+    - Shared Redis sliding-window budgeting enforces an authoritative generation quota across all backend instances.
+    - Unlike Product Lookup rate limiting which fails open to local limiting for Shopper availability, the translation generation budget fails closed on Redis outage to prevent unbounded external model costs.
 
 5. **Administrative Quarantine**:
-   - Corrupted or compromised artifacts are withdrawn administratively by recording an entry in `translation_quarantines` via the operator CLI (`pnpm generated-data:quarantine`).
-   - Quarantined artifacts are immediately excluded from serving without mutating original immutable bundles.
+    - Corrupted or compromised artifacts are withdrawn administratively by recording an entry in `translation_quarantines` via the operator CLI (`pnpm generated-data:quarantine`).
+    - Quarantined artifacts are immediately excluded from serving without mutating original immutable bundles.
 
 6. **Operator CLI Observability**:
-   - The operator CLI (`pnpm generated-data:status`) inspects aggregate counts (artifacts, active leases, cooldowns, quarantines) and database health without printing Product text or Shopper data.
+    - The operator CLI (`pnpm generated-data:status`) inspects aggregate counts (artifacts, active leases, cooldowns, quarantines) and database health without printing Product text or Shopper data.
 
 ## 17. Stable Product Lookup with integrated Khmer Translation (Issue #89)
 
 The stable Product Lookup endpoint integrates optional on-demand Khmer Translation co-located with semantic fields:
 
 1. **Request & Contract**:
-   - `GET /api/v1/products/{barcode}?language=kh`
-   - Requests without `language=kh` return the stable Product projection and Original Text without generating translation (`meta.translation.status="not_requested"`).
-   - The application request and locale value is `kh`. External Source Record language tags, including `km`, retain their original metadata. Any other unsupported language parameter value returns HTTP 422 with stable error code `unsupported_language`.
-   - The stable response also includes `data.allergen_analysis`, preserving the distinction between Open Food Facts tags, matcher-derived tags, qualifications, unmatched spans, and comparison sets.
+    - `GET /api/v1/products/{barcode}?language=kh`
+    - Requests without `language=kh` return the stable Product projection and Original Text without generating translation (`meta.translation.status="not_requested"`).
+    - The application request and locale value is `kh`. External Source Record language tags, including `km`, retain their original metadata. Any other unsupported language parameter value returns HTTP 422 with stable error code `unsupported_language`.
+    - The stable response also includes `data.allergen_analysis`, preserving the distinction between Open Food Facts tags, matcher-derived tags, qualifications, unmatched spans, and comparison sets.
 
 2. **Field-Level Co-Location**:
-   - Semantic fields eligible for translation (`identity.name`, `identity.generic_name`, `ingredients_text`, `categories_text`) carry individual translation states: `not_requested`, `source_khmer_available`, `original_text_preserved`, `generated`, `source_data_unavailable`, or `translation_unavailable`.
-   - When translation is generated, `khmer_translation` holds the translated string alongside `original_texts` and `selected_original_text`.
-   - Source-provided Khmer is treated as `OriginalText` (`source_khmer_available`) and never receives machine-generated metadata. Empty fields yield `source_data_unavailable` without invoking generation.
+    - Semantic fields eligible for translation (`identity.name`, `identity.generic_name`, `ingredients_text`, `categories_text`) carry individual translation states: `not_requested`, `source_khmer_available`, `original_text_preserved`, `generated`, `source_data_unavailable`, or `translation_unavailable`.
+    - When translation is generated, `khmer_translation` holds the translated string alongside `original_texts` and `selected_original_text`.
+    - Source-provided Khmer is treated as `OriginalText` (`source_khmer_available`) and never receives machine-generated metadata. Empty fields yield `source_data_unavailable` without invoking generation.
 
 3. **Top-Level Translation Provenance**:
-   - The top-level response envelope includes `meta.translation` with statuses: `not_requested`, `not_needed`, `complete`, `partial`, and `unavailable`.
-   - Machine-generated metadata (`provider`, `model`, `configuration_version`, `generated_at`) is populated only when translation is generated.
-   - Source Attribution (`meta.source` and `meta.dataset`) remains unchanged between translated and untranslated requests.
+    - The top-level response envelope includes `meta.translation` with statuses: `not_requested`, `not_needed`, `complete`, `partial`, and `unavailable`.
+    - Machine-generated metadata (`provider`, `model`, `configuration_version`, `generated_at`) is populated only when translation is generated.
+    - Source Attribution (`meta.source` and `meta.dataset`) remains unchanged between translated and untranslated requests.
 
 4. **Graceful Degradation & Availability**:
-   - Translation failures, validation errors, database degradation, cooldown periods, lease timeouts, and generation-budget exhaustion return HTTP 200 with complete Original Text whenever the Product exists in the Dataset Snapshot.
-   - Core Product Lookup errors remain distinct: invalid Barcode (422), missing Product (404), unavailable Dataset Snapshot (503), Shopper-facing rate limit (429), and internal server error (500).
+    - Translation failures, validation errors, database degradation, cooldown periods, lease timeouts, and generation-budget exhaustion return HTTP 200 with complete Original Text whenever the Product exists in the Dataset Snapshot.
+    - Core Product Lookup errors remain distinct: invalid Barcode (422), missing Product (404), unavailable Dataset Snapshot (503), Shopper-facing rate limit (429), and internal server error (500).
 
 5. **Operational Privacy & Independent Limiting**:
-   - Per-IP Shopper Product Lookup rate limiting (fail-open) and project-wide translation generation budgeting (fail-closed) operate completely independently.
-   - Access logs and metrics strictly exclude Barcode, IP address, Original Text, Khmer Translation, translation prompts, and raw provider payloads.
-
-
+    - Per-IP Shopper Product Lookup rate limiting (fail-open) and project-wide translation generation budgeting (fail-closed) operate completely independently.
+    - Access logs and metrics strictly exclude Barcode, IP address, Original Text, Khmer Translation, translation prompts, and raw provider payloads.
 
 ## 18. Trustworthy existing Khmer Translation fields (Issue #94)
 
@@ -378,14 +376,14 @@ The frontend Product Lookup request sends `language=kh`. Application locale stat
 
 The four existing field envelopes share selection and classification across generation, cache reuse, provider failure, coordination failure, and emergency fallback. Selection prefers source-provided Khmer (including recognized language variants or conservative script detection), then the Source Record language, English, and deterministic fallback. Script detection does not manufacture language metadata. Human-readable category Original Text retains its source wording and language; taxonomy identifiers are not translation prose.
 
-| Field status | Text available for display |
-| --- | --- |
-| `generated` | `khmer_translation` |
-| `source_khmer_available` | Khmer `selected_original_text` |
+| Field status              | Text available for display                                                          |
+| ------------------------- | ----------------------------------------------------------------------------------- |
+| `generated`               | `khmer_translation`                                                                 |
+| `source_khmer_available`  | Khmer `selected_original_text`                                                      |
 | `original_text_preserved` | Intentionally unchanged `selected_original_text`, such as a brand-only Product name |
-| `translation_unavailable` | Available `selected_original_text` |
-| `not_requested` | Available `selected_original_text` |
-| `source_data_unavailable` | No source text; the frontend supplies missing-state copy |
+| `translation_unavailable` | Available `selected_original_text`                                                  |
+| `not_requested`           | Available `selected_original_text`                                                  |
+| `source_data_unavailable` | No source text; the frontend supplies missing-state copy                            |
 
 With a translation request, the overall status is `not_needed` when no field requires generation, `complete` when all required fields succeed, `partial` when some succeed, and `unavailable` when none succeed. Source-provided Khmer, preserved names, and missing fields do not count as failed generation. Provenance is present only with generated output and records the actual provider, exact model, configuration version, and generation time. Source Attribution and Dataset Snapshot metadata remain separate.
 
@@ -396,7 +394,6 @@ The production translation configuration is `v1`, which includes selection, vali
 Validation rejects wrong types, missing outputs, malformed envelopes, incomplete provider responses, broken placeholders, altered protected values, excessive output, and unchanged source prose with a Khmer prefix. Independently valid fields survive. Deterministic tests establish structural behavior, not semantic accuracy or human review. Barcode and Shopper information never enter provider input or artifact identity.
 
 Additional structured fields belong to subsequent slices of #93. Section 19 defines the shared translation-stage deadline.
-
 
 ## 19. Configurable translation-stage deadline (Issue #95)
 
@@ -410,129 +407,128 @@ A held lease lasts at least the remaining stage budget plus the configured coold
 
 Expiry returns HTTP 200 with available Original Text and field-level translation outcomes when Product Lookup otherwise succeeds. Source-provided Khmer, intentionally preserved names, and missing fields retain their classification. Invalid Barcode, not-found, Dataset Snapshot, and Product Lookup rate-limit errors remain unchanged. Deadline, capacity, transport, HTTP, and structural failure details remain internal; provider error bodies, credentials, prompts, and token maps are absent from the public response. No endpoint, polling contract, or public retry field is added.
 
-
 ## 20. Structured storage instructions (Issue #96)
 
 `ProductProjection` provides structured storage instructions in `storage_instruction_items`. Each item exposes a deterministic item key (`storage_instruction_0`, `storage_instruction_1`, etc.) and the shared `TranslatableField` envelope (`original_texts`, `selected_original_text`, `translation_status`, and `khmer_translation`). The legacy `storage_instructions: list[OriginalText]` array remains preserved for backward compatibility.
 
 1. **Source Grouping and Deduplication**:
-   - `conservation_conditions` and `storage_conditions` source field families (including language-specific variants like `_en`, `_fr`, `_km`) are projected into statement items.
-   - Localized variants of the same statement are grouped together in `original_texts`.
-   - Distinct source-field statements remain separate items preserving source order.
-   - Exact duplicate statements across source fields collapse into a single statement item while retaining their `OriginalText` provenance from both fields in `original_texts`. Equivalence is never inferred from merely similar wording.
+    - `conservation_conditions` and `storage_conditions` source field families (including language-specific variants like `_en`, `_fr`, `_km`) are projected into statement items.
+    - Localized variants of the same statement are grouped together in `original_texts`.
+    - Distinct source-field statements remain separate items preserving source order.
+    - Exact duplicate statements across source fields collapse into a single statement item while retaining their `OriginalText` provenance from both fields in `original_texts`. Equivalence is never inferred from merely similar wording.
 
 2. **Source Selection & Field States**:
-   - Shared source selection applies per item: source-provided Khmer (explicit `kh`/`km` tags or script detection) bypasses Khmer Translation generation and receives `source_khmer_available`.
-   - Missing storage instructions yield an empty list (`[]`) without inventing text or ghost entries.
-   - Without `language=kh`, each item receives `not_requested`.
+    - Shared source selection applies per item: source-provided Khmer (explicit `kh`/`km` tags or script detection) bypasses Khmer Translation generation and receives `source_khmer_available`.
+    - Missing storage instructions yield an empty list (`[]`) without inventing text or ghost entries.
+    - Without `language=kh`, each item receives `not_requested`.
 
 3. **Protection & Validation**:
-   - Token protection covers temperatures (e.g. `4°C`, `-18°C`) and durations (e.g. `3 days`) in addition to brands, INS codes, E-numbers, percentages, and units.
-   - Each statement item undergoes independent validation. If one item fails, valid sibling items survive as `generated`, setting the overall translation status to `partial`.
+    - Token protection covers temperatures (e.g. `4°C`, `-18°C`) and durations (e.g. `3 days`) in addition to brands, INS codes, E-numbers, percentages, and units.
+    - Each statement item undergoes independent validation. If one item fails, valid sibling items survive as `generated`, setting the overall translation status to `partial`.
 
 4. **Cache & Fingerprint**:
-   - Storage instruction items participate in the `v1` configuration fingerprint with item selection, schema, and token protection. Incompatible earlier bundles cannot be reused.
+    - Storage instruction items participate in the `v1` configuration fingerprint with item selection, schema, and token protection. Incompatible earlier bundles cannot be reused.
 
 5. **API Response Examples**:
 
-   - **Complete (all storage items translated)**:
-     ```json
-     {
-       "data": {
-         "product": {
-           "storage_instruction_items": [
-             {
-               "key": "storage_instruction_0",
-               "original_texts": [
-                 {
-                   "value": "Keep frozen at -18°C",
-                   "language": "en",
-                   "source_field": "conservation_conditions"
-                 }
-               ],
-               "selected_original_text": {
-                 "value": "Keep frozen at -18°C",
-                 "language": "en",
-                 "source_field": "conservation_conditions"
-               },
-               "translation_status": "generated",
-               "khmer_translation": "រក្សាទុកឱ្យកកនៅ -18°C"
-             }
-           ]
-         }
-       },
-       "meta": {
-         "translation": {
-           "status": "complete"
-         }
-       }
-     }
-     ```
+    - **Complete (all storage items translated)**:
 
-   - **Partial (one item valid, one failed validation)**:
-     ```json
-     {
-       "data": {
-         "product": {
-           "storage_instruction_items": [
-             {
-               "key": "storage_instruction_0",
-               "original_texts": [
-                 {
-                   "value": "Keep at 4°C",
-                   "language": "en",
-                   "source_field": "conservation_conditions"
-                 }
-               ],
-               "selected_original_text": {
-                 "value": "Keep at 4°C",
-                 "language": "en",
-                 "source_field": "conservation_conditions"
-               },
-               "translation_status": "generated",
-               "khmer_translation": "រក្សាទុកនៅ 4°C"
-             },
-             {
-               "key": "storage_instruction_1",
-               "original_texts": [
-                 {
-                   "value": "Consume quickly after opening",
-                   "language": "en",
-                   "source_field": "storage_conditions"
-                 }
-               ],
-               "selected_original_text": {
-                 "value": "Consume quickly after opening",
-                 "language": "en",
-                 "source_field": "storage_conditions"
-               },
-               "translation_status": "translation_unavailable",
-               "khmer_translation": null
-             }
-           ]
-         }
-       },
-       "meta": {
-         "translation": {
-           "status": "partial"
-         }
-       }
-     }
-     ```
+        ```json
+        {
+            "data": {
+                "product": {
+                    "storage_instruction_items": [
+                        {
+                            "key": "storage_instruction_0",
+                            "original_texts": [
+                                {
+                                    "value": "Keep frozen at -18°C",
+                                    "language": "en",
+                                    "source_field": "conservation_conditions"
+                                }
+                            ],
+                            "selected_original_text": {
+                                "value": "Keep frozen at -18°C",
+                                "language": "en",
+                                "source_field": "conservation_conditions"
+                            },
+                            "translation_status": "generated",
+                            "khmer_translation": "រក្សាទុកឱ្យកកនៅ -18°C"
+                        }
+                    ]
+                }
+            },
+            "meta": {
+                "translation": {
+                    "status": "complete"
+                }
+            }
+        }
+        ```
 
-   - **Missing (no storage conditions in source record)**:
-     ```json
-     {
-       "data": {
-         "product": {
-           "storage_instructions": [],
-           "storage_instruction_items": []
-         }
-       }
-     }
-     ```
+    - **Partial (one item valid, one failed validation)**:
 
+        ```json
+        {
+            "data": {
+                "product": {
+                    "storage_instruction_items": [
+                        {
+                            "key": "storage_instruction_0",
+                            "original_texts": [
+                                {
+                                    "value": "Keep at 4°C",
+                                    "language": "en",
+                                    "source_field": "conservation_conditions"
+                                }
+                            ],
+                            "selected_original_text": {
+                                "value": "Keep at 4°C",
+                                "language": "en",
+                                "source_field": "conservation_conditions"
+                            },
+                            "translation_status": "generated",
+                            "khmer_translation": "រក្សាទុកនៅ 4°C"
+                        },
+                        {
+                            "key": "storage_instruction_1",
+                            "original_texts": [
+                                {
+                                    "value": "Consume quickly after opening",
+                                    "language": "en",
+                                    "source_field": "storage_conditions"
+                                }
+                            ],
+                            "selected_original_text": {
+                                "value": "Consume quickly after opening",
+                                "language": "en",
+                                "source_field": "storage_conditions"
+                            },
+                            "translation_status": "translation_unavailable",
+                            "khmer_translation": null
+                        }
+                    ]
+                }
+            },
+            "meta": {
+                "translation": {
+                    "status": "partial"
+                }
+            }
+        }
+        ```
 
+    - **Missing (no storage conditions in source record)**:
+        ```json
+        {
+            "data": {
+                "product": {
+                    "storage_instructions": [],
+                    "storage_instruction_items": []
+                }
+            }
+        }
+        ```
 
 ## 21. Packaging descriptions and recycling instructions (Issue #97)
 
@@ -590,20 +586,44 @@ Example packaging fragment for a partial response (`meta.translation.status` is
 
 ```json
 {
-  "description_items": [{
-    "key": "packaging_description_0",
-    "original_texts": [{"value": "Glass bottle", "language": "en", "source_field": "packaging_text_en"}],
-    "selected_original_text": {"value": "Glass bottle", "language": "en", "source_field": "packaging_text_en"},
-    "translation_status": "generated",
-    "khmer_translation": "ដបកែវ"
-  }],
-  "recycling_instruction_items": [{
-    "key": "recycling_instruction_0",
-    "original_texts": [{"value": "Remove the lid", "language": "en", "source_field": "recycling_instructions_en"}],
-    "selected_original_text": {"value": "Remove the lid", "language": "en", "source_field": "recycling_instructions_en"},
-    "translation_status": "translation_unavailable",
-    "khmer_translation": null
-  }]
+    "description_items": [
+        {
+            "key": "packaging_description_0",
+            "original_texts": [
+                {
+                    "value": "Glass bottle",
+                    "language": "en",
+                    "source_field": "packaging_text_en"
+                }
+            ],
+            "selected_original_text": {
+                "value": "Glass bottle",
+                "language": "en",
+                "source_field": "packaging_text_en"
+            },
+            "translation_status": "generated",
+            "khmer_translation": "ដបកែវ"
+        }
+    ],
+    "recycling_instruction_items": [
+        {
+            "key": "recycling_instruction_0",
+            "original_texts": [
+                {
+                    "value": "Remove the lid",
+                    "language": "en",
+                    "source_field": "recycling_instructions_en"
+                }
+            ],
+            "selected_original_text": {
+                "value": "Remove the lid",
+                "language": "en",
+                "source_field": "recycling_instructions_en"
+            },
+            "translation_status": "translation_unavailable",
+            "khmer_translation": null
+        }
+    ]
 }
 ```
 
@@ -622,11 +642,12 @@ Taxonomy slugs and normalized taxonomy tags (`categories_tags`, `categories_hier
 The monolithic `"categories"` field is removed from translation provider payloads. Instead, individual translatable category items (`category_0`, `category_1`, ...) are submitted within the single structured provider request, undergoing independent validation, token protection, and caching. Provider outputs are never split by commas or delimiters.
 
 Legacy translation compatibility:
+
 - `product.categories` (`list[str]`) and `product.categories_text` (`TranslatableField`) remain present in the response envelope.
 - `product.categories_text` is assembled post-provider from `category_items`:
-  - When every required category item possesses usable Khmer text (generated, source Khmer, or Original Text preserved), `product.categories_text.khmer_translation` is assembled by joining the items in order with `", "`, and `product.categories_text.translation_status` reflects the outcome (`"generated"` if any item was generated).
-  - When one or more required category items have `translation_unavailable`, `product.categories_text.translation_status` becomes `"translation_unavailable"` with `khmer_translation: null`, while successful individual `category_items` retain their translations.
-  - Reconstructed cache hits deterministically re-assemble `product.categories_text` using the same semantics.
+    - When every required category item possesses usable Khmer text (generated, source Khmer, or Original Text preserved), `product.categories_text.khmer_translation` is assembled by joining the items in order with `", "`, and `product.categories_text.translation_status` reflects the outcome (`"generated"` if any item was generated).
+    - When one or more required category items have `translation_unavailable`, `product.categories_text.translation_status` becomes `"translation_unavailable"` with `khmer_translation: null`, while successful individual `category_items` retain their translations.
+    - Reconstructed cache hits deterministically re-assemble `product.categories_text` using the same semantics.
 
 Category items participate in the unified initial release baseline at configuration **v1**, with all internal sub-component versions normalized to **v1**.
 
@@ -634,59 +655,59 @@ Example category items fragment for a partial response (`meta.translation.status
 
 ```json
 {
-  "categories": ["Snacks", "Chocolates"],
-  "categories_text": {
-    "translation_status": "translation_unavailable",
-    "khmer_translation": null,
-    "original_texts": [
-      {
-        "value": "Snacks, Chocolates",
-        "language": "en",
-        "source_field": "categories"
-      }
-    ],
-    "selected_original_text": {
-      "value": "Snacks, Chocolates",
-      "language": "en",
-      "source_field": "categories"
-    }
-  },
-  "category_items": [
-    {
-      "key": "category_0",
-      "original_texts": [
-        {
-          "value": "Snacks",
-          "language": "en",
-          "source_field": "categories"
+    "categories": ["Snacks", "Chocolates"],
+    "categories_text": {
+        "translation_status": "translation_unavailable",
+        "khmer_translation": null,
+        "original_texts": [
+            {
+                "value": "Snacks, Chocolates",
+                "language": "en",
+                "source_field": "categories"
+            }
+        ],
+        "selected_original_text": {
+            "value": "Snacks, Chocolates",
+            "language": "en",
+            "source_field": "categories"
         }
-      ],
-      "selected_original_text": {
-        "value": "Snacks",
-        "language": "en",
-        "source_field": "categories"
-      },
-      "translation_status": "generated",
-      "khmer_translation": "អាហារសម្រន់"
     },
-    {
-      "key": "category_1",
-      "original_texts": [
+    "category_items": [
         {
-          "value": "Chocolates",
-          "language": "en",
-          "source_field": "categories"
+            "key": "category_0",
+            "original_texts": [
+                {
+                    "value": "Snacks",
+                    "language": "en",
+                    "source_field": "categories"
+                }
+            ],
+            "selected_original_text": {
+                "value": "Snacks",
+                "language": "en",
+                "source_field": "categories"
+            },
+            "translation_status": "generated",
+            "khmer_translation": "អាហារសម្រន់"
+        },
+        {
+            "key": "category_1",
+            "original_texts": [
+                {
+                    "value": "Chocolates",
+                    "language": "en",
+                    "source_field": "categories"
+                }
+            ],
+            "selected_original_text": {
+                "value": "Chocolates",
+                "language": "en",
+                "source_field": "categories"
+            },
+            "translation_status": "translation_unavailable",
+            "khmer_translation": null
         }
-      ],
-      "selected_original_text": {
-        "value": "Chocolates",
-        "language": "en",
-        "source_field": "categories"
-      },
-      "translation_status": "translation_unavailable",
-      "khmer_translation": null
-    }
-  ]
+    ]
 }
 ```
 
@@ -695,92 +716,92 @@ Example category items fragment for a partial response (`meta.translation.status
 Stable Product Lookup exposes exact Open Food Facts taxonomy references under `product.taxonomy_references` so frontend terminology dictionaries can map terms without guessing identifiers from displayed English text. This capability performs no new Khmer Translation.
 
 1. **Groups and Schema**:
-   - `taxonomy_references` groups identifiers into seven categories:
-     - `categories`: `list[TaxonomyReference]` (from `categories_tags`, `categories_hierarchy`)
-     - `additives`: `list[TaxonomyReference]` (from `additives_tags`, `additives_hierarchy`, `additives_original_tags`)
-     - `labels`: `list[TaxonomyReference]` (from `labels_tags`, `labels_hierarchy`)
-     - `countries`: `list[TaxonomyReference]` (from `countries_tags`, `countries_hierarchy`)
-     - `packaging_materials`: `list[TaxonomyReference]` (from `packaging_materials_tags`, `packagings_materials`, `packagings[].material`)
-     - `packaging_shapes`: `list[TaxonomyReference]` (from `packaging_shapes_tags`, `packagings[].shape`)
-     - `packaging_recycling_terms`: `list[TaxonomyReference]` (from `packaging_recycling_tags`, `packagings[].recycling`; aliased as `packaging_recycling`)
-   - Each `TaxonomyReference` consists of:
-     - `id`: exact source identifier including namespace (e.g. `en:plant-based-beverages`, `fr:boissons-vegetales`, `en:e330`, `en:organic`, `en:cambodia`, `en:paperboard`, `en:carton`, `en:recycle`).
-     - `source_field`: provenance indicating which source field provided the tag (e.g. `categories_tags`, `categories_hierarchy`, `packagings_materials`, `packagings.material`).
+    - `taxonomy_references` groups identifiers into seven categories:
+        - `categories`: `list[TaxonomyReference]` (from `categories_tags`, `categories_hierarchy`)
+        - `additives`: `list[TaxonomyReference]` (from `additives_tags`, `additives_hierarchy`, `additives_original_tags`)
+        - `labels`: `list[TaxonomyReference]` (from `labels_tags`, `labels_hierarchy`)
+        - `countries`: `list[TaxonomyReference]` (from `countries_tags`, `countries_hierarchy`)
+        - `packaging_materials`: `list[TaxonomyReference]` (from `packaging_materials_tags`, `packagings_materials`, `packagings[].material`)
+        - `packaging_shapes`: `list[TaxonomyReference]` (from `packaging_shapes_tags`, `packagings[].shape`)
+        - `packaging_recycling_terms`: `list[TaxonomyReference]` (from `packaging_recycling_tags`, `packagings[].recycling`; aliased as `packaging_recycling`)
+    - Each `TaxonomyReference` consists of:
+        - `id`: exact source identifier including namespace (e.g. `en:plant-based-beverages`, `fr:boissons-vegetales`, `en:e330`, `en:organic`, `en:cambodia`, `en:paperboard`, `en:carton`, `en:recycle`).
+        - `source_field`: provenance indicating which source field provided the tag (e.g. `categories_tags`, `categories_hierarchy`, `packagings_materials`, `packagings.material`).
 
 2. **Source Reading and Provenance**:
-   - Source identifiers are read directly as declared in the Source Record. Identifiers are never synthesized by slugifying display labels or human-readable names.
-   - Multiple source fields within a group are processed in canonical order; duplicates are collapsed to retain the first encountered provenance.
-   - Missing groups remain empty arrays (`[]`), rather than being populated with guessed or defaulted taxonomy references.
+    - Source identifiers are read directly as declared in the Source Record. Identifiers are never synthesized by slugifying display labels or human-readable names.
+    - Multiple source fields within a group are processed in canonical order; duplicates are collapsed to retain the first encountered provenance.
+    - Missing groups remain empty arrays (`[]`), rather than being populated with guessed or defaulted taxonomy references.
 
 3. **Taxonomy and Translation Independence**:
-   - Human-readable categories (`categories`, `category_items`, `categories_text`) and taxonomy references (`taxonomy_references.categories`) remain distinct. No correspondence is claimed between a human-readable category item and a taxonomy identifier without explicit source association.
-   - Records containing only taxonomy tags (and no human-readable category prose) expose their taxonomy identifiers in `taxonomy_references.categories`, while `category_items` remains `[]` and `categories_text.translation_status` evaluates to `source_data_unavailable`. No Khmer Translation provider call or generated-data persistence is invoked for taxonomy identifiers.
-   - The Open Food Facts Dataset Snapshot remains read-only. No new provider calls, external taxonomy fetches, generated-data writes, or Barcode-level analytics are introduced.
+    - Human-readable categories (`categories`, `category_items`, `categories_text`) and taxonomy references (`taxonomy_references.categories`) remain distinct. No correspondence is claimed between a human-readable category item and a taxonomy identifier without explicit source association.
+    - Records containing only taxonomy tags (and no human-readable category prose) expose their taxonomy identifiers in `taxonomy_references.categories`, while `category_items` remains `[]` and `categories_text.translation_status` evaluates to `source_data_unavailable`. No Khmer Translation provider call or generated-data persistence is invoked for taxonomy identifiers.
+    - The Open Food Facts Dataset Snapshot remains read-only. No new provider calls, external taxonomy fetches, generated-data writes, or Barcode-level analytics are introduced.
 
 4. **Example API Fragment**:
 
 ```json
 {
-  "taxonomy_references": {
-    "categories": [
-      {
-        "id": "en:plant-based-beverages",
-        "source_field": "categories_tags"
-      },
-      {
-        "id": "en:oat-drinks",
-        "source_field": "categories_tags"
-      },
-      {
-        "id": "en:beverages",
-        "source_field": "categories_hierarchy"
-      }
-    ],
-    "additives": [
-      {
-        "id": "en:e330",
-        "source_field": "additives_tags"
-      }
-    ],
-    "labels": [
-      {
-        "id": "en:organic",
-        "source_field": "labels_tags"
-      },
-      {
-        "id": "fr:agriculture-biologique",
-        "source_field": "labels_tags"
-      }
-    ],
-    "countries": [
-      {
-        "id": "en:cambodia",
-        "source_field": "countries_tags"
-      }
-    ],
-    "packaging_materials": [
-      {
-        "id": "en:paperboard",
-        "source_field": "packaging_materials_tags"
-      },
-      {
-        "id": "en:plastic",
-        "source_field": "packagings_materials"
-      }
-    ],
-    "packaging_shapes": [
-      {
-        "id": "en:carton",
-        "source_field": "packaging_shapes_tags"
-      }
-    ],
-    "packaging_recycling_terms": [
-      {
-        "id": "en:recycle",
-        "source_field": "packaging_recycling_tags"
-      }
-    ]
-  }
+    "taxonomy_references": {
+        "categories": [
+            {
+                "id": "en:plant-based-beverages",
+                "source_field": "categories_tags"
+            },
+            {
+                "id": "en:oat-drinks",
+                "source_field": "categories_tags"
+            },
+            {
+                "id": "en:beverages",
+                "source_field": "categories_hierarchy"
+            }
+        ],
+        "additives": [
+            {
+                "id": "en:e330",
+                "source_field": "additives_tags"
+            }
+        ],
+        "labels": [
+            {
+                "id": "en:organic",
+                "source_field": "labels_tags"
+            },
+            {
+                "id": "fr:agriculture-biologique",
+                "source_field": "labels_tags"
+            }
+        ],
+        "countries": [
+            {
+                "id": "en:cambodia",
+                "source_field": "countries_tags"
+            }
+        ],
+        "packaging_materials": [
+            {
+                "id": "en:paperboard",
+                "source_field": "packaging_materials_tags"
+            },
+            {
+                "id": "en:plastic",
+                "source_field": "packagings_materials"
+            }
+        ],
+        "packaging_shapes": [
+            {
+                "id": "en:carton",
+                "source_field": "packaging_shapes_tags"
+            }
+        ],
+        "packaging_recycling_terms": [
+            {
+                "id": "en:recycle",
+                "source_field": "packaging_recycling_tags"
+            }
+        ]
+    }
 }
 ```
 
@@ -795,52 +816,51 @@ The benchmark described in section 14 measures the production translation path a
 The Product Search endpoint `GET /api/v1/products/search` provides Barcode search and complete-word text search across source Product names and brands over a single static Dataset Snapshot:
 
 1. **Request & Contract**:
-   - `GET /api/v1/products/search?q={query}&cursor={cursor}`
-   - Registered before the parameterized Product Lookup route (`GET /api/v1/products/{barcode}`).
-   - `q` is required and must contain between 2 and 200 characters and at most 10 normalized terms. Empty or punctuation-only input returns HTTP 422 with error code `invalid_query`. Term extraction normalizes text using NFKC casefolding while preserving Unicode combining marks (such as Khmer vowels and diacritics) attached to letters and numbers.
-   - `cursor` is an optional continuation token for paginated text searches. Cursors are opaque, URL-safe base64 tokens containing the sort position (`rank`, bounded `name_sort`, `code`) and an unsigned SHA-256 fingerprint of the normalized query terms. Tokens are canonical unpadded URL-safe base64, bounded to 4,096 characters, with strictly validated primitive fields and a 16-character lowercase hexadecimal query fingerprint.
-   - Malformed cursors, noncanonical base64, cursors issued for different query terms, or cursors supplied with Barcode searches return HTTP 422 with error code `invalid_cursor`.
+    - `GET /api/v1/products/search?q={query}&cursor={cursor}`
+    - Registered before the parameterized Product Lookup route (`GET /api/v1/products/{barcode}`).
+    - `q` is required and must contain between 2 and 200 characters and at most 10 normalized terms. Empty or punctuation-only input returns HTTP 422 with error code `invalid_query`. Term extraction normalizes text using NFKC casefolding while preserving Unicode combining marks (such as Khmer vowels and diacritics) attached to letters and numbers.
+    - `cursor` is an optional continuation token for paginated text searches. Cursors are opaque, URL-safe base64 tokens containing the sort position (`rank`, bounded `name_sort`, `code`) and an unsigned SHA-256 fingerprint of the normalized query terms. Tokens are canonical unpadded URL-safe base64, bounded to 4,096 characters, with strictly validated primitive fields and a 16-character lowercase hexadecimal query fingerprint.
+    - Malformed cursors, noncanonical base64, cursors issued for different query terms, or cursors supplied with Barcode searches return HTTP 422 with error code `invalid_cursor`.
 
 2. **Numeric Input & Barcode Classification**:
-   - Numeric inputs at supported Barcode lengths (8, 12, 13, 14) are validated using standard Barcode check-digit and normalization logic (stripping outer whitespace and internal spaces or hyphens, preserving leading zeros).
-   - Invalid Barcode-length numeric candidates return HTTP 422 with error code `invalid_barcode`.
-   - Shorter numeric inputs (e.g. "1664") or numeric inputs not matching supported Barcode lengths are classified as text rather than invalid Barcodes.
+    - Numeric inputs at supported Barcode lengths (8, 12, 13, 14) are validated using standard Barcode check-digit and normalization logic (stripping outer whitespace and internal spaces or hyphens, preserving leading zeros).
+    - Invalid Barcode-length numeric candidates return HTTP 422 with error code `invalid_barcode`.
+    - Shorter numeric inputs (e.g. "1664") or numeric inputs not matching supported Barcode lengths are classified as text rather than invalid Barcodes.
 
 3. **Barcode Retrieval & Product Summaries**:
-   - Valid Barcodes look up zero or one Product summary from the Dataset Snapshot independently of text index readiness.
-   - If the Product is absent from the Dataset Snapshot, HTTP 200 is returned with an empty products list (`data.products: []`).
-   - If the Product is found, HTTP 200 is returned with a single `ProductSummary` item.
-   - `ProductSummary` includes `barcode`, selected `name` (`OriginalText` provenance), `brands`, `quantity`, `thumbnail` (`SourceImage` provenance), and individual `Source Attribution` (`https://world.openfoodfacts.org/product/{barcode}`). It does not calculate full Product details or invoke `Khmer Translation`.
-   - Top-level `meta` provides `Source Attribution` for Open Food Facts (`https://world.openfoodfacts.org`), `Dataset Snapshot` metadata, and nullable `pagination.next_cursor` (`null` for Barcode queries).
+    - Valid Barcodes look up zero or one Product summary from the Dataset Snapshot independently of text index readiness.
+    - If the Product is absent from the Dataset Snapshot, HTTP 200 is returned with an empty products list (`data.products: []`).
+    - If the Product is found, HTTP 200 is returned with a single `ProductSummary` item.
+    - `ProductSummary` includes `barcode`, selected `name` (`OriginalText` provenance), `brands`, `quantity`, `thumbnail` (`SourceImage` provenance), and individual `Source Attribution` (`https://world.openfoodfacts.org/product/{barcode}`). It does not calculate full Product details or invoke `Khmer Translation`.
+    - Top-level `meta` provides `Source Attribution` for Open Food Facts (`https://world.openfoodfacts.org`), `Dataset Snapshot` metadata, and nullable `pagination.next_cursor` (`null` for Barcode queries).
 
 4. **Text Search Indexing & Readiness**:
-   - Search index lifecycle creates a schema version 1 compound index collection per active Dataset Snapshot.
-   - Indexes include `ix_search_name_tokens` (`name_tokens: 1`), `ix_search_brand_tokens` (`brand_tokens: 1`), and `ix_search_sort` (`name_sort: 1, code: 1`).
-   - Only records with valid Barcodes (`normalize_identifier`) are indexed; invalid `Source Records` increment `excluded_count`.
-   - Manifest metadata (`search_index`) tracks `status: "READY"`, `schema_version: 1`, `document_count`, and `excluded_count`.
-   - If the search index is missing, incompatible, or not ready, text searches return HTTP 503 with error code `search_unavailable`, while Barcode searches continue to operate without degradation.
+    - Search index lifecycle creates a schema version 1 compound index collection per active Dataset Snapshot.
+    - Indexes include `ix_search_name_tokens` (`name_tokens: 1`), `ix_search_brand_tokens` (`brand_tokens: 1`), and `ix_search_sort` (`name_sort: 1, code: 1`).
+    - Only records with valid Barcodes (`normalize_identifier`) are indexed; invalid `Source Records` increment `excluded_count`.
+    - Manifest metadata (`search_index`) tracks `status: "READY"`, `schema_version: 1`, `document_count`, and `excluded_count`.
+    - If the search index is missing, incompatible, or not ready, text searches return HTTP 503 with error code `search_unavailable`, while Barcode searches continue to operate without degradation.
 
 5. **Text Ranking & Localized Name Selection**:
-   - Earlier terms strictly require complete tokens; the final term supports an escaped, anchored prefix. Typo tolerance, substring-anywhere matching, fuzzy retrieval, and cross-language retrieval are not supported.
-   - Results are ranked across four strict tiers:
-     - Exact brand match (`rank: 0`): the normalized query matches an entry in `brand_values`.
-     - Exact name match (`rank: 1`): the normalized query matches an entry in `name_values`.
-     - Complete-word token match (`rank: 2`): all query terms are present as complete tokens across `name_tokens` and/or `brand_tokens`.
-     - Remaining prefix match (`rank: 3`): earlier query terms match complete tokens, and the final query term matches as an anchored prefix (`^term`) on a token in `name_tokens` or `brand_tokens`.
-   - Compound ordering strictly follows `{"rank": 1, "name_sort": 1, "code": 1}`.
-   - Localized name display selection (`select_matching_name`) prioritizes the source name candidate matching the highest count of query terms. When query-term match counts tie, complete-token matches are preferred over prefix matches. Subsequent ties are broken by `record_language` -> `"en"` -> first listed name. If zero name terms match (e.g. pure brand match), standard Product Lookup name preference applies.
+    - Earlier terms strictly require complete tokens; the final term supports an escaped, anchored prefix. Typo tolerance, substring-anywhere matching, fuzzy retrieval, and cross-language retrieval are not supported.
+    - Results are ranked across four strict tiers:
+        - Exact brand match (`rank: 0`): the normalized query matches an entry in `brand_values`.
+        - Exact name match (`rank: 1`): the normalized query matches an entry in `name_values`.
+        - Complete-word token match (`rank: 2`): all query terms are present as complete tokens across `name_tokens` and/or `brand_tokens`.
+        - Remaining prefix match (`rank: 3`): earlier query terms match complete tokens, and the final query term matches as an anchored prefix (`^term`) on a token in `name_tokens` or `brand_tokens`.
+    - Compound ordering strictly follows `{"rank": 1, "name_sort": 1, "code": 1}`.
+    - Localized name display selection (`select_matching_name`) prioritizes the source name candidate matching the highest count of query terms. When query-term match counts tie, complete-token matches are preferred over prefix matches. Subsequent ties are broken by `record_language` -> `"en"` -> first listed name. If zero name terms match (e.g. pure brand match), standard Product Lookup name preference applies.
 
 6. **Keyset Pagination & Timeout**:
-   - Page continuation uses keyset evaluation against the compound sort key across all ranking tiers (`rank: 0, 1, 2, 3`) without offset skipping:
-     `{"$or": [{"rank": {"$gt": r0}}, {"rank": r0, "name_sort": {"$gt": n0}}, {"rank": r0, "name_sort": n0, "code": {"$gt": c0}}]}`.
-   - Each page retrieves up to 20 products. Keyset queries fetch 21 records to generate `next_cursor` without secondary count queries.
-   - When no subsequent results remain, `pagination.next_cursor` is `null`.
-   - Text retrieval shares a two-second execution budget across ordered complete-match and remaining-prefix queries; each MongoDB command receives the remaining `maxTimeMS`. Complete matches rank tiers 0–2 together to avoid repeated candidate scans; the disjoint remaining-prefix query runs only when needed. Queries stop once 21 results have been found. One- or two-character final prefixes use a bounded 129-candidate probe: at most 128 candidates can be sorted as a complete set in memory; larger sets use the existing name/Barcode sort index with early termination. Longer prefixes retain indexed candidate retrieval. Budget exhaustion returns HTTP 503 `search_timeout`, never partial success.
+    - Page continuation uses keyset evaluation against the compound sort key across all ranking tiers (`rank: 0, 1, 2, 3`) without offset skipping:
+      `{"$or": [{"rank": {"$gt": r0}}, {"rank": r0, "name_sort": {"$gt": n0}}, {"rank": r0, "name_sort": n0, "code": {"$gt": c0}}]}`.
+    - Each page retrieves up to 20 products. Keyset queries fetch 21 records to generate `next_cursor` without secondary count queries.
+    - When no subsequent results remain, `pagination.next_cursor` is `null`.
+    - Text retrieval shares a two-second execution budget across ordered complete-match and remaining-prefix queries; each MongoDB command receives the remaining `maxTimeMS`. Complete matches rank tiers 0–2 together to avoid repeated candidate scans; the disjoint remaining-prefix query runs only when needed. Queries stop once 21 results have been found. One- or two-character final prefixes use a bounded 129-candidate probe: at most 128 candidates can be sorted as a complete set in memory; larger sets use the existing name/Barcode sort index with early termination. Longer prefixes retain indexed candidate retrieval. Budget exhaustion returns HTTP 503 `search_timeout`, never partial success.
 
 7. **Rate Limiting & Privacy**:
-   - Anonymous per-IP rate limiting operates independently under `LIFEGOODS_PRODUCT_SEARCH_REQUESTS_PER_MINUTE` (default 60), returning HTTP 429 `rate_limit_exceeded`.
-   - Search queries, Barcodes, and client IP addresses are redacted from access logs and omitted from operational metrics.
-
+    - Anonymous per-IP rate limiting operates independently under `LIFEGOODS_PRODUCT_SEARCH_REQUESTS_PER_MINUTE` (default 60), returning HTTP 429 `rate_limit_exceeded`.
+    - Search queries, Barcodes, and client IP addresses are redacted from access logs and omitted from operational metrics.
 
 ## 26. Full-dataset Product Search validation (Issue #107)
 
@@ -870,7 +890,6 @@ non-base64 `!!!!` to a valid cursor then returned 200 instead of the required 42
 Section 27 records the subsequent fixes and remaining acceptance failures. The
 benchmark-only rate-limit settings did not change normal runtime limits. No
 frontend UI, Dataset Snapshot rotation, or Khmer Translation generation was added.
-
 
 ## 27. Product Search review fixes (PR #108)
 
@@ -973,8 +992,8 @@ second implementation. The stable endpoints are:
   automatically. Client-submitted extraction objects are revalidated at this
   boundary because they cannot be certified as provider-produced.
 
-Compare Products is reachable at `/compare`, with a visible entry point alongside
-scanning; previously published photo-comparison URLs redirect to `/compare`. The
+Compare Products is reachable at `/compare` as a destination in the primary
+navigation; previously published photo-comparison URLs redirect to `/compare`. The
 page accepts one to three JPEG/PNG photos per Product through camera capture or
 file selection, shows previews that can be enlarged, supports add/remove/replace,
 and presents distinct editable Product A and Product B identities. A wrapped
@@ -1047,10 +1066,10 @@ Photo comparison errors use the same JSON envelope for every failure:
 
 ```json
 {
-  "error": {
-    "code": "provider_timeout",
-    "message": "The extraction provider timed out."
-  }
+    "error": {
+        "code": "provider_timeout",
+        "message": "The extraction provider timed out."
+    }
 }
 ```
 

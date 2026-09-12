@@ -5,13 +5,10 @@ import {
     MagnifyingGlassIcon,
     PauseIcon,
     PlayIcon,
-    ScalesIcon,
     WarningCircleIcon,
 } from "@phosphor-icons/react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router"
-
-import { appRoutes } from "@/app/routes"
 
 import { CameraAperture } from "@/components/camera/CameraAperture"
 import { Button } from "@/components/ui/button"
@@ -145,15 +142,6 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
             e.preventDefault()
             releaseCamera()
             void navigate("/search")
-        },
-        [navigate, releaseCamera],
-    )
-
-    const handleCompareNavigation = useCallback(
-        (e: React.MouseEvent<HTMLAnchorElement>) => {
-            e.preventDefault()
-            releaseCamera()
-            void navigate(appRoutes.compare)
         },
         [navigate, releaseCamera],
     )
@@ -576,32 +564,6 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                     <span className="flex-1 truncate text-sm font-medium text-neutral-500 transition-colors group-hover:text-neutral-800">
                         {text.searchPlaceholder}
                     </span>
-                </Link>
-
-                <Link
-                    to={appRoutes.compare}
-                    onClick={handleCompareNavigation}
-                    aria-label={text.compareProducts}
-                    className={cn(
-                        "group flex h-13 w-full items-center gap-3 rounded-2xl border border-neutral-200/90 bg-white px-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)] transition-all duration-150 select-none",
-                        "focus-visible:ring-primary-500 hover:border-neutral-300 hover:shadow-md focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.99]",
-                    )}
-                >
-                    <span className="group-hover:bg-primary-50 group-hover:text-primary-700 grid size-8 place-items-center rounded-xl bg-neutral-100 text-neutral-500 transition-colors">
-                        <ScalesIcon
-                            size={18}
-                            weight="bold"
-                            aria-hidden="true"
-                        />
-                    </span>
-                    <div className="flex min-w-0 flex-1 flex-col text-left">
-                        <span className="group-hover:text-primary-950 truncate text-sm font-semibold text-neutral-900">
-                            {text.compareProducts}
-                        </span>
-                        <span className="truncate text-xs text-neutral-500">
-                            {text.compareProductsHint}
-                        </span>
-                    </div>
                 </Link>
             </div>
         </main>

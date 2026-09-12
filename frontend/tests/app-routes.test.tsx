@@ -40,6 +40,7 @@ describe("Life Goods routes", () => {
             "page",
         )
         expect(screen.getByRole("link", { name: "Learn" })).toBeVisible()
+        expect(screen.getByRole("link", { name: "Compare" })).toBeVisible()
         expect(screen.getByRole("link", { name: "Concerns" })).toBeVisible()
         expect(
             within(navigation).queryByRole("link", { name: "Search" }),
@@ -132,5 +133,17 @@ describe("Life Goods routes", () => {
             "aria-current",
             "page",
         )
+    })
+
+    test("marks Compare as current in the bottom navigation on /compare", () => {
+        renderRoute("/compare")
+
+        expect(screen.getByRole("link", { name: "Compare" })).toHaveAttribute(
+            "aria-current",
+            "page",
+        )
+        expect(
+            screen.getByRole("navigation", { name: "Primary navigation" }),
+        ).toBeVisible()
     })
 })

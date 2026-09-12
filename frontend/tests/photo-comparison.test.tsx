@@ -639,18 +639,16 @@ describe("Compare Products frontend page (/compare)", () => {
         ).toBeInTheDocument()
     })
 
-    test("renders a visible entry point alongside scanning that navigates to /compare", async () => {
+    test("is reached from the primary navigation, not from the Scan page", async () => {
         const user = userEvent.setup()
         renderRoute("/")
 
-        const compareLink = screen.getByRole("link", {
-            name: /Compare Products/i,
-        })
-        expect(compareLink).toBeInTheDocument()
-        expect(compareLink).toHaveAttribute("href", "/compare")
         expect(
-            screen.getByText(/Compare nutrition labels using photos/i),
-        ).toBeInTheDocument()
+            screen.queryByRole("link", { name: /Compare Products/i }),
+        ).not.toBeInTheDocument()
+
+        const compareLink = screen.getByRole("link", { name: "Compare" })
+        expect(compareLink).toHaveAttribute("href", "/compare")
 
         await user.click(compareLink)
 
@@ -660,6 +658,10 @@ describe("Compare Products frontend page (/compare)", () => {
                 name: "Compare Products",
             }),
         ).toBeInTheDocument()
+        expect(screen.getByRole("link", { name: "Compare" })).toHaveAttribute(
+            "aria-current",
+            "page",
+        )
     })
 
     test("allows editing product titles and resetting the session", async () => {

@@ -1,6 +1,7 @@
 import {
     BookOpenTextIcon,
     ListChecksIcon,
+    ScalesIcon,
     ScanIcon,
 } from "@phosphor-icons/react"
 import { type ReactNode, useEffect, useState } from "react"
@@ -25,6 +26,11 @@ const navigation = [
         label: "Scan",
         icon: ScanIcon,
         end: true,
+    },
+    {
+        to: appRoutes.compare,
+        label: "Compare",
+        icon: ScalesIcon,
     },
     {
         to: appRoutes.concerns,
@@ -72,10 +78,10 @@ export function AppShell({ children }: AppShellProps) {
                 {showPrimaryNavigation && (
                     <nav
                         data-glass-surface=""
-                        className="glass-surface fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-40 w-[calc(100%-2rem)] max-w-[17.5rem] -translate-x-1/2 rounded-full p-1 select-none"
+                        className="glass-surface fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-40 w-[calc(100%-2rem)] max-w-[20rem] -translate-x-1/2 rounded-full p-1 select-none"
                         aria-label="Primary navigation"
                     >
-                        <div className="grid min-h-[3.125rem] w-full grid-cols-3 items-stretch gap-1">
+                        <div className="grid min-h-[3.125rem] w-full grid-cols-4 items-stretch gap-1">
                             {navigation.map(
                                 ({ to, label, icon: Icon, ...props }) => {
                                     const isEnd =

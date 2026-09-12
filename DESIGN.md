@@ -319,7 +319,7 @@ Illustrations (for empty states, educational guides, camera consent, and missing
 
 ### Navigation
 
-A centered floating glass capsule holds Learn, Scan, and Concerns, with 20px icons and 12px labels. It is at most 17.5rem (280px) wide and normally 60px tall, keeps at least 1rem side gutters, and sits 1rem above the bottom safe area. Each destination is at least 50px high; the active destination has a compact pale amber pill and deep amber text. Reserve 5.75rem plus the safe area below page content. Existing visibility rules remain: hidden on Search and during the active Compare workflow, visible on the Compare landing screen. Compare's Back/Next dock uses the same material. Product section navigation and other page controls retain their existing styling.
+A centered floating glass capsule holds Learn, Scan, Compare, and Concerns, with 20px icons and 12px labels. It is at most 20rem (320px) wide and normally 60px tall, keeps at least 1rem side gutters, and sits 1rem above the bottom safe area. Each destination is at least 50px high; the active destination has a compact pale amber pill and deep amber text. Reserve 5.75rem plus the safe area below page content. Existing visibility rules remain: hidden on Search and during the active Compare workflow, visible on the Compare landing screen. Compare's Back/Next dock uses the same material. Product section navigation and other page controls retain their existing styling.
 
 ### Scanner Aperture (signature)
 
