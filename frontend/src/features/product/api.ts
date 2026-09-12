@@ -1,59 +1,38 @@
+import { getProduct } from "@/api/generated"
 import type { ProductProjectionResponse } from "@/api/generated"
-import type { ProductLookupResponse } from "./types"
-import staticProducts from "@/data/products.json"
 import { normalizeIdentifier } from "@/lib/identifier"
-import { getCachedOpenFoodFactsProduct } from "@/features/search/openFoodFacts"
-import { unavailableAllergenAnalysis } from "./defaults"
+import type { ProductLookupResponse } from "./types"
 
 export type ProductLookup = (
     barcode: string,
 ) => Promise<ProductLookupResponse | ProductProjectionResponse>
 
-type StaticProduct = {
-    meta: ProductLookupResponse["meta"]
-    source_record: ProductLookupResponse["data"]["source_record"]
-}
-
-const staticProductByBarcode = new Map(
-    (staticProducts as unknown as StaticProduct[]).map((product) => [
-        product.meta.lookup.barcode,
-        product,
-    ]),
-)
-
 /**
- * Looks up a Product from the checked-in Dataset Snapshot or a Product recently
- * returned by the temporary Open Food Facts brand-search fallback.
+ * Looks up a Product from the backend's selected Dataset Snapshot.
  */
 export const lookupProduct = (
     barcode: string,
-): Promise<ProductLookupResponse> => {
+): Promise<ProductProjectionResponse> => {
     const normalizedBarcode = normalizeIdentifier(barcode)
-    const product = staticProductByBarcode.get(normalizedBarcode)
-
-    if (!product) {
-        const cachedProduct = getCachedOpenFoodFactsProduct(normalizedBarcode)
-        if (cachedProduct) return Promise.resolve(cachedProduct)
-
-        const error = new Error("Product not found") as Error & {
-            status: number
-            code: string
-            error: { code: string; message: string }
+    return getProduct({
+        path: { barcode: normalizedBarcode },
+        throwOnError: false,
+    }).then((response) => {
+        if (response.error) {
+            const detail = response.error.error
+            const error = new Error(detail.message) as Error & {
+                status: number
+                code: string
+                error: typeof detail
+            }
+            error.status = response.response.status
+            error.code = detail.code
+            error.error = detail
+            throw error
         }
-        error.status = 404
-        error.code = "product_not_found"
-        error.error = {
-            code: "product_not_found",
-            message: "Product not found",
+        if (!response.data) {
+            throw new Error("Product Lookup returned no data")
         }
-        return Promise.reject(error)
-    }
-
-    return Promise.resolve({
-        data: {
-            source_record: product.source_record,
-            allergen_analysis: unavailableAllergenAnalysis,
-        },
-        meta: product.meta,
+        return response.data
     })
 }
