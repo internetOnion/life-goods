@@ -975,7 +975,7 @@ second implementation. The stable endpoints are:
 
 Compare Products is reachable at `/compare`, with a visible entry point alongside
 scanning; previously published photo-comparison URLs redirect to `/compare`. The
-page accepts one to six JPEG/PNG photos per Product through camera capture or
+page accepts one to three JPEG/PNG photos per Product through camera capture or
 file selection, shows previews that can be enlarged, supports add/remove/replace,
 and presents distinct editable Product A and Product B identities. A wrapped
 label or separate package-weight panel can be included across multiple photos.
@@ -1074,7 +1074,7 @@ semantics rather than introducing a second comparison engine. The reviewed
 multilingual corpus and transcription tool from #111 remain deferred and are not
 treated as completed requirements.
 
-The integration defaults are one to six JPEG or PNG photos per Product, 10 MiB
+The integration defaults are one to three JPEG or PNG photos per Product, 10 MiB
 per photo, 32 MiB per request, 25 megapixels per decoded image, 1 MiB per
 extraction or comparison response, and 1 MiB for the comparison request JSON,
 at most eight nutrition columns, 100 fields per column, and 4,096 characters

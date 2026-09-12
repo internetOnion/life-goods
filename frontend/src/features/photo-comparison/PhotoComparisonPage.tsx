@@ -2,9 +2,7 @@ import {
     ArrowCounterClockwise,
     ArrowLeft,
     ArrowRight,
-    Camera,
     Scales,
-    UploadSimple,
     X,
 } from "@phosphor-icons/react"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -12,9 +10,14 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { GlassButton as Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { usePageMetadata } from "@/lib/metadata"
+import { cn } from "@/lib/utils"
 import { useAppShellNavigation } from "@/ui/AppShellNavigation"
 
-import { compareProducts, extractProductPhotos } from "./api"
+import {
+    compareProducts,
+    extractProductPhotos,
+    PhotoComparisonApiError,
+} from "./api"
 import { ColumnSelectionModal } from "./ColumnSelectionModal"
 import { ComparisonSection } from "./ComparisonSection"
 import { CompareStepper } from "./CompareStepper"
@@ -31,8 +34,8 @@ import type {
     ProductPhoto,
     ProductSideState,
 } from "./types"
+import { MAX_PHOTOS_PER_PRODUCT } from "./types"
 
-const MAX_PHOTOS = 6
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 // 10 MiB
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png"]
 type CompareSide = "left" | "right"
@@ -80,6 +83,12 @@ function isAbortError(err: unknown): boolean {
     return false
 }
 
+function actionableRequestError(err: unknown, fallback: string): string {
+    const message = err instanceof Error ? err.message : fallback
+    const code = err instanceof PhotoComparisonApiError ? err.code : undefined
+    return formatActionableError(message, code)
+}
+
 export type PhotoComparisonPageProps = {
     extractPhotos?: typeof extractProductPhotos
     compare?: typeof compareProducts
@@ -93,7 +102,7 @@ export function PhotoComparisonPage({
 
     usePageMetadata({
         title: "Compare Products",
-        description: "Compare nutrition from two label photos.",
+        description: "Compare nutrition from label photos for two Products.",
     })
 
     const [leftProduct, setLeftProduct] = useState<ProductSideState>(() =>
@@ -164,6 +173,11 @@ export function PhotoComparisonPage({
     const getProductForSide = (side: CompareSide) =>
         side === "left" ? leftProduct : rightProduct
 
+    const handleStartProductCapture = () => {
+        setActiveSide("left")
+        setFlowPhase("capture")
+    }
+
     const handleOpenLibrary = (side: CompareSide) => {
         setActiveSide(side)
         setFlowPhase("capture")
@@ -190,13 +204,12 @@ export function PhotoComparisonPage({
             return
         }
 
-        setFlowPhase("ready")
+        setFlowPhase(comparison ? "results" : "ready")
     }
 
     const handleEditSide = (side: CompareSide) => {
         setActiveSide(side)
         setFlowPhase("review")
-        invalidateComparison()
     }
 
     const handleBackFromSide = (side: CompareSide) => {
@@ -206,7 +219,7 @@ export function PhotoComparisonPage({
             return
         }
 
-        setFlowPhase("intro")
+        setFlowPhase(comparison ? "results" : "intro")
     }
 
     const abortInFlightExtraction = (side?: "left" | "right") => {
@@ -411,11 +424,11 @@ export function PhotoComparisonPage({
         const setProduct = side === "left" ? setLeftProduct : setRightProduct
 
         setProduct((prev) => {
-            const available = MAX_PHOTOS - prev.photos.length
+            const available = MAX_PHOTOS_PER_PRODUCT - prev.photos.length
             if (available <= 0) {
                 return {
                     ...prev,
-                    error: "Maximum of 6 photos per Product reached.",
+                    error: `Maximum of ${MAX_PHOTOS_PER_PRODUCT} photos per Product reached.`,
                 }
             }
 
@@ -689,11 +702,12 @@ export function PhotoComparisonPage({
                     ) {
                         return
                     }
-                    const raw =
-                        err instanceof Error
-                            ? err.message
-                            : "The comparison request failed."
-                    setComparisonError(formatActionableError(raw))
+                    setComparisonError(
+                        actionableRequestError(
+                            err,
+                            "The comparison request failed.",
+                        ),
+                    )
                     setFlowPhase("ready")
                 } finally {
                     if (compareAbortControllerRef.current === compController) {
@@ -809,11 +823,10 @@ export function PhotoComparisonPage({
                     ) {
                         return
                     }
-                    const raw =
-                        err instanceof Error
-                            ? err.message
-                            : "The extraction request failed. Check the provider and retry."
-                    const message = formatActionableError(raw)
+                    const message = actionableRequestError(
+                        err,
+                        "The extraction request failed. Check the provider and retry.",
+                    )
                     setLeftProduct((prev) => {
                         if (prev.revision !== initialLeftRevision) return prev
                         return {
@@ -925,11 +938,10 @@ export function PhotoComparisonPage({
                     ) {
                         return
                     }
-                    const raw =
-                        err instanceof Error
-                            ? err.message
-                            : "The extraction request failed. Check the provider and retry."
-                    const message = formatActionableError(raw)
+                    const message = actionableRequestError(
+                        err,
+                        "The extraction request failed. Check the provider and retry.",
+                    )
                     setRightProduct((prev) => {
                         if (prev.revision !== rightRevision) return prev
                         return {
@@ -1017,11 +1029,12 @@ export function PhotoComparisonPage({
                 ) {
                     return
                 }
-                const raw =
-                    err instanceof Error
-                        ? err.message
-                        : "The comparison request failed. Retry when both extractions are ready."
-                setComparisonError(formatActionableError(raw))
+                setComparisonError(
+                    actionableRequestError(
+                        err,
+                        "The comparison request failed. Retry when both extractions are ready.",
+                    ),
+                )
                 setFlowPhase("ready")
             } finally {
                 if (compareAbortControllerRef.current === compController) {
@@ -1071,13 +1084,14 @@ export function PhotoComparisonPage({
         }
     }
 
-    const currentCompareStep: 1 | 2 | 3 = comparison
-        ? 3
-        : flowPhase === "ready"
-          ? 3
-          : activeSide === "left"
-            ? 1
-            : 2
+    const currentCompareStep: 1 | 2 | 3 =
+        flowPhase === "ready" ||
+        flowPhase === "processing" ||
+        flowPhase === "results"
+            ? 3
+            : activeSide === "left"
+              ? 1
+              : 2
 
     const handleStepChange = (step: 1 | 2 | 3) => {
         if (processingStep !== "idle") return
@@ -1102,6 +1116,11 @@ export function PhotoComparisonPage({
             return
         }
 
+        if (comparison) {
+            setFlowPhase("results")
+            return
+        }
+
         if (isReadyToCompare) {
             setFlowPhase("ready")
         }
@@ -1122,17 +1141,22 @@ export function PhotoComparisonPage({
                                 Compare nutrition from two label photos.
                             </p>
                         </div>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={handleResetSession}
-                            aria-label="Reset session"
-                            title="Reset session"
-                            className="size-10 shrink-0 rounded-xl text-neutral-700 hover:text-neutral-900 sm:size-11"
-                        >
-                            <ArrowCounterClockwise size={18} weight="bold" />
-                        </Button>
+                        {flowPhase !== "intro" && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={handleResetSession}
+                                aria-label="Reset session"
+                                title="Reset session"
+                                className="size-10 shrink-0 rounded-xl text-neutral-700 hover:text-neutral-900 sm:size-11"
+                            >
+                                <ArrowCounterClockwise
+                                    size={18}
+                                    weight="bold"
+                                />
+                            </Button>
+                        )}
                     </div>
 
                     {(processingStep !== "idle" ||
@@ -1307,11 +1331,12 @@ export function PhotoComparisonPage({
                                         id="compare-intro-heading"
                                         className="text-xl font-extrabold tracking-tight text-neutral-950 sm:text-2xl"
                                     >
-                                        Add photos for both Products
+                                        Compare two Products
                                     </h2>
                                     <p className="mt-2 text-sm leading-relaxed text-neutral-600 sm:text-base">
-                                        Use a clear, well-lit Nutrition Facts
-                                        panel for each Product.
+                                        Add a clear Nutrition Facts photo for
+                                        each Product. You can take a photo or
+                                        choose one from your library.
                                     </p>
                                 </div>
                             </div>
@@ -1319,31 +1344,14 @@ export function PhotoComparisonPage({
                             <div className="mt-5 flex flex-col gap-2 sm:flex-row">
                                 <Button
                                     type="button"
-                                    onClick={() =>
-                                        handleOpenDeviceCamera("left")
-                                    }
+                                    onClick={handleStartProductCapture}
                                     className="shadow-action-lift h-12 gap-2 rounded-xl px-5 font-extrabold"
                                 >
-                                    <Camera size={19} weight="bold" />
-                                    <span>Take Product A photo</span>
-                                    <ArrowRight size={17} weight="bold" />
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => handleOpenLibrary("left")}
-                                    className="h-12 gap-2 rounded-xl px-5 font-bold text-neutral-800"
-                                >
-                                    <UploadSimple size={17} weight="bold" />
-                                    <span>Choose Product A photo</span>
+                                    <ArrowRight size={19} weight="bold" />
+                                    <span>Get started</span>
                                 </Button>
                             </div>
 
-                            <p className="mt-4 max-w-2xl text-xs leading-relaxed text-neutral-500">
-                                Photos are sent to the configured AI provider
-                                for processing. Life Goods does not retain
-                                photos or comparison history.
-                            </p>
                             {(leftProduct.error || rightProduct.error) && (
                                 <p
                                     className="border-error-200 bg-error-50 text-error-800 mt-4 rounded-xl border p-3 text-sm font-medium"
@@ -1518,7 +1526,11 @@ export function PhotoComparisonPage({
                                         <Button
                                             type="button"
                                             variant="ghost"
-                                            aria-label="Back to start"
+                                            aria-label={
+                                                comparison
+                                                    ? "Back to comparison results"
+                                                    : "Back to start"
+                                            }
                                             disabled={processingStep !== "idle"}
                                             onClick={() =>
                                                 handleBackFromSide("left")
@@ -1554,7 +1566,9 @@ export function PhotoComparisonPage({
                                         aria-label={
                                             activeSide === "left"
                                                 ? "Continue to Product B"
-                                                : "Review both Products"
+                                                : comparison
+                                                  ? "Return to comparison results"
+                                                  : "Review both Products"
                                         }
                                         disabled={
                                             processingStep !== "idle" ||
@@ -1572,7 +1586,9 @@ export function PhotoComparisonPage({
                                         <span>
                                             {activeSide === "left"
                                                 ? "Next"
-                                                : "Review"}
+                                                : comparison
+                                                  ? "Results"
+                                                  : "Review"}
                                         </span>
                                         <ArrowRight size={17} weight="bold" />
                                     </Button>
@@ -1587,18 +1603,25 @@ export function PhotoComparisonPage({
                                 processingStep === "idle")) && (
                             <div className="mt-4 flex flex-col gap-3 border-t border-neutral-200/80 pt-4 sm:flex-row sm:items-center sm:justify-between">
                                 <div className="min-w-0">
-                                    <p className="text-sm font-bold text-neutral-900">
-                                        {isReadyToCompare
-                                            ? "Ready to compare."
-                                            : "Add a photo for each Product."}
-                                    </p>
                                     <p
-                                        className="mt-1 text-xs leading-relaxed text-neutral-500"
+                                        className={cn(
+                                            "text-sm leading-relaxed",
+                                            comparisonError
+                                                ? "text-error-700 font-bold"
+                                                : isReadyToCompare
+                                                  ? "font-bold text-neutral-900"
+                                                  : "font-medium text-neutral-700",
+                                        )}
                                         role={
                                             comparisonError ? "alert" : "status"
                                         }
                                     >
                                         {comparisonStatus}
+                                    </p>
+                                    <p className="mt-1 text-xs leading-relaxed text-neutral-500">
+                                        Photos are processed by the configured
+                                        AI provider and are not retained by Life
+                                        Goods.
                                     </p>
                                 </div>
                                 <Button
@@ -1620,7 +1643,7 @@ export function PhotoComparisonPage({
                 </div>
 
                 {/* Results panel */}
-                {comparison && (
+                {comparison && flowPhase === "results" && (
                     <div
                         id="compare-step-panel-3"
                         role="region"

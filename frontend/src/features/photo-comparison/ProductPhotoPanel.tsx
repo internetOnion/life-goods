@@ -27,6 +27,7 @@ import type {
     NutritionColumn,
     ProductSideState,
 } from "./types"
+import { MAX_PHOTOS_PER_PRODUCT } from "./types"
 
 interface ProductPhotoPanelProps {
     product: ProductSideState
@@ -121,7 +122,8 @@ export function ProductPhotoPanel({
                         Photos
                     </span>
                     <p className="shrink-0 text-xs font-medium text-neutral-600">
-                        {product.photos.length} of 6 selected
+                        {product.photos.length} of {MAX_PHOTOS_PER_PRODUCT}{" "}
+                        selected
                     </p>
                 </div>
             </header>
@@ -159,8 +161,8 @@ export function ProductPhotoPanel({
                                 Add a Nutrition Facts photo
                             </h3>
                             <p className="mt-2 max-w-md text-sm leading-relaxed text-neutral-600">
-                                Use a clear, well-lit photo of the complete
-                                panel.
+                                Start with one clear, well-lit photo of the
+                                complete panel.
                             </p>
                             <Button
                                 type="button"
@@ -174,7 +176,8 @@ export function ProductPhotoPanel({
 
                         <div className="flex flex-col items-center justify-between gap-2 border-t border-neutral-200/80 pt-3 text-center sm:flex-row sm:text-left">
                             <span className="text-xs text-neutral-500">
-                                JPEG or PNG · up to 6 photos
+                                JPEG or PNG · up to {MAX_PHOTOS_PER_PRODUCT}{" "}
+                                photos
                             </span>
                             <Button
                                 type="button"
@@ -183,33 +186,40 @@ export function ProductPhotoPanel({
                                 className="h-11 gap-2 rounded-xl px-4 font-bold text-neutral-800"
                             >
                                 <UploadSimple size={17} weight="bold" />
-                                <span>Choose photo</span>
+                                <span>Choose from library</span>
                             </Button>
                         </div>
                     </div>
                 ) : (
                     <div>
                         {/* Compact add photo actions when photos already exist */}
-                        {product.photos.length < 6 && (
-                            <div className="mb-3 flex flex-wrap items-center gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={onOpenCamera}
-                                    className="h-10 gap-1.5 rounded-xl px-3 text-xs font-bold"
-                                >
-                                    <Camera size={15} weight="bold" />
-                                    <span>Add another photo</span>
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={onOpenLibrary}
-                                    className="h-10 gap-1.5 rounded-xl px-3 text-xs font-bold text-neutral-600"
-                                >
-                                    <UploadSimple size={15} weight="bold" />
-                                    <span>Choose another</span>
-                                </Button>
+                        {product.photos.length < MAX_PHOTOS_PER_PRODUCT && (
+                            <div className="mb-3">
+                                <p className="mb-2 text-xs leading-relaxed text-neutral-500">
+                                    Optional photos can show the Product front,
+                                    package quantity, or a wrapped or additional
+                                    nutrition panel.
+                                </p>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={onOpenCamera}
+                                        className="h-10 gap-1.5 rounded-xl px-3 text-xs font-bold"
+                                    >
+                                        <Camera size={15} weight="bold" />
+                                        <span>Add another photo</span>
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={onOpenLibrary}
+                                        className="h-10 gap-1.5 rounded-xl px-3 text-xs font-bold text-neutral-600"
+                                    >
+                                        <UploadSimple size={15} weight="bold" />
+                                        <span>Add from library</span>
+                                    </Button>
+                                </div>
                             </div>
                         )}
                     </div>

@@ -302,6 +302,15 @@ def test_identity_and_column_references_are_checked() -> None:
         )
 
 
+def test_extraction_rejects_more_than_three_images() -> None:
+    with pytest.raises(ValidationError):
+        Extraction(
+            product_id="too-many-images",
+            images=[_image(f"panel-{index}") for index in range(4)],
+            outcome=ExtractionOutcome.COMPLETE,
+        )
+
+
 def test_image_ids_are_opaque_and_regions_are_bounded() -> None:
     with pytest.raises(ValidationError):
         _image("https://example.com/photo.jpg")

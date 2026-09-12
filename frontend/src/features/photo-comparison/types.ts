@@ -28,6 +28,8 @@ export type {
     ValueQualifier,
 } from "@/api/generated"
 
+export const MAX_PHOTOS_PER_PRODUCT = 3
+
 export interface ComparisonRequest {
     schema_version?: number
     left: import("@/api/generated").Extraction

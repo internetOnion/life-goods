@@ -6,7 +6,11 @@
 
 from __future__ import annotations
 
-PAGE = r"""<!doctype html>
+from lifegoods.photo_comparison.contracts import MAX_PHOTOS_PER_PRODUCT
+
+_MAX_PHOTOS_TOKEN = "__MAX_PHOTOS_PER_PRODUCT__"
+
+_PAGE_TEMPLATE = r"""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -135,7 +139,7 @@ PAGE = r"""<!doctype html>
       <p class="lede">Upload the complete current photo set for each Product. Gemini reads visible label evidence; this page keeps the printed wording, image links, and uncertainty in view while Python does only explicit unit arithmetic.</p>
       <div class="notice"><strong>Local, temporary evidence</strong> Photos and results stay in this browser session. Nothing is saved, and this experiment does not produce a health score, winner, or purchase advice.</div>
     </section>
-    <div class="toolbar"><div><h2>Choose two Products</h2><p>JPEG or PNG · 1–6 photos each · add a package-weight photo when needed</p></div><button id="reset-button" class="button outline" type="button">Reset session</button></div>
+    <div class="toolbar"><div><h2>Choose two Products</h2><p>Start with one clear Nutrition Facts photo · up to __MAX_PHOTOS_PER_PRODUCT__ photos each</p></div><button id="reset-button" class="button outline" type="button">Reset session</button></div>
     <section id="panels" class="panels" aria-label="Product photo panels"></section>
     <section class="comparison" aria-labelledby="comparison-title">
       <div class="comparison-head"><div><h2 id="comparison-title">Comparison</h2><p class="comparison-intro">Rows below are calculated from submitted photo evidence. A conditional row is visible but does not receive a numeric difference.</p></div><button id="compare-button" class="button outline" type="button" disabled>Compare Products</button></div>
@@ -145,6 +149,7 @@ PAGE = r"""<!doctype html>
     <p class="footer-note">Photo-derived evidence is separate from Open Food Facts Source Records and the ordinary Life Goods Shopper experience. Provider retention is governed by the configured Gemini service; this process keeps no application-side photo store.</p>
   </main>
   <script>
+    const MAX_PHOTOS_PER_PRODUCT = __MAX_PHOTOS_PER_PRODUCT__;
     const state = { products: [makeProduct("left", "Product A", "1"), makeProduct("right", "Product B", "2")], comparison: null };
     function makeProduct(id, title, number) { return { id, title, number, photos: [], extraction: null, selectedColumnId: null, loading: false, error: "", retry: false, revision: 0 }; }
     const $ = (id) => document.getElementById(id);
@@ -158,9 +163,9 @@ PAGE = r"""<!doctype html>
     function renderPanels() {
       $("panels").innerHTML = state.products.map((product) => `
         <article class="panel" aria-labelledby="${product.id}-title">
-          <header class="panel-head"><div class="panel-title"><span class="panel-number">${product.number}</span><div><h3 id="${product.id}-title">${escapeHtml(product.title)}</h3><p class="panel-subtitle">${product.photos.length} of 6 photos selected</p></div></div><input class="product-name" data-product-name="${product.id}" value="${escapeHtml(product.title)}" aria-label="${escapeHtml(product.title)} display name"></header>
+          <header class="panel-head"><div class="panel-title"><span class="panel-number">${product.number}</span><div><h3 id="${product.id}-title">${escapeHtml(product.title)}</h3><p class="panel-subtitle">${product.photos.length} of ${MAX_PHOTOS_PER_PRODUCT} photos selected</p></div></div><input class="product-name" data-product-name="${product.id}" value="${escapeHtml(product.title)}" aria-label="${escapeHtml(product.title)} display name"></header>
           <div class="panel-body">
-            <div class="dropzone"><strong>Add label photos</strong><span>Choose one or more JPEG/PNG files. The full set is sent on Extract.</span><input class="file-input" data-add="${product.id}" type="file" accept="image/jpeg,image/png" multiple></div>
+            <div class="dropzone"><strong>Add label photos</strong><span>Start with the Nutrition Facts panel. Optional photos can show the Product front, package quantity, or a wrapped or additional nutrition panel.</span><input class="file-input" data-add="${product.id}" type="file" accept="image/jpeg,image/png" multiple></div>
             <div class="previews" data-previews="${product.id}">${product.photos.map((photo, index) => `<figure class="preview" data-preview="${escapeHtml(photo.localId)}"><img src="${photo.url}" alt="${escapeHtml(product.title)} photo ${index + 1}"><span class="preview-label">Photo ${index + 1}</span><span class="preview-controls"><button class="icon-button" data-replace="${product.id}:${index}" type="button" title="Replace photo ${index + 1}" aria-label="Replace photo ${index + 1}">↻</button><button class="icon-button" data-remove="${product.id}:${index}" type="button" title="Remove photo ${index + 1}" aria-label="Remove photo ${index + 1}">×</button></span><input hidden data-replace-input="${product.id}:${index}" type="file" accept="image/jpeg,image/png"></figure>`).join("")}</div>
             <div class="panel-actions"><button class="button primary" data-extract="${product.id}" type="button" ${product.photos.length === 0 || product.loading ? "disabled" : ""}>${product.loading ? "Reading photos…" : product.extraction ? "Re-extract complete set" : product.error ? "Retry extraction" : "Extract visible facts"}</button><button class="button ghost" data-clear="${product.id}" type="button" ${product.photos.length === 0 ? "disabled" : ""}>Clear photos</button></div>
             <div class="status ${product.error ? "error" : product.loading ? "loading" : product.extraction ? "ok" : ""}" role="${product.error ? "alert" : "status"}">${product.error ? escapeHtml(product.error) : product.loading ? "Sending this Product’s complete current photo set to Gemini 3.8 Flash…" : product.extraction ? `Extraction ${escapeHtml(product.extraction.outcome)} · model ${escapeHtml(product.extraction.model || "Source Data Unavailable")}` : "Add photos to begin."}</div>
@@ -177,7 +182,7 @@ PAGE = r"""<!doctype html>
       document.querySelectorAll("[data-column-select]").forEach((select) => select.addEventListener("change", (event) => { const product = productById(event.target.dataset.columnSelect); product.selectedColumnId = event.target.value || null; invalidateComparison(); renderCompareButton(); }));
       document.querySelectorAll("[data-evidence]").forEach((button) => button.addEventListener("click", () => focusEvidence(button.dataset.evidence)));
     }
-    function addFiles(product, files) { if (!product) return; const available = 6 - product.photos.length; files.slice(0, available).forEach((file) => { if (!["image/jpeg", "image/png"].includes(file.type)) return; product.photos.push({ file, url: URL.createObjectURL(file), localId: crypto.randomUUID() }); }); invalidateProduct(product); render(); }
+    function addFiles(product, files) { if (!product) return; const available = MAX_PHOTOS_PER_PRODUCT - product.photos.length; files.slice(0, available).forEach((file) => { if (!["image/jpeg", "image/png"].includes(file.type)) return; product.photos.push({ file, url: URL.createObjectURL(file), localId: crypto.randomUUID() }); }); invalidateProduct(product); render(); }
     function removePhoto(product, index) { const removed = product.photos.splice(index, 1)[0]; if (removed) URL.revokeObjectURL(removed.url); invalidateProduct(product); render(); }
     function replacePhoto(product, index, file) { if (!file || !["image/jpeg", "image/png"].includes(file.type)) return; const old = product.photos[index]; if (old) URL.revokeObjectURL(old.url); product.photos[index] = { file, url: URL.createObjectURL(file), localId: crypto.randomUUID() }; invalidateProduct(product); render(); }
     function clearPhotos(product) { product.photos.forEach((photo) => URL.revokeObjectURL(photo.url)); product.photos = []; invalidateProduct(product); render(); }
@@ -199,6 +204,8 @@ PAGE = r"""<!doctype html>
   </script>
 </body>
 </html>"""
+
+PAGE = _PAGE_TEMPLATE.replace(_MAX_PHOTOS_TOKEN, str(MAX_PHOTOS_PER_PRODUCT))
 
 
 def photo_comparison_page() -> str:

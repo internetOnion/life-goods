@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import { App } from "../src/app/App"
 import { CameraCaptureSheet } from "../src/features/photo-comparison/CameraCaptureSheet"
 import { ComparisonSection } from "../src/features/photo-comparison/ComparisonSection"
+import { PhotoComparisonApiError } from "../src/features/photo-comparison/api"
+import { formatActionableError } from "../src/features/photo-comparison/helpers"
 import { PhotoComparisonPage } from "../src/features/photo-comparison/PhotoComparisonPage"
 import { PhotoInspectionModal } from "../src/features/photo-comparison/PhotoInspectionModal"
 import { ProductPhotoPanel } from "../src/features/photo-comparison/ProductPhotoPanel"
@@ -471,8 +473,8 @@ describe("Compare Products frontend page (/compare)", () => {
             screen.queryByRole("link", { name: /Return to scan/i }),
         ).not.toBeInTheDocument()
         expect(
-            screen.getByRole("button", { name: /Reset session/i }),
-        ).toBeInTheDocument()
+            screen.queryByRole("button", { name: /Reset session/i }),
+        ).not.toBeInTheDocument()
         expect(
             screen.getByRole("navigation", { name: "Primary navigation" }),
         ).toBeVisible()
@@ -480,22 +482,22 @@ describe("Compare Products frontend page (/compare)", () => {
         expect(
             screen.getByRole("heading", {
                 level: 2,
-                name: "Add photos for both Products",
+                name: "Compare two Products",
             }),
         ).toBeInTheDocument()
         expect(
-            screen.getByRole("button", { name: /Take Product A photo/i }),
+            screen.getByRole("button", { name: "Get started" }),
         ).toBeInTheDocument()
         expect(
-            screen.getByRole("button", { name: /Choose Product A photo/i }),
-        ).toBeInTheDocument()
+            screen.queryByRole("button", { name: /Choose from library/i }),
+        ).not.toBeInTheDocument()
 
-        // AI provider disclosure statement before submission
+        // The starting card stays focused on the comparison task.
         expect(
-            screen.getAllByText(
-                /Photos are sent to the configured AI provider for processing\./i,
-            ).length,
-        ).toBeGreaterThan(0)
+            screen.queryByText(
+                /Photos are processed by the configured AI provider/i,
+            ),
+        ).not.toBeInTheDocument()
 
         // The intro has one clear path and no duplicate disabled Compare action.
         expect(
@@ -532,12 +534,20 @@ describe("Compare Products frontend page (/compare)", () => {
         const user = userEvent.setup()
         renderRoute("/compare")
 
-        await user.click(
-            screen.getByRole("button", { name: /Take Product A photo/i }),
-        )
         const cameraLeft = document.getElementById(
             "camera-photos-left",
         ) as HTMLInputElement
+        const cameraLeftClick = vi.spyOn(cameraLeft, "click")
+
+        await user.click(screen.getByRole("button", { name: "Get started" }))
+        expect(
+            screen.getByRole("button", { name: /Reset session/i }),
+        ).toBeInTheDocument()
+        expect(cameraLeftClick).not.toHaveBeenCalled()
+
+        await user.click(screen.getByRole("button", { name: /Take photo/i }))
+        expect(cameraLeftClick).toHaveBeenCalledTimes(1)
+
         expect(cameraLeft).toHaveAttribute("capture", "environment")
         expect(cameraLeft).toHaveAttribute("accept", "image/jpeg,image/png")
 
@@ -547,12 +557,28 @@ describe("Compare Products frontend page (/compare)", () => {
         fireEvent.change(cameraLeft, { target: { files: [dummyFileA] } })
         expect(screen.getByText("Photo 1")).toBeInTheDocument()
 
+        const cameraRight = document.getElementById(
+            "camera-photos-right",
+        ) as HTMLInputElement
+        const cameraRightClick = vi.spyOn(cameraRight, "click")
+        const uploadRight = document.getElementById(
+            "upload-photos-right",
+        ) as HTMLInputElement
+        const uploadRightClick = vi.spyOn(uploadRight, "click")
         await user.click(
             screen.getByRole("button", { name: /Continue to Product B/i }),
         )
+        expect(cameraRightClick).not.toHaveBeenCalled()
         expect(
             screen.getByText("Add a Nutrition Facts photo"),
         ).toBeInTheDocument()
+
+        await user.click(screen.getByRole("button", { name: /Take photo/i }))
+        expect(cameraRightClick).toHaveBeenCalledTimes(1)
+        await user.click(
+            screen.getByRole("button", { name: /Choose from library/i }),
+        )
+        expect(uploadRightClick).toHaveBeenCalledTimes(1)
 
         const backBtn = screen.getByRole("button", {
             name: /Back to Product A/i,
@@ -563,9 +589,6 @@ describe("Compare Products frontend page (/compare)", () => {
         await user.click(
             screen.getByRole("button", { name: /Continue to Product B/i }),
         )
-        const uploadRight = document.getElementById(
-            "upload-photos-right",
-        ) as HTMLInputElement
         const dummyFileB = new File(["test-image-b"], "sample-b.jpg", {
             type: "image/jpeg",
         })
@@ -576,6 +599,11 @@ describe("Compare Products frontend page (/compare)", () => {
         expect(
             screen.getByRole("button", { name: "Compare Products" }),
         ).toBeEnabled()
+        expect(
+            screen.getByText(
+                /Photos are processed by the configured AI provider and are not retained by Life Goods\./i,
+            ),
+        ).toBeInTheDocument()
 
         const resetButton = screen.getByRole("button", {
             name: /Reset session/i,
@@ -584,7 +612,7 @@ describe("Compare Products frontend page (/compare)", () => {
         expect(
             screen.getByRole("heading", {
                 level: 2,
-                name: "Add photos for both Products",
+                name: "Compare two Products",
             }),
         ).toBeInTheDocument()
         expect(
@@ -662,7 +690,7 @@ describe("Compare Products frontend page (/compare)", () => {
         expect(
             screen.getByRole("heading", {
                 level: 2,
-                name: "Add photos for both Products",
+                name: "Compare two Products",
             }),
         ).toBeInTheDocument()
     })
@@ -852,7 +880,71 @@ describe("Compare Products frontend page (/compare)", () => {
 
         // Factual results rendered
         expect(screen.getByText("Sodium")).toBeInTheDocument()
-        expect(screen.getByText("1,380 mg")).toBeInTheDocument()
+        expect(screen.getAllByText("1,380 mg").length).toBeGreaterThan(0)
+
+        // Step navigation hides, but does not invalidate, the in-memory result.
+        await user.click(screen.getByRole("tab", { name: /Product A/i }))
+        expect(
+            screen.queryByRole("region", { name: "Comparison results" }),
+        ).not.toBeInTheDocument()
+        expect(screen.getByRole("tab", { name: /Product A/i })).toHaveAttribute(
+            "aria-selected",
+            "true",
+        )
+
+        await user.click(screen.getByRole("tab", { name: /Compare/i }))
+        expect(
+            screen.getByRole("region", { name: "Comparison results" }),
+        ).toBeInTheDocument()
+        expect(extractPhotosMock).toHaveBeenCalledTimes(2)
+        expect(compareMock).toHaveBeenCalledTimes(1)
+
+        await user.click(screen.getByRole("tab", { name: /Product B/i }))
+        expect(
+            screen.queryByRole("region", { name: "Comparison results" }),
+        ).not.toBeInTheDocument()
+        await user.click(screen.getByRole("tab", { name: /Compare/i }))
+        expect(
+            screen.getByRole("region", { name: "Comparison results" }),
+        ).toBeInTheDocument()
+        expect(compareMock).toHaveBeenCalledTimes(1)
+
+        // A real input mutation still invalidates the stale result.
+        await user.click(screen.getByRole("tab", { name: /Product A/i }))
+        const replacementInput = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+        fireEvent.change(replacementInput, {
+            target: {
+                files: [
+                    new File(["new left image"], "new-left.jpg", {
+                        type: "image/jpeg",
+                    }),
+                ],
+            },
+        })
+        await user.click(screen.getByRole("tab", { name: /Compare/i }))
+        expect(
+            screen.queryByRole("region", { name: "Comparison results" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: "Compare Products" }),
+        ).toBeInTheDocument()
+        expect(compareMock).toHaveBeenCalledTimes(1)
+    })
+
+    test("turns provider contract errors into actionable Shopper guidance", () => {
+        const error = new PhotoComparisonApiError(
+            "provider_output_invalid",
+            "identity brands is not contract-valid",
+        )
+
+        expect(formatActionableError(error.message, error.code)).toBe(
+            "We couldn’t reliably read this label. Try a clearer photo and tap Retry.",
+        )
+        expect(formatActionableError(error.message, error.code)).not.toContain(
+            "contract-valid",
+        )
     })
 })
 
@@ -1074,7 +1166,7 @@ describe("ComparisonSection Shopper-ready presentation", () => {
         )
 
         // 1. Check normalized amounts are displayed prominently
-        expect(screen.getByText("1,380 mg")).toBeInTheDocument()
+        expect(screen.getAllByText("1,380 mg").length).toBeGreaterThan(0)
         expect(screen.getByText("1,500 mg")).toBeInTheDocument()
         // Product B printed value is shown underneath
         expect(screen.getByText("1.5 g")).toBeInTheDocument()
@@ -1093,6 +1185,16 @@ describe("ComparisonSection Shopper-ready presentation", () => {
         expect(
             screen.getByText("Package sizes may differ."),
         ).toBeInTheDocument()
+        expect(
+            screen.getByText("Preparation not stated on either label."),
+        ).toBeInTheDocument()
+        expect(screen.getByLabelText("Comparison summary")).toHaveTextContent(
+            "1 comparable nutrient · 1 unavailable",
+        )
+        expect(screen.queryByText(/unconfirmed/i)).not.toBeInTheDocument()
+        expect(
+            screen.getByLabelText("Evidence and calculation for Sodium"),
+        ).toHaveTextContent("Evidence & calculation")
 
         // 4. Label percentages remain available behind a closed disclosure.
         const percentageDisclosure = screen
@@ -1468,23 +1570,31 @@ describe("Photo inspection and UX features", () => {
         fireEvent.change(cameraInput, { target: { files: [cameraPhoto] } })
         expect(screen.getByText("Photo 1")).toBeInTheDocument()
 
-        // 4. Retaining 1 to 6 photos per Product; rejecting 7th photo with clear limit message
+        // 4. Retaining up to 3 photos per Product; rejecting a 4th photo with clear limit message
         const remainingPhotos = Array.from(
-            { length: 5 },
+            { length: 2 },
             (_, i) =>
                 new File([`photo ${i + 2}`], `p${i + 2}.jpg`, {
                     type: "image/jpeg",
                 }),
         )
         fireEvent.change(fileInput, { target: { files: remainingPhotos } })
-        expect(screen.getByText("Photo 6")).toBeInTheDocument()
+        expect(screen.getByText("Photo 3")).toBeInTheDocument()
+        expect(
+            screen.queryByRole("button", { name: /Add another photo/i }),
+        ).not.toBeInTheDocument()
 
-        const seventhPhoto = new File(["extra photo"], "extra.jpg", {
+        const fourthPhoto = new File(["extra photo"], "extra.jpg", {
             type: "image/jpeg",
         })
-        fireEvent.change(fileInput, { target: { files: [seventhPhoto] } })
+        fireEvent.change(fileInput, { target: { files: [fourthPhoto] } })
         expect(
-            screen.getByText(/Maximum of 6 photos per Product reached/i),
+            screen.getByText(/Maximum of 3 photos per Product reached/i),
+        ).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole("button", { name: /Remove photo 3/i }))
+        expect(
+            screen.getByRole("button", { name: /Add another photo/i }),
         ).toBeInTheDocument()
     })
 })
@@ -1812,9 +1922,11 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
             />,
         )
 
-        // Basis and preparation state stated for each value (and difference)
-        const basisLabels = screen.getAllByText("per 100 g · as sold")
-        expect(basisLabels.length).toBeGreaterThanOrEqual(2)
+        // Shared basis and preparation state are stated once above the values.
+        expect(
+            screen.getByText("Comparison basis: Per 100 g"),
+        ).toBeInTheDocument()
+        expect(screen.getByText("Preparation: as sold.")).toBeInTheDocument()
 
         // Leads with Product identities
         expect(
@@ -1826,7 +1938,7 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         expect(screen.getAllByText("Product B").length).toBeGreaterThan(0)
 
         // Evidence and details are placed behind accessible disclosure controls
-        const disclosures = screen.getAllByText("Details")
+        const disclosures = screen.getAllByText("Evidence & calculation")
         expect(disclosures.length).toBeGreaterThan(0)
     })
 
@@ -1987,12 +2099,12 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
 
         // 3. Nutrition table leads with comparison
         expect(screen.getByText("Sodium")).toBeInTheDocument()
-        expect(screen.getByText("1,380 mg")).toBeInTheDocument()
+        expect(screen.getAllByText("1,380 mg").length).toBeGreaterThan(0)
         expect(screen.getByText("+880 mg")).toBeInTheDocument()
         expect(screen.getByText("Crisps A has more")).toBeInTheDocument()
 
         // 4. Details sit behind accessible disclosure controls
-        const disclosures = screen.getAllByText("Details")
+        const disclosures = screen.getAllByText("Evidence & calculation")
         expect(disclosures.length).toBeGreaterThan(0)
         expect(
             screen
@@ -2009,7 +2121,8 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         expect(screen.getAllByText("View photo 1").length).toBeGreaterThan(0)
     })
 
-    test("handles partial extractions, unreadable values, and explicit zero distinct from missing data", () => {
+    test("handles partial extractions, unreadable values, and explicit zero distinct from missing data", async () => {
+        const user = userEvent.setup()
         const mockPartialComparison: ComparisonResponse = {
             schema_version: 1,
             calculated_from_submitted_evidence: true,
@@ -2172,7 +2285,7 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         )
 
         // 1. Explicit zero is shown as "0 g", NOT treated as missing
-        expect(screen.getByText("0 g")).toBeInTheDocument()
+        expect(screen.getAllByText("0 g").length).toBeGreaterThan(0)
         expect(screen.getByText("Product B has more")).toBeInTheDocument()
 
         // 2. Missing calcium on right product shows "Not found in these photos" and never zero
@@ -2187,7 +2300,21 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         ).toBeInTheDocument()
         expect(screen.getByText("4 mg")).toBeInTheDocument()
         expect(
-            screen.getByText("One or both observations are not readable."),
+            screen.queryByText("One or both observations are not readable."),
+        ).not.toBeInTheDocument()
+        expect(screen.queryByText("Not comparable")).not.toBeInTheDocument()
+        expect(
+            screen.queryByText("Not found in photos for the other product."),
+        ).not.toBeInTheDocument()
+
+        const calciumEvidence = screen.getByLabelText("Evidence for Calcium")
+        expect(calciumEvidence).toHaveTextContent("Evidence")
+        expect(calciumEvidence).not.toHaveTextContent("calculation")
+        await user.click(calciumEvidence)
+        expect(
+            screen.getByRole("button", {
+                name: "Calcium for Product A: view photo 1",
+            }),
         ).toBeInTheDocument()
     })
 
@@ -2997,7 +3124,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
             rows: [
                 {
                     row_kind: "amount",
-                    nutrient: "protein",
+                    nutrient: "stale_result",
                     state: "not_comparable",
                     reason: "Stale reason from col dry",
                 },
@@ -3007,9 +3134,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         await Promise.resolve()
 
         // Obsolete response 1 must be rejected and NOT rendered!
-        expect(
-            screen.queryByText("Stale reason from col dry"),
-        ).not.toBeInTheDocument()
+        expect(screen.queryByText("Stale Result")).not.toBeInTheDocument()
 
         // Now resolve comparison 2 with current data
         deferredCompare2.resolve({
@@ -3020,7 +3145,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
             rows: [
                 {
                     row_kind: "amount",
-                    nutrient: "protein",
+                    nutrient: "fresh_result",
                     state: "not_comparable",
                     reason: "Fresh reason from col prep",
                 },
@@ -3028,11 +3153,10 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         })
 
         // Fresh result 2 is rendered!
+        expect(await screen.findByText("Fresh Result")).toBeInTheDocument()
+        expect(screen.queryByText("Stale Result")).not.toBeInTheDocument()
         expect(
-            await screen.findByText("Fresh reason from col prep"),
-        ).toBeInTheDocument()
-        expect(
-            screen.queryByText("Stale reason from col dry"),
+            screen.queryByText("Fresh reason from col prep"),
         ).not.toBeInTheDocument()
     })
 
@@ -3143,7 +3267,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         expect(
             screen.getByRole("heading", {
                 level: 2,
-                name: "Add photos for both Products",
+                name: "Compare two Products",
             }),
         ).toBeInTheDocument()
         expect(

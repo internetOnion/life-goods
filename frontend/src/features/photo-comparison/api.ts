@@ -3,9 +3,33 @@ import {
     extractPhotoComparison,
     type ComparisonResponse,
     type Extraction,
+    type PhotoComparisonErrorCode,
     type PhotoComparisonErrorResponse,
 } from "@/api/generated"
 import type { ComparisonRequest } from "./types"
+
+export class PhotoComparisonApiError extends Error {
+    readonly code: PhotoComparisonErrorCode
+
+    constructor(code: PhotoComparisonErrorCode, message: string) {
+        super(message)
+        this.name = "PhotoComparisonApiError"
+        this.code = code
+    }
+}
+
+function apiError(
+    responseError: unknown,
+    fallbackMessage: string,
+): PhotoComparisonApiError {
+    const detail = (responseError as PhotoComparisonErrorResponse | undefined)
+        ?.error
+
+    return new PhotoComparisonApiError(
+        detail?.code ?? "internal_error",
+        detail?.message || fallbackMessage,
+    )
+}
 
 export async function extractProductPhotos(
     productId: string,
@@ -21,10 +45,7 @@ export async function extractProductPhotos(
     })
 
     if (response.error) {
-        const message =
-            (response.error as PhotoComparisonErrorResponse | undefined)?.error
-                ?.message || "The extraction request failed."
-        throw new Error(message)
+        throw apiError(response.error, "The extraction request failed.")
     }
 
     if (!response.data) {
@@ -50,10 +71,7 @@ export async function compareProducts(
     })
 
     if (response.error) {
-        const message =
-            (response.error as PhotoComparisonErrorResponse | undefined)?.error
-                ?.message || "The comparison request failed."
-        throw new Error(message)
+        throw apiError(response.error, "The comparison request failed.")
     }
 
     if (!response.data) {

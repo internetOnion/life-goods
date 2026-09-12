@@ -44,7 +44,7 @@ def test_photo_comparison_routes_are_registered_by_the_normal_contract(
     ]
     assert extraction_schema["required"] == ["product_id", "photos"]
     assert extraction_schema["properties"]["photos"]["minItems"] == 1
-    assert extraction_schema["properties"]["photos"]["maxItems"] == 6
+    assert extraction_schema["properties"]["photos"]["maxItems"] == 3
     assert extraction_schema["properties"]["photos"]["items"] == {
         "type": "string",
         "format": "binary",

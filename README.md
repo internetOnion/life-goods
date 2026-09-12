@@ -153,7 +153,7 @@ existing `GEMINI_API_KEY`) in `backend/.env` before extracting photos. The lab
 uses the exact `gemini-3.8-flash` model and never substitutes canned results or
 another model when credentials or provider behavior are unavailable.
 
-Each Product accepts one to six JPEG/PNG photos, up to 10 MiB per photo, 32 MiB
+Each Product accepts one to three JPEG/PNG photos, up to 10 MiB per photo, 32 MiB
 per upload request, and 25 megapixels per image. Photos are corrected for EXIF
 orientation, re-encoded without metadata, sent together for one extraction, and
 discarded after the request. The process allows one active provider request and

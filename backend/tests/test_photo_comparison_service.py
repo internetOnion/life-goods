@@ -435,12 +435,24 @@ def test_photo_provider_capacity_is_shared_between_app_instances() -> None:
 
 def test_http_extraction_rejects_count_and_unsupported_format() -> None:
     app = create_photo_comparison_app(provider=FakeProvider())
-    files = [("photos", (f"{index}.png", _png_bytes(), "image/png")) for index in range(7)]
+    allowed_files = [
+        ("photos", (f"{index}.png", _png_bytes(), "image/png"))
+        for index in range(3)
+    ]
+    too_many_files = [
+        ("photos", (f"{index}.png", _png_bytes(), "image/png"))
+        for index in range(4)
+    ]
     with TestClient(app) as client:
+        allowed = client.post(
+            "/api/experimental/photo-comparison/extractions",
+            data={"product_id": "left"},
+            files=allowed_files,
+        )
         too_many = client.post(
             "/api/experimental/photo-comparison/extractions",
             data={"product_id": "left"},
-            files=files,
+            files=too_many_files,
         )
         unsupported = client.post(
             "/api/experimental/photo-comparison/extractions",
@@ -452,8 +464,12 @@ def test_http_extraction_rejects_count_and_unsupported_format() -> None:
             data={"product_id": "left"},
             files=[("photos", ("empty.png", b"", "image/png"))],
         )
+    assert allowed.status_code == 200
     assert too_many.status_code == 422
     assert too_many.json()["error"]["code"] == "request_invalid"
+    assert too_many.json()["error"]["message"] == (
+        "Submit between one and 3 photos for one Product."
+    )
     assert unsupported.status_code == 415
     assert unsupported.json()["error"]["code"] == "unsupported_image_format"
     assert empty.status_code == 422
@@ -468,6 +484,8 @@ def test_standalone_app_serves_only_local_photo_routes_and_browser_page() -> Non
         paths = sorted(client.get("/openapi.json").json()["paths"])
 
     assert page.status_code == 200
+    assert "up to 3 photos each" in page.text
+    assert "const MAX_PHOTOS_PER_PRODUCT = 3;" in page.text
     assert "Read two labels side by side." in page.text
     assert scalar.status_code == 200
     assert paths == [

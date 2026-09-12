@@ -454,7 +454,12 @@ def build_router(
         ],
         photos: Annotated[
             list[UploadFile],
-            File(description="One to six JPEG or PNG photos, submitted in preview order."),
+            File(
+                description=(
+                    f"One to {MAX_PHOTOS_PER_PRODUCT} JPEG or PNG photos, "
+                    "submitted in preview order."
+                )
+            ),
         ],
     ) -> JSONResponse:
         uploads = photos
@@ -471,10 +476,10 @@ def build_router(
                 "A Product panel identifier is required.",
                 422,
             )
-        if not 1 <= len(uploads) <= 6:
+        if not 1 <= len(uploads) <= MAX_PHOTOS_PER_PRODUCT:
             return _error(
                 PhotoComparisonErrorCode.REQUEST_INVALID,
-                "Submit between one and six photos for one Product.",
+                f"Submit between one and {MAX_PHOTOS_PER_PRODUCT} photos for one Product.",
                 422,
             )
 

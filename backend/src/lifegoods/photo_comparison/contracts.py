@@ -6,7 +6,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_validator
 
-MAX_PHOTOS_PER_PRODUCT = 6
+MAX_PHOTOS_PER_PRODUCT = 3
 MAX_COMPARISON_REQUEST_BYTES = 1_048_576
 IMAGE_ID_PATTERN = r"^[A-Za-z0-9_-]{1,128}$"
 

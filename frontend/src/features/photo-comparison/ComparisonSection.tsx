@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils"
 import {
     displayBasisLabel,
     displayValue,
-    formatBasisAndPrep,
     formatNormalizedValue,
     formatNutrientName,
     formatPreparationLabel,
@@ -17,8 +16,10 @@ import {
 import type {
     ComparisonResponse,
     ComparisonRow,
+    DerivationInput,
     DerivedValue,
     EvidencePointer,
+    PreparationState,
     ProductSideState,
     ReportedValue,
 } from "./types"
@@ -61,37 +62,52 @@ export function ComparisonSection({
         [comparison],
     )
 
-    const primaryTargetBasis = useMemo(() => {
+    const comparisonBases = useMemo(() => {
+        const bases = new Set<string>()
         for (const row of amountRows) {
             if (row.derived_difference?.target_basis) {
-                return row.derived_difference.target_basis
-            }
-            if (row.normalized_left?.target_basis) {
-                return row.normalized_left.target_basis
-            }
-            if (row.left?.basis && row.left.basis === row.right?.basis) {
-                return row.left.basis
+                bases.add(row.derived_difference.target_basis)
+            } else if (row.normalized_left?.target_basis) {
+                bases.add(row.normalized_left.target_basis)
+            } else if (row.normalized_right?.target_basis) {
+                bases.add(row.normalized_right.target_basis)
+            } else if (row.left?.basis && row.left.basis === row.right?.basis) {
+                bases.add(row.left.basis)
             }
         }
-        return null
+        return Array.from(bases)
     }, [amountRows])
+
+    const primaryTargetBasis =
+        comparisonBases.length === 1 ? comparisonBases[0] : null
+    const hasMixedBases = comparisonBases.length > 1
 
     const isEqualWeight =
         primaryTargetBasis === "per_100g" || primaryTargetBasis === "per_100ml"
+    const basisTone =
+        hasMixedBases || primaryTargetBasis === null
+            ? "warning"
+            : isEqualWeight
+              ? "info"
+              : "neutral"
 
-    const comparisonBasis = isEqualWeight
-        ? primaryTargetBasis === "per_100ml"
-            ? "Per 100 ml"
-            : "Per 100 g"
-        : displayBasisLabel(primaryTargetBasis)
+    const comparisonBasis = hasMixedBases
+        ? "Mixed label bases"
+        : isEqualWeight
+          ? primaryTargetBasis === "per_100ml"
+              ? "Per 100 ml"
+              : "Per 100 g"
+          : displayBasisLabel(primaryTargetBasis)
 
-    const basisContext = isEqualWeight
-        ? "Values use a common basis."
-        : primaryTargetBasis === "per_serving"
-          ? "Values are reported per serving."
-          : primaryTargetBasis === "per_package"
-            ? "Package sizes may differ."
-            : "The reported basis is not fully specified."
+    const basisContext = hasMixedBases
+        ? "Some nutrients use different bases. Exceptions are noted in the table."
+        : isEqualWeight
+          ? "Values use a common basis."
+          : primaryTargetBasis === "per_serving"
+            ? "Values are reported per serving."
+            : primaryTargetBasis === "per_package"
+              ? "Package sizes may differ."
+              : "The reported basis is not fully specified."
 
     const allAssumptions = useMemo(() => {
         const set = new Set<string>()
@@ -104,6 +120,37 @@ export function ComparisonSection({
         }
         return Array.from(set)
     }, [comparison])
+
+    const resultSummary = useMemo(() => {
+        const comparable = amountRows.filter(
+            (row) => row.state === "comparable",
+        ).length
+        const conditional = amountRows.filter(
+            (row) => row.state === "conditional",
+        ).length
+        const unavailable = amountRows.length - comparable - conditional
+
+        return [
+            formatCount(
+                comparable,
+                "comparable nutrient",
+                "comparable nutrients",
+            ),
+            conditional > 0
+                ? formatCount(conditional, "needs context", "need context")
+                : null,
+            unavailable > 0
+                ? formatCount(unavailable, "unavailable", "unavailable")
+                : null,
+        ].filter((item): item is string => Boolean(item))
+    }, [amountRows])
+
+    const preparationContext = getPreparationContext(
+        amountRows,
+        leftProduct.title,
+        rightProduct.title,
+    )
+    const packageContext = getPackageContext(leftProduct, rightProduct)
 
     return (
         <section
@@ -175,9 +222,11 @@ export function ComparisonSection({
                     <div
                         className={cn(
                             "rounded-xl border p-3 sm:p-4",
-                            isEqualWeight
+                            basisTone === "info"
                                 ? "border-info-200 bg-info-50/70"
-                                : "border-warning-200 bg-warning-50/70",
+                                : basisTone === "warning"
+                                  ? "border-warning-200 bg-warning-50/70"
+                                  : "border-neutral-200 bg-neutral-50/70",
                         )}
                     >
                         <div className="flex items-start gap-3">
@@ -186,18 +235,22 @@ export function ComparisonSection({
                                 weight="bold"
                                 className={cn(
                                     "mt-0.5 shrink-0",
-                                    isEqualWeight
+                                    basisTone === "info"
                                         ? "text-info-700"
-                                        : "text-warning-600",
+                                        : basisTone === "warning"
+                                          ? "text-warning-600"
+                                          : "text-neutral-600",
                                 )}
                             />
                             <div className="min-w-0">
                                 <strong
                                     className={cn(
                                         "block font-bold",
-                                        isEqualWeight
+                                        basisTone === "info"
                                             ? "text-info-900"
-                                            : "text-warning-900",
+                                            : basisTone === "warning"
+                                              ? "text-warning-900"
+                                              : "text-neutral-950",
                                     )}
                                 >
                                     Comparison basis: {comparisonBasis}
@@ -205,20 +258,32 @@ export function ComparisonSection({
                                 <p
                                     className={cn(
                                         "mt-0.5 text-xs leading-relaxed",
-                                        isEqualWeight
+                                        basisTone === "info"
                                             ? "text-info-800/90"
-                                            : "text-warning-800/90",
+                                            : basisTone === "warning"
+                                              ? "text-warning-800/90"
+                                              : "text-neutral-700",
                                     )}
                                 >
                                     {basisContext}
                                 </p>
+                                <p className="mt-1 text-xs leading-relaxed text-neutral-700">
+                                    {preparationContext}
+                                </p>
+                                {packageContext && (
+                                    <p className="mt-1 text-xs leading-relaxed text-neutral-700">
+                                        {packageContext}
+                                    </p>
+                                )}
                                 <details className="mt-2 text-xs">
                                     <summary
                                         className={cn(
                                             "focus-visible:ring-primary-500 inline-flex min-h-9 cursor-pointer items-center rounded font-semibold select-none focus-visible:ring-2 focus-visible:outline-none",
-                                            isEqualWeight
+                                            basisTone === "info"
                                                 ? "text-info-800 hover:text-info-950"
-                                                : "text-warning-800 hover:text-warning-950",
+                                                : basisTone === "warning"
+                                                  ? "text-warning-800 hover:text-warning-950"
+                                                  : "text-neutral-700 hover:text-neutral-950",
                                         )}
                                     >
                                         How this comparison was calculated
@@ -226,9 +291,11 @@ export function ComparisonSection({
                                     <div
                                         className={cn(
                                             "mt-2 space-y-1.5 leading-relaxed",
-                                            isEqualWeight
+                                            basisTone === "info"
                                                 ? "text-info-800/90"
-                                                : "text-warning-800/90",
+                                                : basisTone === "warning"
+                                                  ? "text-warning-800/90"
+                                                  : "text-neutral-700",
                                         )}
                                     >
                                         <p>
@@ -275,12 +342,6 @@ export function ComparisonSection({
                                                 )}
                                             </ul>
                                         )}
-                                        <p>
-                                            Photos are sent to the configured AI
-                                            provider for processing. Life Goods
-                                            does not retain photos or comparison
-                                            history.
-                                        </p>
                                     </div>
                                 </details>
                             </div>
@@ -293,6 +354,14 @@ export function ComparisonSection({
                             <h3 className="text-base font-bold text-neutral-950 sm:text-lg">
                                 Nutrition comparison
                             </h3>
+                            {resultSummary.length > 0 && (
+                                <p
+                                    className="text-xs font-medium text-neutral-600"
+                                    aria-label="Comparison summary"
+                                >
+                                    {resultSummary.join(" · ")}
+                                </p>
+                            )}
                         </div>
 
                         <div className="scrollbar-subtle overflow-x-auto rounded-xl border border-neutral-200 bg-neutral-50/60 p-1.5 sm:rounded-2xl sm:bg-white sm:p-0">
@@ -395,6 +464,7 @@ function AmountTableRow({
         row.nutrient,
         row.left?.observation.label || row.right?.observation.label,
     )
+    const hasVisibleDifference = row.state !== "not_comparable"
 
     return (
         <tr className="grid grid-cols-2 gap-x-3 gap-y-2 border-b border-neutral-200/90 py-3 last:border-b-0 sm:table-row sm:border-0 sm:py-0 sm:hover:bg-neutral-50/70">
@@ -413,8 +483,6 @@ function AmountTableRow({
                 <ProductAmountCell
                     reported={row.left}
                     derived={row.normalized_left}
-                    product={leftProduct}
-                    onFocusEvidence={onFocusEvidence}
                 />
             </td>
 
@@ -426,20 +494,29 @@ function AmountTableRow({
                 <ProductAmountCell
                     reported={row.right}
                     derived={row.normalized_right}
-                    product={rightProduct}
-                    onFocusEvidence={onFocusEvidence}
                 />
             </td>
 
             {/* Difference / calculated column */}
             <td className="col-span-2 block pt-1 sm:table-cell sm:px-4 sm:py-3.5 sm:align-top">
-                <div className="mb-1 text-xs font-semibold tracking-wide text-neutral-500 uppercase sm:hidden">
-                    Difference
-                </div>
-                <DifferenceCell
+                {hasVisibleDifference ? (
+                    <>
+                        <div className="mb-1 text-xs font-semibold tracking-wide text-neutral-500 uppercase sm:hidden">
+                            Difference
+                        </div>
+                        <DifferenceCell
+                            row={row}
+                            leftProduct={leftProduct}
+                            rightProduct={rightProduct}
+                        />
+                    </>
+                ) : null}
+                <RowEvidenceDetails
                     row={row}
+                    nutrientName={nutrientName}
                     leftProduct={leftProduct}
                     rightProduct={rightProduct}
+                    onFocusEvidence={onFocusEvidence}
                 />
             </td>
         </tr>
@@ -449,13 +526,9 @@ function AmountTableRow({
 function ProductAmountCell({
     reported,
     derived,
-    product,
-    onFocusEvidence,
 }: {
     reported?: ReportedValue | null
     derived?: DerivedValue | null
-    product: ProductSideState
-    onFocusEvidence: (imageId: string) => void
 }) {
     if (!reported || !reported.observation) {
         const missing = getMissingCellText(null)
@@ -492,25 +565,6 @@ function ProductAmountCell({
                         ))}
                     </div>
                 )}
-                {obs.evidence && obs.evidence.length > 0 && (
-                    <details className="group mt-1.5 text-xs text-neutral-600">
-                        <summary className="focus-visible:ring-primary-500 inline-flex min-h-[36px] cursor-pointer items-center rounded text-xs font-semibold text-neutral-600 select-none hover:text-neutral-900 focus-visible:ring-2 focus-visible:outline-none">
-                            Details
-                        </summary>
-                        <div className="mt-1.5 flex flex-wrap gap-2">
-                            {obs.evidence.map((ptr) => (
-                                <PhotoEvidenceButton
-                                    key={ptr.image_id}
-                                    imageId={ptr.image_id}
-                                    product={product}
-                                    onClick={() =>
-                                        onFocusEvidence(ptr.image_id)
-                                    }
-                                />
-                            ))}
-                        </div>
-                    </details>
-                )}
             </div>
         )
     }
@@ -520,113 +574,9 @@ function ProductAmountCell({
         ? formatNormalizedValue(derived.value, derived.unit)
         : displayValue(obs.value_text, obs.unit_text || "")
 
-    // Printed label wording underneath if it differs in unit or value
-    const printedText = displayValue(obs.value_text, obs.unit_text || "")
-    const hasDifferentPrinted =
-        derived &&
-        (derived.unit !== obs.unit_text ||
-            formatNormalizedValue(derived.value) !== obs.value_text)
-
-    const effectiveBasis = derived?.target_basis || reported.basis
-    const effectivePrep = reported.preparation_state
-
     return (
-        <div>
-            <div className="font-mono text-sm font-bold text-neutral-950 tabular-nums">
-                {displayPrimary}
-            </div>
-
-            {/* Stated basis and dry vs prepared */}
-            <div className="mt-0.5 text-xs font-medium text-neutral-500">
-                {formatBasisAndPrep(effectiveBasis, effectivePrep)}
-            </div>
-
-            {/* Accessible disclosure control for reported inputs, source-photo evidence, and derivation details */}
-            <details className="group mt-1.5 text-xs text-neutral-600">
-                <summary className="focus-visible:ring-primary-500 inline-flex min-h-[36px] cursor-pointer items-center rounded text-xs font-semibold text-neutral-600 select-none hover:text-neutral-900 focus-visible:ring-2 focus-visible:outline-none">
-                    Details
-                </summary>
-                <div className="mt-1.5 space-y-2 rounded-lg border border-neutral-200 bg-neutral-50/80 p-2.5 text-xs text-neutral-600">
-                    {hasDifferentPrinted && (
-                        <div>
-                            <span className="text-neutral-500">Printed: </span>
-                            <span className="font-mono font-medium text-neutral-800">
-                                {printedText}
-                            </span>
-                            <span className="text-neutral-500">
-                                {" "}
-                                (
-                                {displayBasisLabel(
-                                    reported.basis,
-                                ).toLowerCase()}
-                                ,{" "}
-                                {formatPreparationLabel(
-                                    reported.preparation_state,
-                                ).toLowerCase()}
-                                )
-                            </span>
-                        </div>
-                    )}
-
-                    {obs.alternatives && obs.alternatives.length > 0 && (
-                        <div className="text-warning-800 font-medium">
-                            <span>Alternative readings: </span>
-                            {obs.alternatives.map((alt, i) => (
-                                <span key={i} className="font-mono">
-                                    {displayValue(
-                                        alt.value_text,
-                                        alt.unit_text || "",
-                                    )}
-                                    {i < (obs.alternatives?.length ?? 0) - 1
-                                        ? ", "
-                                        : ""}
-                                </span>
-                            ))}
-                        </div>
-                    )}
-
-                    {derived && derived.inputs && derived.inputs.length > 0 && (
-                        <div className="text-neutral-600">
-                            <span className="text-neutral-500">
-                                Normalized from:{" "}
-                            </span>
-                            {derived.inputs.map((inp, i) => (
-                                <span
-                                    key={i}
-                                    className="font-mono font-medium text-neutral-800"
-                                >
-                                    {inp.kind === "package_quantity"
-                                        ? `net weight ${formatNormalizedValue(inp.normalized_value, inp.normalized_unit)}`
-                                        : inp.kind === "serving_quantity"
-                                          ? `serving ${formatNormalizedValue(inp.normalized_value, inp.normalized_unit)}`
-                                          : `${formatNormalizedValue(inp.normalized_value, inp.normalized_unit)}`}
-                                    {i < derived.inputs.length - 1 ? ", " : ""}
-                                </span>
-                            ))}
-                        </div>
-                    )}
-
-                    {obs.evidence && obs.evidence.length > 0 && (
-                        <div className="pt-1">
-                            <span className="mb-1.5 block text-xs font-semibold text-neutral-600">
-                                Source photo evidence:
-                            </span>
-                            <div className="flex flex-wrap gap-2">
-                                {obs.evidence.map((ptr: EvidencePointer) => (
-                                    <PhotoEvidenceButton
-                                        key={ptr.image_id}
-                                        imageId={ptr.image_id}
-                                        product={product}
-                                        onClick={() =>
-                                            onFocusEvidence(ptr.image_id)
-                                        }
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </details>
+        <div className="font-mono text-sm font-bold text-neutral-950 tabular-nums">
+            {displayPrimary}
         </div>
     )
 }
@@ -664,11 +614,7 @@ function PercentageTableRow({
                 <div className="mb-1 truncate text-xs font-semibold tracking-wide text-neutral-500 uppercase sm:hidden">
                     {leftProduct.title}
                 </div>
-                <PercentageCell
-                    reported={row.left}
-                    product={leftProduct}
-                    onFocusEvidence={onFocusEvidence}
-                />
+                <PercentageCell reported={row.left} />
             </td>
 
             {/* Right percentage cell */}
@@ -676,33 +622,27 @@ function PercentageTableRow({
                 <div className="mb-1 truncate text-xs font-semibold tracking-wide text-neutral-500 uppercase sm:hidden">
                     {rightProduct.title}
                 </div>
-                <PercentageCell
-                    reported={row.right}
-                    product={rightProduct}
-                    onFocusEvidence={onFocusEvidence}
-                />
+                <PercentageCell reported={row.right} />
             </td>
 
             {/* Note column */}
             <td className="col-span-2 block pt-1 text-xs leading-relaxed text-neutral-600 sm:table-cell sm:px-4 sm:py-3.5 sm:align-top">
-                <div className="mb-1 text-xs font-semibold tracking-wide text-neutral-500 uppercase sm:hidden">
-                    Notes
-                </div>
-                {row.reason || "Reference bases may differ."}
+                {row.reason && (
+                    <p className="mb-1.5 leading-relaxed">{row.reason}</p>
+                )}
+                <RowEvidenceDetails
+                    row={row}
+                    nutrientName={`${nutrientName} daily value`}
+                    leftProduct={leftProduct}
+                    rightProduct={rightProduct}
+                    onFocusEvidence={onFocusEvidence}
+                />
             </td>
         </tr>
     )
 }
 
-function PercentageCell({
-    reported,
-    product,
-    onFocusEvidence,
-}: {
-    reported?: ReportedValue | null
-    product: ProductSideState
-    onFocusEvidence: (imageId: string) => void
-}) {
+function PercentageCell({ reported }: { reported?: ReportedValue | null }) {
     if (
         !reported ||
         !reported.observation ||
@@ -718,50 +658,187 @@ function PercentageCell({
 
     const obs = reported.observation
     return (
-        <div>
-            <div className="font-mono text-sm font-bold text-neutral-950 tabular-nums">
-                {displayValue(obs.value_text, "%")}
+        <div className="font-mono text-sm font-bold text-neutral-950 tabular-nums">
+            {displayValue(obs.value_text, "%")}
+        </div>
+    )
+}
+
+function RowEvidenceDetails({
+    row,
+    nutrientName,
+    leftProduct,
+    rightProduct,
+    onFocusEvidence,
+}: {
+    row: ComparisonRow
+    nutrientName: string
+    leftProduct: ProductSideState
+    rightProduct: ProductSideState
+    onFocusEvidence: (imageId: string) => void
+}) {
+    const hasCalculation = row.state !== "not_comparable"
+    const disclosureLabel = hasCalculation
+        ? "Evidence & calculation"
+        : "Evidence"
+
+    return (
+        <details className="group mt-2 border-t border-neutral-200/80 pt-1 text-xs text-neutral-600">
+            <summary
+                className="focus-visible:ring-primary-500 inline-flex min-h-11 cursor-pointer items-center rounded text-xs font-semibold text-neutral-600 select-none hover:text-neutral-900 focus-visible:ring-2 focus-visible:outline-none"
+                aria-label={
+                    hasCalculation
+                        ? `Evidence and calculation for ${nutrientName}`
+                        : `Evidence for ${nutrientName}`
+                }
+            >
+                {disclosureLabel}
+            </summary>
+            <div className="grid gap-3 pb-1 sm:grid-cols-2">
+                <ReportedEvidenceBlock
+                    label={leftProduct.title}
+                    reported={row.left}
+                    derived={row.normalized_left}
+                    product={leftProduct}
+                    nutrientName={nutrientName}
+                    onFocusEvidence={onFocusEvidence}
+                />
+                <ReportedEvidenceBlock
+                    label={rightProduct.title}
+                    reported={row.right}
+                    derived={row.normalized_right}
+                    product={rightProduct}
+                    nutrientName={nutrientName}
+                    onFocusEvidence={onFocusEvidence}
+                />
             </div>
-            <div className="mt-0.5 text-xs font-medium text-neutral-500">
-                {formatBasisAndPrep(reported.basis, reported.preparation_state)}
-            </div>
-            {obs.evidence && obs.evidence.length > 0 && (
-                <details className="group mt-1.5 text-xs text-neutral-600">
-                    <summary className="focus-visible:ring-primary-500 inline-flex min-h-[36px] cursor-pointer items-center rounded text-xs font-semibold text-neutral-600 select-none hover:text-neutral-900 focus-visible:ring-2 focus-visible:outline-none">
-                        Details
-                    </summary>
-                    <div className="mt-1.5 space-y-2 rounded-lg border border-neutral-200 bg-neutral-50/80 p-2.5 text-xs text-neutral-600">
-                        <div>
+        </details>
+    )
+}
+
+function ReportedEvidenceBlock({
+    label,
+    reported,
+    derived,
+    product,
+    nutrientName,
+    onFocusEvidence,
+}: {
+    label: string
+    reported?: ReportedValue | null
+    derived?: DerivedValue | null
+    product: ProductSideState
+    nutrientName: string
+    onFocusEvidence: (imageId: string) => void
+}) {
+    const observation = reported?.observation
+    const printedValue = observation
+        ? displayValue(observation.value_text, observation.unit_text || "")
+        : null
+    const displayedValue = derived
+        ? formatNormalizedValue(derived.value, derived.unit)
+        : printedValue
+    const printedMatchesDisplayed =
+        observation?.state === "readable" && printedValue === displayedValue
+
+    return (
+        <div className="min-w-0 space-y-1.5">
+            <h4 className="font-bold wrap-anywhere text-neutral-900">
+                {label}
+            </h4>
+            {observation ? (
+                <>
+                    <p>
+                        {printedMatchesDisplayed ? (
                             <span className="text-neutral-500">
-                                Basis:{" "}
-                                {displayBasisLabel(
-                                    reported.basis,
-                                ).toLowerCase()}
-                                ,{" "}
-                                {formatPreparationLabel(
-                                    reported.preparation_state,
-                                ).toLowerCase()}
+                                Printed value matches the displayed amount.
                             </span>
-                        </div>
-                        <div className="pt-1">
-                            <span className="mb-1.5 block text-xs font-semibold text-neutral-600">
-                                Source photo evidence:
+                        ) : (
+                            <>
+                                <span className="text-neutral-500">
+                                    Printed:{" "}
+                                </span>
+                                <span className="font-mono font-medium text-neutral-800">
+                                    {observation.state === "readable"
+                                        ? printedValue
+                                        : observation.state?.replaceAll(
+                                              "_",
+                                              " ",
+                                          ) || "not stated"}
+                                </span>
+                            </>
+                        )}
+                    </p>
+                    <p>
+                        <span className="text-neutral-500">Basis: </span>
+                        {displayBasisLabel(reported?.basis)} ·{" "}
+                        {formatPreparationLabel(
+                            reported?.preparation_state,
+                        ).toLowerCase()}
+                    </p>
+                    {observation.alternatives &&
+                        observation.alternatives.length > 0 && (
+                            <p className="text-warning-800">
+                                Alternative readings:{" "}
+                                {observation.alternatives.map(
+                                    (alternative, index) => (
+                                        <span key={index} className="font-mono">
+                                            {displayValue(
+                                                alternative.value_text,
+                                                alternative.unit_text || "",
+                                            )}
+                                            {index <
+                                            (observation.alternatives?.length ??
+                                                0) -
+                                                1
+                                                ? ", "
+                                                : ""}
+                                        </span>
+                                    ),
+                                )}
+                            </p>
+                        )}
+                    {derived?.inputs && derived.inputs.length > 0 && (
+                        <p>
+                            <span className="text-neutral-500">
+                                Normalized from:{" "}
                             </span>
-                            <div className="flex flex-wrap gap-2">
-                                {obs.evidence.map((ptr: EvidencePointer) => (
-                                    <PhotoEvidenceButton
-                                        key={ptr.image_id}
-                                        imageId={ptr.image_id}
-                                        product={product}
-                                        onClick={() =>
-                                            onFocusEvidence(ptr.image_id)
-                                        }
-                                    />
-                                ))}
+                            {derived.inputs.map((input, index) => (
+                                <span
+                                    key={index}
+                                    className="font-mono font-medium text-neutral-800"
+                                >
+                                    {formatDerivationInput(input)}
+                                    {index < derived.inputs.length - 1
+                                        ? ", "
+                                        : ""}
+                                </span>
+                            ))}
+                        </p>
+                    )}
+                    {observation.evidence &&
+                        observation.evidence.length > 0 && (
+                            <div className="flex flex-wrap gap-2 pt-1">
+                                {observation.evidence.map(
+                                    (pointer: EvidencePointer) => (
+                                        <PhotoEvidenceButton
+                                            key={pointer.image_id}
+                                            imageId={pointer.image_id}
+                                            product={product}
+                                            accessibleContext={`${nutrientName} for ${label}`}
+                                            onClick={() =>
+                                                onFocusEvidence(
+                                                    pointer.image_id,
+                                                )
+                                            }
+                                        />
+                                    ),
+                                )}
                             </div>
-                        </div>
-                    </div>
-                </details>
+                        )}
+                </>
+            ) : (
+                <p className="text-neutral-500 italic">No reported input.</p>
             )}
         </div>
     )
@@ -787,13 +864,6 @@ function DifferenceCell({
                         {row.reason}
                     </div>
                 )}
-                {row.assumptions && row.assumptions.length > 0 && (
-                    <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-neutral-600">
-                        {row.assumptions.map((a, i) => (
-                            <li key={i}>{a}</li>
-                        ))}
-                    </ul>
-                )}
             </div>
         )
     }
@@ -818,11 +888,6 @@ function DifferenceCell({
                   ? `${rightProduct.title} has more`
                   : "Identical amount"
             : ""
-        const diffBasis = formatBasisAndPrep(
-            row.derived_difference.target_basis,
-            null,
-        )
-
         if (isNumeric && diffNum === 0) {
             return (
                 <div>
@@ -840,9 +905,6 @@ function DifferenceCell({
                     <div className="mt-0.5 text-xs font-medium text-neutral-600">
                         {directionContext}
                     </div>
-                    <div className="mt-0.5 text-xs text-neutral-500">
-                        {diffBasis}
-                    </div>
                 </div>
             )
         }
@@ -857,9 +919,6 @@ function DifferenceCell({
                         {directionContext}
                     </div>
                 )}
-                <div className="mt-0.5 text-xs text-neutral-500">
-                    {diffBasis}
-                </div>
             </div>
         )
     }
@@ -887,13 +946,90 @@ function DifferenceCell({
     )
 }
 
+function formatCount(count: number, singular: string, plural: string): string {
+    return `${count} ${count === 1 ? singular : plural}`
+}
+
+function getPreparationContext(
+    rows: ComparisonRow[],
+    leftTitle: string,
+    rightTitle: string,
+): string {
+    const left = getSidePreparation(rows, "left")
+    const right = getSidePreparation(rows, "right")
+
+    if (left === "not stated" && right === "not stated") {
+        return "Preparation not stated on either label."
+    }
+    if (left === right) {
+        return `Preparation: ${left}.`
+    }
+    return `Preparation: ${leftTitle} — ${left}; ${rightTitle} — ${right}.`
+}
+
+function getSidePreparation(
+    rows: ComparisonRow[],
+    side: "left" | "right",
+): string {
+    const states = new Set(
+        rows
+            .map((row) => row[side]?.preparation_state)
+            .filter((state): state is PreparationState => state !== undefined),
+    )
+
+    if (states.size === 0 || (states.size === 1 && states.has("unknown"))) {
+        return "not stated"
+    }
+    if (states.size > 1) {
+        return "varies by nutrient"
+    }
+    return formatPreparationLabel(Array.from(states)[0]).toLowerCase()
+}
+
+function getPackageContext(
+    leftProduct: ProductSideState,
+    rightProduct: ProductSideState,
+): string | null {
+    const left = formatPackageQuantity(leftProduct)
+    const right = formatPackageQuantity(rightProduct)
+
+    if (!left && !right) {
+        return null
+    }
+    return `Package quantities: ${leftProduct.title} — ${left || "not visible"}; ${rightProduct.title} — ${right || "not visible"}.`
+}
+
+function formatPackageQuantity(product: ProductSideState): string | null {
+    const quantity = product.extraction?.package_quantity
+    if (!quantity || quantity.state !== "readable") {
+        return null
+    }
+    return displayValue(quantity.value_text, quantity.unit_text || "")
+}
+
+function formatDerivationInput(input: DerivationInput): string {
+    const value = formatNormalizedValue(
+        input.normalized_value,
+        input.normalized_unit,
+    )
+    if (input.kind === "package_quantity") {
+        return `net weight ${value}`
+    }
+    if (input.kind === "serving_quantity") {
+        return `serving ${value}`
+    }
+    return value
+}
+
 function PhotoEvidenceButton({
     imageId,
     product,
+    accessibleContext,
     onClick,
 }: {
     imageId: string
     product: ProductSideState
+    accessibleContext: string
     onClick: () => void
 }) {
     const photoIndex = product.extraction?.images?.findIndex(
@@ -908,6 +1044,7 @@ function PhotoEvidenceButton({
             variant="outline"
             size="sm"
             onClick={onClick}
+            aria-label={`${accessibleContext}: view photo ${photoNumber}`}
             className="focus-visible:ring-primary-500 inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-neutral-300 bg-white px-3.5 text-xs font-semibold text-neutral-800 shadow-xs transition-colors hover:border-neutral-400 hover:bg-neutral-50 hover:text-neutral-950 focus-visible:ring-2 focus-visible:outline-none active:scale-[0.98]"
             title={`View photo ${photoNumber}`}
         >

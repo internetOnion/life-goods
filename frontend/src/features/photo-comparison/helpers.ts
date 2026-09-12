@@ -119,7 +119,7 @@ export function formatPreparationLabel(prep?: string | null): string {
         case "prepared":
             return "As prepared"
         default:
-            return "Unconfirmed"
+            return "Preparation not stated"
     }
 }
 
@@ -132,7 +132,14 @@ export function formatBasisAndPrep(
     return `${b} · ${p}`
 }
 
-export function formatActionableError(message: string): string {
+export function formatActionableError(
+    message: string,
+    code?: import("@/api/generated").PhotoComparisonErrorCode,
+): string {
+    if (code === "provider_output_invalid") {
+        return "We couldn’t reliably read this label. Try a clearer photo and tap Retry."
+    }
+
     const lower = message.toLowerCase()
     if (lower.includes("timeout") || lower.includes("timed out")) {
         return "Photo processing request timed out. Please check your connection and tap Retry."
