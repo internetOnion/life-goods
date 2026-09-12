@@ -1,105 +1,58 @@
-import {
-    AlertCircle,
-    AlertTriangle,
-    ChevronDown,
-    ChevronUp,
-    ShieldAlert,
-} from "lucide-react"
-import React, { useEffect, useMemo, useState } from "react"
+import { AlertCircle, ShieldAlert } from "lucide-react"
+import React from "react"
 
+import type { AllergenAnalysisResponse } from "@/api/generated"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type {
-    AllergenAssessmentResponse,
-    PackageMatchEvidenceResponse,
-} from "@/features/product/types"
-import {
-    findSelectedConcernMatches,
-    loadSelectedConcernIds,
-    SELECTED_CONCERNS_STORAGE_KEY,
-} from "@/features/concerns/matching"
+import type { PackageMatchEvidenceResponse } from "@/features/product/types"
 
 interface AllergenCardProps {
-    assessment?: AllergenAssessmentResponse | null
+    analysis?: AllergenAnalysisResponse | null
     labelEvidence?: PackageMatchEvidenceResponse[]
 }
 
+function displayTag(tag: string): string {
+    return tag
+        .replace(/^[a-z]{2}:/i, "")
+        .replace(/-/g, " ")
+        .replace(/\b\w/g, (character) => character.toUpperCase())
+}
+
+function evidenceTags(
+    evidence: PackageMatchEvidenceResponse[] | undefined,
+    fields: readonly string[],
+): string[] {
+    return [
+        ...new Set(
+            (evidence ?? [])
+                .filter((item) => fields.includes(item.field))
+                .flatMap((item) =>
+                    Array.isArray(item.value)
+                        ? item.value.filter(
+                              (value): value is string =>
+                                  typeof value === "string",
+                          )
+                        : typeof item.value === "string"
+                          ? [item.value]
+                          : [],
+                ),
+        ),
+    ]
+}
+
 export const AllergenCard: React.FC<AllergenCardProps> = ({
-    assessment,
+    analysis,
     labelEvidence,
 }) => {
-    const [showAllConcepts, setShowAllConcepts] = useState(false)
-    const [selectedConcernIds, setSelectedConcernIds] = useState(
-        loadSelectedConcernIds,
-    )
-
-    useEffect(() => {
-        const handleStorage = (event: StorageEvent) => {
-            if (
-                event.key === SELECTED_CONCERNS_STORAGE_KEY ||
-                event.key === null
-            ) {
-                setSelectedConcernIds(loadSelectedConcernIds())
-            }
-        }
-        window.addEventListener("storage", handleStorage)
-        return () => window.removeEventListener("storage", handleStorage)
-    }, [])
-
-    // Also look for direct Open Food Facts allergen tags if rule assessment was unassessed
-    const allergenTagsItem = labelEvidence?.find(
-        (e) => e.field === "allergen_tags",
-    )
-    const rawAllergenTags = Array.isArray(allergenTagsItem?.value)
-        ? (allergenTagsItem.value as string[]).map((t) =>
-              t
-                  .replace(/^[a-z]{2}:/, "")
-                  .replace(/-/g, " ")
-                  .replace(/\b\w/g, (c) => c.toUpperCase()),
-          )
-        : []
-
-    const tracesTagsItem = labelEvidence?.find(
-        (e) => e.field === "trace_tag" || e.field === "trace_tags",
-    )
-    const rawTracesTags = Array.isArray(tracesTagsItem?.value)
-        ? (tracesTagsItem.value as string[]).map((t) =>
-              t
-                  .replace(/^[a-z]{2}:/, "")
-                  .replace(/-/g, " ")
-                  .replace(/\b\w/g, (c) => c.toUpperCase()),
-          )
-        : []
-
-    const findings = assessment?.findings || []
-    const concepts = assessment?.concepts || []
-
-    const positiveConcepts = concepts.filter(
-        (c) =>
-            c.outcome === "DECLARED_CONTAINS" ||
-            c.outcome === "DECLARED_MAY_CONTAIN" ||
-            c.outcome === "DERIVED_FROM_INGREDIENT",
-    )
-
-    const negativeConcepts = concepts.filter(
-        (c) => c.outcome === "NO_DECLARATION_DETECTED_IN_READABLE_LABEL",
-    )
-    const selectedConcernMatches = useMemo(
-        () =>
-            findSelectedConcernMatches(
-                selectedConcernIds,
-                assessment,
-                labelEvidence,
-            ),
-        [assessment, labelEvidence, selectedConcernIds],
-    )
-    const assessmentConcernMatches = selectedConcernMatches.filter(
-        (match) => match.source === "assessment finding",
-    )
-    const sourceRecordConcernMatches = selectedConcernMatches.filter(
-        (match) => match.source !== "assessment finding",
-    )
+    const declarationTags =
+        analysis?.off.state === "available"
+            ? analysis.off.tags
+            : evidenceTags(labelEvidence, ["allergen_tags"])
+    const traceTags = evidenceTags(labelEvidence, ["trace_tag", "trace_tags"])
+    const hasUnavailableCheck =
+        analysis?.off.state === "missing" ||
+        analysis?.off.state === "invalid" ||
+        analysis?.ingredient_matching.state !== "completed"
 
     return (
         <Card className="border-neutral-200/90 bg-white shadow-xs">
@@ -109,223 +62,82 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                         <ShieldAlert className="h-4 w-4" />
                     </div>
                     <CardTitle className="text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
-                        Allergen Assessment
+                        Allergens and traces
                     </CardTitle>
                 </div>
             </CardHeader>
 
             <CardContent className="space-y-4 p-4 pt-0 sm:p-5 sm:pt-0">
-                {sourceRecordConcernMatches.length > 0 && (
-                    <div
-                        className="border-primary-200 bg-primary-50/70 space-y-2 rounded-2xl border p-3"
-                        role="status"
-                        aria-label="Selected concern matches"
-                    >
-                        <div className="text-primary-950 flex items-center gap-2 text-xs font-bold sm:text-sm">
-                            <AlertTriangle className="text-primary-700 h-4 w-4 shrink-0" />
-                            <span>
-                                Your selected concern
-                                {sourceRecordConcernMatches.length > 1
-                                    ? "s"
-                                    : ""}{" "}
-                                match this Product evidence:
-                            </span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5 pl-6">
-                            {sourceRecordConcernMatches.map((match) => (
+                {declarationTags.length > 0 && (
+                    <section aria-labelledby="allergen-declarations-heading">
+                        <h3
+                            id="allergen-declarations-heading"
+                            className="text-xs font-bold tracking-[0.06em] text-neutral-500 uppercase sm:text-sm"
+                        >
+                            Open Food Facts declarations
+                        </h3>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                            {declarationTags.map((tag) => (
                                 <Badge
-                                    key={match.concernId}
-                                    variant="outline"
-                                    className="border-primary-300 text-primary-950 bg-white px-2 py-0.5 text-xs font-bold"
+                                    key={tag}
+                                    variant="warning"
+                                    className="px-2.5 py-0.5 text-sm font-semibold"
                                 >
-                                    {match.concernLabel}: "{match.matchedText}"
+                                    {displayTag(tag)}
                                 </Badge>
                             ))}
                         </div>
-                        <p className="text-caption text-primary-900 pl-6">
-                            Based on{" "}
-                            {sourceRecordConcernMatches
-                                .map((match) => match.source)
-                                .filter(
-                                    (source, index, sources) =>
-                                        sources.indexOf(source) === index,
-                                )
-                                .join(" and ")}
-                            . This is a Source Record match, not a safety or
-                            allergen-free conclusion.
-                        </p>
-                    </div>
+                    </section>
                 )}
 
-                {/* Findings Alert Box */}
-                {findings.length > 0 ? (
-                    <div
-                        aria-label="Allergen findings"
-                        className="border-warning-200 bg-warning-50/70 space-y-2 rounded-2xl border p-3"
-                    >
-                        <div className="text-warning-900 flex items-center gap-2 text-xs font-bold sm:text-sm">
-                            <AlertTriangle className="text-warning-600 h-4 w-4 shrink-0" />
-                            <span>
-                                {findings.length} Allergen Declaration
-                                {findings.length > 1 ? "s" : ""} Detected:
-                            </span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5 pl-6">
-                            {findings.map((f, i) => (
+                {traceTags.length > 0 && (
+                    <section aria-labelledby="allergen-traces-heading">
+                        <h3
+                            id="allergen-traces-heading"
+                            className="text-xs font-bold tracking-[0.06em] text-neutral-500 uppercase sm:text-sm"
+                        >
+                            Open Food Facts traces
+                        </h3>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                            {traceTags.map((tag) => (
                                 <Badge
-                                    key={i}
-                                    variant="warning"
-                                    className="text-warning-950 py-0.2 text-caption bg-white px-2 font-bold"
+                                    key={tag}
+                                    variant="outline"
+                                    className="px-2.5 py-0.5 text-sm font-medium text-neutral-600"
                                 >
-                                    "{f.matched_text}" (
-                                    {f.relationship_type || "Declared"})
+                                    {displayTag(tag)}
                                 </Badge>
                             ))}
                         </div>
-                        {assessmentConcernMatches.length > 0 && (
-                            <div className="border-warning-200/70 space-y-2 border-t pt-2 pl-6">
-                                <p className="text-caption text-warning-900 font-bold">
-                                    Your selected concern
-                                    {assessmentConcernMatches.length > 1
-                                        ? "s"
-                                        : ""}{" "}
-                                    found in the assessment:
-                                </p>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {assessmentConcernMatches.map((match) => (
-                                        <Badge
-                                            key={match.concernId}
-                                            variant="warning"
-                                            className="text-warning-950 py-0.2 bg-white px-2 font-bold"
-                                        >
-                                            {match.concernLabel}: "
-                                            {match.matchedText}"
-                                        </Badge>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                ) : positiveConcepts.length === 0 &&
-                  rawAllergenTags.length === 0 ? (
+                    </section>
+                )}
+
+                {declarationTags.length === 0 && traceTags.length === 0 && (
                     <div className="flex items-center gap-2.5 rounded-xl border border-neutral-200/80 bg-neutral-50/80 p-3 text-xs text-neutral-700">
                         <AlertCircle className="h-4 w-4 shrink-0 text-neutral-500" />
                         <span className="font-medium">
-                            No allergen declarations identified in readable
-                            label text.
+                            No allergen or trace tags are available from Open
+                            Food Facts.
                         </span>
                     </div>
-                ) : null}
-
-                {/* Package Label Tags if available */}
-                {(rawAllergenTags.length > 0 || rawTracesTags.length > 0) && (
-                    <div className="space-y-3 text-sm">
-                        {rawAllergenTags.length > 0 && (
-                            <div className="space-y-2">
-                                <span className="text-xs font-bold tracking-[0.06em] text-neutral-500 uppercase sm:text-sm">
-                                    Declared Allergens:
-                                </span>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {rawAllergenTags.map((tag, idx) => (
-                                        <Badge
-                                            key={idx}
-                                            variant="warning"
-                                            className="px-2.5 py-0.5 text-sm font-semibold"
-                                        >
-                                            {tag}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {rawTracesTags.length > 0 && (
-                            <div className="space-y-2">
-                                <span className="text-xs font-bold tracking-[0.06em] text-neutral-500 uppercase sm:text-sm">
-                                    May Contain Traces:
-                                </span>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {rawTracesTags.map((tag, idx) => (
-                                        <Badge
-                                            key={idx}
-                                            variant="outline"
-                                            className="px-2.5 py-0.5 text-sm font-medium text-neutral-600"
-                                        >
-                                            {tag}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
                 )}
 
-                {/* Expandable Assessed Codex Concepts Matrix */}
-                {concepts.length > 0 && (
-                    <div className="border-t border-neutral-100 pt-2">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            type="button"
-                            onClick={() => setShowAllConcepts(!showAllConcepts)}
-                            className="flex h-auto w-full cursor-pointer items-center justify-between p-0 text-xs font-semibold text-neutral-600 hover:bg-transparent hover:text-neutral-900"
-                        >
-                            <span>
-                                Assessed Major Allergens Matrix (
-                                {concepts.length})
-                            </span>
-                            {showAllConcepts ? (
-                                <ChevronUp className="h-4 w-4 text-neutral-400" />
-                            ) : (
-                                <ChevronDown className="h-4 w-4 text-neutral-400" />
-                            )}
-                        </Button>
-
-                        {showAllConcepts && (
-                            <div className="mt-3 grid grid-cols-1 gap-1.5 pt-1 text-xs sm:grid-cols-2">
-                                {positiveConcepts.map((c) => (
-                                    <div
-                                        key={c.concept_id}
-                                        className="border-warning-200/80 bg-warning-50/40 text-warning-900 flex items-center justify-between rounded-xl border p-2"
-                                    >
-                                        <span className="font-medium">
-                                            {c.name}
-                                        </span>
-                                        <Badge
-                                            variant="warning"
-                                            className="text-micro"
-                                        >
-                                            {c.outcome.replace(/_/g, " ")}
-                                        </Badge>
-                                    </div>
-                                ))}
-                                {negativeConcepts.map((c) => (
-                                    <div
-                                        key={c.concept_id}
-                                        className="flex items-center justify-between rounded-xl border border-neutral-200/60 bg-neutral-50/50 p-2 text-neutral-600"
-                                    >
-                                        <span className="truncate">
-                                            {c.name}
-                                        </span>
-                                        <span className="text-caption text-neutral-400">
-                                            Not declared
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Caveat */}
-                <div className="text-caption flex items-start gap-1.5 border-t border-neutral-100 pt-1 text-neutral-400">
-                    <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
-                    <p>
-                        Allergen evaluations are derived from label declarations
-                        and automated concept rules. Check physical packaging
-                        for life-safety allergen assurance.
+                {hasUnavailableCheck && (
+                    <p className="text-caption flex items-start gap-1.5 border-t border-neutral-100 pt-3 text-neutral-500">
+                        <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
+                        Some allergen checks are missing or incomplete. Missing
+                        information does not mean that the Product is free from
+                        an allergen.
                     </p>
-                </div>
+                )}
+
+                <p className="text-caption flex items-start gap-1.5 border-t border-neutral-100 pt-1 text-neutral-400">
+                    <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
+                    <span>
+                        These are Open Food Facts source signals, not a Life
+                        Goods safety or allergen-free judgment.
+                    </span>
+                </p>
             </CardContent>
         </Card>
     )

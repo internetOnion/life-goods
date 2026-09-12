@@ -1,252 +1,164 @@
 import type {
-    AllergenAssessmentResponse,
-    PackageMatchEvidenceResponse,
-} from "@/features/product/types"
+    AllergenAnalysisResponse,
+    AllergenEvidenceResponse,
+} from "@/api/generated"
 
-export const SELECTED_CONCERNS_STORAGE_KEY = "lifegoods_selected_concerns"
+import type { PackageMatchEvidenceResponse } from "@/features/product/types"
 
-const CONCERN_MATCH_TERMS = {
-    dairy: ["dairy", "milk", "whey", "butter", "cheese", "cream", "casein"],
-    eggs: ["egg", "albumen", "ovalbumin"],
-    peanuts: ["peanut", "groundnut", "arachide"],
-    treeNuts: [
-        "tree nut",
-        "almond",
-        "hazelnut",
-        "walnut",
-        "cashew",
-        "pistachio",
-        "pecan",
-        "macadamia",
-        "brazil nut",
-    ],
-    soybean: ["soy", "soya", "soybean"],
-    wheat: ["wheat"],
-    fish: ["fish", "salmon", "tuna", "cod", "anchovy", "sardine", "mackerel"],
-    shellfish: [
-        "shellfish",
-        "crustacea",
-        "crustacean",
-        "shrimp",
-        "prawn",
-        "lobster",
-        "crab",
-    ],
-    sesame: ["sesame"],
-    mustard: ["mustard"],
-    celery: ["celery"],
-    mollusks: ["mollusk", "mollusc", "mussel", "oyster", "squid", "clam"],
-    sulphurDioxide: ["sulfur dioxide", "sulphur dioxide"],
-    sulphites: ["sulfite", "sulphite"],
-    gluten: ["gluten", "wheat", "barley", "rye", "oat", "spelt", "kamut"],
-    lactose: ["lactose"],
-} as const
+import { ALLERGEN_OPTIONS, CONCERN_TAGS, type ConcernId } from "./allergens"
 
-export type ConcernId = keyof typeof CONCERN_MATCH_TERMS
-
-export const CONCERN_LABELS: Record<ConcernId, string> = {
-    dairy: "Dairy",
-    eggs: "Eggs",
-    peanuts: "Peanuts",
-    treeNuts: "Tree Nuts",
-    soybean: "Soybean",
-    wheat: "Wheat",
-    fish: "Fish",
-    shellfish: "Shellfish",
-    sesame: "Sesame",
-    mustard: "Mustard",
-    celery: "Celery",
-    mollusks: "Mollusks",
-    sulphurDioxide: "Sulphur Dioxide",
-    sulphites: "Sulphites",
-    gluten: "Gluten",
-    lactose: "Lactose",
-}
-
-export type ConcernMatchSource =
-    "assessment finding" | "allergen tag" | "trace tag" | "ingredient text"
+export { ALLERGEN_OPTIONS, CONCERN_TAGS }
+export type { ConcernId }
+export {
+    consumeMigrationNotice,
+    SELECTED_CONCERNS_CHANGED_EVENT,
+    SELECTED_CONCERNS_STORAGE_KEY,
+    readSelectedConcernState,
+    resetSelectedConcernIds,
+    saveSelectedConcernIds,
+    subscribeToSelectedConcernChanges,
+    updateSelectedConcernIds,
+    useSelectedConcernStorage,
+} from "./storage"
 
 export interface ConcernMatch {
     concernId: ConcernId
     concernLabel: string
-    matchedText: string
-    source: ConcernMatchSource
+    ingredientTexts: string[]
+    precautionaryStatements: string[]
+    offDeclaration: boolean
+    offTrace: boolean
+    negatedWording: string[]
+    unclearWording: string[]
+    informationGap: boolean
 }
 
-function normalize(value: string): string {
-    return value
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[-_]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim()
+function uniqueStrings(values: readonly string[]): string[] {
+    return [...new Set(values.filter((value) => value.trim()))]
 }
 
-function tagText(value: string): string {
-    return value
-        .replace(/^[a-z]{2}:/i, "")
-        .replace(/-/g, " ")
-        .trim()
-}
-
-function matchesTerm(value: string, term: string, allowNegativeClaim = false) {
-    const normalizedValue = normalize(value)
-    const normalizedTerm = normalize(term)
-    const index = normalizedValue.indexOf(normalizedTerm)
-    const after = normalizedValue.slice(index + normalizedTerm.length)
-
-    if (index < 0) return false
-    if (!allowNegativeClaim) {
-        const before = normalizedValue.slice(0, index)
-        if (
-            /(?:free|without|no|sans|sin)(?: from)?\s*$/.test(before) ||
-            /^\s*(?:free|without)\b/.test(after)
-        ) {
-            return false
-        }
-    }
-
-    const beforeCharacter = normalizedValue[index - 1]
-    const afterCharacter = after[0]
-    const isWordCharacter = (character: string | undefined) =>
-        Boolean(character && /[a-z0-9]/.test(character))
-
-    return !isWordCharacter(beforeCharacter) && !isWordCharacter(afterCharacter)
-}
-
-function matchConcern(
-    value: string,
-    concernId: ConcernId,
-    allowNegativeClaim = false,
-) {
-    return CONCERN_MATCH_TERMS[concernId].some((term) =>
-        matchesTerm(value, term, allowNegativeClaim),
+function evidenceTagMatches(
+    evidence: AllergenEvidenceResponse,
+    tag: string,
+): boolean {
+    return evidence.allergens.some(
+        (allergen) => typeof allergen.tag === "string" && allergen.tag === tag,
     )
 }
 
-export function loadSelectedConcernIds(): ConcernId[] {
-    if (typeof localStorage === "undefined") return []
-
-    try {
-        const stored: unknown = JSON.parse(
-            localStorage.getItem(SELECTED_CONCERNS_STORAGE_KEY) || "[]",
-        )
-        if (!Array.isArray(stored)) return []
-        return stored.filter(
-            (value): value is ConcernId =>
-                typeof value === "string" && value in CONCERN_MATCH_TERMS,
-        )
-    } catch {
-        return []
-    }
+function evidenceText(
+    evidence: AllergenEvidenceResponse[],
+    tag: string,
+    qualification: AllergenEvidenceResponse["qualification"],
+): string[] {
+    return uniqueStrings(
+        evidence
+            .filter(
+                (item) =>
+                    item.qualification === qualification &&
+                    evidenceTagMatches(item, tag),
+            )
+            .map((item) => item.matched_text),
+    )
 }
 
-function evidenceValues(
+function tagValues(
     evidence: PackageMatchEvidenceResponse[],
-    field: string,
-) {
+    fields: readonly string[],
+): string[] {
     return evidence
-        .filter((item) => item.field === field)
+        .filter((item) => fields.includes(item.field))
         .flatMap((item) => {
-            if (typeof item.value === "string") return [item.value]
             if (Array.isArray(item.value)) {
                 return item.value.filter(
                     (value): value is string => typeof value === "string",
                 )
             }
-            return []
+            return typeof item.value === "string" ? [item.value] : []
         })
 }
 
+function uniqueEvidence(
+    evidence: AllergenEvidenceResponse[],
+): AllergenEvidenceResponse[] {
+    const seen = new Set<string>()
+    return evidence.filter((item) => {
+        const key = `${item.start}:${item.end}:${item.qualification}:${item.matched_text}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+    })
+}
+
 export function findSelectedConcernMatches(
-    selectedConcernIds: ConcernId[],
-    assessment: AllergenAssessmentResponse | null | undefined,
+    selectedConcernIds: readonly ConcernId[],
+    analysis: AllergenAnalysisResponse | null | undefined,
     labelEvidence: PackageMatchEvidenceResponse[] = [],
 ): ConcernMatch[] {
-    const matches = new Map<ConcernId, ConcernMatch>()
-    const conceptsById = new Map(
-        (assessment?.concepts || []).map((concept) => [
-            concept.concept_id,
-            concept.name,
-        ]),
+    const ingredientEvidence =
+        analysis?.ingredient_matching.state === "completed"
+            ? analysis.ingredient_matching.evidence
+            : []
+    const allEvidence = uniqueEvidence([
+        ...ingredientEvidence,
+        ...(analysis?.ingredient_matching.qualifications ?? []),
+    ])
+    const traceTags = new Set(
+        tagValues(labelEvidence, ["trace_tag", "trace_tags"]),
     )
 
-    const consider = (
-        concernId: ConcernId,
-        matchedText: string,
-        source: ConcernMatchSource,
-    ) => {
-        if (!matches.has(concernId)) {
-            matches.set(concernId, {
-                concernId,
-                concernLabel: CONCERN_LABELS[concernId],
-                matchedText,
-                source,
-            })
-        }
-    }
-
-    const assessmentFindings =
-        assessment?.status === "COMPLETED" ? assessment.findings : []
-
-    for (const concernId of selectedConcernIds) {
-        for (const finding of assessmentFindings) {
-            const conceptName = conceptsById.get(finding.concept_id) || ""
-            const findingText =
-                finding.matched_text +
-                " " +
-                conceptName +
-                " " +
-                finding.concept_id
-            if (matchConcern(findingText, concernId, true)) {
-                consider(concernId, finding.matched_text, "assessment finding")
-                break
-            }
-        }
-
-        if (matches.has(concernId)) continue
-
-        for (const value of evidenceValues(labelEvidence, "allergen_tags")) {
-            const displayValue = tagText(value)
-            if (matchConcern(displayValue, concernId, true)) {
-                consider(concernId, displayValue, "allergen tag")
-                break
-            }
-        }
-
-        if (matches.has(concernId)) continue
-
-        for (const value of [
-            ...evidenceValues(labelEvidence, "trace_tag"),
-            ...evidenceValues(labelEvidence, "trace_tags"),
-        ]) {
-            const displayValue = tagText(value)
-            if (matchConcern(displayValue, concernId, true)) {
-                consider(concernId, displayValue, "trace tag")
-                break
-            }
-        }
-
-        if (matches.has(concernId)) continue
-
-        for (const value of evidenceValues(labelEvidence, "ingredient_text")) {
-            if (matchConcern(value, concernId)) {
-                const matchedTerm = CONCERN_MATCH_TERMS[concernId].find(
-                    (term) => matchesTerm(value, term),
-                )
-                consider(
-                    concernId,
-                    matchedTerm || CONCERN_LABELS[concernId],
-                    "ingredient text",
-                )
-                break
-            }
-        }
-    }
-
     return selectedConcernIds.flatMap((concernId) => {
-        const match = matches.get(concernId)
-        return match ? [match] : []
+        const option = ALLERGEN_OPTIONS.find(({ id }) => id === concernId)
+        if (!option) return []
+
+        const positiveIngredientEvidence = ingredientEvidence.filter(
+            (item) =>
+                item.qualification === "positive_mention" &&
+                !item.ambiguous &&
+                evidenceTagMatches(item, option.tag),
+        )
+        const ingredientTexts = uniqueStrings(
+            positiveIngredientEvidence.map((item) => item.matched_text),
+        )
+        const precautionaryStatements = evidenceText(
+            allEvidence,
+            option.tag,
+            "precautionary_statement",
+        )
+        const negatedWording = evidenceText(
+            allEvidence,
+            option.tag,
+            "negated_mention",
+        )
+        const unclearWording = evidenceText(
+            allEvidence,
+            option.tag,
+            "unresolved_context",
+        )
+        const offDeclaration =
+            analysis?.off.state === "available" &&
+            analysis.off.tags.includes(option.tag)
+        const offTrace = traceTags.has(option.tag)
+        const informationGap =
+            !analysis ||
+            analysis.off.state === "missing" ||
+            analysis.off.state === "invalid" ||
+            analysis.ingredient_matching.state !== "completed" ||
+            analysis.ingredient_matching.quality === "ambiguous" ||
+            analysis.ingredient_matching.quality === "insufficient"
+
+        return [
+            {
+                concernId,
+                concernLabel: option.label,
+                ingredientTexts,
+                precautionaryStatements,
+                offDeclaration,
+                offTrace,
+                negatedWording,
+                unclearWording,
+                informationGap,
+            },
+        ]
     })
 }

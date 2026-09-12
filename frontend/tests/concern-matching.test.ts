@@ -1,31 +1,191 @@
+import type {
+    AllergenAnalysisResponse,
+    AllergenEvidenceResponse,
+} from "../src/api/generated"
 import { beforeEach, describe, expect, test } from "vitest"
 
 import {
+    ALLERGEN_OPTIONS,
     findSelectedConcernMatches,
-    loadSelectedConcernIds,
 } from "../src/features/concerns/matching"
+
+function evidence(
+    matchedText: string,
+    tag: string,
+    qualification: AllergenEvidenceResponse["qualification"] = "positive_mention",
+    ambiguous = false,
+): AllergenEvidenceResponse {
+    return {
+        alias: matchedText,
+        allergens: [{ tag }],
+        ambiguous,
+        end: matchedText.length,
+        ingredient_tags: [],
+        matched_text: matchedText,
+        name: matchedText,
+        parents: [],
+        qualification,
+        start: 0,
+    }
+}
+
+function analysis(
+    overrides: Partial<AllergenAnalysisResponse> = {},
+): AllergenAnalysisResponse {
+    return {
+        off: { state: "empty", tags: [] },
+        ingredient_matching: {
+            state: "completed",
+            quality: "clear",
+            tags: [],
+            evidence: [],
+            qualifications: [],
+            limitations: [],
+            unmatched_texts: [],
+            unmatched_spans: [],
+        },
+        comparison: {
+            state: "available",
+            in_both: [],
+            off_only: [],
+            ingredient_matching_only: [],
+            sets_equal: true,
+        },
+        ...overrides,
+    }
+}
 
 describe("selected concern matching", () => {
     beforeEach(() => {
         localStorage.clear()
     })
 
-    test("matches a saved concern against an Open Food Facts allergen tag", () => {
-        const matches = findSelectedConcernMatches(
-            ["dairy"],
+    test("matches all 13 shared choices only through exact backend allergen tags", () => {
+        expect(
+            ALLERGEN_OPTIONS.map(({ id, label, tag }) => ({ id, label, tag })),
+        ).toEqual([
+            { id: "celery", label: "Celery", tag: "en:celery" },
             {
-                status: "NOT_ASSESSED",
-                reason: null,
-                evidence_coverage: "PARTIAL",
-                concepts: [],
-                findings: [],
-                source_signals: [],
+                id: "crustaceans",
+                label: "Crustaceans",
+                tag: "en:crustaceans",
             },
+            { id: "eggs", label: "Eggs", tag: "en:eggs" },
+            { id: "fish", label: "Fish", tag: "en:fish" },
+            { id: "gluten", label: "Gluten", tag: "en:gluten" },
+            { id: "lupin", label: "Lupin", tag: "en:lupin" },
+            { id: "milk", label: "Milk", tag: "en:milk" },
+            { id: "molluscs", label: "Molluscs", tag: "en:molluscs" },
+            { id: "mustard", label: "Mustard", tag: "en:mustard" },
+            { id: "nuts", label: "Nuts", tag: "en:nuts" },
+            { id: "peanuts", label: "Peanuts", tag: "en:peanuts" },
+            {
+                id: "sesameSeeds",
+                label: "Sesame seeds",
+                tag: "en:sesame-seeds",
+            },
+            { id: "soybeans", label: "Soybeans", tag: "en:soybeans" },
+        ])
+
+        for (const [index, option] of ALLERGEN_OPTIONS.entries()) {
+            const match = findSelectedConcernMatches(
+                [option.id],
+                analysis({
+                    ingredient_matching: {
+                        ...analysis().ingredient_matching,
+                        tags: [option.tag],
+                        evidence: [evidence(`ingredient-${index}`, option.tag)],
+                    },
+                }),
+            )
+
+            expect(match[0]?.ingredientTexts).toEqual([`ingredient-${index}`])
+            expect(match[0]?.concernLabel).toBe(option.label)
+        }
+    })
+
+    test("does not match a near or unknown tag", () => {
+        const matches = findSelectedConcernMatches(
+            ["milk"],
+            analysis({
+                ingredient_matching: {
+                    ...analysis().ingredient_matching,
+                    tags: ["en:milk-powder"],
+                    evidence: [evidence("milk powder", "en:milk-powder")],
+                },
+                off: { state: "available", tags: ["en:milk-powder"] },
+            }),
+        )
+
+        expect(matches[0]).toMatchObject({
+            ingredientTexts: [],
+            offDeclaration: false,
+        })
+    })
+
+    test("keeps exact tags and multiple ingredient values separate", () => {
+        const matches = findSelectedConcernMatches(
+            ["milk"],
+            analysis({
+                ingredient_matching: {
+                    ...analysis().ingredient_matching,
+                    tags: ["en:milk"],
+                    evidence: [
+                        evidence("whey", "en:milk"),
+                        evidence("casein", "en:milk"),
+                        evidence(
+                            "milk-like",
+                            "en:milk",
+                            "positive_mention",
+                            true,
+                        ),
+                    ],
+                },
+            }),
+        )
+
+        expect(matches[0]?.ingredientTexts).toEqual(["whey", "casein"])
+    })
+
+    test("keeps ingredient, precautionary, declaration, trace, negated, and unclear sources", () => {
+        const matches = findSelectedConcernMatches(
+            ["peanuts"],
+            analysis({
+                off: { state: "available", tags: ["en:peanuts"] },
+                ingredient_matching: {
+                    ...analysis().ingredient_matching,
+                    evidence: [
+                        evidence("peanut flour", "en:peanuts"),
+                        evidence(
+                            "may contain peanuts",
+                            "en:peanuts",
+                            "precautionary_statement",
+                        ),
+                        evidence(
+                            "peanut-free",
+                            "en:peanuts",
+                            "negated_mention",
+                        ),
+                        evidence(
+                            "peanut flavor",
+                            "en:peanuts",
+                            "unresolved_context",
+                        ),
+                    ],
+                    qualifications: [
+                        evidence(
+                            "may contain peanuts",
+                            "en:peanuts",
+                            "precautionary_statement",
+                        ),
+                    ],
+                },
+            }),
             [
                 {
-                    field: "allergen_tags",
-                    value: ["en:milk"],
-                    source_field: "allergens_tags",
+                    field: "trace_tags",
+                    value: ["en:peanuts"],
+                    source_field: "traces_tags",
                     source_name: "Open Food Facts",
                     source_url: "https://world.openfoodfacts.org/product/1",
                     language: null,
@@ -35,51 +195,30 @@ describe("selected concern matching", () => {
             ],
         )
 
-        expect(matches).toEqual([
-            {
-                concernId: "dairy",
-                concernLabel: "Dairy",
-                matchedText: "milk",
-                source: "allergen tag",
-            },
-        ])
+        expect(matches[0]).toMatchObject({
+            ingredientTexts: ["peanut flour"],
+            precautionaryStatements: ["may contain peanuts"],
+            offDeclaration: true,
+            offTrace: true,
+            negatedWording: ["peanut-free"],
+            unclearWording: ["peanut flavor"],
+        })
     })
 
-    test("prefers an assessment finding and does not match a free-from claim", () => {
+    test("does not use raw ingredient text or legacy assessment data", () => {
         const matches = findSelectedConcernMatches(
-            ["peanuts", "gluten"],
-            {
-                status: "COMPLETED",
-                reason: null,
-                evidence_coverage: "COMPLETE_READABLE_LABEL",
-                concepts: [
-                    {
-                        concept_id: "concept-food-allergen-peanut",
-                        name: "Peanut",
-                        outcome: "DECLARED_CONTAINS",
-                        reason: null,
-                        finding_ids: ["finding-1"],
-                        parent_ids: [],
-                        rule_ids: [],
-                    },
-                ],
-                findings: [
-                    {
-                        id: "finding-1",
-                        concept_id: "concept-food-allergen-peanut",
-                        matched_text: "peanut",
-                        start_index: 0,
-                        end_index: 6,
-                        source_field: "ingredients_text",
-                        source_url: "https://world.openfoodfacts.org/product/1",
-                    },
-                ],
-                source_signals: [],
-            },
+            ["milk"],
+            analysis({
+                ingredient_matching: {
+                    ...analysis().ingredient_matching,
+                    evidence: [],
+                    tags: [],
+                },
+            }),
             [
                 {
                     field: "ingredient_text",
-                    value: "Gluten free chocolate",
+                    value: "Milk, sugar",
                     source_field: "ingredients_text_en",
                     source_name: "Open Food Facts",
                     source_url: "https://world.openfoodfacts.org/product/1",
@@ -90,45 +229,32 @@ describe("selected concern matching", () => {
             ],
         )
 
-        expect(matches).toEqual([
-            {
-                concernId: "peanuts",
-                concernLabel: "Peanuts",
-                matchedText: "peanut",
-                source: "assessment finding",
-            },
-        ])
+        expect(matches[0]?.ingredientTexts).toEqual([])
+        expect(matches[0]?.offDeclaration).toBe(false)
+        expect(matches[0]?.offTrace).toBe(false)
     })
 
-    test("loads only known concern ids from localStorage", () => {
-        localStorage.setItem(
-            "lifegoods_selected_concerns",
-            JSON.stringify(["dairy", "not-a-concern"]),
+    test("reports missing or incomplete backend checks as information gaps", () => {
+        const matches = findSelectedConcernMatches(
+            ["milk"],
+            analysis({
+                off: { state: "missing", tags: [] },
+                ingredient_matching: {
+                    ...analysis().ingredient_matching,
+                    state: "unavailable",
+                    reason: "matcher_unavailable",
+                    quality: null,
+                },
+                comparison: {
+                    state: "unavailable",
+                    in_both: [],
+                    off_only: [],
+                    ingredient_matching_only: [],
+                    sets_equal: null,
+                },
+            }),
         )
 
-        expect(loadSelectedConcernIds()).toEqual(["dairy"])
-    })
-
-    test("does not present findings from an unassessed response as assessment matches", () => {
-        const matches = findSelectedConcernMatches(["peanuts"], {
-            status: "NOT_ASSESSED",
-            reason: null,
-            evidence_coverage: "PARTIAL",
-            concepts: [],
-            findings: [
-                {
-                    id: "finding-1",
-                    concept_id: "concept-food-allergen-peanut",
-                    matched_text: "peanut",
-                    start_index: 0,
-                    end_index: 6,
-                    source_field: "ingredients_text",
-                    source_url: "https://world.openfoodfacts.org/product/1",
-                },
-            ],
-            source_signals: [],
-        })
-
-        expect(matches).toEqual([])
+        expect(matches[0]?.informationGap).toBe(true)
     })
 })

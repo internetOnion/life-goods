@@ -178,6 +178,7 @@ export interface PackageMatchCandidateResponse {
     source_revision: string | null
     dataset_version: ExternalDatasetVersionResponse | null
     allergen_assessment: AllergenAssessmentResponse
+    allergen_analysis?: AllergenAnalysisResponse | null
     halal_ingredient_assessment: HalalIngredientAssessmentResponse
 }
 

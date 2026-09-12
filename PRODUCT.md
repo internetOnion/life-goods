@@ -41,10 +41,22 @@ The primary workflow happens one-handed on a mobile phone in a shop. The Shopper
 - Privacy-preserving aggregate operational metrics only; no accounts, saved Products, persistent scan history, personalization, Barcode-level analytics, or persistent Shopper identifiers
 - No Product contributions, corrections, moderation, verification, live Open Food Facts fallback, or automatic Dataset Snapshot updates
 - No health, safety, allergen-free, Halal, authenticity, legal, compliance, or purchase verdicts
+- Shopper allergen choices are stored in browser storage only (with an in-memory
+  fallback for the current tab when storage is unavailable) and highlight
+  matching Source Record evidence on Product pages. Choices are never sent to
+  the backend, stored in an account, or included in analytics.
 
 When available, ingredient-text allergen evidence is shown separately from Open Food Facts
 allergen tags. The comparison describes agreement and differences between two source-based
 signals; it does not verify either source or make an allergen-free or safety claim.
+
+Shopper choices use the 13 agreed Open Food Facts allergen groups and exact tags. They are
+browser-only display preferences. Product pages use only passed-through backend allergen
+analysis for ingredient matches: raw ingredient text, legacy assessments, and unambiguous
+frontend keyword guesses cannot create a match. Ingredient evidence, precautionary “May
+contain” wording, Open Food Facts declarations, Open Food Facts traces, negated wording,
+unclear wording, and missing or incomplete checks remain separate signals. No available match
+means only that the available Source Record evidence did not identify a selected group.
 
 Source Assessments such as Nutri-Score, NOVA, Green-Score, and nutrient-level classifications remain visibly attributed Open Food Facts calculations. Life Goods does not verify, recalculate, or adopt them as its own judgments. Source Data Unavailable is unknown, not evidence that a Product has or lacks a property.
 

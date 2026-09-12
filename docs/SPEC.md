@@ -80,6 +80,33 @@ Missing, unsupported, ambiguous, or insufficient ingredient evidence is returned
 does not mean that the Product has no allergens. The analysis is source comparison, not a Life
 Goods safety, allergen-free, or verification verdict.
 
+The frontend may store a Shopper's selected allergen groups on the device. Product pages show
+selected positive ingredient matches below the Product name. Precautionary statements, Open Food
+Facts declarations, traces, and unavailable evidence remain separate. No match means only that
+available evidence did not identify a selected group.
+
+The browser-only choices are exactly these 13 Open Food Facts tags: `en:celery`,
+`en:crustaceans`, `en:eggs`, `en:fish`, `en:gluten`, `en:lupin`, `en:milk`, `en:molluscs`,
+`en:mustard`, `en:nuts`, `en:peanuts`, `en:sesame-seeds`, and `en:soybeans`. The frontend saves
+those exact tags, keeps no account or server-side choice state, and never sends selected choices
+to the backend. Browser migration renames only dairy → Milk, tree nuts → Nuts, shellfish →
+Crustaceans, soybean → Soybeans, mollusks → Molluscs, and sesame → Sesame seeds. Wheat,
+Lactose, Sulphur Dioxide, Sulphites, duplicates, and unknown values are removed; Wheat is not
+converted to Gluten and Lactose is not converted to Milk. A dismissible notice explains any
+rename or removal. Invalid or blocked storage must not crash the page; a failed write keeps the
+current choices in memory for the current tab and explains that they will last only for the visit.
+
+The selected-match notice appears once immediately after the Product name and before other
+Product details. It uses `data.allergen_analysis` passed through the frontend adapter. Only
+completed, unambiguous `positive_mention` backend evidence with an exact selected Open Food
+Facts tag can produce an ingredient match. Frontend ingredient keyword matching and the legacy
+assessment fallback are not used. Each distinct supporting ingredient remains separate. The
+notice separately labels ingredient matches, “May contain” statements, Open Food Facts
+declarations, Open Food Facts traces, negated wording, unclear wording, and missing or
+incomplete checks. If choices exist but none of those available evidence sources matches, it
+shows exactly: “We found no matches. Some information may be missing.” Full allergen and trace
+lists remain below the notice, including groups that were not selected.
+
 `ingredient_matching.evidence` retains the matched Original Text span, taxonomy relationship,
 and one of these bounded qualification values:
 

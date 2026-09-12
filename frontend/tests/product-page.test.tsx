@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, within } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter, Route, Routes } from "react-router"
 import { afterEach, describe, expect, test, vi } from "vitest"
@@ -372,10 +372,10 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(screen.queryByText("Additives (E-Nums)")).not.toBeInTheDocument()
     })
 
-    test("shows a selected concern match from available ingredient text", async () => {
+    test("does not infer a selected concern from raw ingredient text", async () => {
         localStorage.setItem(
             "lifegoods_selected_concerns",
-            JSON.stringify(["dairy"]),
+            JSON.stringify(["en:milk"]),
         )
 
         renderProduct(
@@ -402,19 +402,235 @@ describe("Product page (life-goods-viewer layout)", () => {
         ).not.toBeInTheDocument()
 
         expect(
-            screen.getByRole("status", { name: "Selected concern matches" }),
-        ).toHaveTextContent('Dairy: "milk"')
+            screen.getByRole("status", { name: "Selected allergen matches" }),
+        ).toHaveTextContent(
+            "We found no matches. Some information may be missing.",
+        )
         expect(
             screen.queryByText("Declared Allergens:"),
         ).not.toBeInTheDocument()
         expect(
             screen.queryByText("Allergen Findings", { exact: true }),
         ).not.toBeInTheDocument()
+        expect(screen.getByText("Edit selections")).toBeVisible()
+    })
+
+    test("shows one backend-evidence notice directly after the Product name", async () => {
+        localStorage.setItem(
+            "lifegoods_selected_concerns",
+            JSON.stringify(["en:milk"]),
+        )
+
+        const response = productResponse(
+            { ingredients_text_en: "Whey, sugar, cocoa" },
+            {
+                off: { state: "available", tags: ["en:milk"] },
+                ingredient_matching: {
+                    state: "completed",
+                    quality: "clear",
+                    tags: ["en:milk"],
+                    evidence: [
+                        {
+                            alias: "whey",
+                            allergens: [{ tag: "en:milk" }],
+                            ambiguous: false,
+                            end: 4,
+                            ingredient_tags: ["en:whey"],
+                            matched_text: "whey",
+                            name: "whey",
+                            parents: [],
+                            qualification: "positive_mention",
+                            start: 0,
+                        },
+                    ],
+                    qualifications: [],
+                    limitations: [],
+                    unmatched_texts: [],
+                    unmatched_spans: [],
+                },
+                comparison: {
+                    state: "available",
+                    in_both: ["en:milk"],
+                    off_only: [],
+                    ingredient_matching_only: [],
+                    sets_equal: true,
+                },
+            },
+        )
+
+        renderProduct(vi.fn<ProductLookup>().mockResolvedValue(response))
+
+        const heading = await screen.findByRole("heading", {
+            name: "Dark Chocolate",
+        })
+        const notice = screen.getByRole("status", {
+            name: "Selected allergen matches",
+        })
+
+        expect(notice).toHaveTextContent(
+            "Milk — found through “whey” in the ingredient text.",
+        )
+        expect(notice).toHaveTextContent(
+            "Milk — Also listed by Open Food Facts.",
+        )
+        expect(heading.nextElementSibling).toBe(notice)
         expect(
-            screen.getByText(
-                /This is a Source Record match, not a safety or allergen-free conclusion/i,
-            ),
+            screen.getAllByRole("status", {
+                name: "Selected allergen matches",
+            }),
+        ).toHaveLength(1)
+    })
+
+    test("keeps precautionary, trace, negated, and unclear evidence separate", async () => {
+        localStorage.setItem(
+            "lifegoods_selected_concerns",
+            JSON.stringify(["en:peanuts"]),
+        )
+
+        const response = productResponse(
+            { ingredients_text_en: "Peanut flour, sugar" },
+            {
+                off: { state: "available", tags: ["en:peanuts"] },
+                ingredient_matching: {
+                    state: "completed",
+                    quality: "ambiguous",
+                    tags: ["en:peanuts"],
+                    evidence: [
+                        {
+                            alias: "peanut flour",
+                            allergens: [{ tag: "en:peanuts" }],
+                            ambiguous: false,
+                            end: 12,
+                            ingredient_tags: ["en:peanut"],
+                            matched_text: "peanut flour",
+                            name: "peanut flour",
+                            parents: [],
+                            qualification: "positive_mention",
+                            start: 0,
+                        },
+                        {
+                            alias: "may contain peanuts",
+                            allergens: [{ tag: "en:peanuts" }],
+                            ambiguous: false,
+                            end: 19,
+                            ingredient_tags: [],
+                            matched_text: "may contain peanuts",
+                            name: null,
+                            parents: [],
+                            qualification: "precautionary_statement",
+                            start: 0,
+                        },
+                        {
+                            alias: "peanut-free",
+                            allergens: [{ tag: "en:peanuts" }],
+                            ambiguous: false,
+                            end: 11,
+                            ingredient_tags: [],
+                            matched_text: "peanut-free",
+                            name: null,
+                            parents: [],
+                            qualification: "negated_mention",
+                            start: 0,
+                        },
+                        {
+                            alias: "peanut flavor",
+                            allergens: [{ tag: "en:peanuts" }],
+                            ambiguous: false,
+                            end: 13,
+                            ingredient_tags: [],
+                            matched_text: "peanut flavor",
+                            name: null,
+                            parents: [],
+                            qualification: "unresolved_context",
+                            start: 0,
+                        },
+                    ],
+                    qualifications: [],
+                    limitations: [],
+                    unmatched_texts: [],
+                    unmatched_spans: [],
+                },
+                comparison: {
+                    state: "available",
+                    in_both: ["en:peanuts"],
+                    off_only: [],
+                    ingredient_matching_only: [],
+                    sets_equal: true,
+                },
+            },
+        )
+        Object.assign(response.data.product, { traces_tags: ["en:peanuts"] })
+
+        renderProduct(vi.fn<ProductLookup>().mockResolvedValue(response))
+
+        const notice = await screen.findByRole("status", {
+            name: "Selected allergen matches",
+        })
+        expect(within(notice).getByText("Ingredient matches")).toBeVisible()
+        expect(within(notice).getByText("May contain")).toBeVisible()
+        expect(
+            within(notice).getByText("Open Food Facts declarations"),
         ).toBeVisible()
+        expect(within(notice).getByText("Open Food Facts traces")).toBeVisible()
+        expect(within(notice).getByText("Negated wording")).toBeVisible()
+        expect(within(notice).getByText("Unclear wording")).toBeVisible()
+        expect(within(notice).getByText(/peanut-free/)).toBeVisible()
+        expect(within(notice).getByText(/peanut flavor/)).toBeVisible()
+    })
+
+    test("updates selected choices after a same-tab storage event", async () => {
+        renderProduct(
+            vi.fn<ProductLookup>().mockResolvedValue(productResponse()),
+        )
+
+        await screen.findByRole("heading", { name: "Dark Chocolate" })
+        expect(
+            screen.queryByRole("status", {
+                name: "Selected allergen matches",
+            }),
+        ).not.toBeInTheDocument()
+
+        localStorage.setItem(
+            "lifegoods_selected_concerns",
+            JSON.stringify(["en:eggs"]),
+        )
+        window.dispatchEvent(new Event("lifegoods:concerns-changed"))
+
+        await waitFor(() =>
+            expect(
+                screen.getByRole("status", {
+                    name: "Selected allergen matches",
+                }),
+            ).toBeInTheDocument(),
+        )
+    })
+
+    test("shows a dismissible migration notice on direct Product entry", async () => {
+        localStorage.setItem(
+            "lifegoods_selected_concerns",
+            JSON.stringify(["wheat", "unknown"]),
+        )
+
+        renderProduct(
+            vi.fn<ProductLookup>().mockResolvedValue(productResponse()),
+        )
+
+        await screen.findByRole("heading", { name: "Dark Chocolate" })
+        const notice = screen.getByRole("status", {
+            name: "Selection migration notice",
+        })
+        expect(notice).toHaveTextContent(
+            "Some saved choices were renamed or removed. Please review your choices.",
+        )
+
+        await userEvent.click(
+            within(notice).getByRole("button", { name: "Dismiss" }),
+        )
+        expect(
+            screen.queryByRole("status", {
+                name: "Selection migration notice",
+            }),
+        ).not.toBeInTheDocument()
     })
 
     test("omits the Halal highlight when only additives are listed", async () => {

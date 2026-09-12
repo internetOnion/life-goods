@@ -29,6 +29,11 @@ import { ProvenanceCard } from "./cards/ProvenanceCard"
 import { SymbolsCard } from "./cards/SymbolsCard"
 import { NutrientLevelsCard } from "./cards/scores/NutrientLevelsCard"
 import { SourceAssessmentsCard } from "./cards/scores/SourceAssessmentsCard"
+import {
+    consumeMigrationNotice,
+    findSelectedConcernMatches,
+    useSelectedConcernStorage,
+} from "@/features/concerns/matching"
 
 type ProductPageProps = {
     lookup?: ProductLookup
@@ -46,6 +51,8 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
     )?.restoreScrollY
 
     const [activeTab, setActiveTab] = useState("ingredients")
+    const concernStorage = useSelectedConcernStorage()
+    const selectedConcernIds = concernStorage.ids
 
     const tabScrollRef = useRef<HTMLDivElement>(null)
 
@@ -71,7 +78,19 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
 
     const candidate = adapted?.candidate
     const offView = adapted?.offView
-    const labelEvidence = candidate?.label_evidence || []
+    const labelEvidence = useMemo(
+        () => candidate?.label_evidence || [],
+        [candidate?.label_evidence],
+    )
+    const selectedConcernMatches = useMemo(
+        () =>
+            findSelectedConcernMatches(
+                selectedConcernIds,
+                candidate?.allergen_analysis,
+                labelEvidence,
+            ),
+        [candidate?.allergen_analysis, labelEvidence, selectedConcernIds],
+    )
     const hasNutriScore = Boolean(
         offView?.nutriscoreGrade && offView.nutriscoreGrade !== "unknown",
     )
@@ -239,6 +258,10 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                             genericName={offView.genericName}
                             manufacturingPlace={offView.manufacturingPlaces}
                             headingRef={headingRef}
+                            selectedConcernMatches={selectedConcernMatches}
+                            hasSelectedConcerns={selectedConcernIds.length > 0}
+                            migrationNotice={concernStorage.migrationNotice}
+                            onDismissMigrationNotice={consumeMigrationNotice}
                         />
 
                         {hasSourceAssessments && (
@@ -319,7 +342,7 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                 />
                                 <AdditivesCard labelEvidence={labelEvidence} />
                                 <AllergenCard
-                                    assessment={candidate.allergen_assessment}
+                                    analysis={candidate.allergen_analysis}
                                     labelEvidence={labelEvidence}
                                 />
                                 <HalalCard
@@ -373,7 +396,7 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                 />
                                 <AdditivesCard labelEvidence={labelEvidence} />
                                 <AllergenCard
-                                    assessment={candidate.allergen_assessment}
+                                    analysis={candidate.allergen_analysis}
                                     labelEvidence={labelEvidence}
                                 />
                                 <HalalCard

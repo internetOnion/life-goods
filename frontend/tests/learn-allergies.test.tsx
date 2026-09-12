@@ -358,6 +358,6 @@ describe("Learn source content and Allergies demos", () => {
                 name: "Dietary & Allergy Concerns",
             }),
         ).toBeVisible()
-        expect(screen.getByRole("checkbox", { name: "Dairy" })).toBeVisible()
+        expect(screen.getByRole("checkbox", { name: "Milk" })).toBeVisible()
     })
 })
