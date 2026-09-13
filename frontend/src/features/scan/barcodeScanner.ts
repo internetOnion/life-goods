@@ -4,6 +4,9 @@ export type BarcodeScannerError = unknown
 
 export type BarcodeScannerSession = {
     stop: () => void
+    suspend?: () => void
+    torchAvailable: boolean
+    setTorch: (enabled: boolean) => Promise<void>
 }
 
 export type BarcodeScannerOptions = {
@@ -20,6 +23,7 @@ export type BarcodeScanner = {
 }
 
 const previewReadyTimeoutMs = 5000
+const cameraResumeGracePeriodMs = 5000
 const previewReadyEvents = [
     "loadedmetadata",
     "loadeddata",
@@ -32,6 +36,58 @@ const previewReadyEvents = [
 
 class CameraPreviewError extends Error {
     override name = "CameraPreviewError"
+}
+
+type RetainedCameraStream = {
+    facingMode: "environment" | "user"
+    stream: MediaStream
+    timeoutId: ReturnType<typeof setTimeout>
+}
+
+let retainedCameraStream: RetainedCameraStream | null = null
+
+function stopRetainedCameraStream() {
+    if (!retainedCameraStream) return
+    clearTimeout(retainedCameraStream.timeoutId)
+    stopStream(retainedCameraStream.stream)
+    retainedCameraStream = null
+}
+
+function hasLiveVideoTrack(stream: MediaStream) {
+    return getStreamTracks(stream).some((track) => track.readyState !== "ended")
+}
+
+function takeRetainedCameraStream(
+    facingMode: "environment" | "user",
+): MediaStream | null {
+    if (!retainedCameraStream) return null
+
+    const retained = retainedCameraStream
+    retainedCameraStream = null
+    clearTimeout(retained.timeoutId)
+
+    if (
+        retained.facingMode !== facingMode ||
+        !hasLiveVideoTrack(retained.stream)
+    ) {
+        stopStream(retained.stream)
+        return null
+    }
+
+    return retained.stream
+}
+
+function retainCameraStream(
+    stream: MediaStream,
+    facingMode: "environment" | "user",
+) {
+    stopRetainedCameraStream()
+    const timeoutId = setTimeout(() => {
+        if (retainedCameraStream?.stream === stream) {
+            stopRetainedCameraStream()
+        }
+    }, cameraResumeGracePeriodMs)
+    retainedCameraStream = { facingMode, stream, timeoutId }
 }
 
 function constraintStages(
@@ -220,6 +276,29 @@ function getStreamTracks(stream: MediaStream): MediaStreamTrack[] {
     return []
 }
 
+function getTorchTrack(stream: MediaStream): MediaStreamTrack | null {
+    const track = getStreamTracks(stream).find(
+        (candidate) => candidate.kind === "video",
+    )
+
+    if (
+        !track ||
+        typeof track.applyConstraints !== "function" ||
+        typeof track.getCapabilities !== "function"
+    )
+        return null
+
+    try {
+        const capabilities =
+            track.getCapabilities() as MediaTrackCapabilities & {
+                torch?: boolean
+            }
+        return capabilities.torch === true ? track : null
+    } catch {
+        return null
+    }
+}
+
 function stopStream(stream: MediaStream) {
     getStreamTracks(stream).forEach((track) => track.stop())
 }
@@ -322,8 +401,20 @@ async function getNativeDetector(): Promise<NativeDetector | null> {
 
 export const barcodeScanner: BarcodeScanner = {
     async start(video, onResult, onError, options) {
-        const stream = await acquireMediaStream(
-            options?.facingMode ?? "environment",
+        const facingMode = options?.facingMode ?? "environment"
+        const stream =
+            takeRetainedCameraStream(facingMode) ??
+            (await acquireMediaStream(facingMode))
+        const torchTrack = getTorchTrack(stream)
+        const torchAvailable = torchTrack !== null
+
+        // Start decoder initialization while the camera negotiates and the
+        // preview becomes drawable. Neither capability detection nor loading
+        // the fallback decoder should keep the shopper on the startup state.
+        const nativeDetectorPromise = getNativeDetector()
+        const zxingReaderPromise = import("@zxing/browser").then(
+            ({ BrowserMultiFormatOneDReader }) =>
+                new BrowserMultiFormatOneDReader(),
         )
 
         video.muted = true
@@ -338,21 +429,50 @@ export const barcodeScanner: BarcodeScanner = {
 
         try {
             await startVideoPreview(video)
-            nativeDetector = await getNativeDetector()
-            // Always prepare zxingReader as the universal engine / native fallback
-            const { BrowserMultiFormatOneDReader } =
-                await import("@zxing/browser")
-            zxingReader = new BrowserMultiFormatOneDReader()
         } catch (error) {
             detachStream(video, stream)
             throw error
         }
 
         let stopped = false
+        let decoderError: unknown = null
         let animationFrameId: number | null = null
         let pollTimeoutId: ReturnType<typeof setTimeout> | null = null
         let lastScanTimestamp = 0
+        let torchEnabled = false
         const scanIntervalMs = 50
+
+        const setTorch = async (enabled: boolean) => {
+            if (!torchTrack) {
+                throw new DOMException(
+                    "Torch control is unavailable",
+                    "NotSupportedError",
+                )
+            }
+
+            const constraints = {
+                advanced: [{ torch: enabled }],
+            } as unknown as MediaTrackConstraints
+            await torchTrack.applyConstraints(constraints)
+            torchEnabled = enabled
+        }
+
+        void nativeDetectorPromise.then((detector) => {
+            nativeDetector = detector
+        })
+        void zxingReaderPromise.then(
+            (reader) => {
+                zxingReader = reader
+            },
+            (error: unknown) => {
+                decoderError = error
+                // Let start() return its live preview before surfacing a
+                // decoder loading failure to the page.
+                setTimeout(() => {
+                    if (!stopped) onError(error)
+                }, 0)
+            },
+        )
 
         const handleTrackEnded = () => {
             if (!stopped) {
@@ -369,6 +489,8 @@ export const barcodeScanner: BarcodeScanner = {
 
         const scanFrame = async () => {
             if (stopped) return
+
+            if (decoderError) return
 
             const now = Date.now()
             if (
@@ -449,9 +571,35 @@ export const barcodeScanner: BarcodeScanner = {
         void scanFrame()
 
         return {
+            suspend: () => {
+                if (stopped) return
+                stopped = true
+                if (torchTrack && torchEnabled) {
+                    void setTorch(false).catch(() => undefined)
+                }
+                getStreamTracks(stream).forEach((track) => {
+                    track.removeEventListener("ended", handleTrackEnded)
+                })
+                if (
+                    animationFrameId !== null &&
+                    typeof cancelAnimationFrame === "function"
+                ) {
+                    cancelAnimationFrame(animationFrameId)
+                    animationFrameId = null
+                }
+                if (pollTimeoutId !== null) {
+                    clearTimeout(pollTimeoutId)
+                    pollTimeoutId = null
+                }
+                if (video.srcObject === stream) video.srcObject = null
+                retainCameraStream(stream, facingMode)
+            },
             stop: () => {
                 if (stopped) return
                 stopped = true
+                if (torchTrack && torchEnabled) {
+                    void setTorch(false).catch(() => undefined)
+                }
                 getStreamTracks(stream).forEach((track) => {
                     track.removeEventListener("ended", handleTrackEnded)
                 })
@@ -468,6 +616,8 @@ export const barcodeScanner: BarcodeScanner = {
                 }
                 detachStream(video, stream)
             },
+            torchAvailable,
+            setTorch,
         }
     },
 }

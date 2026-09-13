@@ -66,7 +66,7 @@ export function AppShell({ children }: AppShellProps) {
     }, [location.pathname])
 
     return (
-        <div className="bg-background text-foreground flex min-h-svh min-w-0 flex-col">
+        <div className="bg-background text-foreground flex min-h-[100vh] min-h-[100dvh] min-w-0 flex-col">
             {showSplash && <SplashScreen />}
             <div
                 className={cn(

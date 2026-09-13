@@ -80,6 +80,33 @@ describe("camera Barcode scanner", () => {
         expect(screen.getByRole("status")).toHaveTextContent("Ready to scan")
     })
 
+    test("toggles the camera flash from the bottom control dock", async () => {
+        const user = userEvent.setup()
+        const setTorchMock = vi.fn().mockResolvedValue(undefined)
+        sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
+        startMock.mockResolvedValue({
+            stop: vi.fn(),
+            torchAvailable: true,
+            setTorch: setTorchMock,
+        })
+        renderPage()
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
+
+        const flashButton = screen.getByRole("button", {
+            name: "Turn flash on",
+        })
+        expect(flashButton).toHaveAttribute("aria-pressed", "false")
+
+        await user.click(flashButton)
+        await waitFor(() => expect(setTorchMock).toHaveBeenCalledWith(true))
+        expect(
+            screen.getByRole("button", { name: "Turn flash off" }),
+        ).toHaveAttribute("aria-pressed", "true")
+
+        await user.click(screen.getByRole("button", { name: "Turn flash off" }))
+        await waitFor(() => expect(setTorchMock).toHaveBeenCalledWith(false))
+    })
+
     test("does not restart camera while the Android permission prompt is pending", async () => {
         const user = userEvent.setup()
         let resolveStart: ((session: { stop: () => void }) => void) | undefined
@@ -145,11 +172,12 @@ describe("camera Barcode scanner", () => {
         )
     })
 
-    test("includes only one generic search bar under brand logo that stops camera and navigates to /search", async () => {
+    test("includes only one generic search bar under brand logo that suspends camera and navigates to /search", async () => {
         const user = userEvent.setup()
         const stopMock = vi.fn()
+        const suspendMock = vi.fn()
         sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
-        startMock.mockResolvedValue({ stop: stopMock })
+        startMock.mockResolvedValue({ stop: stopMock, suspend: suspendMock })
         renderPage()
         await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
 
@@ -161,7 +189,8 @@ describe("camera Barcode scanner", () => {
         expect(screen.getByText("Search products...")).toBeVisible()
 
         await user.click(searchBar)
-        expect(stopMock).toHaveBeenCalled()
+        expect(suspendMock).toHaveBeenCalled()
+        expect(stopMock).not.toHaveBeenCalled()
         expect(screen.getByTestId("location")).toHaveTextContent("/search")
     })
 })
