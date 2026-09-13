@@ -10,6 +10,7 @@ import type {
     PackageMatchReferenceImageResponse,
 } from "@/features/product/types"
 import { cn } from "@/lib/utils"
+import type { ConcernMatch } from "@/features/concerns/matching"
 
 interface ProductHeroProps {
     candidate: PackageMatchCandidateResponse
@@ -17,6 +18,7 @@ interface ProductHeroProps {
     genericName?: string | null
     manufacturingPlace?: string | null
     headingRef?: React.Ref<HTMLHeadingElement>
+    selectedConcernMatches?: ConcernMatch[]
 }
 
 export const ProductHero: React.FC<ProductHeroProps> = ({
@@ -25,12 +27,12 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
     genericName,
     manufacturingPlace,
     headingRef,
+    selectedConcernMatches = [],
 }) => {
     const [selectedImageIndex, setSelectedImageIndex] = useState(0)
     const [isZoomOpen, setIsZoomOpen] = useState(false)
     const [isCopied, setIsCopied] = useState(false)
     const [imageFailed, setImageFailed] = useState(false)
-
     const identityEvidence = candidate.identity_evidence || []
     const labelEvidence = candidate.label_evidence || []
     const images = candidate.reference_images || []
@@ -100,6 +102,13 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
           ? halalClaimItem.value.trim().length > 0
           : Boolean(halalClaimItem?.value)
     const hasLabelHighlights = additivesCount > 0 || hasHalalClaim
+    const matchedConcernLabels = [
+        ...new Set(
+            selectedConcernMatches
+                .filter((match) => match.hasCompactMatch)
+                .map((match) => match.concernLabel),
+        ),
+    ]
 
     const handleCopyBarcode = () => {
         void navigator.clipboard.writeText(identifier)
@@ -206,6 +215,19 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                     >
                         {productName}
                     </h1>
+
+                    {matchedConcernLabels.length > 0 && (
+                        <div
+                            role="status"
+                            aria-label={`Selected allergens found: ${matchedConcernLabels.join(", ")}`}
+                            className="border-warning-200 bg-warning-50 text-warning-950 rounded-xl border p-3 text-sm font-semibold"
+                        >
+                            <p className="text-caption mb-1 font-medium">
+                                Selected allergens found
+                            </p>
+                            <p>{matchedConcernLabels.join(", ")}</p>
+                        </div>
+                    )}
 
                     {genericName && (
                         <p className="max-w-prose text-sm leading-relaxed font-medium text-neutral-600 italic">

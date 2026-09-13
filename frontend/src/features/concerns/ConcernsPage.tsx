@@ -1,82 +1,17 @@
-import {
-    CheeseIcon,
-    DropSlashIcon,
-    EggIcon,
-    FishIcon,
-    FlaskIcon,
-    GrainsIcon,
-    GrainsSlashIcon,
-    ShrimpIcon,
-    TestTubeIcon,
-    XIcon,
-} from "@phosphor-icons/react"
-import { useEffect, useRef, useState } from "react"
+import { XIcon } from "@phosphor-icons/react"
+import { useEffect, useRef } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { usePageMetadata } from "@/lib/metadata"
 
-import {
-    CeleryIcon,
-    MolluskIcon,
-    MustardIcon,
-    PeanutIcon,
-    SesameIcon,
-    SoybeanIcon,
-    TreeNutIcon,
-} from "./AllergenIcons"
-import { SELECTED_CONCERNS_STORAGE_KEY } from "./matching"
-
-const STORAGE_KEY = SELECTED_CONCERNS_STORAGE_KEY
-
-export const ALLERGEN_OPTIONS = [
-    { id: "dairy", label: "Dairy", icon: CheeseIcon },
-    { id: "eggs", label: "Eggs", icon: EggIcon },
-    { id: "peanuts", label: "Peanuts", icon: PeanutIcon },
-    { id: "treeNuts", label: "Tree Nuts", icon: TreeNutIcon },
-    { id: "soybean", label: "Soybean", icon: SoybeanIcon },
-    { id: "wheat", label: "Wheat", icon: GrainsIcon },
-    { id: "fish", label: "Fish", icon: FishIcon },
-    { id: "shellfish", label: "Shellfish", icon: ShrimpIcon },
-    { id: "sesame", label: "Sesame", icon: SesameIcon },
-    { id: "mustard", label: "Mustard", icon: MustardIcon },
-    { id: "celery", label: "Celery", icon: CeleryIcon },
-    { id: "mollusks", label: "Mollusks", icon: MolluskIcon },
-    { id: "sulphurDioxide", label: "Sulphur Dioxide", icon: FlaskIcon },
-    { id: "sulphites", label: "Sulphites", icon: TestTubeIcon },
-    { id: "gluten", label: "Gluten", icon: GrainsSlashIcon },
-    { id: "lactose", label: "Lactose", icon: DropSlashIcon },
-] as const
+import { ALLERGEN_OPTIONS, useSelectedConcernStorage } from "./matching"
 
 export type AllergenId = (typeof ALLERGEN_OPTIONS)[number]["id"]
 
-function loadSavedConcerns(): string[] {
-    if (typeof localStorage === "undefined") return []
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY)
-        if (!raw) return []
-        const parsed: unknown = JSON.parse(raw)
-        return Array.isArray(parsed)
-            ? parsed.filter((item): item is string => typeof item === "string")
-            : []
-    } catch {
-        return []
-    }
-}
-
-function saveConcerns(concerns: string[]) {
-    if (typeof localStorage === "undefined") return
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(concerns))
-    } catch {
-        // Ignore storage write failures
-    }
-}
-
 export function ConcernsPage() {
-    const [selected, setSelected] = useState<string[]>(() =>
-        loadSavedConcerns(),
-    )
+    const storage = useSelectedConcernStorage()
+    const selected = storage.ids
     const headingRef = useRef<HTMLHeadingElement>(null)
 
     usePageMetadata({
@@ -89,19 +24,15 @@ export function ConcernsPage() {
         headingRef.current?.focus({ preventScroll: true })
     }, [])
 
-    const toggleOption = (id: string) => {
-        setSelected((prev) => {
-            const next = prev.includes(id)
-                ? prev.filter((item) => item !== id)
-                : [...prev, id]
-            saveConcerns(next)
-            return next
-        })
+    const toggleOption = (id: AllergenId) => {
+        const next = selected.includes(id)
+            ? selected.filter((item) => item !== id)
+            : [...selected, id]
+        storage.save(next)
     }
 
     const resetAll = () => {
-        setSelected([])
-        saveConcerns([])
+        storage.reset()
     }
 
     const selectedOptions = ALLERGEN_OPTIONS.filter((opt) =>
@@ -121,6 +52,12 @@ export function ConcernsPage() {
                 Select ingredients or allergens you want to be mindful of when
                 reviewing Product labels.
             </p>
+            {storage.storageError && (
+                <p role="alert" className="text-error-800 mt-3 text-sm">
+                    Your choices could not be saved. They will last only for
+                    this visit.
+                </p>
+            )}
 
             <section
                 className="mt-8 rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6"
@@ -195,7 +132,7 @@ export function ConcernsPage() {
                             <label
                                 key={opt.id}
                                 htmlFor={inputId}
-                                className={`focus-within:ring-primary-500 flex min-h-16 cursor-pointer items-center gap-3.5 rounded-xl border p-3.5 transition-colors select-none focus-within:ring-2 focus-within:ring-offset-2 ${
+                                className={`has-[:focus-visible]:ring-primary-500 flex min-h-16 cursor-pointer items-center gap-3.5 rounded-xl border p-3.5 transition-colors select-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-offset-2 ${
                                     isChecked
                                         ? "border-primary-400 bg-primary-50/70 text-neutral-950 shadow-xs"
                                         : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50/60"
