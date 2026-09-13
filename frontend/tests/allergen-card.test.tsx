@@ -8,49 +8,51 @@ describe("AllergenCard", () => {
         localStorage.clear()
     })
 
-    test("shows a selected concern inside allergen findings when assessment matches", () => {
-        localStorage.setItem(
-            "lifegoods_selected_concerns",
-            JSON.stringify(["peanuts"]),
-        )
-
+    test("keeps full declarations and traces in the lower card", () => {
         render(
             <AllergenCard
-                assessment={{
-                    status: "COMPLETED",
-                    reason: null,
-                    evidence_coverage: "COMPLETE_READABLE_LABEL",
-                    concepts: [
-                        {
-                            concept_id: "concept-food-allergen-peanut",
-                            name: "Peanut",
-                            outcome: "DECLARED_CONTAINS",
-                            reason: null,
-                            finding_ids: ["finding-1"],
-                            parent_ids: [],
-                            rule_ids: [],
-                        },
-                    ],
-                    findings: [
-                        {
-                            id: "finding-1",
-                            concept_id: "concept-food-allergen-peanut",
-                            matched_text: "peanut",
-                            start_index: 0,
-                            end_index: 6,
-                            source_field: "ingredients_text",
-                            source_url:
-                                "https://world.openfoodfacts.org/product/1",
-                        },
-                    ],
-                    source_signals: [],
+                analysis={{
+                    off: { state: "available", tags: ["en:peanuts"] },
+                    ingredient_matching: {
+                        state: "completed",
+                        quality: "clear",
+                        tags: [],
+                        evidence: [],
+                        qualifications: [],
+                        limitations: [],
+                        unmatched_texts: [],
+                        unmatched_spans: [],
+                    },
+                    comparison: {
+                        state: "available",
+                        in_both: [],
+                        off_only: ["en:peanuts"],
+                        ingredient_matching_only: [],
+                        sets_equal: false,
+                    },
                 }}
+                labelEvidence={[
+                    {
+                        field: "trace_tags",
+                        value: ["en:milk"],
+                        source_field: "traces_tags",
+                        source_name: "Open Food Facts",
+                        source_url: "https://world.openfoodfacts.org/product/1",
+                        language: null,
+                        observed_at: null,
+                        retrieved_at: "2026-09-08T00:00:00Z",
+                    },
+                ]}
             />,
         )
 
-        expect(screen.getByLabelText("Allergen findings")).toHaveTextContent(
-            'Peanuts: "peanut"',
-        )
+        expect(
+            screen.getByRole("heading", {
+                name: "Open Food Facts declarations",
+            }),
+        ).toBeInTheDocument()
+        expect(screen.getByText("Peanuts")).toBeInTheDocument()
+        expect(screen.getByText("Milk")).toBeInTheDocument()
         expect(
             screen.queryByRole("status", { name: "Selected concern matches" }),
         ).not.toBeInTheDocument()

@@ -267,6 +267,17 @@ function rawFromProductProjection(
         languages_tags: product.source.languages ?? [],
     }
 
+    // Keep optional Source Record compatibility fields when a projection
+    // adapter receives them from an older or extended frontend fixture. The
+    // stable backend contract does not require these fields, so absence stays
+    // an information gap rather than an inferred value.
+    const compatibilityRecord = product as unknown as Record<string, unknown>
+    for (const field of ["allergens_tags", "traces_tags"] as const) {
+        if (Array.isArray(compatibilityRecord[field])) {
+            raw[field] = compatibilityRecord[field]
+        }
+    }
+
     if (product.front_image) {
         raw.selected_images = {
             front: {
@@ -790,6 +801,8 @@ export function adaptProductLookup(
             findings: [],
             source_signals: [],
         },
+        allergen_analysis:
+            "allergen_analysis" in data ? data.allergen_analysis : null,
         halal_ingredient_assessment: {
             status: "NOT_ASSESSED",
             reason: "Raw product record snapshot (unassessed by rules engine)",

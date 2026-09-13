@@ -42,6 +42,10 @@ The primary workflow happens one-handed on a mobile phone in a shop. The Shopper
 - Privacy-preserving aggregate operational metrics only; no accounts, saved Products, persistent scan history, comparison history, personalization, Barcode-level analytics, persistent Shopper identifiers, or retained comparison photos
 - No Product contributions, corrections, moderation, verification, live Open Food Facts fallback, or automatic Dataset Snapshot updates
 - No health, safety, allergen-free, Halal, authenticity, legal, compliance, or purchase verdicts, and no overall comparison winner or Life Goods comparison score
+- Shopper allergen choices are stored in browser storage only (with an in-memory
+  fallback for the current tab when storage is unavailable) and highlight
+  matching Source Record evidence on Product pages. Choices are never sent to
+  the backend, stored in an account, or included in analytics.
 
 When available, ingredient-text allergen evidence is shown separately from Open Food Facts
 allergen tags. The comparison describes agreement and differences between two source-based
@@ -67,6 +71,15 @@ not a Source Record, and are not glossary-defined Original Text. The exception
 does not create Product contributions, corrections, or verification, and it does
 not change Product Lookup, Product Search, Dataset Snapshot, Source Attribution,
 or Khmer Translation behavior.
+
+Shopper choices use the 13 agreed Open Food Facts allergen groups and exact tags. They are
+browser-only display preferences. Immediately after a Product name, the Product page shows a
+short notice labeled “Selected allergens found” followed by the matched names only when a selected group has completed, unambiguous backend ingredient
+evidence or an exact Open Food Facts declaration. Raw ingredient text, legacy assessments, and
+frontend keyword guesses cannot create a match. “May contain” wording, Open Food Facts traces,
+negated wording, unclear wording, and missing or incomplete checks remain in the detailed source
+sections below and do not create the compact notice. When no selected group matches, the notice
+is hidden.
 
 Source Assessments such as Nutri-Score, NOVA, Green-Score, and nutrient-level classifications remain visibly attributed Open Food Facts calculations. Life Goods does not verify, recalculate, or adopt them as its own judgments. Source Data Unavailable is unknown, not evidence that a Product has or lacks a property.
 
