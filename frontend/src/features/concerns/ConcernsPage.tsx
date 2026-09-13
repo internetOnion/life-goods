@@ -1,15 +1,11 @@
 import { XIcon } from "@phosphor-icons/react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { usePageMetadata } from "@/lib/metadata"
 
-import {
-    ALLERGEN_OPTIONS,
-    consumeMigrationNotice,
-    useSelectedConcernStorage,
-} from "./matching"
+import { ALLERGEN_OPTIONS, useSelectedConcernStorage } from "./matching"
 
 export type AllergenId = (typeof ALLERGEN_OPTIONS)[number]["id"]
 
@@ -17,9 +13,6 @@ export function ConcernsPage() {
     const storage = useSelectedConcernStorage()
     const selected = storage.ids
     const headingRef = useRef<HTMLHeadingElement>(null)
-    const [showMigrationNotice, setShowMigrationNotice] = useState(
-        storage.migrationNotice,
-    )
 
     usePageMetadata({
         title: "Dietary & Allergy Concerns",
@@ -30,10 +23,6 @@ export function ConcernsPage() {
     useEffect(() => {
         headingRef.current?.focus({ preventScroll: true })
     }, [])
-
-    useEffect(() => {
-        if (storage.migrationNotice) setShowMigrationNotice(true)
-    }, [storage.migrationNotice])
 
     const toggleOption = (id: AllergenId) => {
         const next = selected.includes(id)
@@ -63,28 +52,6 @@ export function ConcernsPage() {
                 Select ingredients or allergens you want to be mindful of when
                 reviewing Product labels.
             </p>
-            {showMigrationNotice && (
-                <div
-                    role="status"
-                    className="border-warning-200 bg-warning-50 text-warning-950 mt-4 flex items-center justify-between gap-3 rounded-xl border p-3 text-sm"
-                >
-                    <span>
-                        Some saved choices were renamed or removed. Please
-                        review your choices.
-                    </span>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                            consumeMigrationNotice()
-                            setShowMigrationNotice(false)
-                        }}
-                    >
-                        Dismiss
-                    </Button>
-                </div>
-            )}
             {storage.storageError && (
                 <p role="alert" className="text-error-800 mt-3 text-sm">
                     Your choices could not be saved. They will last only for
@@ -165,7 +132,7 @@ export function ConcernsPage() {
                             <label
                                 key={opt.id}
                                 htmlFor={inputId}
-                                className={`focus-within:ring-primary-500 flex min-h-16 cursor-pointer items-center gap-3.5 rounded-xl border p-3.5 transition-colors select-none focus-within:ring-2 focus-within:ring-offset-2 ${
+                                className={`has-[:focus-visible]:ring-primary-500 flex min-h-16 cursor-pointer items-center gap-3.5 rounded-xl border p-3.5 transition-colors select-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-offset-2 ${
                                     isChecked
                                         ? "border-primary-400 bg-primary-50/70 text-neutral-950 shadow-xs"
                                         : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50/60"

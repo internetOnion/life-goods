@@ -61,7 +61,7 @@ describe("ConcernsPage", () => {
         expect(localStorage.getItem("lifegoods_selected_concerns")).toBe("[]")
     })
 
-    test("shows and dismisses a migration notice for renamed and removed choices", () => {
+    test("silently migrates renamed and removed choices without showing a banner", () => {
         localStorage.setItem(
             "lifegoods_selected_concerns",
             JSON.stringify(["dairy", "wheat", "unknown"]),
@@ -70,21 +70,14 @@ describe("ConcernsPage", () => {
         render(<ConcernsPage />)
 
         expect(
-            screen.getByText(
-                "Some saved choices were renamed or removed. Please review your choices.",
-            ),
-        ).toBeVisible()
-        expect(screen.getByLabelText("Milk")).toBeChecked()
-        expect(localStorage.getItem("lifegoods_selected_concerns")).toBe(
-            '["en:milk"]',
-        )
-
-        fireEvent.click(screen.getByRole("button", { name: "Dismiss" }))
-        expect(
             screen.queryByText(
                 "Some saved choices were renamed or removed. Please review your choices.",
             ),
         ).not.toBeInTheDocument()
+        expect(screen.getByLabelText("Milk")).toBeChecked()
+        expect(localStorage.getItem("lifegoods_selected_concerns")).toBe(
+            '["en:milk"]',
+        )
     })
 
     test("refreshes choices after a browser storage event", async () => {
@@ -99,5 +92,15 @@ describe("ConcernsPage", () => {
         await waitFor(() =>
             expect(screen.getByLabelText("Peanuts")).toBeChecked(),
         )
+    })
+
+    test("uses focus-visible styling instead of focus-within so click does not leave a persistent focus ring", () => {
+        render(<ConcernsPage />)
+
+        const eggsCheckbox = screen.getByLabelText("Eggs")
+        const label = eggsCheckbox.closest("label")
+        expect(label).not.toBeNull()
+        expect(label?.className).toContain("has-[:focus-visible]:ring-2")
+        expect(label?.className).not.toContain("focus-within:ring-2")
     })
 })
