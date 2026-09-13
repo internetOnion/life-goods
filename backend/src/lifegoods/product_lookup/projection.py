@@ -390,8 +390,6 @@ def _selected_image(
     languages: list[str] = []
     if preferred_language:
         languages.append(preferred_language)
-        if preferred_language == "kh":
-            languages.append("km")
     languages.append("en")
     checked: set[str] = set()
 

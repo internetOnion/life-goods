@@ -49,11 +49,15 @@
 - Create documentation lazily. `PRODUCT.md` defines product intent, `CONTEXT.md` defines language, `docs/SPEC.md` defines current behavior, and `docs/adr/` records only decisions that are hard to reverse, surprising without context, and the result of a real tradeoff.
 - Put new research in `docs/research/` and Mermaid source plus rendered output in `docs/diagrams/` only when the work actually requires them.
 - Icons and illustrations are not restricted to Phosphor. Use any icon library or custom SVG as long as it has high semantic fidelity (truthfully represents the underlying concept without mismatched compromises) and is vibe-coded to match the Life Goods visual identity (non-generic, tactile, cohesive stroke weights and tones).
-- Use Conventional Commits for every commit: a lowercase type, optional scope, colon, and imperative summary (for example, `feat:`, `fix(api):`, `docs:`, `test:`, or `chore:`).
+- Use lowercase Conventional-style commit prefixes (`feat:`, `fix:`, `docs:`, `test:`, `chore:`) only when a commit is explicitly requested.
 
 ## Issue tracking
 
-Issues and implementation tickets use GitHub Issues for `internetOnion/life-goods`.
-- **Triage & Status**: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `in-progress`, `blocked`, and `wontfix`.
-- **Hierarchy & Scope**: `epic` (parent tracking issues), `backend`, `frontend`, and `documentation`.
-The previous Wave taxonomy has been retired and removed.
+Issues and implementation tickets use GitHub Issues for `internetOnion/life-goods`. Labels use lowercase, colon-separated namespaces:
+
+- `area:` `frontend`, `backend`, `documentation`
+- `status:` `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `in-progress`, `blocked`, `wontfix`, `duplicate`, `invalid`, `post-mvp`
+- `type:` `bug`, `enhancement`, `question`, `epic`
+- `community:` `good-first-issue`, `help-wanted`
+
+The previous Wave taxonomy is obsolete and should not guide new work.

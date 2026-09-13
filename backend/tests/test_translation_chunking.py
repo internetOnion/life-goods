@@ -88,7 +88,7 @@ def test_module_chunks_long_ingredients_deterministically() -> None:
     # Configure module with low max_ingredient_chunk_chars to force chunking
     module = KhmerTranslationModule(provider=provider, max_ingredient_chunk_chars=120)
 
-    result = module.translate_product(product, target_language="kh")
+    result = module.translate_product(product, target_language="km")
 
     assert result.overall_status == TranslationOverallStatus.COMPLETE
     assert result.fields["ingredients_text"].status == TranslationFieldStatus.GENERATED

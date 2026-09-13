@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from pymongo import MongoClient
 from scalar_fastapi import get_scalar_api_reference
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from lifegoods.core.errors import ErrorCode, ErrorDetail, ErrorEnvelope
 from lifegoods.core.security import SecurityHeadersMiddleware
@@ -28,6 +29,33 @@ from lifegoods.open_food_facts import (
     OpenFoodFactsImageSource,
     get_image_source,
     open_food_facts_image_router,
+)
+from lifegoods.photo_comparison.contracts import (
+    PhotoComparisonErrorCode,
+    PhotoComparisonErrorDetail,
+    PhotoComparisonErrorResponse,
+)
+from lifegoods.photo_comparison.gemini import (
+    PHOTO_TIMEOUT_SECONDS,
+    create_photo_extraction_provider,
+)
+from lifegoods.photo_comparison.rate_limit import (
+    PhotoComparisonRateLimiter,
+    RedisPhotoComparisonRateLimiter,
+)
+from lifegoods.photo_comparison.router import (
+    EXTRACTION_PATH,
+    PhotoComparisonUploadLimitMiddleware,
+    install_photo_comparison_openapi,
+    photo_comparison_http_exception_response,
+)
+from lifegoods.photo_comparison.router import build_router as build_photo_comparison_router
+from lifegoods.photo_comparison.service import (
+    PhotoComparisonService,
+    PhotoExtractionProvider,
+    PhotoExtractionService,
+    ProviderCapacityProtocol,
+    RedisProviderCapacity,
 )
 from lifegoods.product_lookup import (
     LookupProduct,
@@ -90,6 +118,9 @@ def create_app(
     product_search_service: SearchProducts | None = None,
     product_search_limiter: ProductSearchRateLimiter | None = None,
     product_search_metrics: ProductSearchMetrics | None = None,
+    photo_provider: PhotoExtractionProvider | None = None,
+    photo_rate_limiter: PhotoComparisonRateLimiter | None = None,
+    photo_capacity: ProviderCapacityProtocol | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings()
     install_product_lookup_access_log_filter()
@@ -104,6 +135,8 @@ def create_app(
         or (resolved_settings.product_lookup_cache_enabled and product_lookup_cache is None)
         or translation_coordinator is None
         or product_search_limiter is None
+        or photo_rate_limiter is None
+        or photo_capacity is None
     )
 
     if needs_shared_redis:
@@ -174,6 +207,15 @@ def create_app(
 
     resolved_product_lookup_metrics = product_lookup_metrics or NoOpProductLookupMetrics()
 
+    if photo_rate_limiter is not None:
+        resolved_photo_rate_limiter = photo_rate_limiter
+    else:
+        assert shared_redis_client is not None
+        resolved_photo_rate_limiter = RedisPhotoComparisonRateLimiter(
+            shared_redis_client,
+            resolved_settings.photo_comparison_requests_per_minute,
+        )
+
     if image_source is None:
         image_http_client = httpx.Client()
         owned_http_clients.append(image_http_client)
@@ -187,8 +229,30 @@ def create_app(
     else:
         resolved_image_source = image_source
 
+    resolved_photo_provider = photo_provider
+    if resolved_photo_provider is None and resolved_settings.gemini_api_key:
+        photo_provider_client = httpx.Client(timeout=PHOTO_TIMEOUT_SECONDS)
+        owned_http_clients.append(photo_provider_client)
+        resolved_photo_provider = create_photo_extraction_provider(
+            resolved_settings.gemini_api_key,
+            http_client=photo_provider_client,
+        )
+
+    resolved_photo_capacity = photo_capacity
+    if resolved_photo_capacity is None:
+        assert shared_redis_client is not None
+        resolved_photo_capacity = RedisProviderCapacity(shared_redis_client)
+
+    photo_extraction_service = PhotoExtractionService(
+        resolved_photo_provider,
+        rate_limiter=resolved_photo_rate_limiter,
+        capacity=resolved_photo_capacity,
+    )
+    photo_comparison_service = PhotoComparisonService()
+
     app = FastAPI(title="Life Goods API", version="0.1.0")
     app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(PhotoComparisonUploadLimitMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(resolved_settings.allowed_origins),
@@ -199,6 +263,13 @@ def create_app(
     app.include_router(product_lookup_router)
     app.include_router(ingredient_matching_router)
     app.include_router(open_food_facts_image_router)
+    app.include_router(
+        build_photo_comparison_router(
+            photo_extraction_service,
+            photo_comparison_service,
+        )
+    )
+    install_photo_comparison_openapi(app)
 
     @app.get("/scalar", include_in_schema=False)
     async def scalar_html() -> HTMLResponse:
@@ -292,6 +363,18 @@ def create_app(
                     }
                 },
             )
+        if request.url.path == EXTRACTION_PATH:
+            envelope = PhotoComparisonErrorResponse(
+                error=PhotoComparisonErrorDetail(
+                    code=PhotoComparisonErrorCode.REQUEST_INVALID,
+                    message="The photo-comparison request is invalid.",
+                )
+            )
+            return JSONResponse(
+                status_code=422,
+                content=envelope.model_dump(mode="json"),
+                headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
+            )
         envelope = ErrorEnvelope(
             error=ErrorDetail(
                 code=ErrorCode.REQUEST_BODY_INVALID,
@@ -299,6 +382,21 @@ def create_app(
             )
         )
         return JSONResponse(status_code=422, content=envelope.model_dump())
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_exception_handler(
+        request: Request, error: StarletteHTTPException
+    ) -> JSONResponse:
+        photo_error = photo_comparison_http_exception_response(
+            request.url.path, error.status_code
+        )
+        if photo_error is not None:
+            return photo_error
+        return JSONResponse(
+            status_code=error.status_code,
+            content={"detail": error.detail},
+            headers=error.headers,
+        )
 
     @app.exception_handler(InvalidIdentifierError)
     async def invalid_identifier_handler(

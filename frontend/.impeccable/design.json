@@ -1,6 +1,6 @@
 {
     "schemaVersion": 2,
-    "generatedAt": "2026-09-02T00:00:00Z",
+    "generatedAt": "2026-09-12T11:31:39Z",
     "title": "Design System: Life Goods",
     "extensions": {
         "colorMeta": {
@@ -161,6 +161,14 @@
             "css": ".ds-nav { display: flex; gap: 0.25rem; } .ds-nav-pill { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 44px; padding: 0 0.75rem; border-radius: 0.75rem; color: #526073; font: 700 0.875rem/1.5 'Plus Jakarta Sans', sans-serif; text-decoration: none; transition: background 150ms, color 150ms; } .ds-nav-pill:hover { background: #e3e7ed; color: #131519; } .ds-nav-pill.is-active { background: #f3e8dd; color: #5a320b; } .ds-nav-pill:focus-visible { outline: 2px solid #b86a1a; outline-offset: 2px; }"
         },
         {
+            "name": "Compare Stepper",
+            "kind": "nav",
+            "refersTo": "compare-stepper",
+            "description": "Three-step Product A, Product B, and Compare path with a clear active state.",
+            "html": "<nav class=\"ds-stepper\" aria-label=\"Comparison steps\"><button class=\"ds-step is-active\">Product A</button><button class=\"ds-step\">Product B</button><button class=\"ds-step\" disabled>Compare</button></nav>",
+            "css": ".ds-stepper { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.25rem; padding: 0.25rem; border-radius: 0.75rem; background: #e3e7ed; } .ds-step { min-height: 44px; border: 1px solid transparent; border-radius: 0.75rem; color: #526073; background: transparent; font: 800 0.75rem/1.5 'Plus Jakarta Sans', sans-serif; } .ds-step.is-active { border-color: #e7b583; background: #f3e8dd; color: #5a320b; } .ds-step:disabled { color: #9fb1cb; } @media (min-width: 640px) { .ds-stepper { gap: 0.5rem; } }"
+        },
+        {
             "name": "Fact Row",
             "kind": "custom",
             "refersTo": "fact-row",
@@ -195,14 +203,15 @@
     ],
     "narrative": {
         "northStar": "The Source Reader",
-        "overview": "Life Goods is a calm, grounded reading tool for attributed source data, not a verdict dashboard. A cool slate canvas holds narrow white sheets of Open Food Facts information; amber exists only to move the Shopper forward, and blue exists only to name the source. Density is generous but ordered: one 36rem reading rail, dividers instead of boxes, monospaced identifiers wherever a machine value appears. The dark scanner aperture is the single moment of high drama, and it exists to make a privacy promise before it asks for the camera.\n\nThe interface is compact, mobile-first, and privacy-forward. Missing source data is never decorated, softened, or inferred: it reads exactly Source Data Unavailable — the interface's most important sentence.",
+        "overview": "Life Goods is a calm, grounded reading tool for attributed source data, not a verdict dashboard. A cool slate canvas holds narrow white sheets of Open Food Facts information; amber exists only to move the Shopper forward, and blue exists only to name the source. Density is generous but ordered: one 36rem reading rail, dividers instead of boxes, monospaced identifiers wherever a machine value appears. The dark scanner aperture is the single moment of high drama, and it exists to make a privacy promise before it asks for the camera.\n\nThe interface is compact, mobile-first, and privacy-forward. Missing source data is never decorated, softened, or inferred: it reads exactly Source Data Unavailable — the interface's most important sentence.\n\nCompare Products captures Product A and Product B in a two-step control, then renders comparison results on their own page with a return to edit either Product. The stepper gets 0.75rem vertical separation on mobile and 1rem from the sm breakpoint while retaining 44px controls.",
         "keyCharacteristics": [
             "Narrow, one-handed reading column on a cool slate canvas",
             "White source sheets carry the content; the canvas is only a field",
             "Amber action and blue Source Attribution",
             "Dark camera glass separated from reading surfaces",
             "Compact rounded controls and mono identifiers",
-            "Dividers and disclosure instead of dashboard tiles"
+            "Dividers and disclosure instead of dashboard tiles",
+            "A two-step Compare Products capture with results on their own page"
         ],
         "rules": [
             {
@@ -239,6 +248,11 @@
                 "name": "The Felt Shadow Rule",
                 "body": "If a shadow's edge is visible, it is too strong. Sheets separate by contrast, not by drop.",
                 "section": "elevation"
+            },
+            {
+                "name": "The Comparison Step Rhythm Rule",
+                "body": "Separate the Compare Products heading, description, and stepper with deliberate vertical rhythm; keep the stepper controls at least 44px high.",
+                "section": "layout"
             }
         ],
         "dos": [
@@ -246,7 +260,8 @@
             "Do apply wrap-anywhere to all source text and mono identifiers; long taxonomy strings wrap, never overflow.",
             "Do group packaging by meaning (Original Text, recycling instructions, materials, shapes, recycling, components) with normalized, deduplicated values.",
             "Do derive nutrition table columns from supplied data only; stack them on phones.",
-            "Do place Barcodes and measured values in mono with tabular numerals."
+            "Do place Barcodes and measured values in mono with tabular numerals.",
+            "Do give Compare Products' heading, description, and stepper distinct vertical breathing room while keeping the task path compact."
         ],
         "donts": [
             "Don't turn Source Assessments into dominant score tiles, traffic-light verdicts, or purchase recommendations; keep the attribution sentence directly under the section heading.",

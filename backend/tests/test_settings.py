@@ -93,6 +93,16 @@ def test_gemini_translation_timeout_can_be_overridden(
     assert settings.gemini_translation_timeout_seconds == 18.5
 
 
+def test_photo_comparison_request_limit_defaults_and_can_be_overridden(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("LIFEGOODS_PHOTO_COMPARISON_REQUESTS_PER_MINUTE", raising=False)
+    assert settings_from_environment().photo_comparison_requests_per_minute == 10
+
+    monkeypatch.setenv("LIFEGOODS_PHOTO_COMPARISON_REQUESTS_PER_MINUTE", "3")
+    assert settings_from_environment().photo_comparison_requests_per_minute == 3
+
+
 def test_translation_stage_deadline_defaults_and_environment_override(monkeypatch) -> None:
     monkeypatch.delenv("LIFEGOODS_TRANSLATION_DEADLINE_SECONDS", raising=False)
     assert settings_from_environment().translation_deadline_seconds == 12

@@ -108,7 +108,7 @@ describe("LearnPage", () => {
     })
 
     test("renders the allergen ingredient lesson in Khmer", async () => {
-        await i18n.changeLanguage("kh")
+        await i18n.changeLanguage("km")
         renderLearn("/learn/common-ingredient-names-by-allergen")
 
         expect(

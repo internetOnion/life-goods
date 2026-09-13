@@ -2,7 +2,6 @@ import {
     ArrowClockwiseIcon,
     CameraIcon,
     CameraRotateIcon,
-    CheckCircleIcon,
     FlashlightIcon,
     MagnifyingGlassIcon,
     PauseIcon,
@@ -13,9 +12,11 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { flushSync } from "react-dom"
 import { Link, useNavigate } from "react-router"
 
+import { CameraAperture } from "@/components/camera/CameraAperture"
 import { Button } from "@/components/ui/button"
 import { PrivacyScannerIllustration } from "@/components/illustrations"
 import { BrandLockup, BrandMark } from "@/components/brand/BrandMark"
+import { LanguageSelector } from "@/components/layout/LanguageSelector"
 import { usePageMetadata } from "@/lib/metadata"
 import { cn } from "@/lib/utils"
 
@@ -39,9 +40,11 @@ type CameraErrorKey =
     | "errorInsecure"
     | "errorUnsupported"
     | "errorInterrupted"
+    | "errorTimeout"
 
 const text = scanTranslations.en.scan
 const ACQUISITION_LATCH_MS = 180
+const CAMERA_RESTART_TIMEOUT_MS = 5000
 const cameraStartedSessionKey = "lifegoods.scan.camera-started.v1"
 
 function hasStartedCameraThisSession() {
@@ -75,6 +78,7 @@ function cameraErrorKey(error: unknown): CameraErrorKey {
     if (name === "NotReadableError" || name === "TrackStartError")
         return "errorBusy"
     if (name === "CameraPreviewError") return "errorPreview"
+    if (name === "CameraStartTimeoutError") return "errorTimeout"
     if (
         name === "OverconstrainedError" ||
         name === "ConstraintNotSatisfiedError"
@@ -148,6 +152,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
     const scanHandledRef = useRef(false)
     const cameraRunRef = useRef(0)
     const cameraStartPendingRef = useRef(false)
+    const cameraStartAbortRef = useRef<AbortController | null>(null)
     const facingModeRef = useRef<CameraFacingMode>("environment")
     const pausedByShopperRef = useRef(false)
     const acquisitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -164,30 +169,18 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
     const releaseCamera = useCallback(() => {
         clearAcquisitionTimer()
         cameraRunRef.current += 1
+        cameraStartAbortRef.current?.abort()
+        cameraStartAbortRef.current = null
         cameraSessionRef.current?.stop()
         cameraSessionRef.current = null
         stopCameraStream(videoRef.current?.srcObject ?? null)
         if (videoRef.current) videoRef.current.srcObject = null
     }, [clearAcquisitionTimer])
 
-    const suspendCameraForNavigation = useCallback(() => {
-        clearAcquisitionTimer()
-        cameraRunRef.current += 1
-        const session = cameraSessionRef.current
-        cameraSessionRef.current = null
-        if (session?.suspend) {
-            session.suspend()
-        } else {
-            session?.stop()
-            stopCameraStream(videoRef.current?.srcObject ?? null)
-        }
-        if (videoRef.current) videoRef.current.srcObject = null
-    }, [clearAcquisitionTimer])
-
     const handleSearchNavigation = useCallback(
         (e: React.MouseEvent<HTMLAnchorElement>) => {
             e.preventDefault()
-            suspendCameraForNavigation()
+            releaseCamera()
             prepareSearchBridge()
 
             const updateSearchRoute = () => {
@@ -230,7 +223,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                 }, 50)
             }
         },
-        [navigate, suspendCameraForNavigation],
+        [navigate, releaseCamera],
     )
 
     const handleCameraResult = useCallback(
@@ -283,7 +276,10 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
     )
 
     const startCamera = useCallback(
-        async (facingMode: CameraFacingMode = facingModeRef.current) => {
+        async (
+            facingMode: CameraFacingMode = facingModeRef.current,
+            useAcquisitionDeadline = true,
+        ) => {
             if (cameraStartPendingRef.current) return
 
             if (
@@ -311,6 +307,8 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
             setCameraMessage(null)
             setCameraState("starting")
             cameraStartPendingRef.current = true
+            const abortController = new AbortController()
+            cameraStartAbortRef.current = abortController
 
             try {
                 const session = await barcodeScanner.start(
@@ -322,7 +320,16 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                         setCameraState("error")
                         setCameraMessage(text[cameraErrorKey(error)])
                     },
-                    { facingMode },
+                    {
+                        ...(useAcquisitionDeadline
+                            ? {
+                                  acquisitionTimeoutMs:
+                                      CAMERA_RESTART_TIMEOUT_MS,
+                              }
+                            : {}),
+                        facingMode,
+                        signal: abortController.signal,
+                    },
                 )
                 if (
                     cameraRun !== cameraRunRef.current ||
@@ -345,6 +352,9 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                 setCameraMessage(text[cameraErrorKey(error)])
                 cameraSessionRef.current = null
             } finally {
+                if (cameraStartAbortRef.current === abortController) {
+                    cameraStartAbortRef.current = null
+                }
                 cameraStartPendingRef.current = false
             }
         },
@@ -396,7 +406,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
 
     const beginFirstCameraSession = () => {
         rememberCameraStarted()
-        void startCamera()
+        void startCamera(facingModeRef.current, false)
     }
 
     const pauseCamera = () => {
@@ -448,6 +458,10 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
 
     return (
         <main className="page-rail page-rail-tight sm:px-6 sm:pt-6">
+            <div className="mb-4 flex min-h-11 items-center justify-between">
+                <BrandLockup compact />
+                <LanguageSelector appearance="glass" />
+            </div>
             <h1 className="sr-only">{text.title}</h1>
 
             <section
@@ -584,82 +598,19 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
 
                 {cameraState === "scanning" || cameraState === "acquired" ? (
                     <>
-                        <div className="pointer-events-none absolute inset-x-0 top-4 z-30 flex justify-center px-4">
-                            <div
-                                className={cn(
-                                    "inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-white ring-1 transition-all duration-150",
-                                    cameraState === "acquired"
-                                        ? "bg-emerald-950/90 text-emerald-300 shadow-[0_0_12px_rgba(130,185,110,0.4)] ring-emerald-500/60"
-                                        : "bg-black/70 ring-white/20",
-                                )}
-                            >
-                                {cameraState === "acquired" ? (
-                                    <CheckCircleIcon
-                                        className="size-4 text-[#82B96E]"
-                                        weight="fill"
-                                        aria-hidden="true"
-                                    />
-                                ) : (
-                                    <span
-                                        className="size-2 rounded-full bg-[#82B96E] motion-safe:animate-pulse"
-                                        aria-hidden="true"
-                                    />
-                                )}
-                                <span className="text-xs font-bold">
-                                    {cameraState === "acquired"
-                                        ? text.detected
-                                        : text.ready}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div
-                            className="pointer-events-none absolute inset-0 z-20 grid place-items-center p-6"
-                            aria-hidden="true"
-                        >
-                            <div
-                                className={cn(
-                                    "relative aspect-[3/2] w-full max-w-[19rem] rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.48)] ring-1 transition-all duration-150",
-                                    cameraState === "acquired"
-                                        ? "shadow-[0_0_0_9999px_rgba(0,0,0,0.55)] ring-[#82B96E] motion-safe:scale-[1.02]"
-                                        : "ring-white/30",
-                                )}
-                            >
-                                <ScanCorner
-                                    className="top-0 left-0"
-                                    isAcquired={cameraState === "acquired"}
-                                />
-                                <ScanCorner
-                                    className="top-0 right-0 rotate-90"
-                                    isAcquired={cameraState === "acquired"}
-                                />
-                                <ScanCorner
-                                    className="right-0 bottom-0 rotate-180"
-                                    isAcquired={cameraState === "acquired"}
-                                />
-                                <ScanCorner
-                                    className="bottom-0 left-0 -rotate-90"
-                                    isAcquired={cameraState === "acquired"}
-                                />
-                                {cameraState === "acquired" ? (
-                                    <div className="absolute inset-x-3 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-[#82B96E] shadow-[0_0_12px_rgba(130,185,110,0.9)] transition-all duration-150" />
-                                ) : (
-                                    <div className="motion-safe:animate-scan-laser absolute inset-x-3 top-[10%] h-0.5 rounded-full bg-[#E19447] shadow-[0_0_10px_rgba(225,148,71,0.9)]" />
-                                )}
-                                <span
-                                    className={cn(
-                                        "absolute inset-x-4 bottom-3 text-center text-xs font-semibold drop-shadow-sm transition-colors",
-                                        cameraState === "acquired"
-                                            ? "font-bold text-emerald-300"
-                                            : "text-white",
-                                    )}
-                                >
-                                    {cameraState === "acquired"
-                                        ? text.detected
-                                        : text.scanning}
-                                </span>
-                            </div>
-                        </div>
+                        <CameraAperture
+                            status={
+                                cameraState === "acquired"
+                                    ? text.detected
+                                    : text.ready
+                            }
+                            frameLabel={
+                                cameraState === "acquired"
+                                    ? text.detected
+                                    : text.scanning
+                            }
+                            isAcquired={cameraState === "acquired"}
+                        />
 
                         {cameraState === "scanning" ? (
                             <div className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-end gap-3 bg-gradient-to-t from-black/85 via-black/45 to-transparent p-4 pt-16">
@@ -739,62 +690,31 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                 </div>
             </section>
 
-            <div className="mt-5 mb-3.5 flex items-center justify-center">
-                <BrandLockup />
-            </div>
-
-            <div className="mx-auto w-full max-w-lg">
+            <div className="mx-auto mt-4 w-full max-w-lg">
                 <Link
                     to="/search"
                     onClick={handleSearchNavigation}
                     aria-label={text.searchLabel}
                     className={cn(
-                        "group flex h-[60px] w-full items-center gap-3 rounded-2xl border border-neutral-200/90 bg-white px-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)] transition-all duration-150 select-none [view-transition-name:search-bar]",
+                        "group relative flex h-[60px] w-full items-center rounded-full border border-neutral-200/90 bg-white pr-20 pl-[3.25rem] text-base text-neutral-400 shadow-[0_6px_14px_-10px_rgba(19,21,25,0.55)] transition-all duration-150 select-none [view-transition-name:search-bar]",
                         "focus-visible:ring-primary-500 hover:border-neutral-300 hover:shadow-md focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.99]",
                     )}
                 >
-                    <span className="group-hover:bg-primary-50 group-hover:text-primary-700 grid size-10 place-items-center rounded-xl bg-neutral-100 text-neutral-500 transition-colors">
+                    <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center">
+                        <BrandMark size={22} />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">
+                        {text.searchPlaceholder}
+                    </span>
+                    <span className="pointer-events-none absolute top-1/2 right-1.5 grid size-[52px] -translate-y-1/2 place-items-center rounded-full bg-neutral-800 text-white shadow-[0_6px_14px_-10px_rgba(19,21,25,0.75)]">
                         <MagnifyingGlassIcon
-                            size={18}
+                            size={22}
                             weight="bold"
                             aria-hidden="true"
                         />
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-neutral-500 transition-colors group-hover:text-neutral-800">
-                        {text.searchPlaceholder}
-                    </span>
-                    <BrandMark size={24} />
                 </Link>
             </div>
         </main>
-    )
-}
-
-function ScanCorner({
-    className,
-    isAcquired = false,
-}: {
-    className: string
-    isAcquired?: boolean
-}) {
-    return (
-        <svg
-            className={cn(
-                "absolute size-8 transition-colors duration-150",
-                isAcquired ? "text-[#82B96E]" : "text-[#E7B583]",
-                className,
-            )}
-            viewBox="0 0 32 32"
-            fill="none"
-            aria-hidden="true"
-        >
-            <path
-                d="M3 23V10a7 7 0 0 1 7-7h13"
-                stroke="currentColor"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-        </svg>
     )
 }

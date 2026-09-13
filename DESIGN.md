@@ -70,6 +70,21 @@ spacing:
     xl: "1.5rem"
     section: "2.5rem"
 components:
+    glass-navigation:
+        backgroundColor: "rgba(255, 255, 255, 0.88)"
+        rounded: "{rounded.pill}"
+        padding: "0.25rem"
+        height: "60px"
+    button-glass-primary:
+        backgroundColor: "rgba(123, 68, 13, 0.96)"
+        textColor: "{colors.white-sheet}"
+        rounded: "{rounded.pill}"
+        height: "44px"
+    button-glass-neutral:
+        backgroundColor: "rgba(255, 255, 255, 0.88)"
+        textColor: "{colors.slate-strong}"
+        rounded: "{rounded.pill}"
+        height: "44px"
     button-primary:
         backgroundColor: "{colors.amber-action}"
         textColor: "{colors.white-sheet}"
@@ -207,11 +222,11 @@ The palette separates Life Goods action, external-source attribution, reading su
 
 ## Layout
 
-One centered reading rail: maximum `36rem`, `1rem` mobile gutters widening to `1.5rem` at `sm`. Minimum viewport width is 320px; every layout must survive it. The sticky header is `4rem` high, and the Product section rail pins immediately beneath it. Product sections stack inside one white sheet separated by hairlines with `2.5rem` vertical padding. Detail rows use a `10rem` label column only when space supports it; nutrition reads as a labelled stacked list on phones and a right-aligned table from `sm`, with columns derived from supplied data only. Space above a heading is always larger than the space below it.
+One centered reading rail: maximum `36rem`, `1rem` mobile gutters widening to `1.5rem` at `sm`. Minimum viewport width is 320px; every layout must survive it. The sticky header is `4rem` high, and the Product section rail pins immediately beneath it. Product sections stack inside one white sheet separated by hairlines with `2.5rem` vertical padding. Detail rows use a `10rem` label column only when space supports it; nutrition reads as a labelled stacked list on phones and a right-aligned table from `sm`, with columns derived from supplied data only. Space above a heading is always larger than the space below it. Compare Products uses a two-step Product A → Product B capture control with `0.75rem` top and bottom separation on mobile, widening to `1rem` at `sm`; the current step carries amber emphasis and each step remains a 44px touch target. Comparison results render on their own page, led by Product identities and the comparison basis, with a clear return to edit either Product.
 
 ## Elevation & Depth
 
-Flat by default; tonal layering, borders, and sticky translucency come before shadow. Shadows are reserved for the two white Product source sheets and the scanner aperture.
+Flat by default; tonal layering and borders come before shadow. Source sheets and the scanner aperture retain their established elevation. Floating navigation and opt-in glass controls use a soft material lift with a restrained inset highlight.
 
 ### Shadow Vocabulary
 
@@ -225,7 +240,7 @@ Flat by default; tonal layering, borders, and sticky translucency come before sh
 
 ## Shapes
 
-Controls and alerts use compact `0.75rem` corners. Icon wells, image fields, source callouts, and action tiles use `1rem`. The scanner aperture uses the largest recurring corner at `1.5rem`; tags, status pills, and the scan laser are the only full pills. Borders are quiet one-pixel slate rules; long Product information stays in open divider rows instead of becoming a grid of independently rounded cards. Focus is a 2–3px amber ring with offset.
+Ordinary controls and alerts use compact `0.75rem` corners. Glass action controls and floating navigation use full pills. Icon wells, image fields, source callouts, and action tiles use `1rem`. The scanner aperture uses `1.5rem`. Borders are quiet one-pixel slate rules; long Product information stays in open divider rows. Focus is a 2–3px amber ring with offset.
 
 ## Iconography & Illustration
 
@@ -238,6 +253,7 @@ Life Goods is **not** dogmatically restricted to Phosphor Icons (`@phosphor-icon
 ### Semantic Fidelity First
 
 Every icon and illustration must directly and truthfully represent the exact real-world concept, food component, data state, or action it depicts.
+
 - **Never substitute an unrelated symbol** due to library limitations (for example, never use a coffee bean for soybean, a carrot for celery, a 3x3 app-launcher grid for sesame, a generic tree for tree nuts, a hardware hex nut for peanuts, or an abstract hypnotic swirl for mollusks).
 - **No misplaced metaphors**: Never use commercial or transaction iconography (such as cashier receipts or shopping carts) for read-only Product information or nutrition tables.
 - **Accurate representation**: When representing allergens, ingredients, or food categories, the graphic must reflect the recognizable botanical, culinary, or biological structure of the item. When a standard icon library lacks an accurate symbol, implement a bespoke, semantically faithful vector SVG.
@@ -245,17 +261,19 @@ Every icon and illustration must directly and truthfully represent the exact rea
 ### Vibe-Coded & Non-Generic Aesthetic
 
 Visuals must never feel generic, bland, sterile, or like off-the-shelf corporate template art. Every icon and illustration must feel **vibe-coded**—deliberately crafted, tactile, and harmonious with the "Source Reader" visual identity:
+
 - **Stroke & Geometry:** Optical line-weights should sit consistently between 1.5px and 2px (or bold/heavy equivalents when matching display typography), featuring rounded endpoints and soft joins that mirror the `0.75rem` / `1rem` corner radiuses of the interface.
 - **Color Roles:** Icons inherit deliberate semantic color roles:
-  - *Warm Amber* (`amber-mark` / `amber-action`) for forward Shopper actions, camera viewfinder laser/brackets, and primary section emphasis.
-  - *Attribution Blue* (`blue-attribution` / `blue-soft`) for Open Food Facts provenance and licensing iconography.
-  - *Body Slate* (`slate-body` / `slate-muted`) for neutral metadata, dietary attributes, and quiet secondary indicators.
-  - *Error Red* (`destructive`) strictly for validation and hardware failures.
+    - _Warm Amber_ (`amber-mark` / `amber-action`) for forward Shopper actions, camera viewfinder laser/brackets, and primary section emphasis.
+    - _Attribution Blue_ (`blue-attribution` / `blue-soft`) for Open Food Facts provenance and licensing iconography.
+    - _Body Slate_ (`slate-body` / `slate-muted`) for neutral metadata, dietary attributes, and quiet secondary indicators.
+    - _Error Red_ (`destructive`) strictly for validation and hardware failures.
 - **Tactile Wells:** Section and category icons sit inside quiet `1rem` rounded wells (`bg-primary-100 text-primary-700` or `bg-neutral-100 text-neutral-700`) rather than floating unanchored.
 
 ### Purposeful Illustrations
 
 Illustrations (for empty states, educational guides, camera consent, and missing-data notices) must be purposeful, minimal, and grounded in physical packaged goods, camera apertures, barcodes, and calm reading surfaces.
+
 - Strictly avoid generic tech flat illustration ("corporate Memphis") or cartoonish characters.
 - Keep illustrations grounded in reality: real package contours, authentic barcode geometries, clean optical lenses, and calm paper sheets.
 
@@ -268,6 +286,10 @@ Illustrations (for empty states, educational guides, camera consent, and missing
 ## Components
 
 ### Buttons
+
+- **Glass rollout:** opt-in glass controls apply throughout Compare Products only. Other pages retain existing button defaults. Shared primary navigation uses glass wherever it is visible.
+- **Glass material:** neutral white at 88% opacity; primary deep amber at 96% opacity with white text. Use a 20px backdrop blur, 1.35 saturation, a white highlight edge, and `0 14px 40px -20px rgba(19,21,25,0.4)` lift. Selected controls use pale amber with deep amber text. Preserve semantic states and existing focus rings.
+- **Accessibility:** minimum 44px targets; disable motion for reduced-motion preferences. Unsupported blur and reduced-transparency preferences use opaque white/amber. Do not stack backdrop blur inside an already blurred control group. Keep photo thumbnails rectangular and content, fields, and nutrition results opaque.
 
 - **Shape:** compact rounded controls (`0.75rem`), minimum `44px` target, active `0.98` scale.
 - **Primary:** grounded amber with white extra-bold text and `0.5rem 1rem` padding; camera actions use the brighter amber mark on glass.
@@ -297,7 +319,7 @@ Illustrations (for empty states, educational guides, camera consent, and missing
 
 ### Navigation
 
-A compact sticky white/92 backdrop-blur header with icon-and-label pill links and `44px` minimum targets. Active pills fill pale amber with deep amber text; inactive links are muted slate with a soft slate hover. The Product section rail is a sticky scroll strip with a 2px underline on hover. The Data and licenses destination may leave the compact mobile header but stays present in the global footer.
+A centered floating glass capsule holds Learn, Scan, Compare, and Concerns, with 20px icons and 12px labels. It is at most 20rem (320px) wide and normally 60px tall, keeps at least 1rem side gutters, and sits 1rem above the bottom safe area. Each destination is at least 50px high; the active destination has a compact pale amber pill and deep amber text. Reserve 5.75rem plus the safe area below page content. Existing visibility rules remain: hidden on Search and during the active Compare workflow, visible on the Compare landing screen. Compare's Back/Next dock uses the same material. Product section navigation and other page controls retain their existing styling.
 
 ### Scanner Aperture (signature)
 

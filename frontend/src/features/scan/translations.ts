@@ -3,7 +3,7 @@ export const scanTranslations = {
         scan: {
             title: "Scan a Barcode",
             cameraLabel: "Barcode scanner",
-            searchPlaceholder: "Search products...",
+            searchPlaceholder: "Search Product, company or country...",
             searchLabel: "Search",
             privacyTitle: "Private camera scanning",
             privacyBody: "Scanning happens on your device.",
@@ -34,6 +34,8 @@ export const scanTranslations = {
             errorInsecure: "Open this page over HTTPS to use the camera.",
             errorUnsupported: "Use a current browser over HTTPS to scan.",
             errorInterrupted: "Return to this page and try again.",
+            errorTimeout:
+                "The camera took too long to start. Try again, or enter the Barcode instead.",
         },
     },
 } as const

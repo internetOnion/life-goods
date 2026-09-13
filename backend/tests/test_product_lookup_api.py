@@ -835,16 +835,16 @@ def test_uvicorn_access_log_redacts_product_lookup_path_and_client_address(
             '%s - "%s %s HTTP/%s" %d',
             "203.0.113.42:50000",
             "GET",
-            "/api/v1/products/4006381333931?language=kh",
+            "/api/v1/products/4006381333931?language=km",
             "1.1",
             200,
         )
 
-    message_kh = caplog.records[-1].getMessage()
-    assert "4006381333931" not in message_kh
-    assert "203.0.113.42" not in message_kh
-    assert "/api/v1/products/[redacted]" in message_kh
-    assert "language=kh" not in message_kh
+    message_km = caplog.records[-1].getMessage()
+    assert "4006381333931" not in message_km
+    assert "203.0.113.42" not in message_km
+    assert "/api/v1/products/[redacted]" in message_km
+    assert "language=km" not in message_km
 
 
 def test_v1_product_lookup_returns_stable_product_projection_with_provenance() -> None:
@@ -900,9 +900,9 @@ def test_v1_product_lookup_unsupported_language_returns_422() -> None:
         assert response.json()["error"]["code"] == "unsupported_language"
         assert "not supported" in response.json()["error"]["message"]
 
-        response_km = client.get("/api/v1/products/4006381333931?language=km")
-        assert response_km.status_code == 422
-        assert response_km.json()["error"]["code"] == "unsupported_language"
+        response_kh = client.get("/api/v1/products/4006381333931?language=kh")
+        assert response_kh.status_code == 422
+        assert response_kh.json()["error"]["code"] == "unsupported_language"
 
 
 def test_v1_product_lookup_untranslated_includes_not_requested_meta() -> None:
@@ -960,7 +960,7 @@ def test_v1_product_lookup_with_language_kh_generates_translation() -> None:
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -1021,7 +1021,7 @@ def test_v1_product_lookup_source_khmer_not_needed() -> None:
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -1056,7 +1056,7 @@ def test_v1_product_lookup_preserves_brand_only_name_without_translation_call() 
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -1088,12 +1088,12 @@ def test_v1_product_lookup_cache_hit() -> None:
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        res1 = client.get("/api/v1/products/4006381333931?language=kh")
+        res1 = client.get("/api/v1/products/4006381333931?language=km")
         assert res1.status_code == 200
         assert res1.json()["meta"]["translation"]["status"] == "complete"
         assert provider.call_count == 1
 
-        res2 = client.get("/api/v1/products/4006381333931?language=kh")
+        res2 = client.get("/api/v1/products/4006381333931?language=km")
         assert res2.status_code == 200
         assert res2.json()["meta"]["translation"]["status"] == "complete"
         assert provider.call_count == 1
@@ -1120,7 +1120,7 @@ def test_v1_product_lookup_store_hit() -> None:
     coord1 = _make_test_coordinator(provider=provider1, repository=repo)
 
     with _client(database, coordinator=coord1) as client1:
-        res1 = client1.get("/api/v1/products/4006381333931?language=kh")
+        res1 = client1.get("/api/v1/products/4006381333931?language=km")
         assert res1.status_code == 200
         assert provider1.call_count == 1
 
@@ -1137,7 +1137,7 @@ def test_v1_product_lookup_store_hit() -> None:
     coord2 = _make_test_coordinator(provider=provider2, repository=repo, cache=cache2)
 
     with _client(database, coordinator=coord2) as client2:
-        res2 = client2.get("/api/v1/products/4006381333931?language=kh")
+        res2 = client2.get("/api/v1/products/4006381333931?language=km")
         assert res2.status_code == 200
         assert res2.json()["meta"]["translation"]["status"] == "complete"
         assert provider2.call_count == 0
@@ -1158,7 +1158,7 @@ def test_v1_product_lookup_cooldown_returns_200_with_original_text_and_unavailab
 
     with _client(database, coordinator=coord) as client:
         # First request triggers failure and enters cooldown
-        res1 = client.get("/api/v1/products/4006381333931?language=kh")
+        res1 = client.get("/api/v1/products/4006381333931?language=km")
         assert res1.status_code == 200
         body1 = res1.json()
         assert body1["meta"]["translation"]["status"] == "unavailable"
@@ -1175,7 +1175,7 @@ def test_v1_product_lookup_cooldown_returns_200_with_original_text_and_unavailab
 
         # Second request encounters active cooldown, provider is not called again
         provider.should_fail = False
-        res2 = client.get("/api/v1/products/4006381333931?language=kh")
+        res2 = client.get("/api/v1/products/4006381333931?language=km")
         assert res2.status_code == 200
         body2 = res2.json()
         assert body2["meta"]["translation"]["status"] == "unavailable"
@@ -1198,7 +1198,7 @@ def test_v1_product_lookup_store_degraded_returns_original_text() -> None:
     coord = _make_test_coordinator(repository=FailingRepo())
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -1237,7 +1237,7 @@ def test_v1_product_lookup_budget_exhausted_returns_original_text() -> None:
     coord = _make_test_coordinator(provider=provider, budget=budget)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -1301,7 +1301,7 @@ def test_v1_product_lookup_competing_lease_timeout_returns_200_unavailable() -> 
     )
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -1333,7 +1333,7 @@ def test_v1_product_lookup_partial_failure_returns_200_with_partial_status() -> 
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -1370,7 +1370,7 @@ def test_v1_product_lookup_privacy_metrics_exclude_identifying_data() -> None:
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, metrics=metrics, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     metrics_str = str(metrics.events)
@@ -1414,7 +1414,7 @@ def test_v1_product_lookup_competing_lease_wait_success() -> None:
         }
     )
     comp_result = KhmerTranslationModule(competitor_provider).translate_product(
-        sample_prod, target_language="kh"
+        sample_prod, target_language="km"
     )
     stored_artifact = result_to_stored_artifact(comp_result)
 
@@ -1450,7 +1450,7 @@ def test_v1_product_lookup_competing_lease_wait_success() -> None:
     )
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -1478,7 +1478,7 @@ def test_v1_product_lookup_empty_fields_source_data_unavailable() -> None:
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -1505,7 +1505,7 @@ def test_v1_product_lookup_coordinator_failure_marks_fields_unavailable() -> Non
             raise RuntimeError("Unexpected coordinator crash")
 
     with _client(database, coordinator=CrashingCoordinator()) as client:  # type: ignore
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -1536,7 +1536,7 @@ def test_v1_product_lookup_khmer_categories_detected_as_source_khmer() -> None:
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -1602,7 +1602,7 @@ def test_startup_without_credentials_does_not_generate(monkeypatch) -> None:
         product_lookup_limiter=RedisProductLookupRateLimiter(redis_client, 60),
     )
     with TestClient(app) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
     assert response.status_code == 200
     body = response.json()
     assert body["meta"]["translation"] == {"status": "unavailable", "metadata": None}
@@ -1634,7 +1634,7 @@ def test_translation_failure_preserves_brand_and_source_khmer(failure) -> None:
 
         coord.__class__ = BrokenCoordinator
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
     body = response.json()
     assert response.status_code == 200
     assert body["meta"]["translation"] == {"status": "unavailable", "metadata": None}
@@ -1663,7 +1663,7 @@ def test_invalid_field_output_retains_independent_translation(invalid) -> None:
         }
     )
     with _client(database, coordinator=_make_test_coordinator(provider)) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
     body = response.json()
     assert body["meta"]["translation"]["status"] == "partial"
     assert (
@@ -1673,7 +1673,7 @@ def test_invalid_field_output_retains_independent_translation(invalid) -> None:
     assert body["data"]["product"]["identity"]["generic_name"]["khmer_translation"] == "សូកូឡា"
 
 
-@pytest.mark.parametrize("language", ["kh", "km", "km-KH", "KH_kh"])
+@pytest.mark.parametrize("language", ["km", "km-KH", "KM_km", "und"])
 @pytest.mark.parametrize("broken_coordinator", [False, True])
 def test_source_khmer_metadata_and_not_needed_survive_fallback(
     language, broken_coordinator
@@ -1695,7 +1695,7 @@ def test_source_khmer_metadata_and_not_needed_survive_fallback(
 
         coord.__class__ = BrokenCoordinator
     with _client(database, coordinator=coord) as client:
-        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+        body = client.get("/api/v1/products/4006381333931?language=km").json()
     assert body["meta"]["translation"] == {"status": "not_needed", "metadata": None}
     product = body["data"]["product"]
     assert product["source"]["record_language"] == language
@@ -1778,7 +1778,7 @@ def test_startup_without_credentials_only_reuses_compatible_generated_artifacts(
     )
     with TestClient(app) as client:
         for _ in range(2):
-            body = client.get("/api/v1/products/4006381333931?language=kh").json()
+            body = client.get("/api/v1/products/4006381333931?language=km").json()
             if artifact_kind == "compatible":
                 assert body["meta"]["translation"]["status"] == "complete"
                 assert body["meta"]["translation"]["metadata"] == artifact.provenance
@@ -1817,7 +1817,7 @@ def test_multilingual_translation_retains_original_text_and_protected_values(sou
         }
     )
     with _client(database, coordinator=_make_test_coordinator(provider)) as client:
-        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+        body = client.get("/api/v1/products/4006381333931?language=km").json()
     assert body["meta"]["translation"]["status"] == "complete"
     name = body["data"]["product"]["identity"]["name"]
     assert name["selected_original_text"] == {
@@ -1859,7 +1859,7 @@ def test_altered_protected_values_do_not_discard_valid_product_name(output):
         }
     )
     with _client(database, coordinator=_make_test_coordinator(provider)) as client:
-        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+        body = client.get("/api/v1/products/4006381333931?language=km").json()
     assert body["meta"]["translation"]["status"] == "partial"
     assert body["data"]["product"]["identity"]["name"]["khmer_translation"] == "តែ"
     assert body["data"]["product"]["ingredients_text"]["khmer_translation"] is None
@@ -1888,7 +1888,7 @@ def test_protected_unit_boundaries_cannot_change_package_quantities(output):
         }
     )
     with _client(database, coordinator=_make_test_coordinator(provider)) as client:
-        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+        body = client.get("/api/v1/products/4006381333931?language=km").json()
     assert body["meta"]["translation"]["status"] == "partial"
     assert body["data"]["product"]["identity"]["name"]["khmer_translation"] == "ទឹកដោះគោ"
     assert body["data"]["product"]["ingredients_text"]["khmer_translation"] is None
@@ -1911,7 +1911,7 @@ def test_unchanged_protected_quantity_can_touch_khmer_text(output, expected):
     )
     provider = FakeTranslationProvider(canned_translations={"product_name": output})
     with _client(database, coordinator=_make_test_coordinator(provider)) as client:
-        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+        body = client.get("/api/v1/products/4006381333931?language=km").json()
     assert body["meta"]["translation"]["status"] == "complete"
     assert body["data"]["product"]["identity"]["name"]["khmer_translation"] == expected
 
@@ -1954,7 +1954,7 @@ def test_translation_deadline_discards_late_provider_output() -> None:
             monotonic=lambda: clock[0],
         )
         with _client(database, coordinator=coordinator) as client:
-            body = client.get("/api/v1/products/3017620422003?language=kh").json()
+            body = client.get("/api/v1/products/3017620422003?language=km").json()
     assert body["meta"]["translation"] == {"status": "unavailable", "metadata": None}
     name = body["data"]["product"]["identity"]["name"]
     assert name["selected_original_text"]["value"] == "Chocolate"
@@ -2019,7 +2019,7 @@ def test_translation_stage_budget_and_fast_cache_reuse(budget, elapsed, expected
         )
         with _client(database, coordinator=coordinator) as client:
             for _ in range(2):
-                response = client.get("/api/v1/products/3017620422003?language=kh")
+                response = client.get("/api/v1/products/3017620422003?language=km")
                 assert response.status_code == 200
                 body = response.json()
                 assert body["meta"]["translation"]["status"] == expected
@@ -2075,7 +2075,7 @@ def test_translation_storage_waits_share_deadline(slow_operation) -> None:
         sleep_func=sleep,
     )
     with _client(database, coordinator=coordinator) as client:
-        response = client.get("/api/v1/products/3017620422003?language=kh")
+        response = client.get("/api/v1/products/3017620422003?language=km")
     assert response.status_code == 200
     assert response.json()["meta"]["translation"] == {"status": "unavailable", "metadata": None}
     assert clock[0] == pytest.approx(1)
@@ -2108,7 +2108,7 @@ def test_translation_deadline_bounds_blocked_storage_without_late_generation() -
     )
     with _client(database, coordinator=coordinator) as client:
         try:
-            response = client.get("/api/v1/products/3017620422003?language=kh")
+            response = client.get("/api/v1/products/3017620422003?language=km")
             assert not release.is_set()
             assert response.status_code == 200
             assert response.json()["meta"]["translation"]["status"] == "unavailable"
@@ -2138,7 +2138,7 @@ def test_product_lookup_translates_multiple_distinct_storage_instructions() -> N
     )
     coord = _make_test_coordinator(provider=provider)
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -2184,7 +2184,7 @@ def test_product_lookup_groups_localized_alternatives_and_collapses_exact_duplic
     )
     coord = _make_test_coordinator(provider=provider)
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -2217,7 +2217,7 @@ def test_product_lookup_storage_instructions_source_khmer_and_unknown_language()
     provider = FakeTranslationProvider(canned_translations={"product_name": "ទឹកបរិសុទ្ធ"})
     coord = _make_test_coordinator(provider=provider)
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -2242,7 +2242,7 @@ def test_product_lookup_missing_storage_instructions() -> None:
     provider = FakeTranslationProvider(canned_translations={"product_name": "នំប្រៃ"})
     coord = _make_test_coordinator(provider=provider)
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -2276,7 +2276,7 @@ def test_product_lookup_storage_instructions_preserves_protected_values() -> Non
     )
     coord = _make_test_coordinator(provider=provider)
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -2310,7 +2310,7 @@ def test_product_lookup_storage_instructions_partial_failure_survives() -> None:
     )
     coord = _make_test_coordinator(provider=provider)
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -2349,12 +2349,12 @@ def test_product_lookup_storage_instructions_cache_reuse_and_identity() -> None:
 
     with _client(database, coordinator=coord) as client:
         # First request: generates and caches
-        res1 = client.get("/api/v1/products/4006381333931?language=kh")
+        res1 = client.get("/api/v1/products/4006381333931?language=km")
         assert res1.status_code == 200
         assert provider.call_count == 1
 
         # Second request: cache hit, no provider call
-        res2 = client.get("/api/v1/products/4006381333931?language=kh")
+        res2 = client.get("/api/v1/products/4006381333931?language=km")
         assert res2.status_code == 200
         assert provider.call_count == 1
 
@@ -2378,7 +2378,7 @@ def test_product_lookup_storage_instructions_provider_and_store_failure() -> Non
     provider_fail = FakeTranslationProvider(should_fail=True)
     coord_fail = _make_test_coordinator(provider=provider_fail)
     with _client(database, coordinator=coord_fail) as client:
-        res = client.get("/api/v1/products/4006381333931?language=kh")
+        res = client.get("/api/v1/products/4006381333931?language=km")
         assert res.status_code == 200
         data = res.json()
         assert data["meta"]["translation"]["status"] == "unavailable"
@@ -2396,7 +2396,7 @@ def test_product_lookup_storage_instructions_provider_and_store_failure() -> Non
         repository=BrokenRepo(),
     )
     with _client(database, coordinator=coord_store_fail) as client:
-        res = client.get("/api/v1/products/4006381333931?language=kh")
+        res = client.get("/api/v1/products/4006381333931?language=km")
         assert res.status_code == 200
         data = res.json()
         assert data["meta"]["translation"]["status"] == "unavailable"
@@ -2437,7 +2437,7 @@ def test_product_lookup_storage_instructions_long_statements() -> None:
     )
     coord = _make_test_coordinator(provider=provider)
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -2473,7 +2473,7 @@ def test_product_lookup_translates_packaging_items_and_preserves_legacy_fields()
     )
     with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
         original = client.get("/api/v1/products/4006381333931").json()
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
     assert response.status_code == 200
     body = response.json()
     packaging = body["data"]["product"]["packaging"]
@@ -2542,7 +2542,7 @@ def test_packaging_language_alternatives_keep_exact_duplicate_provenance(
         }
     )
     with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
-        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+        body = client.get("/api/v1/products/4006381333931?language=km").json()
     items = body["data"]["product"]["packaging"][collection]
     assert len(items) == 1
     assert {t["source_field"] for t in items[0]["original_texts"]} == {
@@ -2555,7 +2555,7 @@ def test_packaging_language_alternatives_keep_exact_duplicate_provenance(
     assert items[0]["translation_status"] == "generated"
 
 
-@pytest.mark.parametrize("language", ["km", "kh", "und"])
+@pytest.mark.parametrize("language", ["km", "km", "und"])
 def test_packaging_source_khmer_bypasses_generation(language: str) -> None:
     database = _dataset_database()
     database[COLLECTION_NAME].insert_one(
@@ -2569,7 +2569,7 @@ def test_packaging_source_khmer_bypasses_generation(language: str) -> None:
     )
     provider = FakeTranslationProvider(should_fail=True)
     with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
-        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+        body = client.get("/api/v1/products/4006381333931?language=km").json()
     packaging = body["data"]["product"]["packaging"]
     for collection in ("description_items", "recycling_instruction_items"):
         item = packaging[collection][0]
@@ -2592,7 +2592,7 @@ def test_packaging_taxonomy_only_record_has_no_translation_items() -> None:
     )
     provider = FakeTranslationProvider(should_fail=True)
     with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
-        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+        body = client.get("/api/v1/products/4006381333931?language=km").json()
     packaging = body["data"]["product"]["packaging"]
     assert packaging["description_items"] == []
     assert packaging["recycling_instruction_items"] == []
@@ -2621,7 +2621,7 @@ def test_packaging_preserves_brands_recycling_codes_and_quantities() -> None:
         }
     )
     with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
-        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+        body = client.get("/api/v1/products/4006381333931?language=km").json()
     packaging = body["data"]["product"]["packaging"]
     assert packaging["description_items"][0]["khmer_translation"] == (
         "ដប Acme ចំណុះ 500 ml មានវត្ថុធាតុកែច្នៃ 30%"
@@ -2653,7 +2653,7 @@ def test_packaging_combined_payload_limit_preserves_whole_instructions_and_valid
         }
     )
     with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
-        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+        body = client.get("/api/v1/products/4006381333931?language=km").json()
     packaging = body["data"]["product"]["packaging"]
     assert provider.last_request is not None
     assert provider.last_request.fields == {
@@ -2689,8 +2689,8 @@ def test_packaging_invalid_item_keeps_valid_siblings_and_partial_cache_is_not_du
     repo = InMemoryGeneratedDataRepository()
     coord = _make_test_coordinator(provider=provider, repository=repo)
     with _client(database, coordinator=coord) as client:
-        body = client.get("/api/v1/products/4006381333931?language=kh").json()
-        cached = client.get("/api/v1/products/4006381333931?language=kh").json()
+        body = client.get("/api/v1/products/4006381333931?language=km").json()
+        cached = client.get("/api/v1/products/4006381333931?language=km").json()
     packaging = body["data"]["product"]["packaging"]
     assert body["meta"]["translation"]["status"] == "partial"
     assert packaging["description_items"][0]["translation_status"] == "translation_unavailable"
@@ -2702,7 +2702,7 @@ def test_packaging_invalid_item_keeps_valid_siblings_and_partial_cache_is_not_du
     with _client(
         database, coordinator=_make_test_coordinator(provider=provider, repository=repo)
     ) as client:
-        recovered = client.get("/api/v1/products/4006381333931?language=kh").json()
+        recovered = client.get("/api/v1/products/4006381333931?language=km").json()
     assert recovered["meta"]["translation"]["status"] == "complete"
     assert provider.call_count == 2
 
@@ -2720,7 +2720,7 @@ def test_packaging_long_prose_is_translated_whole_and_oversized_text_falls_back_
     )
     provider = FakeTranslationProvider(canned_translations={"recycling_instruction_0": translated})
     with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
-        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+        body = client.get("/api/v1/products/4006381333931?language=km").json()
     item = body["data"]["product"]["packaging"]["recycling_instruction_items"][0]
     assert item["selected_original_text"]["value"] == long_text.strip()
     assert item["khmer_translation"] == translated
@@ -2733,7 +2733,7 @@ def test_packaging_long_prose_is_translated_whole_and_oversized_text_falls_back_
         },
     )
     with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
-        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+        body = client.get("/api/v1/products/4006381333931?language=km").json()
     item = body["data"]["product"]["packaging"]["recycling_instruction_items"][0]
     assert item["selected_original_text"]["value"] == oversized.strip()
     assert item["translation_status"] == "translation_unavailable"
@@ -2764,8 +2764,8 @@ def test_packaging_durable_reuse_across_snapshots_and_changed_item_identity(
     with _client(
         database, coordinator=_make_test_coordinator(provider=provider, repository=repo)
     ) as client:
-        first = client.get("/api/v1/products/4006381333931?language=kh").json()
-        hot = client.get("/api/v1/products/4006381333931?language=kh").json()
+        first = client.get("/api/v1/products/4006381333931?language=km").json()
+        hot = client.get("/api/v1/products/4006381333931?language=km").json()
     assert first["data"]["product"]["packaging"] == hot["data"]["product"]["packaging"]
     assert provider.call_count == 1
     database[VERSIONS_COLLECTION].update_one({"_id": VERSION_ID}, {"$set": {"status": "READY"}})
@@ -2791,7 +2791,7 @@ def test_packaging_durable_reuse_across_snapshots_and_changed_item_identity(
     with _client(
         database, coordinator=_make_test_coordinator(provider=provider, repository=repo)
     ) as client:
-        reused = client.get("/api/v1/products/4006381333931?language=kh").json()
+        reused = client.get("/api/v1/products/4006381333931?language=km").json()
     assert reused["meta"]["dataset"]["version"] == "next-snapshot"
     assert reused["meta"]["translation"]["status"] == "complete"
     texts = reused["data"]["product"]["packaging"]["description_items"][0]["original_texts"]
@@ -2803,7 +2803,7 @@ def test_packaging_durable_reuse_across_snapshots_and_changed_item_identity(
     with _client(
         database, coordinator=_make_test_coordinator(provider=provider, repository=repo)
     ) as client:
-        changed = client.get("/api/v1/products/4006381333931?language=kh").json()
+        changed = client.get("/api/v1/products/4006381333931?language=km").json()
     assert changed["meta"]["translation"]["status"] == "unavailable"
     assert provider.call_count == 2
 
@@ -2825,7 +2825,7 @@ def test_packaging_preserves_material_codes_without_numbers(drops_code: bool) ->
         }
     )
     with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
-        body = client.get("/api/v1/products/4006381333931?language=kh").json()
+        body = client.get("/api/v1/products/4006381333931?language=km").json()
     item = body["data"]["product"]["packaging"]["description_items"][0]
     assert item["translation_status"] == ("translation_unavailable" if drops_code else "generated")
     assert item["khmer_translation"] == (None if drops_code else "ដប PET មានគម្រប HDPE")
@@ -2850,7 +2850,7 @@ def test_v1_product_lookup_multiple_ordered_categories() -> None:
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -2900,7 +2900,7 @@ def test_v1_product_lookup_punctuation_bearing_category_items() -> None:
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -2946,7 +2946,7 @@ def test_v1_product_lookup_partial_category_translation_survives() -> None:
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -2984,7 +2984,7 @@ def test_v1_product_lookup_source_khmer_categories() -> None:
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -3023,7 +3023,7 @@ def test_v1_product_lookup_missing_human_readable_categories() -> None:
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -3046,7 +3046,7 @@ def test_v1_product_lookup_taxonomy_only_categories_produces_no_fabricated_trans
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
     body = response.json()
@@ -3078,7 +3078,7 @@ def test_v1_product_lookup_category_items_cache_reuse() -> None:
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        resp1 = client.get("/api/v1/products/4006381333931?language=kh")
+        resp1 = client.get("/api/v1/products/4006381333931?language=km")
         assert resp1.status_code == 200
         assert provider.call_count == 1
         body1 = resp1.json()
@@ -3088,7 +3088,7 @@ def test_v1_product_lookup_category_items_cache_reuse() -> None:
         assert body1["data"]["product"]["category_items"][0]["khmer_translation"] == "សូកូឡា"
 
         # Second request should be a cache hit without invoking the provider
-        resp2 = client.get("/api/v1/products/4006381333931?language=kh")
+        resp2 = client.get("/api/v1/products/4006381333931?language=km")
         assert resp2.status_code == 200
         assert provider.call_count == 1
         body2 = resp2.json()
@@ -3129,7 +3129,7 @@ def test_v1_product_lookup_taxonomy_references_all_groups_and_sources() -> None:
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
         assert response.status_code == 200
         body = response.json()
 
@@ -3203,7 +3203,7 @@ def test_v1_product_lookup_taxonomy_only_record() -> None:
     coord = _make_test_coordinator(provider=provider)
 
     with _client(database, coordinator=coord) as client:
-        response = client.get("/api/v1/products/4006381333931?language=kh")
+        response = client.get("/api/v1/products/4006381333931?language=km")
         assert response.status_code == 200
         body = response.json()
         product = body["data"]["product"]

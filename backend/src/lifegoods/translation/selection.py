@@ -47,10 +47,10 @@ def select_field_original_text(
     if not valid_texts:
         return FieldSelection(selected_text=None, all_texts=[], is_source_khmer=False)
 
-    # 1. Check for explicit language == "kh" or "km"
+    # 1. Check for an explicit ISO 639-1 Khmer language tag.
     for t in valid_texts:
         lang = (t.language or "").lower().replace("_", "-")
-        if lang in ("kh", "km") or lang.startswith("kh-") or lang.startswith("km-"):
+        if lang == "km" or lang.startswith("km-"):
             return FieldSelection(selected_text=t, all_texts=valid_texts, is_source_khmer=True)
 
     # 2. Check for text with predominantly Khmer script

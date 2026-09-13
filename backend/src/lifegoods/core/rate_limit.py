@@ -32,6 +32,7 @@ class RedisSlidingWindowRateLimiter:
         local_max_keys: int = 10_000,
         monotonic: Callable[[], float] = system_monotonic,
         watch_retries: int = 8,
+        fallback_on_error: bool = True,
     ) -> None:
         if requests_per_minute <= 0:
             raise ValueError("The request budget must be greater than zero")
@@ -48,6 +49,7 @@ class RedisSlidingWindowRateLimiter:
         self._monotonic = monotonic
         self._key_prefix = key_prefix
         self._watch_retries = watch_retries
+        self._fallback_on_error = fallback_on_error
         self._display_name = display_name
         self._event_prefix = event_prefix
         self._logger = logger
@@ -65,13 +67,17 @@ class RedisSlidingWindowRateLimiter:
     def try_acquire(self, key: str) -> tuple[bool, int]:
         digest = hashlib.sha256(key.encode("utf-8")).hexdigest()
         if not self._claim_redis_attempt():
-            return self._local.try_acquire(digest)
+            if self._fallback_on_error:
+                return self._local.try_acquire(digest)
+            return False, max(1, math.ceil(self._window_seconds))
 
         try:
             result = self._try_redis(digest)
         except (RedisError, TypeError, ValueError):
             self._record_degradation()
-            return self._local.try_acquire(digest)
+            if self._fallback_on_error:
+                return self._local.try_acquire(digest)
+            return False, max(1, math.ceil(self._window_seconds))
 
         self._record_recovery()
         return result

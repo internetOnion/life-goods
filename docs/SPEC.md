@@ -19,7 +19,7 @@ The MVP:
 - later generates Khmer Translation on demand while preserving Original Text; and
 - remains anonymous and read-only.
 
-The MVP does not own a Product catalog, accept contributions, upload package photos, or verify source data. It does not produce health, safety, allergen-free, Halal, authenticity, legal, compliance, or purchase verdicts.
+The MVP does not own a Product catalog, accept contributions, or verify source data. Barcode camera frames stay on the device. Compare Products is the one bounded exception that sends package photos for provider processing, retaining no photos or comparison history. The MVP does not produce health, safety, allergen-free, Halal, authenticity, legal, compliance, or purchase verdicts.
 
 ## 2. Current milestone
 
@@ -239,8 +239,9 @@ Translation provider and model selection are deferred until this phase.
 
 ## 9. Privacy and measurement
 
-- Decode camera frames on the device and send only the normalized Barcode for lookup.
-- Do not upload or retain camera frames or package photos.
+- Decode Barcode camera frames on the device and send only the normalized Barcode for lookup.
+- Do not upload or retain Barcode camera frames.
+- For Compare Products, send only the submitted label photos to the configured provider for processing, and retain no photos, extracted label text, comparison history, or persistent Shopper identifiers.
 - Do not create accounts, server-side scan history, saved Products, or personalization in the MVP.
 - Do not retain Barcode-level analytics, persistent IP identifiers, or per-Shopper histories.
 - Permit aggregate counts for lookup volume, found/not-found rate, latency, cache performance, and error rate.
@@ -281,13 +282,14 @@ The first backend milestone is complete when:
 
 ## 12. Frontend compatibility surface (Issue #83)
 
-The default frontend Product Lookup currently reads the checked-in Dataset Snapshot without an
-API request. Its offline adapter retains a frontend-owned raw Source Record compatibility type,
-including an unavailable allergen-analysis fallback, independent of the generated FastAPI types.
-The generated client represents the stable `/api/v1/products/{barcode}` response, including its
-`data.allergen_analysis` sibling. The adapter preserves Source Attribution for both the static
-offline response and the stable API response. Connecting the default frontend to
-`language=kh` and implementing translated-field display remain deferred to #90.
+The default frontend Product Lookup requests the stable `/api/v1/products/{barcode}` backend
+route without a language parameter while the information-architecture prototype remains English.
+The checked-in Dataset Snapshot remains available through an explicit
+offline/demo adapter and retains a frontend-owned raw Source Record compatibility type, including
+an unavailable allergen-analysis fallback, independent of the generated FastAPI types. The
+generated client represents the stable response, including its `data.allergen_analysis` sibling.
+The presentation adapter preserves Source Attribution for both the retained static response and
+the stable API response.
 
 ## 13. Isolated generated-data persistence (Issue #84)
 
@@ -319,7 +321,7 @@ The translation domain is encapsulated behind the deep `KhmerTranslationModule` 
 1. **Eligible Fields & Selection**:
     - Translations are generated strictly for `product_name`, `generic_name`, `ingredients_text`, and human-readable `categories`.
     - Localized Original Text values are preserved with source field and language.
-    - Deterministic preference order: Source-provided Khmer (`kh`, `km`, and recognized variants, retaining source metadata), declared record language, English (`en`), and deterministic localized fallback.
+    - Deterministic preference order: Source-provided Khmer (`km` and recognized variants, retaining source metadata), declared record language, English (`en`), and deterministic localized fallback.
     - Conservative Khmer Unicode script recognition preserves `und` when language metadata is absent without claiming authoritative language tags.
     - Source-provided Khmer yields `source_khmer_available` and missing fields yield `source_data_unavailable` without invoking the provider.
 
@@ -372,9 +374,9 @@ Durable translation storage and multi-instance concurrency are coordinated throu
 The stable Product Lookup endpoint integrates optional on-demand Khmer Translation co-located with semantic fields:
 
 1. **Request & Contract**:
-    - `GET /api/v1/products/{barcode}?language=kh`
-    - Requests without `language=kh` return the stable Product projection and Original Text without generating translation (`meta.translation.status="not_requested"`).
-    - The application request and locale value is `kh`. External Source Record language tags, including `km`, retain their original metadata. Any other unsupported language parameter value returns HTTP 422 with stable error code `unsupported_language`.
+    - `GET /api/v1/products/{barcode}?language=km`
+    - Requests without `language=km` return the stable Product projection and Original Text without generating translation (`meta.translation.status="not_requested"`).
+    - The application request and locale value is `km`. External Source Record language tags, including `km`, retain their original metadata. Any other unsupported language parameter value returns HTTP 422 with stable error code `unsupported_language`.
     - The stable response also includes `data.allergen_analysis`, preserving the distinction between Open Food Facts tags, matcher-derived tags, qualifications, unmatched spans, and comparison sets.
 
 2. **Field-Level Co-Location**:
@@ -397,7 +399,7 @@ The stable Product Lookup endpoint integrates optional on-demand Khmer Translati
 
 ## 18. Trustworthy existing Khmer Translation fields (Issue #94)
 
-The frontend Product Lookup request sends `language=kh`. Application locale state uses `kh`; standards-based document language tags and external identifiers remain unchanged. `language=km` is unsupported. Omitting the language returns `not_requested` without generation.
+The frontend Product Lookup request sends `language=km`. Application locale state and standards-based document language tags use `km`. `language=kh` is unsupported. Omitting the language returns `not_requested` without generation.
 
 The four existing field envelopes share selection and classification across generation, cache reuse, provider failure, coordination failure, and emergency fallback. Selection prefers source-provided Khmer (including recognized language variants or conservative script detection), then the Source Record language, English, and deterministic fallback. Script detection does not manufacture language metadata. Human-readable category Original Text retains its source wording and language; taxonomy identifiers are not translation prose.
 
@@ -443,9 +445,9 @@ Expiry returns HTTP 200 with available Original Text and field-level translation
     - Exact duplicate statements across source fields collapse into a single statement item while retaining their `OriginalText` provenance from both fields in `original_texts`. Equivalence is never inferred from merely similar wording.
 
 2. **Source Selection & Field States**:
-    - Shared source selection applies per item: source-provided Khmer (explicit `kh`/`km` tags or script detection) bypasses Khmer Translation generation and receives `source_khmer_available`.
+    - Shared source selection applies per item: source-provided Khmer (explicit `km` tags or script detection) bypasses Khmer Translation generation and receives `source_khmer_available`.
     - Missing storage instructions yield an empty list (`[]`) without inventing text or ghost entries.
-    - Without `language=kh`, each item receives `not_requested`.
+    - Without `language=km`, each item receives `not_requested`.
 
 3. **Protection & Validation**:
     - Token protection covers temperatures (e.g. `4°C`, `-18°C`) and durations (e.g. `3 days`) in addition to brands, INS codes, E-numbers, percentages, and units.
@@ -575,8 +577,8 @@ and source-field provenance, including identical base and localized values.
 Legacy `packaging.texts`, `packaging.recycling_instructions`, components, materials,
 shapes, and recycling values remain unchanged. Taxonomy fields and component
 identifiers do not supply generated prose. Missing prose yields empty item arrays.
-Without `language=kh`, populated items retain `not_requested` and selected Original
-Text. With `language=kh`, the storage pipeline's selection, source-provided Khmer
+Without `language=km`, populated items retain `not_requested` and selected Original
+Text. With `language=km`, the storage pipeline's selection, source-provided Khmer
 preference, independent validation, and response mapping also apply to packaging.
 
 Brands, quantities, percentages, units, and codes remain protected. Protection now
@@ -832,7 +834,7 @@ Stable Product Lookup exposes exact Open Food Facts taxonomy references under `p
 
 ## 24. Expanded contract verification and performance evidence (Issue #100)
 
-The stable Product Lookup HTTP suite is the acceptance boundary for `language=kh`, rejection of application request `km`, recognized source-provided `km` metadata, Original Text, generated provenance, field and overall states, structured storage/packaging/category items, taxonomy references, and legacy fields. Deterministic fixtures cover complete, sparse, multilingual, mixed, unknown-language, source-Khmer, brand-only, long-input, missing-source, partial, and unavailable behavior.
+The stable Product Lookup HTTP suite is the acceptance boundary for `language=km`, rejection of application request `kh`, recognized source-provided `km` metadata, Original Text, generated provenance, field and overall states, structured storage/packaging/category items, taxonomy references, and legacy fields. Deterministic fixtures cover complete, sparse, multilingual, mixed, unknown-language, source-Khmer, brand-only, long-input, missing-source, partial, and unavailable behavior.
 
 The benchmark described in section 14 measures the production translation path and records cold and cached results separately under `docs/research/translation-benchmark/issue-100/`. Real MongoDB/Redis integration checks remain separate from the zero-network suite and require dedicated disposable test connections. On 2026-09-08, the project owner waived live-provider execution as an issue-completion requirement because production retains the already-approved exact Gemini model. Consequently, no claims are made about measured live provider latency, completion, timeout, usage, or cost, and simulated measurements are not substituted. The live command remains available as an optional operator diagnostic. This scope decision does not alter the 12-second default.
 
@@ -933,3 +935,204 @@ open and PR #108 stays unmerged; issue #107 remains completed evidence work. The
 original issue #107 artifacts and the historical failure record above are retained.
 
 Earlier fix iterations recorded timeouts, including a run overlapping a full Source Record count. Those failed runs remain in the PR evidence; the final run used grouped complete-tier retrieval with no concurrent database workload. This is not a guarantee of cold-cache or contended-load performance.
+
+## 28. Compare Products from nutrition-label photos (Issues #110, #117)
+
+Compare Products, presented as “Compare nutrition labels using photos,” is an
+intended Life Goods capability with a direct entry point alongside Barcode
+scanning. A Shopper photographs Product A and Product B, taps Compare, and
+receives readable nutrition differences with a clearly stated comparison basis.
+It works without a Barcode or Source Record, so missing or incomplete source data
+does not prevent comparison. Compare Products helps a Shopper interpret label
+differences without declaring an overall winner or producing health, safety, or
+purchase verdicts.
+
+Photo comparison is the one bounded exception to the read-only, no-upload MVP
+boundary. Photos are sent to the configured AI provider for processing and are
+never retained by Life Goods as Product data, Source Records, comparison history,
+or Khmer Translation input. Extracted values remain submitted Photo Evidence,
+kept separate from Open Food Facts data. The exception does not alter Product
+Lookup, Product Search, Dataset Snapshot, Source Record, Source Attribution, or
+Khmer Translation semantics.
+
+Photo-derived text is evidence submitted for comparison. It is not an Open Food
+Facts Source Record and is not the glossary-defined Original Text. The contract
+retains literal text, original script, language (or `und`), printed units,
+qualifiers, image and region references, and optional normalized Decimal values
+separately. A missing number remains null; an explicit zero remains zero. Model
+claims, provider metadata, and image regions are evidence pointers and do not
+certify label authenticity or accuracy.
+
+Image identifiers are opaque ASCII identifiers containing only letters, digits,
+hyphens, and underscores; they never contain image bytes, local paths, or
+fetchable URLs. Image regions use normalized coordinates in the inclusive
+`[0, 1]` coordinate space of the referenced image. An extraction retains the
+image registry, optional Product identity observations, package quantity,
+nutrition columns, and each field's evidence pointers. Nutrition columns have
+unique IDs, a printed basis (including explicit `unknown`), preparation state,
+basis/preparation evidence, and fields with unique IDs. Readable package and
+serving quantities require evidence; unreadable or not-visible quantities retain
+null literal values and a field state.
+
+The contract has separate states for readable, unreadable, ambiguous,
+conflicting, and not-visible fields. Conflicting observations remain available
+to callers rather than being silently selected. Nutrition columns retain their
+per-package, per-serving, per-100-g, per-100-ml, or other printed basis and an
+explicit preparation state (`as_sold`, `as_prepared`, or `unknown`). Percentage
+and combined rows remain distinct from amount rows. Package and serving
+quantities require explicit positive normalized values and units when they are
+normalized.
+
+A single Compare action orchestrates extraction for Products whose photo sets
+have changed and then deterministic comparison; the Shopper does not run
+extraction and calculation as separate operations. Extraction is sequenced within
+provider concurrency limits, an unchanged Product's in-memory extraction is
+reused, and duplicate submissions are prevented. Photos are not uploaded
+automatically on every edit, and paid provider calls are not retried invisibly.
+Before submission, the interface explains that photos are sent to the configured
+AI provider for processing.
+
+The visible states are ready for photos, reading labels, needs clarification or
+retake, comparing, results, and recoverable failure. Successful extraction and
+current photos survive a failure, and retrying processes only failed or changed
+work. Replacing or removing photos, changing selected columns, resetting, and
+leaving the feature prevent earlier responses from restoring stale results;
+requests are cancelled where possible, and responses belonging to superseded
+state are independently rejected. Reset starts a new pair without earlier photos
+or results.
+
+Extraction and comparison are registered by the ordinary Life Goods FastAPI
+application. FastAPI remains the frontend contract authority, and the OpenAPI
+document and generated frontend client/types are the frontend wire contract. The
+standalone development entry point started with `pnpm photo-comparison:dev`
+remains available as a thin consumer of the same shared behavior rather than a
+second implementation. The stable endpoints are:
+
+- `POST /api/v1/photo-comparison/extractions`, accepting a bounded multipart
+  request with one or more repeated `photos` fields for one Product and
+  returning a validated extraction;
+- `POST /api/v1/photo-comparison/comparisons`, accepting two validated
+  extraction objects in a JSON `{ "left": ..., "right": ... }` request and
+  returning comparison rows. Optional `left_column_id` and `right_column_id`
+  values select the nutrition column for each Product; a selection is required
+  when that Product has multiple columns, and a sole column is selected
+  automatically. Client-submitted extraction objects are revalidated at this
+  boundary because they cannot be certified as provider-produced.
+
+Compare Products is reachable at `/compare` as a destination in the primary
+navigation; previously published photo-comparison URLs redirect to `/compare`. The
+page accepts one to three JPEG/PNG photos per Product through camera capture or
+file selection, shows previews that can be enlarged, supports add/remove/replace,
+and presents distinct editable Product A and Product B identities. Capture uses a
+two-step Product A → Product B control, and comparison results render on their
+own page with a clear return to edit either Product. A wrapped
+label or separate package-weight panel can be included across multiple photos.
+Unsupported formats receive a clear unsupported-format message instead of
+promised conversion. When a label contains a sole nutrition column it is
+selected automatically; when several columns exist, the Shopper chooses one with
+its plainly labeled basis and preparation state before continuing, and an
+ambiguous column is never selected silently.
+
+Results lead with Product identities, the comparison basis, and the nutrition
+comparison. Factual differences use deterministic localized templates rather than
+a second generative interpretation call. Equal values are shown clearly. Missing,
+unreadable, conflicting, qualified, or incompatible values are explained rather
+than shown as zero or as an absence, and usable partial results remain available
+when only some fields are readable. Reported inputs, source-photo evidence, and
+derivation details remain behind accessible disclosure controls. Results contain
+no overall score, winner, or good/bad health color. The page keeps the session in
+memory and provides Reset; it retains no saved history and no manual transcription
+editor.
+
+Image input is bounded at 10 MiB per photo, 32 MiB per multipart request, and
+25 megapixels per image. Pillow validates actual JPEG/PNG content, applies EXIF
+orientation, and re-encodes without metadata. Anonymous admission limits are
+enforced through shared, deployment-aware infrastructure rather than a single
+process-local counter, with initial defaults of one active Gemini request, ten
+extraction requests per minute, a 60-second provider deadline, and a 1 MiB JSON
+response. Temporary image buffers are closed on success, rejection, exception,
+cancellation, reset, and unmount. Application-side photos, photo-derived text,
+prompts, provider bodies, and provider responses do not enter ordinary logs,
+databases, or translation caches. Gemini-side retention remains governed by the
+configured provider.
+
+Gemini extraction uses the existing API-key setting and the exact
+`gemini-3.8-flash` model with a dedicated visible-evidence prompt. It requests
+structured JSON, rejects malformed output or unknown image references, and
+normalizes only explicit numerals and units locally. Missing credentials,
+unsupported provider behavior, timeout, and provider failure return typed errors;
+the app never substitutes fake results or another model. The results view shows
+reported values, original-script evidence, image links, bases, partial or retake
+information, assumptions, and conditional/unavailable comparison rows.
+
+Extraction configuration `photo-extraction-v3` requests compact visible evidence
+with low thinking and a 16,384-token output budget. The provider schema omits
+application field/column IDs, redundant serving-quantity state, and outcome;
+Python supplies these after validation. Missing quantities may be omitted or null.
+Identity names retain literal text while Python supplies their display labels.
+The 60-second deadline and 1 MiB response limit still apply. Truncated output is
+rejected with a specific error and requires an explicit retry.
+
+Comparison inputs retain the complete field observation, column ID, printed
+basis, preparation state, package/serving quantities, and evidence for the
+reported basis and known preparation state. Derived values retain their output
+unit, target basis, and derivation inputs pointing to the reported field and
+any quantity used. Percentage and combined rows remain represented but cannot
+enter the individual amount comparison.
+
+Compatible units and preparation states are required for definitive numeric
+differences. Comparison rows retain both reported inputs, optional normalized
+values, calculation basis, assumptions, evidence, and a state of comparable,
+conditional, or not-comparable. Unknown preparation states can support a reported
+side-by-side view and an explicitly conditional derivation, but cannot produce a
+definitive difference or winner. Missing, unreadable, conflicting, qualified,
+incompatible, or zero-versus-missing values cannot produce a numeric difference,
+and mass remains distinct from volume without supported conversion evidence.
+Serving weights and package quantities are never invented. No comparison
+contract contains a health, safety, or purchase judgment.
+
+Photo comparison errors use the same JSON envelope for every failure:
+
+```json
+{
+    "error": {
+        "code": "provider_timeout",
+        "message": "The extraction provider timed out."
+    }
+}
+```
+
+The typed error codes map to request validation (`422`), size limits (`413`),
+unsupported image format (`415`), rate or capacity limits (`429`), invalid
+provider output (`502`), provider unavailable (`503`), provider timeout (`504`),
+and unexpected internal failure (`500`).
+
+The capability enforces bounded upload and response sizes, JPEG/PNG-only input,
+finite request/image/pixel/concurrency limits, temporary resource cleanup, and
+sanitized failure responses before making provider calls. Photos, package
+text, prompts, provider payloads, and response bodies stay out of ordinary logs,
+metrics, MongoDB, and translation artifacts. Provider-side retention is
+documented separately from application cleanup. The contract-only issue provides
+executable examples for a normal pair, missing weight, multiple columns,
+conflicting photos, and unknown preparation states; it does not claim that
+owner-checked seed transcriptions are reproducible image evidence.
+
+Compare Products preserves the existing deterministic comparison engine and
+semantics rather than introducing a second comparison engine. The reviewed
+multilingual corpus and transcription tool from #111 remain deferred and are not
+treated as completed requirements.
+
+The integration defaults are one to three JPEG or PNG photos per Product, 10 MiB
+per photo, 32 MiB per request, 25 megapixels per decoded image, 1 MiB per
+extraction or comparison response, and 1 MiB for the comparison request JSON,
+at most eight nutrition columns, 100 fields per column, and 4,096 characters
+per literal text field. Admission checks must run before unbounded buffering or
+provider calls. The typed failure mapping is documented above. Partial and
+retake-required extractions remain successful domain responses with explicit
+outcomes and reasons.
+
+Photos are processed transiently: application resources are released on success,
+rejection, exception, cancellation, reset, and unmount, and no photos, extracted
+label text, or comparison history are retained. Application cleanup does not make
+a zero-retention promise for the provider; provider-side retention is documented
+separately.

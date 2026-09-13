@@ -196,6 +196,191 @@
         "title": "AllergenUnmatchedSpanResponse",
         "type": "object"
       },
+      "Body_extractPhotoComparison": {
+        "properties": {
+          "photos": {
+            "description": "One to 3 JPEG or PNG photos, submitted in preview order.",
+            "items": {
+              "format": "binary",
+              "type": "string"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Photos",
+            "type": "array"
+          },
+          "product_id": {
+            "description": "Local Product panel identifier.",
+            "title": "Product Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "photos"
+        ],
+        "title": "Body_extractPhotoComparison",
+        "type": "object"
+      },
+      "ComparisonResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "calculated_from_submitted_evidence": {
+            "const": true,
+            "default": true,
+            "title": "Calculated From Submitted Evidence",
+            "type": "boolean"
+          },
+          "left_product_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Left Product Id",
+            "type": "string"
+          },
+          "right_product_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Right Product Id",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ComparisonRow"
+            },
+            "maxItems": 128,
+            "title": "Rows",
+            "type": "array"
+          },
+          "schema_version": {
+            "default": 1,
+            "maximum": 1.0,
+            "minimum": 1.0,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "left_product_id",
+          "right_product_id"
+        ],
+        "title": "ComparisonResponse",
+        "type": "object"
+      },
+      "ComparisonRow": {
+        "additionalProperties": false,
+        "properties": {
+          "assumptions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "calculation_basis": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calculation Basis"
+          },
+          "derived_difference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DerivedValue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "left": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportedValue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "normalized_left": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DerivedValue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "normalized_right": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DerivedValue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nutrient": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Nutrient",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "right": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportedValue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "row_kind": {
+            "$ref": "#/components/schemas/NutrientRowKind",
+            "default": "amount"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ComparisonState"
+          }
+        },
+        "required": [
+          "nutrient",
+          "state"
+        ],
+        "title": "ComparisonRow",
+        "type": "object"
+      },
+      "ComparisonState": {
+        "enum": [
+          "comparable",
+          "conditional",
+          "not_comparable"
+        ],
+        "title": "ComparisonState",
+        "type": "string"
+      },
       "DatasetSnapshotResponse": {
         "properties": {
           "retrieved_at": {
@@ -213,6 +398,89 @@
           "retrieved_at"
         ],
         "title": "DatasetSnapshotResponse",
+        "type": "object"
+      },
+      "DerivationInput": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidencePointer"
+            },
+            "maxItems": 16,
+            "minItems": 1,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DerivationInputKind"
+          },
+          "normalized_unit": {
+            "$ref": "#/components/schemas/MeasurementUnit"
+          },
+          "normalized_value": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Normalized Value",
+            "type": "string"
+          },
+          "source_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,128}$",
+            "title": "Source Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "source_id",
+          "normalized_value",
+          "normalized_unit",
+          "evidence"
+        ],
+        "title": "DerivationInput",
+        "type": "object"
+      },
+      "DerivationInputKind": {
+        "enum": [
+          "reported_field",
+          "package_quantity",
+          "serving_quantity"
+        ],
+        "title": "DerivationInputKind",
+        "type": "string"
+      },
+      "DerivedValue": {
+        "additionalProperties": false,
+        "properties": {
+          "inputs": {
+            "items": {
+              "$ref": "#/components/schemas/DerivationInput"
+            },
+            "maxItems": 16,
+            "minItems": 1,
+            "title": "Inputs",
+            "type": "array"
+          },
+          "target_basis": {
+            "$ref": "#/components/schemas/NutritionBasis"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/MeasurementUnit"
+          },
+          "value": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "unit",
+          "target_basis",
+          "inputs"
+        ],
+        "title": "DerivedValue",
         "type": "object"
       },
       "EnvironmentProjection": {
@@ -314,6 +582,298 @@
         "title": "ErrorEnvelope",
         "type": "object"
       },
+      "EvidencePointer": {
+        "additionalProperties": false,
+        "properties": {
+          "image_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,128}$",
+            "title": "Image Id",
+            "type": "string"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageRegion"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "image_id"
+        ],
+        "title": "EvidencePointer",
+        "type": "object"
+      },
+      "Extraction": {
+        "additionalProperties": false,
+        "properties": {
+          "configuration_version": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Configuration Version"
+          },
+          "identity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductIdentity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/ImageEvidence"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Images",
+            "type": "array"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "nutrition_columns": {
+            "items": {
+              "$ref": "#/components/schemas/NutritionColumn"
+            },
+            "maxItems": 8,
+            "title": "Nutrition Columns",
+            "type": "array"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/ExtractionOutcome"
+          },
+          "package_quantity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Quantity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "product_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Product Id",
+            "type": "string"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "retake_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Retake Reasons",
+            "type": "array"
+          },
+          "schema_version": {
+            "default": 1,
+            "maximum": 1.0,
+            "minimum": 1.0,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "product_id",
+          "images",
+          "outcome"
+        ],
+        "title": "Extraction",
+        "type": "object"
+      },
+      "ExtractionOutcome": {
+        "enum": [
+          "complete",
+          "partial",
+          "retake_required"
+        ],
+        "title": "ExtractionOutcome",
+        "type": "string"
+      },
+      "FieldObservation": {
+        "additionalProperties": false,
+        "description": "Literal package evidence plus conservative optional normalization.",
+        "properties": {
+          "alternatives": {
+            "items": {
+              "$ref": "#/components/schemas/ObservationAlternative"
+            },
+            "maxItems": 16,
+            "title": "Alternatives",
+            "type": "array"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidencePointer"
+            },
+            "maxItems": 16,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "field_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,128}$",
+            "title": "Field Id",
+            "type": "string"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "language": {
+            "default": "und",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Language",
+            "type": "string"
+          },
+          "normalized_unit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MeasurementUnit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "normalized_value": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalized Value"
+          },
+          "nutrient": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nutrient"
+          },
+          "original_script": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Script"
+          },
+          "qualifier": {
+            "$ref": "#/components/schemas/ValueQualifier",
+            "default": "exact"
+          },
+          "row_kind": {
+            "$ref": "#/components/schemas/NutrientRowKind",
+            "default": "amount"
+          },
+          "state": {
+            "$ref": "#/components/schemas/FieldState",
+            "default": "readable"
+          },
+          "unit_text": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Text"
+          },
+          "value_text": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Text"
+          }
+        },
+        "required": [
+          "field_id"
+        ],
+        "title": "FieldObservation",
+        "type": "object"
+      },
+      "FieldState": {
+        "enum": [
+          "readable",
+          "unreadable",
+          "ambiguous",
+          "conflicting",
+          "not_visible"
+        ],
+        "title": "FieldState",
+        "type": "string"
+      },
       "GradedSourceAssessment": {
         "properties": {
           "grade": {
@@ -357,6 +917,104 @@
           }
         },
         "title": "GradedSourceAssessment",
+        "type": "object"
+      },
+      "ImageEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "height": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 100000.0,
+            "title": "Height",
+            "type": "integer"
+          },
+          "image_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,128}$",
+            "title": "Image Id",
+            "type": "string"
+          },
+          "original_image_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,128}$",
+            "title": "Original Image Id",
+            "type": "string"
+          },
+          "processed_image_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_-]{1,128}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processed Image Id"
+          },
+          "role": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Role",
+            "type": "string"
+          },
+          "width": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 100000.0,
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "image_id",
+          "original_image_id",
+          "role",
+          "width",
+          "height"
+        ],
+        "title": "ImageEvidence",
+        "type": "object"
+      },
+      "ImageRegion": {
+        "additionalProperties": false,
+        "description": "Normalized coordinates in the inclusive [0, 1] image coordinate space.",
+        "properties": {
+          "height": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 1.0,
+            "title": "Height",
+            "type": "number"
+          },
+          "width": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 1.0,
+            "title": "Width",
+            "type": "number"
+          },
+          "x": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "X",
+            "type": "number"
+          },
+          "y": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Y",
+            "type": "number"
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "width",
+          "height"
+        ],
+        "title": "ImageRegion",
         "type": "object"
       },
       "IngredientMatchDataResponse": {
@@ -663,6 +1321,23 @@
         "title": "IngredientMatchingAllergenResponse",
         "type": "object"
       },
+      "MeasurementUnit": {
+        "enum": [
+          "g",
+          "mg",
+          "µg",
+          "kg",
+          "ml",
+          "l",
+          "kcal",
+          "kJ",
+          "%",
+          "count",
+          "unknown"
+        ],
+        "title": "MeasurementUnit",
+        "type": "string"
+      },
       "NovaSourceAssessment": {
         "properties": {
           "group": {
@@ -680,6 +1355,16 @@
         "title": "NovaSourceAssessment",
         "type": "object"
       },
+      "NutrientRowKind": {
+        "enum": [
+          "amount",
+          "percentage",
+          "combined",
+          "other"
+        ],
+        "title": "NutrientRowKind",
+        "type": "string"
+      },
       "NutritionAmount": {
         "anyOf": [
           {
@@ -692,6 +1377,93 @@
             "type": "string"
           }
         ]
+      },
+      "NutritionBasis": {
+        "enum": [
+          "per_package",
+          "per_serving",
+          "per_100g",
+          "per_100ml",
+          "unknown",
+          "other"
+        ],
+        "title": "NutritionBasis",
+        "type": "string"
+      },
+      "NutritionColumn": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "$ref": "#/components/schemas/NutritionBasis",
+            "default": "unknown"
+          },
+          "basis_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidencePointer"
+            },
+            "maxItems": 16,
+            "title": "Basis Evidence",
+            "type": "array"
+          },
+          "column_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,128}$",
+            "title": "Column Id",
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/FieldObservation"
+            },
+            "maxItems": 100,
+            "title": "Fields",
+            "type": "array"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "preparation_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidencePointer"
+            },
+            "maxItems": 16,
+            "title": "Preparation Evidence",
+            "type": "array"
+          },
+          "preparation_state": {
+            "$ref": "#/components/schemas/PreparationState",
+            "default": "unknown"
+          },
+          "serving_quantity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Quantity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "serving_quantity_state": {
+            "$ref": "#/components/schemas/FieldState",
+            "default": "not_visible"
+          }
+        },
+        "required": [
+          "column_id"
+        ],
+        "title": "NutritionColumn",
+        "type": "object"
       },
       "NutritionProjection": {
         "properties": {
@@ -785,6 +1557,69 @@
           "label"
         ],
         "title": "NutritionRow",
+        "type": "object"
+      },
+      "ObservationAlternative": {
+        "additionalProperties": false,
+        "description": "A competing literal reading retained for an ambiguous or conflicting field.",
+        "properties": {
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidencePointer"
+            },
+            "maxItems": 16,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "language": {
+            "default": "und",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Language",
+            "type": "string"
+          },
+          "original_script": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Script"
+          },
+          "state": {
+            "$ref": "#/components/schemas/FieldState",
+            "default": "readable"
+          },
+          "unit_text": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Text"
+          },
+          "value_text": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Text"
+          }
+        },
+        "title": "ObservationAlternative",
         "type": "object"
       },
       "OffAllergenAnalysisResponse": {
@@ -973,6 +1808,90 @@
           }
         },
         "title": "PackagingProjection",
+        "type": "object"
+      },
+      "PhotoComparisonErrorCode": {
+        "enum": [
+          "request_invalid",
+          "size_limit_exceeded",
+          "unsupported_image_format",
+          "rate_limit_exceeded",
+          "capacity_limit_exceeded",
+          "provider_output_invalid",
+          "provider_unavailable",
+          "provider_timeout",
+          "internal_error"
+        ],
+        "title": "PhotoComparisonErrorCode",
+        "type": "string"
+      },
+      "PhotoComparisonErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/PhotoComparisonErrorCode"
+          },
+          "message": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "PhotoComparisonErrorDetail",
+        "type": "object"
+      },
+      "PhotoComparisonErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/PhotoComparisonErrorDetail"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "PhotoComparisonErrorResponse",
+        "type": "object"
+      },
+      "PreparationState": {
+        "enum": [
+          "as_sold",
+          "as_prepared",
+          "unknown"
+        ],
+        "title": "PreparationState",
+        "type": "string"
+      },
+      "ProductIdentity": {
+        "additionalProperties": false,
+        "properties": {
+          "brand": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FieldObservation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FieldObservation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "ProductIdentity",
         "type": "object"
       },
       "ProductIdentityProjection": {
@@ -1439,6 +2358,182 @@
           "source"
         ],
         "title": "ProductSummary",
+        "type": "object"
+      },
+      "Quantity": {
+        "additionalProperties": false,
+        "properties": {
+          "alternatives": {
+            "items": {
+              "$ref": "#/components/schemas/ObservationAlternative"
+            },
+            "maxItems": 16,
+            "title": "Alternatives",
+            "type": "array"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidencePointer"
+            },
+            "maxItems": 16,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "field_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,128}$",
+            "title": "Field Id",
+            "type": "string"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "language": {
+            "default": "und",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Language",
+            "type": "string"
+          },
+          "normalized_unit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MeasurementUnit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "normalized_value": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalized Value"
+          },
+          "qualifier": {
+            "$ref": "#/components/schemas/ValueQualifier",
+            "default": "exact"
+          },
+          "state": {
+            "$ref": "#/components/schemas/FieldState",
+            "default": "readable"
+          },
+          "unit_text": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Text"
+          },
+          "value_text": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Text"
+          }
+        },
+        "required": [
+          "field_id"
+        ],
+        "title": "Quantity",
+        "type": "object"
+      },
+      "ReportedValue": {
+        "additionalProperties": false,
+        "description": "A complete nutrition field plus the column context that reported it.",
+        "properties": {
+          "basis": {
+            "$ref": "#/components/schemas/NutritionBasis",
+            "default": "unknown"
+          },
+          "basis_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidencePointer"
+            },
+            "maxItems": 16,
+            "title": "Basis Evidence",
+            "type": "array"
+          },
+          "column_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,128}$",
+            "title": "Column Id",
+            "type": "string"
+          },
+          "observation": {
+            "$ref": "#/components/schemas/FieldObservation"
+          },
+          "package_quantity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Quantity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "preparation_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidencePointer"
+            },
+            "maxItems": 16,
+            "title": "Preparation Evidence",
+            "type": "array"
+          },
+          "preparation_state": {
+            "$ref": "#/components/schemas/PreparationState",
+            "default": "unknown"
+          },
+          "serving_quantity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Quantity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "serving_quantity_state": {
+            "$ref": "#/components/schemas/FieldState",
+            "default": "not_visible"
+          }
+        },
+        "required": [
+          "column_id",
+          "observation"
+        ],
+        "title": "ReportedValue",
         "type": "object"
       },
       "SearchPaginationMetaResponse": {
@@ -1939,6 +3034,16 @@
         ],
         "title": "TranslationOverallStatus",
         "type": "string"
+      },
+      "ValueQualifier": {
+        "enum": [
+          "exact",
+          "less_than",
+          "greater_than",
+          "approximate"
+        ],
+        "title": "ValueQualifier",
+        "type": "string"
       }
     }
   },
@@ -2089,6 +3194,381 @@
         "summary": "Get Open Food Facts Image",
         "tags": [
           "Open Food Facts Images"
+        ]
+      }
+    },
+    "/api/v1/photo-comparison/comparisons": {
+      "post": {
+        "operationId": "comparePhotoComparison",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "left": {
+                    "$ref": "#/components/schemas/Extraction"
+                  },
+                  "left_column_id": {
+                    "anyOf": [
+                      {
+                        "maxLength": 128,
+                        "minLength": 1,
+                        "pattern": "^[A-Za-z0-9_-]{1,128}$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Left Column Id"
+                  },
+                  "right": {
+                    "$ref": "#/components/schemas/Extraction"
+                  },
+                  "right_column_id": {
+                    "anyOf": [
+                      {
+                        "maxLength": 128,
+                        "minLength": 1,
+                        "pattern": "^[A-Za-z0-9_-]{1,128}$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Right Column Id"
+                  },
+                  "schema_version": {
+                    "default": 1,
+                    "maximum": 1.0,
+                    "minimum": 1.0,
+                    "title": "Schema Version",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "left",
+                  "right"
+                ],
+                "title": "ComparisonRequest",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "partial": {
+                    "summary": "Conditional partial comparison",
+                    "value": {
+                      "calculated_from_submitted_evidence": true,
+                      "left_product_id": "left",
+                      "right_product_id": "right",
+                      "rows": [
+                        {
+                          "assumptions": [],
+                          "nutrient": "sodium",
+                          "reason": "A selected nutrition column is unavailable.",
+                          "state": "not_comparable"
+                        }
+                      ],
+                      "schema_version": 1
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ComparisonResponse"
+                }
+              }
+            },
+            "description": "Reported and deterministic comparison rows."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "comparison_limit": {
+                    "summary": "Comparison request limit",
+                    "value": {
+                      "error": {
+                        "code": "size_limit_exceeded",
+                        "message": "The comparison request must be 1 MiB or smaller."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "validation": {
+                    "summary": "Invalid comparison request",
+                    "value": {
+                      "error": {
+                        "code": "request_invalid",
+                        "message": "The comparison request is invalid."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Compare two submitted nutrition extractions",
+        "tags": [
+          "Photo comparison"
+        ]
+      }
+    },
+    "/api/v1/photo-comparison/extractions": {
+      "post": {
+        "operationId": "extractPhotoComparison",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_extractPhotoComparison"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "partial": {
+                    "summary": "Partial extraction",
+                    "value": {
+                      "configuration_version": "photo-extraction-v3",
+                      "images": [
+                        {
+                          "height": 1600,
+                          "image_id": "img-example",
+                          "original_image_id": "original-example",
+                          "processed_image_id": "processed-example",
+                          "role": "submitted_photo",
+                          "width": 1200
+                        }
+                      ],
+                      "model": "gemini-3.8-flash",
+                      "nutrition_columns": [],
+                      "outcome": "retake_required",
+                      "product_id": "left",
+                      "provider": "google",
+                      "retake_reasons": [
+                        "Add a clear package-weight photo."
+                      ],
+                      "schema_version": 1
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Extraction"
+                }
+              }
+            },
+            "description": "Validated visible-evidence extraction, complete, partial, or retake-required."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "upload_limit": {
+                    "summary": "Upload limit",
+                    "value": {
+                      "error": {
+                        "code": "size_limit_exceeded",
+                        "message": "The upload request must be 32 MiB or smaller."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unsupported_format": {
+                    "summary": "Unsupported image format",
+                    "value": {
+                      "error": {
+                        "code": "unsupported_image_format",
+                        "message": "Only JPEG and PNG photos are supported."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Unsupported Media Type"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "validation": {
+                    "summary": "Invalid comparison request",
+                    "value": {
+                      "error": {
+                        "code": "request_invalid",
+                        "message": "The comparison request is invalid."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "capacity": {
+                    "summary": "Provider capacity",
+                    "value": {
+                      "error": {
+                        "code": "capacity_limit_exceeded",
+                        "message": "Another extraction is already in progress. Retry when it finishes."
+                      }
+                    }
+                  },
+                  "rate_limit": {
+                    "summary": "Extraction rate limit",
+                    "value": {
+                      "error": {
+                        "code": "rate_limit_exceeded",
+                        "message": "The extraction limit is 10 requests per minute."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "provider_output": {
+                    "summary": "Invalid provider output",
+                    "value": {
+                      "error": {
+                        "code": "provider_output_invalid",
+                        "message": "The provider returned invalid evidence."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "provider": {
+                    "summary": "Provider failure",
+                    "value": {
+                      "error": {
+                        "code": "provider_unavailable",
+                        "message": "The extraction provider could not be reached."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "timeout": {
+                    "summary": "Provider timeout",
+                    "value": {
+                      "error": {
+                        "code": "provider_timeout",
+                        "message": "The extraction provider timed out."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "summary": "Extract visible nutrition evidence from Product photos",
+        "tags": [
+          "Photo comparison"
         ]
       }
     },
@@ -2440,7 +3920,7 @@
             }
           },
           {
-            "description": "Optional target language for product translation. Only 'kh' is supported; 'km' returns unsupported_language. Omit to skip generation. External source language tags remain unchanged.",
+            "description": "Optional target language for product translation. Only 'km' is supported; other language values return unsupported_language. Omit to skip generation. External source language tags remain unchanged.",
             "in": "query",
             "name": "language",
             "required": false,
@@ -2453,7 +3933,7 @@
                   "type": "null"
                 }
               ],
-              "description": "Optional target language for product translation. Only 'kh' is supported; 'km' returns unsupported_language. Omit to skip generation. External source language tags remain unchanged.",
+              "description": "Optional target language for product translation. Only 'km' is supported; other language values return unsupported_language. Omit to skip generation. External source language tags remain unchanged.",
               "title": "Language"
             }
           }

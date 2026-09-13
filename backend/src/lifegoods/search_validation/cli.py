@@ -260,7 +260,12 @@ def prepare(source: Any, target: Any, version: str, query_path: Path) -> dict[st
     target.products.create_index([("name_sort", 1), ("code", 1)])
     ordered_languages = sorted(
         candidates,
-        key=lambda x: (not x.startswith("script_khmer:"), x not in {"km", "kh"}, x != "en", x),
+        key=lambda x: (
+            not x.startswith("script_khmer:"),
+            x not in {"km"},
+            x != "en",
+            x,
+        ),
     )
     samples = []
     seen = set()

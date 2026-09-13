@@ -159,11 +159,11 @@ class LookupProduct:
             )
             product = project_source_record(source_record, meta=meta)
 
-            if language == "kh":
+            if language == "km":
                 if self._coordinator is not None:
                     try:
                         translation_result = self._coordinator.get_or_generate_translation(
-                            product, target_language="kh"
+                            product, target_language="km"
                         )
                         product, translation_meta = apply_translation_to_product(
                             product, translation_result

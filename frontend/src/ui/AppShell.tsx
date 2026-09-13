@@ -1,6 +1,7 @@
 import {
     BookOpenTextIcon,
     ListChecksIcon,
+    ScalesIcon,
     ScanIcon,
 } from "@phosphor-icons/react"
 import { type ReactNode, useEffect, useState } from "react"
@@ -9,6 +10,7 @@ import { NavLink, useLocation } from "react-router"
 import { appRoutes } from "@/app/routes"
 import { SplashScreen } from "@/components/brand/SplashScreen"
 import { cn } from "@/lib/utils"
+import { AppShellNavigationContext } from "./AppShellNavigation"
 
 type AppShellProps = {
     children: ReactNode
@@ -27,6 +29,11 @@ const navigation = [
         end: true,
     },
     {
+        to: appRoutes.compare,
+        label: "Compare",
+        icon: ScalesIcon,
+    },
+    {
         to: appRoutes.concerns,
         label: "Concerns",
         icon: ListChecksIcon,
@@ -37,6 +44,9 @@ export function AppShell({ children }: AppShellProps) {
     const location = useLocation()
     const [showSplash, setShowSplash] = useState(true)
     const isSearchRoute = location.pathname.startsWith(appRoutes.search)
+    const [isPrimaryNavigationHidden, setPrimaryNavigationHidden] =
+        useState(false)
+    const showPrimaryNavigation = !isSearchRoute && !isPrimaryNavigationHidden
 
     useEffect(() => {
         const prefersReducedMotion =
@@ -53,10 +63,6 @@ export function AppShell({ children }: AppShellProps) {
     }, [])
 
     useEffect(() => {
-        document.documentElement.lang = "en"
-    }, [])
-
-    useEffect(() => {
         if (
             typeof window !== "undefined" &&
             typeof window.scrollTo === "function"
@@ -66,85 +72,89 @@ export function AppShell({ children }: AppShellProps) {
     }, [location.pathname])
 
     return (
-        <div className="bg-background text-foreground flex min-h-[100vh] min-h-[100dvh] min-w-0 flex-col">
-            {showSplash && <SplashScreen />}
-            <div
-                className={cn(
-                    "flex-1 pt-[env(safe-area-inset-top,0px)]",
-                    isSearchRoute
-                        ? "pb-[env(safe-area-inset-bottom,0px)]"
-                        : "pb-[calc(5rem+env(safe-area-inset-bottom,0px))]",
-                )}
-            >
-                {children}
-            </div>
-
-            {!isSearchRoute && (
-                <nav
-                    className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/95 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-md select-none"
-                    aria-label="Primary navigation"
+        <AppShellNavigationContext.Provider
+            value={{ setPrimaryNavigationHidden }}
+        >
+            <div className="bg-background text-foreground flex min-h-svh min-w-0 flex-col">
+                {showSplash && <SplashScreen />}
+                <div
+                    className={cn(
+                        "flex-1 pt-[env(safe-area-inset-top,0px)]",
+                        showPrimaryNavigation
+                            ? "pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))]"
+                            : "pb-[env(safe-area-inset-bottom,0px)]",
+                    )}
                 >
-                    <div className="mx-auto grid h-[4.75rem] w-full max-w-2xl grid-cols-3 items-center gap-1.5 px-3 sm:px-0">
-                        {navigation.map(
-                            ({ to, label, icon: Icon, ...props }) => {
-                                const isEnd =
-                                    "end" in props ? props.end : undefined
+                    {children}
+                </div>
 
-                                return (
-                                    <NavLink
-                                        key={to}
-                                        to={to}
-                                        end={isEnd}
-                                        aria-label={label}
-                                        className={({ isActive }) =>
-                                            cn(
-                                                "group relative flex h-[3.5rem] min-w-0 flex-col items-center justify-center rounded-2xl px-2 py-1.5 text-center transition-colors duration-150 select-none",
-                                                "focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
-                                                isActive
-                                                    ? "text-primary-800"
-                                                    : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900",
-                                            )
-                                        }
-                                    >
-                                        {({ isActive }) => (
-                                            <>
-                                                <span
-                                                    className={cn(
-                                                        "grid size-7 place-items-center rounded-xl transition-colors duration-150",
-                                                        isActive
-                                                            ? "text-primary-800"
-                                                            : "text-neutral-500 group-hover:text-neutral-900",
-                                                    )}
-                                                    aria-hidden="true"
-                                                >
-                                                    <Icon
-                                                        size={22}
-                                                        weight={
+                {showPrimaryNavigation && (
+                    <nav
+                        data-glass-surface=""
+                        className="glass-surface fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-40 w-[calc(100%-2rem)] max-w-[20rem] -translate-x-1/2 rounded-full p-1 select-none"
+                        aria-label="Primary navigation"
+                    >
+                        <div className="grid min-h-[3.125rem] w-full grid-cols-4 items-stretch gap-1">
+                            {navigation.map(
+                                ({ to, label, icon: Icon, ...props }) => {
+                                    const isEnd =
+                                        "end" in props ? props.end : undefined
+
+                                    return (
+                                        <NavLink
+                                            key={to}
+                                            to={to}
+                                            end={isEnd}
+                                            aria-label={label}
+                                            className={({ isActive }) =>
+                                                cn(
+                                                    "group relative flex min-h-[3.125rem] min-w-0 flex-col items-center justify-center rounded-full px-2 py-1 text-center transition-colors duration-150 select-none motion-reduce:transition-none",
+                                                    "focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
+                                                    isActive &&
+                                                        "bg-primary-100 text-primary-800",
+                                                )
+                                            }
+                                        >
+                                            {({ isActive }) => (
+                                                <>
+                                                    <span
+                                                        className={cn(
+                                                            "grid size-6 place-items-center rounded-full transition-all duration-150",
                                                             isActive
-                                                                ? "bold"
-                                                                : "regular"
-                                                        }
-                                                    />
-                                                </span>
-                                                <span
-                                                    className={cn(
-                                                        "mt-0.5 max-w-full truncate text-sm leading-5 transition-colors",
-                                                        isActive
-                                                            ? "text-primary-800 font-extrabold"
-                                                            : "font-semibold text-neutral-500 group-hover:text-neutral-900",
-                                                    )}
-                                                >
-                                                    {label}
-                                                </span>
-                                            </>
-                                        )}
-                                    </NavLink>
-                                )
-                            },
-                        )}
-                    </div>
-                </nav>
-            )}
-        </div>
+                                                                ? "text-primary-800"
+                                                                : "text-neutral-600 group-hover:text-neutral-900",
+                                                        )}
+                                                        aria-hidden="true"
+                                                    >
+                                                        <Icon
+                                                            size={20}
+                                                            weight={
+                                                                isActive
+                                                                    ? "bold"
+                                                                    : "regular"
+                                                            }
+                                                        />
+                                                    </span>
+                                                    <span
+                                                        className={cn(
+                                                            "mt-0.5 max-w-full text-xs leading-tight transition-colors",
+                                                            isActive
+                                                                ? "text-primary-800 font-extrabold"
+                                                                : "font-semibold text-neutral-600 group-hover:text-neutral-900",
+                                                        )}
+                                                    >
+                                                        {label}
+                                                    </span>
+                                                </>
+                                            )}
+                                        </NavLink>
+                                    )
+                                },
+                            )}
+                        </div>
+                    </nav>
+                )}
+            </div>
+        </AppShellNavigationContext.Provider>
     )
 }

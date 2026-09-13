@@ -164,7 +164,7 @@ class TranslationCoordinator:
         self,
         product: ProductProjection,
         *,
-        target_language: str = "kh",
+        target_language: str = "km",
         deadline_seconds: float | None = None,
     ) -> ProductTranslationResult:
         deadline = TranslationDeadline(

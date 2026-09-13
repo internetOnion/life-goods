@@ -4,13 +4,14 @@ export type BarcodeScannerError = unknown
 
 export type BarcodeScannerSession = {
     stop: () => void
-    suspend?: () => void
     torchAvailable: boolean
     setTorch: (enabled: boolean) => Promise<void>
 }
 
 export type BarcodeScannerOptions = {
+    acquisitionTimeoutMs?: number
     facingMode?: "environment" | "user"
+    signal?: AbortSignal
 }
 
 export type BarcodeScanner = {
@@ -23,7 +24,6 @@ export type BarcodeScanner = {
 }
 
 const previewReadyTimeoutMs = 5000
-const cameraResumeGracePeriodMs = 5000
 const previewReadyEvents = [
     "loadedmetadata",
     "loadeddata",
@@ -38,56 +38,8 @@ class CameraPreviewError extends Error {
     override name = "CameraPreviewError"
 }
 
-type RetainedCameraStream = {
-    facingMode: "environment" | "user"
-    stream: MediaStream
-    timeoutId: ReturnType<typeof setTimeout>
-}
-
-let retainedCameraStream: RetainedCameraStream | null = null
-
-function stopRetainedCameraStream() {
-    if (!retainedCameraStream) return
-    clearTimeout(retainedCameraStream.timeoutId)
-    stopStream(retainedCameraStream.stream)
-    retainedCameraStream = null
-}
-
-function hasLiveVideoTrack(stream: MediaStream) {
-    return getStreamTracks(stream).some((track) => track.readyState !== "ended")
-}
-
-function takeRetainedCameraStream(
-    facingMode: "environment" | "user",
-): MediaStream | null {
-    if (!retainedCameraStream) return null
-
-    const retained = retainedCameraStream
-    retainedCameraStream = null
-    clearTimeout(retained.timeoutId)
-
-    if (
-        retained.facingMode !== facingMode ||
-        !hasLiveVideoTrack(retained.stream)
-    ) {
-        stopStream(retained.stream)
-        return null
-    }
-
-    return retained.stream
-}
-
-function retainCameraStream(
-    stream: MediaStream,
-    facingMode: "environment" | "user",
-) {
-    stopRetainedCameraStream()
-    const timeoutId = setTimeout(() => {
-        if (retainedCameraStream?.stream === stream) {
-            stopRetainedCameraStream()
-        }
-    }, cameraResumeGracePeriodMs)
-    retainedCameraStream = { facingMode, stream, timeoutId }
+class CameraStartTimeoutError extends Error {
+    override name = "CameraStartTimeoutError"
 }
 
 function constraintStages(
@@ -110,16 +62,30 @@ function constraintStages(
 
 async function acquireMediaStream(
     facingMode: "environment" | "user",
+    options?: Pick<BarcodeScannerOptions, "acquisitionTimeoutMs" | "signal">,
 ): Promise<MediaStream> {
     const mediaDevices = navigator.mediaDevices
     if (!mediaDevices?.getUserMedia) {
         throw new DOMException("Camera API is unavailable", "NotSupportedError")
     }
 
+    const deadline =
+        options?.acquisitionTimeoutMs === undefined
+            ? null
+            : Date.now() + options.acquisitionTimeoutMs
     let lastError: unknown = null
     for (const constraints of constraintStages(facingMode)) {
         try {
-            return await mediaDevices.getUserMedia(constraints)
+            const remainingMs =
+                deadline === null
+                    ? undefined
+                    : Math.max(0, deadline - Date.now())
+            return await acquireMediaStreamAttempt(
+                mediaDevices,
+                constraints,
+                remainingMs,
+                options?.signal,
+            )
         } catch (error) {
             lastError = error
             const name =
@@ -129,7 +95,9 @@ async function acquireMediaStream(
             if (
                 name === "NotAllowedError" ||
                 name === "SecurityError" ||
-                name === "PermissionDeniedError"
+                name === "PermissionDeniedError" ||
+                name === "AbortError" ||
+                name === "CameraStartTimeoutError"
             ) {
                 throw error
             }
@@ -143,6 +111,62 @@ async function acquireMediaStream(
     throw new DOMException("Unable to acquire camera stream", "NotFoundError")
 }
 
+function acquireMediaStreamAttempt(
+    mediaDevices: MediaDevices,
+    constraints: MediaStreamConstraints,
+    timeoutMs: number | undefined,
+    signal: AbortSignal | undefined,
+): Promise<MediaStream> {
+    const request = mediaDevices.getUserMedia(constraints)
+
+    return new Promise((resolve, reject) => {
+        let settled = false
+        let timeoutId: ReturnType<typeof setTimeout> | null = null
+
+        const cleanup = () => {
+            if (timeoutId !== null) clearTimeout(timeoutId)
+            signal?.removeEventListener("abort", handleAbort)
+        }
+
+        const rejectOnce = (error: unknown) => {
+            if (settled) return
+            settled = true
+            cleanup()
+            reject(error instanceof Error ? error : new Error(String(error)))
+        }
+
+        const handleAbort = () => {
+            rejectOnce(new DOMException("Camera start cancelled", "AbortError"))
+        }
+
+        signal?.addEventListener("abort", handleAbort, { once: true })
+        if (signal?.aborted) {
+            handleAbort()
+        } else if (timeoutMs !== undefined) {
+            timeoutId = setTimeout(() => {
+                rejectOnce(
+                    new CameraStartTimeoutError(
+                        "The camera did not start before its deadline",
+                    ),
+                )
+            }, timeoutMs)
+        }
+
+        request.then(
+            (stream) => {
+                if (settled) {
+                    stopStream(stream)
+                    return
+                }
+                settled = true
+                cleanup()
+                resolve(stream)
+            },
+            (error: unknown) => rejectOnce(error),
+        )
+    })
+}
+
 function hasDrawableFrame(video: HTMLVideoElement) {
     return (
         video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
@@ -151,7 +175,7 @@ function hasDrawableFrame(video: HTMLVideoElement) {
     )
 }
 
-function startVideoPreview(video: HTMLVideoElement) {
+function startVideoPreview(video: HTMLVideoElement, signal?: AbortSignal) {
     return new Promise<void>((resolve, reject) => {
         let playbackInitiated = false
         let frameCallbackId: number | null = null
@@ -178,14 +202,19 @@ function startVideoPreview(video: HTMLVideoElement) {
             previewReadyEvents.forEach((eventName) =>
                 video.removeEventListener(eventName, checkReady),
             )
+            signal?.removeEventListener("abort", handleAbort)
         }
 
-        const finish = (error?: CameraPreviewError) => {
+        const finish = (error?: Error) => {
             if (settled) return
             settled = true
             cleanup()
             if (error) reject(error)
             else resolve()
+        }
+
+        function handleAbort() {
+            finish(new DOMException("Camera start cancelled", "AbortError"))
         }
 
         const isPlaybackActive = () =>
@@ -217,6 +246,11 @@ function startVideoPreview(video: HTMLVideoElement) {
         previewReadyEvents.forEach((eventName) =>
             video.addEventListener(eventName, checkReady),
         )
+        signal?.addEventListener("abort", handleAbort, { once: true })
+        if (signal?.aborted) {
+            handleAbort()
+            return
+        }
 
         const onVideoFrame = () => {
             checkReady()
@@ -402,9 +436,7 @@ async function getNativeDetector(): Promise<NativeDetector | null> {
 export const barcodeScanner: BarcodeScanner = {
     async start(video, onResult, onError, options) {
         const facingMode = options?.facingMode ?? "environment"
-        const stream =
-            takeRetainedCameraStream(facingMode) ??
-            (await acquireMediaStream(facingMode))
+        const stream = await acquireMediaStream(facingMode, options)
         const torchTrack = getTorchTrack(stream)
         const torchAvailable = torchTrack !== null
 
@@ -428,7 +460,7 @@ export const barcodeScanner: BarcodeScanner = {
         let zxingReader: BrowserMultiFormatOneDReader | null = null
 
         try {
-            await startVideoPreview(video)
+            await startVideoPreview(video, options?.signal)
         } catch (error) {
             detachStream(video, stream)
             throw error
@@ -571,29 +603,6 @@ export const barcodeScanner: BarcodeScanner = {
         void scanFrame()
 
         return {
-            suspend: () => {
-                if (stopped) return
-                stopped = true
-                if (torchTrack && torchEnabled) {
-                    void setTorch(false).catch(() => undefined)
-                }
-                getStreamTracks(stream).forEach((track) => {
-                    track.removeEventListener("ended", handleTrackEnded)
-                })
-                if (
-                    animationFrameId !== null &&
-                    typeof cancelAnimationFrame === "function"
-                ) {
-                    cancelAnimationFrame(animationFrameId)
-                    animationFrameId = null
-                }
-                if (pollTimeoutId !== null) {
-                    clearTimeout(pollTimeoutId)
-                    pollTimeoutId = null
-                }
-                if (video.srcObject === stream) video.srcObject = null
-                retainCameraStream(stream, facingMode)
-            },
             stop: () => {
                 if (stopped) return
                 stopped = true

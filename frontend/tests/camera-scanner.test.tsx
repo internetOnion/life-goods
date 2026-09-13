@@ -1,9 +1,12 @@
 import { act, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { MemoryRouter, useLocation } from "react-router"
+import { MemoryRouter, Route, Routes, useLocation } from "react-router"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import { ScanPage } from "../src/features/scan/ScanPage"
+import type { BarcodeScannerOptions } from "../src/features/scan/barcodeScanner"
+import { LocaleProvider } from "../src/i18n/LocaleProvider"
+import { AppShell } from "../src/ui/AppShell"
 
 const { startMock } = vi.hoisted(() => ({ startMock: vi.fn() }))
 
@@ -24,6 +27,25 @@ function renderPage() {
             <ScanPage />
             <CurrentLocation />
         </MemoryRouter>,
+    )
+}
+
+function renderScannerJourney() {
+    return render(
+        <LocaleProvider>
+            <MemoryRouter>
+                <AppShell>
+                    <Routes>
+                        <Route path="/" element={<ScanPage />} />
+                        <Route
+                            path="/products/:barcode"
+                            element={<h1>Product result</h1>}
+                        />
+                    </Routes>
+                    <CurrentLocation />
+                </AppShell>
+            </MemoryRouter>
+        </LocaleProvider>,
     )
 }
 
@@ -71,9 +93,12 @@ describe("camera Barcode scanner", () => {
         await user.click(screen.getByRole("button", { name: "Start camera" }))
 
         await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
-        expect(startMock.mock.calls[0]?.[3]).toEqual({
+        expect(startMock.mock.calls[0]?.[3]).toMatchObject({
             facingMode: "environment",
         })
+        expect(startMock.mock.calls[0]?.[3]).not.toHaveProperty(
+            "acquisitionTimeoutMs",
+        )
         expect(sessionStorage.getItem("lifegoods.scan.camera-started.v1")).toBe(
             "true",
         )
@@ -142,6 +167,33 @@ describe("camera Barcode scanner", () => {
         )
     })
 
+    test("shows recovery actions when an automatic camera restart times out", async () => {
+        sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
+        const timeoutError = new Error("Camera start timed out")
+        timeoutError.name = "CameraStartTimeoutError"
+        startMock.mockRejectedValue(timeoutError)
+
+        renderPage()
+
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
+        const restartOptions = startMock.mock.calls[0]?.[3] as
+            BarcodeScannerOptions | undefined
+        expect(restartOptions).toMatchObject({
+            acquisitionTimeoutMs: 5000,
+            facingMode: "environment",
+        })
+        expect(restartOptions?.signal).toBeInstanceOf(AbortSignal)
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "The camera took too long to start. Try again, or enter the Barcode instead.",
+        )
+        expect(
+            screen.getByRole("button", { name: "Try camera again" }),
+        ).toBeVisible()
+        expect(
+            screen.getByRole("link", { name: "Enter a Barcode instead" }),
+        ).toBeVisible()
+    })
+
     test("opens the Product page for a valid on-device result with sensory feedback", async () => {
         sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
         startMock.mockResolvedValue({ stop: vi.fn() })
@@ -159,6 +211,27 @@ describe("camera Barcode scanner", () => {
         )
     })
 
+    test("starts a fresh bounded camera session after returning through the Scan tab", async () => {
+        const user = userEvent.setup()
+        sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
+        startMock.mockResolvedValue({ stop: vi.fn() })
+        renderScannerJourney()
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
+
+        const onResult = startMock.mock.calls[0]?.[1] as (value: string) => void
+        act(() => onResult("4006381333931"))
+        await screen.findByRole("heading", { name: "Product result" })
+
+        await user.click(screen.getByRole("link", { name: "Scan" }))
+
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(2))
+        expect(startMock.mock.calls[1]?.[3]).toMatchObject({
+            acquisitionTimeoutMs: 5000,
+            facingMode: "environment",
+        })
+        expect(screen.getByRole("status")).toHaveTextContent("Ready to scan")
+    })
+
     test("sends an invalid result to typed Barcode correction", async () => {
         sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
         startMock.mockResolvedValue({ stop: vi.fn() })
@@ -172,12 +245,11 @@ describe("camera Barcode scanner", () => {
         )
     })
 
-    test("includes only one generic search bar under brand logo that suspends camera and navigates to /search", async () => {
+    test("includes only one generic search bar under brand logo that stops camera and navigates to /search", async () => {
         const user = userEvent.setup()
         const stopMock = vi.fn()
-        const suspendMock = vi.fn()
         sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
-        startMock.mockResolvedValue({ stop: stopMock, suspend: suspendMock })
+        startMock.mockResolvedValue({ stop: stopMock })
         renderPage()
         await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
 
@@ -186,11 +258,12 @@ describe("camera Barcode scanner", () => {
         const searchBar = searchBars[0]!
         expect(searchBar).toBeVisible()
         expect(searchBar).toHaveAttribute("href", "/search")
-        expect(screen.getByText("Search products...")).toBeVisible()
+        expect(
+            screen.getByText("Search Product, company or country..."),
+        ).toBeVisible()
 
         await user.click(searchBar)
-        expect(suspendMock).toHaveBeenCalled()
-        expect(stopMock).not.toHaveBeenCalled()
+        expect(stopMock).toHaveBeenCalled()
         expect(screen.getByTestId("location")).toHaveTextContent("/search")
     })
 })

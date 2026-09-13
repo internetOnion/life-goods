@@ -124,7 +124,7 @@ do not verify Open Food Facts Source Records.
 
 ## Start development servers
 
-The frontend currently uses its checked-in Dataset Snapshot for offline Product Lookup. The stable backend API remains available independently; connecting the Shopper interface and translation controls is deferred to #90.
+The frontend currently uses its checked-in Dataset Snapshot for offline Product Lookup. The stable backend API remains available independently; connecting the Shopper interface and translation controls is deferred to #90. The ordinary backend also exposes the stable Compare Products API under `/api/v1/photo-comparison/`.
 
 Run the backend and frontend in separate terminals:
 
@@ -137,6 +137,35 @@ pnpm dev
 ```
 
 The frontend is available at `http://localhost:5173`. Use `pnpm dev:https` when testing camera access at `https://localhost:5173`; `/api` still proxies to the HTTP backend.
+
+### Try the standalone photo-comparison development app
+
+The standalone development app remains available as a thin consumer of the same
+photo-comparison services and contracts used by the ordinary Life Goods API. Start it with:
+
+```bash
+pnpm photo-comparison:dev
+```
+
+It binds only to `http://127.0.0.1:8765`, serves the two-Product browser page at
+`/`, and exposes Scalar at `/scalar`. Set `LIFEGOODS_GEMINI_API_KEY` (or the
+existing `GEMINI_API_KEY`) in `backend/.env` before extracting photos. The lab
+uses the exact `gemini-3.8-flash` model and never substitutes canned results or
+another model when credentials or provider behavior are unavailable.
+
+Each Product accepts one to three JPEG/PNG photos, up to 10 MiB per photo, 32 MiB
+per upload request, and 25 megapixels per image. Photos are corrected for EXIF
+orientation, re-encoded without metadata, sent together for one extraction, and
+discarded after the request. The process allows one active provider request and
+ten extraction requests per minute. Comparisons are pure Python Decimal
+calculations over the submitted evidence; the page keeps photos and results in
+the current browser session only. No photo-derived text is written to MongoDB,
+Redis, translation caches, or ordinary logs.
+
+The ordinary backend serves the stable API at `/api/v1/photo-comparison/`; the
+standalone app serves the same behavior under its development-only experimental
+prefix and browser page. The reviewed multilingual corpus in #111 remains
+deferred.
 
 ## Verification
 

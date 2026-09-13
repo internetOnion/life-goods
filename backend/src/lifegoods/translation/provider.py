@@ -11,7 +11,7 @@ MAX_TRANSLATION_OUTPUT_TOKENS = 8192
 class ProviderTranslationRequest:
     fields: dict[str, str]
     brands: list[str] = field(default_factory=list)
-    target_language: str = "kh"
+    target_language: str = "km"
     deadline: TranslationDeadline | None = field(default=None, repr=False, compare=False)
 
 

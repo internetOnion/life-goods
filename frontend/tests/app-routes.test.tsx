@@ -40,6 +40,7 @@ describe("Life Goods routes", () => {
             "page",
         )
         expect(screen.getByRole("link", { name: "Learn" })).toBeVisible()
+        expect(screen.getByRole("link", { name: "Compare" })).toBeVisible()
         expect(screen.getByRole("link", { name: "Concerns" })).toBeVisible()
         expect(
             within(navigation).queryByRole("link", { name: "Search" }),
@@ -53,6 +54,9 @@ describe("Life Goods routes", () => {
             screen.queryByRole("link", { name: "Data and licenses" }),
         ).not.toBeInTheDocument()
         expect(document.documentElement).toHaveAttribute("lang", "en")
+        expect(
+            screen.getByRole("button", { name: "Language: English" }),
+        ).toBeVisible()
     })
 
     test("registers search, learn, concerns, and data-and-license routes", () => {
@@ -61,10 +65,16 @@ describe("Life Goods routes", () => {
         expect(
             screen.queryByRole("navigation", { name: "Primary navigation" }),
         ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("button", { name: "Language: English" }),
+        ).not.toBeInTheDocument()
         unmountSearch()
 
         const { unmount: unmountLearn } = renderRoute("/learn")
         expect(screen.getByRole("heading", { name: "Learn" })).toHaveFocus()
+        expect(
+            screen.queryByRole("button", { name: "Language: English" }),
+        ).not.toBeInTheDocument()
         unmountLearn()
 
         const { unmount: unmountConcerns } = renderRoute("/concerns")
@@ -166,5 +176,17 @@ describe("Life Goods routes", () => {
             "aria-current",
             "page",
         )
+    })
+
+    test("marks Compare as current in the bottom navigation on /compare", () => {
+        renderRoute("/compare")
+
+        expect(screen.getByRole("link", { name: "Compare" })).toHaveAttribute(
+            "aria-current",
+            "page",
+        )
+        expect(
+            screen.getByRole("navigation", { name: "Primary navigation" }),
+        ).toBeVisible()
     })
 })

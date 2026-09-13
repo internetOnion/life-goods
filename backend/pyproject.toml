@@ -10,8 +10,10 @@ requires-python = "==3.13.*"
 dependencies = [
   "fastapi>=0.116,<1",
   "httpx2>=2.0,<3",
+  "Pillow>=11,<13",
   "pydantic-settings>=2.10,<3",
   "pymongo>=4.14,<5",
+  "python-multipart>=0.0.20,<1",
   "redis>=5.2,<6",
   "regex>=2026.7,<2027",
   "scalar-fastapi>=1.0.0,<2",

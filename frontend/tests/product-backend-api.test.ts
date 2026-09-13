@@ -57,7 +57,7 @@ describe("backend Product Lookup", () => {
         )
     })
 
-    test("exposes backend errors with status and error code", async () => {
+    test("preserves the backend Product Lookup error payload", async () => {
         client.setConfig({ baseUrl: "http://localhost:8000" })
         const fetchMock = vi.fn().mockResolvedValue(
             backendResponse(
@@ -72,10 +72,11 @@ describe("backend Product Lookup", () => {
         )
         vi.stubGlobal("fetch", fetchMock)
 
-        await expect(lookupProduct("4006381333931")).rejects.toMatchObject({
-            status: 404,
-            code: "product_not_found",
-            error: { code: "product_not_found" },
+        await expect(lookupProduct("4006381333931")).rejects.toEqual({
+            error: {
+                code: "product_not_found",
+                message: "Product not found",
+            },
         })
     })
 })

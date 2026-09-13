@@ -118,7 +118,7 @@ class KhmerTranslationModule:
         self,
         product: ProductProjection,
         *,
-        target_language: str = "kh",
+        target_language: str = "km",
     ) -> tuple[str, str, bool]:
         selections = extract_eligible_fields(product)
         brands = [b.strip() for b in product.identity.brands if b and b.strip()]
@@ -169,7 +169,7 @@ class KhmerTranslationModule:
         self,
         product: ProductProjection,
         *,
-        target_language: str = "kh",
+        target_language: str = "km",
         deadline: TranslationDeadline | None = None,
     ) -> ProductTranslationResult:
         fields = classify_fields(product)

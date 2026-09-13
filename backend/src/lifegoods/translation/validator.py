@@ -14,7 +14,7 @@ def validate_field_translation(
     restored_text: str,
     token_map: dict[str, str],
     *,
-    target_language: str = "kh",
+    target_language: str = "km",
 ) -> list[str]:
     reasons: list[str] = []
 
@@ -50,7 +50,7 @@ def validate_field_translation(
         )
 
     # 4. Script validation for target language
-    if target_language in ("kh", "km"):
+    if target_language == "km":
         # Remove known protected tokens from text before checking script
         text_without_tokens = restored_text
         for tok in token_map.values():
