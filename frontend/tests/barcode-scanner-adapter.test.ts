@@ -99,6 +99,33 @@ describe("barcode scanner adapter", () => {
         session.stop()
     })
 
+    test("exposes torch control for cameras that support it", async () => {
+        const applyConstraintsMock = vi.fn().mockResolvedValue(undefined)
+        const track = {
+            addEventListener: vi.fn(),
+            applyConstraints: applyConstraintsMock,
+            getCapabilities: () => ({ torch: true }),
+            kind: "video",
+            removeEventListener: vi.fn(),
+            stop: vi.fn(),
+        }
+        const stream = {
+            getTracks: () => [track],
+            getVideoTracks: () => [track],
+        }
+        getUserMediaMock.mockResolvedValue(stream)
+        const { video } = createVideoFrame()
+
+        const session = await barcodeScanner.start(video, vi.fn(), vi.fn())
+
+        expect(session.torchAvailable).toBe(true)
+        await session.setTorch(true)
+        expect(applyConstraintsMock).toHaveBeenNthCalledWith(1, {
+            advanced: [{ torch: true }],
+        })
+        session.stop()
+    })
+
     test("falls back progressively when high resolution or ideal facing mode is rejected", async () => {
         const stream = createStream()
         getUserMediaMock
@@ -137,6 +164,33 @@ describe("barcode scanner adapter", () => {
 
         expect(stream.track.stop).toHaveBeenCalledTimes(1)
         expect(video.srcObject).toBeNull()
+    })
+
+    test("reuses a briefly suspended camera stream when startup resumes", async () => {
+        const stream = createStream()
+        getUserMediaMock.mockResolvedValue(stream)
+        const firstVideo = createVideoFrame().video
+        const firstSession = await barcodeScanner.start(
+            firstVideo,
+            vi.fn(),
+            vi.fn(),
+        )
+
+        firstSession.suspend?.()
+
+        const secondVideo = createVideoFrame().video
+        const secondSession = await barcodeScanner.start(
+            secondVideo,
+            vi.fn(),
+            vi.fn(),
+        )
+
+        expect(getUserMediaMock).toHaveBeenCalledTimes(1)
+        expect(secondVideo.srcObject).toBe(stream)
+        expect(stream.track.stop).not.toHaveBeenCalled()
+
+        secondSession.stop()
+        expect(stream.track.stop).toHaveBeenCalledTimes(1)
     })
 
     test("forwards a decoded barcode result from canvas scanning", async () => {
@@ -206,6 +260,30 @@ describe("barcode scanner adapter", () => {
             vi.unstubAllGlobals()
         }
     }, 2000)
+
+    test("does not hold camera startup on native detector capability detection", async () => {
+        const BarcodeDetectorMock = vi.fn()
+        Object.assign(BarcodeDetectorMock, {
+            getSupportedFormats: vi.fn().mockReturnValue(new Promise(() => {})), // never resolves!
+        })
+        vi.stubGlobal("BarcodeDetector", BarcodeDetectorMock)
+
+        try {
+            const { video } = createVideoFrame()
+            const startPromise = barcodeScanner.start(video, vi.fn(), vi.fn())
+            const startupResult = await Promise.race([
+                startPromise.then(() => "started" as const),
+                new Promise<"timed-out">((resolve) => {
+                    setTimeout(() => resolve("timed-out"), 100)
+                }),
+            ])
+
+            expect(startupResult).toBe("started")
+            ;(await startPromise).stop()
+        } finally {
+            vi.unstubAllGlobals()
+        }
+    })
 
     test("falls back to zxing if native BarcodeDetector detect hangs or throws", async () => {
         const detectMock = vi.fn().mockReturnValue(new Promise(() => {})) // detect hangs!

@@ -22,7 +22,7 @@ export function RecentProductCard({ item }: RecentProductCardProps) {
     return (
         <Link
             to={`/products/${item.identifier}`}
-            className="group focus-visible:ring-primary-500 shadow-source-sheet flex min-h-32 w-full items-start gap-3 rounded-2xl border border-neutral-200/80 bg-white p-3 text-left transition-[border-color,background-color,box-shadow,transform] duration-150 hover:border-neutral-300 hover:bg-neutral-50 focus-visible:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.99]"
+            className="group focus-visible:ring-primary-500 shadow-source-sheet hover:border-primary-400 focus-visible:border-primary-400 flex min-h-32 w-full items-start gap-3 rounded-2xl border border-neutral-200/80 bg-white p-3 text-left transition-[border-color,background-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:bg-[#f2f1ea] hover:shadow-[0_8px_20px_-16px_rgba(19,21,25,0.55)] focus-visible:-translate-y-0.5 focus-visible:bg-[#f2f1ea] focus-visible:shadow-[0_8px_20px_-16px_rgba(19,21,25,0.55)] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.99]"
             aria-label={`View ${name}`}
         >
             <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-neutral-50 ring-1 ring-neutral-100 sm:size-[5.5rem]">
