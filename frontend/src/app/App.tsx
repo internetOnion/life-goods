@@ -15,6 +15,7 @@ import { ScanPage } from "@/features/scan/ScanPage"
 import { BarcodeEntryPage } from "@/features/search/BarcodeEntryPage"
 import { RecentProductViewsPage } from "@/features/search/RecentProductViewsPage"
 import { AppShell } from "@/ui/AppShell"
+import { LocaleProvider } from "@/i18n/LocaleProvider"
 
 import { appRoutes } from "./routes"
 
@@ -25,50 +26,58 @@ type AppProps = {
 
 export function App({ lookup = lookupProduct, demoMode = false }: AppProps) {
     return (
-        <AppShell>
-            <Routes>
-                <Route path={appRoutes.home} element={<ScanPage />} />
-                <Route path={appRoutes.search} element={<BarcodeEntryPage />} />
-                <Route
-                    path={appRoutes.recentSearches}
-                    element={<RecentProductViewsPage />}
-                />
-                <Route path={appRoutes.learn} element={<LearnPage />} />
-                <Route
-                    path={appRoutes.learnGuide}
-                    element={<LearnGuidePage />}
-                />
-                <Route
-                    path={appRoutes.learnDetail}
-                    element={<LearnArticlePage demoMode={demoMode} />}
-                />
-                <Route path={appRoutes.concerns} element={<ConcernsPage />} />
-                <Route
-                    path={appRoutes.allergies}
-                    element={<Navigate to={appRoutes.concerns} replace />}
-                />
-                <Route
-                    path={appRoutes.product}
-                    element={<ProductPage lookup={lookup} />}
-                />
-                <Route
-                    path={appRoutes.dataAndLicenses}
-                    element={<DataAndLicensesPage />}
-                />
-                <Route
-                    path={appRoutes.compare}
-                    element={<PhotoComparisonPage />}
-                />
-                <Route
-                    path="/experimental/photo-comparison"
-                    element={<Navigate to={appRoutes.compare} replace />}
-                />
-                <Route
-                    path="/photo-comparison"
-                    element={<Navigate to={appRoutes.compare} replace />}
-                />
-                <Route path="*" element={<NotFoundPage />} />
-            </Routes>
-        </AppShell>
+        <LocaleProvider>
+            <AppShell>
+                <Routes>
+                    <Route path={appRoutes.home} element={<ScanPage />} />
+                    <Route
+                        path={appRoutes.search}
+                        element={<BarcodeEntryPage />}
+                    />
+                    <Route
+                        path={appRoutes.recentSearches}
+                        element={<RecentProductViewsPage />}
+                    />
+                    <Route path={appRoutes.learn} element={<LearnPage />} />
+                    <Route
+                        path={appRoutes.learnGuide}
+                        element={<LearnGuidePage />}
+                    />
+                    <Route
+                        path={appRoutes.learnDetail}
+                        element={<LearnArticlePage demoMode={demoMode} />}
+                    />
+                    <Route
+                        path={appRoutes.concerns}
+                        element={<ConcernsPage />}
+                    />
+                    <Route
+                        path={appRoutes.allergies}
+                        element={<Navigate to={appRoutes.concerns} replace />}
+                    />
+                    <Route
+                        path={appRoutes.product}
+                        element={<ProductPage lookup={lookup} />}
+                    />
+                    <Route
+                        path={appRoutes.dataAndLicenses}
+                        element={<DataAndLicensesPage />}
+                    />
+                    <Route
+                        path={appRoutes.compare}
+                        element={<PhotoComparisonPage />}
+                    />
+                    <Route
+                        path="/experimental/photo-comparison"
+                        element={<Navigate to={appRoutes.compare} replace />}
+                    />
+                    <Route
+                        path="/photo-comparison"
+                        element={<Navigate to={appRoutes.compare} replace />}
+                    />
+                    <Route path="*" element={<NotFoundPage />} />
+                </Routes>
+            </AppShell>
+        </LocaleProvider>
     )
 }

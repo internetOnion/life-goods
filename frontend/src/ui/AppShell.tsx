@@ -63,10 +63,6 @@ export function AppShell({ children }: AppShellProps) {
     }, [])
 
     useEffect(() => {
-        document.documentElement.lang = "en"
-    }, [])
-
-    useEffect(() => {
         if (
             typeof window !== "undefined" &&
             typeof window.scrollTo === "function"

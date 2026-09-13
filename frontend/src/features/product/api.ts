@@ -1,4 +1,4 @@
-import type { ProductProjectionResponse } from "@/api/generated"
+import { getProduct, type ProductProjectionResponse } from "@/api/generated"
 import type { ProductLookupResponse } from "./types"
 import staticProducts from "@/data/products.json"
 import { normalizeIdentifier } from "@/lib/identifier"
@@ -21,11 +21,25 @@ const staticProductByBarcode = new Map(
     ]),
 )
 
+/** Looks up a Product through the stable backend API in the English prototype. */
+export const lookupProduct = async (
+    barcode: string,
+): Promise<ProductProjectionResponse> => {
+    const normalizedBarcode = normalizeIdentifier(barcode)
+    const response = await getProduct({
+        path: { barcode: normalizedBarcode },
+        throwOnError: true,
+    })
+
+    return response.data
+}
+
 /**
  * Looks up a Product from the checked-in Dataset Snapshot or a Product recently
- * returned by the temporary Open Food Facts brand-search fallback.
+ * returned by the temporary Open Food Facts brand-search fallback. This is kept
+ * as an explicit offline/demo adapter and is not the default application path.
  */
-export const lookupProduct = (
+export const lookupStaticProduct = (
     barcode: string,
 ): Promise<ProductLookupResponse> => {
     const normalizedBarcode = normalizeIdentifier(barcode)

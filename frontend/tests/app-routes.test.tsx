@@ -54,6 +54,9 @@ describe("Life Goods routes", () => {
             screen.queryByRole("link", { name: "Data and licenses" }),
         ).not.toBeInTheDocument()
         expect(document.documentElement).toHaveAttribute("lang", "en")
+        expect(
+            screen.getByRole("button", { name: "Language: English" }),
+        ).toBeVisible()
     })
 
     test("registers search, learn, concerns, and data-and-license routes", () => {
@@ -62,10 +65,16 @@ describe("Life Goods routes", () => {
         expect(
             screen.queryByRole("navigation", { name: "Primary navigation" }),
         ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("button", { name: "Language: English" }),
+        ).not.toBeInTheDocument()
         unmountSearch()
 
         const { unmount: unmountLearn } = renderRoute("/learn")
         expect(screen.getByRole("heading", { name: "Learn" })).toHaveFocus()
+        expect(
+            screen.queryByRole("button", { name: "Language: English" }),
+        ).not.toBeInTheDocument()
         unmountLearn()
 
         const { unmount: unmountConcerns } = renderRoute("/concerns")

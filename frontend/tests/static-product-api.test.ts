@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vitest"
 
-import { lookupProduct } from "../src/features/product/api"
+import { lookupStaticProduct } from "../src/features/product/api"
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -12,7 +12,7 @@ describe("static Product Lookup", () => {
         vi.stubGlobal("fetch", fetchMock)
         const { adaptProductLookup } =
             await import("../src/features/product/adapter")
-        const response = await lookupProduct("3017620422003")
+        const response = await lookupStaticProduct("3017620422003")
         const adapted = adaptProductLookup(response)
         expect(adapted.offView.productName).toBe("Nutella")
         expect(adapted.meta.source).toEqual(response.meta.source)
@@ -20,7 +20,7 @@ describe("static Product Lookup", () => {
         expect(fetchMock).not.toHaveBeenCalled()
     })
     test("returns the Nutella biscuit Source Record from frontend data", async () => {
-        const response = await lookupProduct("800 050 031 0427")
+        const response = await lookupStaticProduct("800 050 031 0427")
 
         expect(response.meta.lookup.barcode).toBe("8000500310427")
         expect(response.meta.source.name).toBe("Open Food Facts")
@@ -33,7 +33,7 @@ describe("static Product Lookup", () => {
     })
 
     test("returns the Nutella Source Record from frontend data", async () => {
-        const response = await lookupProduct("3017620422003")
+        const response = await lookupStaticProduct("3017620422003")
 
         expect(response.data.source_record.product_name).toBe("Nutella")
         expect(response.data.source_record.nutriments).toMatchObject({
@@ -43,7 +43,9 @@ describe("static Product Lookup", () => {
     })
 
     test("returns a product_not_found error for an unknown barcode", async () => {
-        await expect(lookupProduct("4006381333931")).rejects.toMatchObject({
+        await expect(
+            lookupStaticProduct("4006381333931"),
+        ).rejects.toMatchObject({
             status: 404,
             code: "product_not_found",
             error: { code: "product_not_found" },

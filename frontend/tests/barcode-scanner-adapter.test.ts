@@ -126,6 +126,93 @@ describe("barcode scanner adapter", () => {
         session.stop()
     })
 
+    test("rejects a camera request that does not settle before its acquisition deadline", async () => {
+        vi.useFakeTimers()
+        try {
+            getUserMediaMock.mockReturnValue(new Promise(() => undefined))
+            const { video } = createVideoFrame()
+
+            const startPromise = barcodeScanner.start(video, vi.fn(), vi.fn(), {
+                acquisitionTimeoutMs: 5000,
+            })
+            const rejection = expect(startPromise).rejects.toMatchObject({
+                name: "CameraStartTimeoutError",
+            })
+
+            await vi.advanceTimersByTimeAsync(5000)
+            await rejection
+            expect(video.srcObject).toBeNull()
+        } finally {
+            vi.useRealTimers()
+        }
+    })
+
+    test("cancels preview startup and releases its stream", async () => {
+        const stream = createStream()
+        getUserMediaMock.mockResolvedValue(stream)
+        const { play, video } = createVideoFrame(false)
+        const abortController = new AbortController()
+
+        const startPromise = barcodeScanner.start(video, vi.fn(), vi.fn(), {
+            signal: abortController.signal,
+        })
+        await vi.waitFor(() => expect(play).toHaveBeenCalledTimes(1))
+
+        abortController.abort()
+
+        await expect(startPromise).rejects.toMatchObject({ name: "AbortError" })
+        expect(stream.track.stop).toHaveBeenCalledTimes(1)
+        expect(video.srcObject).toBeNull()
+    })
+
+    test("stops a late timed-out stream without disturbing a newer session", async () => {
+        vi.useFakeTimers()
+        try {
+            let resolveFirst: (
+                stream: ReturnType<typeof createStream>,
+            ) => void = () => undefined
+            const firstStream = createStream()
+            const secondStream = createStream()
+            getUserMediaMock
+                .mockImplementationOnce(
+                    () =>
+                        new Promise((resolve) => {
+                            resolveFirst = resolve
+                        }),
+                )
+                .mockResolvedValueOnce(secondStream)
+            const { video } = createVideoFrame()
+
+            const firstStart = barcodeScanner.start(video, vi.fn(), vi.fn(), {
+                acquisitionTimeoutMs: 5000,
+            })
+            const firstRejection = expect(firstStart).rejects.toMatchObject({
+                name: "CameraStartTimeoutError",
+            })
+            await vi.advanceTimersByTimeAsync(5000)
+            await firstRejection
+
+            const secondSession = await barcodeScanner.start(
+                video,
+                vi.fn(),
+                vi.fn(),
+                { acquisitionTimeoutMs: 5000 },
+            )
+            expect(video.srcObject).toBe(secondStream)
+
+            resolveFirst(firstStream)
+            await Promise.resolve()
+            await Promise.resolve()
+
+            expect(firstStream.track.stop).toHaveBeenCalledTimes(1)
+            expect(secondStream.track.stop).not.toHaveBeenCalled()
+            expect(video.srcObject).toBe(secondStream)
+            secondSession.stop()
+        } finally {
+            vi.useRealTimers()
+        }
+    })
+
     test("stops the scanner loop and stream tracks on session stop", async () => {
         const stream = createStream()
         getUserMediaMock.mockResolvedValue(stream)

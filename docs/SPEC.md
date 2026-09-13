@@ -256,13 +256,14 @@ The first backend milestone is complete when:
 
 ## 12. Frontend compatibility surface (Issue #83)
 
-The default frontend Product Lookup currently reads the checked-in Dataset Snapshot without an
-API request. Its offline adapter retains a frontend-owned raw Source Record compatibility type,
-including an unavailable allergen-analysis fallback, independent of the generated FastAPI types.
-The generated client represents the stable `/api/v1/products/{barcode}` response, including its
-`data.allergen_analysis` sibling. The adapter preserves Source Attribution for both the static
-offline response and the stable API response. Connecting the default frontend to
-`language=kh` and implementing translated-field display remain deferred to #90.
+The default frontend Product Lookup requests the stable `/api/v1/products/{barcode}` backend
+route without a language parameter while the information-architecture prototype remains English.
+The checked-in Dataset Snapshot remains available through an explicit
+offline/demo adapter and retains a frontend-owned raw Source Record compatibility type, including
+an unavailable allergen-analysis fallback, independent of the generated FastAPI types. The
+generated client represents the stable response, including its `data.allergen_analysis` sibling.
+The presentation adapter preserves Source Attribution for both the retained static response and
+the stable API response.
 
 ## 13. Isolated generated-data persistence (Issue #84)
 

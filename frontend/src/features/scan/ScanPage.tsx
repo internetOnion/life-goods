@@ -15,6 +15,7 @@ import { CameraAperture } from "@/components/camera/CameraAperture"
 import { Button } from "@/components/ui/button"
 import { PrivacyScannerIllustration } from "@/components/illustrations"
 import { BrandLockup, BrandMark } from "@/components/brand/BrandMark"
+import { LanguageSelector } from "@/components/layout/LanguageSelector"
 import { usePageMetadata } from "@/lib/metadata"
 import { cn } from "@/lib/utils"
 
@@ -38,9 +39,11 @@ type CameraErrorKey =
     | "errorInsecure"
     | "errorUnsupported"
     | "errorInterrupted"
+    | "errorTimeout"
 
 const text = scanTranslations.en.scan
 const ACQUISITION_LATCH_MS = 180
+const CAMERA_RESTART_TIMEOUT_MS = 5000
 const cameraStartedSessionKey = "lifegoods.scan.camera-started.v1"
 
 function hasStartedCameraThisSession() {
@@ -74,6 +77,7 @@ function cameraErrorKey(error: unknown): CameraErrorKey {
     if (name === "NotReadableError" || name === "TrackStartError")
         return "errorBusy"
     if (name === "CameraPreviewError") return "errorPreview"
+    if (name === "CameraStartTimeoutError") return "errorTimeout"
     if (
         name === "OverconstrainedError" ||
         name === "ConstraintNotSatisfiedError"
@@ -144,6 +148,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
     const scanHandledRef = useRef(false)
     const cameraRunRef = useRef(0)
     const cameraStartPendingRef = useRef(false)
+    const cameraStartAbortRef = useRef<AbortController | null>(null)
     const facingModeRef = useRef<CameraFacingMode>("environment")
     const pausedByShopperRef = useRef(false)
     const acquisitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -160,6 +165,8 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
     const releaseCamera = useCallback(() => {
         clearAcquisitionTimer()
         cameraRunRef.current += 1
+        cameraStartAbortRef.current?.abort()
+        cameraStartAbortRef.current = null
         cameraSessionRef.current?.stop()
         cameraSessionRef.current = null
         stopCameraStream(videoRef.current?.srcObject ?? null)
@@ -265,7 +272,10 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
     )
 
     const startCamera = useCallback(
-        async (facingMode: CameraFacingMode = facingModeRef.current) => {
+        async (
+            facingMode: CameraFacingMode = facingModeRef.current,
+            useAcquisitionDeadline = true,
+        ) => {
             if (cameraStartPendingRef.current) return
 
             if (
@@ -291,6 +301,8 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
             setCameraMessage(null)
             setCameraState("starting")
             cameraStartPendingRef.current = true
+            const abortController = new AbortController()
+            cameraStartAbortRef.current = abortController
 
             try {
                 const session = await barcodeScanner.start(
@@ -302,7 +314,16 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                         setCameraState("error")
                         setCameraMessage(text[cameraErrorKey(error)])
                     },
-                    { facingMode },
+                    {
+                        ...(useAcquisitionDeadline
+                            ? {
+                                  acquisitionTimeoutMs:
+                                      CAMERA_RESTART_TIMEOUT_MS,
+                              }
+                            : {}),
+                        facingMode,
+                        signal: abortController.signal,
+                    },
                 )
                 if (
                     cameraRun !== cameraRunRef.current ||
@@ -324,6 +345,9 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                 setCameraMessage(text[cameraErrorKey(error)])
                 cameraSessionRef.current = null
             } finally {
+                if (cameraStartAbortRef.current === abortController) {
+                    cameraStartAbortRef.current = null
+                }
                 cameraStartPendingRef.current = false
             }
         },
@@ -375,7 +399,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
 
     const beginFirstCameraSession = () => {
         rememberCameraStarted()
-        void startCamera()
+        void startCamera(facingModeRef.current, false)
     }
 
     const pauseCamera = () => {
@@ -409,6 +433,10 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
 
     return (
         <main className="page-rail page-rail-tight sm:px-6 sm:pt-6">
+            <div className="mb-4 flex min-h-11 items-center justify-between">
+                <BrandLockup compact />
+                <LanguageSelector appearance="glass" />
+            </div>
             <h1 className="sr-only">{text.title}</h1>
 
             <section
@@ -606,31 +634,29 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                 </div>
             </section>
 
-            <div className="mt-5 mb-3.5 flex items-center justify-center">
-                <BrandLockup />
-            </div>
-
-            <div className="mx-auto flex w-full max-w-lg flex-col gap-2.5">
+            <div className="mx-auto mt-4 w-full max-w-lg">
                 <Link
                     to="/search"
                     onClick={handleSearchNavigation}
                     aria-label={text.searchLabel}
                     className={cn(
-                        "group flex h-[60px] w-full items-center gap-3 rounded-2xl border border-neutral-200/90 bg-white px-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)] transition-all duration-150 select-none [view-transition-name:search-bar]",
+                        "group relative flex h-[60px] w-full items-center rounded-full border border-neutral-200/90 bg-white pr-20 pl-[3.25rem] text-base text-neutral-400 shadow-[0_6px_14px_-10px_rgba(19,21,25,0.55)] transition-all duration-150 select-none [view-transition-name:search-bar]",
                         "focus-visible:ring-primary-500 hover:border-neutral-300 hover:shadow-md focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.99]",
                     )}
                 >
-                    <span className="group-hover:bg-primary-50 group-hover:text-primary-700 grid size-10 place-items-center rounded-xl bg-neutral-100 text-neutral-500 transition-colors">
+                    <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center">
+                        <BrandMark size={22} />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">
+                        {text.searchPlaceholder}
+                    </span>
+                    <span className="pointer-events-none absolute top-1/2 right-1.5 grid size-[52px] -translate-y-1/2 place-items-center rounded-full bg-neutral-800 text-white shadow-[0_6px_14px_-10px_rgba(19,21,25,0.75)]">
                         <MagnifyingGlassIcon
-                            size={18}
+                            size={22}
                             weight="bold"
                             aria-hidden="true"
                         />
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-neutral-500 transition-colors group-hover:text-neutral-800">
-                        {text.searchPlaceholder}
-                    </span>
-                    <BrandMark size={24} />
                 </Link>
             </div>
         </main>
