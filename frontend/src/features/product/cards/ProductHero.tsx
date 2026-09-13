@@ -14,18 +14,16 @@ import { cn } from "@/lib/utils"
 interface ProductHeroProps {
     candidate: PackageMatchCandidateResponse
     identifier: string
-    scheme?: string
     genericName?: string | null
-    categories?: string[]
+    manufacturingPlace?: string | null
     headingRef?: React.Ref<HTMLHeadingElement>
 }
 
 export const ProductHero: React.FC<ProductHeroProps> = ({
     candidate,
     identifier,
-    scheme,
     genericName,
-    categories,
+    manufacturingPlace,
     headingRef,
 }) => {
     const [selectedImageIndex, setSelectedImageIndex] = useState(0)
@@ -59,7 +57,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
     const quantityItem = identityEvidence.find((e) => e.field === "quantity")
     const quantity =
         typeof quantityItem?.value === "string"
-            ? quantityItem.value
+            ? quantityItem.value.trim() || null
             : typeof quantityItem?.value === "number"
               ? String(quantityItem.value)
               : null
@@ -86,16 +84,22 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
     }
 
     const currentImage = uniqueImages[selectedImageIndex] || uniqueImages[0]
+    const canZoomImage = Boolean(currentImage && !imageFailed)
 
     // Summary counts for quick stats bar
-    const allergensDetected =
-        candidate.allergen_assessment?.findings?.length || 0
-    const halalOutcome =
-        candidate.halal_ingredient_assessment?.outcome || "NOT_ASSESSED"
     const additivesItem = labelEvidence.find((e) => e.field === "additive_tags")
     const additivesCount = Array.isArray(additivesItem?.value)
         ? additivesItem.value.length
         : 0
+    const halalClaimItem = labelEvidence.find(
+        (e) => e.field === "halal_label_claim",
+    )
+    const hasHalalClaim = Array.isArray(halalClaimItem?.value)
+        ? halalClaimItem.value.length > 0
+        : typeof halalClaimItem?.value === "string"
+          ? halalClaimItem.value.trim().length > 0
+          : Boolean(halalClaimItem?.value)
+    const hasLabelHighlights = additivesCount > 0 || hasHalalClaim
 
     const handleCopyBarcode = () => {
         void navigator.clipboard.writeText(identifier)
@@ -104,36 +108,50 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
     }
 
     return (
-        <div className="shadow-source-sheet space-y-5 rounded-none border border-neutral-200/90 bg-white p-5 sm:rounded-sm sm:p-6">
-            <div className="flex flex-col items-start gap-5 sm:flex-row">
+        <div className="shadow-source-sheet overflow-hidden rounded-2xl border border-neutral-200/90 bg-white p-3 sm:p-6">
+            <div className="grid items-start gap-6 sm:grid-cols-[13rem_minmax(0,1fr)] sm:gap-6">
                 {/* Product Image Viewer */}
-                <div className="flex w-full shrink-0 flex-col items-center sm:w-44">
+                <div className="flex w-full min-w-0 flex-col items-center sm:w-auto">
                     <div
                         className={cn(
-                            "group relative flex aspect-4/3 max-h-52 w-full items-center justify-center overflow-hidden rounded-xl border border-neutral-200/80 bg-neutral-100/60 sm:aspect-square sm:max-h-none sm:w-44",
-                            currentImage && !imageFailed
-                                ? "cursor-pointer"
+                            "group relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-2xl border border-neutral-200/80 bg-neutral-50/80",
+                            canZoomImage
+                                ? "focus-visible:ring-primary-500 cursor-pointer focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                                 : "",
                         )}
-                        onClick={() =>
-                            currentImage && !imageFailed && setIsZoomOpen(true)
+                        role={canZoomImage ? "button" : undefined}
+                        tabIndex={canZoomImage ? 0 : undefined}
+                        aria-label={
+                            canZoomImage
+                                ? `View ${productName} ${currentImage?.role || "product"} image`
+                                : undefined
                         }
+                        onClick={() => canZoomImage && setIsZoomOpen(true)}
+                        onKeyDown={(event) => {
+                            if (
+                                canZoomImage &&
+                                (event.key === "Enter" || event.key === " ")
+                            ) {
+                                event.preventDefault()
+                                setIsZoomOpen(true)
+                            }
+                        }}
                     >
                         {currentImage && !imageFailed ? (
                             <>
                                 <img
                                     src={currentImage.url}
                                     alt={productName}
-                                    className="h-full w-full object-contain p-2 transition-transform duration-300 group-hover:scale-105"
+                                    className="h-full w-full object-contain p-3 transition-transform duration-300 group-hover:scale-[1.02]"
                                     onError={() => setImageFailed(true)}
                                 />
-                                <div className="absolute right-2 bottom-2 rounded-lg bg-black/60 p-1.5 text-white/90 opacity-0 transition-opacity group-hover:opacity-100">
+                                <div className="absolute right-3 bottom-3 rounded-lg bg-neutral-950/75 p-2 text-white/90 opacity-0 shadow-sm transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
                                     <ZoomIn className="h-4 w-4" />
                                 </div>
-                                <div className="absolute top-2 left-2">
+                                <div className="absolute top-3 left-3">
                                     <Badge
                                         variant="subtle"
-                                        className="bg-white/95 text-[10px] font-semibold tracking-wider text-neutral-800 uppercase shadow-2xs backdrop-blur-xs"
+                                        className="text-micro border-neutral-200/80 bg-white/95 font-semibold tracking-wider text-neutral-800 uppercase shadow-sm backdrop-blur-xs"
                                     >
                                         {currentImage.role}
                                     </Badge>
@@ -146,7 +164,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
 
                     {/* Thumbnail list if multiple images */}
                     {uniqueImages.length > 1 && (
-                        <div className="no-scrollbar -m-1 mt-2 flex max-w-full items-center gap-2 overflow-x-auto p-1">
+                        <div className="no-scrollbar -m-1 mt-3 flex max-w-full items-center gap-2 overflow-x-auto p-1">
                             {uniqueImages.map((img, idx) => {
                                 const isSelected = selectedImageIndex === idx
                                 return (
@@ -155,16 +173,16 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                                         variant="ghost"
                                         size="icon"
                                         type="button"
-                                        aria-label={`Select product image ${idx + 1}`}
+                                        aria-label={`Select ${img.role} product image`}
                                         aria-pressed={isSelected}
                                         onClick={() => {
                                             setSelectedImageIndex(idx)
                                             setImageFailed(false)
                                         }}
-                                        className={`focus-visible:ring-primary-500 relative h-10 w-10 shrink-0 cursor-pointer overflow-hidden rounded-lg border transition-all duration-150 focus-visible:ring-2 focus-visible:outline-none sm:h-11 sm:w-11 sm:rounded-xl ${
+                                        className={`focus-visible:ring-primary-500 relative h-12 w-12 shrink-0 cursor-pointer overflow-hidden rounded-xl border transition-all duration-150 focus-visible:ring-2 focus-visible:outline-none ${
                                             isSelected
                                                 ? "border-primary-600 ring-primary-500/30 shadow-xs ring-2"
-                                                : "border-neutral-200/90 opacity-60 hover:border-neutral-300 hover:opacity-100"
+                                                : "border-neutral-200/90 opacity-65 hover:border-neutral-300 hover:opacity-100"
                                         }`}
                                     >
                                         <img
@@ -180,116 +198,102 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                 </div>
 
                 {/* Product Details Header */}
-                <div className="min-w-0 flex-1 space-y-2.5">
-                    <div className="flex flex-wrap items-center gap-2">
-                        {scheme && (
-                            <Badge
-                                variant="secondary"
-                                className="font-mono text-[11px] font-semibold tracking-wider uppercase"
-                            >
-                                {scheme}
-                            </Badge>
-                        )}
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            type="button"
-                            onClick={handleCopyBarcode}
-                            className="focus-visible:ring-primary-500 inline-flex h-auto cursor-pointer items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-1 font-mono text-xs font-semibold tracking-[0.04em] text-neutral-700 tabular-nums transition-colors hover:bg-neutral-200 hover:text-neutral-950 focus-visible:ring-2"
-                            title="Click to copy barcode"
-                        >
-                            <span>{identifier}</span>
-                            {isCopied ? (
-                                <Check className="text-primary-700 h-3 w-3" />
-                            ) : (
-                                <Copy className="h-3 w-3 text-neutral-400" />
-                            )}
-                        </Button>
-                        {quantity && (
-                            <Badge
-                                variant="outline"
-                                className="font-mono text-xs font-medium text-neutral-700 tabular-nums"
-                            >
-                                {quantity}
-                            </Badge>
-                        )}
-                    </div>
-
+                <div className="w-full min-w-0 space-y-4 sm:pt-1">
                     <h1
                         ref={headingRef}
                         tabIndex={-1}
-                        className="text-[clamp(1.75rem,6vw,2.5rem)] leading-[1.12] font-extrabold tracking-[-0.03em] text-balance wrap-anywhere text-neutral-950 focus:outline-none"
+                        className="text-display-product max-w-[18ch] leading-[1.12] font-extrabold tracking-[-0.03em] text-balance wrap-anywhere text-neutral-950 focus:outline-none"
                     >
                         {productName}
                     </h1>
 
                     {genericName && (
-                        <p className="text-xs leading-relaxed font-medium text-neutral-600 italic sm:text-sm">
+                        <p className="max-w-prose text-sm leading-relaxed font-medium text-neutral-600 italic">
                             {genericName}
                         </p>
                     )}
 
                     {brandName && (
-                        <p className="text-sm font-normal text-neutral-600">
-                            Brand:{" "}
+                        <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-neutral-600">
+                            <span className="text-caption font-bold tracking-[0.08em] text-neutral-500 uppercase">
+                                Brand
+                            </span>
                             <span className="font-bold text-neutral-950">
                                 {brandName}
                             </span>
                         </p>
                     )}
 
-                    {categories && categories.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                            {categories.slice(0, 3).map((c, i) => (
-                                <Badge
-                                    key={i}
-                                    variant="outline"
-                                    className="bg-neutral-50 text-xs font-medium text-neutral-700 capitalize"
-                                >
-                                    {c}
-                                </Badge>
-                            ))}
-                            {categories.length > 3 && (
-                                <span className="font-mono text-xs font-medium text-neutral-400 tabular-nums">
-                                    +{categories.length - 3} more
-                                </span>
-                            )}
-                        </div>
-                    )}
-
                     {/* Quick Factual Summary Divider Rows (Neutral) */}
-                    <div className="divide-y divide-neutral-100 border-t border-b border-neutral-100 py-0.5 text-xs">
-                        <div className="flex items-center justify-between py-2">
-                            <span className="text-[11px] font-bold tracking-[0.06em] text-neutral-500 uppercase">
-                                Allergen Findings
+                    <div className="divide-y divide-neutral-100 border-t border-b border-neutral-200/80 text-xs">
+                        <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-3">
+                            <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
+                                Barcode
                             </span>
-                            <span className="text-xs font-semibold text-neutral-900 sm:text-sm">
-                                {allergensDetected > 0
-                                    ? `${allergensDetected} detected`
-                                    : "None declared"}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                type="button"
+                                onClick={handleCopyBarcode}
+                                aria-label={
+                                    isCopied ? "Barcode copied" : "Copy barcode"
+                                }
+                                className="focus-visible:ring-primary-500 inline-flex h-auto min-h-8 w-full min-w-0 cursor-pointer items-center justify-end gap-1.5 rounded-md px-1.5 py-1 text-right font-mono text-xs font-semibold tracking-[0.04em] text-neutral-900 tabular-nums transition-colors hover:bg-neutral-100 focus-visible:ring-2 sm:text-sm"
+                                title="Copy Barcode"
+                            >
+                                <span className="min-w-0 wrap-anywhere">
+                                    {identifier}
+                                </span>
+                                {isCopied ? (
+                                    <Check className="text-primary-700 h-3 w-3 shrink-0" />
+                                ) : (
+                                    <Copy className="h-3 w-3 shrink-0 text-neutral-400" />
+                                )}
+                            </Button>
+                        </div>
+
+                        <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-3">
+                            <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
+                                Quantity
+                            </span>
+                            <span className="min-w-0 text-right font-mono text-xs font-semibold text-neutral-900 tabular-nums sm:text-sm">
+                                {quantity || "N/A"}
                             </span>
                         </div>
 
-                        <div className="flex items-center justify-between py-2">
-                            <span className="text-[11px] font-bold tracking-[0.06em] text-neutral-500 uppercase">
-                                Additives (E-Nums)
+                        <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-3">
+                            <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
+                                Made in
                             </span>
-                            <span className="text-xs font-semibold text-neutral-900 sm:text-sm">
-                                {additivesCount > 0
-                                    ? `${additivesCount} listed`
-                                    : "0 listed"}
-                            </span>
-                        </div>
-
-                        <div className="flex items-center justify-between py-2">
-                            <span className="text-[11px] font-bold tracking-[0.06em] text-neutral-500 uppercase">
-                                Halal Status
-                            </span>
-                            <span className="max-w-[240px] truncate text-xs font-semibold text-neutral-800 sm:text-sm">
-                                {halalOutcome.replace(/_/g, " ")}
+                            <span className="min-w-0 text-right text-xs font-semibold wrap-anywhere text-neutral-900 sm:text-sm">
+                                {manufacturingPlace?.trim() || "N/A"}
                             </span>
                         </div>
                     </div>
+
+                    {hasLabelHighlights && (
+                        <div
+                            aria-label="Product label highlights"
+                            className="grid grid-cols-[6rem_minmax(0,1fr)] items-start justify-end gap-3 border-t border-neutral-100 pt-4"
+                        >
+                            <span className="text-caption min-w-0 pt-1 font-bold tracking-[0.06em] text-neutral-500 uppercase">
+                                On the label
+                            </span>
+                            <div className="flex min-w-0 flex-wrap justify-end gap-2">
+                                {hasHalalClaim && (
+                                    <span className="border-info-200 bg-info-50 text-info-800 rounded-full border px-3 py-1 text-sm font-semibold">
+                                        Halal
+                                    </span>
+                                )}
+
+                                {additivesCount > 0 && (
+                                    <span className="border-info-200 bg-info-50 text-info-800 rounded-full border px-3 py-1 text-sm font-semibold">
+                                        Additive
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -308,7 +312,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                             />
                         </div>
                         {currentImage.attribution && (
-                            <p className="text-center text-[11px] text-neutral-400">
+                            <p className="text-caption text-center text-neutral-400">
                                 Photo attribution: {currentImage.attribution} (
                                 {currentImage.license_name || "CC BY-SA"})
                             </p>

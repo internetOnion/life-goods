@@ -125,7 +125,7 @@ export type AllergenUnmatchedSpanResponse = {
 export type BodyExtractPhotoComparison = {
     /**
      * Photos
-     * One to six JPEG or PNG photos, submitted in preview order.
+     * One to 3 JPEG or PNG photos, submitted in preview order.
      */
     photos: Array<Blob | File>;
     /**
@@ -1098,6 +1098,10 @@ export type ProductSummary = {
      * Brands
      */
     brands?: Array<string>;
+    /**
+     * Manufacturing Places
+     */
+    manufacturing_places?: Array<string>;
     name?: OriginalText | null;
     /**
      * Quantity

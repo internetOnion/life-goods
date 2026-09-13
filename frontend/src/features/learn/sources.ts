@@ -172,6 +172,42 @@ export const LEARN_SOURCES: LearnSource[] = [
         retrievedAt: "2026-09-05",
     },
     {
+        id: "project-allergen-ingredient-guide",
+        name: {
+            kh: "មគ្គុទ្ទេសក៍សាមញ្ញអំពីគ្រឿងផ្សំអាលែហ្សែនក្នុងអាហារ",
+            en: "Simple Food Allergen Ingredient Guide",
+        },
+        publisher: {
+            kh: "ឯកសារយោងដែលគម្រោងបានផ្តល់",
+            en: "Project-supplied reference",
+        },
+        jurisdiction: {
+            kh: "ឯកសារយោងអប់រំទូទៅ",
+            en: "General educational reference",
+        },
+        version: "Supplied 2026-09-10",
+        retrievedAt: "2026-09-10",
+        plainText: true,
+    },
+    {
+        id: "fsanz-allergen-labelling",
+        name: {
+            kh: "ការដាក់ស្លាកអាលែហ្សែនសម្រាប់អ្នកប្រើប្រាស់",
+            en: "Allergen labelling for consumers",
+        },
+        url: "https://www.foodstandards.gov.au/consumer/labelling/allergen-labelling",
+        publisher: {
+            kh: "ស្តង់ដារអាហារ អូស្ត្រាលី នូវែលសេឡង់",
+            en: "Food Standards Australia New Zealand",
+        },
+        jurisdiction: {
+            kh: "អូស្ត្រាលី និងនូវែលសេឡង់",
+            en: "Australia and New Zealand",
+        },
+        version: "Consumer guidance, accessed 2026-09-10",
+        retrievedAt: "2026-09-10",
+    },
+    {
         id: "nutri-score-sante-publique-france",
         name: {
             kh: "Santé publique France — Nutri-Score (ប្រភពផ្លូវការ)",

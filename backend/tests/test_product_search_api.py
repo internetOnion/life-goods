@@ -11,6 +11,7 @@ from lifegoods.main import create_app
 from lifegoods.open_food_facts import (
     ACTIVE_POINTER_ID,
     CONTROL_COLLECTION,
+    SEARCH_SCHEMA_VERSION,
     VERSIONS_COLLECTION,
     OpenFoodFactsDatasetSource,
 )
@@ -61,7 +62,7 @@ def _dataset_database_with_search_index():
                 "search_index": {
                     "collection_name": SEARCH_COLLECTION_NAME,
                     "status": "READY",
-                    "schema_version": 1,
+                    "schema_version": SEARCH_SCHEMA_VERSION,
                 }
             }
         },
@@ -69,6 +70,7 @@ def _dataset_database_with_search_index():
     search_col = database[SEARCH_COLLECTION_NAME]
     search_col.create_index([("name_tokens", 1)], name="ix_search_name_tokens")
     search_col.create_index([("brand_tokens", 1)], name="ix_search_brand_tokens")
+    search_col.create_index([("country_tokens", 1)], name="ix_search_country_tokens")
     search_col.create_index([("name_sort", 1), ("code", 1)], name="ix_search_sort")
     return database
 
@@ -118,6 +120,7 @@ def test_search_valid_barcode_returns_attributed_product_summary() -> None:
         "source_field": "product_name",
     }
     assert product["brands"] == ["Example Foods", "Example Brand"]
+    assert product["manufacturing_places"] == ["Cambodia"]
     assert product["quantity"] == "100 g"
     assert product["thumbnail"] == {
         "url": "https://images.openfoodfacts.org/images/products/400/front_en.jpg",
@@ -584,6 +587,42 @@ def test_search_text_localized_name_matching() -> None:
         assert res_brand.status_code == 200
         p_brand = res_brand.json()["data"]["products"][0]
         assert p_brand["name"]["value"] == "Green Tea"
+
+
+def test_search_text_manufacturing_place_matching_returns_place_summary() -> None:
+    database = _dataset_database_with_search_index()
+    search_col = database[SEARCH_COLLECTION_NAME]
+    search_col.insert_one(
+        {
+            "_id": "4006381333931",
+            "code": "4006381333931",
+            "name_values": ["green tea"],
+            "name_tokens": ["green", "tea"],
+            "brand_values": ["zen brand"],
+            "brand_tokens": ["brand", "zen"],
+            "country_values": ["cambodia", "thailand"],
+            "country_tokens": ["cambodia", "thailand"],
+            "manufacturing_places": ["Cambodia", "Thailand"],
+            "names": [
+                {
+                    "value": "Green Tea",
+                    "language": "en",
+                    "source_field": "product_name",
+                }
+            ],
+            "name_sort": "green tea",
+            "brands": ["Zen Brand"],
+        }
+    )
+
+    with _client(database) as client:
+        response = client.get("/api/v1/products/search?q=cambodia")
+
+    assert response.status_code == 200
+    products = response.json()["data"]["products"]
+    assert len(products) == 1
+    assert products[0]["name"]["value"] == "Green Tea"
+    assert products[0]["manufacturing_places"] == ["Cambodia", "Thailand"]
 
 
 def test_search_text_keyset_pagination() -> None:

@@ -139,9 +139,7 @@ class SearchProducts:
     def __init__(self, source: RawProductLookupSource) -> None:
         self._source = source
 
-    def execute(
-        self, query: ParsedSearchQuery, cursor: str | None = None
-    ) -> ProductSearchResult:
+    def execute(self, query: ParsedSearchQuery, cursor: str | None = None) -> ProductSearchResult:
         snapshot = self._source.resolve_product_lookup_snapshot()
 
         if query.classification == QueryClassification.BARCODE:
@@ -149,29 +147,21 @@ class SearchProducts:
                 raise InvalidCursorError("Pagination cursor is invalid")
 
             assert query.normalized_barcode is not None
-            source_record = self._source.fetch_source_record(
-                query.normalized_barcode, snapshot
-            )
+            source_record = self._source.fetch_source_record(query.normalized_barcode, snapshot)
 
             products: list[ProductSummary] = []
             if source_record is not None:
                 products.append(
-                    project_product_summary(
-                        source_record, barcode=query.normalized_barcode.value
-                    )
+                    project_product_summary(source_record, barcode=query.normalized_barcode.value)
                 )
 
-            return ProductSearchResult(
-                products=products, dataset=snapshot, next_cursor=None
-            )
+            return ProductSearchResult(products=products, dataset=snapshot, next_cursor=None)
 
         assert query.classification == QueryClassification.TEXT
 
         search_cursor: SearchCursor | None = None
         if cursor is not None:
-            search_cursor = decode_and_validate_cursor(
-                cursor, expected_terms=query.terms
-            )
+            search_cursor = decode_and_validate_cursor(cursor, expected_terms=query.terms)
 
         if not isinstance(self._source, ProductSearchTextSource):
             raise SearchUnavailableError(
@@ -240,6 +230,7 @@ class SearchProducts:
                     barcode=doc["code"],
                     name=name_summary,
                     brands=doc.get("brands", []),
+                    manufacturing_places=doc.get("manufacturing_places", []),
                     quantity=doc.get("quantity"),
                     thumbnail=thumbnail,
                     source=SourceAttributionResponse(

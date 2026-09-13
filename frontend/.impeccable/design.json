@@ -173,7 +173,7 @@
             "kind": "custom",
             "refersTo": "fact-row",
             "description": "Label/value row with hairline divider and exact absence copy.",
-            "html": "<dl class=\"dl-facts\"><div class=\"ds-fact\"><dt>Source</dt><dd>Open Food Facts</dd></div><div class=\"ds-fact\"><dt>Origin</dt><dd class=\"ds-absent\">Source Data Unavailable</dd></div></dl>",
+            "html": "<dl class=\"dl-facts\"><div class=\"ds-fact\"><dt>Source</dt><dd>Open Food Facts</dd></div><div class=\"ds-fact\"><dt>Made in</dt><dd class=\"ds-absent\">Source Data Unavailable</dd></div></dl>",
             "css": ".dl-facts { border-top: 1px solid #c6cfdd; border-bottom: 1px solid #c6cfdd; } .ds-fact { display: grid; gap: 0.25rem; padding: 0.75rem 0; } .ds-fact + .ds-fact { border-top: 1px solid #c6cfdd; } .ds-fact dt { font: 700 0.875rem/1.5 'Plus Jakarta Sans', sans-serif; color: #64748b; } .ds-fact dd { margin: 0; font: 400 0.875rem/1.5 'Plus Jakarta Sans', sans-serif; color: #303843; overflow-wrap: anywhere; } .ds-absent { font-weight: 600; color: #526073; } @media (min-width: 640px) { .ds-fact { grid-template-columns: 10rem minmax(0, 1fr); gap: 1rem; } }"
         },
         {

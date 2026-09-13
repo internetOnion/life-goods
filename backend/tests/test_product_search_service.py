@@ -68,9 +68,7 @@ def test_select_matching_name_prefix_preferences() -> None:
     # Query: ("coca", "col") - both candidates match 2 terms,
     # but "Coca Col" has 2 complete token matches
     selected = select_matching_name(candidates, ("coca", "col"))
-    assert selected == OriginalText(
-        value="Coca Col", language="en", source_field="product_name"
-    )
+    assert selected == OriginalText(value="Coca Col", language="en", source_field="product_name")
 
     # 2. More query-term matches beats fewer complete matches
     candidates_more_matches = [
@@ -117,7 +115,6 @@ def test_select_matching_name_prefix_preferences() -> None:
     )
 
 
-
 def _setup_search_database():
     database = mongomock.MongoClient().lifegoods_off
     version_id = "dataset-service-test"
@@ -143,15 +140,14 @@ def _setup_search_database():
             },
         }
     )
-    database[CONTROL_COLLECTION].insert_one(
-        {"_id": "active", "active_version_id": version_id}
-    )
+    database[CONTROL_COLLECTION].insert_one({"_id": "active", "active_version_id": version_id})
     database[col_name].create_index("code")
 
     # Create required indexes
     search_col = database[search_col_name]
     search_col.create_index([("name_tokens", 1)], name="ix_search_name_tokens")
     search_col.create_index([("brand_tokens", 1)], name="ix_search_brand_tokens")
+    search_col.create_index([("country_tokens", 1)], name="ix_search_country_tokens")
     search_col.create_index([("name_sort", 1), ("code", 1)], name="ix_search_sort")
 
     return database, version_id, search_col_name
@@ -278,6 +274,7 @@ def test_search_service_rejects_mismatched_cursor() -> None:
 
     # Generate cursor for "milk"
     from lifegoods.product_search.query import encode_cursor
+
     cursor_milk = encode_cursor(terms=query_milk.terms, rank=0, name_sort="", code="123")
 
     with pytest.raises(InvalidCursorError):

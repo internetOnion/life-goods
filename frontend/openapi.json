@@ -199,12 +199,12 @@
       "Body_extractPhotoComparison": {
         "properties": {
           "photos": {
-            "description": "One to six JPEG or PNG photos, submitted in preview order.",
+            "description": "One to 3 JPEG or PNG photos, submitted in preview order.",
             "items": {
               "format": "binary",
               "type": "string"
             },
-            "maxItems": 6,
+            "maxItems": 3,
             "minItems": 1,
             "title": "Photos",
             "type": "array"
@@ -638,7 +638,7 @@
             "items": {
               "$ref": "#/components/schemas/ImageEvidence"
             },
-            "maxItems": 6,
+            "maxItems": 3,
             "minItems": 1,
             "title": "Images",
             "type": "array"
@@ -2309,6 +2309,13 @@
               "type": "string"
             },
             "title": "Brands",
+            "type": "array"
+          },
+          "manufacturing_places": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Manufacturing Places",
             "type": "array"
           },
           "name": {

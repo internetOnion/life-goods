@@ -831,7 +831,7 @@ The Product Search endpoint `GET /api/v1/products/search` provides Barcode searc
     - Valid Barcodes look up zero or one Product summary from the Dataset Snapshot independently of text index readiness.
     - If the Product is absent from the Dataset Snapshot, HTTP 200 is returned with an empty products list (`data.products: []`).
     - If the Product is found, HTTP 200 is returned with a single `ProductSummary` item.
-    - `ProductSummary` includes `barcode`, selected `name` (`OriginalText` provenance), `brands`, `quantity`, `thumbnail` (`SourceImage` provenance), and individual `Source Attribution` (`https://world.openfoodfacts.org/product/{barcode}`). It does not calculate full Product details or invoke `Khmer Translation`.
+    - `ProductSummary` includes `barcode`, selected `name` (`OriginalText` provenance), `brands`, `manufacturing_places` (the Open Food Facts manufacturing-place field presented as “Made in”), `quantity`, `thumbnail` (`SourceImage` provenance), and individual `Source Attribution` (`https://world.openfoodfacts.org/product/{barcode}`). It does not calculate full Product details or invoke `Khmer Translation`.
     - Top-level `meta` provides `Source Attribution` for Open Food Facts (`https://world.openfoodfacts.org`), `Dataset Snapshot` metadata, and nullable `pagination.next_cursor` (`null` for Barcode queries).
 
 4. **Text Search Indexing & Readiness**:

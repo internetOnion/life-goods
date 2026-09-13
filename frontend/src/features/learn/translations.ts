@@ -25,7 +25,6 @@ export const learnTranslations = {
                 "មេរៀនដែលមានប្រភពត្រូវបានរៀបចំតាមប្រធានបទ ដើម្បីងាយស្វែងរក។",
             startHere: "ចាប់ផ្តើមនៅទីនេះ",
             startHereHint: "មូលដ្ឋានសម្រាប់អានស្លាក និងពិនិត្យប្រភព។",
-            searchHint: "ចុចប្រអប់ស្វែងរក ដើម្បីមើលមេរៀនទាំងអស់តាមប្រភេទ។",
             matchingHint: "លទ្ធផលពីមគ្គុទ្ទេសក៍ និងឯកសារគាំទ្រ។",
             supportingTitle: "ប្រភព និងស្តង់ដារ",
             supportingHint:
@@ -35,8 +34,12 @@ export const learnTranslations = {
             lessonNavigationLabel: "ការរុករកមេរៀន",
             previousLesson: "មេរៀនមុន",
             nextLesson: "មេរៀនបន្ទាប់",
+            firstLesson: "មេរៀនដំបូង",
+            lastLesson: "មេរៀនចុងក្រោយ",
+            lessonNumber: "មេរៀន {{page}}",
             unavailableGuideTitle: "រកមិនឃើញមគ្គុទ្ទេសក៍នេះទេ",
             backToLearn: "ត្រឡប់ទៅស្វែងយល់",
+            backToProduct: "ត្រឡប់ទៅ Product",
             englishContent: "មាតិកានេះជាភាសាអង់គ្លេសដែលបានពិនិត្យ",
             learningOutcomeTitle: "អ្វីដែលអ្នកនឹងយល់",
             doesNotProveTitle: "អ្វីដែលភស្តុតាងនេះមិនអាចបញ្ជាក់បាន",
@@ -48,6 +51,10 @@ export const learnTranslations = {
             sourceSummaryTitle: "សេចក្ដីសង្ខេបពីប្រភព",
             sourceSummaryHint:
                 "ចំណុចខាងក្រោមត្រូវបានសង្ខេបពីឯកសារប្រភពដែលបានរាយខាងក្រោមសម្រាប់មេរៀននេះ។",
+            allergenIngredientsTitle: "គ្រឿងផ្សំតាមក្រុមអាលែហ្សែន",
+            commonIngredientNames: "ឈ្មោះគ្រឿងផ្សំទូទៅ",
+            labelMeaning: "អត្ថន័យលើស្លាក",
+            ingredientNote: "ចំណាំ",
             keyPointsTitle: "ចំណុចសំខាន់ៗពីប្រភព",
             unavailableTitle: "រកមិនឃើញអត្ថបទនេះទេ",
             unavailableBody:
@@ -101,8 +108,6 @@ export const learnTranslations = {
             startHere: "Start here",
             startHereHint:
                 "A short path into labels, identifiers, and source evidence.",
-            searchHint:
-                "Click the search field to browse every lesson by category.",
             matchingHint:
                 "Results from the guides and supporting source library.",
             supportingTitle: "Sources and standards",
@@ -113,8 +118,12 @@ export const learnTranslations = {
             lessonNavigationLabel: "Lesson navigation",
             previousLesson: "Previous lesson",
             nextLesson: "Next lesson",
+            firstLesson: "First lesson",
+            lastLesson: "Last lesson",
+            lessonNumber: "Lesson {{page}}",
             unavailableGuideTitle: "Guide not found",
             backToLearn: "Back to Learn",
+            backToProduct: "Back to Product",
             englishContent: "Reviewed English content",
             learningOutcomeTitle: "What you will understand",
             doesNotProveTitle: "What this evidence does not prove",
@@ -126,6 +135,10 @@ export const learnTranslations = {
             sourceSummaryTitle: "Summary from the source",
             sourceSummaryHint:
                 "The points below are summarized from the source document listed below for this lesson.",
+            allergenIngredientsTitle: "Ingredients by allergen group",
+            commonIngredientNames: "Common ingredient names",
+            labelMeaning: "What the label can indicate",
+            ingredientNote: "Note",
             keyPointsTitle: "Key points from the source",
             unavailableTitle: "Article not found",
             unavailableBody:

@@ -1,4 +1,3 @@
-import { Table } from "lucide-react"
 import React from "react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -31,6 +30,12 @@ function NutritionTableIcon({ className }: { className?: string }) {
     )
 }
 
+const SUBCOMPONENT_PARENT_LABELS: Record<string, string> = {
+    saturated_fat: "Total Fat",
+    trans_fat: "Total Fat",
+    sugars: "Total Carbohydrates",
+}
+
 interface NutritionCardProps {
     labelEvidence?: PackageMatchEvidenceResponse[]
 }
@@ -57,7 +62,7 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
                     <p className="text-xs font-semibold text-neutral-700">
                         Source Data Unavailable
                     </p>
-                    <p className="text-[11px] text-neutral-500">
+                    <p className="text-caption text-neutral-500">
                         No nutrition facts declared in the source record.
                     </p>
                 </CardContent>
@@ -76,10 +81,6 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
                         Nutrition Facts Table
                     </CardTitle>
                 </div>
-                <span className="flex items-center gap-1 font-mono text-xs font-semibold text-neutral-500 tabular-nums">
-                    <Table className="h-3 w-3" />
-                    {rows.length} Values
-                </span>
             </CardHeader>
 
             <CardContent className="space-y-3 p-4 pt-2 sm:p-5">
@@ -106,11 +107,9 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
                             </thead>
                             <tbody className="divide-y divide-neutral-200/60 bg-white">
                                 {rows.map((row) => {
-                                    const isSubRow = [
-                                        "saturated_fat",
-                                        "trans_fat",
-                                        "sugars",
-                                    ].includes(row.key)
+                                    const parentLabel =
+                                        SUBCOMPONENT_PARENT_LABELS[row.key]
+                                    const isSubRow = parentLabel !== undefined
                                     return (
                                         <tr
                                             key={row.key}
@@ -120,11 +119,34 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
                                                 className={cn(
                                                     "px-3 py-2",
                                                     isSubRow
-                                                        ? "pl-6 text-xs font-normal text-neutral-600"
+                                                        ? "pl-6 text-sm font-normal text-neutral-600"
                                                         : "text-xs font-semibold text-neutral-900 sm:text-sm",
                                                 )}
                                             >
-                                                {row.label}
+                                                {isSubRow ? (
+                                                    <span className="inline-flex items-center gap-1.5">
+                                                        <svg
+                                                            viewBox="0 0 16 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="1.5"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            className="text-info-500 size-4 shrink-0"
+                                                            aria-hidden="true"
+                                                        >
+                                                            <path d="M3 0v12c0 3.314 2.686 6 6 6h4" />
+                                                        </svg>
+                                                        <span>
+                                                            <span className="sr-only">
+                                                                {`Included in ${parentLabel}: `}
+                                                            </span>
+                                                            {row.label}
+                                                        </span>
+                                                    </span>
+                                                ) : (
+                                                    row.label
+                                                )}
                                             </td>
                                             {bases.map((basis) => {
                                                 const cell = row.values[basis]

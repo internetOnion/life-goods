@@ -8,7 +8,7 @@ describe("ConcernsPage", () => {
         localStorage.clear()
     })
 
-    test("renders the concerns header, options, and safety disclaimer", () => {
+    test("renders the concerns header and options without the removed disclaimer", () => {
         render(<ConcernsPage />)
 
         expect(
@@ -18,9 +18,8 @@ describe("ConcernsPage", () => {
         ).toBeInTheDocument()
 
         expect(
-            screen.getByText(/Important Safety & Data Boundary/i),
-        ).toBeInTheDocument()
-        expect(screen.getByText(/Source Data Unavailable/i)).toBeInTheDocument()
+            screen.queryByText(/Important Safety & Data Boundary/i),
+        ).not.toBeInTheDocument()
 
         expect(screen.getByLabelText("Dairy")).toBeInTheDocument()
         expect(screen.getByLabelText("Peanuts")).toBeInTheDocument()

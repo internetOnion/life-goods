@@ -19,12 +19,12 @@ export function NotFoundPage() {
     }, [])
 
     return (
-        <main className="mx-auto grid min-h-[calc(100svh-8rem)] w-full max-w-xl content-center px-4 py-12 sm:px-6">
+        <main className="page-rail grid min-h-[calc(100svh-8rem)] content-center sm:px-6 sm:py-12">
             <div className="mb-6">
                 <SnapshotNotFoundIllustration size={160} />
             </div>
             <h1
-                className="text-4xl leading-tight font-extrabold tracking-[-0.03em] text-balance text-neutral-950 sm:text-5xl"
+                className="text-display leading-[1.12] font-extrabold tracking-[-0.03em] text-balance text-neutral-950"
                 ref={headingRef}
                 tabIndex={-1}
             >

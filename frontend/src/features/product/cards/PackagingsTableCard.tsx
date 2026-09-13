@@ -143,7 +143,7 @@ export const PackagingsTableCard: React.FC<PackagingsTableCardProps> = ({
                                                             </span>
                                                         </Badge>
                                                     ) : (
-                                                        <span className="text-[10px] text-neutral-400">
+                                                        <span className="text-micro text-neutral-400">
                                                             Source Data
                                                             Unavailable
                                                         </span>
@@ -161,7 +161,7 @@ export const PackagingsTableCard: React.FC<PackagingsTableCardProps> = ({
                         <p className="text-xs font-semibold text-neutral-700">
                             Source Data Unavailable
                         </p>
-                        <p className="text-[11px] text-neutral-500">
+                        <p className="text-caption text-neutral-500">
                             No itemized packaging parts declared in the dataset
                             snapshot record.
                         </p>

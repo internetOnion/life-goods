@@ -5,7 +5,7 @@ import {
     ChevronUp,
     ShieldAlert,
 } from "lucide-react"
-import React, { useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,11 @@ import type {
     AllergenAssessmentResponse,
     PackageMatchEvidenceResponse,
 } from "@/features/product/types"
+import {
+    findSelectedConcernMatches,
+    loadSelectedConcernIds,
+    SELECTED_CONCERNS_STORAGE_KEY,
+} from "@/features/concerns/matching"
 
 interface AllergenCardProps {
     assessment?: AllergenAssessmentResponse | null
@@ -25,6 +30,22 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
     labelEvidence,
 }) => {
     const [showAllConcepts, setShowAllConcepts] = useState(false)
+    const [selectedConcernIds, setSelectedConcernIds] = useState(
+        loadSelectedConcernIds,
+    )
+
+    useEffect(() => {
+        const handleStorage = (event: StorageEvent) => {
+            if (
+                event.key === SELECTED_CONCERNS_STORAGE_KEY ||
+                event.key === null
+            ) {
+                setSelectedConcernIds(loadSelectedConcernIds())
+            }
+        }
+        window.addEventListener("storage", handleStorage)
+        return () => window.removeEventListener("storage", handleStorage)
+    }, [])
 
     // Also look for direct Open Food Facts allergen tags if rule assessment was unassessed
     const allergenTagsItem = labelEvidence?.find(
@@ -39,7 +60,9 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
           )
         : []
 
-    const tracesTagsItem = labelEvidence?.find((e) => e.field === "trace_tags")
+    const tracesTagsItem = labelEvidence?.find(
+        (e) => e.field === "trace_tag" || e.field === "trace_tags",
+    )
     const rawTracesTags = Array.isArray(tracesTagsItem?.value)
         ? (tracesTagsItem.value as string[]).map((t) =>
               t
@@ -62,24 +85,84 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
     const negativeConcepts = concepts.filter(
         (c) => c.outcome === "NO_DECLARATION_DETECTED_IN_READABLE_LABEL",
     )
+    const selectedConcernMatches = useMemo(
+        () =>
+            findSelectedConcernMatches(
+                selectedConcernIds,
+                assessment,
+                labelEvidence,
+            ),
+        [assessment, labelEvidence, selectedConcernIds],
+    )
+    const assessmentConcernMatches = selectedConcernMatches.filter(
+        (match) => match.source === "assessment finding",
+    )
+    const sourceRecordConcernMatches = selectedConcernMatches.filter(
+        (match) => match.source !== "assessment finding",
+    )
 
     return (
         <Card className="border-neutral-200/90 bg-white shadow-xs">
-            <CardHeader className="p-4 pb-2 sm:p-5">
+            <CardHeader className="p-4 pb-8 sm:p-5 sm:pb-8">
                 <div className="flex items-center gap-2.5">
                     <div className="bg-warning-100 text-warning-800 grid size-8 shrink-0 place-items-center rounded-xl">
                         <ShieldAlert className="h-4 w-4" />
                     </div>
                     <CardTitle className="text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
-                        Codex Allergen Assessment
+                        Allergen Assessment
                     </CardTitle>
                 </div>
             </CardHeader>
 
-            <CardContent className="space-y-4 p-4 pt-2 sm:p-5">
+            <CardContent className="space-y-4 p-4 pt-0 sm:p-5 sm:pt-0">
+                {sourceRecordConcernMatches.length > 0 && (
+                    <div
+                        className="border-primary-200 bg-primary-50/70 space-y-2 rounded-2xl border p-3"
+                        role="status"
+                        aria-label="Selected concern matches"
+                    >
+                        <div className="text-primary-950 flex items-center gap-2 text-xs font-bold sm:text-sm">
+                            <AlertTriangle className="text-primary-700 h-4 w-4 shrink-0" />
+                            <span>
+                                Your selected concern
+                                {sourceRecordConcernMatches.length > 1
+                                    ? "s"
+                                    : ""}{" "}
+                                match this Product evidence:
+                            </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 pl-6">
+                            {sourceRecordConcernMatches.map((match) => (
+                                <Badge
+                                    key={match.concernId}
+                                    variant="outline"
+                                    className="border-primary-300 text-primary-950 bg-white px-2 py-0.5 text-xs font-bold"
+                                >
+                                    {match.concernLabel}: "{match.matchedText}"
+                                </Badge>
+                            ))}
+                        </div>
+                        <p className="text-caption text-primary-900 pl-6">
+                            Based on{" "}
+                            {sourceRecordConcernMatches
+                                .map((match) => match.source)
+                                .filter(
+                                    (source, index, sources) =>
+                                        sources.indexOf(source) === index,
+                                )
+                                .join(" and ")}
+                            . This is a Source Record match, not a safety or
+                            allergen-free conclusion.
+                        </p>
+                    </div>
+                )}
+
                 {/* Findings Alert Box */}
                 {findings.length > 0 ? (
-                    <div className="border-warning-200 bg-warning-50/70 space-y-2 rounded-2xl border p-3">
+                    <div
+                        aria-label="Allergen findings"
+                        className="border-warning-200 bg-warning-50/70 space-y-2 rounded-2xl border p-3"
+                    >
                         <div className="text-warning-900 flex items-center gap-2 text-xs font-bold sm:text-sm">
                             <AlertTriangle className="text-warning-600 h-4 w-4 shrink-0" />
                             <span>
@@ -92,13 +175,36 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                 <Badge
                                     key={i}
                                     variant="warning"
-                                    className="text-warning-950 py-0.2 bg-white px-2 text-[11px] font-bold"
+                                    className="text-warning-950 py-0.2 text-caption bg-white px-2 font-bold"
                                 >
                                     "{f.matched_text}" (
                                     {f.relationship_type || "Declared"})
                                 </Badge>
                             ))}
                         </div>
+                        {assessmentConcernMatches.length > 0 && (
+                            <div className="border-warning-200/70 space-y-2 border-t pt-2 pl-6">
+                                <p className="text-caption text-warning-900 font-bold">
+                                    Your selected concern
+                                    {assessmentConcernMatches.length > 1
+                                        ? "s"
+                                        : ""}{" "}
+                                    found in the assessment:
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {assessmentConcernMatches.map((match) => (
+                                        <Badge
+                                            key={match.concernId}
+                                            variant="warning"
+                                            className="text-warning-950 py-0.2 bg-white px-2 font-bold"
+                                        >
+                                            {match.concernLabel}: "
+                                            {match.matchedText}"
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 ) : positiveConcepts.length === 0 &&
                   rawAllergenTags.length === 0 ? (
@@ -113,10 +219,10 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
 
                 {/* Package Label Tags if available */}
                 {(rawAllergenTags.length > 0 || rawTracesTags.length > 0) && (
-                    <div className="space-y-2 text-xs">
+                    <div className="space-y-3 text-sm">
                         {rawAllergenTags.length > 0 && (
-                            <div className="space-y-1">
-                                <span className="text-[11px] font-bold tracking-[0.06em] text-neutral-500 uppercase">
+                            <div className="space-y-2">
+                                <span className="text-xs font-bold tracking-[0.06em] text-neutral-500 uppercase sm:text-sm">
                                     Declared Allergens:
                                 </span>
                                 <div className="flex flex-wrap gap-1.5">
@@ -124,7 +230,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                         <Badge
                                             key={idx}
                                             variant="warning"
-                                            className="py-0.2 px-2 text-[11px] font-semibold"
+                                            className="px-2.5 py-0.5 text-sm font-semibold"
                                         >
                                             {tag}
                                         </Badge>
@@ -134,8 +240,8 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                         )}
 
                         {rawTracesTags.length > 0 && (
-                            <div className="space-y-1">
-                                <span className="text-[11px] font-bold tracking-[0.06em] text-neutral-500 uppercase">
+                            <div className="space-y-2">
+                                <span className="text-xs font-bold tracking-[0.06em] text-neutral-500 uppercase sm:text-sm">
                                     May Contain Traces:
                                 </span>
                                 <div className="flex flex-wrap gap-1.5">
@@ -143,7 +249,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                         <Badge
                                             key={idx}
                                             variant="outline"
-                                            className="py-0.2 px-2 text-[11px] font-medium text-neutral-600"
+                                            className="px-2.5 py-0.5 text-sm font-medium text-neutral-600"
                                         >
                                             {tag}
                                         </Badge>
@@ -187,7 +293,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                         </span>
                                         <Badge
                                             variant="warning"
-                                            className="text-[10px]"
+                                            className="text-micro"
                                         >
                                             {c.outcome.replace(/_/g, " ")}
                                         </Badge>
@@ -201,7 +307,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                         <span className="truncate">
                                             {c.name}
                                         </span>
-                                        <span className="text-[11px] text-neutral-400">
+                                        <span className="text-caption text-neutral-400">
                                             Not declared
                                         </span>
                                     </div>
@@ -212,7 +318,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                 )}
 
                 {/* Caveat */}
-                <div className="flex items-start gap-1.5 border-t border-neutral-100 pt-1 text-[11px] text-neutral-400">
+                <div className="text-caption flex items-start gap-1.5 border-t border-neutral-100 pt-1 text-neutral-400">
                     <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
                     <p>
                         Allergen evaluations are derived from label declarations

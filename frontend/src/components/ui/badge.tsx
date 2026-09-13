@@ -12,7 +12,7 @@ const badgeVariants = cva(
                 secondary: "bg-neutral-100 text-neutral-800",
                 outline: "border border-neutral-200 bg-white text-neutral-700",
                 subtle: "border border-neutral-200/50 bg-neutral-100/90 text-neutral-600",
-                pill: "bg-neutral-100 px-2 py-0.5 font-mono text-[11px] text-neutral-700",
+                pill: "bg-neutral-100 px-2 py-0.5 font-mono text-caption text-neutral-700",
                 accent: "border border-primary-200/60 bg-primary-100 text-primary-800",
                 success:
                     "border border-success-200/90 bg-success-50 text-success-800",

@@ -13,6 +13,7 @@ import { ProductPage } from "@/features/product/ProductPage"
 import { lookupProduct, type ProductLookup } from "@/features/product/api"
 import { ScanPage } from "@/features/scan/ScanPage"
 import { BarcodeEntryPage } from "@/features/search/BarcodeEntryPage"
+import { RecentProductViewsPage } from "@/features/search/RecentProductViewsPage"
 import { AppShell } from "@/ui/AppShell"
 
 import { appRoutes } from "./routes"
@@ -28,6 +29,10 @@ export function App({ lookup = lookupProduct, demoMode = false }: AppProps) {
             <Routes>
                 <Route path={appRoutes.home} element={<ScanPage />} />
                 <Route path={appRoutes.search} element={<BarcodeEntryPage />} />
+                <Route
+                    path={appRoutes.recentSearches}
+                    element={<RecentProductViewsPage />}
+                />
                 <Route path={appRoutes.learn} element={<LearnPage />} />
                 <Route
                     path={appRoutes.learnGuide}

@@ -1,6 +1,7 @@
 export const appRoutes = {
     home: "/",
     search: "/search",
+    recentSearches: "/search/recent",
     learn: "/learn",
     learnGuide: "/learn/guides/:guideSlug",
     learnDetail: "/learn/:slug",

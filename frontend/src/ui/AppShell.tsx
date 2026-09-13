@@ -8,6 +8,7 @@ import { type ReactNode, useEffect, useState } from "react"
 import { NavLink, useLocation } from "react-router"
 
 import { appRoutes } from "@/app/routes"
+import { SplashScreen } from "@/components/brand/SplashScreen"
 import { cn } from "@/lib/utils"
 import { AppShellNavigationContext } from "./AppShellNavigation"
 
@@ -41,10 +42,25 @@ const navigation = [
 
 export function AppShell({ children }: AppShellProps) {
     const location = useLocation()
-    const isSearchRoute = location.pathname === appRoutes.search
+    const [showSplash, setShowSplash] = useState(true)
+    const isSearchRoute = location.pathname.startsWith(appRoutes.search)
     const [isPrimaryNavigationHidden, setPrimaryNavigationHidden] =
         useState(false)
     const showPrimaryNavigation = !isSearchRoute && !isPrimaryNavigationHidden
+
+    useEffect(() => {
+        const prefersReducedMotion =
+            typeof window !== "undefined" &&
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        const splashDuration = prefersReducedMotion ? 250 : 2600
+        const timeoutId = window.setTimeout(
+            () => setShowSplash(false),
+            splashDuration,
+        )
+
+        return () => window.clearTimeout(timeoutId)
+    }, [])
 
     useEffect(() => {
         document.documentElement.lang = "en"
@@ -63,7 +79,8 @@ export function AppShell({ children }: AppShellProps) {
         <AppShellNavigationContext.Provider
             value={{ setPrimaryNavigationHidden }}
         >
-            <div className="bg-background text-foreground flex min-h-svh flex-col">
+            <div className="bg-background text-foreground flex min-h-svh min-w-0 flex-col">
+                {showSplash && <SplashScreen />}
                 <div
                     className={cn(
                         "flex-1 pt-[env(safe-area-inset-top,0px)]",

@@ -326,6 +326,7 @@ export interface OpenFoodFactsProductView {
     // Data Quality & Meta
     completeness?: number | null
     statesTags: string[]
+    languages: string[]
     dataQualityWarnings: string[]
     creator?: string | null
     lastModified?: string | null

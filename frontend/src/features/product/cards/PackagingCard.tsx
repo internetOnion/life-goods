@@ -116,7 +116,7 @@ export const PackagingCard: React.FC<PackagingCardProps> = ({
 
                 {languages.length > 0 && (
                     <div className="space-y-1.5 pt-1">
-                        <span className="text-[11px] font-bold tracking-[0.06em] text-neutral-500 uppercase">
+                        <span className="text-caption font-bold tracking-[0.06em] text-neutral-500 uppercase">
                             Package Languages:
                         </span>
                         <div className="flex flex-wrap gap-1">
