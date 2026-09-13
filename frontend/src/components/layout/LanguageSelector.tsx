@@ -17,9 +17,31 @@ export function LanguageSelector({
     appearance = "solid",
 }: LanguageSelectorProps) {
     const { locale, setLocale } = useLocale()
+    const { enabledLocales } = useLocale()
     const [isOpen, setIsOpen] = useState(false)
     const rootRef = useRef<HTMLDivElement>(null)
     const triggerRef = useRef<HTMLButtonElement>(null)
+    const englishRef = useRef<HTMLButtonElement>(null)
+    const khmerRef = useRef<HTMLButtonElement>(null)
+    const khmerEnabled = enabledLocales.includes("km")
+    const isKhmer = locale === "km"
+    const labels = isKhmer
+        ? {
+              trigger: "ភាសា៖ ខ្មែរ",
+              short: "ខ្មែរ",
+              choose: "ជ្រើសរើសភាសា",
+              english: "អង់គ្លេស",
+              khmer: "ខ្មែរ",
+              comingSoon: "មកដល់ឆាប់ៗនេះ",
+          }
+        : {
+              trigger: "Language: English",
+              short: "EN",
+              choose: "Choose language",
+              english: "English",
+              khmer: "Khmer (ខ្មែរ)",
+              comingSoon: "Coming soon",
+          }
 
     useEffect(() => {
         if (!isOpen) return
@@ -31,9 +53,32 @@ export function LanguageSelector({
         }
 
         function closeOnEscape(event: KeyboardEvent) {
-            if (event.key !== "Escape") return
-            setIsOpen(false)
-            triggerRef.current?.focus()
+            if (event.key === "Escape") {
+                setIsOpen(false)
+                triggerRef.current?.focus()
+                return
+            }
+            if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+                return
+            }
+            event.preventDefault()
+            const options = [
+                englishRef.current,
+                khmerEnabled ? khmerRef.current : null,
+            ].filter((option): option is HTMLButtonElement => option !== null)
+            if (options.length === 0) return
+            const currentIndex = options.indexOf(
+                document.activeElement as HTMLButtonElement,
+            )
+            const nextIndex =
+                event.key === "Home"
+                    ? 0
+                    : event.key === "End"
+                      ? options.length - 1
+                      : event.key === "ArrowDown"
+                        ? (currentIndex + 1 + options.length) % options.length
+                        : (currentIndex - 1 + options.length) % options.length
+            options[nextIndex]?.focus()
         }
 
         document.addEventListener("pointerdown", closeOnOutsidePress)
@@ -42,7 +87,15 @@ export function LanguageSelector({
             document.removeEventListener("pointerdown", closeOnOutsidePress)
             document.removeEventListener("keydown", closeOnEscape)
         }
-    }, [isOpen])
+    }, [isOpen, khmerEnabled])
+
+    useEffect(() => {
+        if (!isOpen) return
+        window.requestAnimationFrame(() => {
+            if (locale === "km" && khmerEnabled) khmerRef.current?.focus()
+            else englishRef.current?.focus()
+        })
+    }, [isOpen, khmerEnabled, locale])
 
     return (
         <div ref={rootRef} className={cn("relative shrink-0", className)}>
@@ -52,20 +105,20 @@ export function LanguageSelector({
                 variant="outline"
                 appearance={appearance === "glass" ? "glass" : undefined}
                 className="h-11 min-w-11 gap-1.5 rounded-full border-neutral-200 bg-white px-3 text-neutral-800 shadow-none hover:bg-neutral-50"
-                aria-label="Language: English"
+                aria-label={labels.trigger}
                 aria-haspopup="menu"
                 aria-expanded={isOpen}
                 onClick={() => setIsOpen((open) => !open)}
             >
                 <TranslateIcon size={17} weight="bold" aria-hidden="true" />
-                <span className="text-xs font-extrabold">EN</span>
+                <span className="text-xs font-extrabold">{labels.short}</span>
                 <CaretDownIcon size={12} weight="bold" aria-hidden="true" />
             </Button>
 
             {isOpen ? (
                 <div
                     role="menu"
-                    aria-label="Choose language"
+                    aria-label={labels.choose}
                     className={cn(
                         "shadow-source-sheet absolute right-0 z-50 w-56 rounded-2xl border border-neutral-200 bg-white p-1.5",
                         placement === "top"
@@ -74,6 +127,7 @@ export function LanguageSelector({
                     )}
                 >
                     <Button
+                        ref={englishRef}
                         type="button"
                         variant="ghost"
                         role="menuitemradio"
@@ -85,22 +139,44 @@ export function LanguageSelector({
                             triggerRef.current?.focus()
                         }}
                     >
-                        <span className="flex-1">English</span>
-                        <CheckIcon size={17} weight="bold" aria-hidden="true" />
+                        <span className="flex-1">{labels.english}</span>
+                        {locale === "en" ? (
+                            <CheckIcon
+                                size={17}
+                                weight="bold"
+                                aria-hidden="true"
+                            />
+                        ) : null}
                     </Button>
                     <Button
+                        ref={khmerRef}
                         type="button"
                         variant="ghost"
                         role="menuitemradio"
-                        aria-checked="false"
-                        aria-disabled="true"
-                        disabled
-                        className="flex min-h-11 w-full cursor-not-allowed justify-start gap-3 rounded-xl px-3 text-left text-sm text-neutral-500 disabled:opacity-100"
+                        aria-checked={locale === "km"}
+                        aria-disabled={!khmerEnabled}
+                        disabled={!khmerEnabled}
+                        className="flex min-h-11 w-full justify-start gap-3 rounded-xl px-3 text-left text-sm text-neutral-700 disabled:cursor-not-allowed disabled:text-neutral-500 disabled:opacity-100"
+                        onClick={() => {
+                            setLocale("km")
+                            setIsOpen(false)
+                            triggerRef.current?.focus()
+                        }}
                     >
-                        <span className="flex-1 font-bold">Khmer (ខ្មែរ)</span>
-                        <span className="rounded-full bg-neutral-100 px-2 py-1 text-[0.6875rem] font-bold text-neutral-600">
-                            Coming soon
-                        </span>
+                        <span className="flex-1 font-bold">{labels.khmer}</span>
+                        {khmerEnabled ? (
+                            locale === "km" ? (
+                                <CheckIcon
+                                    size={17}
+                                    weight="bold"
+                                    aria-hidden="true"
+                                />
+                            ) : null
+                        ) : (
+                            <span className="rounded-full bg-neutral-100 px-2 py-1 text-[0.6875rem] font-bold text-neutral-600">
+                                {labels.comingSoon}
+                            </span>
+                        )}
                     </Button>
                 </div>
             ) : null}

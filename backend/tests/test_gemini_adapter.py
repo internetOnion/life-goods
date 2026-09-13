@@ -55,7 +55,7 @@ def test_gemini_adapter_successful_translation() -> None:
     request = ProviderTranslationRequest(
         fields={"product_name": "__LG_TOK_0__ Chocolate"},
         brands=["Galaxy"],
-        target_language="kh",
+        target_language="km",
     )
 
     response = adapter.translate(request)
@@ -147,7 +147,7 @@ def test_gemini_adapter_retries_transient_503_and_succeeds() -> None:
     request = ProviderTranslationRequest(
         fields={"product_name": "Chocolate"},
         brands=[],
-        target_language="kh",
+        target_language="km",
     )
 
     response = adapter.translate(request)
@@ -175,7 +175,7 @@ def test_gemini_adapter_fails_fast_on_400_without_retrying() -> None:
     request = ProviderTranslationRequest(
         fields={"product_name": "Chocolate"},
         brands=[],
-        target_language="kh",
+        target_language="km",
     )
 
     response = adapter.translate(request)
@@ -199,7 +199,7 @@ def test_gemini_adapter_handles_timeout_gracefully() -> None:
     request = ProviderTranslationRequest(
         fields={"product_name": "Chocolate"},
         brands=[],
-        target_language="kh",
+        target_language="km",
     )
 
     response = adapter.translate(request)
@@ -253,7 +253,7 @@ def test_gemini_adapter_handles_safety_blocked_response() -> None:
     request = ProviderTranslationRequest(
         fields={"product_name": "Chocolate"},
         brands=[],
-        target_language="kh",
+        target_language="km",
     )
 
     response = adapter.translate(request)

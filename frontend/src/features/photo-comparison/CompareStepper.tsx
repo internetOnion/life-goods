@@ -2,6 +2,7 @@ import { Check } from "@phosphor-icons/react"
 
 import { GlassButton as Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { useCompareTranslation } from "./translations"
 
 export interface CompareStepperProps {
     currentStep: 1 | 2
@@ -18,42 +19,32 @@ export function CompareStepper({
     productBCount,
     disabled = false,
 }: CompareStepperProps) {
+    const { t } = useCompareTranslation()
     const steps = [
         {
             number: 1 as const,
-            label: "Product A",
+            label: t("productA"),
             completed: productACount > 0,
         },
         {
             number: 2 as const,
-            label: "Product B",
+            label: t("productB"),
             completed: productBCount > 0,
         },
     ]
 
     return (
-        <nav aria-label="Comparison steps" className="w-full">
-            <ol
-                role="tablist"
-                aria-label="Select compare step"
-                className="grid grid-cols-2 gap-1 rounded-xl bg-neutral-100 p-1 sm:gap-2"
-            >
+        <nav aria-label={t("comparisonSteps")} className="w-full">
+            <ol className="grid grid-cols-2 gap-1 rounded-xl bg-neutral-100 p-1 sm:gap-2">
                 {steps.map((step) => {
                     const isActive = currentStep === step.number
                     const isStepAccessible = !disabled
 
                     return (
-                        <li
-                            key={step.number}
-                            role="presentation"
-                            className="min-w-0"
-                        >
+                        <li key={step.number} className="min-w-0">
                             <Button
                                 type="button"
-                                role="tab"
-                                id={`compare-step-tab-${step.number}`}
-                                aria-controls={`compare-step-panel-${step.number}`}
-                                aria-selected={isActive}
+                                aria-current={isActive ? "step" : undefined}
                                 aria-disabled={!isStepAccessible}
                                 disabled={!isStepAccessible}
                                 onClick={() => {

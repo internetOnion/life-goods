@@ -23,6 +23,15 @@ import type {
     ProductSideState,
     ReportedValue,
 } from "./types"
+import {
+    useCompareTranslation,
+    type CompareTranslationKey,
+} from "./translations"
+
+type CompareTranslate = (
+    key: CompareTranslationKey,
+    values?: Record<string, string | number>,
+) => string
 
 interface ComparisonSectionProps {
     comparison: ComparisonResponse | null
@@ -49,6 +58,7 @@ export function ComparisonSection({
     onFocusEvidence,
     compareButtonLabel,
 }: ComparisonSectionProps) {
+    const { locale, t } = useCompareTranslation()
     const amountRows = useMemo(
         () =>
             comparison?.rows?.filter((row) => row.row_kind !== "percentage") ||
@@ -92,34 +102,44 @@ export function ComparisonSection({
               : "neutral"
 
     const comparisonBasis = hasMixedBases
-        ? "Mixed label bases"
+        ? t("mixedBases")
         : isEqualWeight
           ? primaryTargetBasis === "per_100ml"
-              ? "Per 100 ml"
-              : "Per 100 g"
-          : displayBasisLabel(primaryTargetBasis)
+              ? t("per100ml")
+              : t("per100g")
+          : displayBasisLabel(primaryTargetBasis, locale)
 
     const basisContext = hasMixedBases
-        ? "Some nutrients use different bases. Exceptions are noted in the table."
+        ? t("someDifferentBases")
         : isEqualWeight
-          ? "Values use a common basis."
+          ? t("commonBasis")
           : primaryTargetBasis === "per_serving"
-            ? "Values are reported per serving."
+            ? t("perServingContext")
             : primaryTargetBasis === "per_package"
-              ? "Package sizes may differ."
-              : "The reported basis is not fully specified."
+              ? t("packageSizesDiffer")
+              : t("basisUnspecified")
 
     const allAssumptions = useMemo(() => {
-        const set = new Set<string>()
+        const assumptions = new Set<string>()
         for (const row of comparison?.rows || []) {
-            if (row.assumptions) {
-                for (const a of row.assumptions) {
-                    set.add(a)
-                }
+            if (
+                [row.left?.basis, row.right?.basis].includes("per_package") &&
+                [
+                    row.normalized_left?.target_basis,
+                    row.normalized_right?.target_basis,
+                ].some((basis) => basis === "per_100g" || basis === "per_100ml")
+            ) {
+                assumptions.add(t("assumesPackageWeight"))
+            }
+            if (
+                row.left?.preparation_state === "unknown" ||
+                row.right?.preparation_state === "unknown"
+            ) {
+                assumptions.add(t("unknownPreparationAssumption"))
             }
         }
-        return Array.from(set)
-    }, [comparison])
+        return Array.from(assumptions)
+    }, [comparison, t])
 
     const resultSummary = useMemo(() => {
         const comparable = amountRows.filter(
@@ -131,26 +151,26 @@ export function ComparisonSection({
         const unavailable = amountRows.length - comparable - conditional
 
         return [
-            formatCount(
-                comparable,
-                "comparable nutrient",
-                "comparable nutrients",
-            ),
+            comparable === 1
+                ? t("comparisonCountOne")
+                : t("comparisonCount", { count: comparable }),
             conditional > 0
-                ? formatCount(conditional, "needs context", "need context")
+                ? t("conditionalCount", { count: conditional })
                 : null,
             unavailable > 0
-                ? formatCount(unavailable, "unavailable", "unavailable")
+                ? t("unavailableCount", { count: unavailable })
                 : null,
         ].filter((item): item is string => Boolean(item))
-    }, [amountRows])
+    }, [amountRows, t])
 
     const preparationContext = getPreparationContext(
         amountRows,
         leftProduct.title,
         rightProduct.title,
+        locale,
+        t,
     )
-    const packageContext = getPackageContext(leftProduct, rightProduct)
+    const packageContext = getPackageContext(leftProduct, rightProduct, t)
 
     return (
         <section
@@ -179,7 +199,7 @@ export function ComparisonSection({
                         </h2>
                     </div>
                     <p className="mt-1.5 text-xs text-neutral-600 sm:text-sm">
-                        Based on Photo Evidence.
+                        {t("basedOnEvidence")}
                     </p>
                 </div>
 
@@ -191,10 +211,10 @@ export function ComparisonSection({
                     className="bg-primary-600 shadow-action-lift hover:bg-primary-700 active:bg-primary-800 h-10 w-full shrink-0 rounded-xl px-4 font-bold text-white transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50 disabled:shadow-none sm:w-auto"
                 >
                     {isComparing
-                        ? "Comparing…"
+                        ? t("comparing")
                         : comparison
-                          ? "Compare again"
-                          : compareButtonLabel || "Compare Products"}
+                          ? t("compareAgain")
+                          : compareButtonLabel || t("compareProducts")}
                 </Button>
             </div>
 
@@ -253,7 +273,9 @@ export function ComparisonSection({
                                               : "text-neutral-950",
                                     )}
                                 >
-                                    Comparison basis: {comparisonBasis}
+                                    {t("comparisonBasisLabel", {
+                                        basis: comparisonBasis,
+                                    })}
                                 </strong>
                                 <p
                                     className={cn(
@@ -286,7 +308,7 @@ export function ComparisonSection({
                                                   : "text-neutral-700 hover:text-neutral-950",
                                         )}
                                     >
-                                        How this comparison was calculated
+                                        {t("howCalculated")}
                                     </summary>
                                     <div
                                         className={cn(
@@ -299,37 +321,9 @@ export function ComparisonSection({
                                         )}
                                     >
                                         <p>
-                                            {isEqualWeight ? (
-                                                <>
-                                                    Values were normalized to a
-                                                    common basis using package
-                                                    quantities (
-                                                    {leftProduct.title}:{" "}
-                                                    {leftProduct.extraction
-                                                        ?.package_quantity
-                                                        ?.value_text ||
-                                                        "unstated"}{" "}
-                                                    {leftProduct.extraction
-                                                        ?.package_quantity
-                                                        ?.unit_text || ""}{" "}
-                                                    vs {rightProduct.title}:{" "}
-                                                    {rightProduct.extraction
-                                                        ?.package_quantity
-                                                        ?.value_text ||
-                                                        "unstated"}{" "}
-                                                    {rightProduct.extraction
-                                                        ?.package_quantity
-                                                        ?.unit_text || ""}
-                                                    ).
-                                                </>
-                                            ) : (
-                                                <>
-                                                    Values are reported using
-                                                    the selected label basis (
-                                                    {leftProduct.title} vs{" "}
-                                                    {rightProduct.title}).
-                                                </>
-                                            )}
+                                            {isEqualWeight
+                                                ? t("normalizedExplanation")
+                                                : t("reportedExplanation")}
                                         </p>
                                         {allAssumptions.length > 0 && (
                                             <ul className="list-disc space-y-0.5 pl-4">
@@ -352,24 +346,24 @@ export function ComparisonSection({
                     <div>
                         <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
                             <h3 className="text-base font-bold text-neutral-950 sm:text-lg">
-                                Nutrition comparison
+                                {t("nutritionComparison")}
                             </h3>
                             {resultSummary.length > 0 && (
                                 <p
                                     className="text-xs font-medium text-neutral-600"
-                                    aria-label="Comparison summary"
+                                    aria-label={t("comparisonSummary")}
                                 >
                                     {resultSummary.join(" · ")}
                                 </p>
                             )}
                         </div>
 
-                        <div className="scrollbar-subtle overflow-x-auto rounded-xl border border-neutral-200 bg-neutral-50/60 p-1.5 sm:rounded-2xl sm:bg-white sm:p-0">
+                        <div className="scrollbar-subtle overflow-x-visible rounded-xl border border-neutral-200 bg-neutral-50/60 p-1.5 sm:overflow-x-auto sm:rounded-2xl sm:bg-white sm:p-0">
                             <table className="block w-full border-collapse text-left text-xs sm:table sm:min-w-[560px]">
                                 <thead className="hidden sm:table-header-group">
                                     <tr className="border-b border-neutral-200 bg-neutral-50/90 text-xs font-bold tracking-wider text-neutral-600 uppercase">
                                         <th className="px-4 py-3.5">
-                                            Nutrient
+                                            {t("nutrient")}
                                         </th>
                                         <th className="px-4 py-3.5">
                                             {leftProduct.title}
@@ -378,7 +372,7 @@ export function ComparisonSection({
                                             {rightProduct.title}
                                         </th>
                                         <th className="px-4 py-3.5">
-                                            Difference
+                                            {t("difference")}
                                         </th>
                                     </tr>
                                 </thead>
@@ -401,19 +395,18 @@ export function ComparisonSection({
                     {percentageRows.length > 0 && (
                         <details className="border-t border-neutral-200/80 pt-3">
                             <summary className="focus-visible:ring-primary-500 flex min-h-11 cursor-pointer items-center rounded-lg text-base font-bold text-neutral-950 select-none hover:text-neutral-700 focus-visible:ring-2 focus-visible:outline-none sm:text-lg">
-                                Show label percentages
+                                {t("showPercentages")}
                             </summary>
                             <p className="mt-1 text-xs leading-relaxed text-neutral-600">
-                                Daily value percentages are label reference
-                                values and may use different serving bases.
+                                {t("percentageNote")}
                             </p>
 
-                            <div className="scrollbar-subtle mt-3 overflow-x-auto rounded-xl border border-neutral-200 bg-neutral-50/60 p-1.5 sm:rounded-2xl sm:bg-white sm:p-0">
+                            <div className="scrollbar-subtle mt-3 overflow-x-visible rounded-xl border border-neutral-200 bg-neutral-50/60 p-1.5 sm:overflow-x-auto sm:rounded-2xl sm:bg-white sm:p-0">
                                 <table className="block w-full border-collapse text-left text-xs sm:table sm:min-w-[560px]">
                                     <thead className="hidden sm:table-header-group">
                                         <tr className="border-b border-neutral-200 bg-neutral-50/90 text-xs font-bold tracking-wider text-neutral-600 uppercase">
                                             <th className="px-4 py-3.5">
-                                                Nutrient
+                                                {t("nutrient")}
                                             </th>
                                             <th className="px-4 py-3.5">
                                                 {leftProduct.title}
@@ -422,7 +415,7 @@ export function ComparisonSection({
                                                 {rightProduct.title}
                                             </th>
                                             <th className="px-4 py-3.5">
-                                                Notes
+                                                {t("notes")}
                                             </th>
                                         </tr>
                                     </thead>
@@ -460,9 +453,11 @@ function AmountTableRow({
     rightProduct: ProductSideState
     onFocusEvidence: (imageId: string) => void
 }) {
+    const { locale, t } = useCompareTranslation()
     const nutrientName = formatNutrientName(
         row.nutrient,
         row.left?.observation.label || row.right?.observation.label,
+        locale,
     )
     const hasVisibleDifference = row.state === "comparable"
 
@@ -502,7 +497,7 @@ function AmountTableRow({
                 {hasVisibleDifference ? (
                     <>
                         <div className="mb-1 text-xs font-semibold tracking-wide text-neutral-500 uppercase sm:hidden">
-                            Difference
+                            {t("difference")}
                         </div>
                         <DifferenceCell
                             row={row}
@@ -530,8 +525,9 @@ function ProductAmountCell({
     reported?: ReportedValue | null
     derived?: DerivedValue | null
 }) {
+    const { locale, t } = useCompareTranslation()
     if (!reported || !reported.observation) {
-        const missing = getMissingCellText(null)
+        const missing = getMissingCellText(null, locale)
         return (
             <span className="text-xs font-medium text-neutral-500 italic">
                 {missing}
@@ -541,7 +537,7 @@ function ProductAmountCell({
 
     const obs = reported.observation
     if (obs.state !== "readable") {
-        const missing = getMissingCellText(obs.state)
+        const missing = getMissingCellText(obs.state, locale)
         return (
             <div>
                 <span className="text-warning-700 text-xs font-medium italic">
@@ -549,7 +545,7 @@ function ProductAmountCell({
                 </span>
                 {obs.state === "conflicting" && (
                     <div className="text-warning-800 mt-1 text-xs">
-                        <span>Conflicting values on label: </span>
+                        <span>{t("conflictingValues")} </span>
                         <span className="font-mono">
                             {displayValue(obs.value_text, obs.unit_text || "")}
                         </span>
@@ -571,7 +567,7 @@ function ProductAmountCell({
 
     // Prominent primary value: normalized if available, else reported
     const displayPrimary = derived
-        ? formatNormalizedValue(derived.value, derived.unit)
+        ? formatNormalizedValue(derived.value, derived.unit, locale)
         : displayValue(obs.value_text, obs.unit_text || "")
 
     return (
@@ -592,9 +588,11 @@ function PercentageTableRow({
     rightProduct: ProductSideState
     onFocusEvidence: (imageId: string) => void
 }) {
+    const { locale, t } = useCompareTranslation()
     const nutrientName = formatNutrientName(
         row.nutrient,
         row.left?.observation.label || row.right?.observation.label,
+        locale,
     )
 
     return (
@@ -605,7 +603,7 @@ function PercentageTableRow({
                     {nutrientName}
                 </div>
                 <div className="text-xs font-medium text-neutral-500">
-                    % Daily Value
+                    {t("dailyValue")}
                 </div>
             </td>
 
@@ -627,9 +625,9 @@ function PercentageTableRow({
 
             {/* Note column */}
             <td className="col-span-2 block pt-1 text-xs leading-relaxed text-neutral-600 sm:table-cell sm:px-4 sm:py-3.5 sm:align-top">
-                {row.reason && (
-                    <p className="mb-1.5 leading-relaxed">{row.reason}</p>
-                )}
+                <p className="mb-1.5 leading-relaxed">
+                    {localizedRowReason(row, t)}
+                </p>
                 <RowEvidenceDetails
                     row={row}
                     nutrientName={`${nutrientName} daily value`}
@@ -643,12 +641,13 @@ function PercentageTableRow({
 }
 
 function PercentageCell({ reported }: { reported?: ReportedValue | null }) {
+    const { locale } = useCompareTranslation()
     if (
         !reported ||
         !reported.observation ||
         reported.observation.state !== "readable"
     ) {
-        const missing = getMissingCellText(reported?.observation?.state)
+        const missing = getMissingCellText(reported?.observation?.state, locale)
         return (
             <span className="text-xs font-medium text-neutral-500 italic">
                 {missing}
@@ -677,10 +676,11 @@ function RowEvidenceDetails({
     rightProduct: ProductSideState
     onFocusEvidence: (imageId: string) => void
 }) {
+    const { t } = useCompareTranslation()
     const hasCalculation = row.state !== "not_comparable"
     const disclosureLabel = hasCalculation
-        ? "Evidence & calculation"
-        : "Evidence"
+        ? t("evidenceAndCalculation")
+        : t("evidence")
 
     return (
         <details className="group mt-2 border-t border-neutral-200/80 pt-1 text-xs text-neutral-600">
@@ -688,8 +688,10 @@ function RowEvidenceDetails({
                 className="focus-visible:ring-primary-500 inline-flex min-h-11 cursor-pointer items-center rounded text-xs font-semibold text-neutral-600 select-none hover:text-neutral-900 focus-visible:ring-2 focus-visible:outline-none"
                 aria-label={
                     hasCalculation
-                        ? `Evidence and calculation for ${nutrientName}`
-                        : `Evidence for ${nutrientName}`
+                        ? t("evidenceCalculationFor", {
+                              nutrient: nutrientName,
+                          })
+                        : t("evidenceFor", { nutrient: nutrientName })
                 }
             >
                 {disclosureLabel}
@@ -731,12 +733,13 @@ function ReportedEvidenceBlock({
     nutrientName: string
     onFocusEvidence: (imageId: string) => void
 }) {
+    const { locale, t } = useCompareTranslation()
     const observation = reported?.observation
     const printedValue = observation
         ? displayValue(observation.value_text, observation.unit_text || "")
         : null
     const displayedValue = derived
-        ? formatNormalizedValue(derived.value, derived.unit)
+        ? formatNormalizedValue(derived.value, derived.unit, locale)
         : printedValue
     const printedMatchesDisplayed =
         observation?.state === "readable" && printedValue === displayedValue
@@ -751,12 +754,12 @@ function ReportedEvidenceBlock({
                     <p>
                         {printedMatchesDisplayed ? (
                             <span className="text-neutral-500">
-                                Printed value matches the displayed amount.
+                                {t("printedMatches")}
                             </span>
                         ) : (
                             <>
                                 <span className="text-neutral-500">
-                                    Printed:{" "}
+                                    {t("printed")}{" "}
                                 </span>
                                 <span className="font-mono font-medium text-neutral-800">
                                     {observation.state === "readable"
@@ -764,22 +767,23 @@ function ReportedEvidenceBlock({
                                         : observation.state?.replaceAll(
                                               "_",
                                               " ",
-                                          ) || "not stated"}
+                                          ) || t("notSpecified")}
                                 </span>
                             </>
                         )}
                     </p>
                     <p>
-                        <span className="text-neutral-500">Basis: </span>
-                        {displayBasisLabel(reported?.basis)} ·{" "}
+                        <span className="text-neutral-500">{t("basis")} </span>
+                        {displayBasisLabel(reported?.basis, locale)} ·{" "}
                         {formatPreparationLabel(
                             reported?.preparation_state,
-                        ).toLowerCase()}
+                            locale,
+                        )}
                     </p>
                     {observation.alternatives &&
                         observation.alternatives.length > 0 && (
                             <p className="text-warning-800">
-                                Alternative readings:{" "}
+                                {t("alternativeReadings")}{" "}
                                 {observation.alternatives.map(
                                     (alternative, index) => (
                                         <span key={index} className="font-mono">
@@ -801,14 +805,14 @@ function ReportedEvidenceBlock({
                     {derived?.inputs && derived.inputs.length > 0 && (
                         <p>
                             <span className="text-neutral-500">
-                                Normalized from:{" "}
+                                {t("normalizedFrom")}{" "}
                             </span>
                             {derived.inputs.map((input, index) => (
                                 <span
                                     key={index}
                                     className="font-mono font-medium text-neutral-800"
                                 >
-                                    {formatDerivationInput(input)}
+                                    {formatDerivationInput(input, locale, t)}
                                     {index < derived.inputs.length - 1
                                         ? ", "
                                         : ""}
@@ -838,7 +842,9 @@ function ReportedEvidenceBlock({
                         )}
                 </>
             ) : (
-                <p className="text-neutral-500 italic">No reported input.</p>
+                <p className="text-neutral-500 italic">
+                    {t("noReportedInput")}
+                </p>
             )}
         </div>
     )
@@ -853,6 +859,7 @@ function DifferenceCell({
     leftProduct: ProductSideState
     rightProduct: ProductSideState
 }) {
+    const { locale, t } = useCompareTranslation()
     if (row.derived_difference) {
         const rawVal = row.derived_difference.value
         const diffNum =
@@ -863,15 +870,16 @@ function DifferenceCell({
         const formatted = formatNormalizedValue(
             row.derived_difference.value,
             row.derived_difference.unit,
+            locale,
         )
         const signedFormatted =
             isNumeric && diffNum > 0 ? `+${formatted}` : formatted
         const directionContext = isNumeric
             ? diffNum > 0
-                ? `${leftProduct.title} has more`
+                ? t("hasMore", { product: leftProduct.title })
                 : diffNum < 0
-                  ? `${rightProduct.title} has more`
-                  : "Identical amount"
+                  ? t("hasMore", { product: rightProduct.title })
+                  : t("identicalAmount")
             : ""
         if (isNumeric && diffNum === 0) {
             return (
@@ -881,7 +889,7 @@ function DifferenceCell({
                             variant="secondary"
                             className="text-xs font-semibold text-neutral-700"
                         >
-                            Equal amount
+                            {t("equalAmount")}
                         </Badge>
                     </div>
                     <div className="mt-1 font-mono text-xs font-bold text-neutral-900 tabular-nums">
@@ -908,17 +916,17 @@ function DifferenceCell({
         )
     }
 
-    if (row.reason) {
+    if (row.state === "not_comparable" || row.state === "conditional") {
         return (
             <div>
                 <Badge
                     variant="subtle"
                     className="text-xs font-medium text-neutral-600"
                 >
-                    Not comparable
+                    {t("notComparable")}
                 </Badge>
                 <div className="mt-1 text-xs leading-relaxed text-neutral-600">
-                    {row.reason}
+                    {localizedRowReason(row, t)}
                 </div>
             </div>
         )
@@ -926,36 +934,41 @@ function DifferenceCell({
 
     return (
         <span className="text-xs text-neutral-500 italic">
-            No difference calculated
+            {t("noDifference")}
         </span>
     )
-}
-
-function formatCount(count: number, singular: string, plural: string): string {
-    return `${count} ${count === 1 ? singular : plural}`
 }
 
 function getPreparationContext(
     rows: ComparisonRow[],
     leftTitle: string,
     rightTitle: string,
+    locale: "en" | "km",
+    t: CompareTranslate,
 ): string {
-    const left = getSidePreparation(rows, "left")
-    const right = getSidePreparation(rows, "right")
+    const left = getSidePreparation(rows, "left", locale, t)
+    const right = getSidePreparation(rows, "right", locale, t)
 
-    if (left === "not stated" && right === "not stated") {
-        return "Preparation not stated on either label."
+    if (left === null && right === null) {
+        return t("preparationNeither")
     }
     if (left === right) {
-        return `Preparation: ${left}.`
+        return t("preparationSame", { value: left || t("notSpecified") })
     }
-    return `Preparation: ${leftTitle} — ${left}; ${rightTitle} — ${right}.`
+    return t("preparationDifferent", {
+        leftProduct: leftTitle,
+        left: left || t("notSpecified"),
+        rightProduct: rightTitle,
+        right: right || t("notSpecified"),
+    })
 }
 
 function getSidePreparation(
     rows: ComparisonRow[],
     side: "left" | "right",
-): string {
+    locale: "en" | "km",
+    t: CompareTranslate,
+): string | null {
     const states = new Set(
         rows
             .map((row) => row[side]?.preparation_state)
@@ -963,17 +976,18 @@ function getSidePreparation(
     )
 
     if (states.size === 0 || (states.size === 1 && states.has("unknown"))) {
-        return "not stated"
+        return null
     }
     if (states.size > 1) {
-        return "varies by nutrient"
+        return t("notSpecified")
     }
-    return formatPreparationLabel(Array.from(states)[0]).toLowerCase()
+    return formatPreparationLabel(Array.from(states)[0], locale)
 }
 
 function getPackageContext(
     leftProduct: ProductSideState,
     rightProduct: ProductSideState,
+    t: CompareTranslate,
 ): string | null {
     const left = formatPackageQuantity(leftProduct)
     const right = formatPackageQuantity(rightProduct)
@@ -981,7 +995,12 @@ function getPackageContext(
     if (!left && !right) {
         return null
     }
-    return `Package quantities: ${leftProduct.title} — ${left || "not visible"}; ${rightProduct.title} — ${right || "not visible"}.`
+    return t("packageQuantities", {
+        leftProduct: leftProduct.title,
+        left: left || t("notVisible"),
+        rightProduct: rightProduct.title,
+        right: right || t("notVisible"),
+    })
 }
 
 function formatPackageQuantity(product: ProductSideState): string | null {
@@ -992,18 +1011,65 @@ function formatPackageQuantity(product: ProductSideState): string | null {
     return displayValue(quantity.value_text, quantity.unit_text || "")
 }
 
-function formatDerivationInput(input: DerivationInput): string {
+function formatDerivationInput(
+    input: DerivationInput,
+    locale: "en" | "km",
+    t: CompareTranslate,
+): string {
     const value = formatNormalizedValue(
         input.normalized_value,
         input.normalized_unit,
+        locale,
     )
     if (input.kind === "package_quantity") {
-        return `net weight ${value}`
+        return t("netWeight", { value })
     }
     if (input.kind === "serving_quantity") {
-        return `serving ${value}`
+        return t("serving", { value })
     }
     return value
+}
+
+function localizedRowReason(row: ComparisonRow, t: CompareTranslate): string {
+    if (row.row_kind === "percentage") return t("percentageUnavailable")
+
+    const left = row.left?.observation
+    const right = row.right?.observation
+    if (
+        (left && left.state !== "readable") ||
+        (right && right.state !== "readable")
+    ) {
+        return t("unreadableUnavailable")
+    }
+    if (
+        (left?.qualifier && left.qualifier !== "exact") ||
+        (right?.qualifier && right.qualifier !== "exact")
+    ) {
+        return t("qualifiedUnavailable")
+    }
+    if (
+        row.left?.preparation_state &&
+        row.right?.preparation_state &&
+        row.left.preparation_state !== "unknown" &&
+        row.right.preparation_state !== "unknown" &&
+        row.left.preparation_state !== row.right.preparation_state
+    ) {
+        return t("preparationMismatch")
+    }
+    if (row.state === "conditional") return t("conditionalPreparation")
+    if (
+        left?.normalized_unit &&
+        right?.normalized_unit &&
+        left.normalized_unit !== right.normalized_unit &&
+        !row.normalized_left &&
+        !row.normalized_right
+    ) {
+        return t("unitsIncompatible")
+    }
+    if (!row.normalized_left && !row.normalized_right) {
+        return t("quantitiesUnavailable")
+    }
+    return t("comparisonUnavailable")
 }
 
 function PhotoEvidenceButton({
@@ -1017,6 +1083,7 @@ function PhotoEvidenceButton({
     accessibleContext: string
     onClick: () => void
 }) {
+    const { t } = useCompareTranslation()
     const photoIndex = product.extraction?.images?.findIndex(
         (img) => img.image_id === imageId,
     )
@@ -1029,16 +1096,19 @@ function PhotoEvidenceButton({
             variant="outline"
             size="sm"
             onClick={onClick}
-            aria-label={`${accessibleContext}: view photo ${photoNumber}`}
+            aria-label={t("viewPhotoFor", {
+                context: accessibleContext,
+                number: photoNumber,
+            })}
             className="focus-visible:ring-primary-500 inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-neutral-300 bg-white px-3.5 text-xs font-semibold text-neutral-800 shadow-xs transition-colors hover:border-neutral-400 hover:bg-neutral-50 hover:text-neutral-950 focus-visible:ring-2 focus-visible:outline-none active:scale-[0.98]"
-            title={`View photo ${photoNumber}`}
+            title={t("viewPhoto", { number: photoNumber })}
         >
             <Camera
                 size={16}
                 weight="bold"
                 className="text-primary-600 shrink-0"
             />
-            <span>View photo {photoNumber}</span>
+            <span>{t("viewPhoto", { number: photoNumber })}</span>
         </Button>
     )
 }

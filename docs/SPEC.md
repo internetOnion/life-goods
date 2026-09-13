@@ -295,7 +295,7 @@ The translation domain is encapsulated behind the deep `KhmerTranslationModule` 
 1. **Eligible Fields & Selection**:
     - Translations are generated strictly for `product_name`, `generic_name`, `ingredients_text`, and human-readable `categories`.
     - Localized Original Text values are preserved with source field and language.
-    - Deterministic preference order: Source-provided Khmer (`kh`, `km`, and recognized variants, retaining source metadata), declared record language, English (`en`), and deterministic localized fallback.
+    - Deterministic preference order: Source-provided Khmer (`km` and recognized variants, retaining source metadata), declared record language, English (`en`), and deterministic localized fallback.
     - Conservative Khmer Unicode script recognition preserves `und` when language metadata is absent without claiming authoritative language tags.
     - Source-provided Khmer yields `source_khmer_available` and missing fields yield `source_data_unavailable` without invoking the provider.
 
@@ -348,9 +348,9 @@ Durable translation storage and multi-instance concurrency are coordinated throu
 The stable Product Lookup endpoint integrates optional on-demand Khmer Translation co-located with semantic fields:
 
 1. **Request & Contract**:
-    - `GET /api/v1/products/{barcode}?language=kh`
-    - Requests without `language=kh` return the stable Product projection and Original Text without generating translation (`meta.translation.status="not_requested"`).
-    - The application request and locale value is `kh`. External Source Record language tags, including `km`, retain their original metadata. Any other unsupported language parameter value returns HTTP 422 with stable error code `unsupported_language`.
+    - `GET /api/v1/products/{barcode}?language=km`
+    - Requests without `language=km` return the stable Product projection and Original Text without generating translation (`meta.translation.status="not_requested"`).
+    - The application request and locale value is `km`. External Source Record language tags, including `km`, retain their original metadata. Any other unsupported language parameter value returns HTTP 422 with stable error code `unsupported_language`.
     - The stable response also includes `data.allergen_analysis`, preserving the distinction between Open Food Facts tags, matcher-derived tags, qualifications, unmatched spans, and comparison sets.
 
 2. **Field-Level Co-Location**:
@@ -373,7 +373,7 @@ The stable Product Lookup endpoint integrates optional on-demand Khmer Translati
 
 ## 18. Trustworthy existing Khmer Translation fields (Issue #94)
 
-The frontend Product Lookup request sends `language=kh`. Application locale state uses `kh`; standards-based document language tags and external identifiers remain unchanged. `language=km` is unsupported. Omitting the language returns `not_requested` without generation.
+The frontend Product Lookup request sends `language=km`. Application locale state and standards-based document language tags use `km`. `language=kh` is unsupported. Omitting the language returns `not_requested` without generation.
 
 The four existing field envelopes share selection and classification across generation, cache reuse, provider failure, coordination failure, and emergency fallback. Selection prefers source-provided Khmer (including recognized language variants or conservative script detection), then the Source Record language, English, and deterministic fallback. Script detection does not manufacture language metadata. Human-readable category Original Text retains its source wording and language; taxonomy identifiers are not translation prose.
 
@@ -419,9 +419,9 @@ Expiry returns HTTP 200 with available Original Text and field-level translation
     - Exact duplicate statements across source fields collapse into a single statement item while retaining their `OriginalText` provenance from both fields in `original_texts`. Equivalence is never inferred from merely similar wording.
 
 2. **Source Selection & Field States**:
-    - Shared source selection applies per item: source-provided Khmer (explicit `kh`/`km` tags or script detection) bypasses Khmer Translation generation and receives `source_khmer_available`.
+    - Shared source selection applies per item: source-provided Khmer (explicit `km` tags or script detection) bypasses Khmer Translation generation and receives `source_khmer_available`.
     - Missing storage instructions yield an empty list (`[]`) without inventing text or ghost entries.
-    - Without `language=kh`, each item receives `not_requested`.
+    - Without `language=km`, each item receives `not_requested`.
 
 3. **Protection & Validation**:
     - Token protection covers temperatures (e.g. `4°C`, `-18°C`) and durations (e.g. `3 days`) in addition to brands, INS codes, E-numbers, percentages, and units.
@@ -551,8 +551,8 @@ and source-field provenance, including identical base and localized values.
 Legacy `packaging.texts`, `packaging.recycling_instructions`, components, materials,
 shapes, and recycling values remain unchanged. Taxonomy fields and component
 identifiers do not supply generated prose. Missing prose yields empty item arrays.
-Without `language=kh`, populated items retain `not_requested` and selected Original
-Text. With `language=kh`, the storage pipeline's selection, source-provided Khmer
+Without `language=km`, populated items retain `not_requested` and selected Original
+Text. With `language=km`, the storage pipeline's selection, source-provided Khmer
 preference, independent validation, and response mapping also apply to packaging.
 
 Brands, quantities, percentages, units, and codes remain protected. Protection now
@@ -808,7 +808,7 @@ Stable Product Lookup exposes exact Open Food Facts taxonomy references under `p
 
 ## 24. Expanded contract verification and performance evidence (Issue #100)
 
-The stable Product Lookup HTTP suite is the acceptance boundary for `language=kh`, rejection of application request `km`, recognized source-provided `km` metadata, Original Text, generated provenance, field and overall states, structured storage/packaging/category items, taxonomy references, and legacy fields. Deterministic fixtures cover complete, sparse, multilingual, mixed, unknown-language, source-Khmer, brand-only, long-input, missing-source, partial, and unavailable behavior.
+The stable Product Lookup HTTP suite is the acceptance boundary for `language=km`, rejection of application request `kh`, recognized source-provided `km` metadata, Original Text, generated provenance, field and overall states, structured storage/packaging/category items, taxonomy references, and legacy fields. Deterministic fixtures cover complete, sparse, multilingual, mixed, unknown-language, source-Khmer, brand-only, long-input, missing-source, partial, and unavailable behavior.
 
 The benchmark described in section 14 measures the production translation path and records cold and cached results separately under `docs/research/translation-benchmark/issue-100/`. Real MongoDB/Redis integration checks remain separate from the zero-network suite and require dedicated disposable test connections. On 2026-09-08, the project owner waived live-provider execution as an issue-completion requirement because production retains the already-approved exact Gemini model. Consequently, no claims are made about measured live provider latency, completion, timeout, usage, or cost, and simulated measurements are not substituted. The live command remains available as an optional operator diagnostic. This scope decision does not alter the 12-second default.
 

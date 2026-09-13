@@ -82,7 +82,7 @@ describe("structured Learn catalog", () => {
                     ...groups[0]!,
                     examples: [
                         {
-                            name: { kh: "", en: "Milk powder" },
+                            name: { km: "", en: "Milk powder" },
                         },
                     ],
                 },
@@ -114,7 +114,7 @@ describe("structured Learn catalog", () => {
     test("keeps an explicit typed contract for a future additive import", () => {
         const example: AdditiveRecord = {
             insNumber: "example-only",
-            names: { kh: "ឧទាហរណ៍", en: "Example" },
+            names: { km: "ឧទាហរណ៍", en: "Example" },
             synonyms: [],
             functionalClasses: [],
             foodCategories: [],

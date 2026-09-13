@@ -1,7 +1,7 @@
-export type LearnLocale = "kh" | "en"
+export type LearnLocale = "km" | "en"
 
 export type LocalizedText = {
-    kh: string
+    km: string
     en: string
 }
 

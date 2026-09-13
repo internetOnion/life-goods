@@ -1,5 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import {
+    fireEvent,
+    render,
+    screen,
+    waitFor,
+    within,
+} from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
@@ -505,6 +511,33 @@ describe("Compare Products frontend page (/compare)", () => {
         ).not.toBeInTheDocument()
     })
 
+    test("renders the Compare workflow in its independently persisted Khmer locale", async () => {
+        const user = userEvent.setup()
+        renderRoute("/compare")
+
+        await user.click(
+            screen.getByRole("button", { name: "Language: English" }),
+        )
+        await user.click(
+            screen.getByRole("menuitemradio", { name: "Khmer (ខ្មែរ)" }),
+        )
+
+        expect(
+            screen.getByRole("heading", { name: "ប្រៀបធៀបផលិតផល" }),
+        ).toBeInTheDocument()
+        expect(document.documentElement).toHaveAttribute("lang", "km")
+        expect(window.localStorage.getItem("lifegoods.compare.locale.v1")).toBe(
+            "km",
+        )
+
+        await user.click(screen.getByRole("button", { name: "ចាប់ផ្តើម" }))
+        expect(screen.getByDisplayValue("ផលិតផល ក")).toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: "ភាសា៖ ខ្មែរ" }),
+        ).toBeInTheDocument()
+        window.localStorage.removeItem("lifegoods.compare.locale.v1")
+    })
+
     test("replaces the shared primary navigation with a floating photo dock", () => {
         renderRoute("/compare")
 
@@ -898,16 +931,17 @@ describe("Compare Products frontend page (/compare)", () => {
         expect(
             screen.queryByRole("region", { name: "Comparison results" }),
         ).not.toBeInTheDocument()
-        expect(screen.getByRole("tab", { name: /Product B/i })).toHaveAttribute(
-            "aria-selected",
-            "true",
-        )
-        await user.click(screen.getByRole("tab", { name: /Product A/i }))
-        expect(screen.getByRole("tab", { name: /Product A/i })).toHaveAttribute(
-            "aria-selected",
-            "true",
-        )
-        await user.click(screen.getByRole("tab", { name: /Product B/i }))
+        expect(
+            screen.getByRole("button", { name: /^2 Product B$/i }),
+        ).toHaveAttribute("aria-current", "step")
+        const stepButtons = within(
+            screen.getByRole("navigation", {
+                name: "Comparison steps",
+            }),
+        ).getAllByRole("button")
+        await user.click(stepButtons[0]!)
+        expect(stepButtons[0]).toHaveAttribute("aria-current", "step")
+        await user.click(stepButtons[1]!)
 
         // Returning to the results page does not re-run extraction or comparison.
         await user.click(
@@ -938,7 +972,13 @@ describe("Compare Products frontend page (/compare)", () => {
         expect(
             screen.queryByRole("region", { name: "Comparison results" }),
         ).not.toBeInTheDocument()
-        await user.click(screen.getByRole("tab", { name: /Product B/i }))
+        await user.click(
+            within(
+                screen.getByRole("navigation", {
+                    name: "Comparison steps",
+                }),
+            ).getAllByRole("button")[1]!,
+        )
         expect(
             screen.queryByRole("button", {
                 name: /Return to comparison results/i,
@@ -1401,9 +1441,8 @@ describe("ComparisonSection Shopper-ready presentation", () => {
             ),
         ).not.toBeInTheDocument()
         expect(
-            screen.getAllByText(
-                "Assuming dry weight yields similar calorie density.",
-            ).length,
+            screen.getAllByText("Preparation not stated on either label.")
+                .length,
         ).toBeGreaterThan(0)
     })
 })
@@ -1529,9 +1568,11 @@ describe("Photo inspection and UX features", () => {
         )
 
         expect(screen.getByText("Detected product")).toBeInTheDocument()
-        expect(
-            screen.getByText("Mee Chiet Beef Flavor Noodles"),
-        ).toBeInTheDocument()
+        expect(screen.getByText("Mee Chiet")).toHaveAttribute("lang", "und")
+        expect(screen.getByText("Beef Flavor Noodles")).toHaveAttribute(
+            "lang",
+            "und",
+        )
 
         const useAsTitleBtn = screen.getByRole("button", {
             name: /Use as title/i,
@@ -1539,6 +1580,7 @@ describe("Photo inspection and UX features", () => {
         await user.click(useAsTitleBtn)
         expect(onTitleChange).toHaveBeenCalledWith(
             "Mee Chiet Beef Flavor Noodles",
+            "photo_evidence",
         )
     })
 
@@ -1558,10 +1600,10 @@ describe("Photo inspection and UX features", () => {
         fireEvent.change(fileInput, { target: { files: [pdfFile] } })
 
         expect(
-            screen.getByText(
+            screen.getAllByText(
                 /Unsupported file format: only JPEG and PNG photos are supported/i,
-            ),
-        ).toBeInTheDocument()
+            ).length,
+        ).toBeGreaterThan(0)
 
         // 2. Upload oversized file (> 10 MiB)
         const hugeBlob = new Array(11 * 1024 * 1024).fill("a").join("")
@@ -1571,8 +1613,8 @@ describe("Photo inspection and UX features", () => {
         fireEvent.change(fileInput, { target: { files: [largeFile] } })
 
         expect(
-            screen.getByText(/File size exceeds 10 MiB limit/i),
-        ).toBeInTheDocument()
+            screen.getAllByText(/exceeds the 10 MiB limit/i).length,
+        ).toBeGreaterThan(0)
 
         // 3. Camera capture works via camera input with capture attribute
         const cameraInput = document.getElementById(
@@ -1606,8 +1648,9 @@ describe("Photo inspection and UX features", () => {
         })
         fireEvent.change(fileInput, { target: { files: [fourthPhoto] } })
         expect(
-            screen.getByText(/Maximum of 3 photos per Product reached/i),
-        ).toBeInTheDocument()
+            screen.getAllByText(/Maximum of 3 photos per Product reached/i)
+                .length,
+        ).toBeGreaterThan(0)
 
         fireEvent.click(screen.getByRole("button", { name: /Remove photo 3/i }))
         expect(
@@ -1943,7 +1986,7 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         expect(
             screen.getByText("Comparison basis: Per 100 g"),
         ).toBeInTheDocument()
-        expect(screen.getByText("Preparation: as sold.")).toBeInTheDocument()
+        expect(screen.getByText("Preparation: As sold.")).toBeInTheDocument()
 
         // Leads with Product identities
         expect(
@@ -2741,10 +2784,10 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         // Product A succeeded, Product B failed with timeout
         expect(extractPhotosMock).toHaveBeenCalledTimes(2)
         expect(
-            screen.getByText(
+            screen.getAllByText(
                 /Photo processing request timed out\. Please check your connection and tap Retry\./i,
-            ),
-        ).toBeInTheDocument()
+            ).length,
+        ).toBeGreaterThan(0)
 
         // Button shows "Retry comparison"
         const retryBtn = screen.getByRole("button", {
@@ -3794,7 +3837,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
 
         // Tap Choose this basis for the 100g column
         const chooseBasisBtn = screen.getAllByRole("button", {
-            name: /Choose this basis/i,
+            name: /Select column/i,
         })[0]
         expect(chooseBasisBtn).toBeDefined()
         await user.click(chooseBasisBtn!)

@@ -1672,7 +1672,7 @@ export type GetProductData = {
     query?: {
         /**
          * Language
-         * Optional target language for product translation. Only 'kh' is supported; 'km' returns unsupported_language. Omit to skip generation. External source language tags remain unchanged.
+         * Optional target language for product translation. Only 'km' is supported; other language values return unsupported_language. Omit to skip generation. External source language tags remain unchanged.
          */
         language?: string | null;
     };

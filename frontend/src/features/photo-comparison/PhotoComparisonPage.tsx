@@ -7,7 +7,9 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { GlassButton as Button } from "@/components/ui/button"
+import { LanguageSelector } from "@/components/layout/LanguageSelector"
 import { Input } from "@/components/ui/input"
+import { useLocale } from "@/i18n/locale"
 import { usePageMetadata } from "@/lib/metadata"
 import { cn } from "@/lib/utils"
 import { useAppShellNavigation } from "@/ui/AppShellNavigation"
@@ -35,6 +37,7 @@ import type {
     ProductSideState,
 } from "./types"
 import { MAX_PHOTOS_PER_PRODUCT } from "./types"
+import { useCompareTranslation } from "./translations"
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 // 10 MiB
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png"]
@@ -50,6 +53,7 @@ function createInitialProduct(
     return {
         id,
         title,
+        titleSource: "default",
         number,
         photos: [],
         extraction: null,
@@ -83,10 +87,14 @@ function isAbortError(err: unknown): boolean {
     return false
 }
 
-function actionableRequestError(err: unknown, fallback: string): string {
+function actionableRequestError(
+    err: unknown,
+    fallback: string,
+    locale: "en" | "km",
+): string {
     const message = err instanceof Error ? err.message : fallback
     const code = err instanceof PhotoComparisonApiError ? err.code : undefined
-    return formatActionableError(message, code)
+    return formatActionableError(message, code, locale)
 }
 
 export type PhotoComparisonPageProps = {
@@ -99,17 +107,19 @@ export function PhotoComparisonPage({
     compare = compareProducts,
 }: PhotoComparisonPageProps = {}) {
     const { setPrimaryNavigationHidden } = useAppShellNavigation()
+    const { locale } = useLocale()
+    const { t } = useCompareTranslation()
 
     usePageMetadata({
-        title: "Compare Products",
-        description: "Compare nutrition from label photos for two Products.",
+        title: t("pageTitle"),
+        description: t("pageDescription"),
     })
 
     const [leftProduct, setLeftProduct] = useState<ProductSideState>(() =>
-        createInitialProduct("left", "Product A", "1"),
+        createInitialProduct("left", t("productA"), "1"),
     )
     const [rightProduct, setRightProduct] = useState<ProductSideState>(() =>
-        createInitialProduct("right", "Product B", "2"),
+        createInitialProduct("right", t("productB"), "2"),
     )
     const [flowPhase, setFlowPhase] = useState<CompareFlowPhase>("intro")
     const [activeSide, setActiveSide] = useState<CompareSide>("left")
@@ -164,6 +174,36 @@ export function PhotoComparisonPage({
     const rightProductRef = useRef<ProductSideState>(rightProduct)
     leftProductRef.current = leftProduct
     rightProductRef.current = rightProduct
+    const lastFocusTargetRef = useRef<string | null>(null)
+
+    useEffect(() => {
+        setLeftProduct((product) =>
+            product.titleSource === "default"
+                ? { ...product, title: t("productA") }
+                : product,
+        )
+        setRightProduct((product) =>
+            product.titleSource === "default"
+                ? { ...product, title: t("productB") }
+                : product,
+        )
+    }, [locale, t])
+
+    useEffect(() => {
+        const targetId =
+            flowPhase === "intro"
+                ? "compare-intro-heading"
+                : flowPhase === "results"
+                  ? "compare-results-heading"
+                  : flowPhase === "capture" || flowPhase === "review"
+                    ? `panel-heading-${activeSide}`
+                    : null
+        if (!targetId || targetId === lastFocusTargetRef.current) return
+        lastFocusTargetRef.current = targetId
+        window.requestAnimationFrame(() => {
+            document.getElementById(targetId)?.focus()
+        })
+    }, [activeSide, flowPhase])
 
     useEffect(() => {
         setPrimaryNavigationHidden(flowPhase !== "intro")
@@ -303,18 +343,18 @@ export function PhotoComparisonPage({
 
     const compareButtonLabel = useMemo(() => {
         if (processingStep === "extracting_left") {
-            return `Reading ${leftProduct.title}…`
+            return t("readingProduct", { product: leftProduct.title })
         }
         if (processingStep === "extracting_right") {
-            return `Reading ${rightProduct.title}…`
+            return t("readingProduct", { product: rightProduct.title })
         }
         if (processingStep === "comparing") {
-            return "Comparing…"
+            return t("comparing")
         }
         if (comparisonError || leftProduct.retry || rightProduct.retry) {
-            return "Retry comparison"
+            return t("retryComparison")
         }
-        return "Compare Products"
+        return t("compareProducts")
     }, [
         processingStep,
         leftProduct.title,
@@ -322,44 +362,56 @@ export function PhotoComparisonPage({
         leftProduct.retry,
         rightProduct.retry,
         comparisonError,
+        t,
     ])
 
     const comparisonStatus = useMemo(() => {
         if (comparisonError) return comparisonError
         if (processingStep === "extracting_left") {
-            return `Reading ${leftProduct.title} photos…`
+            return t("readingProductPhotos", { product: leftProduct.title })
         }
         if (processingStep === "extracting_right") {
-            return `Reading ${rightProduct.title} photos…`
+            return t("readingProductPhotos", { product: rightProduct.title })
         }
         if (processingStep === "comparing") {
-            return "Comparing nutrition…"
+            return t("comparingNutrition")
         }
         if (comparison) {
-            return "Based on Photo Evidence."
+            return t("basedOnEvidence")
         }
         if (
             leftProduct.photos.length === 0 ||
             rightProduct.photos.length === 0
         ) {
-            return "Add a photo for each Product."
+            return t("addEachProduct")
         }
         if (
             leftProduct.extraction &&
             (leftProduct.extraction.nutrition_columns?.length ?? 0) > 1 &&
             !leftProduct.selectedColumnId
         ) {
-            return `Select a nutrition column for ${leftProduct.title} to continue.`
+            return t("selectColumnToContinue", {
+                product: leftProduct.title,
+            })
         }
         if (
             rightProduct.extraction &&
             (rightProduct.extraction.nutrition_columns?.length ?? 0) > 1 &&
             !rightProduct.selectedColumnId
         ) {
-            return `Select a nutrition column for ${rightProduct.title} to continue.`
+            return t("selectColumnToContinue", {
+                product: rightProduct.title,
+            })
         }
-        return "Ready to compare."
-    }, [comparison, comparisonError, processingStep, leftProduct, rightProduct])
+        return t("readyToCompare")
+    }, [
+        comparison,
+        comparisonError,
+        processingStep,
+        leftProduct,
+        rightProduct,
+        t,
+    ])
 
     const invalidateComparison = () => {
         abortInFlightComparison()
@@ -388,7 +440,7 @@ export function PhotoComparisonPage({
         comparisonRequestIdRef.current += 1
         setProcessingStep("idle")
         setFlowPhase("review")
-        setComparisonNotice("Comparison cancelled. Your photos are still here.")
+        setComparisonNotice(t("comparisonCancelled"))
         setLeftProduct((prev) => ({ ...prev, loading: false }))
         setRightProduct((prev) => ({ ...prev, loading: false }))
     }
@@ -405,8 +457,8 @@ export function PhotoComparisonPage({
             URL.revokeObjectURL(photo.url)
             activeUrlsRef.current.delete(photo.url)
         }
-        setLeftProduct(createInitialProduct("left", "Product A", "1"))
-        setRightProduct(createInitialProduct("right", "Product B", "2"))
+        setLeftProduct(createInitialProduct("left", t("productA"), "1"))
+        setRightProduct(createInitialProduct("right", t("productB"), "2"))
         setInspectionState({ isOpen: false, side: "left", index: 0 })
         setColumnModalSide(null)
         setHighlightedPhotoId(null)
@@ -416,11 +468,23 @@ export function PhotoComparisonPage({
         invalidateComparison()
     }
 
-    const handleTitleChange = (side: "left" | "right", title: string) => {
+    const handleTitleChange = (
+        side: "left" | "right",
+        title: string,
+        titleSource: ProductSideState["titleSource"] = "shopper",
+    ) => {
         if (side === "left") {
-            setLeftProduct((prev) => ({ ...prev, title }))
+            setLeftProduct((prev) => ({
+                ...prev,
+                title,
+                titleSource,
+            }))
         } else {
-            setRightProduct((prev) => ({ ...prev, title }))
+            setRightProduct((prev) => ({
+                ...prev,
+                title,
+                titleSource,
+            }))
         }
     }
 
@@ -444,7 +508,9 @@ export function PhotoComparisonPage({
             if (available <= 0) {
                 return {
                     ...prev,
-                    error: `Maximum of ${MAX_PHOTOS_PER_PRODUCT} photos per Product reached.`,
+                    error: t("maxPhotos", {
+                        count: MAX_PHOTOS_PER_PRODUCT,
+                    }),
                 }
             }
 
@@ -457,13 +523,13 @@ export function PhotoComparisonPage({
             )
 
             if (invalidTypeFiles.length > 0) {
-                validationErrors.push(
-                    "Unsupported file format: only JPEG and PNG photos are supported. Please select JPEG or PNG images, or take a photo with your camera.",
-                )
+                validationErrors.push(t("unsupportedFormat"))
             }
             if (oversizedFiles.length > 0) {
                 validationErrors.push(
-                    `File size exceeds 10 MiB limit (${oversizedFiles.map((f) => f.name).join(", ")}). Please choose smaller photos or retake with standard camera resolution.`,
+                    t("fileTooLarge", {
+                        files: oversizedFiles.map((f) => f.name).join(", "),
+                    }),
                 )
             }
 
@@ -478,9 +544,7 @@ export function PhotoComparisonPage({
             if (validFiles.length === 0) {
                 return {
                     ...prev,
-                    error:
-                        validationErrors.join(" ") ||
-                        "No valid JPEG or PNG images to add.",
+                    error: validationErrors.join(" ") || t("noValidImages"),
                 }
             }
 
@@ -548,7 +612,7 @@ export function PhotoComparisonPage({
         if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
             setProduct((prev) => ({
                 ...prev,
-                error: "Unsupported file format: only JPEG and PNG photos are supported. Please select JPEG or PNG images, or take a photo with your camera.",
+                error: t("unsupportedFormat"),
             }))
             return
         }
@@ -556,7 +620,7 @@ export function PhotoComparisonPage({
         if (file.size > MAX_FILE_SIZE_BYTES) {
             setProduct((prev) => ({
                 ...prev,
-                error: `File size exceeds 10 MiB limit (${file.name}). Please choose a smaller photo or retake with standard camera resolution.`,
+                error: t("fileTooLarge", { files: file.name }),
             }))
             return
         }
@@ -721,7 +785,8 @@ export function PhotoComparisonPage({
                     setComparisonError(
                         actionableRequestError(
                             err,
-                            "The comparison request failed.",
+                            t("comparisonFailed"),
+                            locale,
                         ),
                     )
                     setFlowPhase("review")
@@ -797,15 +862,14 @@ export function PhotoComparisonPage({
                             : null
 
                     let updatedTitle = leftProductRef.current.title
-                    const isDefaultTitle =
-                        updatedTitle === "Product A" ||
-                        updatedTitle === "Product B"
-                    if (isDefaultTitle) {
+                    let updatedTitleSource = leftProductRef.current.titleSource
+                    if (updatedTitleSource === "default") {
                         const brand = ext.identity?.brand?.value_text?.trim()
                         const name = ext.identity?.name?.value_text?.trim()
                         const detected = [brand, name].filter(Boolean).join(" ")
                         if (detected) {
                             updatedTitle = detected
+                            updatedTitleSource = "photo_evidence"
                         }
                     }
 
@@ -815,6 +879,7 @@ export function PhotoComparisonPage({
                         extraction: ext,
                         selectedColumnId: defaultColId,
                         title: updatedTitle,
+                        titleSource: updatedTitleSource,
                         retry: false,
                     }
 
@@ -826,6 +891,7 @@ export function PhotoComparisonPage({
                             extraction: ext,
                             selectedColumnId: defaultColId,
                             title: updatedTitle,
+                            titleSource: updatedTitleSource,
                             retry: false,
                         }
                     })
@@ -842,7 +908,8 @@ export function PhotoComparisonPage({
                     }
                     const message = actionableRequestError(
                         err,
-                        "The extraction request failed. Check the provider and retry.",
+                        t("extractionFailed"),
+                        locale,
                     )
                     setLeftProduct((prev) => {
                         if (prev.revision !== initialLeftRevision) return prev
@@ -913,15 +980,14 @@ export function PhotoComparisonPage({
                             : null
 
                     let updatedTitle = rightProductRef.current.title
-                    const isDefaultTitle =
-                        updatedTitle === "Product A" ||
-                        updatedTitle === "Product B"
-                    if (isDefaultTitle) {
+                    let updatedTitleSource = rightProductRef.current.titleSource
+                    if (updatedTitleSource === "default") {
                         const brand = ext.identity?.brand?.value_text?.trim()
                         const name = ext.identity?.name?.value_text?.trim()
                         const detected = [brand, name].filter(Boolean).join(" ")
                         if (detected) {
                             updatedTitle = detected
+                            updatedTitleSource = "photo_evidence"
                         }
                     }
 
@@ -931,6 +997,7 @@ export function PhotoComparisonPage({
                         extraction: ext,
                         selectedColumnId: defaultColId,
                         title: updatedTitle,
+                        titleSource: updatedTitleSource,
                         retry: false,
                     }
 
@@ -942,6 +1009,7 @@ export function PhotoComparisonPage({
                             extraction: ext,
                             selectedColumnId: defaultColId,
                             title: updatedTitle,
+                            titleSource: updatedTitleSource,
                             retry: false,
                         }
                     })
@@ -957,7 +1025,8 @@ export function PhotoComparisonPage({
                     }
                     const message = actionableRequestError(
                         err,
-                        "The extraction request failed. Check the provider and retry.",
+                        t("extractionFailed"),
+                        locale,
                     )
                     setRightProduct((prev) => {
                         if (prev.revision !== rightRevision) return prev
@@ -1047,10 +1116,7 @@ export function PhotoComparisonPage({
                     return
                 }
                 setComparisonError(
-                    actionableRequestError(
-                        err,
-                        "The comparison request failed. Retry when both extractions are ready.",
-                    ),
+                    actionableRequestError(err, t("comparisonFailed"), locale),
                 )
                 setFlowPhase("review")
             } finally {
@@ -1127,12 +1193,40 @@ export function PhotoComparisonPage({
     }
 
     return (
-        <div className="min-h-full pb-8 text-neutral-900">
+        <div
+            className="min-h-full pb-8 text-neutral-900"
+            lang={locale === "km" ? "km" : "en"}
+        >
+            <div
+                className="sr-only"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+            >
+                {comparisonError || leftProduct.error || rightProduct.error
+                    ? ""
+                    : comparisonStatus
+                      ? `${t("statusPrefix")}: ${comparisonStatus}`
+                      : ""}
+            </div>
+            <div
+                className="sr-only"
+                role="alert"
+                aria-live="assertive"
+                aria-atomic="true"
+            >
+                {comparisonError || leftProduct.error || rightProduct.error
+                    ? `${t("alertPrefix")}: ${comparisonError || leftProduct.error || rightProduct.error}`
+                    : ""}
+            </div>
             {/* Main Content */}
-            <main className="mx-auto w-full max-w-3xl px-4 py-5 pb-32 sm:px-6 sm:py-7 sm:pb-12">
+            <main
+                aria-busy={processingStep !== "idle"}
+                className="mx-auto w-full max-w-3xl px-4 py-5 pb-32 sm:px-6 sm:py-7 sm:pb-12"
+            >
                 {/* Header / Toolbar */}
                 {isResultsPage ? (
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
                         <Button
                             type="button"
                             variant="outline"
@@ -1140,48 +1234,57 @@ export function PhotoComparisonPage({
                             className="gap-1.5 font-semibold text-neutral-700 hover:text-neutral-900"
                         >
                             <ArrowLeft size={17} weight="bold" />
-                            <span>Edit products</span>
+                            <span>{t("editProducts")}</span>
                         </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={handleResetSession}
-                            aria-label="Reset session"
-                            title="Reset session"
-                            className="size-10 shrink-0 rounded-xl text-neutral-700 hover:text-neutral-900 sm:size-11"
-                        >
-                            <ArrowCounterClockwise size={18} weight="bold" />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <LanguageSelector />
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={handleResetSession}
+                                aria-label={t("resetSession")}
+                                title={t("resetSession")}
+                                className="size-11 shrink-0 rounded-xl text-neutral-700 hover:text-neutral-900"
+                            >
+                                <ArrowCounterClockwise
+                                    size={18}
+                                    weight="bold"
+                                />
+                            </Button>
+                        </div>
                     </div>
                 ) : (
                     <div className="flex flex-col gap-2">
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                                 <h1 className="text-2xl font-extrabold tracking-tight text-neutral-950 sm:text-3xl">
-                                    Compare Products
+                                    {t("pageTitle")}
                                 </h1>
                                 <p className="mt-1 text-xs text-neutral-500 sm:text-sm">
-                                    Compare nutrition from two label photos.
+                                    {t("pageSubtitle")}
                                 </p>
                             </div>
-                            {flowPhase !== "intro" &&
-                                flowPhase !== "processing" && (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={handleResetSession}
-                                        aria-label="Reset session"
-                                        title="Reset session"
-                                        className="size-10 shrink-0 rounded-xl text-neutral-700 hover:text-neutral-900 sm:size-11"
-                                    >
-                                        <ArrowCounterClockwise
-                                            size={18}
-                                            weight="bold"
-                                        />
-                                    </Button>
-                                )}
+                            <div className="flex shrink-0 items-center gap-2">
+                                <LanguageSelector />
+                                {flowPhase !== "intro" &&
+                                    flowPhase !== "processing" && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={handleResetSession}
+                                            aria-label={t("resetSession")}
+                                            title={t("resetSession")}
+                                            className="size-11 shrink-0 rounded-xl text-neutral-700 hover:text-neutral-900"
+                                        >
+                                            <ArrowCounterClockwise
+                                                size={18}
+                                                weight="bold"
+                                            />
+                                        </Button>
+                                    )}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -1195,7 +1298,7 @@ export function PhotoComparisonPage({
                     accept="image/jpeg,image/png"
                     multiple
                     tabIndex={-1}
-                    aria-label="Choose photos for Product A"
+                    aria-label={t("choosePhotosA")}
                     className="sr-only"
                     onChange={(event) => {
                         if (event.target.files?.length) {
@@ -1216,7 +1319,7 @@ export function PhotoComparisonPage({
                     accept="image/jpeg,image/png"
                     multiple
                     tabIndex={-1}
-                    aria-label="Choose photos for Product B"
+                    aria-label={t("choosePhotosB")}
                     className="sr-only"
                     onChange={(event) => {
                         if (event.target.files?.length) {
@@ -1237,7 +1340,7 @@ export function PhotoComparisonPage({
                     accept="image/jpeg,image/png"
                     capture="environment"
                     tabIndex={-1}
-                    aria-label="Take a photo for Product A"
+                    aria-label={t("takePhotoA")}
                     className="sr-only"
                     onChange={(event) => {
                         if (event.target.files?.length) {
@@ -1258,7 +1361,7 @@ export function PhotoComparisonPage({
                     accept="image/jpeg,image/png"
                     capture="environment"
                     tabIndex={-1}
-                    aria-label="Take a photo for Product B"
+                    aria-label={t("takePhotoB")}
                     className="sr-only"
                     onChange={(event) => {
                         if (event.target.files?.length) {
@@ -1281,7 +1384,12 @@ export function PhotoComparisonPage({
                                 type="file"
                                 accept="image/jpeg,image/png"
                                 tabIndex={-1}
-                                aria-label={`Replace ${side === "left" ? "Product A" : "Product B"} photo ${index + 1}`}
+                                aria-label={t(
+                                    side === "left"
+                                        ? "replacePhotoA"
+                                        : "replacePhotoB",
+                                    { number: index + 1 },
+                                )}
                                 className="sr-only"
                                 onChange={(event) => {
                                     const file = event.target.files?.[0]
@@ -1335,15 +1443,13 @@ export function PhotoComparisonPage({
                                     <div className="min-w-0">
                                         <h2
                                             id="compare-intro-heading"
+                                            tabIndex={-1}
                                             className="text-xl font-extrabold tracking-tight text-neutral-950 sm:text-2xl"
                                         >
-                                            Compare two Products
+                                            {t("compareTwo")}
                                         </h2>
                                         <p className="mt-2 text-sm leading-relaxed text-neutral-600 sm:text-base">
-                                            Add a clear Nutrition Facts photo
-                                            for each Product. You can take a
-                                            photo or choose one from your
-                                            library.
+                                            {t("intro")}
                                         </p>
                                     </div>
                                 </div>
@@ -1355,7 +1461,7 @@ export function PhotoComparisonPage({
                                         className="shadow-action-lift h-12 gap-2 rounded-xl px-5 font-extrabold"
                                     >
                                         <ArrowRight size={19} weight="bold" />
-                                        <span>Get started</span>
+                                        <span>{t("getStarted")}</span>
                                     </Button>
                                 </div>
 
@@ -1371,7 +1477,7 @@ export function PhotoComparisonPage({
                             </section>
                         ) : flowPhase !== "results" || !comparison ? (
                             <section
-                                aria-label="Guided Product capture"
+                                aria-label={t("guidedCapture")}
                                 className="mt-3 sm:mt-4"
                             >
                                 <ProductPhotoPanel
@@ -1382,8 +1488,12 @@ export function PhotoComparisonPage({
                                     }
                                     highlightedPhotoId={highlightedPhotoId}
                                     previewRefs={previewRefs}
-                                    onTitleChange={(title) =>
-                                        handleTitleChange(activeSide, title)
+                                    onTitleChange={(title, source) =>
+                                        handleTitleChange(
+                                            activeSide,
+                                            title,
+                                            source,
+                                        )
                                     }
                                     onAddFiles={(files) =>
                                         handleAddFiles(activeSide, files)
@@ -1516,15 +1626,19 @@ export function PhotoComparisonPage({
                                                                                 <div className="min-w-0">
                                                                                     <p className="truncate text-xs font-semibold text-neutral-800">
                                                                                         {column.label ||
-                                                                                            "Nutrition column"}
+                                                                                            t(
+                                                                                                "nutritionColumn",
+                                                                                            )}
                                                                                     </p>
                                                                                     <p className="mt-0.5 text-xs text-neutral-500">
                                                                                         {displayBasisLabel(
                                                                                             column.basis,
+                                                                                            locale,
                                                                                         )}{" "}
                                                                                         ·{" "}
                                                                                         {formatPreparationLabel(
                                                                                             column.preparation_state,
+                                                                                            locale,
                                                                                         )}
                                                                                     </p>
                                                                                 </div>
@@ -1545,8 +1659,12 @@ export function PhotoComparisonPage({
                                                                                     className="h-8 shrink-0 text-xs font-semibold"
                                                                                 >
                                                                                     {isSelected
-                                                                                        ? "Selected"
-                                                                                        : "Select column"}
+                                                                                        ? t(
+                                                                                              "selected",
+                                                                                          )
+                                                                                        : t(
+                                                                                              "selectColumn",
+                                                                                          )}
                                                                                 </Button>
                                                                             </div>
                                                                         )
@@ -1564,7 +1682,7 @@ export function PhotoComparisonPage({
                                     flowPhase === "review") && (
                                     <div
                                         role="group"
-                                        aria-label="Photo capture navigation"
+                                        aria-label={t("captureNavigation")}
                                         data-glass-surface=""
                                         className="glass-surface fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-full p-1.5 backdrop-blur-xl"
                                     >
@@ -1574,8 +1692,8 @@ export function PhotoComparisonPage({
                                                 variant="ghost"
                                                 aria-label={
                                                     comparison
-                                                        ? "Back to comparison results"
-                                                        : "Back to start"
+                                                        ? t("backToResults")
+                                                        : t("backToStart")
                                                 }
                                                 disabled={
                                                     processingStep !== "idle"
@@ -1589,14 +1707,14 @@ export function PhotoComparisonPage({
                                                     size={17}
                                                     weight="bold"
                                                 />
-                                                <span>Back</span>
+                                                <span>{t("back")}</span>
                                             </Button>
                                         )}
                                         {activeSide === "right" && (
                                             <Button
                                                 type="button"
                                                 variant="ghost"
-                                                aria-label="Back to Product A"
+                                                aria-label={t("backToProductA")}
                                                 disabled={
                                                     processingStep !== "idle"
                                                 }
@@ -1609,7 +1727,7 @@ export function PhotoComparisonPage({
                                                     size={17}
                                                     weight="bold"
                                                 />
-                                                <span>Back</span>
+                                                <span>{t("back")}</span>
                                             </Button>
                                         )}
                                         <Button
@@ -1617,9 +1735,9 @@ export function PhotoComparisonPage({
                                             variant="default"
                                             aria-label={
                                                 activeSide === "left"
-                                                    ? "Continue to Product B"
+                                                    ? t("continueToProductB")
                                                     : comparison
-                                                      ? "Return to comparison results"
+                                                      ? t("returnToResults")
                                                       : compareButtonLabel
                                             }
                                             disabled={
@@ -1638,9 +1756,9 @@ export function PhotoComparisonPage({
                                         >
                                             <span>
                                                 {activeSide === "left"
-                                                    ? "Next"
+                                                    ? t("next")
                                                     : comparison
-                                                      ? "Results"
+                                                      ? t("results")
                                                       : compareButtonLabel}
                                             </span>
                                             {activeSide === "right" &&
@@ -1668,10 +1786,16 @@ export function PhotoComparisonPage({
                     <section
                         id="compare-results-page"
                         role="region"
-                        aria-label="Comparison results"
+                        aria-label={t("comparisonResults")}
                         className="flex flex-col gap-4"
                     >
-                        <h1 className="sr-only">Comparison results</h1>
+                        <h1
+                            id="compare-results-heading"
+                            tabIndex={-1}
+                            className="sr-only"
+                        >
+                            {t("comparisonResults")}
+                        </h1>
                         {/* Multi-column basis selector on the results page */}
                         {((leftProduct.extraction?.nutrition_columns?.length ??
                             0) > 1 ||
@@ -1686,10 +1810,10 @@ export function PhotoComparisonPage({
                                         id="results-basis-heading"
                                         className="text-sm font-bold text-neutral-900"
                                     >
-                                        Nutrition basis
+                                        {t("nutritionBasis")}
                                     </h3>
                                     <p className="text-xs text-neutral-500">
-                                        Switch the column used for comparison.
+                                        {t("switchColumn")}
                                     </p>
                                 </div>
                                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
@@ -1723,7 +1847,9 @@ export function PhotoComparisonPage({
                                                             className="h-8 text-xs font-semibold"
                                                         >
                                                             {col.label ||
-                                                                "Nutrition column"}
+                                                                t(
+                                                                    "nutritionColumn",
+                                                                )}
                                                         </Button>
                                                     )
                                                 },
@@ -1760,7 +1886,9 @@ export function PhotoComparisonPage({
                                                             className="h-8 text-xs font-semibold"
                                                         >
                                                             {col.label ||
-                                                                "Nutrition column"}
+                                                                t(
+                                                                    "nutritionColumn",
+                                                                )}
                                                         </Button>
                                                     )
                                                 },
@@ -1817,13 +1945,13 @@ export function PhotoComparisonPage({
                     (rightProduct.extraction.nutrition_columns?.length ?? 0) >
                         1 &&
                     !rightProduct.selectedColumnId
-                        ? "Step 1 of 2"
+                        ? t("stepOf", { current: 1, total: 2 })
                         : columnModalSide === "right" &&
                             leftProduct.extraction &&
                             (leftProduct.extraction.nutrition_columns?.length ??
                                 0) > 1 &&
                             !leftProduct.selectedColumnId
-                          ? "Step 2 of 2"
+                          ? t("stepOf", { current: 2, total: 2 })
                           : undefined
                 }
             />

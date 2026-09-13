@@ -403,8 +403,6 @@ body {
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
-:lang(kh),
-[lang="kh"],
 :lang(km),
 [lang="km"] {
     font-family:
@@ -412,12 +410,6 @@ body {
     letter-spacing: normal;
 }
 
-:lang(kh) h1,
-:lang(kh) h2,
-:lang(kh) h3,
-[lang="kh"] h1,
-[lang="kh"] h2,
-[lang="kh"] h3,
 :lang(km) h1,
 :lang(km) h2,
 :lang(km) h3,

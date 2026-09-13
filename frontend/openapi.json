@@ -3920,7 +3920,7 @@
             }
           },
           {
-            "description": "Optional target language for product translation. Only 'kh' is supported; 'km' returns unsupported_language. Omit to skip generation. External source language tags remain unchanged.",
+            "description": "Optional target language for product translation. Only 'km' is supported; other language values return unsupported_language. Omit to skip generation. External source language tags remain unchanged.",
             "in": "query",
             "name": "language",
             "required": false,
@@ -3933,7 +3933,7 @@
                   "type": "null"
                 }
               ],
-              "description": "Optional target language for product translation. Only 'kh' is supported; 'km' returns unsupported_language. Omit to skip generation. External source language tags remain unchanged.",
+              "description": "Optional target language for product translation. Only 'km' is supported; other language values return unsupported_language. Omit to skip generation. External source language tags remain unchanged.",
               "title": "Language"
             }
           }

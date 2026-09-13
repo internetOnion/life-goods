@@ -1,12 +1,19 @@
 import { Check, X } from "@phosphor-icons/react"
-import { useEffect } from "react"
+import { useRef } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { GlassButton as Button } from "@/components/ui/button"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogTitle,
+} from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 
 import { displayBasisLabel, formatPreparationLabel } from "./helpers"
 import type { ProductSideState } from "./types"
+import { useCompareTranslation } from "./translations"
 
 interface ColumnSelectionModalProps {
     isOpen: boolean
@@ -25,18 +32,8 @@ export function ColumnSelectionModal({
     onSelectColumn,
     stepIndicator,
 }: ColumnSelectionModalProps) {
-    useEffect(() => {
-        if (!isOpen) return
-
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "Escape") {
-                onClose()
-            }
-        }
-
-        window.addEventListener("keydown", handleKeyDown)
-        return () => window.removeEventListener("keydown", handleKeyDown)
-    }, [isOpen, onClose])
+    const { locale, t } = useCompareTranslation()
+    const closeButtonRef = useRef<HTMLButtonElement>(null)
 
     if (!isOpen || !product || !product.extraction) {
         return null
@@ -46,20 +43,16 @@ export function ColumnSelectionModal({
     const selectedColumnId = product.selectedColumnId
 
     return (
-        <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="column-selection-title"
-            aria-describedby="column-selection-desc"
-            className="animate-in fade-in-0 fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-xs duration-200 sm:items-center sm:p-4"
-        >
-            <div
-                className="fixed inset-0"
-                onClick={onClose}
-                aria-hidden="true"
-            />
-
-            <div className="relative z-10 flex max-h-[85vh] w-full max-w-lg flex-col rounded-t-3xl border border-neutral-200 bg-white p-5 shadow-2xl sm:rounded-3xl sm:p-6">
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent
+                showClose={false}
+                aria-describedby="column-selection-desc"
+                onOpenAutoFocus={(event) => {
+                    event.preventDefault()
+                    closeButtonRef.current?.focus()
+                }}
+                className="top-auto bottom-0 max-h-[85vh] max-w-lg translate-y-0 grid-cols-1 overflow-hidden rounded-t-3xl rounded-b-none p-5 sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2 sm:rounded-3xl sm:p-6"
+            >
                 {/* Mobile drag affordance */}
                 <div
                     className="mx-auto mb-3 h-1 w-10 rounded-full bg-neutral-200 sm:hidden"
@@ -79,34 +72,31 @@ export function ColumnSelectionModal({
                                 </Badge>
                             )}
                             <span className="font-mono text-xs text-neutral-500">
-                                Product {product.number}
+                                {t("productNumber", {
+                                    number: product.number,
+                                })}
                             </span>
                         </div>
-                        <h2
-                            id="column-selection-title"
-                            className="mt-1 text-lg font-extrabold tracking-tight text-neutral-950 sm:text-xl"
-                        >
-                            Select nutrition column for {product.title}
-                        </h2>
-                        <p
+                        <DialogTitle className="mt-1 text-lg font-extrabold tracking-tight text-neutral-950 sm:text-xl">
+                            {t("selectFor", { product: product.title })}
+                        </DialogTitle>
+                        <DialogDescription
                             id="column-selection-desc"
                             className="mt-1 text-xs text-neutral-600 sm:text-sm"
                         >
-                            This package label has multiple nutrition columns.
-                            Choose which basis to compare against{" "}
-                            <strong className="text-neutral-900">
-                                {otherProductTitle}
-                            </strong>
-                            :
-                        </p>
+                            {t("multipleColumns", {
+                                other: otherProductTitle,
+                            })}
+                        </DialogDescription>
                     </div>
 
                     <Button
+                        ref={closeButtonRef}
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={onClose}
-                        aria-label="Close column selection"
+                        aria-label={t("closeColumnSelection")}
                         className="size-9 shrink-0 rounded-full p-0 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
                     >
                         <X size={18} weight="bold" />
@@ -117,9 +107,10 @@ export function ColumnSelectionModal({
                 <div className="mt-4 flex-1 space-y-3 overflow-y-auto pr-1">
                     {columns.map((col) => {
                         const isSelected = selectedColumnId === col.column_id
-                        const basisLabel = displayBasisLabel(col.basis)
+                        const basisLabel = displayBasisLabel(col.basis, locale)
                         const prepLabel = formatPreparationLabel(
                             col.preparation_state,
+                            locale,
                         )
                         const fieldCount = col.fields?.length ?? 0
 
@@ -136,7 +127,7 @@ export function ColumnSelectionModal({
                                 <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-2">
                                         <h3 className="text-sm font-bold text-neutral-950">
-                                            {col.label || "Nutrition column"}
+                                            {col.label || t("nutritionColumn")}
                                         </h3>
                                         {isSelected && (
                                             <span className="bg-primary-600 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-white">
@@ -144,17 +135,22 @@ export function ColumnSelectionModal({
                                                     size={11}
                                                     weight="bold"
                                                 />
-                                                <span>Active</span>
+                                                <span>{t("active")}</span>
                                             </span>
                                         )}
                                     </div>
                                     <p className="mt-0.5 text-xs font-medium text-neutral-600">
-                                        Basis: {basisLabel} ({prepLabel})
+                                        {t("basisWithPrep", {
+                                            basis: basisLabel,
+                                            preparation: prepLabel,
+                                        })}
                                     </p>
                                     <p className="mt-1 text-xs text-neutral-400">
                                         {fieldCount > 0
-                                            ? `${fieldCount} visible nutrients detected`
-                                            : "No visible nutrient values"}
+                                            ? t("fieldsDetected", {
+                                                  count: fieldCount,
+                                              })
+                                            : t("noVisibleNutrients")}
                                     </p>
                                 </div>
 
@@ -173,8 +169,8 @@ export function ColumnSelectionModal({
                                     )}
                                 >
                                     {isSelected
-                                        ? "Selected"
-                                        : "Choose this basis"}
+                                        ? t("selected")
+                                        : t("chooseBasis")}
                                 </Button>
                             </article>
                         )
@@ -183,7 +179,7 @@ export function ColumnSelectionModal({
 
                 {/* Footer instructions */}
                 <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-3 text-xs text-neutral-500">
-                    <span>You can switch columns anytime after comparing.</span>
+                    <span>{t("switchAnytime")}</span>
                     <Button
                         type="button"
                         variant="ghost"
@@ -191,10 +187,10 @@ export function ColumnSelectionModal({
                         onClick={onClose}
                         className="text-xs text-neutral-600 hover:text-neutral-900"
                     >
-                        Dismiss
+                        {t("dismiss")}
                     </Button>
                 </div>
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     )
 }

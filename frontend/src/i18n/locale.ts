@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react"
 
-export type AppLocale = "en" | "kh"
+export type AppLocale = "en" | "km"
 
 export const enabledLocales = ["en"] as const satisfies readonly AppLocale[]
 

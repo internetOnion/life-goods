@@ -4,6 +4,7 @@ import { GlassButton as Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 import type { ProductSideState } from "./types"
+import { useCompareTranslation } from "./translations"
 
 type ProcessingStep =
     "idle" | "extracting_left" | "extracting_right" | "comparing"
@@ -36,6 +37,7 @@ function getStageState(
 }
 
 function ProductIdentity({ product }: { product: ProductSideState }) {
+    const { t } = useCompareTranslation()
     const preview = product.photos[0]
 
     return (
@@ -51,7 +53,7 @@ function ProductIdentity({ product }: { product: ProductSideState }) {
             </div>
             <div className="min-w-0">
                 <p className="text-xs font-bold text-neutral-500">
-                    Product {product.number === "1" ? "A" : "B"}
+                    {product.number === "1" ? t("productA") : t("productB")}
                 </p>
                 <p className="mt-0.5 text-sm font-extrabold wrap-anywhere text-neutral-950">
                     {product.title}
@@ -67,31 +69,32 @@ export function ComparisonProcessingSheet({
     rightProduct,
     onCancel,
 }: ComparisonProcessingSheetProps) {
+    const { t } = useCompareTranslation()
     const isComparing = processingStep === "comparing"
     const heading = isComparing
-        ? "Building your comparison"
+        ? t("buildingComparison")
         : processingStep === "idle"
-          ? "Preparing your labels"
-          : "Reading your labels"
+          ? t("preparingLabels")
+          : t("readingLabels")
     const status =
         processingStep === "extracting_left"
-            ? `Reading ${leftProduct.title} photos…`
+            ? t("readingProductPhotos", { product: leftProduct.title })
             : processingStep === "extracting_right"
-              ? `Reading ${rightProduct.title} photos…`
+              ? t("readingProductPhotos", { product: rightProduct.title })
               : processingStep === "comparing"
-                ? "Comparing nutrition…"
-                : "Preparing your photos…"
+                ? t("comparingNutrition")
+                : t("preparingPhotos")
 
     const stages = [
         {
             key: "left" as const,
-            label: `Read ${leftProduct.title} label`,
+            label: t("readLabel", { product: leftProduct.title }),
         },
         {
             key: "right" as const,
-            label: `Read ${rightProduct.title} label`,
+            label: t("readLabel", { product: rightProduct.title }),
         },
-        { key: "compare" as const, label: "Compare nutrition" },
+        { key: "compare" as const, label: t("compareNutrition") },
     ]
 
     return (
@@ -119,7 +122,7 @@ export function ComparisonProcessingSheet({
             </div>
 
             <p className="mt-4 text-sm leading-relaxed text-neutral-700">
-                Keep this page open. You can cancel without losing your photos.
+                {t("keepOpen")}
             </p>
 
             <div className="mt-5 grid gap-3 border-y border-neutral-200 py-4 sm:grid-cols-2">
@@ -127,7 +130,7 @@ export function ComparisonProcessingSheet({
                 <ProductIdentity product={rightProduct} />
             </div>
 
-            <ol className="mt-5 space-y-1" aria-label="Comparison progress">
+            <ol className="mt-5 space-y-1" aria-label={t("comparisonProgress")}>
                 {stages.map((stage, index) => {
                     const state = getStageState(stage.key, processingStep)
 
@@ -176,10 +179,10 @@ export function ComparisonProcessingSheet({
                             </span>
                             <span className="sr-only">
                                 {state === "complete"
-                                    ? " complete"
+                                    ? ` ${t("complete")}`
                                     : state === "active"
-                                      ? " in progress"
-                                      : " waiting"}
+                                      ? ` ${t("inProgress")}`
+                                      : ` ${t("waiting")}`}
                             </span>
                         </li>
                     )
@@ -188,8 +191,7 @@ export function ComparisonProcessingSheet({
 
             <div className="mt-5 border-t border-neutral-200 pt-4">
                 <p className="text-xs leading-relaxed text-neutral-600">
-                    Photos are sent to the configured processing provider. Life
-                    Goods does not save your photos or comparison history.
+                    {t("providerPrivacy")}
                 </p>
                 <Button
                     type="button"
@@ -198,7 +200,7 @@ export function ComparisonProcessingSheet({
                     className="mt-4 h-11 w-full gap-2 rounded-xl font-bold text-neutral-800 sm:w-auto"
                 >
                     <X size={16} weight="bold" aria-hidden="true" />
-                    <span>Cancel comparison</span>
+                    <span>{t("cancelComparison")}</span>
                 </Button>
             </div>
         </section>

@@ -37,7 +37,7 @@ def test_empty_product_returns_source_data_unavailable_without_provider_calls() 
     provider = FakeTranslationProvider()
     module = KhmerTranslationModule(provider=provider)
 
-    result = module.translate_product(_empty_product(), target_language="kh")
+    result = module.translate_product(_empty_product(), target_language="km")
 
     assert result.overall_status == TranslationOverallStatus.NOT_NEEDED
     assert provider.call_count == 0
@@ -66,7 +66,7 @@ def test_source_provided_khmer_bypasses_provider() -> None:
     provider = FakeTranslationProvider()
     module = KhmerTranslationModule(provider=provider)
 
-    result = module.translate_product(product, target_language="kh")
+    result = module.translate_product(product, target_language="km")
 
     assert result.overall_status == TranslationOverallStatus.NOT_NEEDED
     assert provider.call_count == 0
@@ -150,7 +150,7 @@ def test_translate_fields_with_token_protection_and_restoration() -> None:
 
     module = KhmerTranslationModule(provider=provider)
 
-    result = module.translate_product(product, target_language="kh")
+    result = module.translate_product(product, target_language="km")
 
     assert result.overall_status == TranslationOverallStatus.COMPLETE
     assert provider.call_count == 1
@@ -209,7 +209,7 @@ def test_partial_translation_survives_when_one_field_fails_validation() -> None:
     )
     module = KhmerTranslationModule(provider=provider)
 
-    result = module.translate_product(product, target_language="kh")
+    result = module.translate_product(product, target_language="km")
 
     assert result.overall_status == TranslationOverallStatus.PARTIAL
 
@@ -242,7 +242,7 @@ def test_non_khmer_output_fails_validation() -> None:
     )
     module = KhmerTranslationModule(provider=provider)
 
-    result = module.translate_product(product, target_language="kh")
+    result = module.translate_product(product, target_language="km")
 
     assert result.overall_status == TranslationOverallStatus.UNAVAILABLE
     assert result.fields["product_name"].status == TranslationFieldStatus.TRANSLATION_UNAVAILABLE
@@ -259,7 +259,7 @@ def test_brand_only_product_name_preserves_original_text_without_provider_call()
     ]
 
     provider = FakeTranslationProvider()
-    result = KhmerTranslationModule(provider).translate_product(product, target_language="kh")
+    result = KhmerTranslationModule(provider).translate_product(product, target_language="km")
 
     assert result.overall_status == TranslationOverallStatus.NOT_NEEDED
     assert result.fields["product_name"].status == TranslationFieldStatus.ORIGINAL_TEXT_PRESERVED
@@ -284,7 +284,7 @@ def test_oversized_output_fails_bounds_check() -> None:
     )
     module = KhmerTranslationModule(provider=provider)
 
-    result = module.translate_product(product, target_language="kh")
+    result = module.translate_product(product, target_language="km")
 
     assert result.overall_status == TranslationOverallStatus.UNAVAILABLE
     assert result.fields["product_name"].status == TranslationFieldStatus.TRANSLATION_UNAVAILABLE
@@ -363,7 +363,7 @@ def test_khmer_translation_module_end_to_end_with_gemini_adapter() -> None:
     )
 
     module = KhmerTranslationModule(provider=adapter)
-    result = module.translate_product(product, target_language="kh")
+    result = module.translate_product(product, target_language="km")
 
     assert result.overall_status == TranslationOverallStatus.COMPLETE
     assert result.fields["product_name"].status == TranslationFieldStatus.GENERATED
@@ -433,7 +433,7 @@ def test_storage_instruction_items_translation_and_partial_survival() -> None:
         }
     )
     module = KhmerTranslationModule(provider=provider)
-    result = module.translate_product(product, target_language="kh")
+    result = module.translate_product(product, target_language="km")
 
     assert result.overall_status == TranslationOverallStatus.PARTIAL
 
@@ -488,7 +488,7 @@ def test_category_items_translated_and_legacy_categories_assembled_on_complete()
         }
     )
     module = KhmerTranslationModule(provider=provider)
-    result = module.translate_product(product, target_language="kh")
+    result = module.translate_product(product, target_language="km")
 
     assert result.overall_status == TranslationOverallStatus.COMPLETE
     assert result.fields["category_0"].status == TranslationFieldStatus.GENERATED
@@ -537,7 +537,7 @@ def test_category_items_partial_leaves_legacy_categories_unavailable() -> None:
         }
     )
     module = KhmerTranslationModule(provider=provider)
-    result = module.translate_product(product, target_language="kh")
+    result = module.translate_product(product, target_language="km")
 
     assert result.overall_status == TranslationOverallStatus.PARTIAL
     assert result.fields["category_0"].status == TranslationFieldStatus.GENERATED

@@ -64,7 +64,7 @@ const SUPPORTING_ENTRIES = KNOWLEDGE_ENTRIES.filter(
 )
 
 function currentLocale(language: string | undefined): LearnLocale {
-    return language === "en" ? "en" : "kh"
+    return language === "en" ? "en" : "km"
 }
 
 function localized(value: LocalizedText | undefined, locale: LearnLocale) {
@@ -117,7 +117,7 @@ const foodScoreTableLabels = {
         level: "Level",
         meaning: "What it means",
     },
-    kh: {
+    km: {
         heading: "កម្រិតពិន្ទុ និងអត្ថន័យ",
         level: "កម្រិត",
         meaning: "អត្ថន័យ",
@@ -543,9 +543,9 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
     const matchedEntry = KNOWLEDGE_ENTRIES.find((item) => item.slug === slug)
     const entry =
         matchedEntry?.kind === "sourced" || demoMode ? matchedEntry : undefined
-    const contentLocale = entry && entry.title.kh ? locale : "en"
+    const contentLocale = entry && entry.title.km ? locale : "en"
     const hasLanguageFallback = Boolean(
-        entry && locale === "kh" && !entry.title.kh,
+        entry && locale === "km" && !entry.title.km,
     )
     usePageMetadata({
         title:
@@ -1457,7 +1457,7 @@ function LessonPagination({
                         to={articlePath(firstEntry.slug)}
                         aria-label={t("learn.firstLesson")}
                     >
-                        {locale === "kh" ? "ដំបូង" : "First"}
+                        {locale === "km" ? "ដំបូង" : "First"}
                     </Link>
                 ) : null}
 
@@ -1487,7 +1487,7 @@ function LessonPagination({
                         to={articlePath(lastEntry.slug)}
                         aria-label={t("learn.lastLesson")}
                     >
-                        {locale === "kh" ? "ចុងក្រោយ" : "Last"}
+                        {locale === "km" ? "ចុងក្រោយ" : "Last"}
                     </Link>
                 ) : null}
             </div>

@@ -47,6 +47,7 @@ export interface ProductPhoto {
 export interface ProductSideState {
     id: "left" | "right"
     title: string
+    titleSource?: "default" | "shopper" | "photo_evidence"
     number: "1" | "2"
     photos: ProductPhoto[]
     extraction: import("@/api/generated").Extraction | null

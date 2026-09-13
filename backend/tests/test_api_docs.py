@@ -128,14 +128,16 @@ def test_stable_product_lookup_is_typed_in_openapi(client: TestClient) -> None:
                 ],
                 "description": (
                     "Optional target language for product translation. "
-                    "Only 'kh' is supported; 'km' returns unsupported_language. "
+                        "Only 'km' is supported; other language values return "
+                        "unsupported_language. "
                     "Omit to skip generation. External source language tags remain unchanged."
                 ),
                 "title": "Language",
             },
             "description": (
                 "Optional target language for product translation. "
-                "Only 'kh' is supported; 'km' returns unsupported_language. "
+                    "Only 'km' is supported; other language values return "
+                    "unsupported_language. "
                 "Omit to skip generation. External source language tags remain unchanged."
             ),
         },

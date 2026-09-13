@@ -1,22 +1,22 @@
 import type { LearnGuide } from "./types"
 
 const commonTableHeadings = {
-    itemHeading: { kh: "អ្វីដែលត្រូវមើល", en: "What to look for" },
-    meaningHeading: { kh: "អត្ថន័យ", en: "What it means" },
+    itemHeading: { km: "អ្វីដែលត្រូវមើល", en: "What to look for" },
+    meaningHeading: { km: "អត្ថន័យ", en: "What it means" },
     boundaryHeading: {
-        kh: "អ្វីដែលវាមិនបញ្ជាក់",
+        km: "អ្វីដែលវាមិនបញ្ជាក់",
         en: "What it does not prove",
     },
-    sourceHeading: { kh: "ប្រភព", en: "Source" },
+    sourceHeading: { km: "ប្រភព", en: "Source" },
 }
 
 export const LEARN_GUIDES: LearnGuide[] = [
     {
         slug: "how-to-read-a-label",
         category: "label",
-        title: { kh: "របៀបអានស្លាកអាហារ", en: "How to read a food label" },
+        title: { km: "របៀបអានស្លាកអាហារ", en: "How to read a food label" },
         intro: {
-            kh: "ស្វែងយល់ពីព័ត៌មានសំខាន់ៗដែលស្លាកអាហារវេចខ្ចប់អាចបង្ហាញ និងដែនកំណត់របស់ព័ត៌មាននីមួយៗ។",
+            km: "ស្វែងយល់ពីព័ត៌មានសំខាន់ៗដែលស្លាកអាហារវេចខ្ចប់អាចបង្ហាញ និងដែនកំណត់របស់ព័ត៌មាននីមួយៗ។",
             en: "Understand the main information a pre-packaged food label can show—and the limits of each item.",
         },
         entryIds: Array.from(
@@ -28,16 +28,16 @@ export const LEARN_GUIDES: LearnGuide[] = [
     {
         slug: "food-scores",
         category: "food-scores",
-        title: { kh: "ពិន្ទុអាហារ", en: "Food Scores" },
+        title: { km: "ពិន្ទុអាហារ", en: "Food Scores" },
         intro: {
-            kh: "ស្វែងយល់ពី Nutri-Score, NOVA និង Green-Score និងអ្វីដែលពិន្ទុនីមួយៗអាច ឬមិនអាចប្រាប់អំពីផលិតផលបាន។",
+            km: "ស្វែងយល់ពី Nutri-Score, NOVA និង Green-Score និងអ្វីដែលពិន្ទុនីមួយៗអាច ឬមិនអាចប្រាប់អំពីផលិតផលបាន។",
             en: "Understand Nutri-Score, NOVA, and Green-Score—and what each can and cannot tell you about a product.",
         },
         entryIds: ["FOOD_SCORE_001", "FOOD_SCORE_002", "FOOD_SCORE_003"],
         featured: false,
         table: {
             caption: {
-                kh: "ពិន្ទុអាហារ និងដែនកំណត់របស់វា",
+                km: "ពិន្ទុអាហារ និងដែនកំណត់របស់វា",
                 en: "Food scores and their limits",
             },
             ...commonTableHeadings,
@@ -47,11 +47,11 @@ export const LEARN_GUIDES: LearnGuide[] = [
         slug: "ingredients-and-additives",
         category: "ingredients",
         title: {
-            kh: "គ្រឿងផ្សំ និងសារធាតុបន្ថែម",
+            km: "គ្រឿងផ្សំ និងសារធាតុបន្ថែម",
             en: "Ingredients and additives",
         },
         intro: {
-            kh: "សម្គាល់ភាពខុសគ្នារវាងគ្រឿងផ្សំ សារធាតុបន្ថែម មុខងារ និងលេខ INS ឬ E-number។",
+            km: "សម្គាល់ភាពខុសគ្នារវាងគ្រឿងផ្សំ សារធាតុបន្ថែម មុខងារ និងលេខ INS ឬ E-number។",
             en: "Separate ingredients, additives, functional classes, and INS or E-number identifiers.",
         },
         entryIds: [
@@ -63,7 +63,7 @@ export const LEARN_GUIDES: LearnGuide[] = [
         featured: false,
         table: {
             caption: {
-                kh: "ពាក្យគន្លឹះសម្រាប់គ្រឿងផ្សំ និងសារធាតុបន្ថែម",
+                km: "ពាក្យគន្លឹះសម្រាប់គ្រឿងផ្សំ និងសារធាតុបន្ថែម",
                 en: "Ingredient and additive terms",
             },
             ...commonTableHeadings,
@@ -73,11 +73,11 @@ export const LEARN_GUIDES: LearnGuide[] = [
         slug: "allergen-declarations",
         category: "allergens",
         title: {
-            kh: "អាលែហ្សែន និងការប្រកាស",
+            km: "អាលែហ្សែន និងការប្រកាស",
             en: "Allergens and declarations",
         },
         intro: {
-            kh: "អានបញ្ជីអាលែហ្សែន Codex ស្នូល ដាច់ដោយឡែកពីអាលែហ្សែនបន្ថែមដែលអាចអាស្រ័យលើប្រទេស ឬតំបន់។",
+            km: "អានបញ្ជីអាលែហ្សែន Codex ស្នូល ដាច់ដោយឡែកពីអាលែហ្សែនបន្ថែមដែលអាចអាស្រ័យលើប្រទេស ឬតំបន់។",
             en: "Read the core Codex allergen list separately from additional allergens that may depend on a country or region.",
         },
         entryIds: Array.from(
@@ -88,7 +88,7 @@ export const LEARN_GUIDES: LearnGuide[] = [
         featured: true,
         table: {
             caption: {
-                kh: "ការប្រកាសអាលែហ្សែន និងដែនកំណត់",
+                km: "ការប្រកាសអាលែហ្សែន និងដែនកំណត់",
                 en: "Allergen declarations and their limits",
             },
             ...commonTableHeadings,
@@ -98,11 +98,11 @@ export const LEARN_GUIDES: LearnGuide[] = [
         slug: "halal-information",
         category: "halal",
         title: {
-            kh: "ព័ត៌មានពាក់ព័ន្ធហាឡាល់",
+            km: "ព័ត៌មានពាក់ព័ន្ធហាឡាល់",
             en: "Halal-related information",
         },
         intro: {
-            kh: "រក្សាការពិនិត្យគ្រឿងផ្សំ ការមើលឃើញសញ្ញា និងការផ្ទៀងផ្ទាត់វិញ្ញាបនបត្រឱ្យនៅដាច់ពីគ្នា។",
+            km: "រក្សាការពិនិត្យគ្រឿងផ្សំ ការមើលឃើញសញ្ញា និងការផ្ទៀងផ្ទាត់វិញ្ញាបនបត្រឱ្យនៅដាច់ពីគ្នា។",
             en: "Keep ingredient screening, visible label claims, and certificate verification separate.",
         },
         entryIds: Array.from(
@@ -112,7 +112,7 @@ export const LEARN_GUIDES: LearnGuide[] = [
         featured: false,
         table: {
             caption: {
-                kh: "ប្រភេទភស្តុតាងពាក់ព័ន្ធហាឡាល់",
+                km: "ប្រភេទភស្តុតាងពាក់ព័ន្ធហាឡាល់",
                 en: "Types of Halal-related evidence",
             },
             ...commonTableHeadings,
@@ -122,11 +122,11 @@ export const LEARN_GUIDES: LearnGuide[] = [
         slug: "package-marks",
         category: "marks",
         title: {
-            kh: "កាលបរិច្ឆេទ និងសញ្ញាលើកញ្ចប់",
+            km: "កាលបរិច្ឆេទ និងសញ្ញាលើកញ្ចប់",
             en: "Dates and package marks",
         },
         intro: {
-            kh: "សម្គាល់បាកូដ លេខឡូត កាលបរិច្ឆេទ ការរក្សាទុក និងសញ្ញាសម្ភារៈ ដោយមិនបន្ថែមការសន្និដ្ឋាន។",
+            km: "សម្គាល់បាកូដ លេខឡូត កាលបរិច្ឆេទ ការរក្សាទុក និងសញ្ញាសម្ភារៈ ដោយមិនបន្ថែមការសន្និដ្ឋាន។",
             en: "Identify barcodes, lot codes, date marks, storage instructions, and material symbols without adding conclusions.",
         },
         entryIds: Array.from(
@@ -136,7 +136,7 @@ export const LEARN_GUIDES: LearnGuide[] = [
         featured: false,
         table: {
             caption: {
-                kh: "សញ្ញាលើកញ្ចប់ និងអត្ថន័យរបស់វា",
+                km: "សញ្ញាលើកញ្ចប់ និងអត្ថន័យរបស់វា",
                 en: "Package marks and what they indicate",
             },
             ...commonTableHeadings,

@@ -28,12 +28,16 @@ import type {
     ProductSideState,
 } from "./types"
 import { MAX_PHOTOS_PER_PRODUCT } from "./types"
+import { useCompareTranslation } from "./translations"
 
 interface ProductPhotoPanelProps {
     product: ProductSideState
     highlightedPhotoId: string | null
     previewRefs: RefObject<Record<string, HTMLElement | null>>
-    onTitleChange: (title: string) => void
+    onTitleChange: (
+        title: string,
+        source?: ProductSideState["titleSource"],
+    ) => void
     onAddFiles: (files: File[]) => void
     onRemovePhoto: (index: number) => void
     onReplacePhoto: (index: number, file: File) => void
@@ -62,6 +66,7 @@ export function ProductPhotoPanel({
     onFocusEvidence,
     onInspectPhoto,
 }: ProductPhotoPanelProps) {
+    const { locale, t } = useCompareTranslation()
     const [isDragging, setIsDragging] = useState(false)
     const replaceInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
@@ -76,12 +81,12 @@ export function ProductPhotoPanel({
     const hasMultipleNutritionColumns = nutritionColumns.length > 1
 
     const extractButtonLabel = product.loading
-        ? "Reading photos…"
+        ? t("readingPhotos")
         : product.extraction
-          ? "Re-extract"
+          ? t("reextract")
           : product.error
-            ? "Retry extraction"
-            : "Extract visible facts"
+            ? t("retryExtraction")
+            : t("extractVisibleFacts")
 
     return (
         <Card
@@ -107,23 +112,28 @@ export function ProductPhotoPanel({
                                 if (!product.title.trim()) {
                                     onTitleChange(
                                         product.number === "1"
-                                            ? "Product A"
-                                            : "Product B",
+                                            ? t("productA")
+                                            : t("productB"),
+                                        "default",
                                     )
                                 }
                             }}
-                            aria-label={`${product.title} display name`}
+                            aria-label={t("productDisplayName", {
+                                product: product.title,
+                            })}
                             className="h-8 w-full max-w-[200px] rounded-lg text-sm font-bold text-neutral-900 sm:w-48"
                         />
                     </div>
                 </div>
                 <div className="flex items-center gap-2 border-t border-neutral-200/80 pt-2 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-4">
                     <span className="text-[11px] font-semibold tracking-wide text-neutral-400 uppercase">
-                        Photos
+                        {t("photos")}
                     </span>
                     <p className="shrink-0 text-xs font-medium text-neutral-600">
-                        {product.photos.length} of {MAX_PHOTOS_PER_PRODUCT}{" "}
-                        selected
+                        {t("selectedCount", {
+                            count: product.photos.length,
+                            total: MAX_PHOTOS_PER_PRODUCT,
+                        })}
                     </p>
                 </div>
             </header>
@@ -158,11 +168,10 @@ export function ProductPhotoPanel({
                                 <Camera size={27} weight="bold" />
                             </div>
                             <h3 className="mt-4 text-lg font-extrabold sm:text-xl">
-                                Add a Nutrition Facts photo
+                                {t("addNutritionPhoto")}
                             </h3>
                             <p className="mt-2 max-w-md text-sm leading-relaxed text-neutral-600">
-                                Start with one clear, well-lit photo of the
-                                complete panel.
+                                {t("clearPhotoHint")}
                             </p>
                             <Button
                                 type="button"
@@ -170,14 +179,15 @@ export function ProductPhotoPanel({
                                 className="bg-primary-300 hover:bg-primary-200 mt-5 h-12 gap-2 rounded-xl px-5 font-extrabold text-neutral-950"
                             >
                                 <Camera size={18} weight="bold" />
-                                <span>Take photo</span>
+                                <span>{t("takePhoto")}</span>
                             </Button>
                         </div>
 
                         <div className="flex flex-col items-center justify-between gap-2 border-t border-neutral-200/80 pt-3 text-center sm:flex-row sm:text-left">
                             <span className="text-xs text-neutral-500">
-                                JPEG or PNG · up to {MAX_PHOTOS_PER_PRODUCT}{" "}
-                                photos
+                                {t("fileRequirements", {
+                                    count: MAX_PHOTOS_PER_PRODUCT,
+                                })}
                             </span>
                             <Button
                                 type="button"
@@ -186,7 +196,7 @@ export function ProductPhotoPanel({
                                 className="h-11 gap-2 rounded-xl px-4 font-bold text-neutral-800"
                             >
                                 <UploadSimple size={17} weight="bold" />
-                                <span>Choose from library</span>
+                                <span>{t("chooseLibrary")}</span>
                             </Button>
                         </div>
                     </div>
@@ -196,9 +206,7 @@ export function ProductPhotoPanel({
                         {product.photos.length < MAX_PHOTOS_PER_PRODUCT && (
                             <div className="mb-3">
                                 <p className="mb-2 text-xs leading-relaxed text-neutral-500">
-                                    Optional photos can show the Product front,
-                                    package quantity, or a wrapped or additional
-                                    nutrition panel.
+                                    {t("optionalPhotos")}
                                 </p>
                                 <div className="flex flex-wrap items-center gap-2">
                                     <Button
@@ -208,7 +216,7 @@ export function ProductPhotoPanel({
                                         className="h-10 gap-1.5 rounded-xl px-3 text-xs font-bold"
                                     >
                                         <Camera size={15} weight="bold" />
-                                        <span>Add another photo</span>
+                                        <span>{t("addAnotherPhoto")}</span>
                                     </Button>
                                     <Button
                                         type="button"
@@ -217,7 +225,7 @@ export function ProductPhotoPanel({
                                         className="h-10 gap-1.5 rounded-xl px-3 text-xs font-bold text-neutral-600"
                                     >
                                         <UploadSimple size={15} weight="bold" />
-                                        <span>Add from library</span>
+                                        <span>{t("addFromLibrary")}</span>
                                     </Button>
                                 </div>
                             </div>
@@ -250,8 +258,14 @@ export function ProductPhotoPanel({
                                     variant="ghost"
                                     onClick={() => onInspectPhoto?.(index)}
                                     className="size-full cursor-zoom-in rounded-none p-0 text-left hover:bg-transparent focus:outline-hidden"
-                                    title="Click to inspect full photo"
-                                    aria-label={`Inspect ${product.title} photo ${index + 1}`}
+                                    title={t("inspectPhoto", {
+                                        product: product.title,
+                                        number: index + 1,
+                                    })}
+                                    aria-label={t("inspectPhoto", {
+                                        product: product.title,
+                                        number: index + 1,
+                                    })}
                                 >
                                     <img
                                         src={photo.url}
@@ -260,7 +274,7 @@ export function ProductPhotoPanel({
                                     />
                                 </Button>
                                 <span className="pointer-events-none absolute bottom-1.5 left-1.5 rounded-md bg-neutral-950/80 px-2 py-0.5 font-mono text-[10px] font-bold text-white select-none">
-                                    Photo {index + 1}
+                                    {t("photoNumber", { number: index + 1 })}
                                 </span>
                                 <div className="absolute top-1.5 right-1.5 flex items-center gap-1 opacity-90 transition-opacity group-hover:opacity-100">
                                     <Button
@@ -273,7 +287,12 @@ export function ProductPhotoPanel({
                                             ]?.click()
                                         }
                                         className="hover:bg-primary-600 size-8 rounded-lg bg-neutral-950/80 text-white hover:text-white"
-                                        title={`Replace photo ${index + 1}`}
+                                        title={t("replacePhoto", {
+                                            number: index + 1,
+                                        })}
+                                        aria-label={t("replacePhoto", {
+                                            number: index + 1,
+                                        })}
                                     >
                                         <ArrowClockwise
                                             size={14}
@@ -305,8 +324,12 @@ export function ProductPhotoPanel({
                                         size="icon-sm"
                                         onClick={() => onRemovePhoto(index)}
                                         className="hover:bg-error-600 size-7 rounded-lg bg-neutral-950/80 text-white hover:text-white"
-                                        title={`Remove photo ${index + 1}`}
-                                        aria-label={`Remove photo ${index + 1}`}
+                                        title={t("removePhoto", {
+                                            number: index + 1,
+                                        })}
+                                        aria-label={t("removePhoto", {
+                                            number: index + 1,
+                                        })}
                                     >
                                         <X size={14} weight="bold" />
                                     </Button>
@@ -339,7 +362,7 @@ export function ProductPhotoPanel({
                         className="gap-1.5 text-neutral-600 hover:text-neutral-900"
                     >
                         <Trash size={15} />
-                        <span>Clear photos</span>
+                        <span>{t("clearPhotos")}</span>
                     </Button>
                 </div>
 
@@ -369,13 +392,13 @@ export function ProductPhotoPanel({
                     {product.error ? (
                         product.error
                     ) : product.loading ? (
-                        "Reading photos…"
+                        t("readingPhotos")
                     ) : product.extraction ? (
                         <div className="flex flex-col gap-1">
                             <div className="flex items-center gap-1.5 font-bold">
                                 {product.extraction.outcome === "complete" ? (
                                     <span className="text-success-800">
-                                        Ready
+                                        {t("ready")}
                                     </span>
                                 ) : product.extraction.outcome === "partial" ? (
                                     <>
@@ -385,7 +408,7 @@ export function ProductPhotoPanel({
                                             className="text-warning-700 shrink-0"
                                         />
                                         <span className="text-warning-900">
-                                            Some values could not be read
+                                            {t("someUnreadable")}
                                         </span>
                                     </>
                                 ) : (
@@ -396,7 +419,7 @@ export function ProductPhotoPanel({
                                             className="text-warning-700 shrink-0"
                                         />
                                         <span className="text-warning-950">
-                                            Retake photo
+                                            {t("retakePhoto")}
                                         </span>
                                     </>
                                 )}
@@ -404,31 +427,31 @@ export function ProductPhotoPanel({
                             {product.extraction.outcome ===
                                 "retake_required" && (
                                 <p className="text-warning-800 text-xs">
-                                    Add a clear close-up of the Nutrition Facts
-                                    panel.
+                                    {t("retakeGuidance")}
                                 </p>
                             )}
                             {product.extraction.outcome === "partial" && (
                                 <p className="text-warning-800 text-xs">
-                                    Readable values can still be compared.
+                                    {t("partialGuidance")}
                                 </p>
                             )}
                             <details className="mt-1 cursor-pointer text-neutral-500">
                                 <summary className="text-[11px] font-medium text-neutral-500 select-none hover:text-neutral-700">
-                                    Technical metadata
+                                    {t("technicalMetadata")}
                                 </summary>
                                 <div className="mt-1 space-y-0.5 font-mono text-[11px] text-neutral-500">
                                     <div>
-                                        Model:{" "}
-                                        {product.extraction.model || "Gemini"}
+                                        {t("model")}:{" "}
+                                        {product.extraction.model ||
+                                            t("configuredModel")}
                                     </div>
                                     <div>
-                                        Provider:{" "}
+                                        {t("provider")}:{" "}
                                         {product.extraction.provider ||
                                             "google"}
                                     </div>
                                     <div>
-                                        Config:{" "}
+                                        {t("configuration")}:{" "}
                                         {product.extraction
                                             .configuration_version || "1.0.0"}
                                     </div>
@@ -436,9 +459,9 @@ export function ProductPhotoPanel({
                             </details>
                         </div>
                     ) : product.photos.length > 0 ? (
-                        "Photos ready"
+                        t("photosReady")
                     ) : (
-                        "Add a photo to begin"
+                        t("addPhotoToBegin")
                     )}
                 </div>
 
@@ -448,7 +471,7 @@ export function ProductPhotoPanel({
                         {/* Detected details */}
                         <details>
                             <summary className="focus-visible:ring-primary-500 flex min-h-11 cursor-pointer items-center rounded-lg text-sm font-bold text-neutral-900 select-none hover:text-neutral-700 focus-visible:ring-2 focus-visible:outline-none">
-                                Detected details
+                                {t("detectedDetails")}
                             </summary>
 
                             <dl className="mt-2 divide-y divide-neutral-100 border-y border-neutral-200/70 text-xs">
@@ -456,18 +479,49 @@ export function ProductPhotoPanel({
                                     extraction.identity?.brand?.value_text) && (
                                     <div className="flex flex-col gap-1.5 p-3 sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:items-center sm:gap-3">
                                         <dt className="font-bold text-neutral-500">
-                                            Detected product
+                                            {t("detectedProduct")}
                                         </dt>
                                         <dd className="font-medium text-neutral-900">
-                                            <span className="font-bold">
-                                                {[
-                                                    extraction.identity.brand
-                                                        ?.value_text,
-                                                    extraction.identity.name
-                                                        ?.value_text,
-                                                ]
-                                                    .filter(Boolean)
-                                                    .join(" ")}
+                                            <span className="font-bold wrap-anywhere">
+                                                {extraction.identity.brand
+                                                    ?.value_text ? (
+                                                    <span
+                                                        lang={
+                                                            extraction.identity
+                                                                .brand
+                                                                .language ||
+                                                            "und"
+                                                        }
+                                                    >
+                                                        {
+                                                            extraction.identity
+                                                                .brand
+                                                                .value_text
+                                                        }
+                                                    </span>
+                                                ) : null}
+                                                {extraction.identity.brand
+                                                    ?.value_text &&
+                                                extraction.identity.name
+                                                    ?.value_text
+                                                    ? " "
+                                                    : null}
+                                                {extraction.identity.name
+                                                    ?.value_text ? (
+                                                    <span
+                                                        lang={
+                                                            extraction.identity
+                                                                .name
+                                                                .language ||
+                                                            "und"
+                                                        }
+                                                    >
+                                                        {
+                                                            extraction.identity
+                                                                .name.value_text
+                                                        }
+                                                    </span>
+                                                ) : null}
                                             </span>
                                             {product.title !==
                                                 [
@@ -500,12 +554,13 @@ export function ProductPhotoPanel({
                                                         if (detected) {
                                                             onTitleChange(
                                                                 detected,
+                                                                "photo_evidence",
                                                             )
                                                         }
                                                     }}
                                                     className="text-primary-700 hover:text-primary-900 ml-2 h-auto p-0 font-mono text-[11px] underline hover:bg-transparent"
                                                 >
-                                                    Use as title
+                                                    {t("useAsTitle")}
                                                 </Button>
                                             )}
                                         </dd>
@@ -513,7 +568,7 @@ export function ProductPhotoPanel({
                                 )}
                                 <div className="flex flex-col gap-1.5 p-3 sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:items-center sm:gap-3">
                                     <dt className="font-bold text-neutral-500">
-                                        Package weight
+                                        {t("packageWeight")}
                                     </dt>
                                     <dd className="font-medium text-neutral-900">
                                         {packageQuantity &&
@@ -541,14 +596,14 @@ export function ProductPhotoPanel({
                                             </>
                                         ) : (
                                             <span className="text-neutral-500 italic">
-                                                Not found in these photos
+                                                {t("notFoundPhotos")}
                                             </span>
                                         )}
                                     </dd>
                                 </div>
                                 <div className="flex flex-col gap-1.5 p-3 sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:items-center sm:gap-3">
                                     <dt className="font-bold text-neutral-500">
-                                        Preparation
+                                        {t("preparation")}
                                     </dt>
                                     <dd className="font-medium text-neutral-900">
                                         {(extraction.nutrition_columns
@@ -557,19 +612,20 @@ export function ProductPhotoPanel({
                                                 .map((col) =>
                                                     formatPreparationLabel(
                                                         col.preparation_state,
+                                                        locale,
                                                     ),
                                                 )
                                                 .join(" · ")
                                         ) : (
                                             <span className="text-neutral-500 italic">
-                                                Not specified
+                                                {t("notSpecified")}
                                             </span>
                                         )}
                                     </dd>
                                 </div>
                                 <div className="flex flex-col gap-1.5 p-3 sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:items-center sm:gap-3">
                                     <dt className="font-bold text-neutral-500">
-                                        Evidence images
+                                        {t("evidenceImages")}
                                     </dt>
                                     <dd className="flex flex-wrap gap-1.5">
                                         {extraction.images.map(
@@ -588,8 +644,10 @@ export function ProductPhotoPanel({
                                                 >
                                                     <Camera size={12} />
                                                     <span>
-                                                        View photo{" "}
-                                                        {imgIndex + 1}
+                                                        {t("viewPhoto", {
+                                                            number:
+                                                                imgIndex + 1,
+                                                        })}
                                                     </span>
                                                 </Button>
                                             ),
@@ -604,10 +662,10 @@ export function ProductPhotoPanel({
                             <section className="mt-4 border-t border-neutral-200/80 pt-4">
                                 <div className="flex items-baseline justify-between gap-3">
                                     <h3 className="text-sm font-bold text-neutral-900">
-                                        Choose a nutrition column
+                                        {t("chooseNutritionColumn")}
                                     </h3>
                                     <span className="text-xs text-neutral-500">
-                                        Choose one for this Product.
+                                        {t("chooseOneProduct")}
                                     </span>
                                 </div>
 
@@ -629,12 +687,16 @@ export function ProductPhotoPanel({
                             </section>
                         ) : nutritionColumns.length === 1 ? (
                             <p className="mt-3 text-xs text-neutral-500">
-                                Using{" "}
-                                {displayBasisLabel(nutritionColumns[0]?.basis)}{" "}
-                                ·{" "}
-                                {formatPreparationLabel(
-                                    nutritionColumns[0]?.preparation_state,
-                                )}
+                                {t("usingBasis", {
+                                    basis: displayBasisLabel(
+                                        nutritionColumns[0]?.basis,
+                                        locale,
+                                    ),
+                                    preparation: formatPreparationLabel(
+                                        nutritionColumns[0]?.preparation_state,
+                                        locale,
+                                    ),
+                                })}
                             </p>
                         ) : null}
 
@@ -647,13 +709,19 @@ export function ProductPhotoPanel({
                                             size={16}
                                             weight="bold"
                                         />
-                                        <span>Retake suggestions</span>
+                                        <span>{t("retakeSuggestions")}</span>
                                     </div>
                                     <ul className="text-warning-800 mt-2 list-disc space-y-1 pl-4">
-                                        {extraction.retake_reasons.map(
-                                            (reason, rIndex) => (
-                                                <li key={rIndex}>{reason}</li>
-                                            ),
+                                        {locale === "km" ? (
+                                            <li>{t("providerNote")}</li>
+                                        ) : (
+                                            extraction.retake_reasons.map(
+                                                (reason, rIndex) => (
+                                                    <li key={rIndex}>
+                                                        {reason}
+                                                    </li>
+                                                ),
+                                            )
                                         )}
                                     </ul>
                                 </div>
@@ -680,9 +748,10 @@ function NutritionColumnCard({
     onSelectColumn,
     onFocusEvidence,
 }: NutritionColumnCardProps) {
+    const { locale, t } = useCompareTranslation()
     const columns = product.extraction?.nutrition_columns || []
-    const basisLabel = displayBasisLabel(column.basis)
-    const prepLabel = formatPreparationLabel(column.preparation_state)
+    const basisLabel = displayBasisLabel(column.basis, locale)
+    const prepLabel = formatPreparationLabel(column.preparation_state, locale)
 
     return (
         <article
@@ -696,7 +765,7 @@ function NutritionColumnCard({
             <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                     <div className="font-bold text-neutral-900">
-                        {column.label || "Nutrition column"}
+                        {column.label || t("nutritionColumn")}
                     </div>
                     <div className="mt-0.5 text-xs text-neutral-500">
                         {basisLabel} · {prepLabel}
@@ -713,11 +782,11 @@ function NutritionColumnCard({
                         }
                         className="h-8 self-start text-xs font-semibold sm:self-auto"
                     >
-                        {isSelected ? "Selected" : "Select column"}
+                        {isSelected ? t("selected") : t("selectColumn")}
                     </Button>
                 ) : (
                     <span className="self-start rounded-md bg-neutral-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-neutral-600 sm:self-auto">
-                        Sole column
+                        {t("soleColumn")}
                     </span>
                 )}
             </div>
@@ -734,7 +803,7 @@ function NutritionColumnCard({
                     ))
                 ) : (
                     <div className="py-2 text-neutral-400 italic">
-                        No visible nutrients in this column
+                        {t("noVisibleColumn")}
                     </div>
                 )}
             </div>
@@ -751,7 +820,12 @@ function ObservationRow({
     product: ProductSideState
     onFocusEvidence: (imageId: string) => void
 }) {
-    const nutrientName = formatNutrientName(field.nutrient || "", field.label)
+    const { locale, t } = useCompareTranslation()
+    const nutrientName = formatNutrientName(
+        field.nutrient || "",
+        field.label,
+        locale,
+    )
 
     return (
         <div className="flex items-start justify-between gap-4 py-2.5">
@@ -770,7 +844,7 @@ function ObservationRow({
                     )}
                 {field.state === "conflicting" && (
                     <div className="text-warning-700 mt-1 text-[11px] font-medium">
-                        <span>Conflicting values on label: </span>
+                        <span>{t("conflictingValues")} </span>
                         <span>
                             {displayValue(
                                 field.value_text,
@@ -791,12 +865,12 @@ function ObservationRow({
                 )}
                 <details className="mt-0.5 text-[11px] text-neutral-400">
                     <summary className="cursor-pointer select-none hover:text-neutral-600">
-                        Details
+                        {t("details")}
                     </summary>
                     <div className="mt-0.5 font-mono text-[10px] text-neutral-500">
-                        {formatStateLabel(field.state)} ·{" "}
-                        {formatStateLabel(field.row_kind)} ·{" "}
-                        {formatStateLabel(field.qualifier)}
+                        {formatStateLabel(field.state, locale)} ·{" "}
+                        {formatStateLabel(field.row_kind, locale)} ·{" "}
+                        {formatStateLabel(field.qualifier, locale)}
                     </div>
                 </details>
                 {field.evidence && field.evidence.length > 0 && (
@@ -824,6 +898,7 @@ function EvidencePointers({
     product: ProductSideState
     onFocus: (imageId: string) => void
 }) {
+    const { t } = useCompareTranslation()
     return (
         <div className="mt-1 flex flex-wrap gap-1">
             {evidence.map((ptr) => {
@@ -843,10 +918,11 @@ function EvidencePointers({
                         size="sm"
                         onClick={() => onFocus(ptr.image_id)}
                         className="border-info-200/70 bg-info-50 text-info-700 hover:bg-info-100 hover:text-info-900 h-5 gap-1 rounded-full border px-2 font-mono text-[10px]"
-                        title={`View photo ${photoNumber}`}
+                        title={t("viewPhoto", { number: photoNumber })}
+                        aria-label={t("viewPhoto", { number: photoNumber })}
                     >
                         <Camera size={11} />
-                        <span>View photo {photoNumber}</span>
+                        <span>{t("viewPhoto", { number: photoNumber })}</span>
                     </Button>
                 )
             })}

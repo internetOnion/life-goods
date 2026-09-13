@@ -81,7 +81,7 @@ def get_product(
         Query(
             description=(
                 "Optional target language for product translation. "
-                "Only 'kh' is supported; 'km' returns unsupported_language. "
+                "Only 'km' is supported; other language values return unsupported_language. "
                 "Omit to skip generation. External source language tags remain unchanged."
             )
         ),
@@ -99,7 +99,7 @@ def get_product(
                 metrics=metrics,
                 headers={"Retry-After": str(retry_after)},
             )
-        if language is not None and language != "kh":
+        if language is not None and language != "km":
             return _error_response(
                 status_code=422,
                 code=ProductLookupErrorCode.UNSUPPORTED_LANGUAGE,
