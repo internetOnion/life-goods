@@ -2,6 +2,7 @@ import {
     ArrowClockwiseIcon,
     CameraIcon,
     CameraRotateIcon,
+    FlashlightIcon,
     MagnifyingGlassIcon,
     PauseIcon,
     PlayIcon,
@@ -143,6 +144,9 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
     usePageMetadata()
     const [cameraState, setCameraState] = useState<CameraState>("consent")
     const [cameraMessage, setCameraMessage] = useState<string | null>(null)
+    const [torchAvailable, setTorchAvailable] = useState(false)
+    const [torchEnabled, setTorchEnabled] = useState(false)
+    const [torchPending, setTorchPending] = useState(false)
     const videoRef = useRef<HTMLVideoElement>(null)
     const cameraSessionRef = useRef<BarcodeScannerSession | null>(null)
     const scanHandledRef = useRef(false)
@@ -296,6 +300,8 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
             pausedByShopperRef.current = false
             scanHandledRef.current = false
             releaseCamera()
+            setTorchAvailable(false)
+            setTorchEnabled(false)
             const cameraRun = ++cameraRunRef.current
             facingModeRef.current = facingMode
             setCameraMessage(null)
@@ -338,6 +344,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                     return
                 }
                 cameraSessionRef.current = session
+                setTorchAvailable(session.torchAvailable)
                 setCameraState("scanning")
             } catch (error) {
                 if (cameraRun !== cameraRunRef.current) return
@@ -420,11 +427,29 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
         void startCamera(nextMode)
     }
 
+    const toggleTorch = async () => {
+        const session = cameraSessionRef.current
+        if (!session?.torchAvailable || torchPending) return
+
+        const nextTorchState = !torchEnabled
+        setTorchPending(true)
+        try {
+            await session.setTorch(nextTorchState)
+            if (cameraSessionRef.current !== session) return
+            setTorchEnabled(nextTorchState)
+            setCameraMessage(null)
+        } catch {
+            setCameraMessage(text.flashError)
+        } finally {
+            setTorchPending(false)
+        }
+    }
+
     const statusMessage =
         cameraState === "acquired"
             ? text.detected
             : cameraState === "scanning"
-              ? text.ready
+              ? (cameraMessage ?? text.ready)
               : cameraState === "starting"
                 ? text.starting
                 : cameraState === "paused"
@@ -590,7 +615,38 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                         {cameraState === "scanning" ? (
                             <div className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-end gap-3 bg-gradient-to-t from-black/85 via-black/45 to-transparent p-4 pt-16">
                                 <Button
-                                    className="size-12 rounded-full border border-white/30 bg-black/60 p-0 text-white backdrop-blur-sm transition-all hover:bg-black/80 hover:text-white focus-visible:ring-white focus-visible:ring-offset-[#131519] active:scale-95 active:bg-black/90"
+                                    className={cn(
+                                        "size-12 rounded-full border p-0 backdrop-blur-sm transition-all focus-visible:ring-white focus-visible:ring-offset-[#131519] active:scale-95",
+                                        torchEnabled
+                                            ? "border-[#E7B583] bg-[#E7B583] text-[#131519] hover:bg-[#F3E8DD]"
+                                            : "border-white/30 bg-black/60 text-white hover:bg-black/80 hover:text-white active:bg-black/90",
+                                    )}
+                                    variant="outline"
+                                    type="button"
+                                    aria-label={
+                                        !torchAvailable
+                                            ? text.flashUnavailable
+                                            : torchEnabled
+                                              ? text.flashOff
+                                              : text.flashOn
+                                    }
+                                    aria-pressed={torchEnabled}
+                                    title={
+                                        torchAvailable
+                                            ? undefined
+                                            : text.flashUnavailable
+                                    }
+                                    onClick={() => void toggleTorch()}
+                                    disabled={!torchAvailable || torchPending}
+                                >
+                                    <FlashlightIcon
+                                        aria-hidden="true"
+                                        size={22}
+                                        weight={torchEnabled ? "fill" : "bold"}
+                                    />
+                                </Button>
+                                <Button
+                                    className="ml-auto size-12 rounded-full border border-white/30 bg-black/60 p-0 text-white backdrop-blur-sm transition-all hover:bg-black/80 hover:text-white focus-visible:ring-white focus-visible:ring-offset-[#131519] active:scale-95 active:bg-black/90"
                                     variant="outline"
                                     type="button"
                                     aria-label={text.pause}

@@ -4,6 +4,8 @@ export type BarcodeScannerError = unknown
 
 export type BarcodeScannerSession = {
     stop: () => void
+    torchAvailable: boolean
+    setTorch: (enabled: boolean) => Promise<void>
 }
 
 export type BarcodeScannerOptions = {
@@ -308,6 +310,29 @@ function getStreamTracks(stream: MediaStream): MediaStreamTrack[] {
     return []
 }
 
+function getTorchTrack(stream: MediaStream): MediaStreamTrack | null {
+    const track = getStreamTracks(stream).find(
+        (candidate) => candidate.kind === "video",
+    )
+
+    if (
+        !track ||
+        typeof track.applyConstraints !== "function" ||
+        typeof track.getCapabilities !== "function"
+    )
+        return null
+
+    try {
+        const capabilities =
+            track.getCapabilities() as MediaTrackCapabilities & {
+                torch?: boolean
+            }
+        return capabilities.torch === true ? track : null
+    } catch {
+        return null
+    }
+}
+
 function stopStream(stream: MediaStream) {
     getStreamTracks(stream).forEach((track) => track.stop())
 }
@@ -410,9 +435,18 @@ async function getNativeDetector(): Promise<NativeDetector | null> {
 
 export const barcodeScanner: BarcodeScanner = {
     async start(video, onResult, onError, options) {
-        const stream = await acquireMediaStream(
-            options?.facingMode ?? "environment",
-            options,
+        const facingMode = options?.facingMode ?? "environment"
+        const stream = await acquireMediaStream(facingMode, options)
+        const torchTrack = getTorchTrack(stream)
+        const torchAvailable = torchTrack !== null
+
+        // Start decoder initialization while the camera negotiates and the
+        // preview becomes drawable. Neither capability detection nor loading
+        // the fallback decoder should keep the shopper on the startup state.
+        const nativeDetectorPromise = getNativeDetector()
+        const zxingReaderPromise = import("@zxing/browser").then(
+            ({ BrowserMultiFormatOneDReader }) =>
+                new BrowserMultiFormatOneDReader(),
         )
 
         video.muted = true
@@ -427,21 +461,50 @@ export const barcodeScanner: BarcodeScanner = {
 
         try {
             await startVideoPreview(video, options?.signal)
-            nativeDetector = await getNativeDetector()
-            // Always prepare zxingReader as the universal engine / native fallback
-            const { BrowserMultiFormatOneDReader } =
-                await import("@zxing/browser")
-            zxingReader = new BrowserMultiFormatOneDReader()
         } catch (error) {
             detachStream(video, stream)
             throw error
         }
 
         let stopped = false
+        let decoderError: unknown = null
         let animationFrameId: number | null = null
         let pollTimeoutId: ReturnType<typeof setTimeout> | null = null
         let lastScanTimestamp = 0
+        let torchEnabled = false
         const scanIntervalMs = 50
+
+        const setTorch = async (enabled: boolean) => {
+            if (!torchTrack) {
+                throw new DOMException(
+                    "Torch control is unavailable",
+                    "NotSupportedError",
+                )
+            }
+
+            const constraints = {
+                advanced: [{ torch: enabled }],
+            } as unknown as MediaTrackConstraints
+            await torchTrack.applyConstraints(constraints)
+            torchEnabled = enabled
+        }
+
+        void nativeDetectorPromise.then((detector) => {
+            nativeDetector = detector
+        })
+        void zxingReaderPromise.then(
+            (reader) => {
+                zxingReader = reader
+            },
+            (error: unknown) => {
+                decoderError = error
+                // Let start() return its live preview before surfacing a
+                // decoder loading failure to the page.
+                setTimeout(() => {
+                    if (!stopped) onError(error)
+                }, 0)
+            },
+        )
 
         const handleTrackEnded = () => {
             if (!stopped) {
@@ -458,6 +521,8 @@ export const barcodeScanner: BarcodeScanner = {
 
         const scanFrame = async () => {
             if (stopped) return
+
+            if (decoderError) return
 
             const now = Date.now()
             if (
@@ -541,6 +606,9 @@ export const barcodeScanner: BarcodeScanner = {
             stop: () => {
                 if (stopped) return
                 stopped = true
+                if (torchTrack && torchEnabled) {
+                    void setTorch(false).catch(() => undefined)
+                }
                 getStreamTracks(stream).forEach((track) => {
                     track.removeEventListener("ended", handleTrackEnded)
                 })
@@ -557,6 +625,8 @@ export const barcodeScanner: BarcodeScanner = {
                 }
                 detachStream(video, stream)
             },
+            torchAvailable,
+            setTorch,
         }
     },
 }

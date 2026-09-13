@@ -105,6 +105,33 @@ describe("camera Barcode scanner", () => {
         expect(screen.getByRole("status")).toHaveTextContent("Ready to scan")
     })
 
+    test("toggles the camera flash from the bottom control dock", async () => {
+        const user = userEvent.setup()
+        const setTorchMock = vi.fn().mockResolvedValue(undefined)
+        sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
+        startMock.mockResolvedValue({
+            stop: vi.fn(),
+            torchAvailable: true,
+            setTorch: setTorchMock,
+        })
+        renderPage()
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
+
+        const flashButton = screen.getByRole("button", {
+            name: "Turn flash on",
+        })
+        expect(flashButton).toHaveAttribute("aria-pressed", "false")
+
+        await user.click(flashButton)
+        await waitFor(() => expect(setTorchMock).toHaveBeenCalledWith(true))
+        expect(
+            screen.getByRole("button", { name: "Turn flash off" }),
+        ).toHaveAttribute("aria-pressed", "true")
+
+        await user.click(screen.getByRole("button", { name: "Turn flash off" }))
+        await waitFor(() => expect(setTorchMock).toHaveBeenCalledWith(false))
+    })
+
     test("does not restart camera while the Android permission prompt is pending", async () => {
         const user = userEvent.setup()
         let resolveStart: ((session: { stop: () => void }) => void) | undefined
