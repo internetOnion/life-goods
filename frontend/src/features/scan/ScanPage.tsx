@@ -362,8 +362,15 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
     )
 
     useEffect(() => {
-        if (hasStartedCameraThisSession()) void startCamera()
+        let autoStartTimer: ReturnType<typeof setTimeout> | null = null
+        if (hasStartedCameraThisSession()) {
+            autoStartTimer = setTimeout(() => {
+                autoStartTimer = null
+                void startCamera()
+            }, 0)
+        }
         return () => {
+            if (autoStartTimer !== null) clearTimeout(autoStartTimer)
             clearAcquisitionTimer()
             releaseCamera()
         }

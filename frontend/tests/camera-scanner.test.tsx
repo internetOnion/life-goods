@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { MemoryRouter, Route, Routes, useLocation } from "react-router"
+import { Link, MemoryRouter, Route, Routes, useLocation } from "react-router"
+import { StrictMode } from "react"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import { ScanPage } from "../src/features/scan/ScanPage"
@@ -32,20 +33,31 @@ function renderPage() {
 
 function renderScannerJourney() {
     return render(
-        <LocaleProvider>
-            <MemoryRouter>
-                <AppShell>
-                    <Routes>
-                        <Route path="/" element={<ScanPage />} />
-                        <Route
-                            path="/products/:barcode"
-                            element={<h1>Product result</h1>}
-                        />
-                    </Routes>
-                    <CurrentLocation />
-                </AppShell>
-            </MemoryRouter>
-        </LocaleProvider>,
+        <StrictMode>
+            <LocaleProvider>
+                <MemoryRouter>
+                    <AppShell>
+                        <Routes>
+                            <Route path="/" element={<ScanPage />} />
+                            <Route
+                                path="/products/:barcode"
+                                element={<h1>Product result</h1>}
+                            />
+                            <Route
+                                path="/search"
+                                element={
+                                    <>
+                                        <h1>Other page</h1>
+                                        <Link to="/">Back to Scan</Link>
+                                    </>
+                                }
+                            />
+                        </Routes>
+                        <CurrentLocation />
+                    </AppShell>
+                </MemoryRouter>
+            </LocaleProvider>
+        </StrictMode>,
     )
 }
 
@@ -260,6 +272,7 @@ describe("camera Barcode scanner", () => {
         startMock.mockResolvedValue({ stop: vi.fn() })
         renderScannerJourney()
         await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
+        expect(screen.getByRole("status")).toHaveTextContent("Ready to scan")
 
         const onResult = startMock.mock.calls[0]?.[1] as (value: string) => void
         act(() => onResult("4006381333931"))
@@ -273,6 +286,36 @@ describe("camera Barcode scanner", () => {
             facingMode: "environment",
         })
         expect(screen.getByRole("status")).toHaveTextContent("Ready to scan")
+    })
+
+    test("restarts after leaving while automatic camera startup is pending", async () => {
+        const user = userEvent.setup()
+        let resolveFirst: ((session: { stop: () => void }) => void) | undefined
+        const firstStopMock = vi.fn()
+        const secondStopMock = vi.fn()
+
+        startMock
+            .mockImplementationOnce(
+                () =>
+                    new Promise((resolve) => {
+                        resolveFirst = resolve
+                    }),
+            )
+            .mockResolvedValueOnce({ stop: secondStopMock })
+        sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
+        renderScannerJourney()
+
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
+        await user.click(screen.getByRole("link", { name: "Search" }))
+        await screen.findByRole("heading", { name: "Other page" })
+
+        resolveFirst?.({ stop: firstStopMock })
+        await waitFor(() => expect(firstStopMock).toHaveBeenCalledTimes(1))
+
+        await user.click(screen.getByRole("link", { name: "Back to Scan" }))
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(2))
+        expect(screen.getByRole("status")).toHaveTextContent("Ready to scan")
+        expect(secondStopMock).not.toHaveBeenCalled()
     })
 
     test("sends an invalid result to typed Barcode correction", async () => {
