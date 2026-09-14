@@ -495,6 +495,9 @@ describe("Compare Products frontend page (/compare)", () => {
             screen.getByRole("button", { name: "Get started" }),
         ).toBeInTheDocument()
         expect(
+            screen.getByRole("button", { name: "Language: English" }),
+        ).toHaveAttribute("data-glass", "neutral")
+        expect(
             screen.queryByRole("button", { name: /Choose from library/i }),
         ).not.toBeInTheDocument()
 
@@ -939,6 +942,16 @@ describe("Compare Products frontend page (/compare)", () => {
                 name: "Comparison steps",
             }),
         ).getAllByRole("button")
+        const stepNavigation = screen.getByRole("navigation", {
+            name: "Comparison steps",
+        })
+        expect(stepNavigation.querySelector("ol")).toHaveAttribute(
+            "data-glass-surface",
+            "",
+        )
+        expect(stepButtons[0]).toHaveAttribute("data-glass", "neutral")
+        expect(stepButtons[1]).toHaveAttribute("data-glass", "selected")
+        expect(stepButtons[1]).toHaveAttribute("aria-current", "step")
         await user.click(stepButtons[0]!)
         expect(stepButtons[0]).toHaveAttribute("aria-current", "step")
         await user.click(stepButtons[1]!)
@@ -1876,6 +1889,15 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         expect(screen.getByText("Protein")).toBeInTheDocument()
         expect(screen.getByText("+4 g")).toBeInTheDocument()
         expect(screen.getByText("Product A has more")).toBeInTheDocument()
+
+        const dryBasisButton = screen.getByRole("button", { name: "Dry mix" })
+        const preparedBasisButton = screen.getByRole("button", {
+            name: "Prepared with milk",
+        })
+        expect(dryBasisButton).toHaveAttribute("data-glass", "selected")
+        expect(dryBasisButton).toHaveAttribute("aria-pressed", "true")
+        expect(preparedBasisButton).toHaveAttribute("data-glass", "neutral")
+        expect(preparedBasisButton).toHaveAttribute("aria-pressed", "false")
     })
 
     test("each value states basis and distinguishes dry vs prepared values", () => {

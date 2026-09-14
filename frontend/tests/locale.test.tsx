@@ -148,4 +148,26 @@ describe("application locale", () => {
         await user.keyboard("{Escape}")
         expect(trigger).toHaveFocus()
     })
+
+    test("supports the optional glass trigger without changing solid mode", () => {
+        const { rerender } = render(
+            <LocaleProvider>
+                <LanguageSelector />
+            </LocaleProvider>,
+        )
+
+        expect(
+            screen.getByRole("button", { name: "Language: English" }),
+        ).not.toHaveAttribute("data-glass")
+
+        rerender(
+            <LocaleProvider>
+                <LanguageSelector appearance="glass" />
+            </LocaleProvider>,
+        )
+
+        expect(
+            screen.getByRole("button", { name: "Language: English" }),
+        ).toHaveAttribute("data-glass", "neutral")
+    })
 })

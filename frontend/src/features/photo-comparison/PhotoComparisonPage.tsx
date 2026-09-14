@@ -1237,7 +1237,7 @@ export function PhotoComparisonPage({
                             <span>{t("editProducts")}</span>
                         </Button>
                         <div className="flex items-center gap-2">
-                            <LanguageSelector />
+                            <LanguageSelector appearance="glass" />
                             <Button
                                 type="button"
                                 variant="outline"
@@ -1266,7 +1266,7 @@ export function PhotoComparisonPage({
                                 </p>
                             </div>
                             <div className="flex shrink-0 items-center gap-2">
-                                <LanguageSelector />
+                                <LanguageSelector appearance="glass" />
                                 {flowPhase !== "intro" &&
                                     flowPhase !== "processing" && (
                                         <Button
@@ -1823,37 +1823,49 @@ export function PhotoComparisonPage({
                                             <span className="text-xs font-semibold text-neutral-700">
                                                 {leftProduct.title}:
                                             </span>
-                                            {leftProduct.extraction?.nutrition_columns?.map(
-                                                (col) => {
-                                                    const isSelected =
-                                                        leftProduct.selectedColumnId ===
-                                                        col.column_id
-                                                    return (
-                                                        <Button
-                                                            key={col.column_id}
-                                                            type="button"
-                                                            variant={
-                                                                isSelected
-                                                                    ? "default"
-                                                                    : "outline"
-                                                            }
-                                                            size="sm"
-                                                            onClick={() =>
-                                                                handleSelectColumn(
-                                                                    "left",
-                                                                    col.column_id,
-                                                                )
-                                                            }
-                                                            className="h-8 text-xs font-semibold"
-                                                        >
-                                                            {col.label ||
-                                                                t(
-                                                                    "nutritionColumn",
-                                                                )}
-                                                        </Button>
-                                                    )
-                                                },
-                                            )}
+                                            <div
+                                                data-glass-surface=""
+                                                className="glass-surface flex max-w-full min-w-0 flex-wrap gap-1 rounded-xl p-1"
+                                                role="group"
+                                                aria-label={leftProduct.title}
+                                            >
+                                                {leftProduct.extraction?.nutrition_columns?.map(
+                                                    (col) => {
+                                                        const isSelected =
+                                                            leftProduct.selectedColumnId ===
+                                                            col.column_id
+                                                        return (
+                                                            <Button
+                                                                key={
+                                                                    col.column_id
+                                                                }
+                                                                type="button"
+                                                                variant="ghost"
+                                                                glassTone={
+                                                                    isSelected
+                                                                        ? "selected"
+                                                                        : "neutral"
+                                                                }
+                                                                aria-pressed={
+                                                                    isSelected
+                                                                }
+                                                                onClick={() =>
+                                                                    handleSelectColumn(
+                                                                        "left",
+                                                                        col.column_id,
+                                                                    )
+                                                                }
+                                                                className="min-h-11 px-3 text-xs font-semibold"
+                                                            >
+                                                                {col.label ||
+                                                                    t(
+                                                                        "nutritionColumn",
+                                                                    )}
+                                                            </Button>
+                                                        )
+                                                    },
+                                                )}
+                                            </div>
                                         </div>
                                     )}
                                     {(rightProduct.extraction?.nutrition_columns
@@ -1862,37 +1874,49 @@ export function PhotoComparisonPage({
                                             <span className="text-xs font-semibold text-neutral-700">
                                                 {rightProduct.title}:
                                             </span>
-                                            {rightProduct.extraction?.nutrition_columns?.map(
-                                                (col) => {
-                                                    const isSelected =
-                                                        rightProduct.selectedColumnId ===
-                                                        col.column_id
-                                                    return (
-                                                        <Button
-                                                            key={col.column_id}
-                                                            type="button"
-                                                            variant={
-                                                                isSelected
-                                                                    ? "default"
-                                                                    : "outline"
-                                                            }
-                                                            size="sm"
-                                                            onClick={() =>
-                                                                handleSelectColumn(
-                                                                    "right",
-                                                                    col.column_id,
-                                                                )
-                                                            }
-                                                            className="h-8 text-xs font-semibold"
-                                                        >
-                                                            {col.label ||
-                                                                t(
-                                                                    "nutritionColumn",
-                                                                )}
-                                                        </Button>
-                                                    )
-                                                },
-                                            )}
+                                            <div
+                                                data-glass-surface=""
+                                                className="glass-surface flex max-w-full min-w-0 flex-wrap gap-1 rounded-xl p-1"
+                                                role="group"
+                                                aria-label={rightProduct.title}
+                                            >
+                                                {rightProduct.extraction?.nutrition_columns?.map(
+                                                    (col) => {
+                                                        const isSelected =
+                                                            rightProduct.selectedColumnId ===
+                                                            col.column_id
+                                                        return (
+                                                            <Button
+                                                                key={
+                                                                    col.column_id
+                                                                }
+                                                                type="button"
+                                                                variant="ghost"
+                                                                glassTone={
+                                                                    isSelected
+                                                                        ? "selected"
+                                                                        : "neutral"
+                                                                }
+                                                                aria-pressed={
+                                                                    isSelected
+                                                                }
+                                                                onClick={() =>
+                                                                    handleSelectColumn(
+                                                                        "right",
+                                                                        col.column_id,
+                                                                    )
+                                                                }
+                                                                className="min-h-11 px-3 text-xs font-semibold"
+                                                            >
+                                                                {col.label ||
+                                                                    t(
+                                                                        "nutritionColumn",
+                                                                    )}
+                                                            </Button>
+                                                        )
+                                                    },
+                                                )}
+                                            </div>
                                         </div>
                                     )}
                                 </div>

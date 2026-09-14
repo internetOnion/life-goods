@@ -104,7 +104,12 @@ export function LanguageSelector({
                 type="button"
                 variant="outline"
                 appearance={appearance === "glass" ? "glass" : undefined}
-                className="h-11 min-w-11 gap-1.5 rounded-full border-neutral-200 bg-white px-3 text-neutral-800 shadow-none hover:bg-neutral-50"
+                className={cn(
+                    "h-11 min-w-11 gap-1.5 rounded-full px-3 text-neutral-800",
+                    appearance === "glass"
+                        ? ""
+                        : "border-neutral-200 bg-white shadow-none hover:bg-neutral-50",
+                )}
                 aria-label={labels.trigger}
                 aria-haspopup="menu"
                 aria-expanded={isOpen}

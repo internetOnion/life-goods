@@ -1,7 +1,7 @@
 import { XIcon } from "@phosphor-icons/react"
 import { useEffect, useRef } from "react"
 
-import { Button } from "@/components/ui/button"
+import { GlassButton as Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { usePageMetadata } from "@/lib/metadata"
 
@@ -60,7 +60,8 @@ export function ConcernsPage() {
             )}
 
             <section
-                className="mt-8 rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6"
+                data-glass-surface=""
+                className="glass-surface mt-8 rounded-2xl p-5 sm:p-6"
                 aria-labelledby="selected-concerns-heading"
             >
                 <div className="flex items-center justify-between gap-3 border-b border-neutral-100 pb-3">
@@ -72,7 +73,7 @@ export function ConcernsPage() {
                     </h2>
                     {selected.length > 0 ? (
                         <Button
-                            className="text-primary-700 hover:text-primary-900 min-h-8 px-2 text-xs font-bold"
+                            className="text-primary-800 hover:text-primary-950 min-h-11 px-3 text-xs font-bold"
                             onClick={resetAll}
                             type="button"
                             variant="ghost"
@@ -91,8 +92,9 @@ export function ConcernsPage() {
                                     key={opt.id}
                                     type="button"
                                     variant="ghost"
+                                    glassTone="selected"
                                     onClick={() => toggleOption(opt.id)}
-                                    className="bg-primary-100/70 text-primary-900 hover:bg-primary-200 focus-visible:ring-primary-500 inline-flex h-auto min-h-8 items-center gap-1.5 rounded-full py-1 pr-2 pl-3 text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                                    className="focus-visible:ring-primary-500 inline-flex h-auto min-h-11 items-center gap-1.5 rounded-full py-1 pr-2 pl-3 text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:outline-none"
                                     aria-label={`Remove ${opt.label}`}
                                 >
                                     <Icon size={16} weight="bold" />

@@ -80,6 +80,14 @@ describe("camera Barcode scanner", () => {
         expect(
             screen.getByText("Scanning happens on your device."),
         ).toBeVisible()
+        expect(
+            screen
+                .getByRole("heading", { name: "Private camera scanning" })
+                .closest('[data-glass-surface="camera"]'),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: "Start camera" }),
+        ).toHaveAttribute("data-glass", "primary")
         expect(screen.getByRole("link", { name: "Search" })).toHaveAttribute(
             "href",
             "/search",
@@ -121,12 +129,22 @@ describe("camera Barcode scanner", () => {
             name: "Turn flash on",
         })
         expect(flashButton).toHaveAttribute("aria-pressed", "false")
+        expect(flashButton).toHaveAttribute("data-glass", "neutral")
+        expect(
+            screen.getByRole("button", { name: "Pause camera" }),
+        ).toHaveAttribute("data-glass", "neutral")
+        expect(
+            screen.getByRole("button", { name: "Switch camera" }),
+        ).toHaveAttribute("data-glass", "neutral")
 
         await user.click(flashButton)
         await waitFor(() => expect(setTorchMock).toHaveBeenCalledWith(true))
         expect(
             screen.getByRole("button", { name: "Turn flash off" }),
         ).toHaveAttribute("aria-pressed", "true")
+        expect(
+            screen.getByRole("button", { name: "Turn flash off" }),
+        ).toHaveAttribute("data-glass", "selected")
 
         await user.click(screen.getByRole("button", { name: "Turn flash off" }))
         await waitFor(() => expect(setTorchMock).toHaveBeenCalledWith(false))
@@ -167,6 +185,26 @@ describe("camera Barcode scanner", () => {
         )
     })
 
+    test("shows a dark frosted recovery panel when the camera is paused", async () => {
+        const user = userEvent.setup()
+        sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
+        startMock.mockResolvedValue({ stop: vi.fn() })
+        renderPage()
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
+
+        await user.click(screen.getByRole("button", { name: "Pause camera" }))
+
+        const pausedHeading = screen.getByRole("heading", {
+            name: "Camera paused",
+        })
+        expect(
+            pausedHeading.closest('[data-glass-surface="camera"]'),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: "Resume camera" }),
+        ).toHaveAttribute("data-glass", "primary")
+    })
+
     test("shows recovery actions when an automatic camera restart times out", async () => {
         sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
         const timeoutError = new Error("Camera start timed out")
@@ -187,11 +225,16 @@ describe("camera Barcode scanner", () => {
             "The camera took too long to start. Try again, or enter the Barcode instead.",
         )
         expect(
+            screen
+                .getByRole("heading", { name: "Camera unavailable" })
+                .closest('[data-glass-surface="camera"]'),
+        ).toBeInTheDocument()
+        expect(
             screen.getByRole("button", { name: "Try camera again" }),
-        ).toBeVisible()
+        ).toHaveAttribute("data-glass", "neutral")
         expect(
             screen.getByRole("link", { name: "Enter a Barcode instead" }),
-        ).toBeVisible()
+        ).toHaveAttribute("data-glass", "selected")
     })
 
     test("opens the Product page for a valid on-device result with sensory feedback", async () => {
@@ -258,6 +301,7 @@ describe("camera Barcode scanner", () => {
         const searchBar = searchBars[0]!
         expect(searchBar).toBeVisible()
         expect(searchBar).toHaveAttribute("href", "/search")
+        expect(searchBar).toHaveAttribute("data-glass", "neutral")
         expect(
             screen.getByText("Search Product, company or country..."),
         ).toBeVisible()

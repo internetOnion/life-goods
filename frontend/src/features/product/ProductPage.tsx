@@ -190,6 +190,7 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
     return (
         <div className="min-h-svh bg-neutral-50">
             <Header
+                appearance="glass"
                 showBackButton={true}
                 onBack={() => void navigate("/search")}
                 identifier={barcode}
@@ -302,7 +303,10 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                             variant="line"
                             className="w-full"
                         >
-                            <div className="sticky top-16 z-20 -mx-4 border-b border-neutral-200/80 bg-white sm:-mx-6">
+                            <div
+                                data-glass-surface=""
+                                className="glass-surface sticky top-16 z-20 -mx-4 rounded-b-2xl border-b border-neutral-200/80 sm:-mx-6"
+                            >
                                 <div
                                     ref={tabScrollRef}
                                     className="no-scrollbar flex items-center overflow-x-auto overscroll-x-contain scroll-smooth px-4 sm:px-6"

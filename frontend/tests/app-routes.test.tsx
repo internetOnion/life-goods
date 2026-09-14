@@ -81,6 +81,15 @@ describe("Life Goods routes", () => {
         expect(
             screen.getByRole("heading", { name: "Dietary & Allergy Concerns" }),
         ).toHaveFocus()
+        const concernsNavigation = screen.getByRole("navigation", {
+            name: "Primary navigation",
+        })
+        expect(concernsNavigation).toHaveAttribute("data-glass-surface", "")
+        expect(
+            within(concernsNavigation).getByRole("link", {
+                name: "Concerns",
+            }),
+        ).toHaveAttribute("aria-current", "page")
         unmountConcerns()
 
         const { unmount: unmountAllergies } = renderRoute("/allergies")

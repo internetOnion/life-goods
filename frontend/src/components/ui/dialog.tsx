@@ -31,6 +31,7 @@ const DialogContent = React.forwardRef<
     React.ComponentRef<typeof DialogPrimitive.Content>,
     React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
         closeLabel?: string
+        closeClassName?: string
         showClose?: boolean
     }
 >(
@@ -39,6 +40,7 @@ const DialogContent = React.forwardRef<
             className,
             children,
             closeLabel = "Close",
+            closeClassName,
             showClose = true,
             ...props
         },
@@ -56,7 +58,12 @@ const DialogContent = React.forwardRef<
             >
                 {children}
                 {showClose ? (
-                    <DialogPrimitive.Close className="focus:ring-primary-500 absolute top-4 right-4 rounded-full bg-neutral-100 p-2 text-neutral-400 transition-colors hover:bg-neutral-200 hover:text-neutral-900 focus:ring-2 focus:outline-none">
+                    <DialogPrimitive.Close
+                        className={cn(
+                            "focus:ring-primary-500 absolute top-4 right-4 inline-flex size-11 items-center justify-center rounded-full bg-neutral-100 p-0 text-neutral-400 transition-colors hover:bg-neutral-200 hover:text-neutral-900 focus:ring-2 focus:outline-none",
+                            closeClassName,
+                        )}
+                    >
                         <X className="h-4 w-4" />
                         <span className="sr-only">{closeLabel}</span>
                     </DialogPrimitive.Close>

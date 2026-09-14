@@ -117,13 +117,16 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
     }
 
     return (
-        <div className="shadow-source-sheet overflow-hidden rounded-2xl border border-neutral-200/90 bg-white p-3 sm:p-6">
+        <div
+            data-glass-surface=""
+            className="glass-surface overflow-hidden rounded-2xl p-3 sm:p-6"
+        >
             <div className="grid items-start gap-6 sm:grid-cols-[13rem_minmax(0,1fr)] sm:gap-6">
                 {/* Product Image Viewer */}
                 <div className="flex w-full min-w-0 flex-col items-center sm:w-auto">
                     <div
                         className={cn(
-                            "group relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-2xl border border-neutral-200/80 bg-neutral-50/80",
+                            "group relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-2xl border border-neutral-200/80 bg-neutral-50",
                             canZoomImage
                                 ? "focus-visible:ring-primary-500 cursor-pointer focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                                 : "",
@@ -247,20 +250,22 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                     )}
 
                     {/* Quick Factual Summary Divider Rows (Neutral) */}
-                    <div className="divide-y divide-neutral-100 border-t border-b border-neutral-200/80 text-xs">
+                    <div className="divide-y divide-neutral-100 rounded-xl border border-neutral-200/80 bg-white p-3 text-xs">
                         <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-3">
                             <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                 Barcode
                             </span>
                             <Button
                                 variant="ghost"
+                                appearance="glass"
+                                glassTone="neutral"
                                 size="sm"
                                 type="button"
                                 onClick={handleCopyBarcode}
                                 aria-label={
                                     isCopied ? "Barcode copied" : "Copy barcode"
                                 }
-                                className="focus-visible:ring-primary-500 inline-flex h-auto min-h-8 w-full min-w-0 cursor-pointer items-center justify-end gap-1.5 rounded-md px-1.5 py-1 text-right font-mono text-xs font-semibold tracking-[0.04em] text-neutral-900 tabular-nums transition-colors hover:bg-neutral-100 focus-visible:ring-2 sm:text-sm"
+                                className="focus-visible:ring-primary-500 inline-flex h-auto min-h-11 w-full min-w-0 cursor-pointer items-center justify-end gap-1.5 rounded-full px-1.5 py-1 text-right font-mono text-xs font-semibold tracking-[0.04em] text-neutral-900 tabular-nums transition-colors focus-visible:ring-2 sm:text-sm"
                                 title="Copy Barcode"
                             >
                                 <span className="min-w-0 wrap-anywhere">
@@ -322,7 +327,10 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
             {/* Image Zoom Dialog */}
             {currentImage && (
                 <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
-                    <DialogContent className="max-w-2xl border-neutral-800 bg-neutral-950 p-4 text-white">
+                    <DialogContent
+                        closeClassName="size-12"
+                        className="max-w-2xl border-neutral-800 bg-neutral-950 p-4 text-white"
+                    >
                         <DialogTitle className="text-sm font-semibold text-neutral-200">
                             {productName} — {currentImage.role.toUpperCase()}
                         </DialogTitle>

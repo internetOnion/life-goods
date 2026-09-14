@@ -16,6 +16,11 @@ describe("ConcernsPage", () => {
                 name: "Dietary & Allergy Concerns",
             }),
         ).toBeInTheDocument()
+        expect(
+            screen
+                .getByRole("heading", { name: /Active Concerns/ })
+                .closest("section"),
+        ).toHaveAttribute("data-glass-surface", "")
 
         expect(
             screen.queryByText(/Important Safety & Data Boundary/i),
@@ -24,6 +29,9 @@ describe("ConcernsPage", () => {
         expect(screen.getByLabelText("Milk")).toBeInTheDocument()
         expect(screen.getByLabelText("Peanuts")).toBeInTheDocument()
         expect(screen.getByLabelText("Gluten")).toBeInTheDocument()
+        expect(
+            screen.getByLabelText("Milk").closest("label"),
+        ).not.toHaveAttribute("data-glass")
     })
 
     test("toggles an allergen and updates the active count and localStorage", () => {
@@ -39,6 +47,12 @@ describe("ConcernsPage", () => {
         expect(
             screen.getByRole("button", { name: "Remove Milk" }),
         ).toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: "Remove Milk" }),
+        ).toHaveAttribute("data-glass", "selected")
+        expect(screen.getByRole("button", { name: "Remove Milk" })).toHaveClass(
+            "min-h-11",
+        )
 
         expect(localStorage.getItem("lifegoods_selected_concerns")).toContain(
             "en:milk",
@@ -56,7 +70,10 @@ describe("ConcernsPage", () => {
         fireEvent.click(screen.getByLabelText("Eggs"))
         expect(screen.getByText("Active Concerns (2)")).toBeInTheDocument()
 
-        fireEvent.click(screen.getByRole("button", { name: "Reset all" }))
+        const resetButton = screen.getByRole("button", { name: "Reset all" })
+        expect(resetButton).toHaveAttribute("data-glass", "neutral")
+        expect(resetButton).toHaveClass("min-h-11")
+        fireEvent.click(resetButton)
         expect(screen.getByText("Active Concerns (0)")).toBeInTheDocument()
         expect(localStorage.getItem("lifegoods_selected_concerns")).toBe("[]")
     })

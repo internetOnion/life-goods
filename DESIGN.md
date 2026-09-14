@@ -71,7 +71,7 @@ spacing:
     section: "2.5rem"
 components:
     glass-navigation:
-        backgroundColor: "rgba(255, 255, 255, 0.88)"
+        backgroundColor: "rgba(255, 255, 255, 0.94)"
         rounded: "{rounded.pill}"
         padding: "0.25rem"
         height: "60px"
@@ -81,7 +81,7 @@ components:
         rounded: "{rounded.pill}"
         height: "44px"
     button-glass-neutral:
-        backgroundColor: "rgba(255, 255, 255, 0.88)"
+        backgroundColor: "rgba(255, 255, 255, 0.94)"
         textColor: "{colors.slate-strong}"
         rounded: "{rounded.pill}"
         height: "44px"
@@ -287,9 +287,9 @@ Illustrations (for empty states, educational guides, camera consent, and missing
 
 ### Buttons
 
-- **Glass rollout:** opt-in glass controls apply throughout Compare Products only. Other pages retain existing button defaults. Shared primary navigation uses glass wherever it is visible.
-- **Glass material:** neutral white at 88% opacity; primary deep amber at 96% opacity with white text. Use a 20px backdrop blur, 1.35 saturation, a white highlight edge, and `0 14px 40px -20px rgba(19,21,25,0.4)` lift. Selected controls use pale amber with deep amber text. Preserve semantic states and existing focus rings.
-- **Accessibility:** minimum 44px targets; disable motion for reduced-motion preferences. Unsupported blur and reduced-transparency preferences use opaque white/amber. Do not stack backdrop blur inside an already blurred control group. Keep photo thumbnails rectangular and content, fields, and nutrition results opaque.
+- **Glass rollout:** opt-in frosted glass applies to shared navigation, Scan chrome and state panels, and Product result chrome, hero shell, and section rail. Compare Products retains its glass controls. Source sheets, form fields, dense result cards, images, dialogs, live camera content, and scanner overlays remain opaque or dark.
+- **Glass material:** neutral white at 94% opacity; primary deep amber at 96% opacity with white text. Use a 20px backdrop blur, 1.35 saturation, a white highlight edge, and `0 14px 40px -20px rgba(19,21,25,0.4)` lift. Selected controls use pale amber with deep amber text. Camera state panels use a mostly opaque Raised Camera Slate fill with the same frosted treatment. Preserve semantic states and existing focus rings.
+- **Accessibility:** minimum 44px targets; disable motion for reduced-motion preferences. Unsupported blur and reduced-transparency preferences use opaque white/amber/slate fallbacks. Do not stack backdrop blur inside an already blurred control group. Keep photo thumbnails rectangular and content, fields, and nutrition results opaque.
 
 - **Shape:** compact rounded controls (`0.75rem`), minimum `44px` target, active `0.98` scale.
 - **Primary:** grounded amber with white extra-bold text and `0.5rem 1rem` padding; camera actions use the brighter amber mark on glass.

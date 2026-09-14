@@ -52,6 +52,18 @@ describe("Product page (life-goods-viewer layout)", () => {
         })
         expect(heading).toHaveFocus()
 
+        expect(screen.getByRole("banner")).toHaveAttribute(
+            "data-glass-surface",
+            "",
+        )
+        expect(
+            screen.getAllByRole("button", { name: "Back to search" })[0],
+        ).toHaveAttribute("data-glass", "neutral")
+        expect(
+            screen.getByRole("button", { name: "New Search" }),
+        ).toHaveAttribute("data-glass", "neutral")
+        expect(heading.closest('[data-glass-surface=""]')).toBeInTheDocument()
+
         // Hero content
         expect(screen.getByText(/Example Foods/i)).toBeVisible()
         expect(screen.getByText("100 g")).toBeVisible()
@@ -97,6 +109,19 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(screen.getByRole("tab", { name: "Ingredients" })).toBeVisible()
         expect(screen.getByRole("tab", { name: "Nutrition" })).toBeVisible()
         expect(screen.getByRole("tab", { name: "Symbols" })).toBeVisible()
+        expect(
+            screen
+                .getByRole("tab", { name: "Ingredients" })
+                .closest('[data-glass-surface=""]'),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("tab", { name: "Ingredients" }),
+        ).not.toHaveAttribute("data-glass")
+        expect(
+            screen
+                .getByRole("heading", { name: "Ingredients List" })
+                .closest("[data-glass-surface]"),
+        ).toBeNull()
         expect(
             screen.queryByRole("tab", { name: /Photos/ }),
         ).not.toBeInTheDocument()
@@ -738,6 +763,10 @@ describe("Product page (life-goods-viewer layout)", () => {
         renderProduct(lookup, "3017620422003")
 
         expect(await screen.findByText("No Package Record Found")).toBeVisible()
+        expect(screen.getByRole("banner")).toHaveAttribute(
+            "data-glass-surface",
+            "",
+        )
         expect(
             screen.getAllByText("3017620422003").length,
         ).toBeGreaterThanOrEqual(1)
@@ -767,6 +796,10 @@ describe("Product page (life-goods-viewer layout)", () => {
         renderProduct(lookup)
 
         expect(await screen.findByText("Unable to Load Product")).toBeVisible()
+        expect(screen.getByRole("banner")).toHaveAttribute(
+            "data-glass-surface",
+            "",
+        )
         expect(screen.getByText("Network connection failed")).toBeVisible()
 
         const retryButton = screen.getByRole("button", { name: "Try Again" })
