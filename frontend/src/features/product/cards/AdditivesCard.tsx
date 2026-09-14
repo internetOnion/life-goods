@@ -200,7 +200,7 @@ export const AdditivesCard: React.FC<AdditivesCardProps> = ({
                             data-disclosure
                             className="group"
                         >
-                            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-neutral-50 [&::-webkit-details-marker]:hidden">
+                            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-neutral-50 [&::-webkit-details-marker]:hidden">
                                 <span className="flex min-w-0 items-center gap-2.5">
                                     <span className="shrink-0 rounded bg-neutral-200/80 px-1.5 py-0.5 font-mono text-xs font-bold text-neutral-900 tabular-nums">
                                         {add.code}

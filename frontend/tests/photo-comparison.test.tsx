@@ -491,6 +491,12 @@ describe("Compare Products frontend page (/compare)", () => {
                 name: "Compare two Products",
             }),
         ).toBeInTheDocument()
+        const introHeading = screen.getByRole("heading", {
+            level: 2,
+            name: "Compare two Products",
+        })
+        expect(introHeading).toHaveClass("icon-heading-title")
+        expect(introHeading.parentElement).toHaveClass("icon-heading-row")
         expect(
             screen.getByRole("button", { name: "Get started" }),
         ).toBeInTheDocument()
@@ -1243,6 +1249,17 @@ describe("ComparisonSection Shopper-ready presentation", () => {
                 onFocusEvidence={vi.fn()}
             />,
         )
+
+        const comparisonHeading = screen.getByRole("heading", {
+            name: /Mama Instant Noodles vs Product B/,
+        })
+        expect(comparisonHeading).toHaveClass("icon-heading-title")
+        expect(comparisonHeading.parentElement).toHaveClass("icon-heading-row")
+        expect(
+            screen
+                .getAllByRole("table")
+                .every((table) => table.classList.contains("border-collapse")),
+        ).toBe(true)
 
         // 1. Check normalized amounts are displayed prominently
         expect(screen.getAllByText("1,380 mg").length).toBeGreaterThan(0)

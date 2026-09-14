@@ -58,7 +58,7 @@ export function CompareStepper({
                                 variant="ghost"
                                 glassTone={isActive ? "selected" : "neutral"}
                                 className={cn(
-                                    "flex min-h-11 w-full min-w-0 flex-row items-center justify-center gap-2 rounded-lg px-2 text-center transition-all sm:gap-2.5 sm:px-3",
+                                    "flex min-h-11 w-full min-w-0 flex-row items-center justify-center gap-2 rounded-xl px-2 text-center transition-all sm:gap-2.5 sm:px-3",
                                     isActive
                                         ? "text-neutral-950"
                                         : isStepAccessible

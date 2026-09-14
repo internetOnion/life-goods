@@ -56,7 +56,7 @@ export const ProductCharacteristicsCard: React.FC<
                 {product.categories.length > 0 && (
                     <div className="space-y-1.5">
                         <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 sm:text-sm">
-                            <BookmarkCheck className="h-3.5 w-3.5 text-neutral-400" />
+                            <BookmarkCheck className="h-3.5 w-3.5 text-neutral-500" />
                             <span>
                                 Categories ({product.categories.length})
                             </span>
@@ -79,7 +79,7 @@ export const ProductCharacteristicsCard: React.FC<
                 {product.stores.length > 0 && (
                     <div className="space-y-1.5 border-t border-neutral-100 pt-1">
                         <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 sm:text-sm">
-                            <Store className="h-3.5 w-3.5 text-neutral-400" />
+                            <Store className="h-3.5 w-3.5 text-neutral-500" />
                             <span>Stores / Retailers</span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
@@ -121,7 +121,7 @@ export const ProductCharacteristicsCard: React.FC<
                     <div className="flex flex-col justify-between gap-2 border-t border-neutral-100 pt-2 text-xs font-medium text-neutral-600 sm:flex-row sm:items-center">
                         {product.customerService && (
                             <div className="flex items-center gap-1.5">
-                                <Headphones className="h-3.5 w-3.5 text-neutral-400" />
+                                <Headphones className="h-3.5 w-3.5 text-neutral-500" />
                                 <span>Service: {product.customerService}</span>
                             </div>
                         )}
@@ -130,7 +130,7 @@ export const ProductCharacteristicsCard: React.FC<
                                 href={product.link}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-info-600 hover:text-info-700 inline-flex items-center gap-1 underline underline-offset-2"
+                                className="text-info-700 hover:text-info-800 inline-flex items-center gap-1 underline underline-offset-2"
                             >
                                 <span>Product Website</span>
                                 <ExternalLink className="h-3 w-3" />

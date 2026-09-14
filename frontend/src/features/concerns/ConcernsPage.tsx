@@ -134,7 +134,7 @@ export function ConcernsPage() {
                             <label
                                 key={opt.id}
                                 htmlFor={inputId}
-                                className={`has-[:focus-visible]:ring-primary-500 flex min-h-16 cursor-pointer items-center gap-3 px-4 py-3 transition-colors select-none has-[:focus-visible]:relative has-[:focus-visible]:z-10 has-[:focus-visible]:ring-2 sm:px-5 ${
+                                className={`has-[:focus-visible]:ring-primary-500 flex min-h-16 cursor-pointer items-center gap-3 rounded-xl px-4 py-3 transition-colors select-none has-[:focus-visible]:relative has-[:focus-visible]:z-10 has-[:focus-visible]:ring-2 sm:px-5 ${
                                     isChecked
                                         ? "bg-primary-50/75 text-neutral-950"
                                         : "bg-white text-neutral-700 hover:bg-neutral-50/70"

@@ -726,7 +726,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                     glassTone="neutral"
                     variant="ghost"
                     className={cn(
-                        "group relative flex h-[60px] w-full items-center rounded-full pr-20 pl-[3.25rem] text-base text-neutral-400 select-none [view-transition-name:search-bar]",
+                        "group relative flex h-[60px] w-full items-center rounded-full pr-20 pl-[3.25rem] text-base text-neutral-600 select-none [view-transition-name:search-bar]",
                         "focus-visible:ring-primary-500 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
                     )}
                 >
@@ -741,7 +741,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                         <span className="min-w-0 flex-1 truncate">
                             {text.searchPlaceholder}
                         </span>
-                        <span className="pointer-events-none absolute top-1/2 right-1.5 grid size-[52px] -translate-y-1/2 place-items-center rounded-full bg-neutral-800 text-white shadow-[0_6px_14px_-10px_rgba(19,21,25,0.75)]">
+                        <span className="pointer-events-none absolute top-1/2 right-0 grid size-[60px] -translate-y-1/2 place-items-center rounded-full bg-neutral-800 text-white shadow-[0_6px_14px_-10px_rgba(19,21,25,0.75)]">
                             <MagnifyingGlassIcon
                                 size={22}
                                 weight="bold"

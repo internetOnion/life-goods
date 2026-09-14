@@ -108,9 +108,9 @@ const recentActivityPrimaryClass =
 const recentActivitySecondaryClass =
     "mt-0.5 block truncate text-xs font-semibold text-neutral-500"
 const recentActivityRemoveClass =
-    "mr-1 size-10 shrink-0 rounded-lg bg-transparent text-neutral-400 hover:bg-transparent hover:text-error-700 focus-visible:ring-2 focus-visible:ring-offset-1 sm:mr-1.5"
+    "mr-1 size-10 shrink-0 rounded-lg bg-transparent text-neutral-600 hover:bg-transparent hover:text-error-700 focus-visible:ring-2 focus-visible:ring-offset-1 sm:mr-1.5"
 const recentActivityItemClass =
-    "relative flex w-full min-w-0 items-center bg-transparent transition-colors hover:bg-neutral-50"
+    "relative flex w-full min-w-0 items-center rounded-xl bg-transparent transition-colors hover:bg-neutral-50"
 
 export function BarcodeEntryPage() {
     const [searchParams] = useSearchParams()
@@ -299,7 +299,7 @@ export function BarcodeEntryPage() {
                         id="search"
                         aria-label="Search"
                         className={cn(
-                            "h-[60px] rounded-full border-neutral-200/90 bg-white pr-20 pl-[3.25rem] text-base shadow-[0_6px_14px_-10px_rgba(19,21,25,0.55)] placeholder:text-neutral-400",
+                            "h-[60px] rounded-full border-neutral-200/90 bg-white pr-20 pl-[3.25rem] text-base shadow-[0_6px_14px_-10px_rgba(19,21,25,0.55)] placeholder:text-neutral-600",
                             error &&
                                 "border-error-500 focus-visible:ring-error-500/25",
                         )}
@@ -320,7 +320,7 @@ export function BarcodeEntryPage() {
                 </div>
 
                 <Button
-                    className="absolute top-1/2 right-1.5 size-[52px] -translate-y-1/2 rounded-full bg-neutral-800 p-0 text-white shadow-[0_6px_14px_-10px_rgba(19,21,25,0.75)] hover:bg-neutral-900 active:bg-neutral-950 disabled:opacity-80"
+                    className="absolute top-1/2 right-0 size-[60px] -translate-y-1/2 rounded-full bg-neutral-800 p-0 text-white shadow-[0_6px_14px_-10px_rgba(19,21,25,0.75)] hover:bg-neutral-900 active:bg-neutral-950 disabled:opacity-80"
                     type="submit"
                     aria-label="Search"
                     disabled={searchStatus === "loading"}
@@ -360,7 +360,7 @@ export function BarcodeEntryPage() {
                             {recentProducts.length ? (
                                 <Link
                                     to="/search/recent"
-                                    className="text-primary-700 hover:bg-primary-50 hover:text-primary-800 focus-visible:ring-primary-500 rounded-lg px-2.5 py-2 text-sm font-extrabold transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                                    className="text-primary-700 hover:bg-primary-50 hover:text-primary-800 focus-visible:ring-primary-500 rounded-xl px-2.5 py-2 text-sm font-extrabold transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                                 >
                                     See all
                                 </Link>

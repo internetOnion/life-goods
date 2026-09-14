@@ -25,6 +25,7 @@ import {
 import { Link, useLocation, useParams } from "react-router"
 
 import { appRoutes } from "@/app/routes"
+import { BrandMark } from "@/components/brand/BrandMark"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getProductLessonLocationState } from "@/features/product/navigation"
@@ -358,19 +359,20 @@ function LearnIndexPage({ locale }: LearnIndexPageProps) {
                     {t("learn.searchLabel")}
                 </label>
                 <div
+                    data-glass="neutral"
                     data-glass-surface=""
-                    className="glass-surface focus-within:border-ring focus-within:ring-ring/40 mt-2 flex min-h-14 items-center gap-3 rounded-xl px-4 transition-colors focus-within:ring-2"
+                    className="group focus-within:border-primary-500 focus-within:ring-primary-500/25 relative mt-2 flex h-[60px] w-full items-center rounded-full pr-20 pl-[3.25rem] text-base text-neutral-600 transition-colors focus-within:ring-2"
                 >
-                    <MagnifyingGlassIcon
-                        className="text-muted-foreground shrink-0"
-                        aria-hidden="true"
-                        size={23}
-                    />
+                    <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center">
+                        <BrandMark size={22} />
+                    </span>
                     <Input
                         data-learn-search=""
                         id="learn-search"
-                        className="h-13 min-w-0 flex-1 appearance-none rounded-none border-0 bg-transparent px-0 text-base shadow-none outline-none placeholder:text-neutral-500 focus-visible:ring-0 sm:text-lg"
-                        type="search"
+                        className="h-full min-w-0 flex-1 appearance-none rounded-none border-0 bg-transparent px-0 text-base shadow-none outline-none placeholder:text-neutral-600 focus-visible:ring-0 sm:text-base"
+                        type="text"
+                        inputMode="search"
+                        role="searchbox"
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
                         onKeyDown={(event) => {
@@ -384,14 +386,22 @@ function LearnIndexPage({ locale }: LearnIndexPageProps) {
                     {search ? (
                         <Button
                             aria-label={t("learn.clearSearch")}
-                            className="text-muted-foreground hover:bg-muted size-11 shrink-0 rounded-full p-0"
+                            className="absolute top-1/2 right-0 size-[60px] -translate-y-1/2 rounded-full bg-neutral-800 p-0 text-white shadow-[0_6px_14px_-10px_rgba(19,21,25,0.75)] hover:bg-neutral-900 active:bg-neutral-950"
                             onClick={() => setSearch("")}
                             type="button"
                             variant="ghost"
                         >
-                            <XIcon aria-hidden="true" size={20} />
+                            <XIcon aria-hidden="true" size={22} weight="bold" />
                         </Button>
-                    ) : null}
+                    ) : (
+                        <span className="pointer-events-none absolute top-1/2 right-0 grid size-[60px] -translate-y-1/2 place-items-center rounded-full bg-neutral-800 text-white shadow-[0_6px_14px_-10px_rgba(19,21,25,0.75)]">
+                            <MagnifyingGlassIcon
+                                size={22}
+                                weight="bold"
+                                aria-hidden="true"
+                            />
+                        </span>
+                    )}
                 </div>
             </section>
 
@@ -568,7 +578,7 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
             <main className="page-rail min-w-0 pb-[calc(4rem_+_env(safe-area-inset-bottom))] sm:px-6 sm:py-12">
                 <Link
                     data-glass="neutral"
-                    className="focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 px-3 text-sm font-bold text-neutral-800 no-underline transition-colors hover:bg-white hover:text-neutral-950 focus-visible:ring-2 focus-visible:outline-none"
+                    className="focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-bold text-neutral-800 no-underline transition-colors hover:bg-white hover:text-neutral-950 focus-visible:ring-2 focus-visible:outline-none"
                     to={appRoutes.learn}
                 >
                     <ArrowLeftIcon aria-hidden="true" size={20} weight="bold" />
@@ -599,7 +609,7 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
 
                         {entry.kind === "sourced" && entry.learningOutcome ? (
                             <section
-                                className="border-border mt-8 border-y py-5"
+                                className="border-border mt-8 border-t py-5"
                                 aria-labelledby="learn-outcome"
                             >
                                 <h2
@@ -668,14 +678,16 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
                             >
                                 <h2
                                     id="learn-boundary"
-                                    className="flex items-start gap-2 text-base leading-snug font-extrabold"
+                                    className="icon-heading-row text-base leading-snug font-extrabold"
                                 >
                                     <InfoIcon
-                                        className="text-primary mt-1 shrink-0"
+                                        className="text-primary shrink-0"
                                         aria-hidden="true"
                                         size={18}
                                     />
-                                    {t("learn.doesNotProveTitle")}
+                                    <span className="icon-heading-title">
+                                        {t("learn.doesNotProveTitle")}
+                                    </span>
                                 </h2>
                                 <p className="mt-1 max-w-[70ch] text-base leading-relaxed">
                                     {localized(
@@ -805,17 +817,16 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
                             </section>
                         ) : null}
 
-                        <Link
-                            className="bg-primary text-primary-foreground hover:bg-brand-hover focus-visible:ring-ring focus-visible:ring-offset-background mt-8 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 py-2 text-sm font-bold no-underline transition-colors focus-visible:ring-2 focus-visible:ring-offset-2"
-                            to={appRoutes.home}
-                        >
-                            {t("learn.scanCta")}
-                            <ArrowRightIcon
-                                aria-hidden="true"
-                                size={19}
-                                weight="bold"
-                            />
-                        </Link>
+                        <Button asChild className="mt-8 rounded-xl px-5">
+                            <Link to={appRoutes.home}>
+                                {t("learn.scanCta")}
+                                <ArrowRightIcon
+                                    aria-hidden="true"
+                                    size={19}
+                                    weight="bold"
+                                />
+                            </Link>
+                        </Button>
                     </article>
                 ) : (
                     <section className="mt-8" aria-labelledby="missing-article">
@@ -855,7 +866,7 @@ export function LearnGuidePage() {
         <main className="mx-auto w-full max-w-xl min-w-0 px-4 pt-8 pb-[calc(5rem_+_env(safe-area-inset-bottom))] sm:px-6 sm:pt-12">
             <Link
                 data-glass="neutral"
-                className="focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 px-3 text-sm font-bold text-neutral-800 no-underline transition-colors hover:bg-white hover:text-neutral-950 focus-visible:ring-2 focus-visible:outline-none"
+                className="focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-bold text-neutral-800 no-underline transition-colors hover:bg-white hover:text-neutral-950 focus-visible:ring-2 focus-visible:outline-none"
                 to={appRoutes.learn}
             >
                 <ArrowLeftIcon aria-hidden="true" size={20} weight="bold" />
@@ -864,16 +875,16 @@ export function LearnGuidePage() {
 
             {guide ? (
                 <article className="mt-7" lang={locale}>
-                    <div className="flex items-start gap-3">
+                    <div className="icon-heading-row">
                         <LearnCategoryIcon
                             category={guide.category}
-                            className="bg-muted text-primary mt-0.5 size-11 shrink-0 rounded-xl"
+                            className="bg-muted text-primary size-11 shrink-0 rounded-xl"
                             iconSize={22}
                         />
                         <h1
                             ref={headingRef}
                             tabIndex={-1}
-                            className="text-display leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
+                            className="icon-heading-title text-display leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
                         >
                             {localized(guide.title, locale)}
                         </h1>
@@ -1075,7 +1086,7 @@ function AllergenIngredientReference({
             >
                 {t("learn.allergenIngredientsTitle")}
             </h3>
-            <div className="divide-border border-border mt-3 divide-y border-y">
+            <div className="divide-border border-border mt-3 divide-y border-t">
                 {groups.map((group) => {
                     const notes = group.examples.filter(
                         (example) => example.note,
@@ -1201,7 +1212,7 @@ function StructuredLearnArticle({
         >
             <Link
                 data-glass="neutral"
-                className="focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 px-3 text-sm font-bold text-neutral-800 no-underline transition-colors hover:bg-white hover:text-neutral-950 focus-visible:ring-2 focus-visible:outline-none"
+                className="focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-bold text-neutral-800 no-underline transition-colors hover:bg-white hover:text-neutral-950 focus-visible:ring-2 focus-visible:outline-none"
                 to={backTo}
                 state={
                     productReturn
@@ -1264,7 +1275,7 @@ function StructuredLearnArticle({
                             locale={locale}
                         />
                     ) : entry.facts?.length ? (
-                        <dl className="divide-border border-border mt-6 divide-y border-y">
+                        <dl className="divide-border border-border mt-6 divide-y border-t">
                             {entry.facts.map((fact) => (
                                 <div
                                     className="py-4 sm:grid sm:grid-cols-[13rem_minmax(0,1fr)] sm:gap-6"
@@ -1290,14 +1301,16 @@ function StructuredLearnArticle({
                 >
                     <h2
                         id="structured-boundary"
-                        className="flex items-start gap-2 text-base leading-snug font-extrabold"
+                        className="icon-heading-row text-base leading-snug font-extrabold"
                     >
                         <InfoIcon
-                            className="text-primary mt-1 shrink-0"
+                            className="text-primary shrink-0"
                             aria-hidden="true"
                             size={18}
                         />
-                        {t("learn.doesNotProveTitle")}
+                        <span className="icon-heading-title">
+                            {t("learn.doesNotProveTitle")}
+                        </span>
                     </h2>
                     <p className="mt-2 max-w-[70ch] leading-relaxed">
                         {localized(entry.doesNotImply, locale)}
@@ -1581,14 +1594,14 @@ function LearnCategoryHeading({
 }) {
     return (
         <div className="flex items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3">
+            <div className="icon-heading-row">
                 <LearnCategoryIcon
                     category={category}
                     className="bg-muted text-primary size-10 shrink-0 rounded-xl"
                 />
                 <h3
                     id={id}
-                    className="min-w-0 text-lg leading-snug font-extrabold tracking-[-0.01em] wrap-anywhere"
+                    className="icon-heading-title text-lg leading-snug font-extrabold tracking-[-0.01em] wrap-anywhere"
                 >
                     {title}
                 </h3>
@@ -1619,7 +1632,7 @@ function LearnDisclosureRow({
         <Link
             data-learn-row=""
             className={cn(
-                "hover:bg-accent focus-visible:ring-ring group flex min-h-14 items-center gap-3 px-4 py-3 no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none sm:px-5",
+                "hover:bg-accent focus-visible:ring-ring group flex min-h-14 items-center gap-3 rounded-xl px-4 py-3 no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none sm:px-5",
                 className,
             )}
             to={to}

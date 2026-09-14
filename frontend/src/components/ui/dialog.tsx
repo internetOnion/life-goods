@@ -60,7 +60,7 @@ const DialogContent = React.forwardRef<
                 {showClose ? (
                     <DialogPrimitive.Close
                         className={cn(
-                            "focus:ring-primary-500 absolute top-4 right-4 inline-flex size-11 items-center justify-center rounded-full bg-neutral-100 p-0 text-neutral-400 transition-colors hover:bg-neutral-200 hover:text-neutral-900 focus:ring-2 focus:outline-none",
+                            "focus:ring-primary-500 absolute top-4 right-4 inline-flex size-11 items-center justify-center rounded-full bg-neutral-100 p-0 text-neutral-600 transition-colors hover:bg-neutral-200 hover:text-neutral-900 focus:ring-2 focus:outline-none",
                             closeClassName,
                         )}
                     >

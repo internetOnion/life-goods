@@ -91,17 +91,6 @@ export const ProvenanceCard: React.FC<ProvenanceCardProps> = ({
                         </span>
                     </div>
 
-                    {source?.record_url && (
-                        <div className="flex flex-col justify-between gap-1 py-2 sm:flex-row sm:items-baseline">
-                            <span className="text-info-700 text-caption font-bold tracking-[0.06em] uppercase">
-                                Source URL
-                            </span>
-                            <span className="text-info-950 min-w-0 font-mono text-xs font-semibold break-all sm:max-w-xs sm:text-sm">
-                                {source.record_url}
-                            </span>
-                        </div>
-                    )}
-
                     <div className="flex flex-col justify-between gap-1 py-2 sm:flex-row sm:items-center">
                         <span className="text-info-700 text-caption font-bold tracking-[0.06em] uppercase">
                             Data & Image Licenses

@@ -103,29 +103,27 @@ export function ComparisonProcessingSheet({
             className="shadow-source-sheet animate-in fade-in slide-in-from-bottom-2 mt-5 bg-white p-5 duration-300 sm:mt-6 sm:p-6"
         >
             <div aria-live="polite" aria-atomic="true">
-                <div className="flex items-start gap-3">
+                <div className="icon-heading-row">
                     <span className="bg-primary-100 text-primary-800 flex size-10 shrink-0 items-center justify-center rounded-xl">
                         <Scales size={22} weight="bold" aria-hidden="true" />
                     </span>
-                    <div className="min-w-0">
-                        <h2
-                            id="comparison-processing-heading"
-                            className="text-xl font-extrabold tracking-tight text-neutral-950 sm:text-2xl"
-                        >
-                            {heading}
-                        </h2>
-                        <p className="mt-1.5 text-sm leading-relaxed text-neutral-600">
-                            {status}
-                        </p>
-                    </div>
+                    <h2
+                        id="comparison-processing-heading"
+                        className="icon-heading-title text-xl font-extrabold tracking-tight text-neutral-950 sm:text-2xl"
+                    >
+                        {heading}
+                    </h2>
                 </div>
+                <p className="icon-heading-supporting mt-1.5 text-sm leading-relaxed text-neutral-600">
+                    {status}
+                </p>
             </div>
 
             <p className="mt-4 text-sm leading-relaxed text-neutral-700">
                 {t("keepOpen")}
             </p>
 
-            <div className="mt-5 grid gap-3 border-y border-neutral-200 py-4 sm:grid-cols-2">
+            <div className="mt-5 grid gap-3 border-t border-neutral-200 py-4 sm:grid-cols-2">
                 <ProductIdentity product={leftProduct} />
                 <ProductIdentity product={rightProduct} />
             </div>

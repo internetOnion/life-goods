@@ -1439,23 +1439,21 @@ export function PhotoComparisonPage({
                                 className=""
                                 aria-labelledby="compare-intro-heading"
                             >
-                                <div className="flex items-start gap-3">
+                                <div className="icon-heading-row">
                                     <span className="bg-primary-100 text-primary-800 flex size-10 shrink-0 items-center justify-center rounded-xl">
                                         <Scales size={25} weight="bold" />
                                     </span>
-                                    <div className="min-w-0">
-                                        <h2
-                                            id="compare-intro-heading"
-                                            tabIndex={-1}
-                                            className="text-xl font-extrabold tracking-tight text-neutral-950 sm:text-2xl"
-                                        >
-                                            {t("compareTwo")}
-                                        </h2>
-                                        <p className="mt-2 text-sm leading-relaxed text-neutral-600 sm:text-base">
-                                            {t("intro")}
-                                        </p>
-                                    </div>
+                                    <h2
+                                        id="compare-intro-heading"
+                                        tabIndex={-1}
+                                        className="icon-heading-title text-xl font-extrabold tracking-tight text-neutral-950 sm:text-2xl"
+                                    >
+                                        {t("compareTwo")}
+                                    </h2>
                                 </div>
+                                <p className="icon-heading-supporting mt-2 text-sm leading-relaxed text-neutral-600 sm:text-base">
+                                    {t("intro")}
+                                </p>
 
                                 <div className="mt-5 flex flex-col gap-2 sm:flex-row">
                                     <Button
@@ -1575,7 +1573,7 @@ export function PhotoComparisonPage({
                                             .nutrition_columns?.length ?? 0) >
                                             1) && (
                                         <section
-                                            className="mt-3 border-y border-neutral-200/80 py-3"
+                                            className="mt-3 border-t border-neutral-200/80 py-3"
                                             aria-labelledby="compare-basis-heading"
                                         >
                                             <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
@@ -1805,7 +1803,7 @@ export function PhotoComparisonPage({
                             (rightProduct.extraction?.nutrition_columns
                                 ?.length ?? 0) > 1) && (
                             <section
-                                className="border-y border-neutral-200/80 py-3"
+                                className="border-t border-neutral-200/80 py-3"
                                 aria-labelledby="results-basis-heading"
                             >
                                 <div className="flex flex-wrap items-baseline justify-between gap-2">

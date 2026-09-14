@@ -64,14 +64,19 @@ describe("LearnPage", () => {
         const searchInput = screen.getByPlaceholderText(
             "Search by topic, title, or source",
         )
-        expect(searchInput.parentElement).toHaveAttribute(
-            "data-glass-surface",
-            "",
+        const searchShell = searchInput.parentElement
+        expect(searchShell).toHaveAttribute("data-glass-surface", "")
+        expect(searchShell).toHaveAttribute("data-glass", "neutral")
+        expect(searchShell).toHaveClass("h-[60px]", "rounded-full")
+        expect(searchShell?.querySelector("span:last-child")).toHaveClass(
+            "size-[60px]",
+            "right-0",
+            "rounded-full",
         )
         expect(searchInput).toHaveAttribute("data-learn-search", "")
         expect(searchInput).toHaveClass(
             "appearance-none",
-            "placeholder:text-neutral-500",
+            "placeholder:text-neutral-600",
         )
 
         const guideTiles = document.querySelectorAll(
@@ -133,6 +138,12 @@ describe("LearnPage", () => {
     test("shows only lesson titles across Learn surfaces", () => {
         const guideRender = renderLearn("/learn/guides/how-to-read-a-label")
 
+        const guideHeading = screen.getByRole("heading", {
+            name: "How to read a food label",
+        })
+        expect(guideHeading).toHaveClass("icon-heading-title")
+        expect(guideHeading.parentElement).toHaveClass("icon-heading-row")
+
         const guideList = screen.getByRole("list")
         expect(within(guideList).getByText("Name of the food")).toBeVisible()
         expect(
@@ -177,6 +188,7 @@ describe("LearnPage", () => {
             "min-h-14",
             "px-4",
             "py-3",
+            "rounded-xl",
             "sm:px-5",
         )
     })
@@ -198,6 +210,11 @@ describe("LearnPage", () => {
         expect(
             document.querySelectorAll("[data-learn-row]").length,
         ).toBeGreaterThan(0)
+        const groupedHeading = document.querySelector(
+            'section[aria-labelledby^="learn-category-"] h3',
+        )
+        expect(groupedHeading).toHaveClass("icon-heading-title")
+        expect(groupedHeading?.parentElement).toHaveClass("icon-heading-row")
         expect(
             document.querySelectorAll(
                 "[data-learn-row] [data-learn-category-icon]",
@@ -207,6 +224,7 @@ describe("LearnPage", () => {
             "min-h-14",
             "px-4",
             "py-3",
+            "rounded-xl",
             "sm:px-5",
         )
     })
@@ -332,6 +350,19 @@ describe("LearnPage", () => {
         }
     })
 
+    test("uses the shared high-contrast action treatment for the scan CTA", () => {
+        renderLearn("/learn/law-on-food-safety")
+
+        const scanCta = screen.getByRole("link", { name: "Scan a package" })
+        expect(scanCta).toHaveClass(
+            "bg-primary-600",
+            "text-white",
+            "hover:bg-primary-700",
+            "active:bg-primary-800",
+        )
+        expect(scanCta).not.toHaveClass("bg-brand-hover")
+    })
+
     test("uses source titles as clickable links without showing raw URLs", () => {
         renderLearn("/learn/name-of-the-food")
 
@@ -373,6 +404,19 @@ describe("LearnPage", () => {
         expect(
             within(sourceShelf).getByText(/Codex Alimentarius Commission/),
         ).toBeVisible()
+    })
+
+    test("gives the structured facts list one outer divider", () => {
+        renderLearn("/learn/list-of-ingredients")
+
+        const summary = screen.getByRole("region", {
+            name: "Summary from the source",
+        })
+        const facts = summary.querySelector("dl")
+
+        expect(facts).not.toBeNull()
+        expect(facts).toHaveClass("border-t")
+        expect(facts).not.toHaveClass("border-y")
     })
 
     test("uses the warm selected state for the active lesson pagination item", () => {
@@ -432,10 +476,12 @@ describe("LearnPage", () => {
     test("keeps article content opaque while elevating lesson navigation", () => {
         renderLearn("/learn/list-of-ingredients")
 
-        expect(screen.getAllByRole("link")[0]).toHaveAttribute(
+        const guideBackLink = screen.getAllByRole("link")[0]
+        expect(guideBackLink).toHaveAttribute(
             "data-glass",
             "neutral",
         )
+        expect(guideBackLink).toHaveClass("rounded-xl")
         expect(
             screen.getByRole("navigation", { name: "Lesson navigation" }),
         ).toHaveAttribute("data-glass-surface", "")

@@ -274,7 +274,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                                 {isCopied ? (
                                     <Check className="text-primary-700 h-3 w-3 shrink-0" />
                                 ) : (
-                                    <Copy className="h-3 w-3 shrink-0 text-neutral-400" />
+                                    <Copy className="h-3 w-3 shrink-0 text-neutral-500" />
                                 )}
                             </Button>
                         </div>
@@ -342,7 +342,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                             />
                         </div>
                         {currentImage.attribution && (
-                            <p className="text-caption text-center text-neutral-400">
+                            <p className="text-caption text-center text-neutral-600">
                                 Photo attribution: {currentImage.attribution} (
                                 {currentImage.license_name || "CC BY-SA"})
                             </p>

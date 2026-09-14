@@ -92,7 +92,7 @@ export function ProductListItem({ product, to, state }: ProductListItemProps) {
         <Link
             to={to}
             state={state}
-            className="group focus-visible:ring-primary-500 grid min-h-20 w-full min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 px-4 py-4 text-left no-underline transition-[background-color,box-shadow] duration-150 hover:bg-neutral-50 focus-visible:bg-neutral-50 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset active:bg-neutral-100 motion-reduce:transition-none sm:px-5 md:min-h-[5.5rem] md:grid-cols-[auto_minmax(0,1.2fr)_minmax(0,0.9fr)_auto] md:items-center md:gap-x-5"
+            className="group focus-visible:ring-primary-500 grid min-h-20 w-full min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-xl px-4 py-4 text-left no-underline transition-[background-color,box-shadow] duration-150 hover:bg-neutral-50 focus-visible:bg-neutral-50 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset active:bg-neutral-100 motion-reduce:transition-none sm:px-5 md:min-h-[5.5rem] md:grid-cols-[auto_minmax(0,1.2fr)_minmax(0,0.9fr)_auto] md:items-center md:gap-x-5"
             aria-label={
                 name
                     ? "View " + name

@@ -90,7 +90,7 @@ export const IngredientSummaryCard: React.FC<IngredientSummaryCardProps> = ({
                 </div>
             </div>
 
-            <div className="mt-4 divide-y divide-neutral-100 border-y border-neutral-100">
+            <div className="mt-4 divide-y divide-neutral-100 border-t border-neutral-100">
                 <div className="grid gap-2 py-3 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-start sm:gap-4">
                     <div className="flex items-center gap-2 text-sm font-bold text-neutral-800">
                         <ShieldAlert

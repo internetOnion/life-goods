@@ -133,7 +133,7 @@ export function PhotoInspectionModal({
                             variant="ghost"
                             size="icon-sm"
                             onClick={onClose}
-                            className="size-8 rounded-lg text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950"
+                            className="size-8 rounded-xl text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950"
                             title={t("closePreview")}
                             aria-label={t("closePreview")}
                         >

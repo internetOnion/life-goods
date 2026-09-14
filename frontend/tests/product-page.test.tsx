@@ -41,7 +41,7 @@ describe("Product page (life-goods-viewer layout)", () => {
         localStorage.clear()
     })
 
-    test("presents the Summary tab and keeps Product detail sections grouped", async () => {
+    test("presents the Summary tab and keeps Product detail navigation in the tab rail", async () => {
         const user = userEvent.setup()
         renderProduct(
             vi.fn<ProductLookup>().mockResolvedValue(productResponse()),
@@ -131,6 +131,14 @@ describe("Product page (life-goods-viewer layout)", () => {
             screen.queryByText("Dietary & Ingredient Analysis"),
         ).not.toBeInTheDocument()
         expect(screen.queryByText("Show All Sections")).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("heading", { name: "More Product details" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("navigation", {
+                name: "Product detail sections",
+            }),
+        ).not.toBeInTheDocument()
 
         // Navigation Tabs
         expect(screen.getByRole("tab", { name: "Summary" })).toBeVisible()
@@ -174,9 +182,40 @@ describe("Product page (life-goods-viewer layout)", () => {
         const evidenceDisclosure = within(ingredientsPanel).getByText(
             "Show source evidence",
         )
-        expect(evidenceDisclosure.closest("details")).not.toHaveAttribute(
-            "open",
+        const sourceEvidenceDetails = evidenceDisclosure.closest("details")
+        expect(sourceEvidenceDetails).not.toBeNull()
+        expect(sourceEvidenceDetails).not.toHaveAttribute("open")
+        expect(
+            within(ingredientsPanel).queryByText(
+                "View wording and source context",
+            ),
+        ).not.toBeInTheDocument()
+        const sourceSummaries =
+            sourceEvidenceDetails?.querySelectorAll("summary") ?? []
+        expect(sourceSummaries.length).toBeGreaterThan(1)
+        const [parentSummary, ...childSummaries] = Array.from(sourceSummaries)
+        if (!parentSummary) throw new Error("Expected source evidence summary")
+        expect(parentSummary).toHaveClass(
+            "w-full",
+            "px-3",
+            "bg-info-50",
+            "text-base",
+            "font-extrabold",
+            "rounded-xl",
         )
+        expect(parentSummary.nextElementSibling).not.toHaveClass("mt-1")
+        childSummaries.forEach((summary) => {
+            expect(summary).toHaveClass(
+                "w-full",
+                "pl-8",
+                "pr-3",
+                "hover:bg-info-50",
+                "hover:text-info-800",
+                "rounded-xl",
+                "transition-colors",
+            )
+            expect(summary).not.toHaveClass("hover:bg-neutral-50", "rounded-none")
+        })
         expect(
             within(ingredientsPanel).queryByRole("heading", {
                 name: "Source Assessments",
@@ -235,10 +274,10 @@ describe("Product page (life-goods-viewer layout)", () => {
             }),
         ).toBeVisible()
         expect(
-            within(labelsPanel).getByText(
+            within(labelsPanel).queryByText(
                 "https://world.openfoodfacts.org/product/4006381333931",
             ),
-        ).toBeVisible()
+        ).not.toBeInTheDocument()
         expect(
             within(labelsPanel).queryByRole("link", {
                 name: "https://world.openfoodfacts.org/product/4006381333931",
@@ -611,11 +650,11 @@ describe("Product page (life-goods-viewer layout)", () => {
         await screen.findByRole("heading", { name: "Dark Chocolate" })
         await user.click(screen.getByRole("tab", { name: "Summary" }))
         const summaryPanel = screen.getByRole("tabpanel", { name: "Summary" })
-        await user.click(
-            within(summaryPanel).getByRole("link", {
-                name: /Nutri-Score D/,
-            }),
-        )
+        const nutriScoreLink = within(summaryPanel).getByRole("link", {
+            name: /Nutri-Score D/,
+        })
+        expect(nutriScoreLink).toHaveClass("rounded-xl", "overflow-hidden")
+        await user.click(nutriScoreLink)
 
         expect(
             await screen.findByRole("heading", { name: "Nutri-Score" }),
@@ -987,6 +1026,7 @@ describe("Product page (life-goods-viewer layout)", () => {
         const ingredientsTable = screen.getByRole("table")
         expect(ingredientsTable).toBeVisible()
         expect(within(ingredientsTable).getAllByRole("row")).toHaveLength(4)
+        expect(ingredientsTable).toHaveClass("border-collapse")
         expect(
             within(ingredientsTable).queryByText(/^#\d+$/),
         ).not.toBeInTheDocument()
@@ -1050,6 +1090,14 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(screen.getByText("Nutrition Facts Table")).toBeVisible()
         expect(screen.getByText("Total Fat")).toBeVisible()
         expect(screen.getByText("43 g")).toBeVisible()
+        const nutritionTable = screen.getByRole("table")
+        expect(nutritionTable).toHaveClass("border-collapse")
+        expect(
+            within(nutritionTable)
+                .getAllByRole("row")
+                .slice(1)
+                .every((row) => row.classList.contains("table-row-hover")),
+        ).toBe(true)
     })
 
     test("renders NotFoundCard without sample products for 404 / product_not_found", async () => {

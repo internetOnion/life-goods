@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { AlertCircle, ArrowLeft, ChevronRight } from "lucide-react"
+import { AlertCircle, ArrowLeft } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useLocation, useNavigate, useParams } from "react-router"
 
@@ -420,69 +420,6 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                         handleTabChange("ingredients")
                                     }
                                 />
-
-                                <section
-                                    aria-labelledby="more-product-details-heading"
-                                    className="space-y-3"
-                                >
-                                    <div>
-                                        <h3
-                                            id="more-product-details-heading"
-                                            className="text-sm font-bold tracking-[-0.015em] text-neutral-950 sm:text-base"
-                                        >
-                                            More Product details
-                                        </h3>
-                                        <p className="mt-1 text-xs text-neutral-500">
-                                            Open the remaining Source Record
-                                            sections when you need them.
-                                        </p>
-                                    </div>
-
-                                    <nav
-                                        aria-label="Product detail sections"
-                                        className="divide-y divide-neutral-200/80 overflow-hidden rounded-xl border border-neutral-200/90 bg-white shadow-xs"
-                                    >
-                                        {[
-                                            {
-                                                value: "nutrition" as const,
-                                                label: "Nutrition",
-                                                description:
-                                                    "Nutrition Facts and nutrient levels",
-                                            },
-                                            {
-                                                value: "labels" as const,
-                                                label: "Labels & packaging",
-                                                description:
-                                                    "Labels, packaging, and source details",
-                                            },
-                                        ].map((section) => (
-                                            <Button
-                                                variant="ghost"
-                                                key={section.value}
-                                                type="button"
-                                                className="focus-visible:ring-primary-500 flex min-h-14 w-full items-center justify-between gap-3 rounded-none px-4 py-3 text-left transition-colors hover:bg-neutral-50 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset sm:px-5"
-                                                onClick={() =>
-                                                    handleTabChange(
-                                                        section.value,
-                                                    )
-                                                }
-                                            >
-                                                <span className="min-w-0">
-                                                    <span className="block text-sm font-bold text-neutral-950">
-                                                        {section.label}
-                                                    </span>
-                                                    <span className="mt-0.5 block text-xs text-neutral-500">
-                                                        {section.description}
-                                                    </span>
-                                                </span>
-                                                <ChevronRight
-                                                    aria-hidden="true"
-                                                    className="text-info-700 size-4 shrink-0"
-                                                />
-                                            </Button>
-                                        ))}
-                                    </nav>
-                                </section>
                             </TabsContent>
 
                             {/* Tab 2: Ingredients */}

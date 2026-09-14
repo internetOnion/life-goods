@@ -489,7 +489,7 @@ export function CameraCaptureSheet({
                                 <Button
                                     type="button"
                                     onClick={handleUsePhoto}
-                                    className="bg-primary-300 hover:bg-primary-200 h-12 gap-2 rounded-xl px-5 font-extrabold text-neutral-950"
+                                    className="bg-primary-600 hover:bg-primary-700 active:bg-primary-800 h-12 gap-2 rounded-xl px-5 font-extrabold text-white"
                                 >
                                     <Check size={18} weight="bold" />
                                     <span>{t("usePhoto")}</span>
@@ -513,7 +513,7 @@ export function CameraCaptureSheet({
                                     type="button"
                                     disabled={!showLiveCamera || isCapturing}
                                     onClick={handleCapture}
-                                    className="bg-primary-300 hover:bg-primary-200 h-12 gap-2 rounded-xl px-5 font-extrabold text-neutral-950 disabled:bg-neutral-200 disabled:text-neutral-400"
+                                    className="bg-primary-600 hover:bg-primary-700 active:bg-primary-800 h-12 gap-2 rounded-xl px-5 font-extrabold text-white disabled:bg-neutral-200 disabled:text-neutral-400"
                                 >
                                     <Camera size={19} weight="bold" />
                                     <span>

@@ -47,7 +47,7 @@ export const RawRecordCard: React.FC<RawRecordCardProps> = ({
                             size="sm"
                             type="button"
                             onClick={handleCopy}
-                            className="inline-flex h-auto cursor-pointer items-center gap-1 rounded-lg bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-600 hover:bg-neutral-200 hover:text-neutral-900"
+                        className="inline-flex h-auto cursor-pointer items-center gap-1 rounded-xl bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-600 hover:bg-neutral-200 hover:text-neutral-900"
                         >
                             {isCopied ? (
                                 <Check className="h-3 w-3 text-emerald-600" />

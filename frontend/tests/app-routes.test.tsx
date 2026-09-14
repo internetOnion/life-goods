@@ -165,6 +165,16 @@ describe("Life Goods routes", () => {
                 name: "https://world.openfoodfacts.org/data",
             }),
         ).not.toBeInTheDocument()
+        const sourceDetails = screen
+            .getByText("https://world.openfoodfacts.org/data")
+            .closest("dl")
+        expect(sourceDetails).toHaveClass("border-t")
+        expect(sourceDetails).not.toHaveClass("border-y")
+        const reuseTerms = screen
+            .getByRole("heading", { name: "Reuse terms" })
+            .nextElementSibling
+        expect(reuseTerms).toHaveClass("border-t")
+        expect(reuseTerms).not.toHaveClass("border-y")
     })
 
     test("opens the full recent Product views page", () => {

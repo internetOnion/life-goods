@@ -53,6 +53,9 @@ describe("ConcernsPage", () => {
         expect(screen.getByRole("button", { name: "Remove Milk" })).toHaveClass(
             "min-h-11",
         )
+        expect(screen.getByLabelText("Milk").closest("label")).toHaveClass(
+            "rounded-xl",
+        )
 
         expect(localStorage.getItem("lifegoods_selected_concerns")).toContain(
             "en:milk",

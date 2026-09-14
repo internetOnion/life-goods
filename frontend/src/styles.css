@@ -18,6 +18,24 @@
         var(--glass-lift);
 }
 
+@utility icon-heading-row {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+@utility icon-heading-title {
+    display: block;
+    min-width: 0;
+    transform: translateY(1px);
+}
+
+@utility icon-heading-supporting {
+    min-width: 0;
+    margin-inline-start: 3.25rem;
+}
+
 [data-glass] {
     background-color: var(--glass-fill);
     border: 1px solid rgb(255 255 255 / 0.8);
@@ -499,6 +517,11 @@ body {
     letter-spacing: 0;
 }
 
+:lang(km) .icon-heading-title,
+[lang="km"] .icon-heading-title {
+    transform: none;
+}
+
 code,
 kbd,
 samp,
@@ -534,9 +557,11 @@ input {
     appearance: none;
 }
 
-a {
-    color: var(--color-info-700);
-    text-underline-offset: 0.22em;
+@layer base {
+    a {
+        color: var(--color-info-700);
+        text-underline-offset: 0.22em;
+    }
 }
 
 a:focus-visible,
@@ -634,6 +659,28 @@ h2[tabindex="-1"]:focus {
     border-radius: var(--radius-source-sheet);
     background: var(--color-card);
     box-shadow: var(--shadow-source-sheet);
+}
+
+@utility table-row-hover {
+    transition: background-color 150ms ease-out;
+
+    &:hover > * {
+        background-color: color-mix(
+            in srgb,
+            var(--color-neutral-50) 70%,
+            transparent
+        );
+    }
+
+    &:hover > :first-child {
+        border-start-start-radius: var(--radius-control);
+        border-end-start-radius: var(--radius-control);
+    }
+
+    &:hover > :last-child {
+        border-start-end-radius: var(--radius-control);
+        border-end-end-radius: var(--radius-control);
+    }
 }
 
 @utility scrollbar-subtle {

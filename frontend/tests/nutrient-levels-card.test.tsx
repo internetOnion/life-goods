@@ -77,6 +77,7 @@ describe("NutrientLevelsCard (Yuka-style)", () => {
         const fatButton = screen.getByRole("button", {
             name: /fat · 12\.50g per 100g medium/i,
         })
+        expect(fatButton).toHaveClass("rounded-xl")
         expect(fatButton).toHaveAttribute("aria-expanded", "false")
 
         await user.click(fatButton)

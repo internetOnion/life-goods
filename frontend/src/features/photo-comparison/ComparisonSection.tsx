@@ -179,18 +179,18 @@ export function ComparisonSection({
         >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
-                    <div className="flex items-center gap-2.5">
+                    <div className="icon-heading-row">
                         <span className="bg-primary-100 text-primary-700 flex size-9 items-center justify-center rounded-xl">
                             <Scales size={18} weight="bold" />
                         </span>
                         <h2
                             id="comparison-heading"
-                            className="min-w-0 text-2xl font-extrabold tracking-tight text-neutral-950 sm:text-3xl"
+                            className="icon-heading-title text-2xl font-extrabold tracking-tight text-neutral-950 sm:text-3xl"
                         >
                             <span className="wrap-anywhere">
                                 {leftProduct.title}
                             </span>
-                            <span className="mx-1.5 text-base font-bold text-neutral-400 sm:text-lg">
+                            <span className="mx-1.5 text-base font-bold text-neutral-600 sm:text-lg">
                                 vs
                             </span>
                             <span className="wrap-anywhere">
@@ -462,7 +462,7 @@ function AmountTableRow({
     const hasVisibleDifference = row.state === "comparable"
 
     return (
-        <tr className="grid grid-cols-2 gap-x-3 gap-y-2 border-b border-neutral-200/90 py-3 last:border-b-0 sm:table-row sm:border-0 sm:py-0 sm:hover:bg-neutral-50/70">
+        <tr className="grid grid-cols-2 gap-x-3 gap-y-2 border-b border-neutral-200/90 py-3 last:border-b-0 sm:table-row sm:border-0 sm:py-0 sm:table-row-hover">
             {/* Nutrient column */}
             <td className="col-span-2 block border-b border-neutral-100 pb-2 sm:table-cell sm:border-b-0 sm:px-4 sm:py-3.5 sm:align-top">
                 <div className="text-sm font-extrabold text-neutral-950">
@@ -596,7 +596,7 @@ function PercentageTableRow({
     )
 
     return (
-        <tr className="grid grid-cols-2 gap-x-3 gap-y-2 border-b border-neutral-200/90 py-3 last:border-b-0 sm:table-row sm:border-0 sm:py-0 sm:hover:bg-neutral-50/70">
+        <tr className="grid grid-cols-2 gap-x-3 gap-y-2 border-b border-neutral-200/90 py-3 last:border-b-0 sm:table-row sm:border-0 sm:py-0 sm:table-row-hover">
             {/* Nutrient column */}
             <td className="col-span-2 block border-b border-neutral-100 pb-2 sm:table-cell sm:border-b-0 sm:px-4 sm:py-3.5 sm:align-top">
                 <div className="text-sm font-extrabold text-neutral-950">

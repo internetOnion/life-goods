@@ -126,7 +126,7 @@ export function ProductPhotoPanel({
                     </div>
                 </div>
                 <div className="flex items-center gap-2 border-t border-neutral-200/80 pt-2 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-4">
-                    <span className="text-[11px] font-semibold tracking-wide text-neutral-400 uppercase">
+                    <span className="text-[11px] font-semibold tracking-wide text-neutral-600 uppercase">
                         {t("photos")}
                     </span>
                     <p className="shrink-0 text-xs font-medium text-neutral-600">
@@ -176,7 +176,7 @@ export function ProductPhotoPanel({
                             <Button
                                 type="button"
                                 onClick={onOpenCamera}
-                                className="bg-primary-300 hover:bg-primary-200 mt-5 h-12 gap-2 rounded-xl px-5 font-extrabold text-neutral-950"
+                                className="bg-primary-600 hover:bg-primary-700 active:bg-primary-800 mt-5 h-12 gap-2 rounded-xl px-5 font-extrabold text-white"
                             >
                                 <Camera size={18} weight="bold" />
                                 <span>{t("takePhoto")}</span>
@@ -286,7 +286,7 @@ export function ProductPhotoPanel({
                                                 photo.localId
                                             ]?.click()
                                         }
-                                        className="hover:bg-primary-600 size-8 rounded-lg bg-neutral-950/80 text-white hover:text-white"
+                                        className="hover:bg-primary-600 size-8 rounded-xl bg-neutral-950/80 text-white hover:text-white"
                                         title={t("replacePhoto", {
                                             number: index + 1,
                                         })}
@@ -323,7 +323,7 @@ export function ProductPhotoPanel({
                                         variant="ghost"
                                         size="icon-sm"
                                         onClick={() => onRemovePhoto(index)}
-                                        className="hover:bg-error-600 size-7 rounded-lg bg-neutral-950/80 text-white hover:text-white"
+                                        className="hover:bg-error-600 size-7 rounded-xl bg-neutral-950/80 text-white hover:text-white"
                                         title={t("removePhoto", {
                                             number: index + 1,
                                         })}
@@ -474,7 +474,7 @@ export function ProductPhotoPanel({
                                 {t("detectedDetails")}
                             </summary>
 
-                            <dl className="mt-2 divide-y divide-neutral-100 border-y border-neutral-200/70 text-xs">
+                            <dl className="mt-2 divide-y divide-neutral-100 border-t border-neutral-200/70 text-xs">
                                 {(extraction.identity?.name?.value_text ||
                                     extraction.identity?.brand?.value_text) && (
                                     <div className="flex flex-col gap-1.5 p-3 sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:items-center sm:gap-3">
@@ -802,7 +802,7 @@ function NutritionColumnCard({
                         />
                     ))
                 ) : (
-                    <div className="py-2 text-neutral-400 italic">
+                    <div className="py-2 text-neutral-600 italic">
                         {t("noVisibleColumn")}
                     </div>
                 )}
@@ -863,7 +863,7 @@ function ObservationRow({
                         ))}
                     </div>
                 )}
-                <details className="mt-0.5 text-[11px] text-neutral-400">
+                <details className="mt-0.5 text-[11px] text-neutral-600">
                     <summary className="cursor-pointer select-none hover:text-neutral-600">
                         {t("details")}
                     </summary>
