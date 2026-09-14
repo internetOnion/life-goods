@@ -10,6 +10,7 @@ import {
 } from "@/lib/history"
 import { usePageMetadata } from "@/lib/metadata"
 
+import { ProductNameUnavailableNotice } from "./ProductListItem"
 import { RecentProductCard } from "./RecentProductCard"
 
 export function RecentProductViewsPage() {
@@ -30,6 +31,9 @@ export function RecentProductViewsPage() {
         clearRecentScans()
         setRecentProducts([])
     }
+    const missingProductNameCount = recentProducts.filter(
+        (item) => !item.name?.trim() || item.name === "Unlabeled Product",
+    ).length
 
     return (
         <main className="page-rail page-rail-tight sm:px-6 sm:pt-4">
@@ -54,7 +58,7 @@ export function RecentProductViewsPage() {
             </div>
 
             <section
-                className="mx-auto mt-6 w-full max-w-lg"
+                className="mx-auto mt-6 w-full max-w-5xl"
                 aria-labelledby="all-recent-searches-heading"
             >
                 <div className="flex items-end justify-between gap-4">
@@ -86,13 +90,19 @@ export function RecentProductViewsPage() {
                 </div>
 
                 {recentProducts.length ? (
-                    <ul className="mt-5 space-y-2.5">
-                        {recentProducts.map((item) => (
-                            <li key={item.identifier}>
-                                <RecentProductCard item={item} />
-                            </li>
-                        ))}
-                    </ul>
+                    <>
+                        <ProductNameUnavailableNotice
+                            missingCount={missingProductNameCount}
+                            totalCount={recentProducts.length}
+                        />
+                        <ul className="shadow-source-sheet mt-5 divide-y divide-neutral-200/90 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white">
+                            {recentProducts.map((item) => (
+                                <li key={item.identifier}>
+                                    <RecentProductCard item={item} />
+                                </li>
+                            ))}
+                        </ul>
+                    </>
                 ) : (
                     <div className="mt-5 rounded-2xl border border-dashed border-neutral-300 bg-white px-5 py-8 text-center">
                         <p className="text-sm font-semibold text-neutral-800">

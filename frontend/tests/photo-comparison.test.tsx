@@ -564,6 +564,15 @@ describe("Compare Products frontend page (/compare)", () => {
             "backdrop-blur-xl",
             "bottom-[calc(1rem+env(safe-area-inset-bottom,0px))]",
         )
+
+        Object.defineProperty(window, "scrollY", {
+            configurable: true,
+            value: 640,
+        })
+        fireEvent.scroll(window)
+        expect(screen.getByRole("button", { name: "Back to top" })).toHaveClass(
+            "bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))]",
+        )
     })
 
     test("guides the Shopper through Product A, Product B, and reset", async () => {

@@ -5,6 +5,7 @@ import {
     CalendarBlankIcon,
     ChartBarIcon,
     CaretRightIcon,
+    FileTextIcon,
     InfoIcon,
     ListBulletsIcon,
     MagnifyingGlassIcon,
@@ -13,7 +14,14 @@ import {
     WarningCircleIcon,
     XIcon,
 } from "@phosphor-icons/react"
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react"
+import {
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type ReactNode,
+    type RefObject,
+} from "react"
 import { Link, useLocation, useParams } from "react-router"
 
 import { appRoutes } from "@/app/routes"
@@ -22,6 +30,7 @@ import { Input } from "@/components/ui/input"
 import { getProductLessonLocationState } from "@/features/product/navigation"
 import { usePageMetadata } from "@/lib/metadata"
 import { cn } from "@/lib/utils"
+import { useAppShellNavigation } from "@/ui/AppShellNavigation"
 
 import {
     KNOWLEDGE_ENTRIES,
@@ -679,7 +688,7 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
 
                         {entry.kind === "sourced" ? (
                             <>
-                                <dl className="divide-border border-border mt-8 w-full min-w-0 divide-y border-y">
+                                <dl className="mt-8 grid w-full min-w-0 gap-4">
                                     <LearnMetadataRow
                                         label={t("learn.publisherLabel")}
                                         value={localized(
@@ -732,39 +741,34 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
                                     ) : null}
                                 </dl>
 
-                                <section
-                                    className="border-border mt-8 border-t pt-6"
-                                    aria-labelledby="learn-source-documents"
+                                <LearnSourceShelf
+                                    headingId="learn-source-documents"
+                                    heading={t("learn.sourceDocumentsTitle")}
+                                    disclosure={localized(
+                                        entry.sourceDisclosure,
+                                        contentLocale,
+                                    )}
                                 >
-                                    <h2
-                                        id="learn-source-documents"
-                                        className="text-xl leading-tight font-extrabold tracking-[-0.02em]"
-                                    >
-                                        {t("learn.sourceDocumentsTitle")}
-                                    </h2>
-                                    <ul className="divide-border border-border mt-3 divide-y border-y">
+                                    <ul className="space-y-5">
                                         {entry.sources.map((source) => (
                                             <li
-                                                className="min-w-0 py-4"
+                                                className="flex min-w-0 items-start gap-3"
                                                 key={source.url}
                                             >
-                                                <LearnSourceSummary
-                                                    name={localized(
-                                                        source.label,
-                                                        contentLocale,
-                                                    )}
-                                                    url={source.url}
-                                                />
+                                                <LearnSourceMarker />
+                                                <div className="min-w-0 flex-1">
+                                                    <LearnSourceSummary
+                                                        name={localized(
+                                                            source.label,
+                                                            contentLocale,
+                                                        )}
+                                                        url={source.url}
+                                                    />
+                                                </div>
                                             </li>
                                         ))}
                                     </ul>
-                                    <p className="border-border text-muted-foreground mt-6 border-t pt-5 text-sm leading-relaxed">
-                                        {localized(
-                                            entry.sourceDisclosure,
-                                            contentLocale,
-                                        )}
-                                    </p>
-                                </section>
+                                </LearnSourceShelf>
                             </>
                         ) : (
                             <p className="border-border bg-muted text-muted-foreground mt-8 rounded-xl border p-4 text-sm leading-relaxed sm:p-5">
@@ -1164,6 +1168,7 @@ function StructuredLearnArticle({
     locale: LearnLocale
 }) {
     const { t } = useTranslation()
+    const { setBottomDockVisible } = useAppShellNavigation()
     const location = useLocation()
     const productReturn = getProductLessonLocationState(location.state)
     const guide = LEARN_GUIDES.find(
@@ -1177,9 +1182,23 @@ function StructuredLearnArticle({
     const backTo =
         productReturn?.returnTo ??
         (guide ? guidePath(guide.slug) : appRoutes.learn)
+    const hasLessonNavigation = Boolean(guide && stepIndex >= 0)
+
+    useEffect(() => {
+        setBottomDockVisible(hasLessonNavigation)
+
+        return () => setBottomDockVisible(false)
+    }, [hasLessonNavigation, setBottomDockVisible])
 
     return (
-        <main className="mx-auto w-full max-w-xl min-w-0 px-4 pt-8 pb-[calc(4rem_+_env(safe-area-inset-bottom))] sm:px-6 sm:pt-12">
+        <main
+            className={cn(
+                "mx-auto w-full max-w-xl min-w-0 px-4 pt-8 sm:px-6 sm:pt-12",
+                hasLessonNavigation
+                    ? "pb-[calc(5.75rem+env(safe-area-inset-bottom))]"
+                    : "pb-[calc(4rem+env(safe-area-inset-bottom))]",
+            )}
+        >
             <Link
                 data-glass="neutral"
                 className="focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 px-3 text-sm font-bold text-neutral-800 no-underline transition-colors hover:bg-white hover:text-neutral-950 focus-visible:ring-2 focus-visible:outline-none"
@@ -1285,79 +1304,76 @@ function StructuredLearnArticle({
                     </p>
                 </section>
 
-                <section
-                    className="border-border mt-8 border-t pt-6"
-                    aria-labelledby="structured-sources"
+                <LearnSourceShelf
+                    headingId="structured-sources"
+                    heading={t("learn.sourceDocumentsTitle")}
+                    disclosure={t("learn.internationalDisclosure")}
                 >
-                    <h2
-                        id="structured-sources"
-                        className="text-xl leading-tight font-extrabold tracking-[-0.02em]"
-                    >
-                        {t("learn.sourceDocumentsTitle")}
-                    </h2>
-                    <div className="divide-border border-border mt-3 divide-y border-y">
+                    <div className="space-y-5">
                         {sources.map(({ reference, source }) => (
                             <div
-                                className="py-4"
+                                className="flex min-w-0 items-start gap-3"
                                 key={`${source.id}-${reference.section}`}
                             >
-                                <LearnSourceSummary
-                                    name={localized(source.name, locale)}
-                                    url={source.url}
-                                    plainText={source.plainText}
-                                />
-                                <dl className="text-muted-foreground mt-2 grid gap-1 text-sm leading-relaxed sm:grid-cols-2 sm:gap-x-6">
-                                    <div>
-                                        <dt className="text-foreground inline font-bold">
-                                            {t("learn.sectionLabel")}:{" "}
-                                        </dt>
-                                        <dd className="inline">
-                                            {reference.section}
-                                        </dd>
-                                    </div>
-                                    <div>
-                                        <dt className="text-foreground inline font-bold">
-                                            {t("learn.versionLabel")}:{" "}
-                                        </dt>
-                                        <dd className="inline">
-                                            {source.version}
-                                        </dd>
-                                    </div>
-                                    <div>
-                                        <dt className="text-foreground inline font-bold">
-                                            {t("learn.publisherLabel")}:{" "}
-                                        </dt>
-                                        <dd className="inline">
-                                            {localized(
-                                                source.publisher,
-                                                locale,
-                                            )}
-                                        </dd>
-                                    </div>
-                                    <div>
-                                        <dt className="text-foreground inline font-bold">
-                                            {t("learn.jurisdictionLabel")}:{" "}
-                                        </dt>
-                                        <dd className="inline">
-                                            {localized(
-                                                source.jurisdiction,
-                                                locale,
-                                            )}
-                                        </dd>
-                                    </div>
-                                </dl>
+                                <LearnSourceMarker />
+                                <div className="min-w-0 flex-1">
+                                    <LearnSourceSummary
+                                        name={localized(source.name, locale)}
+                                        url={source.url}
+                                        plainText={source.plainText}
+                                    />
+                                    <dl className="text-info-800 mt-3 grid gap-x-6 gap-y-1 text-sm leading-relaxed sm:grid-cols-2">
+                                        <div>
+                                            <dt className="text-info-700 inline font-bold">
+                                                {t("learn.sectionLabel")}:{" "}
+                                            </dt>
+                                            <dd className="inline">
+                                                {reference.section}
+                                            </dd>
+                                        </div>
+                                        <div>
+                                            <dt className="text-info-700 inline font-bold">
+                                                {t("learn.versionLabel")}:{" "}
+                                            </dt>
+                                            <dd className="inline">
+                                                {source.version}
+                                            </dd>
+                                        </div>
+                                        <div>
+                                            <dt className="text-info-700 inline font-bold">
+                                                {t("learn.publisherLabel")}
+                                                :{" "}
+                                            </dt>
+                                            <dd className="inline">
+                                                {localized(
+                                                    source.publisher,
+                                                    locale,
+                                                )}
+                                            </dd>
+                                        </div>
+                                        <div>
+                                            <dt className="text-info-700 inline font-bold">
+                                                {t("learn.jurisdictionLabel")}
+                                                :{" "}
+                                            </dt>
+                                            <dd className="inline">
+                                                {localized(
+                                                    source.jurisdiction,
+                                                    locale,
+                                                )}
+                                            </dd>
+                                        </div>
+                                    </dl>
+                                </div>
                             </div>
                         ))}
                     </div>
-                    <p className="text-muted-foreground mt-5 text-sm leading-relaxed">
-                        {t("learn.internationalDisclosure")}
-                    </p>
-                </section>
+                </LearnSourceShelf>
 
                 {guide && stepIndex >= 0 ? (
                     <nav
                         data-glass-surface=""
-                        className="glass-surface mt-8 overflow-hidden rounded-2xl p-2 sm:p-3"
+                        className="glass-surface fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-40 w-fit max-w-[calc(100%-2rem)] -translate-x-1/2 rounded-full p-1.5 select-none sm:p-2"
                         aria-label={t("learn.lessonNavigationLabel")}
                     >
                         <LessonPagination
@@ -1416,20 +1432,26 @@ function LessonPagination({
     const totalPages = guide.entryIds.length
     const currentPage = currentIndex + 1
     const pageNumbers = lessonPageNumbers(totalPages, currentPage)
+    const hasFirstLessonVisible = pageNumbers.includes(1)
+    const hasLastLessonVisible = pageNumbers.includes(totalPages)
     const firstEntry = LEARN_ENTRY_BY_ID.get(guide.entryIds[0]!)
     const lastEntry = LEARN_ENTRY_BY_ID.get(guide.entryIds[totalPages - 1]!)
 
     const linkClassName =
-        "focus-visible:ring-primary-500 inline-flex h-11 shrink-0 items-center justify-center rounded-lg px-3 text-sm font-semibold no-underline transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none sm:h-12 sm:px-4"
+        "focus-visible:ring-primary-500 inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-semibold no-underline transition-[background-color,color,box-shadow,transform] duration-150 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.98] motion-reduce:transition-none"
     const pageClassName =
-        "focus-visible:ring-primary-500 inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-base font-semibold tabular-nums no-underline transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none sm:size-12"
+        "focus-visible:ring-primary-500 inline-flex size-11 shrink-0 items-center justify-center rounded-full text-base font-semibold tabular-nums no-underline transition-[background-color,color,box-shadow,transform] duration-150 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.98] motion-reduce:transition-none"
+    const quietClassName =
+        "!text-neutral-600 hover:bg-white/70 hover:!text-neutral-950"
+    const activeClassName =
+        "bg-primary-100 !text-primary-800 shadow-[inset_0_1px_0_rgb(255_255_255/0.8)] ring-1 ring-inset ring-primary-200"
 
     return (
-        <div className="-mx-1 [scrollbar-width:none] overflow-x-auto px-1 [&::-webkit-scrollbar]:hidden">
-            <div className="mx-auto flex min-w-max items-center justify-center gap-2 sm:gap-3">
-                {currentPage > 1 && firstEntry ? (
+        <div className="[scrollbar-width:none] overflow-x-auto [&::-webkit-scrollbar]:hidden">
+            <div className="flex min-w-max items-center justify-center gap-1 sm:gap-1.5">
+                {currentPage > 1 && !hasFirstLessonVisible && firstEntry ? (
                     <Link
-                        className={`${linkClassName} bg-neutral-100 text-neutral-700 hover:bg-neutral-200`}
+                        className={`${linkClassName} ${quietClassName}`}
                         to={articlePath(firstEntry.slug)}
                         aria-label={t("learn.firstLesson")}
                     >
@@ -1446,7 +1468,7 @@ function LessonPagination({
                     const isCurrent = page === currentPage
                     return (
                         <Link
-                            className={`${pageClassName} ${isCurrent ? "bg-primary-600 !text-white shadow-[0_8px_18px_-12px_rgba(153,86,19,0.95)]" : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"}`}
+                            className={`${pageClassName} ${isCurrent ? activeClassName : quietClassName}`}
                             key={entry.id}
                             to={articlePath(entry.slug)}
                             aria-current={isCurrent ? "page" : undefined}
@@ -1457,9 +1479,11 @@ function LessonPagination({
                     )
                 })}
 
-                {currentPage < totalPages && lastEntry ? (
+                {currentPage < totalPages &&
+                !hasLastLessonVisible &&
+                lastEntry ? (
                     <Link
-                        className={`${linkClassName} bg-neutral-100 text-neutral-700 hover:bg-neutral-200`}
+                        className={`${linkClassName} ${quietClassName}`}
                         to={articlePath(lastEntry.slug)}
                         aria-label={t("learn.lastLesson")}
                     >
@@ -1477,7 +1501,7 @@ function lessonPageNumbers(totalPages: number, currentPage: number) {
     }
 
     if (currentPage <= 3) {
-        return [1, 2, 3]
+        return [1, 2, 3, 4]
     }
 
     if (currentPage >= totalPages - 2) {
@@ -1653,12 +1677,55 @@ type LearnMetadataRowProps = {
 
 function LearnMetadataRow({ label, value }: LearnMetadataRowProps) {
     return (
-        <div className="grid min-w-0 gap-1 py-4 sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-x-6">
-            <dt className="font-bold">{label}</dt>
+        <div className="grid min-w-0 gap-1 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-baseline sm:gap-x-6">
+            <dt className="text-muted-foreground text-sm font-bold">{label}</dt>
             <dd className="text-muted-foreground mt-1 min-w-0 text-sm leading-relaxed break-words">
                 {value}
             </dd>
         </div>
+    )
+}
+
+type LearnSourceShelfProps = {
+    children: ReactNode
+    disclosure: string
+    heading: string
+    headingId: string
+}
+
+function LearnSourceShelf({
+    children,
+    disclosure,
+    heading,
+    headingId,
+}: LearnSourceShelfProps) {
+    return (
+        <section
+            className="border-info-200/90 bg-info-100/80 mt-8 rounded-2xl border p-4 sm:p-5"
+            aria-labelledby={headingId}
+        >
+            <h2
+                id={headingId}
+                className="text-info-950 text-xl leading-tight font-extrabold tracking-[-0.02em]"
+            >
+                {heading}
+            </h2>
+            <div className="mt-5">{children}</div>
+            <p className="text-info-800 mt-6 rounded-xl bg-white/75 p-4 text-sm leading-relaxed">
+                {disclosure}
+            </p>
+        </section>
+    )
+}
+
+function LearnSourceMarker() {
+    return (
+        <span
+            aria-hidden="true"
+            className="text-info-700 mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl bg-white/80"
+        >
+            <FileTextIcon size={18} weight="duotone" />
+        </span>
     )
 }
 
@@ -1677,16 +1744,22 @@ function LearnSourceSummary({
 }: LearnSourceSummaryProps) {
     return (
         <span className="block min-w-0">
-            <span
-                className={`text-foreground block font-bold ${plainText ? "underline decoration-1 underline-offset-4" : ""}`}
-            >
-                {name}
-            </span>
             {url ? (
-                <span className="text-muted-foreground mt-1 block font-mono text-xs leading-relaxed break-all">
-                    {url}
+                <a
+                    className="text-info-950 focus-visible:ring-info-500 hover:text-info-700 block font-bold underline decoration-1 underline-offset-4 transition-colors focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                    href={url}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                >
+                    {name}
+                </a>
+            ) : (
+                <span
+                    className={`text-info-950 block font-bold ${plainText ? "underline decoration-1 underline-offset-4" : ""}`}
+                >
+                    {name}
                 </span>
-            ) : null}
+            )}
             {section ? (
                 <span className="text-muted-foreground mt-1 block text-xs leading-relaxed">
                     {section}

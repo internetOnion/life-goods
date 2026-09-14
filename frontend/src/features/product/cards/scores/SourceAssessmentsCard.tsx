@@ -30,8 +30,8 @@ export function SourceAssessmentsCard({
     return (
         <Card className="overflow-hidden border-neutral-200/90 bg-white shadow-xs">
             {showHeader && (
-                <CardHeader className="p-4 sm:p-5">
-                    <div className="flex items-start gap-2.5">
+                <CardHeader className="space-y-2 p-4 sm:p-5">
+                    <div className="flex items-center gap-2.5">
                         <div className="bg-info-50 text-info-700 grid size-8 shrink-0 place-items-center rounded-xl">
                             <BadgeInfo className="size-4" aria-hidden="true" />
                         </div>
@@ -41,6 +41,10 @@ export function SourceAssessmentsCard({
                             </CardTitle>
                         </div>
                     </div>
+                    <p className="text-xs leading-relaxed text-neutral-600">
+                        Open Food Facts calculations; not Life Goods judgments
+                        or purchase recommendations.
+                    </p>
                 </CardHeader>
             )}
 

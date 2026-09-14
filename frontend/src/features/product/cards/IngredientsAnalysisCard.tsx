@@ -221,6 +221,10 @@ export const IngredientsAnalysisCard: React.FC<
                         </div>
                     )}
                 </div>
+                <p className="mt-3 border-t border-neutral-200/80 pt-3 text-xs leading-relaxed text-neutral-500">
+                    Source analysis from Open Food Facts; not a Life Goods
+                    judgment.
+                </p>
             </CardContent>
         </Card>
     )

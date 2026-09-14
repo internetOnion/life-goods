@@ -1,4 +1,4 @@
-import { AlertCircle, ShieldAlert } from "lucide-react"
+import { AlertCircle, ChevronDown, ShieldAlert } from "lucide-react"
 import React from "react"
 
 import type { AllergenAnalysisResponse } from "@/api/generated"
@@ -66,6 +66,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
         analysis?.off.state === "missing" ||
         analysis?.off.state === "invalid" ||
         analysis?.ingredient_matching.state !== "completed"
+    const detailedMatches = concernMatches.filter(hasDetailedEvidence)
 
     return (
         <Card className="border-neutral-200/90 bg-white shadow-xs">
@@ -125,93 +126,129 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                     </section>
                 )}
 
-                {concernMatches.some(hasDetailedEvidence) && (
+                {detailedMatches.length > 0 && (
                     <section
                         aria-labelledby="allergen-evidence-heading"
                         className="space-y-3 border-t border-neutral-100 pt-3"
                     >
-                        <h3
-                            id="allergen-evidence-heading"
-                            className="text-xs font-bold tracking-[0.06em] text-neutral-500 uppercase sm:text-sm"
-                        >
-                            Ingredient and wording evidence
-                        </h3>
-                        {concernMatches
-                            .filter(hasDetailedEvidence)
-                            .map((match) => (
-                                <div
-                                    key={match.concernId}
-                                    className="space-y-2 text-sm text-neutral-700"
-                                >
-                                    <p className="font-semibold text-neutral-900">
-                                        {match.concernLabel}
-                                    </p>
-                                    {match.ingredientTexts.length > 0 && (
-                                        <div className="pl-3">
-                                            <p className="text-xs font-bold tracking-[0.04em] text-neutral-500 uppercase">
-                                                Ingredient matches
-                                            </p>
-                                            {match.ingredientTexts.map(
-                                                (text) => (
-                                                    <p
-                                                        key={`ingredient-${text}`}
-                                                    >
-                                                        Found through “{text}”
-                                                        in the ingredient text.
+                        <div className="flex items-center justify-between gap-3">
+                            <h3
+                                id="allergen-evidence-heading"
+                                className="text-xs font-bold tracking-[0.06em] text-neutral-500 uppercase sm:text-sm"
+                            >
+                                Ingredient and wording evidence
+                            </h3>
+                            <span className="shrink-0 font-mono text-xs font-semibold text-neutral-400 tabular-nums">
+                                {detailedMatches.length}{" "}
+                                {detailedMatches.length === 1
+                                    ? "item"
+                                    : "items"}
+                            </span>
+                        </div>
+                        <details data-disclosure>
+                            <summary className="text-info-700 hover:bg-info-50 hover:text-info-800 flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-1 text-sm font-bold transition-colors [&::-webkit-details-marker]:hidden">
+                                <span>Show source evidence</span>
+                                <ChevronDown
+                                    className="disclosure-icon size-4 shrink-0"
+                                    aria-hidden="true"
+                                />
+                            </summary>
+                            <div className="mt-1 divide-y divide-neutral-100 border-y border-neutral-100">
+                                {detailedMatches.map((match) => (
+                                    <details
+                                        key={match.concernId}
+                                        data-disclosure
+                                        className="group"
+                                    >
+                                        <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-1 py-3 text-left transition-colors hover:bg-neutral-50 [&::-webkit-details-marker]:hidden">
+                                            <span className="min-w-0">
+                                                <span className="block text-sm font-bold text-neutral-900">
+                                                    {match.concernLabel}
+                                                </span>
+                                                <span className="mt-0.5 block text-xs text-neutral-500">
+                                                    View wording and source
+                                                    context
+                                                </span>
+                                            </span>
+                                            <ChevronDown
+                                                className="disclosure-icon text-info-700 size-4 shrink-0"
+                                                aria-hidden="true"
+                                            />
+                                        </summary>
+                                        <div className="space-y-2 pb-4 pl-3 text-sm text-neutral-700">
+                                            {match.ingredientTexts.length >
+                                                0 && (
+                                                <div>
+                                                    <p className="text-xs font-bold tracking-[0.04em] text-neutral-500 uppercase">
+                                                        Ingredient matches
                                                     </p>
-                                                ),
+                                                    {match.ingredientTexts.map(
+                                                        (text) => (
+                                                            <p
+                                                                key={`ingredient-${text}`}
+                                                            >
+                                                                Found through “
+                                                                {text}” in the
+                                                                ingredient text.
+                                                            </p>
+                                                        ),
+                                                    )}
+                                                </div>
+                                            )}
+                                            {match.precautionaryStatements
+                                                .length > 0 && (
+                                                <div>
+                                                    <p className="text-xs font-bold tracking-[0.04em] text-neutral-500 uppercase">
+                                                        May contain
+                                                    </p>
+                                                    {match.precautionaryStatements.map(
+                                                        (text) => (
+                                                            <p
+                                                                key={`precautionary-${text}`}
+                                                            >
+                                                                {text}
+                                                            </p>
+                                                        ),
+                                                    )}
+                                                </div>
+                                            )}
+                                            {match.negatedWording.length >
+                                                0 && (
+                                                <div>
+                                                    <p className="text-xs font-bold tracking-[0.04em] text-neutral-500 uppercase">
+                                                        Negated wording
+                                                    </p>
+                                                    <p>
+                                                        {match.negatedWording.join(
+                                                            ", ",
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {match.unclearWording.length >
+                                                0 && (
+                                                <div>
+                                                    <p className="text-xs font-bold tracking-[0.04em] text-neutral-500 uppercase">
+                                                        Unclear wording
+                                                    </p>
+                                                    <p>
+                                                        {match.unclearWording.join(
+                                                            ", ",
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {match.informationGap && (
+                                                <p className="text-xs text-neutral-500">
+                                                    Some allergen checks are
+                                                    missing or incomplete.
+                                                </p>
                                             )}
                                         </div>
-                                    )}
-                                    {match.precautionaryStatements.length >
-                                        0 && (
-                                        <div className="pl-3">
-                                            <p className="text-xs font-bold tracking-[0.04em] text-neutral-500 uppercase">
-                                                May contain
-                                            </p>
-                                            {match.precautionaryStatements.map(
-                                                (text) => (
-                                                    <p
-                                                        key={`precautionary-${text}`}
-                                                    >
-                                                        {text}
-                                                    </p>
-                                                ),
-                                            )}
-                                        </div>
-                                    )}
-                                    {match.negatedWording.length > 0 && (
-                                        <div className="pl-3">
-                                            <p className="text-xs font-bold tracking-[0.04em] text-neutral-500 uppercase">
-                                                Negated wording
-                                            </p>
-                                            <p>
-                                                {match.negatedWording.join(
-                                                    ", ",
-                                                )}
-                                            </p>
-                                        </div>
-                                    )}
-                                    {match.unclearWording.length > 0 && (
-                                        <div className="pl-3">
-                                            <p className="text-xs font-bold tracking-[0.04em] text-neutral-500 uppercase">
-                                                Unclear wording
-                                            </p>
-                                            <p>
-                                                {match.unclearWording.join(
-                                                    ", ",
-                                                )}
-                                            </p>
-                                        </div>
-                                    )}
-                                    {match.informationGap && (
-                                        <p className="pl-3 text-xs text-neutral-500">
-                                            Some allergen checks are missing or
-                                            incomplete.
-                                        </p>
-                                    )}
-                                </div>
-                            ))}
+                                    </details>
+                                ))}
+                            </div>
+                        </details>
                     </section>
                 )}
 

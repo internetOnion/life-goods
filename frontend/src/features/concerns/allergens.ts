@@ -1,14 +1,10 @@
-import {
-    CheeseIcon,
-    EggIcon,
-    FishIcon,
-    FlaskIcon,
-    GrainsIcon,
-    ShrimpIcon,
-} from "@phosphor-icons/react"
+import { EggIcon, FishIcon, ShrimpIcon } from "@phosphor-icons/react"
 
 import {
     CeleryIcon,
+    GlutenIcon,
+    LupinIcon,
+    MilkIcon,
     MolluskIcon,
     MustardIcon,
     PeanutIcon,
@@ -27,9 +23,9 @@ export const ALLERGEN_OPTIONS = [
     },
     { id: "eggs", label: "Eggs", tag: "en:eggs", icon: EggIcon },
     { id: "fish", label: "Fish", tag: "en:fish", icon: FishIcon },
-    { id: "gluten", label: "Gluten", tag: "en:gluten", icon: GrainsIcon },
-    { id: "lupin", label: "Lupin", tag: "en:lupin", icon: FlaskIcon },
-    { id: "milk", label: "Milk", tag: "en:milk", icon: CheeseIcon },
+    { id: "gluten", label: "Gluten", tag: "en:gluten", icon: GlutenIcon },
+    { id: "lupin", label: "Lupin", tag: "en:lupin", icon: LupinIcon },
+    { id: "milk", label: "Milk", tag: "en:milk", icon: MilkIcon },
     {
         id: "molluscs",
         label: "Molluscs",

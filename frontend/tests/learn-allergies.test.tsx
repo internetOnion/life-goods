@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter, useLocation } from "react-router"
 import { beforeEach, describe, expect, test, vi } from "vitest"
@@ -161,7 +161,7 @@ describe("Learn source content and Allergies demos", () => {
         expect(screen.getByText("No topics match your search.")).toBeVisible()
     }, 30000)
 
-    test("opens the article with factual metadata and visible source URLs", async () => {
+    test("opens the article with factual metadata and linked source titles", async () => {
         const user = userEvent.setup()
         renderRoute("/learn", false)
 
@@ -206,15 +206,14 @@ describe("Learn source content and Allergies demos", () => {
             ["Khmer PDF resource", khmerResourceUrl],
             ["English PDF resource", englishResourceUrl],
         ] as const
+        const sourceShelf = screen.getByRole("region", {
+            name: "Sources and documents",
+        })
 
-        for (const [, url] of sourceUrls) {
-            const sourceTexts = screen.getAllByText(url)
-            expect(sourceTexts.length).toBeGreaterThan(0)
-            expect(
-                sourceTexts.every(
-                    (sourceText) => sourceText.closest("a") === null,
-                ),
-            ).toBe(true)
+        for (const [name, url] of sourceUrls) {
+            const sourceLink = within(sourceShelf).getByRole("link", { name })
+            expect(sourceLink).toHaveAttribute("href", url)
+            expect(within(sourceShelf).queryByText(url)).not.toBeInTheDocument()
         }
     })
 
@@ -274,14 +273,19 @@ describe("Learn source content and Allergies demos", () => {
                     screen.getAllByText(metadata, { exact: false })[0],
                 ).toBeVisible()
             }
+            const sourceShelf = screen.getByRole("region", {
+                name: "Sources and documents",
+            })
+            const sourceLinks = within(sourceShelf).getAllByRole("link")
             for (const url of article.urls) {
-                const sourceTexts = screen.getAllByText(url)
-                expect(sourceTexts.length).toBeGreaterThan(0)
                 expect(
-                    sourceTexts.every(
-                        (sourceText) => sourceText.closest("a") === null,
+                    sourceLinks.some(
+                        (sourceLink) => sourceLink.getAttribute("href") === url,
                     ),
                 ).toBe(true)
+                expect(
+                    within(sourceShelf).queryByText(url),
+                ).not.toBeInTheDocument()
             }
             await user.click(screen.getAllByRole("link")[0]!)
             unmount()
@@ -296,7 +300,10 @@ describe("Learn source content and Allergies demos", () => {
             await screen.findByRole("heading", { name: "Law on Food Safety" }),
         ).toHaveFocus()
         expect(
-            screen.getByRole("navigation", { name: "Primary navigation" }),
+            screen.queryByRole("navigation", { name: "Primary navigation" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.getByRole("link", { name: "Back to Learn" }),
         ).toBeVisible()
 
         const backLink = screen.getAllByRole("link")[0]!

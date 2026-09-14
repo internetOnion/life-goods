@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, within } from "@testing-library/react"
+import { fireEvent, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router"
 import { describe, expect, test, vi } from "vitest"
@@ -22,6 +22,24 @@ function renderRoute(path: string, lookup = vi.fn<ProductLookup>()) {
 }
 
 describe("Life Goods routes", () => {
+    test("reveals the back-to-top control above the primary navigation", () => {
+        Object.defineProperty(window, "scrollY", {
+            configurable: true,
+            value: 0,
+        })
+        renderRoute("/")
+
+        Object.defineProperty(window, "scrollY", {
+            configurable: true,
+            value: 640,
+        })
+        fireEvent.scroll(window)
+
+        expect(screen.getByRole("button", { name: "Back to top" })).toHaveClass(
+            "bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))]",
+        )
+    })
+
     test("keeps the core shopper journey visible in the shared shell", () => {
         renderRoute("/")
 
@@ -82,6 +100,38 @@ describe("Life Goods routes", () => {
         ).not.toBeInTheDocument()
         unmountLearn()
 
+        const { unmount: unmountLearnArticle } = renderRoute(
+            "/learn/list-of-ingredients",
+        )
+        expect(
+            screen.queryByRole("navigation", { name: "Primary navigation" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.getByRole("navigation", { name: "Lesson navigation" }),
+        ).toBeVisible()
+        Object.defineProperty(window, "scrollY", {
+            configurable: true,
+            value: 640,
+        })
+        fireEvent.scroll(window)
+        expect(screen.getByRole("button", { name: "Back to top" })).toHaveClass(
+            "bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))]",
+        )
+        unmountLearnArticle()
+
+        const { unmount: unmountStandaloneArticle } = renderRoute(
+            "/learn/law-on-food-safety",
+        )
+        Object.defineProperty(window, "scrollY", {
+            configurable: true,
+            value: 640,
+        })
+        fireEvent.scroll(window)
+        expect(screen.getByRole("button", { name: "Back to top" })).toHaveClass(
+            "bottom-[calc(1rem+env(safe-area-inset-bottom,0px))]",
+        )
+        unmountStandaloneArticle()
+
         const { unmount: unmountConcerns } = renderRoute("/concerns")
         expect(
             screen.getByRole("heading", { name: "Dietary & Allergy Concerns" }),
@@ -124,8 +174,12 @@ describe("Life Goods routes", () => {
                 {
                     identifier: "3017620422003",
                     name: "Nutella Spread 400g",
+                    genericName: "Hazelnut spread",
                     brand: "Ferrero",
+                    quantity: "400 g",
                     manufacturingPlace: "France",
+                    packaging: "Glass jar",
+                    labels: ["Vegetarian"],
                     timestamp: 1,
                 },
             ]),
@@ -138,8 +192,13 @@ describe("Life Goods routes", () => {
         ).toHaveFocus()
         expect(screen.getByText("Nutella Spread 400g")).toBeVisible()
         expect(screen.getByText("Ferrero")).toBeVisible()
+        expect(screen.getByText("Hazelnut spread")).toBeVisible()
+        expect(screen.getByText("400 g")).toBeVisible()
+        expect(screen.getByText("Glass jar")).toBeVisible()
+        expect(screen.getByText("Vegetarian")).toBeVisible()
         expect(screen.getByText("France")).toBeVisible()
         expect(screen.getByText("3017620422003")).toBeVisible()
+        expect(screen.queryByRole("img")).not.toBeInTheDocument()
         expect(
             screen.queryByRole("navigation", { name: "Primary navigation" }),
         ).not.toBeInTheDocument()

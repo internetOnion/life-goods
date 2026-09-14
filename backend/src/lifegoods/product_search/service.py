@@ -229,9 +229,12 @@ class SearchProducts:
                 ProductSummary(
                     barcode=doc["code"],
                     name=name_summary,
+                    generic_name=doc.get("generic_name"),
                     brands=doc.get("brands", []),
                     manufacturing_places=doc.get("manufacturing_places", []),
                     quantity=doc.get("quantity"),
+                    packaging=doc.get("packaging"),
+                    labels=doc.get("labels", []),
                     thumbnail=thumbnail,
                     source=SourceAttributionResponse(
                         name="Open Food Facts",

@@ -106,7 +106,8 @@ export function PhotoComparisonPage({
     extractPhotos = extractProductPhotos,
     compare = compareProducts,
 }: PhotoComparisonPageProps = {}) {
-    const { setPrimaryNavigationHidden } = useAppShellNavigation()
+    const { setBottomDockVisible, setPrimaryNavigationHidden } =
+        useAppShellNavigation()
     const { locale } = useLocale()
     const { t } = useCompareTranslation()
 
@@ -207,11 +208,13 @@ export function PhotoComparisonPage({
 
     useEffect(() => {
         setPrimaryNavigationHidden(flowPhase !== "intro")
+        setBottomDockVisible(flowPhase === "capture" || flowPhase === "review")
 
         return () => {
+            setBottomDockVisible(false)
             setPrimaryNavigationHidden(false)
         }
-    }, [flowPhase, setPrimaryNavigationHidden])
+    }, [flowPhase, setBottomDockVisible, setPrimaryNavigationHidden])
 
     useEffect(() => {
         if (
@@ -1222,7 +1225,7 @@ export function PhotoComparisonPage({
             {/* Main Content */}
             <main
                 aria-busy={processingStep !== "idle"}
-                className="mx-auto w-full max-w-3xl px-4 py-5 pb-32 sm:px-6 sm:py-7 sm:pb-12"
+                className="mx-auto w-full max-w-xl px-4 py-5 pb-32 sm:px-6 sm:py-7 sm:pb-12"
             >
                 {/* Header / Toolbar */}
                 {isResultsPage ? (

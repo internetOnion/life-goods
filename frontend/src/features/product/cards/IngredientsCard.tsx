@@ -179,7 +179,7 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                                 onChange={(event) =>
                                     setSelectedLanguage(event.target.value)
                                 }
-                                className="h-10 min-h-0 max-w-[9rem] rounded-lg bg-white px-3 text-xs font-bold"
+                                className="h-10 min-h-0 max-w-[9rem] rounded-lg bg-white pr-10 pl-3 text-xs font-bold"
                             >
                                 {availableLanguages.map(({ code, name }) => (
                                     <option key={code} value={code}>

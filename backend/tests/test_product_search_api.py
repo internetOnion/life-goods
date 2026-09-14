@@ -101,6 +101,13 @@ def _client(
 def test_search_valid_barcode_returns_attributed_product_summary() -> None:
     database = _dataset_database()
     payload = json.loads((FIXTURES / "complete.json").read_text(encoding="utf-8"))
+    payload["product"].update(
+        {
+            "generic_name_en": "Dark chocolate bar",
+            "packaging_tags": ["en:paper-box"],
+            "labels_tags": ["en:halal", "en:organic"],
+        }
+    )
     database[COLLECTION_NAME].insert_one(payload["product"])
 
     with _client(database) as client:
@@ -122,6 +129,13 @@ def test_search_valid_barcode_returns_attributed_product_summary() -> None:
     assert product["brands"] == ["Example Foods", "Example Brand"]
     assert product["manufacturing_places"] == ["Cambodia"]
     assert product["quantity"] == "100 g"
+    assert product["generic_name"] == {
+        "value": "Dark chocolate bar",
+        "language": "en",
+        "source_field": "generic_name_en",
+    }
+    assert product["packaging"] == "paper box"
+    assert product["labels"] == ["halal", "organic"]
     assert product["thumbnail"] == {
         "url": "https://images.openfoodfacts.org/images/products/400/front_en.jpg",
         "language": "en",
@@ -343,6 +357,9 @@ def test_search_missing_summary_fields() -> None:
     assert product["name"] is None
     assert product["brands"] == []
     assert product["quantity"] is None
+    assert product["generic_name"] is None
+    assert product["packaging"] is None
+    assert product["labels"] == []
     assert product["thumbnail"] is None
     assert product["source"] == {
         "name": "Open Food Facts",

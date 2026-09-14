@@ -12,7 +12,10 @@ from lifegoods.product_lookup import (
     SourceAttributionResponse,
     SourceImage,
 )
-from lifegoods.product_lookup.projection import project_source_record
+from lifegoods.product_lookup.projection import (
+    project_product_summary,
+    project_source_record,
+)
 
 META = ProductLookupMetaResponse(
     lookup=ProductLookupMetadataResponse(barcode="4006381333931"),
@@ -131,6 +134,51 @@ def test_projects_complete_source_record_without_inference() -> None:
     assert product.source.retrieved_at == "2026-08-27T08:00:00Z"
 
 
+def test_projects_product_summary_comparison_fields_from_complete_record() -> None:
+    summary = project_product_summary(
+        {
+            "code": "4006381333931",
+            "product_name": "Dark Chocolate",
+            "generic_name_en": "Dark chocolate bar",
+            "packaging_tags": ["en:paper-box"],
+            "labels_tags": ["en:organic", "en:vegetarian"],
+            "brands": "Example Brand",
+            "quantity": "100 g",
+            "manufacturing_places": "Cambodia",
+            "lang": "en",
+        }
+    )
+
+    assert summary.name == OriginalText(
+        value="Dark Chocolate", language="en", source_field="product_name"
+    )
+    assert summary.generic_name == OriginalText(
+        value="Dark chocolate bar",
+        language="en",
+        source_field="generic_name_en",
+    )
+    assert summary.packaging == "paper box"
+    assert summary.labels == ["organic", "vegetarian"]
+
+
+def test_projects_product_summary_comparison_fields_from_partial_record() -> None:
+    summary = project_product_summary(
+        {
+            "code": "8850000000003",
+            "generic_name": "Sparkling beverage",
+            "packaging": "330 ml can",
+            "labels": "Vegetarian, Organic",
+        }
+    )
+
+    assert summary.name is None
+    assert summary.generic_name == OriginalText(
+        value="Sparkling beverage", language=None, source_field="generic_name"
+    )
+    assert summary.packaging == "330 ml can"
+    assert summary.labels == ["Vegetarian", "Organic"]
+
+
 def test_sparse_source_record_leaves_unavailable_fields_none_or_empty() -> None:
     sparse = {
         "code": "8850000000003",
@@ -149,6 +197,7 @@ def test_sparse_source_record_leaves_unavailable_fields_none_or_empty() -> None:
     }
 
     product = project_source_record(sparse)
+    summary = project_product_summary(sparse)
 
     assert product.identity.preferred_name == OriginalText(
         value="ขนมตัวอย่าง",
@@ -164,6 +213,12 @@ def test_sparse_source_record_leaves_unavailable_fields_none_or_empty() -> None:
     assert product.assessments.nova is None
     assert product.assessments.green_score is None
     assert product.source.name is None
+    assert summary.name == OriginalText(
+        value="ขนมตัวอย่าง", language="th", source_field="product_name_th"
+    )
+    assert summary.generic_name is None
+    assert summary.packaging is None
+    assert summary.labels == []
 
 
 def test_reads_schema_1004_aggregate_nutrition_without_recalculation() -> None:

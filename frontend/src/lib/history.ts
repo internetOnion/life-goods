@@ -2,8 +2,12 @@ export interface ScanHistoryItem {
     identifier: string
     scheme?: string
     name?: string
+    genericName?: string
     brand?: string
+    quantity?: string
     manufacturingPlace?: string
+    packaging?: string
+    labels?: string[]
     imageUrl?: string
     timestamp: number
 }

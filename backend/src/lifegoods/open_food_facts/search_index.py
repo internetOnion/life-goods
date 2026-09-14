@@ -14,14 +14,17 @@ from lifegoods.identifiers import InvalidIdentifierError, normalize_identifier
 from lifegoods.product_lookup.projection import (
     extract_brands,
     extract_front_image,
+    extract_labels,
     extract_manufacturing_places,
+    extract_packaging,
+    extract_preferred_generic_name,
     extract_preferred_name,
     extract_product_names,
     extract_quantity,
 )
 
 SEARCH_COLLECTION_PREFIX = "off_product_search_"
-SEARCH_SCHEMA_VERSION = 2
+SEARCH_SCHEMA_VERSION = 3
 VERSIONS_COLLECTION = "off_dataset_versions"
 REQUIRED_SEARCH_INDEXES = frozenset(
     {
@@ -121,6 +124,7 @@ def index_document(
 
     preferred = extract_preferred_name(product, record_language)
     name_sort = normalize_search_value(preferred.value)[:100] if preferred else ""
+    generic_name = extract_preferred_generic_name(product, record_language)
 
     brands_list = extract_brands(product)
     brand_values = [normalize_search_value(b) for b in brands_list if normalize_search_value(b)]
@@ -137,6 +141,8 @@ def index_document(
     )
 
     quantity = extract_quantity(product)
+    packaging = extract_packaging(product)
+    labels = extract_labels(product)
     thumbnail_img = extract_front_image(product, code, record_language)
     thumbnail_data = (
         {
@@ -160,9 +166,20 @@ def index_document(
         "country_tokens": country_tokens,
         "names": names_data,
         "name_sort": name_sort,
+        "generic_name": (
+            {
+                "value": generic_name.value,
+                "language": generic_name.language,
+                "source_field": generic_name.source_field,
+            }
+            if generic_name
+            else None
+        ),
         "brands": brands_list,
         "manufacturing_places": manufacturing_places,
         "quantity": quantity,
+        "packaging": packaging,
+        "labels": labels,
         "thumbnail": thumbnail_data,
     }
 

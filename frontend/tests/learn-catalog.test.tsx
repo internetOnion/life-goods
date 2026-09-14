@@ -186,9 +186,14 @@ describe("structured Learn catalog", () => {
         expect(screen.getByText("Step 2 of 8")).toBeVisible()
         expect(
             screen.getByRole("link", {
-                name: "First lesson",
+                name: "Lesson 1",
             }),
         ).toHaveAttribute("href", "/learn/name-of-the-food")
+        expect(
+            screen.queryByRole("link", {
+                name: "First lesson",
+            }),
+        ).not.toBeInTheDocument()
         expect(
             screen.getByRole("link", {
                 name: "Lesson 3",
@@ -200,6 +205,9 @@ describe("structured Learn catalog", () => {
         expect(
             screen.getByRole("navigation", { name: "Lesson navigation" }),
         ).toBeVisible()
+        expect(
+            screen.queryByRole("navigation", { name: "Primary navigation" }),
+        ).not.toBeInTheDocument()
         expect(screen.queryByLabelText("First lesson")).not.toBeInTheDocument()
         expect(screen.getByLabelText("Lesson 1")).toHaveAttribute(
             "aria-current",

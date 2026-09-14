@@ -1,4 +1,4 @@
-import { ArrowLeft, RotateCcw } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import React from "react"
 
 import { BrandLockup } from "@/components/brand/BrandMark"
@@ -9,18 +9,14 @@ interface HeaderProps {
     appearance?: "solid" | "glass"
     showBackButton?: boolean
     onBack?: () => void
-    identifier?: string
     backLabel?: string
-    secondaryActionLabel?: string
 }
 
 export const Header: React.FC<HeaderProps> = ({
     appearance = "solid",
     showBackButton = false,
     onBack,
-    identifier,
     backLabel = "Back to scanner",
-    secondaryActionLabel = "New Scan",
 }) => {
     const isGlass = appearance === "glass"
 
@@ -48,35 +44,8 @@ export const Header: React.FC<HeaderProps> = ({
                         </Button>
                     )}
 
-                    {showBackButton ? (
-                        <Button
-                            variant="ghost"
-                            onClick={onBack}
-                            className="h-11 w-auto px-1 hover:bg-transparent"
-                            aria-label={backLabel}
-                        >
-                            <BrandLockup compact />
-                        </Button>
-                    ) : (
-                        <BrandLockup compact />
-                    )}
+                    <BrandLockup compact />
                 </div>
-
-                {showBackButton && identifier && (
-                    <div className="flex items-center gap-1.5">
-                        <Button
-                            variant="subtle"
-                            appearance={isGlass ? "glass" : undefined}
-                            glassTone="neutral"
-                            size="sm"
-                            onClick={onBack}
-                            className="gap-1 rounded-full font-mono text-xs text-neutral-600 hover:text-neutral-950"
-                        >
-                            <RotateCcw className="h-3 w-3" />
-                            <span>{secondaryActionLabel}</span>
-                        </Button>
-                    </div>
-                )}
             </div>
         </header>
     )

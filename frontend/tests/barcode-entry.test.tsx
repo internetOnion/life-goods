@@ -24,11 +24,21 @@ const searchResult = {
     brands: ["Nutella"],
     manufacturing_places: ["Cambodia"],
     quantity: "400 g",
+    generic_name: {
+        value: "Hazelnut spread",
+        language: "en",
+        source_field: "generic_name_en",
+    },
+    packaging: "Glass jar",
+    labels: ["Vegetarian"],
     source: {
         name: "Open Food Facts",
         product_url: "https://world.openfoodfacts.org/product/3017620422003",
     },
-    thumbnail: null,
+    thumbnail: {
+        url: "https://images.openfoodfacts.org/front.jpg",
+        source_field: "image_url",
+    },
 } as ProductSearchResult
 
 const recentProduct = {
@@ -106,7 +116,7 @@ describe("search page", () => {
 
         expect(mockedSearchProducts).not.toHaveBeenCalled()
         expect(
-            screen.queryByRole("button", { name: "View Nutella" }),
+            screen.queryByRole("link", { name: "View Nutella" }),
         ).not.toBeInTheDocument()
         expect(
             screen.queryByText("Try a sample Product"),
@@ -114,28 +124,76 @@ describe("search page", () => {
 
         await user.keyboard("{Enter}")
 
-        const resultCard = await screen.findByRole("button", {
+        const resultCard = await screen.findByRole("link", {
             name: "View Nutella",
         })
         expect(
             within(resultCard).getByRole("heading", {
-                name: "Nutella · 400 g",
+                name: "Nutella",
             }),
         ).toBeVisible()
+        expect(within(resultCard).getByText("Product details")).toBeVisible()
+        expect(within(resultCard).getByText("Product type")).toBeVisible()
+        expect(within(resultCard).getByText("Hazelnut spread")).toBeVisible()
+        expect(within(resultCard).getByText("Size")).toBeVisible()
+        expect(within(resultCard).getByText("400 g")).toBeVisible()
+        expect(within(resultCard).getByText("Pack")).toBeVisible()
+        expect(within(resultCard).getByText("Glass jar")).toBeVisible()
+        expect(within(resultCard).getByText("Vegetarian")).toBeVisible()
         expect(within(resultCard).getByText("Company")).toBeVisible()
         expect(within(resultCard).getByText("Made in")).toBeVisible()
         expect(within(resultCard).getByText("Cambodia")).toBeVisible()
         expect(within(resultCard).getByText("Barcode")).toBeVisible()
         expect(within(resultCard).getByText("3017620422003")).toBeVisible()
-        expect(within(resultCard).getByText(">")).toBeVisible()
+        expect(within(resultCard).queryByRole("img")).not.toBeInTheDocument()
         expect(mockedSearchProducts).toHaveBeenCalledWith("Nutella")
     })
 
-    test("shows N/A for unavailable company and manufacturing place", async () => {
+    test("uses Product type and pack details when the Product name is unavailable", async () => {
+        const user = userEvent.setup()
+        mockedSearchProducts.mockResolvedValue({
+            results: [{ ...searchResult, name: null }],
+            nextCursor: null,
+        })
+        renderPage()
+
+        await user.type(
+            screen.getByRole("textbox", { name: "Search" }),
+            "Nutella",
+        )
+        await user.keyboard("{Enter}")
+
+        const resultCard = await screen.findByRole("link", {
+            name: "View Hazelnut spread Product 3017620422003",
+        })
+        expect(
+            within(resultCard).getByRole("heading", {
+                name: "Hazelnut spread",
+            }),
+        ).toBeVisible()
+        expect(within(resultCard).getByText("Glass jar")).toBeVisible()
+        expect(within(resultCard).getByText("Vegetarian")).toBeVisible()
+        expect(screen.getByRole("status")).toHaveTextContent(
+            "Product name: Source Data Unavailable for 1 of 1 Source Records.",
+        )
+        expect(
+            within(resultCard).queryByText("Source Data Unavailable"),
+        ).not.toBeInTheDocument()
+    })
+
+    test("uses a Barcode fallback when all identity source fields are unavailable", async () => {
         const user = userEvent.setup()
         mockedSearchProducts.mockResolvedValue({
             results: [
-                { ...searchResult, brands: [], manufacturing_places: [] },
+                {
+                    ...searchResult,
+                    name: null,
+                    generic_name: null,
+                    brands: [],
+                    manufacturing_places: [],
+                    packaging: null,
+                    labels: [],
+                },
             ],
             nextCursor: null,
         })
@@ -147,10 +205,68 @@ describe("search page", () => {
         )
         await user.keyboard("{Enter}")
 
-        const resultCard = await screen.findByRole("button", {
-            name: "View Nutella",
+        const resultCard = await screen.findByRole("link", {
+            name: "View Product 3017620422003",
         })
-        expect(within(resultCard).getAllByText("N/A")).toHaveLength(2)
+        expect(
+            within(resultCard).queryByText("Company"),
+        ).not.toBeInTheDocument()
+        expect(within(resultCard).getByText("Barcode country")).toBeVisible()
+        expect(within(resultCard).getByText("France")).toBeVisible()
+        expect(screen.getByRole("status")).toHaveTextContent(
+            "Product name: Source Data Unavailable for 1 of 1 Source Records.",
+        )
+        expect(
+            within(resultCard).queryByText("Source Data Unavailable"),
+        ).not.toBeInTheDocument()
+    })
+
+    test("keeps Product links and pagination functional for comparison results", async () => {
+        const user = userEvent.setup()
+        mockedSearchProducts
+            .mockResolvedValueOnce({
+                results: [searchResult],
+                nextCursor: "next-page",
+            })
+            .mockResolvedValueOnce({
+                results: [
+                    {
+                        ...searchResult,
+                        barcode: "4006381333931",
+                        name: {
+                            ...searchResult.name!,
+                            value: "Dark Chocolate",
+                        },
+                    },
+                ],
+                nextCursor: null,
+            })
+        renderPage()
+
+        await user.type(
+            screen.getByRole("textbox", { name: "Search" }),
+            "chocolate",
+        )
+        await user.keyboard("{Enter}")
+
+        expect(
+            await screen.findByRole("link", { name: "View Nutella" }),
+        ).toHaveAttribute("href", "/products/3017620422003")
+        const loadMore = screen.getByRole("button", {
+            name: "Load more Products",
+        })
+        await user.click(loadMore)
+
+        expect(
+            await screen.findByRole("link", { name: "View Dark Chocolate" }),
+        ).toHaveAttribute("href", "/products/4006381333931")
+        expect(
+            screen.queryByRole("button", { name: "Load more Products" }),
+        ).not.toBeInTheDocument()
+        expect(mockedSearchProducts).toHaveBeenLastCalledWith(
+            "chocolate",
+            "next-page",
+        )
     })
 
     test("shows a recognized Barcode card before opening its Product page", async () => {
@@ -175,7 +291,7 @@ describe("search page", () => {
         )
         await user.click(screen.getByRole("button", { name: "Search" }))
 
-        const productCard = await screen.findByRole("button", {
+        const productCard = await screen.findByRole("link", {
             name: "View Recognized Product",
         })
         expect(screen.getByTestId("location")).toHaveTextContent("/search")

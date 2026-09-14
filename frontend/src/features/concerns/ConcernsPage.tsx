@@ -1,4 +1,4 @@
-import { XIcon } from "@phosphor-icons/react"
+import { CheckIcon, XIcon } from "@phosphor-icons/react"
 import { useEffect, useRef } from "react"
 
 import { GlassButton as Button } from "@/components/ui/button"
@@ -61,7 +61,7 @@ export function ConcernsPage() {
 
             <section
                 data-glass-surface=""
-                className="glass-surface mt-8 rounded-2xl p-5 sm:p-6"
+                className="source-sheet mt-8 overflow-hidden p-5 sm:p-6"
                 aria-labelledby="selected-concerns-heading"
             >
                 <div className="flex items-center justify-between gap-3 border-b border-neutral-100 pb-3">
@@ -121,7 +121,7 @@ export function ConcernsPage() {
                 >
                     Available Allergens & Ingredients
                 </h2>
-                <fieldset className="mt-3.5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                <fieldset className="source-sheet mt-3.5 divide-y divide-neutral-200/80 overflow-hidden">
                     <legend className="sr-only">
                         Select allergy and dietary concerns
                     </legend>
@@ -134,10 +134,10 @@ export function ConcernsPage() {
                             <label
                                 key={opt.id}
                                 htmlFor={inputId}
-                                className={`has-[:focus-visible]:ring-primary-500 flex min-h-16 cursor-pointer items-center gap-3.5 rounded-xl border p-3.5 transition-colors select-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-offset-2 ${
+                                className={`has-[:focus-visible]:ring-primary-500 flex min-h-16 cursor-pointer items-center gap-3 px-4 py-3 transition-colors select-none has-[:focus-visible]:relative has-[:focus-visible]:z-10 has-[:focus-visible]:ring-2 sm:px-5 ${
                                     isChecked
-                                        ? "border-primary-400 bg-primary-50/70 text-neutral-950 shadow-xs"
-                                        : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50/60"
+                                        ? "bg-primary-50/75 text-neutral-950"
+                                        : "bg-white text-neutral-700 hover:bg-neutral-50/70"
                                 }`}
                             >
                                 <Input
@@ -147,22 +147,32 @@ export function ConcernsPage() {
                                     value={opt.id}
                                     checked={isChecked}
                                     onChange={() => toggleOption(opt.id)}
-                                    className="accent-primary-600 size-4.5 h-auto min-w-0 rounded border-neutral-300 p-0 shadow-none focus-visible:ring-0"
+                                    className="sr-only"
                                 />
                                 <div
-                                    className={`grid size-9 shrink-0 place-items-center rounded-lg ${
+                                    className={`grid size-6 shrink-0 place-items-center rounded-md border transition-colors ${
                                         isChecked
-                                            ? "bg-primary-200/70 text-primary-900"
+                                            ? "border-primary-600 bg-primary-600 text-white"
+                                            : "border-neutral-300 bg-white text-transparent"
+                                    }`}
+                                    aria-hidden="true"
+                                >
+                                    <CheckIcon size={16} weight="bold" />
+                                </div>
+                                <div
+                                    className={`grid size-11 shrink-0 place-items-center rounded-xl transition-colors ${
+                                        isChecked
+                                            ? "bg-primary-100 text-primary-800"
                                             : "bg-neutral-100 text-neutral-600"
                                     }`}
                                     aria-hidden="true"
                                 >
                                     <Icon
-                                        size={20}
+                                        size={22}
                                         weight={isChecked ? "bold" : "regular"}
                                     />
                                 </div>
-                                <span className="text-sm font-bold">
+                                <span className="text-sm font-bold text-neutral-800 sm:text-base">
                                     {opt.label}
                                 </span>
                             </label>

@@ -301,17 +301,38 @@ describe("LearnPage", () => {
         expect(
             screen.getByRole("heading", { name: "Law on Food Safety" }),
         ).toBeInTheDocument()
-        expect(screen.getByText("Sources and documents")).toBeInTheDocument()
+        const sourceShelf = screen.getByRole("region", {
+            name: "Sources and documents",
+        })
+        expect(sourceShelf).toHaveClass("bg-info-100/80", "rounded-2xl")
+        expect(sourceShelf).not.toHaveClass("divide-y", "border-y")
         expect(screen.getByText(/Ministry of Commerce/i)).toBeInTheDocument()
         expect(screen.getByText(/NS\/RKM\/0622\/006/i)).toBeInTheDocument()
-        expect(
-            screen.getByText(
+        const sourceLinks = [
+            [
+                "Open Development Cambodia law record",
+                "https://data.opendevelopmentcambodia.net/laws_record/law-on-food-safety",
+            ],
+            [
+                "Khmer PDF resource",
                 "https://data.opendevelopmentcambodia.net/laws_record/law-on-food-safety/resource/1406ab5a-0097-43e9-99db-234b80cfb7ec",
-            ),
-        ).toBeVisible()
+            ],
+            [
+                "English PDF resource",
+                "https://data.opendevelopmentcambodia.net/laws_record/law-on-food-safety/resource/525730c8-110a-4670-a3b5-80d08db2c82b",
+            ],
+        ] as const
+
+        for (const [name, url] of sourceLinks) {
+            const sourceLink = within(sourceShelf).getByRole("link", { name })
+            expect(sourceLink).toHaveAttribute("href", url)
+            expect(sourceLink).toHaveAttribute("target", "_blank")
+            expect(sourceLink).toHaveAttribute("rel", "noopener noreferrer")
+            expect(within(sourceShelf).queryByText(url)).not.toBeInTheDocument()
+        }
     })
 
-    test("shows source summaries as visible, non-clickable URLs", () => {
+    test("uses source titles as clickable links without showing raw URLs", () => {
         renderLearn("/learn/name-of-the-food")
 
         expect(
@@ -319,16 +340,18 @@ describe("LearnPage", () => {
         ).toBeInTheDocument()
         const sourceUrl =
             "https://www.fao.org/fao-who-codexalimentarius/sh-proxy/en/?lnk=1&url=https://workspace.fao.org/sites/codex/Standards/CXS+1-1985/CXS_001e.pdf"
-        const sourceTexts = screen.getAllByText(sourceUrl)
-        expect(sourceTexts).toHaveLength(1)
+        const sourceShelf = screen.getByRole("region", {
+            name: "Sources and documents",
+        })
+        const sourceLink = within(sourceShelf).getByRole("link", {
+            name: "General Standard for the Labelling of Pre-packaged Foods",
+        })
+        expect(sourceLink).toHaveAttribute("href", sourceUrl)
+        expect(sourceLink).toHaveAttribute("target", "_blank")
+        expect(sourceLink).toHaveAttribute("rel", "noopener noreferrer")
         expect(
-            sourceTexts.every((sourceText) => sourceText.closest("a") === null),
-        ).toBe(true)
-        expect(
-            within(
-                screen.getByRole("region", { name: "Sources and documents" }),
-            ).getByText(sourceUrl),
-        ).toBeVisible()
+            within(sourceShelf).queryByText(sourceUrl),
+        ).not.toBeInTheDocument()
         expect(
             within(
                 screen.getByRole("region", {
@@ -338,7 +361,21 @@ describe("LearnPage", () => {
         ).not.toBeInTheDocument()
     })
 
-    test("uses white text for the active lesson pagination item", () => {
+    test("uses the same source shelf for structured source references", () => {
+        renderLearn("/learn/list-of-ingredients")
+
+        const sourceShelf = screen.getByRole("region", {
+            name: "Sources and documents",
+        })
+
+        expect(sourceShelf).toHaveClass("bg-info-100/80", "rounded-2xl")
+        expect(sourceShelf).not.toHaveClass("divide-y", "border-y")
+        expect(
+            within(sourceShelf).getByText(/Codex Alimentarius Commission/),
+        ).toBeVisible()
+    })
+
+    test("uses the warm selected state for the active lesson pagination item", () => {
         renderLearn("/learn/list-of-ingredients")
 
         expect(screen.getByRole("link", { name: "Lesson 2" })).toHaveAttribute(
@@ -346,8 +383,50 @@ describe("LearnPage", () => {
             "page",
         )
         expect(screen.getByRole("link", { name: "Lesson 2" })).toHaveClass(
-            "!text-white",
+            "bg-primary-100",
+            "!text-primary-800",
         )
+        expect(
+            screen.getByRole("navigation", { name: "Lesson navigation" }),
+        ).toHaveClass("fixed")
+        expect(
+            screen.queryByRole("link", { name: "First lesson" }),
+        ).not.toBeInTheDocument()
+    })
+
+    test("shows the next lesson before the Last shortcut", () => {
+        renderLearn("/learn/net-contents")
+
+        expect(screen.getByText("Step 3 of 8")).toBeVisible()
+        expect(screen.getByRole("link", { name: "Lesson 3" })).toHaveAttribute(
+            "aria-current",
+            "page",
+        )
+        expect(screen.getByRole("link", { name: "Lesson 4" })).toHaveAttribute(
+            "href",
+            "/learn/responsible-party",
+        )
+        expect(
+            screen.getByRole("link", { name: "Last lesson" }),
+        ).toBeInTheDocument()
+        expect(
+            screen.queryByRole("link", { name: "Lesson 8" }),
+        ).not.toBeInTheDocument()
+    })
+
+    test("hides Last when the final lesson is already visible", () => {
+        renderLearn("/learn/lot-identification")
+
+        expect(screen.getByRole("link", { name: "Lesson 6" })).toHaveAttribute(
+            "aria-current",
+            "page",
+        )
+        expect(
+            screen.queryByRole("link", { name: "Last lesson" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.getByRole("link", { name: "Lesson 8" }),
+        ).toBeInTheDocument()
     })
 
     test("keeps article content opaque while elevating lesson navigation", () => {

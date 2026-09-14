@@ -858,14 +858,15 @@ The Product Search endpoint `GET /api/v1/products/search` provides Barcode searc
     - Valid Barcodes look up zero or one Product summary from the Dataset Snapshot independently of text index readiness.
     - If the Product is absent from the Dataset Snapshot, HTTP 200 is returned with an empty products list (`data.products: []`).
     - If the Product is found, HTTP 200 is returned with a single `ProductSummary` item.
-    - `ProductSummary` includes `barcode`, selected `name` (`OriginalText` provenance), `brands`, `manufacturing_places` (the Open Food Facts manufacturing-place field presented as “Made in”), `quantity`, `thumbnail` (`SourceImage` provenance), and individual `Source Attribution` (`https://world.openfoodfacts.org/product/{barcode}`). It does not calculate full Product details or invoke `Khmer Translation`.
+    - `ProductSummary` includes `barcode`, selected `name` (`OriginalText` provenance), selected `generic_name` (`OriginalText` provenance), `brands`, `manufacturing_places` (the Open Food Facts manufacturing-place field presented as “Made in”), `quantity`, `packaging`, `labels`, `thumbnail` (`SourceImage` provenance), and individual `Source Attribution` (`https://world.openfoodfacts.org/product/{barcode}`). It does not calculate full Product details or invoke `Khmer Translation`.
     - Top-level `meta` provides `Source Attribution` for Open Food Facts (`https://world.openfoodfacts.org`), `Dataset Snapshot` metadata, and nullable `pagination.next_cursor` (`null` for Barcode queries).
 
 4. **Text Search Indexing & Readiness**:
-    - Search index lifecycle creates a schema version 1 compound index collection per active Dataset Snapshot.
+    - Search index lifecycle creates a schema version 3 compound index collection per active Dataset Snapshot. The indexed summaries carry the source-derived generic name, packaging, and labels needed for comparison-first Product results.
+    - Shopper-facing Product search results use a comparison-first, image-free list: Product name first, then Product type, Company plus quantity, or Barcode; compact Size, Pack, labels, Made in, and Barcode metadata remain visible without opening each Product. A single result-level `Source Data Unavailable` notice summarizes missing Product names.
     - Indexes include `ix_search_name_tokens` (`name_tokens: 1`), `ix_search_brand_tokens` (`brand_tokens: 1`), and `ix_search_sort` (`name_sort: 1, code: 1`).
     - Only records with valid Barcodes (`normalize_identifier`) are indexed; invalid `Source Records` increment `excluded_count`.
-    - Manifest metadata (`search_index`) tracks `status: "READY"`, `schema_version: 1`, `document_count`, and `excluded_count`.
+    - Manifest metadata (`search_index`) tracks `status: "READY"`, `schema_version: 3`, `document_count`, and `excluded_count`.
     - If the search index is missing, incompatible, or not ready, text searches return HTTP 503 with error code `search_unavailable`, while Barcode searches continue to operate without degradation.
 
 5. **Text Ranking & Localized Name Selection**:

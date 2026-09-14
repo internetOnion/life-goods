@@ -1098,11 +1098,20 @@ export type ProductSummary = {
      * Brands
      */
     brands?: Array<string>;
+    generic_name?: OriginalText | null;
+    /**
+     * Labels
+     */
+    labels?: Array<string>;
     /**
      * Manufacturing Places
      */
     manufacturing_places?: Array<string>;
     name?: OriginalText | null;
+    /**
+     * Packaging
+     */
+    packaging?: string | null;
     /**
      * Quantity
      */

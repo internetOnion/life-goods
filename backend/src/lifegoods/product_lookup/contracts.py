@@ -310,9 +310,12 @@ class ProductProjectionResponse(BaseModel):
 class ProductSummary(BaseModel):
     barcode: str
     name: OriginalText | None = None
+    generic_name: OriginalText | None = None
     brands: list[str] = Field(default_factory=list)
     manufacturing_places: list[str] = Field(default_factory=list)
     quantity: str | None = None
+    packaging: str | None = None
+    labels: list[str] = Field(default_factory=list)
     thumbnail: SourceImage | None = None
     source: SourceAttributionResponse
 

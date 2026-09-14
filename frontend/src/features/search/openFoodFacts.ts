@@ -7,14 +7,20 @@ const OPEN_FOOD_FACTS_SEARCH_URL =
 const OPEN_FOOD_FACTS_SOURCE = "Open Food Facts"
 const OPEN_FOOD_FACTS_BASE_URL = "https://world.openfoodfacts.org"
 const SEARCH_FIELDS =
-    "code,product_name,product_name_en,brands,quantity,manufacturing_places,manufacturing_places_tags,image_url,lang"
+    "code,product_name,product_name_en,generic_name,generic_name_en,brands,quantity,packaging,packaging_tags,labels,labels_tags,manufacturing_places,manufacturing_places_tags,image_url,lang"
 
 type RemoteProduct = {
     code: string
     product_name?: string
     product_name_en?: string
+    generic_name?: string
+    generic_name_en?: string
     brands?: string
     quantity?: string
+    packaging?: string
+    packaging_tags?: string[]
+    labels?: string
+    labels_tags?: string[]
     manufacturing_places?: string
     manufacturing_places_tags?: string[]
     image_url?: string
@@ -51,8 +57,25 @@ function remoteProduct(value: unknown): RemoteProduct | null {
         code,
         product_name: textValue(value.product_name),
         product_name_en: textValue(value.product_name_en),
+        generic_name: textValue(value.generic_name),
+        generic_name_en: textValue(value.generic_name_en),
         brands: textValue(value.brands),
         quantity: textValue(value.quantity),
+        packaging: textValue(value.packaging),
+        packaging_tags: Array.isArray(value.packaging_tags)
+            ? value.packaging_tags.filter(
+                  (packaging): packaging is string =>
+                      typeof packaging === "string" &&
+                      Boolean(packaging.trim()),
+              )
+            : undefined,
+        labels: textValue(value.labels),
+        labels_tags: Array.isArray(value.labels_tags)
+            ? value.labels_tags.filter(
+                  (label): label is string =>
+                      typeof label === "string" && Boolean(label.trim()),
+              )
+            : undefined,
         manufacturing_places: textValue(value.manufacturing_places),
         manufacturing_places_tags: manufacturingPlaces?.length
             ? manufacturingPlaces
@@ -125,14 +148,56 @@ function selectName(product: RemoteProduct) {
     }
 }
 
+function selectGenericName(product: RemoteProduct) {
+    const englishName = textValue(product.generic_name_en)
+    const name = englishName ?? textValue(product.generic_name)
+    if (!name) return null
+    return {
+        value: name,
+        language: englishName ? "en" : (product.lang ?? null),
+        source_field: englishName ? "generic_name_en" : "generic_name",
+    }
+}
+
+function packagingValue(product: RemoteProduct): string | null {
+    const packaging = textValue(product.packaging)
+    if (packaging) {
+        return packaging
+            .split(",")
+            .map((value) => displayTag(value.trim()))
+            .filter(Boolean)
+            .join(", ")
+    }
+    const tags = product.packaging_tags
+        ?.map(displayTag)
+        .map((value) => value.trim())
+        .filter(Boolean)
+    return tags?.length ? [...new Set(tags)].join(", ") : null
+}
+
+function splitLabels(product: RemoteProduct): string[] {
+    const labels = product.labels
+        ?.split(",")
+        .map((label) => label.trim())
+        .filter(Boolean)
+    if (labels?.length) return [...new Set(labels)]
+
+    return [
+        ...new Set(product.labels_tags?.map(displayTag).filter(Boolean) ?? []),
+    ]
+}
+
 function toSummary(product: RemoteProduct): ProductSummary {
     const imageUrl = textValue(product.image_url)
     return {
         barcode: product.code,
         name: selectName(product),
+        generic_name: selectGenericName(product),
         brands: splitBrands(product.brands),
         manufacturing_places: manufacturingPlaces(product),
         quantity: product.quantity ?? null,
+        packaging: packagingValue(product),
+        labels: splitLabels(product),
         thumbnail: imageUrl
             ? {
                   url: imageUrl,

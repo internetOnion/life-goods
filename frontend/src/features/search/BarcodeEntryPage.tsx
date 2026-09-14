@@ -9,13 +9,11 @@ import {
     XIcon,
 } from "@phosphor-icons/react"
 import { type FormEvent, useEffect, useRef, useState } from "react"
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router"
+import { Link, useLocation, useSearchParams } from "react-router"
 
 import { Button } from "@/components/ui/button"
 import { BrandMark } from "@/components/brand/BrandMark"
-import { PackageImagePlaceholder } from "@/components/illustrations"
 import { Input } from "@/components/ui/input"
-import { buildProxiedImageUrl } from "@/features/product/adapter"
 import { validateIdentifier } from "@/features/scan/identifier"
 import { usePageMetadata } from "@/lib/metadata"
 import {
@@ -34,6 +32,10 @@ import {
     saveRecentSearch,
     type SearchHistoryItem,
 } from "./history"
+import {
+    ProductListItem,
+    ProductNameUnavailableNotice,
+} from "./ProductListItem"
 
 type SearchLocationState = {
     invalidBarcode?: string
@@ -51,10 +53,6 @@ const validationMessages = {
 
 function isBarcodeInput(value: string) {
     return /^[\d\s-]+$/.test(value)
-}
-
-function productName(result: ProductSearchResult) {
-    return result.name?.value ?? "Unnamed Product"
 }
 
 function brandName(result: ProductSearchResult) {
@@ -117,7 +115,6 @@ const recentActivityItemClass =
 export function BarcodeEntryPage() {
     const [searchParams] = useSearchParams()
     const location = useLocation()
-    const navigate = useNavigate()
     const locationState = location.state as SearchLocationState | null
     const initialValue = searchParams.get("q") ?? ""
     const initialValidation = initialValue
@@ -260,6 +257,9 @@ export function BarcodeEntryPage() {
     }
 
     const recentActivity = getRecentActivity(searchHistory, recentProducts)
+    const missingProductNameCount = results.filter(
+        (result) => !result.name?.value?.trim(),
+    ).length
 
     return (
         <main className="page-rail page-rail-tight sm:px-6 sm:pt-4">
@@ -550,14 +550,17 @@ export function BarcodeEntryPage() {
                         {[0, 1, 2].map((item) => (
                             <div
                                 key={item}
-                                className="flex min-h-32 animate-pulse items-start gap-3 rounded-2xl border border-neutral-200 bg-white p-3"
+                                className="grid min-h-20 animate-pulse grid-cols-[2.75rem_minmax(0,1fr)_5rem] items-start gap-3 rounded-2xl border border-neutral-200 bg-white p-3 sm:min-h-[5.5rem]"
                             >
-                                <div className="size-20 shrink-0 rounded-xl bg-neutral-100" />
-                                <div className="min-w-0 flex-1 space-y-2 pt-1">
+                                <div className="size-11 rounded-xl bg-neutral-100" />
+                                <div className="min-w-0 space-y-2 pt-1">
                                     <div className="h-4 w-3/4 rounded bg-neutral-100" />
                                     <div className="h-3 w-full rounded bg-neutral-100" />
                                     <div className="h-3 w-5/6 rounded bg-neutral-100" />
-                                    <div className="h-3 w-2/3 rounded bg-neutral-100" />
+                                </div>
+                                <div className="space-y-2 pt-1">
+                                    <div className="h-3 w-full rounded bg-neutral-100" />
+                                    <div className="h-3 w-4/5 rounded bg-neutral-100" />
                                 </div>
                             </div>
                         ))}
@@ -567,7 +570,7 @@ export function BarcodeEntryPage() {
 
             {searchStatus === "results" ? (
                 <section
-                    className="mx-auto mt-5 w-full max-w-lg"
+                    className="mx-auto mt-5 w-full max-w-5xl"
                     aria-live="polite"
                 >
                     <div className="mb-3 flex items-baseline justify-between gap-3">
@@ -578,89 +581,33 @@ export function BarcodeEntryPage() {
                             {results.length} found
                         </span>
                     </div>
-                    <div className="space-y-2.5">
+                    <ProductNameUnavailableNotice
+                        missingCount={missingProductNameCount}
+                        totalCount={results.length}
+                    />
+                    <div className="shadow-source-sheet divide-y divide-neutral-200/90 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white">
                         {results.map((result) => {
-                            const name = productName(result)
-                            const brand = brandName(result)
-                            const manufacturingPlace =
-                                manufacturingPlaceName(result)
-                            const imageUrl = result.thumbnail?.url
-                                ? buildProxiedImageUrl(result.thumbnail.url)
-                                : null
-
                             return (
-                                <Button
+                                <ProductListItem
                                     key={result.barcode}
-                                    type="button"
-                                    variant="ghost"
-                                    className="group focus-visible:ring-primary-500 flex h-auto min-h-32 w-full items-start justify-start gap-3 rounded-2xl border border-neutral-200 bg-white p-3 text-left whitespace-normal shadow-none transition-[border-color,background-color,transform] duration-150 hover:border-neutral-300 hover:bg-neutral-50 focus-visible:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-[0.99]"
-                                    onClick={() => {
-                                        void navigate(
-                                            `/products/${result.barcode}`,
-                                            {
-                                                state: {
-                                                    fromBarcodeEntry: true,
-                                                },
-                                            },
-                                        )
+                                    product={{
+                                        barcode: result.barcode,
+                                        name: result.name?.value,
+                                        genericName: result.generic_name?.value,
+                                        brand: brandName(result),
+                                        quantity: result.quantity,
+                                        manufacturingPlace:
+                                            manufacturingPlaceName(result),
+                                        packaging: result.packaging,
+                                        labels: result.labels,
                                     }}
-                                    aria-label={`View ${name}`}
-                                >
-                                    <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-neutral-50">
-                                        {imageUrl ? (
-                                            <img
-                                                src={imageUrl}
-                                                alt=""
-                                                className="size-full object-contain p-1"
-                                            />
-                                        ) : (
-                                            <PackageImagePlaceholder
-                                                className="size-full p-1"
-                                                label="Source Image Unavailable"
-                                            />
-                                        )}
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <h3 className="text-sm leading-snug font-extrabold wrap-anywhere text-neutral-900 sm:text-base">
-                                            {name}
-                                            {result.quantity ? (
-                                                <span className="ml-1 font-semibold text-neutral-500">
-                                                    · {result.quantity}
-                                                </span>
-                                            ) : null}
-                                        </h3>
-                                        <dl className="mt-2 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-2 gap-y-1 text-xs leading-snug">
-                                            <dt className="font-bold text-neutral-500">
-                                                Company
-                                            </dt>
-                                            <dd className="m-0 font-semibold wrap-anywhere text-neutral-700">
-                                                {brand || "N/A"}
-                                            </dd>
-                                            <dt className="font-bold text-neutral-500">
-                                                Made in
-                                            </dt>
-                                            <dd className="m-0 font-semibold wrap-anywhere text-neutral-700 capitalize">
-                                                {manufacturingPlace || "N/A"}
-                                            </dd>
-                                            <dt className="font-bold text-neutral-500">
-                                                Barcode
-                                            </dt>
-                                            <dd className="m-0 font-mono wrap-anywhere text-neutral-600">
-                                                {result.barcode}
-                                            </dd>
-                                        </dl>
-                                    </div>
-                                    <span
-                                        className="text-primary-600 self-center text-2xl leading-none font-bold transition-transform group-hover:translate-x-0.5"
-                                        aria-hidden="true"
-                                    >
-                                        &gt;
-                                    </span>
-                                </Button>
+                                    to={`/products/${result.barcode}`}
+                                    state={{ fromBarcodeEntry: true }}
+                                />
                             )
                         })}
                     </div>
-                    <p className="mt-3 text-center text-[0.6875rem] leading-relaxed text-neutral-500">
+                    <p className="text-caption mt-3 text-center leading-relaxed text-neutral-500">
                         Data from Open Food Facts
                     </p>
                     {nextCursor ? (

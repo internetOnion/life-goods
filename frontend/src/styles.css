@@ -546,6 +546,22 @@ summary:focus-visible {
     outline-offset: 3px;
 }
 
+details[data-disclosure] > summary {
+    list-style: none;
+}
+
+details[data-disclosure] > summary::-webkit-details-marker {
+    display: none;
+}
+
+details[data-disclosure] > summary .disclosure-icon {
+    transition: transform 150ms ease-out;
+}
+
+details[data-disclosure][open] > summary .disclosure-icon {
+    transform: rotate(180deg);
+}
+
 h1[tabindex="-1"]:focus,
 h2[tabindex="-1"]:focus {
     outline: none;

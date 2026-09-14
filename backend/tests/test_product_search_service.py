@@ -264,6 +264,51 @@ def test_search_service_pagination_and_cursor_continuation() -> None:
     assert len(all_codes) == 25
     assert len(set(all_codes)) == 25
 
+
+def test_search_service_maps_indexed_comparison_fields() -> None:
+    database, version_id, search_col_name = _setup_search_database()
+    database[search_col_name].insert_one(
+        {
+            "_id": "4006381333931",
+            "code": "4006381333931",
+            "name_values": ["dark chocolate"],
+            "name_tokens": ["chocolate", "dark"],
+            "brand_values": ["example brand"],
+            "brand_tokens": ["brand", "example"],
+            "names": [
+                {
+                    "value": "Dark Chocolate",
+                    "language": "en",
+                    "source_field": "product_name",
+                }
+            ],
+            "name_sort": "dark chocolate",
+            "generic_name": {
+                "value": "Dark chocolate bar",
+                "language": "en",
+                "source_field": "generic_name_en",
+            },
+            "brands": ["Example Brand"],
+            "quantity": "100 g",
+            "packaging": "paper box",
+            "labels": ["organic", "vegetarian"],
+        }
+    )
+
+    result = SearchProducts(OpenFoodFactsDatasetSource(database)).execute(
+        parse_and_validate_query("chocolate")
+    )
+
+    assert len(result.products) == 1
+    product = result.products[0]
+    assert product.generic_name == OriginalText(
+        value="Dark chocolate bar",
+        language="en",
+        source_field="generic_name_en",
+    )
+    assert product.packaging == "paper box"
+    assert product.labels == ["organic", "vegetarian"]
+
 def test_search_service_rejects_mismatched_cursor() -> None:
     database, version_id, search_col_name = _setup_search_database()
     source = OpenFoodFactsDatasetSource(database)

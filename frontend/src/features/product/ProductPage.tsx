@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { AlertCircle, ArrowLeft } from "lucide-react"
+import { AlertCircle, ArrowLeft, ChevronRight } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useLocation, useNavigate, useParams } from "react-router"
 
@@ -18,7 +18,7 @@ import { adaptProductLookup } from "./adapter"
 import { getProductRestoreLocationState } from "./navigation"
 import { AdditivesCard } from "./cards/AdditivesCard"
 import { AllergenCard } from "./cards/AllergenCard"
-import { HalalCard } from "./cards/HalalCard"
+import { IngredientSummaryCard } from "./cards/IngredientSummaryCard"
 import { IngredientsAnalysisCard } from "./cards/IngredientsAnalysisCard"
 import { IngredientsCard } from "./cards/IngredientsCard"
 import { NotFoundCard } from "./cards/NotFoundCard"
@@ -40,6 +40,14 @@ type ProductPageProps = {
     lookup?: ProductLookup
 }
 
+type ProductTab = "summary" | "ingredients" | "nutrition" | "labels"
+
+const DEFAULT_PRODUCT_TAB: ProductTab = "summary"
+
+function isProductTab(value: string): value is ProductTab {
+    return ["summary", "ingredients", "nutrition", "labels"].includes(value)
+}
+
 export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
     const { barcode = "" } = useParams()
     const location = useLocation()
@@ -51,11 +59,19 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
         location.state,
     )?.restoreScrollY
 
-    const [activeTab, setActiveTab] = useState("ingredients")
+    const [activeTab, setActiveTab] = useState<ProductTab>(DEFAULT_PRODUCT_TAB)
     const concernStorage = useSelectedConcernStorage()
     const selectedConcernIds = concernStorage.ids
 
     const tabScrollRef = useRef<HTMLDivElement>(null)
+    const activePanelRef = useRef<HTMLDivElement>(null)
+    const shouldScrollToTabRef = useRef(false)
+
+    const handleTabChange = (value: string) => {
+        if (!isProductTab(value) || value === activeTab) return
+        shouldScrollToTabRef.current = true
+        setActiveTab(value)
+    }
 
     useEffect(() => {
         if (!validation.valid && barcode) {
@@ -121,6 +137,17 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
     }, [normalizedBarcode, productQuery.data, restoreScrollY])
 
     useEffect(() => {
+        shouldScrollToTabRef.current = false
+        setActiveTab(DEFAULT_PRODUCT_TAB)
+        const container = tabScrollRef.current
+        if (typeof container?.scrollTo === "function") {
+            container.scrollTo({ left: 0, behavior: "auto" })
+        } else if (container) {
+            container.scrollLeft = 0
+        }
+    }, [normalizedBarcode])
+
+    useEffect(() => {
         const container = tabScrollRef.current
         if (!container) return
         const activeEl = container.querySelector<HTMLElement>(
@@ -138,6 +165,19 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
             } else {
                 container.scrollLeft = Math.max(0, scrollTarget)
             }
+        }
+
+        if (
+            shouldScrollToTabRef.current &&
+            typeof activePanelRef.current?.scrollIntoView === "function"
+        ) {
+            shouldScrollToTabRef.current = false
+            activePanelRef.current.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+            })
+        } else if (shouldScrollToTabRef.current) {
+            shouldScrollToTabRef.current = false
         }
     }, [activeTab])
 
@@ -165,10 +205,22 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
 
             saveScanItem({
                 identifier: adapted.normalizedIdentifier || barcode,
-                name: offView.productName || "Unlabeled Product",
+                name:
+                    typeof adapted.rawRecord.product_name === "string" &&
+                    adapted.rawRecord.product_name.trim()
+                        ? adapted.rawRecord.product_name.trim()
+                        : typeof adapted.rawRecord.product_name_en ===
+                                "string" &&
+                            adapted.rawRecord.product_name_en.trim()
+                          ? adapted.rawRecord.product_name_en.trim()
+                          : undefined,
+                genericName: offView.genericName || undefined,
                 brand: offView.brands.join(", ") || undefined,
+                quantity: offView.quantity || undefined,
                 manufacturingPlace:
                     offView.manufacturingPlaces?.trim() || undefined,
+                packaging: offView.packagingText || undefined,
+                labels: offView.labels.length ? offView.labels : undefined,
                 imageUrl: frontImg,
                 scheme: adapted.scheme,
             })
@@ -193,9 +245,7 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                 appearance="glass"
                 showBackButton={true}
                 onBack={() => void navigate("/search")}
-                identifier={barcode}
                 backLabel="Back to search"
-                secondaryActionLabel="New Search"
             />
 
             <Container>
@@ -267,23 +317,9 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                             candidate={candidate}
                             identifier={adapted.normalizedIdentifier || barcode}
                             genericName={offView.genericName}
-                            manufacturingPlace={offView.manufacturingPlaces}
                             headingRef={headingRef}
                             selectedConcernMatches={selectedConcernMatches}
                         />
-
-                        {hasSourceAssessments && (
-                            <SourceAssessmentsCard
-                                showHeader={false}
-                                nutriscoreGrade={offView.nutriscoreGrade}
-                                nutriscoreScore={offView.nutriscoreScore}
-                                nutriscoreVersion={offView.nutriscoreVersion}
-                                novaGroup={offView.novaGroup}
-                                novaGroupsMarkers={offView.novaGroupsMarkers}
-                                ecoscoreGrade={offView.ecoscoreGrade}
-                                ecoscoreScore={offView.ecoscoreScore}
-                            />
-                        )}
 
                         {/* Product Details Navigation */}
                         <div className="flex items-center gap-3 pt-2">
@@ -299,7 +335,7 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
 
                         <Tabs
                             value={activeTab}
-                            onValueChange={setActiveTab}
+                            onValueChange={handleTabChange}
                             variant="line"
                             className="w-full"
                         >
@@ -311,7 +347,16 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                     ref={tabScrollRef}
                                     className="no-scrollbar flex items-center overflow-x-auto overscroll-x-contain scroll-smooth px-4 sm:px-6"
                                 >
-                                    <TabsList className="flex h-auto w-max min-w-full items-center justify-center gap-0 border-none bg-transparent p-0">
+                                    <TabsList
+                                        aria-label="Product detail sections"
+                                        className="flex h-auto w-max min-w-max items-center justify-start gap-0 border-none bg-transparent p-0 sm:min-w-full sm:justify-center"
+                                    >
+                                        <TabsTrigger
+                                            value="summary"
+                                            className="shrink-0"
+                                        >
+                                            Summary
+                                        </TabsTrigger>
                                         <TabsTrigger
                                             value="ingredients"
                                             className="shrink-0"
@@ -325,49 +370,25 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                             Nutrition
                                         </TabsTrigger>
                                         <TabsTrigger
-                                            value="symbols"
+                                            value="labels"
                                             className="shrink-0"
                                         >
-                                            Symbols
-                                        </TabsTrigger>
-                                        <TabsTrigger
-                                            value="overview"
-                                            className="shrink-0"
-                                        >
-                                            Overview
+                                            Labels &amp; packaging
                                         </TabsTrigger>
                                     </TabsList>
                                 </div>
+                                <div
+                                    aria-hidden="true"
+                                    className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white/95 via-white/70 to-transparent sm:hidden"
+                                />
                             </div>
 
-                            {/* Tab 1: Overview */}
+                            {/* Tab 1: Summary */}
                             <TabsContent
-                                value="overview"
-                                className="space-y-4 pt-2"
+                                ref={activePanelRef}
+                                value="summary"
+                                className="scroll-mt-32 space-y-4 pt-2"
                             >
-                                <IngredientsAnalysisCard
-                                    analysis={offView.ingredientsAnalysis}
-                                />
-                                <IngredientsCard
-                                    labelEvidence={labelEvidence}
-                                />
-                                <AdditivesCard labelEvidence={labelEvidence} />
-                                <AllergenCard
-                                    analysis={candidate.allergen_analysis}
-                                    labelEvidence={labelEvidence}
-                                    concernMatches={allConcernMatches}
-                                />
-                                <HalalCard
-                                    assessment={
-                                        candidate.halal_ingredient_assessment
-                                    }
-                                    labelEvidence={labelEvidence}
-                                />
-                                <NutrientLevelsCard
-                                    levels={offView.nutrientLevels}
-                                    labelEvidence={labelEvidence}
-                                />
-                                <NutritionCard labelEvidence={labelEvidence} />
                                 {hasSourceAssessments && (
                                     <SourceAssessmentsCard
                                         nutriscoreGrade={
@@ -387,80 +408,128 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                         ecoscoreScore={offView.ecoscoreScore}
                                     />
                                 )}
+                                <NutrientLevelsCard
+                                    levels={offView.nutrientLevels}
+                                    labelEvidence={labelEvidence}
+                                />
+
+                                <IngredientSummaryCard
+                                    concernMatches={allConcernMatches}
+                                    labelEvidence={labelEvidence}
+                                    onViewEvidence={() =>
+                                        handleTabChange("ingredients")
+                                    }
+                                />
+
+                                <section
+                                    aria-labelledby="more-product-details-heading"
+                                    className="space-y-3"
+                                >
+                                    <div>
+                                        <h3
+                                            id="more-product-details-heading"
+                                            className="text-sm font-bold tracking-[-0.015em] text-neutral-950 sm:text-base"
+                                        >
+                                            More Product details
+                                        </h3>
+                                        <p className="mt-1 text-xs text-neutral-500">
+                                            Open the remaining Source Record
+                                            sections when you need them.
+                                        </p>
+                                    </div>
+
+                                    <nav
+                                        aria-label="Product detail sections"
+                                        className="divide-y divide-neutral-200/80 overflow-hidden rounded-xl border border-neutral-200/90 bg-white shadow-xs"
+                                    >
+                                        {[
+                                            {
+                                                value: "nutrition" as const,
+                                                label: "Nutrition",
+                                                description:
+                                                    "Nutrition Facts and nutrient levels",
+                                            },
+                                            {
+                                                value: "labels" as const,
+                                                label: "Labels & packaging",
+                                                description:
+                                                    "Labels, packaging, and source details",
+                                            },
+                                        ].map((section) => (
+                                            <Button
+                                                variant="ghost"
+                                                key={section.value}
+                                                type="button"
+                                                className="focus-visible:ring-primary-500 flex min-h-14 w-full items-center justify-between gap-3 rounded-none px-4 py-3 text-left transition-colors hover:bg-neutral-50 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset sm:px-5"
+                                                onClick={() =>
+                                                    handleTabChange(
+                                                        section.value,
+                                                    )
+                                                }
+                                            >
+                                                <span className="min-w-0">
+                                                    <span className="block text-sm font-bold text-neutral-950">
+                                                        {section.label}
+                                                    </span>
+                                                    <span className="mt-0.5 block text-xs text-neutral-500">
+                                                        {section.description}
+                                                    </span>
+                                                </span>
+                                                <ChevronRight
+                                                    aria-hidden="true"
+                                                    className="text-info-700 size-4 shrink-0"
+                                                />
+                                            </Button>
+                                        ))}
+                                    </nav>
+                                </section>
+                            </TabsContent>
+
+                            {/* Tab 2: Ingredients */}
+                            <TabsContent
+                                ref={activePanelRef}
+                                value="ingredients"
+                                className="scroll-mt-32 space-y-4 pt-2"
+                            >
+                                <IngredientsCard
+                                    labelEvidence={labelEvidence}
+                                />
+                                <AllergenCard
+                                    analysis={candidate.allergen_analysis}
+                                    labelEvidence={labelEvidence}
+                                    concernMatches={allConcernMatches}
+                                />
+                                <AdditivesCard labelEvidence={labelEvidence} />
+                                <IngredientsAnalysisCard
+                                    analysis={offView.ingredientsAnalysis}
+                                />
+                            </TabsContent>
+
+                            {/* Tab 3: Nutrition */}
+                            <TabsContent
+                                ref={activePanelRef}
+                                value="nutrition"
+                                className="scroll-mt-32 space-y-4 pt-2"
+                            >
+                                <NutrientLevelsCard
+                                    levels={offView.nutrientLevels}
+                                    labelEvidence={labelEvidence}
+                                />
+                                <NutritionCard labelEvidence={labelEvidence} />
+                            </TabsContent>
+
+                            {/* Tab 4: Labels & packaging */}
+                            <TabsContent
+                                ref={activePanelRef}
+                                value="labels"
+                                className="scroll-mt-32 space-y-4 pt-2"
+                            >
                                 <SymbolsCard labels={offView.labels} />
                                 <PackagingsTableCard
                                     packagings={offView.packagings}
                                     packagingText={offView.packagingText}
                                 />
                                 <ProvenanceCard candidate={candidate} />
-                            </TabsContent>
-
-                            {/* Tab 2: Ingredients */}
-                            <TabsContent
-                                value="ingredients"
-                                className="space-y-4 pt-2"
-                            >
-                                <IngredientsAnalysisCard
-                                    analysis={offView.ingredientsAnalysis}
-                                />
-                                <IngredientsCard
-                                    labelEvidence={labelEvidence}
-                                />
-                                <AdditivesCard labelEvidence={labelEvidence} />
-                                <AllergenCard
-                                    analysis={candidate.allergen_analysis}
-                                    labelEvidence={labelEvidence}
-                                    concernMatches={allConcernMatches}
-                                />
-                                <HalalCard
-                                    assessment={
-                                        candidate.halal_ingredient_assessment
-                                    }
-                                    labelEvidence={labelEvidence}
-                                />
-                            </TabsContent>
-
-                            {/* Tab 3: Nutrition */}
-                            <TabsContent
-                                value="nutrition"
-                                className="space-y-4 pt-2"
-                            >
-                                <NutrientLevelsCard
-                                    levels={offView.nutrientLevels}
-                                    labelEvidence={labelEvidence}
-                                />
-                                <NutritionCard labelEvidence={labelEvidence} />
-                            </TabsContent>
-
-                            {/* Tab 4: Symbols */}
-                            <TabsContent
-                                value="symbols"
-                                className="space-y-4 pt-2"
-                            >
-                                {hasSourceAssessments && (
-                                    <SourceAssessmentsCard
-                                        nutriscoreGrade={
-                                            offView.nutriscoreGrade
-                                        }
-                                        nutriscoreScore={
-                                            offView.nutriscoreScore
-                                        }
-                                        nutriscoreVersion={
-                                            offView.nutriscoreVersion
-                                        }
-                                        novaGroup={offView.novaGroup}
-                                        novaGroupsMarkers={
-                                            offView.novaGroupsMarkers
-                                        }
-                                        ecoscoreGrade={offView.ecoscoreGrade}
-                                        ecoscoreScore={offView.ecoscoreScore}
-                                    />
-                                )}
-                                <SymbolsCard labels={offView.labels} />
-                                <PackagingsTableCard
-                                    packagings={offView.packagings}
-                                    packagingText={offView.packagingText}
-                                />
                             </TabsContent>
                         </Tabs>
                     </div>
