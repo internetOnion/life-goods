@@ -67,22 +67,24 @@ describe("search page", () => {
         })
     })
 
-    test("keeps the empty history layout when search is submitted empty", async () => {
+    test("keeps the empty recent activity layout when search is submitted empty", async () => {
         const user = userEvent.setup()
         renderPage()
 
         await user.click(screen.getByRole("button", { name: "Search" }))
         expect(screen.getByTestId("location")).toHaveTextContent("/search")
         expect(
-            screen.getByRole("heading", { name: "Search history" }),
-        ).toBeVisible()
-        expect(screen.getByText("You haven't searched yet.")).toBeVisible()
-        expect(
-            screen.getByRole("heading", { name: "Recent searches" }),
+            screen.getByRole("heading", { name: "Recent activity" }),
         ).toBeVisible()
         expect(
-            screen.getByText("You haven't viewed any Products yet."),
+            screen.getByText("Search for a Product to start your history."),
         ).toBeVisible()
+        expect(
+            screen.queryByRole("heading", { name: "Search history" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("heading", { name: "Recent searches" }),
+        ).not.toBeInTheDocument()
         expect(screen.queryByRole("alert")).not.toBeInTheDocument()
 
         await user.type(screen.getByRole("textbox", { name: "Search" }), "abc")
@@ -245,11 +247,13 @@ describe("search page", () => {
         ).not.toHaveFocus()
     })
 
-    test("shows empty history sections without sample Products", () => {
+    test("shows an empty recent activity state without sample Products", () => {
         renderPage()
-        expect(screen.getByText("You haven't searched yet.")).toBeVisible()
         expect(
-            screen.getByText("You haven't viewed any Products yet."),
+            screen.getByRole("heading", { name: "Recent activity" }),
+        ).toBeVisible()
+        expect(
+            screen.getByText("Search for a Product to start your history."),
         ).toBeVisible()
         expect(
             screen.queryByText("Try a sample Product"),
@@ -270,45 +274,114 @@ describe("search page", () => {
         )
         renderPage()
 
-        expect(screen.getByText("Recent searches")).toBeVisible()
+        expect(screen.getByText("Recent activity")).toBeVisible()
         expect(
             screen.queryByText("Search again from your latest queries."),
         ).not.toBeInTheDocument()
         expect(
             screen.queryByText("Products you viewed in this session."),
         ).not.toBeInTheDocument()
-        expect(screen.getByRole("link", { name: "See more" })).toHaveAttribute(
+        expect(screen.getByRole("link", { name: "See all" })).toHaveAttribute(
             "href",
             "/search/recent",
         )
-        expect(screen.getByText("Viewed Product 1")).toBeVisible()
-        expect(screen.getByText("Viewed Product 4")).toBeVisible()
-        expect(screen.queryByText("Viewed Product 5")).not.toBeInTheDocument()
-        expect(screen.getAllByText("Company")).toHaveLength(4)
-        expect(screen.getAllByText("Made in")).toHaveLength(4)
-        expect(screen.getAllByText("Barcode")).toHaveLength(4)
+        expect(screen.getByText("3017620422003")).toBeVisible()
+        expect(screen.getByText("3017620422033")).toBeVisible()
+        expect(screen.queryByText("3017620422043")).not.toBeInTheDocument()
+        expect(screen.getAllByText("Product")).toHaveLength(4)
+        expect(screen.queryByText("Viewed Product 1")).not.toBeInTheDocument()
+        expect(screen.queryByText("Ferrero")).not.toBeInTheDocument()
+        expect(screen.queryByText("Company")).not.toBeInTheDocument()
+        expect(screen.queryByText("Made in")).not.toBeInTheDocument()
+        expect(screen.queryByText("Barcode")).not.toBeInTheDocument()
+        expect(screen.queryByRole("img")).not.toBeInTheDocument()
     })
 
-    test("places recent Product views below search history", () => {
+    test("combines search queries and viewed Products in one recent activity list", () => {
+        sessionStorage.setItem(
+            "lifegoods_scan_history_v1",
+            JSON.stringify([recentProduct]),
+        )
+        localStorage.setItem(
+            "lifegoods.search-history.v1",
+            JSON.stringify([{ query: "Coca Cola", searchedAt: 2 }]),
+        )
+        renderPage()
+
+        expect(
+            screen.getByRole("heading", { name: "Recent activity" }),
+        ).toBeVisible()
+        expect(
+            screen.queryByRole("heading", { name: "Search history" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("heading", { name: "Recent searches" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: "Search again for Coca Cola" }),
+        ).toBeVisible()
+        expect(
+            screen.getByRole("link", { name: "View Product 3017620422003" }),
+        ).toBeVisible()
+        expect(
+            screen.queryByText("Nutella Spread 400g"),
+        ).not.toBeInTheDocument()
+        expect(screen.queryByText("Ferrero")).not.toBeInTheDocument()
+    })
+
+    test("orders mixed recent activity by timestamp", () => {
+        sessionStorage.setItem(
+            "lifegoods_scan_history_v1",
+            JSON.stringify([{ ...recentProduct, timestamp: 2 }]),
+        )
+        localStorage.setItem(
+            "lifegoods.search-history.v1",
+            JSON.stringify([
+                { query: "Older query", searchedAt: 1 },
+                { query: "Newest query", searchedAt: 3 },
+            ]),
+        )
+        renderPage()
+
+        const activity = screen.getByRole("region", {
+            name: "Recent activity",
+        })
+        const content = activity.textContent ?? ""
+
+        expect(content.indexOf("Newest query")).toBeLessThan(
+            content.indexOf("3017620422003"),
+        )
+        expect(content.indexOf("3017620422003")).toBeLessThan(
+            content.indexOf("Older query"),
+        )
+    })
+
+    test("removes a viewed Product from recent activity", async () => {
+        const user = userEvent.setup()
         sessionStorage.setItem(
             "lifegoods_scan_history_v1",
             JSON.stringify([recentProduct]),
         )
         renderPage()
 
-        const headings = screen
-            .getAllByRole("heading")
-            .map((heading) => heading.textContent)
-
-        expect(headings.indexOf("Search history")).toBeLessThan(
-            headings.indexOf("Recent searches"),
+        await user.click(
+            screen.getByRole("button", {
+                name: "Remove Product 3017620422003 from recent activity",
+            }),
         )
+
         expect(
-            screen.getByRole("link", { name: "View Nutella Spread 400g" }),
+            screen.queryByRole("button", {
+                name: "Remove Product 3017620422003 from recent activity",
+            }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.getByText("Search for a Product to start your history."),
         ).toBeVisible()
+        expect(sessionStorage.getItem("lifegoods_scan_history_v1")).toBe("[]")
     })
 
-    test("shows replayable search history separately from viewed Products", async () => {
+    test("shows replayable search queries in recent activity", async () => {
         const user = userEvent.setup()
         localStorage.setItem(
             "lifegoods.search-history.v1",
@@ -320,7 +393,7 @@ describe("search page", () => {
         renderPage()
 
         expect(
-            screen.getByRole("heading", { name: "Search history" }),
+            screen.getByRole("heading", { name: "Recent activity" }),
         ).toBeVisible()
         expect(
             screen.getByRole("button", {
@@ -331,8 +404,8 @@ describe("search page", () => {
             screen.getByRole("button", { name: "Search again for Coca Cola" }),
         ).toBeVisible()
         expect(
-            screen.getByText("You haven't viewed any Products yet."),
-        ).toBeVisible()
+            screen.queryByText("You haven't viewed any Products yet."),
+        ).not.toBeInTheDocument()
 
         await user.click(
             screen.getByRole("button", { name: "Search again for Coca Cola" }),
@@ -382,11 +455,38 @@ describe("search page", () => {
         ).not.toContain("Coca Cola")
     })
 
-    test("keeps the recent searches empty state when no Products were viewed", () => {
+    test("clears all recent activity", async () => {
+        const user = userEvent.setup()
+        localStorage.setItem(
+            "lifegoods.search-history.v1",
+            JSON.stringify([
+                { query: "3017620422003", searchedAt: 2 },
+                { query: "Coca Cola", searchedAt: 1 },
+            ]),
+        )
+        sessionStorage.setItem(
+            "lifegoods_scan_history_v1",
+            JSON.stringify([recentProduct]),
+        )
         renderPage()
-        expect(screen.getByText("Recent searches")).toBeVisible()
+
+        await user.click(screen.getByRole("button", { name: "Clear all" }))
+
         expect(
-            screen.getByText("You haven't viewed any Products yet."),
+            screen.getByText("Search for a Product to start your history."),
+        ).toBeVisible()
+        expect(
+            screen.queryByRole("button", { name: "Clear all" }),
+        ).not.toBeInTheDocument()
+        expect(localStorage.getItem("lifegoods.search-history.v1")).toBeNull()
+        expect(sessionStorage.getItem("lifegoods_scan_history_v1")).toBeNull()
+    })
+
+    test("keeps the recent activity empty state when no Products were viewed", () => {
+        renderPage()
+        expect(screen.getByText("Recent activity")).toBeVisible()
+        expect(
+            screen.getByText("Search for a Product to start your history."),
         ).toBeVisible()
         expect(
             screen.queryByText("Try a sample Product"),

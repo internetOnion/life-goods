@@ -18,15 +18,15 @@ type AppShellProps = {
 
 const navigation = [
     {
-        to: appRoutes.learn,
-        label: "Learn",
-        icon: BookOpenTextIcon,
-    },
-    {
         to: appRoutes.home,
         label: "Scan",
         icon: ScanIcon,
         end: true,
+    },
+    {
+        to: appRoutes.learn,
+        label: "Learn",
+        icon: BookOpenTextIcon,
     },
     {
         to: appRoutes.compare,

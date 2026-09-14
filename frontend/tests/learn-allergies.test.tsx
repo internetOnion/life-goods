@@ -54,7 +54,7 @@ describe("Learn source content and Allergies demos", () => {
         expect(screen.getByText("Law on Food Safety")).toBeVisible()
         expect(
             screen.getByRole("heading", { name: "Lessons by category" }),
-        ).toHaveClass("font-bold")
+        ).toHaveClass("font-extrabold")
         expect(
             screen.queryByRole("status", { name: "Demo data is active" }),
         ).not.toBeInTheDocument()
@@ -107,7 +107,8 @@ describe("Learn source content and Allergies demos", () => {
             name: /Law on Food Safety/,
         })
         expect(card).toHaveTextContent("Law on Food Safety")
-        expect(card).toHaveTextContent(
+        expect(card).toHaveTextContent("Label basics")
+        expect(card).not.toHaveTextContent(
             "Cambodia’s framework for food safety, quality, and hygiene",
         )
         expect(card).toHaveAttribute("href", "/learn/law-on-food-safety")

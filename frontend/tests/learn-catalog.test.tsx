@@ -140,6 +140,14 @@ describe("structured Learn catalog", () => {
                 guide.entryIds.length,
             )
             expect(
+                screen
+                    .getAllByRole("list")[0]
+                    ?.querySelectorAll("[data-learn-category-icon]"),
+            ).toHaveLength(0)
+            expect(
+                document.querySelectorAll("[data-learn-category-icon]"),
+            ).toHaveLength(1)
+            expect(
                 screen.queryByText(firstEntry.summary.en),
             ).not.toBeInTheDocument()
             expect(
@@ -164,7 +172,11 @@ describe("structured Learn catalog", () => {
                 name: /Name of the food/,
             }),
         ).toHaveAttribute("href", "/learn/name-of-the-food")
-        expect(within(firstStep).getByText("LABEL_001")).toBeVisible()
+        expect(within(firstStep).getByText("Name of the food")).toBeVisible()
+        expect(within(firstStep).getByText("Lesson 1 of 8")).toBeVisible()
+        expect(
+            within(firstStep).queryByText("LABEL_001"),
+        ).not.toBeInTheDocument()
         expect(
             within(firstStep).queryByText(firstEntry.summary.en),
         ).not.toBeInTheDocument()
@@ -193,6 +205,16 @@ describe("structured Learn catalog", () => {
             "aria-current",
             "page",
         )
+    })
+
+    test("keeps guide lesson rows padded inside the list surface", () => {
+        renderRoute("/learn/guides/how-to-read-a-label")
+
+        const lessonList = screen.getByRole("list")
+        const firstLesson = within(lessonList).getAllByRole("link")[0]!
+
+        expect(lessonList).not.toHaveClass("px-4", "sm:px-6")
+        expect(firstLesson).toHaveClass("px-4", "py-3", "sm:px-5")
     })
 
     test("keeps Food Scores sources as underlined plain text", () => {
@@ -235,7 +257,7 @@ describe("structured Learn catalog", () => {
             expect(
                 screen.getByRole("heading", { name: entry.title.en }),
             ).toHaveFocus()
-            expect(screen.getByText(entry.id)).toBeVisible()
+            expect(screen.queryByText(entry.id)).not.toBeInTheDocument()
             expect(
                 screen.getByRole("heading", {
                     name: "What this evidence does not prove",

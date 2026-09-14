@@ -18,7 +18,7 @@ export function RecentProductViewsPage() {
     const headingRef = useRef<HTMLHeadingElement>(null)
 
     usePageMetadata({
-        title: "Recent searches",
+        title: "Viewed Products",
         description: "Products viewed recently in this Life Goods session.",
     })
 
@@ -49,7 +49,7 @@ export function RecentProductViewsPage() {
                     </Link>
                 </Button>
                 <span className="pointer-events-none absolute inset-x-0 text-center text-lg font-extrabold text-neutral-900">
-                    Recent searches
+                    Viewed Products
                 </span>
             </div>
 

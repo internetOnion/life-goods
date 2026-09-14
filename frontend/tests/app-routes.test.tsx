@@ -35,6 +35,11 @@ describe("Life Goods routes", () => {
             name: "Primary navigation",
         })
         expect(navigation).toBeVisible()
+        expect(
+            within(navigation)
+                .getAllByRole("link")
+                .map((link) => link.textContent),
+        ).toEqual(["Scan", "Learn", "Compare", "Concerns"])
         expect(screen.getByRole("link", { name: "Scan" })).toHaveAttribute(
             "aria-current",
             "page",

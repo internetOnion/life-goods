@@ -99,6 +99,51 @@
     }
 }
 
+/* Learn guide destinations keep their category tint while using the shared glass material. */
+[data-glass-surface="learn-tile"] {
+    --learn-tile-fallback: #ffffff;
+    --learn-tile-glass-fill: rgb(255 255 255 / 0.78);
+    background-color: var(--learn-tile-fallback);
+}
+
+[data-glass-surface="learn-tile"][data-learn-category="label"] {
+    --learn-tile-fallback: #f8f5f1;
+    --learn-tile-glass-fill: rgb(248 245 241 / 0.78);
+}
+
+[data-glass-surface="learn-tile"][data-learn-category="ingredients"] {
+    --learn-tile-fallback: #eef2f6;
+    --learn-tile-glass-fill: rgb(238 242 246 / 0.78);
+}
+
+[data-glass-surface="learn-tile"][data-learn-category="allergens"] {
+    --learn-tile-fallback: #f3eff5;
+    --learn-tile-glass-fill: rgb(243 239 245 / 0.78);
+}
+
+[data-glass-surface="learn-tile"][data-learn-category="halal"] {
+    --learn-tile-fallback: #eef4f0;
+    --learn-tile-glass-fill: rgb(238 244 240 / 0.78);
+}
+
+[data-glass-surface="learn-tile"][data-learn-category="marks"] {
+    --learn-tile-fallback: #f4f0ea;
+    --learn-tile-glass-fill: rgb(244 240 234 / 0.78);
+}
+
+[data-glass-surface="learn-tile"][data-learn-category="food-scores"] {
+    --learn-tile-fallback: #f2f1ea;
+    --learn-tile-glass-fill: rgb(242 241 234 / 0.78);
+}
+
+@supports (
+    (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+    [data-glass-surface="learn-tile"] {
+        background-color: var(--learn-tile-glass-fill);
+    }
+}
+
 @media (prefers-reduced-transparency: reduce) {
     :root {
         --glass-fill: #ffffff;
@@ -109,6 +154,9 @@
     [data-glass] {
         -webkit-backdrop-filter: none;
         backdrop-filter: none;
+    }
+    [data-glass-surface="learn-tile"] {
+        background-color: var(--learn-tile-fallback);
     }
 }
 
@@ -475,6 +523,15 @@ button {
 
 input {
     caret-color: var(--color-primary-600);
+}
+
+/* The Learn search field owns its clear action; avoid a duplicate browser control. */
+[data-learn-search]::-webkit-search-cancel-button,
+[data-learn-search]::-webkit-search-decoration,
+[data-learn-search]::-ms-clear {
+    display: none;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 a {
