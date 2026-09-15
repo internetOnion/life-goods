@@ -4,6 +4,8 @@ import { MemoryRouter, useLocation } from "react-router"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import { BarcodeEntryPage } from "../src/features/search/BarcodeEntryPage"
+import { LocaleProvider } from "../src/i18n/LocaleProvider"
+import type { AppLocale } from "../src/i18n/locale"
 import {
     searchProducts,
     type ProductSearchResult,
@@ -57,12 +59,15 @@ function CurrentLocation() {
     )
 }
 
-function renderPage(path = "/search") {
+function renderPage(path = "/search", locale: AppLocale = "en") {
+    window.localStorage.setItem("lifegoods.locale.v1", locale)
     return render(
-        <MemoryRouter initialEntries={[path]}>
-            <BarcodeEntryPage />
-            <CurrentLocation />
-        </MemoryRouter>,
+        <LocaleProvider>
+            <MemoryRouter initialEntries={[path]}>
+                <BarcodeEntryPage />
+                <CurrentLocation />
+            </MemoryRouter>
+        </LocaleProvider>,
     )
 }
 
@@ -127,6 +132,7 @@ describe("search page", () => {
         const resultCard = await screen.findByRole("link", {
             name: "View Nutella",
         })
+        expect(resultCard).toHaveClass("h-16", "min-h-16", "px-2.5", "py-2")
         expect(
             within(resultCard).getByRole("heading", {
                 name: "Nutella",
@@ -160,8 +166,9 @@ describe("search page", () => {
             within(resultCard).queryByText("3017620422003"),
         ).not.toBeInTheDocument()
         expect(within(resultCard).queryByRole("img")).not.toBeInTheDocument()
-        expect(screen.getByText("Data from Open Food Facts")).toBeVisible()
-        expect(screen.getAllByText("Data from Open Food Facts")).toHaveLength(1)
+        expect(
+            screen.queryByText("Data from Open Food Facts"),
+        ).not.toBeInTheDocument()
         expect(mockedSearchProducts).toHaveBeenCalledWith("Nutella")
     })
 
@@ -193,9 +200,6 @@ describe("search page", () => {
         expect(
             within(resultCard).queryByText("Vegetarian"),
         ).not.toBeInTheDocument()
-        expect(screen.getByRole("status")).toHaveTextContent(
-            "Product name: Source Data Unavailable for 1 of 1 Source Records. Open a Product below to read the available source details.",
-        )
         expect(
             within(resultCard).queryByText("Source Data Unavailable"),
         ).not.toBeInTheDocument()
@@ -278,9 +282,6 @@ describe("search page", () => {
         expect(
             within(resultCard).queryByText("3017620422003"),
         ).not.toBeInTheDocument()
-        expect(screen.getByRole("status")).toHaveTextContent(
-            "Product name: Source Data Unavailable for 1 of 1 Source Records. Open a Product below to read the available source details.",
-        )
     })
 
     test("keeps Product links and pagination functional for comparison results", async () => {
@@ -495,7 +496,7 @@ describe("search page", () => {
         ).not.toBeInTheDocument()
         expect(
             screen.getByRole("button", { name: "Search again for Coca Cola" }),
-        ).toBeVisible()
+        ).toHaveClass("h-16", "min-h-16", "px-2.5", "py-2")
         expect(
             screen.getByRole("link", { name: "View Product 3017620422003" }),
         ).toBeVisible()
@@ -667,5 +668,162 @@ describe("search page", () => {
         expect(
             screen.queryByText("Try a sample Product"),
         ).not.toBeInTheDocument()
+    })
+
+    test("localizes recent activity controls and dynamic labels in Khmer", () => {
+        localStorage.setItem(
+            "lifegoods.search-history.v1",
+            JSON.stringify([{ query: "Coca Cola", searchedAt: 2 }]),
+        )
+        sessionStorage.setItem(
+            "lifegoods_scan_history_v1",
+            JSON.stringify([recentProduct]),
+        )
+        renderPage("/search", "km")
+
+        expect(screen.getByRole("heading", { name: "ស្វែងរក" })).toBeVisible()
+        expect(
+            screen.getByRole("textbox", { name: "ស្វែងរក" }),
+        ).toHaveAttribute("placeholder", "បាកូដ ឈ្មោះផលិតផល ឬម៉ាក")
+        expect(
+            screen.getByRole("heading", { name: "សកម្មភាពថ្មីៗ" }),
+        ).toBeVisible()
+        expect(screen.getByRole("link", { name: "មើលទាំងអស់" })).toBeVisible()
+        expect(screen.getByRole("button", { name: "លុបទាំងអស់" })).toBeVisible()
+        expect(
+            screen.getByRole("button", {
+                name: "ស្វែងរក Coca Cola ម្តងទៀត",
+            }),
+        ).toBeVisible()
+        expect(
+            screen.getByRole("button", {
+                name: "លុប Coca Cola ចេញពីប្រវត្តិស្វែងរក",
+            }),
+        ).toBeVisible()
+        expect(
+            screen.getByRole("link", {
+                name: "មើលផលិតផល 3017620422003",
+            }),
+        ).toBeVisible()
+        expect(
+            screen.getByRole("button", {
+                name: "លុបផលិតផល 3017620422003 ចេញពីសកម្មភាពថ្មីៗ",
+            }),
+        ).toBeVisible()
+    })
+
+    test("localizes validation and empty Product Search states in Khmer", async () => {
+        const user = userEvent.setup()
+        renderPage("/search", "km")
+
+        await user.type(screen.getByRole("textbox", { name: "ស្វែងរក" }), "123")
+        await user.keyboard("{Enter}")
+
+        expect(screen.getByRole("alert")).toHaveTextContent(
+            "Life Goods គាំទ្របាកូដ 8, 12, 13 ឬ 14 ខ្ទង់។",
+        )
+
+        mockedSearchProducts.mockResolvedValueOnce({
+            results: [],
+            nextCursor: null,
+        })
+        await user.clear(screen.getByRole("textbox", { name: "ស្វែងរក" }))
+        await user.type(screen.getByRole("textbox", { name: "ស្វែងរក" }), "zz")
+        await user.keyboard("{Enter}")
+
+        expect(
+            await screen.findByRole("heading", {
+                name: "រកមិនឃើញផលិតផលទេ",
+            }),
+        ).toBeVisible()
+        expect(
+            screen.getByText("សាកល្បងឈ្មោះផលិតផល ក្រុមហ៊ុន ឬប្រទេសផ្សេង។"),
+        ).toBeVisible()
+    })
+
+    test("localizes unavailable search errors in Khmer", async () => {
+        const user = userEvent.setup()
+        mockedSearchProducts.mockRejectedValueOnce(new Error("offline"))
+        renderPage("/search", "km")
+
+        await user.type(screen.getByRole("textbox", { name: "ស្វែងរក" }), "zz")
+        await user.keyboard("{Enter}")
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "ការស្វែងរកផលិតផលមិនអាចប្រើបានជាបណ្តោះអាសន្នទេ។",
+        )
+    })
+
+    test("localizes Product Search results while preserving source values", async () => {
+        const user = userEvent.setup()
+        mockedSearchProducts.mockResolvedValueOnce({
+            results: [
+                searchResult,
+                {
+                    ...searchResult,
+                    barcode: "4006381333931",
+                    name: null,
+                    generic_name: null,
+                    brands: [],
+                },
+            ],
+            nextCursor: null,
+        })
+        renderPage("/search", "km")
+
+        await user.type(
+            screen.getByRole("textbox", { name: "ស្វែងរក" }),
+            "Nutella",
+        )
+        await user.keyboard("{Enter}")
+
+        const resultCard = await screen.findByRole("link", {
+            name: "មើល Nutella",
+        })
+        expect(screen.getByRole("heading", { name: "ផលិតផល" })).toBeVisible()
+        expect(screen.getByText("រកឃើញ 2")).toBeVisible()
+        expect(
+            within(resultCard).getByRole("heading", {
+                name: "Nutella",
+            }),
+        ).toBeVisible()
+        expect(within(resultCard).getByText("ប្រភេទផលិតផល")).toBeVisible()
+        expect(
+            screen.queryByText("ទិន្នន័យពី Open Food Facts"),
+        ).not.toBeInTheDocument()
+        expect(screen.getByText("Nutella")).toBeVisible()
+        expect(
+            screen.getByRole("heading", { name: "មិនមានទិន្នន័យប្រភព" }),
+        ).toBeVisible()
+    })
+
+    test("localizes the load-more control for paginated results", async () => {
+        const user = userEvent.setup()
+        mockedSearchProducts
+            .mockResolvedValueOnce({
+                results: [searchResult],
+                nextCursor: "next-page",
+            })
+            .mockResolvedValueOnce({ results: [], nextCursor: null })
+        renderPage("/search", "km")
+
+        await user.type(
+            screen.getByRole("textbox", { name: "ស្វែងរក" }),
+            "Nutella",
+        )
+        await user.keyboard("{Enter}")
+
+        const loadMore = await screen.findByRole("button", {
+            name: "ទាញយកផលិតផលបន្ថែម",
+        })
+        await user.click(loadMore)
+
+        expect(
+            screen.queryByRole("button", { name: "ទាញយកផលិតផលបន្ថែម" }),
+        ).not.toBeInTheDocument()
+        expect(mockedSearchProducts).toHaveBeenLastCalledWith(
+            "Nutella",
+            "next-page",
+        )
     })
 })

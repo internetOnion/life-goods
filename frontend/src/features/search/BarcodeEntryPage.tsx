@@ -32,10 +32,8 @@ import {
     saveRecentSearch,
     type SearchHistoryItem,
 } from "./history"
-import {
-    ProductListItem,
-    ProductNameUnavailableNotice,
-} from "./ProductListItem"
+import { ProductListItem } from "./ProductListItem"
+import { useSearchTranslation, type SearchTranslationKey } from "./translations"
 
 type SearchLocationState = {
     invalidBarcode?: string
@@ -43,13 +41,32 @@ type SearchLocationState = {
 
 type SearchStatus = "idle" | "loading" | "results" | "empty" | "error"
 
-const validationMessages = {
-    required: "Enter digits to search.",
-    characters: "Use digits only. Spaces and hyphens are allowed.",
-    length: "Life Goods supports 8, 12, 13, or 14 digit Barcodes.",
-    checkDigit:
-        "That Barcode has an invalid check digit. Check the digits and try again.",
+const validationMessageKeys = {
+    required: "required",
+    characters: "characters",
+    length: "length",
+    checkDigit: "checkDigit",
 } as const
+
+type SearchError = {
+    key: SearchTranslationKey
+}
+
+function initialSearchError(
+    invalidBarcode: string | undefined,
+    initialValue: string,
+): SearchError | null {
+    const initialValidation = initialValue
+        ? validateIdentifier(initialValue)
+        : undefined
+
+    return invalidBarcode ||
+        (initialValidation &&
+            !initialValidation.valid &&
+            isBarcodeInput(initialValue))
+        ? { key: "invalidScan" }
+        : null
+}
 
 function isBarcodeInput(value: string) {
     return /^[\d\s-]+$/.test(value)
@@ -109,22 +126,15 @@ const recentActivityItemClass =
     "relative flex w-full min-w-0 items-center rounded-xl bg-transparent transition-colors hover:bg-neutral-50"
 
 export function BarcodeEntryPage() {
+    const { t } = useSearchTranslation()
     const [searchParams] = useSearchParams()
     const location = useLocation()
     const navigate = useNavigate()
     const locationState = location.state as SearchLocationState | null
     const initialValue = searchParams.get("q") ?? ""
-    const initialValidation = initialValue
-        ? validateIdentifier(initialValue)
-        : undefined
     const [query, setQuery] = useState(initialValue)
-    const [error, setError] = useState<string | null>(
-        locationState?.invalidBarcode ||
-            (initialValidation &&
-                !initialValidation.valid &&
-                isBarcodeInput(initialValue))
-            ? "That scan was not a supported Barcode. Check the digits below."
-            : null,
+    const [error, setError] = useState<SearchError | null>(() =>
+        initialSearchError(locationState?.invalidBarcode, initialValue),
     )
     const [searchStatus, setSearchStatus] = useState<SearchStatus>("idle")
     const [results, setResults] = useState<ProductSearchResult[]>([])
@@ -138,8 +148,8 @@ export function BarcodeEntryPage() {
     const headingRef = useRef<HTMLHeadingElement>(null)
 
     usePageMetadata({
-        title: "Search",
-        description: "Search products or enter a Barcode on Life Goods.",
+        title: t("pageTitle"),
+        description: t("pageDescription"),
     })
 
     useEffect(() => {
@@ -164,9 +174,7 @@ export function BarcodeEntryPage() {
         } catch {
             if (requestId !== searchRequestRef.current) return
             setSearchStatus("error")
-            setError(
-                "Product search is temporarily unavailable. Try again in a moment.",
-            )
+            setError({ key: "searchUnavailable" })
         }
     }
 
@@ -183,9 +191,7 @@ export function BarcodeEntryPage() {
             setNextCursor(response.nextCursor)
         } catch {
             if (requestId !== searchRequestRef.current) return
-            setError(
-                "More Products are temporarily unavailable. Try again in a moment.",
-            )
+            setError({ key: "moreUnavailable" })
         } finally {
             if (requestId === searchRequestRef.current) setIsLoadingMore(false)
         }
@@ -209,7 +215,7 @@ export function BarcodeEntryPage() {
         }
 
         if (isBarcodeInput(trimmed)) {
-            setError(validationMessages[validation.reason])
+            setError({ key: validationMessageKeys[validation.reason] })
             setResults([])
             setNextCursor(null)
             setSearchStatus("error")
@@ -217,7 +223,7 @@ export function BarcodeEntryPage() {
         }
 
         if (trimmed.length < 2) {
-            setError("Enter at least two characters to search.")
+            setError({ key: "minimumCharacters" })
             setResults([])
             setNextCursor(null)
             setSearchStatus("error")
@@ -256,14 +262,10 @@ export function BarcodeEntryPage() {
     }
 
     const recentActivity = getRecentActivity(searchHistory, recentProducts)
-    const missingProductNameCount = results.filter(
-        (result) => !result.name?.value?.trim(),
-    ).length
-
     return (
         <main className="page-rail page-rail-tight sm:px-6 sm:pt-4">
             <h1 ref={headingRef} tabIndex={-1} className="sr-only">
-                Search
+                {t("pageTitle")}
             </h1>
             <div className="relative flex min-h-11 items-center justify-center">
                 <Button
@@ -272,7 +274,7 @@ export function BarcodeEntryPage() {
                     size="icon"
                     className="relative z-10 mr-auto -ml-1 size-11 shrink-0 rounded-full text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950"
                 >
-                    <Link to="/" aria-label="Back to scanner">
+                    <Link to="/" aria-label={t("backToScanner")}>
                         <ArrowLeftIcon
                             size={20}
                             weight="bold"
@@ -281,7 +283,7 @@ export function BarcodeEntryPage() {
                     </Link>
                 </Button>
                 <span className="type-section-title pointer-events-none absolute inset-x-0 text-center text-neutral-900">
-                    Search
+                    {t("pageTitle")}
                 </span>
             </div>
 
@@ -296,7 +298,7 @@ export function BarcodeEntryPage() {
                     </span>
                     <Input
                         id="search"
-                        aria-label="Search"
+                        aria-label={t("searchLabel")}
                         className={cn(
                             "h-[60px] rounded-full border-neutral-200/90 bg-white pr-20 pl-[3.25rem] text-xs shadow-[0_6px_14px_-10px_rgba(19,21,25,0.55)] placeholder:text-neutral-600 sm:text-sm lg:text-base",
                             error &&
@@ -314,14 +316,14 @@ export function BarcodeEntryPage() {
                         spellCheck={false}
                         aria-invalid={error ? true : undefined}
                         aria-describedby={error ? "search-error" : undefined}
-                        placeholder="barcode, product, or brand"
+                        placeholder={t("searchPlaceholder")}
                     />
                 </div>
 
                 <Button
                     className="absolute top-1/2 right-0 size-[60px] -translate-y-1/2 rounded-full bg-neutral-800 p-0 text-white shadow-[0_6px_14px_-10px_rgba(19,21,25,0.75)] hover:bg-neutral-900 active:bg-neutral-950 disabled:opacity-80"
                     type="submit"
-                    aria-label="Search"
+                    aria-label={t("searchLabel")}
                     disabled={searchStatus === "loading"}
                 >
                     {searchStatus === "loading" ? (
@@ -352,7 +354,7 @@ export function BarcodeEntryPage() {
                                 id="recent-activity-heading"
                                 className="type-section-title text-neutral-900"
                             >
-                                Recent activity
+                                {t("recentActivity")}
                             </h2>
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
@@ -361,7 +363,7 @@ export function BarcodeEntryPage() {
                                     to="/search/recent"
                                     className="type-supporting text-primary-700 hover:bg-primary-50 hover:text-primary-800 focus-visible:ring-primary-500 rounded-xl px-2.5 py-2 font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                                 >
-                                    See all
+                                    {t("seeAll")}
                                 </Link>
                             ) : null}
                             {recentActivity.length ? (
@@ -373,7 +375,7 @@ export function BarcodeEntryPage() {
                                     onClick={clearRecentActivity}
                                 >
                                     <TrashIcon size={16} aria-hidden="true" />
-                                    Clear all
+                                    {t("clearAll")}
                                 </Button>
                             ) : null}
                         </div>
@@ -394,7 +396,13 @@ export function BarcodeEntryPage() {
                                                 onClick={() =>
                                                     replaySearch(activity.item)
                                                 }
-                                                aria-label={`Search again for ${activity.item.query}`}
+                                                aria-label={t(
+                                                    "searchAgainFor",
+                                                    {
+                                                        query: activity.item
+                                                            .query,
+                                                    },
+                                                )}
                                             >
                                                 <span
                                                     className={
@@ -420,7 +428,7 @@ export function BarcodeEntryPage() {
                                                             recentActivitySecondaryClass
                                                         }
                                                     >
-                                                        Search term
+                                                        {t("searchTerm")}
                                                     </span>
                                                 </span>
                                             </Button>
@@ -434,7 +442,13 @@ export function BarcodeEntryPage() {
                                                 onClick={() =>
                                                     removeSearch(activity.item)
                                                 }
-                                                aria-label={`Remove ${activity.item.query} from search history`}
+                                                aria-label={t(
+                                                    "removeFromSearchHistory",
+                                                    {
+                                                        query: activity.item
+                                                            .query,
+                                                    },
+                                                )}
                                             >
                                                 <XIcon
                                                     size={16}
@@ -458,7 +472,11 @@ export function BarcodeEntryPage() {
                                         >
                                             <Link
                                                 to={`/products/${activity.item.identifier}`}
-                                                aria-label={`View Product ${activity.item.identifier}`}
+                                                aria-label={t("viewProduct", {
+                                                    barcode:
+                                                        activity.item
+                                                            .identifier,
+                                                })}
                                             >
                                                 <span
                                                     className={
@@ -487,7 +505,7 @@ export function BarcodeEntryPage() {
                                                             recentActivitySecondaryClass
                                                         }
                                                     >
-                                                        Product
+                                                        {t("product")}
                                                     </span>
                                                 </span>
                                             </Link>
@@ -502,7 +520,14 @@ export function BarcodeEntryPage() {
                                             onClick={() =>
                                                 removeProduct(activity.item)
                                             }
-                                            aria-label={`Remove Product ${activity.item.identifier} from recent activity`}
+                                            aria-label={t(
+                                                "removeProductFromRecentActivity",
+                                                {
+                                                    barcode:
+                                                        activity.item
+                                                            .identifier,
+                                                },
+                                            )}
                                         >
                                             <XIcon
                                                 size={16}
@@ -516,7 +541,7 @@ export function BarcodeEntryPage() {
                         </ul>
                     ) : (
                         <p className="mt-3 py-1 text-center text-sm leading-relaxed text-neutral-600">
-                            Search for a Product to start your history.
+                            {t("startSearchHistory")}
                         </p>
                     )}
                 </section>
@@ -534,33 +559,29 @@ export function BarcodeEntryPage() {
                         size={18}
                         weight="bold"
                     />
-                    <span>{error}</span>
+                    <span>{error ? t(error.key) : null}</span>
                 </div>
             ) : null}
 
             {searchStatus === "loading" ? (
                 <section
                     className="mx-auto mt-5 w-full max-w-lg"
-                    aria-label="Searching Products"
+                    aria-label={t("searchingProducts")}
                     aria-live="polite"
                 >
-                    <span className="sr-only">Searching Products</span>
+                    <span className="sr-only">{t("searchingProducts")}</span>
                     <div className="space-y-2.5" aria-hidden="true">
                         {[0, 1, 2].map((item) => (
                             <div
                                 key={item}
-                                className="grid min-h-20 animate-pulse grid-cols-[2.75rem_minmax(0,1fr)_5rem] items-start gap-3 rounded-2xl border border-neutral-200 bg-white p-3 sm:min-h-[5.5rem]"
+                                className="grid h-16 min-h-16 animate-pulse grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-neutral-200 bg-white px-2.5 py-2 sm:px-3"
                             >
-                                <div className="size-11 rounded-xl bg-neutral-100" />
-                                <div className="min-w-0 space-y-2 pt-1">
+                                <div className="size-8 rounded-lg bg-neutral-100" />
+                                <div className="min-w-0 space-y-2">
                                     <div className="h-4 w-3/4 rounded bg-neutral-100" />
-                                    <div className="h-3 w-full rounded bg-neutral-100" />
                                     <div className="h-3 w-5/6 rounded bg-neutral-100" />
                                 </div>
-                                <div className="space-y-2 pt-1">
-                                    <div className="h-3 w-full rounded bg-neutral-100" />
-                                    <div className="h-3 w-4/5 rounded bg-neutral-100" />
-                                </div>
+                                <div className="size-5 rounded bg-neutral-100" />
                             </div>
                         ))}
                     </div>
@@ -574,16 +595,12 @@ export function BarcodeEntryPage() {
                 >
                     <div className="mb-3 flex items-baseline justify-between gap-3">
                         <h2 className="type-section-title text-neutral-900">
-                            Products
+                            {t("products")}
                         </h2>
                         <span className="type-caption text-neutral-500">
-                            {results.length} found
+                            {t("foundCount", { count: results.length })}
                         </span>
                     </div>
-                    <ProductNameUnavailableNotice
-                        missingCount={missingProductNameCount}
-                        totalCount={results.length}
-                    />
                     <div className="shadow-source-sheet divide-y divide-neutral-200/90 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white">
                         {results.map((result) => {
                             return (
@@ -601,9 +618,6 @@ export function BarcodeEntryPage() {
                             )
                         })}
                     </div>
-                    <p className="type-caption mt-3 text-center text-neutral-500">
-                        Data from Open Food Facts
-                    </p>
                     {nextCursor ? (
                         <Button
                             type="button"
@@ -613,8 +627,8 @@ export function BarcodeEntryPage() {
                             disabled={isLoadingMore}
                         >
                             {isLoadingMore
-                                ? "Loading Products…"
-                                : "Load more Products"}
+                                ? t("loadingProducts")
+                                : t("loadMoreProducts")}
                         </Button>
                     ) : null}
                 </section>
@@ -632,10 +646,10 @@ export function BarcodeEntryPage() {
                         aria-hidden="true"
                     />
                     <h2 className="text-base font-extrabold text-neutral-900">
-                        No Products found
+                        {t("noProductsFound")}
                     </h2>
                     <p className="type-supporting mt-1.5 text-neutral-500">
-                        Try a different Product name, company, or country.
+                        {t("noProductsHint")}
                     </p>
                 </div>
             ) : null}

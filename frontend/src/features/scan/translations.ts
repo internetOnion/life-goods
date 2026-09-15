@@ -43,7 +43,7 @@ type ScanTranslations = { [Key in keyof typeof englishScan]: string }
 const khmerScan: ScanTranslations = {
     title: "ស្កេនបាកូដ",
     cameraLabel: "ម៉ាស៊ីនស្កេនបាកូដ",
-    searchPlaceholder: "បញ្ចូលបាកូដ ឈ្មោះផលិតផល ឬម៉ាក",
+    searchPlaceholder: "បាកូដ ឈ្មោះផលិតផល ឬម៉ាក",
     searchLabel: "ស្វែងរក",
     privacyTitle: "ស្កេនដោយរក្សាភាពឯកជន",
     privacyBody: "ការស្កេនកើតឡើងនៅលើឧបករណ៍របស់អ្នក។",

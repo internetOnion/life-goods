@@ -134,7 +134,7 @@ describe("camera Barcode scanner", () => {
             "href",
             "/search",
         )
-        expect(screen.getByText("បញ្ចូលបាកូដ ឈ្មោះផលិតផល ឬម៉ាក")).toBeVisible()
+        expect(screen.getByText("បាកូដ ឈ្មោះផលិតផល ឬម៉ាក")).toBeVisible()
         expect(document.documentElement).toHaveAttribute("lang", "km")
     })
 

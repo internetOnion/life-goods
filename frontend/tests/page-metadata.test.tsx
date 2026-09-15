@@ -16,6 +16,7 @@ const indexHtmlPath = path.join(rootDir, "index.html")
 const publicDirPath = path.join(rootDir, "public")
 
 function renderRoute(routePath: string, lookup = vi.fn<ProductLookup>()) {
+    window.localStorage.setItem("lifegoods.locale.v1", "en")
     const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false } },
     })
