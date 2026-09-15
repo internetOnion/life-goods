@@ -88,10 +88,24 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
 
     const productQuery = useQuery({
         queryKey: ["product", normalizedBarcode, locale],
-        queryFn: () =>
-            locale === "en"
-                ? lookup(normalizedBarcode)
-                : lookup(normalizedBarcode, locale),
+        queryFn: async () => {
+            if (locale === "en") return lookup(normalizedBarcode)
+
+            try {
+                return await lookup(normalizedBarcode, locale)
+            } catch (translationError) {
+                try {
+                    // A failed Khmer request should not make an otherwise
+                    // readable Product unavailable. Retry without translation
+                    // so the response can render its retained Original Text.
+                    return await lookup(normalizedBarcode)
+                } catch {
+                    // Preserve the original error when the unlocalized retry
+                    // also fails, so normal not-found/service states survive.
+                    throw translationError
+                }
+            }
+        },
         enabled: Boolean(normalizedBarcode),
         retry: false,
     })

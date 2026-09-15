@@ -484,6 +484,22 @@ describe("Product page (life-goods-viewer layout)", () => {
         ).not.toBeInTheDocument()
     })
 
+    test("falls back to the unlocalized Product when the Khmer request fails", async () => {
+        const response = productResponse()
+        const lookup = vi
+            .fn<ProductLookup>()
+            .mockRejectedValueOnce(new Error("translation service unavailable"))
+            .mockResolvedValueOnce(response)
+
+        renderProduct(lookup, "4006381333931", "km")
+
+        expect(
+            await screen.findByRole("heading", { name: "Dark Chocolate" }),
+        ).toBeVisible()
+        expect(lookup).toHaveBeenNthCalledWith(1, "4006381333931", "km")
+        expect(lookup).toHaveBeenNthCalledWith(2, "4006381333931")
+    })
+
     test("returns to the Search page from the Product header", async () => {
         const user = userEvent.setup()
         renderProduct(
