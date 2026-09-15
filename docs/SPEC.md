@@ -15,7 +15,7 @@ The MVP:
 - decodes Barcodes on the shopper's device;
 - finds Source Records in one static local Dataset Snapshot;
 - presents consumer-facing Open Food Facts information with visible Source Attribution;
-- develops the information architecture in English while Khmer localization is introduced incrementally;
+- develops the information architecture in English while the implemented Shopper experience is localized incrementally;
 - supports optional on-demand Khmer Translation while preserving Original Text; and
 - remains anonymous and read-only.
 
@@ -23,7 +23,7 @@ The MVP does not own a Product catalog, accept contributions, or verify source d
 
 ## 2. Current repository capability
 
-The current checkout includes the stable cached Product Lookup endpoint, paginated Product Search, source-based allergen analysis, optional on-demand Khmer Translation with isolated generated-data persistence, and the bounded Compare Products API. The main frontend uses the stable Product Lookup and Product Search routes by default; its checked-in Dataset Snapshot remains an explicit offline/demo adapter. The main Shopper interface is English-first, while Compare Products currently exposes English and Khmer UI.
+The current checkout includes the stable cached Product Lookup endpoint, paginated Product Search, source-based allergen analysis, optional on-demand Khmer Translation with isolated generated-data persistence, and the bounded Compare Products API. The main frontend uses the stable Product Lookup and Product Search routes by default; its checked-in Dataset Snapshot remains an explicit offline/demo adapter. The shared shell and Scan/Home experience support Khmer and English, with Khmer as the first-time default; remaining main-app pages are localized incrementally. Compare Products retains its independent English and Khmer UI scope.
 
 The foundational Product Lookup acceptance criteria in section 11 and the issue-specific sections that follow remain as implementation history and contract detail. They are not a statement that the repository is still at the first backend milestone.
 
@@ -224,7 +224,7 @@ Source Assessments remain visibly attributed Open Food Facts calculations. Life 
 
 ## 8. Khmer localization
 
-The main Shopper interface remains English-first while Khmer localization is introduced incrementally. Compare Products currently enables English and Khmer UI; the stable Product Lookup API supports opt-in Khmer Translation for clients that request `language=km`.
+The shared shell and Scan/Home experience support English and Khmer, with Khmer as the first-time default and a persisted English or Khmer preference. Remaining main-app pages are localized incrementally. Compare Products retains its independent English and Khmer UI scope; the stable Product Lookup API supports opt-in Khmer Translation for clients that request `language=km`.
 
 - Khmer is the intended primary display language for the public product experience.
 - Original Text remains available per translated field through a clear control.
