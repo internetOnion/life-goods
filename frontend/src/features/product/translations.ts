@@ -918,30 +918,6 @@ export function translateLabelValue(locale: AppLocale, value: string): string {
     return LABEL_TAXONOMY_TRANSLATIONS_KM[normalized] ?? value
 }
 
-export function translateConcernLabel(
-    locale: AppLocale,
-    concernId: string,
-    fallback: string,
-): string {
-    if (locale !== "km") return fallback
-    const labels: Record<string, string> = {
-        celery: "សេលេរី",
-        crustaceans: "សត្វសមុទ្រមានសំបក",
-        eggs: "ស៊ុត",
-        fish: "ត្រី",
-        gluten: "គ្លុយតែន",
-        lupin: "លូពីន",
-        milk: "ទឹកដោះគោ",
-        molluscs: "សត្វមូល្លុស",
-        mustard: "មេស្តាត",
-        nuts: "គ្រាប់ធញ្ញជាតិមានសំបក",
-        peanuts: "សណ្តែកដី",
-        sesameSeeds: "គ្រាប់ល្ង",
-        soybeans: "សណ្តែកសៀង",
-    }
-    return labels[concernId] ?? fallback
-}
-
 export type ProductTranslationKey = keyof typeof englishProduct
 export type ProductTranslationValues = Record<string, string | number>
 export const productTranslationKeys = Object.keys(

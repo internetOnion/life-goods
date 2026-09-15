@@ -6,18 +6,19 @@ import { Input } from "@/components/ui/input"
 import { usePageMetadata } from "@/lib/metadata"
 
 import { ALLERGEN_OPTIONS, useSelectedConcernStorage } from "./matching"
+import { translateConcernLabel, useConcernTranslation } from "./translations"
 
 export type AllergenId = (typeof ALLERGEN_OPTIONS)[number]["id"]
 
 export function ConcernsPage() {
     const storage = useSelectedConcernStorage()
     const selected = storage.ids
+    const { locale, t } = useConcernTranslation()
     const headingRef = useRef<HTMLHeadingElement>(null)
 
     usePageMetadata({
-        title: "Allergy Concerns",
-        description:
-            "Select dietary concerns and allergens to highlight when looking up Products.",
+        title: t("pageTitle"),
+        description: t("pageDescription"),
     })
 
     useEffect(() => {
@@ -46,12 +47,11 @@ export function ConcernsPage() {
                 tabIndex={-1}
                 className="text-display leading-[1.12] font-extrabold tracking-[-0.03em] text-balance text-neutral-950"
             >
-                Allergy Concerns
+                {t("pageTitle")}
             </h1>
             {storage.storageError && (
                 <p role="alert" className="text-error-800 mt-3 text-sm">
-                    Your choices could not be saved. They will last only for
-                    this visit.
+                    {t("storageError")}
                 </p>
             )}
 
@@ -65,7 +65,7 @@ export function ConcernsPage() {
                         id="selected-concerns-heading"
                         className="text-sm font-extrabold tracking-wider text-neutral-900 uppercase"
                     >
-                        Active Concerns ({selected.length})
+                        {t("activeConcerns", { count: selected.length })}
                     </h2>
                     {selected.length > 0 ? (
                         <Button
@@ -74,7 +74,7 @@ export function ConcernsPage() {
                             type="button"
                             variant="ghost"
                         >
-                            Reset all
+                            {t("resetAll")}
                         </Button>
                     ) : null}
                 </div>
@@ -82,6 +82,12 @@ export function ConcernsPage() {
                 {selectedOptions.length > 0 ? (
                     <div className="mt-3.5 flex flex-wrap gap-2">
                         {selectedOptions.map((opt) => {
+                            const label = translateConcernLabel(
+                                locale,
+                                opt.id,
+                                opt.label,
+                            )
+
                             return (
                                 <Button
                                     key={opt.id}
@@ -90,9 +96,11 @@ export function ConcernsPage() {
                                     glassTone="selected"
                                     onClick={() => toggleOption(opt.id)}
                                     className="focus-visible:ring-primary-500 inline-flex h-auto min-h-11 items-center gap-1.5 rounded-full py-1 pr-2 pl-3 text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:outline-none"
-                                    aria-label={`Remove ${opt.label}`}
+                                    aria-label={t("removeConcern", {
+                                        name: label,
+                                    })}
                                 >
-                                    <span>{opt.label}</span>
+                                    <span>{label}</span>
                                     <XIcon size={14} weight="bold" />
                                 </Button>
                             )
@@ -100,7 +108,7 @@ export function ConcernsPage() {
                     </div>
                 ) : (
                     <p className="mt-3 text-sm text-neutral-500">
-                        No concerns selected yet. Tap any item below to flag it.
+                        {t("noSelectedConcerns")}
                     </p>
                 )}
             </section>
@@ -113,15 +121,18 @@ export function ConcernsPage() {
                     id="allergen-options-heading"
                     className="text-base font-extrabold tracking-[-0.01em] text-neutral-950"
                 >
-                    Available Allergens & Ingredients
+                    {t("availableConcerns")}
                 </h2>
                 <fieldset className="source-sheet mt-3.5 divide-y divide-neutral-200/80 overflow-hidden">
-                    <legend className="sr-only">
-                        Select allergy and dietary concerns
-                    </legend>
+                    <legend className="sr-only">{t("selectConcerns")}</legend>
                     {ALLERGEN_OPTIONS.map((opt) => {
                         const isChecked = selected.includes(opt.id)
                         const inputId = `concern-${opt.id}`
+                        const label = translateConcernLabel(
+                            locale,
+                            opt.id,
+                            opt.label,
+                        )
 
                         return (
                             <label
@@ -153,7 +164,7 @@ export function ConcernsPage() {
                                     <CheckIcon size={16} weight="bold" />
                                 </div>
                                 <span className="text-sm font-bold text-neutral-800 sm:text-base">
-                                    {opt.label}
+                                    {label}
                                 </span>
                             </label>
                         )

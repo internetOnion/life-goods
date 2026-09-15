@@ -359,6 +359,7 @@ describe("Learn source content and Allergies demos", () => {
     })
 
     test("keeps the existing Concerns route available", () => {
+        window.localStorage.setItem("lifegoods.locale.v1", "en")
         renderRoute("/allergies", false)
 
         expect(

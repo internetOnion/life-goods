@@ -5,10 +5,11 @@ import type { AllergenAnalysisResponse } from "@/api/generated"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getConcernOptionByTag } from "@/features/concerns/allergens"
+import { translateConcernLabel } from "@/features/concerns/translations"
 import type { ConcernMatch } from "@/features/concerns/matching"
 import type { PackageMatchEvidenceResponse } from "@/features/product/types"
 
-import { translateConcernLabel, useProductTranslation } from "../translations"
+import { useProductTranslation } from "../translations"
 
 interface AllergenCardProps {
     analysis?: AllergenAnalysisResponse | null

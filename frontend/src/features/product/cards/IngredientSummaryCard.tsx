@@ -5,9 +5,10 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import type { ConcernMatch } from "@/features/concerns/matching"
 import { getConcernOptionByTag } from "@/features/concerns/allergens"
+import { translateConcernLabel } from "@/features/concerns/translations"
 import type { PackageMatchEvidenceResponse } from "@/features/product/types"
 
-import { translateConcernLabel, useProductTranslation } from "../translations"
+import { useProductTranslation } from "../translations"
 
 interface IngredientSummaryCardProps {
     concernMatches: ConcernMatch[]

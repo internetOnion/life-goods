@@ -10,17 +10,14 @@ import type {
     PackageMatchReferenceImageResponse,
 } from "@/features/product/types"
 import type { ProductProjection, TranslatableTextItem } from "@/api/generated"
+import { translateConcernLabel } from "@/features/concerns/translations"
 import { getBarcodeCountry } from "@/lib/barcode-country"
 import { cn } from "@/lib/utils"
 import type { ConcernMatch } from "@/features/concerns/matching"
 
 import { TranslatedField } from "../TranslatedField"
 import { getTranslatedFieldText } from "../translation-utils"
-import {
-    translateConcernLabel,
-    translateTaxonomyValue,
-    useProductTranslation,
-} from "../translations"
+import { translateTaxonomyValue, useProductTranslation } from "../translations"
 
 interface ProductHeroProps {
     candidate: PackageMatchCandidateResponse

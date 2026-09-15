@@ -1159,6 +1159,73 @@ describe("Product page (life-goods-viewer layout)", () => {
         ).toHaveLength(1)
     })
 
+    test("localizes selected allergen results in Khmer", async () => {
+        const user = userEvent.setup()
+        localStorage.setItem(
+            "lifegoods_selected_concerns",
+            JSON.stringify(["en:milk", "en:peanuts"]),
+        )
+
+        const response = productResponse(
+            {},
+            {
+                off: { state: "available", tags: ["en:milk", "en:peanuts"] },
+                ingredient_matching: {
+                    state: "completed",
+                    quality: "clear",
+                    tags: [],
+                    evidence: [],
+                    qualifications: [],
+                    limitations: [],
+                    unmatched_texts: [],
+                    unmatched_spans: [],
+                },
+                comparison: {
+                    state: "available",
+                    in_both: [],
+                    off_only: ["en:milk", "en:peanuts"],
+                    ingredient_matching_only: [],
+                    sets_equal: false,
+                },
+            },
+        )
+
+        renderProduct(
+            vi.fn<ProductLookup>().mockResolvedValue(response),
+            "4006381333931",
+            "km",
+        )
+
+        const heading = await screen.findByRole("heading", {
+            name: "Dark Chocolate",
+        })
+        const notice = screen.getByRole("status", {
+            name: "រកឃើញអាលែហ្ស៊ីដែលបានជ្រើសរើស: ទឹកដោះគោ, សណ្តែកដី",
+        })
+
+        expect(notice).toHaveTextContent("រកឃើញអាលែហ្ស៊ីដែលបានជ្រើសរើស")
+        expect(notice).toHaveTextContent("ទឹកដោះគោ, សណ្តែកដី")
+        expect(notice).not.toHaveTextContent("Milk")
+        expect(heading.nextElementSibling).toBe(notice)
+        expect(
+            screen.getAllByRole("status", {
+                name: "រកឃើញអាលែហ្ស៊ីដែលបានជ្រើសរើស: ទឹកដោះគោ, សណ្តែកដី",
+            }),
+        ).toHaveLength(1)
+
+        await user.click(screen.getByRole("tab", { name: "គ្រឿងផ្សំ" }))
+        const ingredientsPanel = screen.getByRole("tabpanel", {
+            name: "គ្រឿងផ្សំ",
+        })
+        expect(
+            within(ingredientsPanel).getByRole("heading", {
+                name: "អាលែហ្ស៊ី និងដានសារធាតុ",
+            }),
+        ).toBeVisible()
+        expect(within(ingredientsPanel).getByText("ទឹកដោះគោ")).toBeVisible()
+        expect(within(ingredientsPanel).getByText("សណ្តែកដី")).toBeVisible()
+    })
+
     test("keeps non-match evidence below the hidden compact notice", async () => {
         const user = userEvent.setup()
         localStorage.setItem(
