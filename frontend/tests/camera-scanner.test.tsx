@@ -169,7 +169,7 @@ describe("camera Barcode scanner", () => {
         expect(screen.getByRole("status")).toHaveTextContent(
             "រួចរាល់សម្រាប់ស្កេន",
         )
-        expect(screen.getByText("កាន់បាកូដនៅក្នុងស៊ុម")).toBeVisible()
+        expect(screen.getByText("ដាក់បាកូដនៅក្នុងស៊ុម")).toBeVisible()
     })
 
     test("toggles the camera flash from the bottom control dock", async () => {
