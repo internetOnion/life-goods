@@ -80,7 +80,7 @@ export const ProvenanceCard: React.FC<ProvenanceCardProps> = ({
             </CardHeader>
 
             <CardContent className="space-y-3 p-4 pt-1 text-xs sm:p-5">
-                <div className="divide-info-200/70 border-info-200/70 divide-y border-t border-b text-xs">
+                <div className="divide-info-200/70 border-info-200/70 divide-y border-t text-xs">
                     <div className="flex flex-col justify-between gap-1 py-2 sm:flex-row sm:items-center">
                         <span className="text-info-700 text-caption font-bold tracking-[0.06em] uppercase">
                             Attribution
@@ -90,17 +90,6 @@ export const ProvenanceCard: React.FC<ProvenanceCardProps> = ({
                                 "Open Food Facts contributors"}
                         </span>
                     </div>
-
-                    {source?.record_url && (
-                        <div className="flex flex-col justify-between gap-1 py-2 sm:flex-row sm:items-baseline">
-                            <span className="text-info-700 text-[11px] font-bold tracking-[0.06em] uppercase">
-                                Source URL
-                            </span>
-                            <span className="text-info-950 font-mono text-xs font-semibold break-all sm:max-w-xs sm:text-sm">
-                                {source.record_url}
-                            </span>
-                        </div>
-                    )}
 
                     <div className="flex flex-col justify-between gap-1 py-2 sm:flex-row sm:items-center">
                         <span className="text-info-700 text-caption font-bold tracking-[0.06em] uppercase">

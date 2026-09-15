@@ -8,7 +8,7 @@ Life Goods isolates generated translation artifacts from the external Open Food 
 
 - **Open Food Facts Snapshot Database (`lifegoods_off`)**: Hosted in MongoDB and accessed at runtime strictly via `lifegoods_reader` (read-only role). No runtime process may write to or modify this database.
 - **Generated-Data Database (`lifegoods_generated`)**: Dedicated MongoDB database storing durable translation artifacts, leases, cooldowns, and quarantines. Accessed at runtime via `lifegoods_generated` with `readWrite` role solely on this database.
-- **Disposable Hot Cache (`Redis`)**: In-memory, non-durable cache for Product Lookup results, rate limits, and hot translation bundles. Redis failures gracefully fall through to MongoDB.
+- **Disposable Hot Cache (`Redis`)**: In-memory, non-durable cache for Product Lookup results, rate limits, and hot translation bundles. Hot-cache failures gracefully fall through to MongoDB; the translation generation budget fails closed on Redis failure to protect provider cost limits.
 
 Content addressing (`content_hash + translation_config_fingerprint`) addresses immutable translation bundles. No Barcode-to-artifact mapping or Shopper identifiers are stored, ensuring identical Product texts across different Dataset Snapshots reuse existing artifacts without maintaining Shopper scan history.
 
@@ -93,7 +93,7 @@ To rotate credentials without application downtime:
    db.getSiblingDB("lifegoods_generated").dropUser("lifegoods_generated");
    ```
 
-## 5. Backup and Restore Expectations
+## 6. Backup and Restore Expectations
 
 - **Independent Backup**: `lifegoods_generated` should be backed up independently from `lifegoods_off`. Dataset Snapshot migrations or snapshot imports never overwrite generated artifacts.
 - **Selective Retention**:
@@ -106,7 +106,7 @@ To rotate credentials without application downtime:
   ```
 - **Restore Verification**: After restoring collections, run `pnpm generated-data:verify` to verify indexes and TTL policies.
 
-## 6. Failure Diagnosis
+## 7. Failure Diagnosis
 
 | Symptom | Cause | Diagnostic & Resolution |
 | :--- | :--- | :--- |
@@ -116,7 +116,7 @@ To rotate credentials without application downtime:
 | `OperationFailure: not authorized on lifegoods_off` | Generated data process attempted to query or write to the snapshot database. | Normal security boundary behavior. Generated storage must not interact with `lifegoods_off`. |
 | Leases or cooldowns not expiring | MongoDB TTL background monitor thread is disabled or running on a long sleep interval. | Verify MongoDB server parameters (`ttlMonitorSleepSecs`). Verify index has `expireAfterSeconds: 0`. |
 
-## Translation configuration and isolated tests
+## 8. Translation configuration and isolated tests
 
 The production translation configuration is `v1`, with exact provider/model identity in its fingerprint. It excludes incompatible configurations and `test-fake` artifacts without deleting them. Complete results are durable; partial results use only the short-lived hot cache. Missing credentials disable generation while allowing compatible stored results to be read.
 

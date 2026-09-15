@@ -7,10 +7,11 @@ facts.
 
 ## Feature-first sequence
 
-The implementation order is extraction (`#112`), deterministic comparison
+The implementation order was extraction (`#112`), deterministic comparison
 (`#113`), standalone local API and browser page (`#114`), then a real-photo
 trial (`#115`). The reviewed multilingual corpus and transcription tool from
-`#111` remain deferred.
+`#111` were closed as not planned; they are not part of the current
+photo-comparison implementation.
 
 ## Trial status
 
@@ -33,9 +34,11 @@ final configuration passed the browser's multipart endpoint with HTTP 200 in
 cholesterol 0 mg; sodium 1380 mg; potassium 100 mg; calcium 0 mg; iron 2 mg.
 Calories had no separate printed unit and remained unnormalized. Percentage rows
 were retained separately. Comparing the validated extraction to a second local
-Product containing the same evidence returned HTTP 200; this is an API smoke
-test, not the planned two-Product trial. Mee Chiet and browser interaction trials
-remain pending. No raw provider bodies or photos are retained here.
+Product containing the same evidence returned HTTP 200; this was an API smoke
+test rather than a formal two-Product accuracy trial. Issue `#115` was later
+closed when the experimental photo-comparison sprint was retired, so broader
+Mee Chiet and browser-interaction trials are not planned follow-up work. No raw
+provider bodies or photos are retained here.
 
 Thinking configuration reference:
 [Gemini thinking](https://ai.google.dev/gemini-api/docs/generate-content/thinking).

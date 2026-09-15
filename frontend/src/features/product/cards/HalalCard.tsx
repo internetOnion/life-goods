@@ -188,7 +188,7 @@ export const HalalCard: React.FC<HalalCardProps> = ({
 
                 {/* Citations Reference */}
                 {assessment?.reference_dataset_version && (
-                    <div className="text-caption flex items-center gap-1.5 border-t border-neutral-100 pt-1 text-neutral-400">
+                    <div className="text-caption flex items-center gap-1.5 border-t border-neutral-100 pt-1 text-neutral-600">
                         <BookOpen className="h-3 w-3 shrink-0" />
                         <span>
                             Jurisprudence ruleset:{" "}

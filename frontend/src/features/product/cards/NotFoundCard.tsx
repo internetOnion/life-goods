@@ -35,7 +35,7 @@ export const NotFoundCard: React.FC<NotFoundCardProps> = ({
                     </div>
 
                     <div className="flex items-center gap-1.5 rounded-xl border border-neutral-200/60 bg-neutral-50 px-3 py-2 text-xs font-medium text-neutral-600">
-                        <AlertCircle className="h-4 w-4 shrink-0 text-neutral-400" />
+                        <AlertCircle className="h-4 w-4 shrink-0 text-neutral-500" />
                         <span>
                             Products must be present in the downloaded snapshot
                             dataset to be displayed.

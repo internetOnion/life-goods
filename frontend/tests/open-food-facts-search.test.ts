@@ -21,6 +21,12 @@ describe("Open Food Facts brand search", () => {
                             product_name_en: "Nutella",
                             brands: "Nutella, Ferrero",
                             quantity: "400 g",
+                            generic_name: "Hazelnut spread",
+                            generic_name_en: "Hazelnut spread",
+                            packaging: "Metal, en:recyclable-metals",
+                            packaging_tags: ["en:glass-jar"],
+                            labels: "Vegetarian",
+                            labels_tags: ["en:vegetarian"],
                             manufacturing_places: "Rouen, France",
                             image_url:
                                 "https://images.openfoodfacts.org/nutella.jpg",
@@ -53,8 +59,24 @@ describe("Open Food Facts brand search", () => {
                 brands: ["Nutella", "Ferrero"],
                 manufacturing_places: ["Rouen", "France"],
                 quantity: "400 g",
+                generic_name: {
+                    value: "Hazelnut spread",
+                    language: "en",
+                    source_field: "generic_name_en",
+                },
+                packaging: "Metal, recyclable metals",
+                labels: ["Vegetarian"],
             },
         ])
+        expect(new URL(requestUrl).searchParams.get("fields")).toContain(
+            "generic_name",
+        )
+        expect(new URL(requestUrl).searchParams.get("fields")).toContain(
+            "packaging",
+        )
+        expect(new URL(requestUrl).searchParams.get("fields")).toContain(
+            "labels",
+        )
         expect(response.nextCursor).toBeNull()
     })
 

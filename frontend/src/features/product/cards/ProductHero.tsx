@@ -9,6 +9,7 @@ import type {
     PackageMatchCandidateResponse,
     PackageMatchReferenceImageResponse,
 } from "@/features/product/types"
+import { getBarcodeCountry } from "@/lib/barcode-country"
 import { cn } from "@/lib/utils"
 import type { ConcernMatch } from "@/features/concerns/matching"
 
@@ -16,7 +17,6 @@ interface ProductHeroProps {
     candidate: PackageMatchCandidateResponse
     identifier: string
     genericName?: string | null
-    manufacturingPlace?: string | null
     headingRef?: React.Ref<HTMLHeadingElement>
     selectedConcernMatches?: ConcernMatch[]
 }
@@ -25,7 +25,6 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
     candidate,
     identifier,
     genericName,
-    manufacturingPlace,
     headingRef,
     selectedConcernMatches = [],
 }) => {
@@ -43,6 +42,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
             (e) => e.field === "name" && (e.language === "en" || !e.language),
         ) || identityEvidence.find((e) => e.field === "name")
     const productName = (nameItem?.value as string) || "Unlabeled Product"
+    const barcodeCountry = getBarcodeCountry(identifier)
 
     // Extract brand
     const brandItem = identityEvidence.find((e) => e.field === "brands")
@@ -117,13 +117,16 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
     }
 
     return (
-        <div className="shadow-source-sheet overflow-hidden rounded-2xl border border-neutral-200/90 bg-white p-3 sm:p-6">
-            <div className="grid items-start gap-6 sm:grid-cols-[13rem_minmax(0,1fr)] sm:gap-6">
+        <div
+            data-glass-surface=""
+            className="glass-surface overflow-hidden rounded-2xl p-3 sm:p-6"
+        >
+            <div className="grid items-start gap-6">
                 {/* Product Image Viewer */}
-                <div className="flex w-full min-w-0 flex-col items-center sm:w-auto">
+                <div className="mx-auto flex w-full max-w-[18rem] min-w-0 flex-col items-center">
                     <div
                         className={cn(
-                            "group relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-2xl border border-neutral-200/80 bg-neutral-50/80",
+                            "group relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-2xl border border-neutral-200/80 bg-neutral-50",
                             canZoomImage
                                 ? "focus-visible:ring-primary-500 cursor-pointer focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                                 : "",
@@ -207,7 +210,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                 </div>
 
                 {/* Product Details Header */}
-                <div className="w-full min-w-0 space-y-4 sm:pt-1">
+                <div className="w-full min-w-0 space-y-4">
                     <h1
                         ref={headingRef}
                         tabIndex={-1}
@@ -247,20 +250,22 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                     )}
 
                     {/* Quick Factual Summary Divider Rows (Neutral) */}
-                    <div className="divide-y divide-neutral-100 border-t border-b border-neutral-200/80 text-xs">
-                        <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-3">
+                    <div className="divide-y divide-neutral-100 rounded-xl border border-neutral-200/80 bg-white p-3 text-xs">
+                        <div className="grid min-h-16 grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-2.5">
                             <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                 Barcode
                             </span>
                             <Button
                                 variant="ghost"
+                                appearance="glass"
+                                glassTone="neutral"
                                 size="sm"
                                 type="button"
                                 onClick={handleCopyBarcode}
                                 aria-label={
                                     isCopied ? "Barcode copied" : "Copy barcode"
                                 }
-                                className="focus-visible:ring-primary-500 inline-flex h-auto min-h-8 w-full min-w-0 cursor-pointer items-center justify-end gap-1.5 rounded-md px-1.5 py-1 text-right font-mono text-xs font-semibold tracking-[0.04em] text-neutral-900 tabular-nums transition-colors hover:bg-neutral-100 focus-visible:ring-2 sm:text-sm"
+                                className="focus-visible:ring-primary-500 inline-flex h-auto min-h-11 w-full min-w-0 cursor-pointer items-center justify-end gap-2.5 rounded-full px-1.5 py-1 text-right font-mono text-xs font-semibold tracking-[0.04em] whitespace-normal text-neutral-900 tabular-nums transition-colors focus-visible:ring-2 sm:text-sm"
                                 title="Copy Barcode"
                             >
                                 <span className="min-w-0 wrap-anywhere">
@@ -269,26 +274,26 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                                 {isCopied ? (
                                     <Check className="text-primary-700 h-3 w-3 shrink-0" />
                                 ) : (
-                                    <Copy className="h-3 w-3 shrink-0 text-neutral-400" />
+                                    <Copy className="h-3 w-3 shrink-0 text-neutral-500" />
                                 )}
                             </Button>
                         </div>
 
-                        <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-3">
+                        <div className="grid min-h-16 grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-2.5">
                             <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                 Quantity
                             </span>
                             <span className="min-w-0 text-right font-mono text-xs font-semibold text-neutral-900 tabular-nums sm:text-sm">
-                                {quantity || "N/A"}
+                                {quantity || "Source Data Unavailable"}
                             </span>
                         </div>
 
-                        <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-3">
+                        <div className="grid min-h-16 grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-2.5">
                             <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
-                                Made in
+                                Barcode country
                             </span>
                             <span className="min-w-0 text-right text-xs font-semibold wrap-anywhere text-neutral-900 sm:text-sm">
-                                {manufacturingPlace?.trim() || "N/A"}
+                                {barcodeCountry || "Source Data Unavailable"}
                             </span>
                         </div>
                     </div>
@@ -296,22 +301,28 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                     {hasLabelHighlights && (
                         <div
                             aria-label="Product label highlights"
-                            className="grid grid-cols-[6rem_minmax(0,1fr)] items-start justify-end gap-3 border-t border-neutral-100 pt-4"
+                            className="grid grid-cols-[6rem_minmax(0,1fr)] items-start justify-end gap-3 pt-4"
                         >
                             <span className="text-caption min-w-0 pt-1 font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                 On the label
                             </span>
                             <div className="flex min-w-0 flex-wrap justify-end gap-2">
                                 {hasHalalClaim && (
-                                    <span className="border-info-200 bg-info-50 text-info-800 rounded-full border px-3 py-1 text-sm font-semibold">
+                                    <Badge
+                                        variant="outline"
+                                        className="border-info-200 bg-info-50 text-info-800 text-sm font-semibold"
+                                    >
                                         Halal
-                                    </span>
+                                    </Badge>
                                 )}
 
                                 {additivesCount > 0 && (
-                                    <span className="border-info-200 bg-info-50 text-info-800 rounded-full border px-3 py-1 text-sm font-semibold">
+                                    <Badge
+                                        variant="outline"
+                                        className="border-info-200 bg-info-50 text-info-800 text-sm font-semibold"
+                                    >
                                         Additive
-                                    </span>
+                                    </Badge>
                                 )}
                             </div>
                         </div>
@@ -322,7 +333,10 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
             {/* Image Zoom Dialog */}
             {currentImage && (
                 <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
-                    <DialogContent className="max-w-2xl border-neutral-800 bg-neutral-950 p-4 text-white">
+                    <DialogContent
+                        closeClassName="size-12"
+                        className="max-w-2xl border-neutral-800 bg-neutral-950 p-4 text-white"
+                    >
                         <DialogTitle className="text-sm font-semibold text-neutral-200">
                             {productName} — {currentImage.role.toUpperCase()}
                         </DialogTitle>
@@ -334,7 +348,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                             />
                         </div>
                         {currentImage.attribution && (
-                            <p className="text-caption text-center text-neutral-400">
+                            <p className="text-caption text-center text-neutral-600">
                                 Photo attribution: {currentImage.attribution} (
                                 {currentImage.license_name || "CC BY-SA"})
                             </p>

@@ -35,7 +35,10 @@ export function CompareStepper({
 
     return (
         <nav aria-label={t("comparisonSteps")} className="w-full">
-            <ol className="grid grid-cols-2 gap-1 rounded-xl bg-neutral-100 p-1 sm:gap-2">
+            <ol
+                data-glass-surface=""
+                className="glass-surface grid grid-cols-2 gap-1 rounded-xl p-1 sm:gap-2"
+            >
                 {steps.map((step) => {
                     const isActive = currentStep === step.number
                     const isStepAccessible = !disabled
@@ -53,10 +56,11 @@ export function CompareStepper({
                                     }
                                 }}
                                 variant="ghost"
+                                glassTone={isActive ? "selected" : "neutral"}
                                 className={cn(
-                                    "flex h-11 w-full min-w-0 flex-row items-center justify-center gap-2 rounded-lg px-2 text-center transition-all sm:gap-2.5 sm:px-3",
+                                    "flex min-h-11 w-full min-w-0 flex-row items-center justify-center gap-2 rounded-xl px-2 text-center transition-all sm:gap-2.5 sm:px-3",
                                     isActive
-                                        ? "bg-white text-neutral-950 shadow-2xs ring-1 ring-neutral-200/90 hover:bg-white hover:text-neutral-950"
+                                        ? "text-neutral-950"
                                         : isStepAccessible
                                           ? "text-neutral-600 hover:bg-neutral-200/60 hover:text-neutral-900"
                                           : "cursor-not-allowed text-neutral-400 opacity-60 hover:bg-transparent hover:text-neutral-400",

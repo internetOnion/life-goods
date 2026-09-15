@@ -29,7 +29,7 @@ related_targets:
 ## Direction and memorable moment
 
 - Shared main navigation: floating glass capsule across all routes where navigation is visible, with Learn/Scan/Compare/Concerns labels, amber selected pills, safe-area spacing, and reserved content clearance. Search and active Compare continue to hide it. Compare Products is a primary navigation destination rather than a Scan-page entry.
-- Glass controls rollout: Compare Products action controls only; other pages retain existing buttons. White reading sheets and form fields remain opaque. Use opt-in shared material styles, 44px targets, opaque fallbacks, reduced motion, and no nested backdrop blur.
+- Glass rollout: shared navigation, Scan chrome and dark frosted camera state panels, and Product result header, identity hero shell, and section rail use the opt-in frosted material. Compare Products retains its glass controls. White reading sheets, form fields, dense Product cards, images, dialogs, live camera content, and scanner overlays remain opaque or dark. Use 44px targets, opaque fallbacks, reduced motion, and no nested backdrop blur.
 
 - Direction: "The Source Reader" — narrow white source sheets on slate canvas, amber action, blue attribution, mono machine values (see DESIGN.md).
 - Memorable moment: the dark privacy-explicit scanner aperture; the privacy promise is the first thing the camera surface says.

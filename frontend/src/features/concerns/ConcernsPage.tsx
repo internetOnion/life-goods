@@ -1,7 +1,7 @@
-import { XIcon } from "@phosphor-icons/react"
+import { CheckIcon, XIcon } from "@phosphor-icons/react"
 import { useEffect, useRef } from "react"
 
-import { Button } from "@/components/ui/button"
+import { GlassButton as Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { usePageMetadata } from "@/lib/metadata"
 
@@ -15,7 +15,7 @@ export function ConcernsPage() {
     const headingRef = useRef<HTMLHeadingElement>(null)
 
     usePageMetadata({
-        title: "Dietary & Allergy Concerns",
+        title: "Allergy Concerns",
         description:
             "Select dietary concerns and allergens to highlight when looking up Products.",
     })
@@ -46,12 +46,8 @@ export function ConcernsPage() {
                 tabIndex={-1}
                 className="text-display leading-[1.12] font-extrabold tracking-[-0.03em] text-balance text-neutral-950"
             >
-                Dietary & Allergy Concerns
+                Allergy Concerns
             </h1>
-            <p className="mt-3 text-base leading-relaxed text-neutral-600">
-                Select ingredients or allergens you want to be mindful of when
-                reviewing Product labels.
-            </p>
             {storage.storageError && (
                 <p role="alert" className="text-error-800 mt-3 text-sm">
                     Your choices could not be saved. They will last only for
@@ -60,7 +56,8 @@ export function ConcernsPage() {
             )}
 
             <section
-                className="mt-8 rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6"
+                data-glass-surface=""
+                className="source-sheet mt-8 overflow-hidden p-5 sm:p-6"
                 aria-labelledby="selected-concerns-heading"
             >
                 <div className="flex items-center justify-between gap-3 border-b border-neutral-100 pb-3">
@@ -72,7 +69,7 @@ export function ConcernsPage() {
                     </h2>
                     {selected.length > 0 ? (
                         <Button
-                            className="text-primary-700 hover:text-primary-900 min-h-8 px-2 text-xs font-bold"
+                            className="text-primary-800 hover:text-primary-950 min-h-11 px-3 text-xs font-bold"
                             onClick={resetAll}
                             type="button"
                             variant="ghost"
@@ -85,17 +82,16 @@ export function ConcernsPage() {
                 {selectedOptions.length > 0 ? (
                     <div className="mt-3.5 flex flex-wrap gap-2">
                         {selectedOptions.map((opt) => {
-                            const Icon = opt.icon
                             return (
                                 <Button
                                     key={opt.id}
                                     type="button"
                                     variant="ghost"
+                                    glassTone="selected"
                                     onClick={() => toggleOption(opt.id)}
-                                    className="bg-primary-100/70 text-primary-900 hover:bg-primary-200 focus-visible:ring-primary-500 inline-flex h-auto min-h-8 items-center gap-1.5 rounded-full py-1 pr-2 pl-3 text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                                    className="focus-visible:ring-primary-500 inline-flex h-auto min-h-11 items-center gap-1.5 rounded-full py-1 pr-2 pl-3 text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:outline-none"
                                     aria-label={`Remove ${opt.label}`}
                                 >
-                                    <Icon size={16} weight="bold" />
                                     <span>{opt.label}</span>
                                     <XIcon size={14} weight="bold" />
                                 </Button>
@@ -119,12 +115,11 @@ export function ConcernsPage() {
                 >
                     Available Allergens & Ingredients
                 </h2>
-                <fieldset className="mt-3.5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                <fieldset className="source-sheet mt-3.5 divide-y divide-neutral-200/80 overflow-hidden">
                     <legend className="sr-only">
                         Select allergy and dietary concerns
                     </legend>
                     {ALLERGEN_OPTIONS.map((opt) => {
-                        const Icon = opt.icon
                         const isChecked = selected.includes(opt.id)
                         const inputId = `concern-${opt.id}`
 
@@ -132,10 +127,10 @@ export function ConcernsPage() {
                             <label
                                 key={opt.id}
                                 htmlFor={inputId}
-                                className={`has-[:focus-visible]:ring-primary-500 flex min-h-16 cursor-pointer items-center gap-3.5 rounded-xl border p-3.5 transition-colors select-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-offset-2 ${
+                                className={`has-[:focus-visible]:ring-primary-500 flex min-h-16 cursor-pointer items-center gap-3 rounded-xl px-4 py-3 transition-colors select-none has-[:focus-visible]:relative has-[:focus-visible]:z-10 has-[:focus-visible]:ring-2 sm:px-5 ${
                                     isChecked
-                                        ? "border-primary-400 bg-primary-50/70 text-neutral-950 shadow-xs"
-                                        : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50/60"
+                                        ? "bg-primary-50/75 text-neutral-950"
+                                        : "bg-white text-neutral-700 hover:bg-neutral-50/70"
                                 }`}
                             >
                                 <Input
@@ -145,22 +140,19 @@ export function ConcernsPage() {
                                     value={opt.id}
                                     checked={isChecked}
                                     onChange={() => toggleOption(opt.id)}
-                                    className="accent-primary-600 size-4.5 h-auto min-w-0 rounded border-neutral-300 p-0 shadow-none focus-visible:ring-0"
+                                    className="sr-only"
                                 />
                                 <div
-                                    className={`grid size-9 shrink-0 place-items-center rounded-lg ${
+                                    className={`grid size-6 shrink-0 place-items-center rounded-md border transition-colors ${
                                         isChecked
-                                            ? "bg-primary-200/70 text-primary-900"
-                                            : "bg-neutral-100 text-neutral-600"
+                                            ? "border-primary-600 bg-primary-600 text-white"
+                                            : "border-neutral-300 bg-white text-transparent"
                                     }`}
                                     aria-hidden="true"
                                 >
-                                    <Icon
-                                        size={20}
-                                        weight={isChecked ? "bold" : "regular"}
-                                    />
+                                    <CheckIcon size={16} weight="bold" />
                                 </div>
-                                <span className="text-sm font-bold">
+                                <span className="text-sm font-bold text-neutral-800 sm:text-base">
                                     {opt.label}
                                 </span>
                             </label>

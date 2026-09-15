@@ -1,6 +1,6 @@
 # Life Goods
 
-Life Goods is becoming a Khmer-first mobile product-information experience for people shopping in Cambodia. It presents locally hosted Open Food Facts data with visible attribution, Original Text, and eventually on-demand Khmer Translation. It is not a separate food catalog or verification system.
+Life Goods is a Khmer-first mobile product-information experience for people shopping in Cambodia. It presents locally hosted Open Food Facts data with visible attribution and Original Text, while the backend supports optional on-demand Khmer Translation. It is not a separate food catalog or verification system.
 
 Read [PRODUCT.md](PRODUCT.md) for the product boundary, [CONTEXT.md](CONTEXT.md) for canonical language, and [docs/SPEC.md](docs/SPEC.md) for the backend-first contract.
 
@@ -124,7 +124,7 @@ do not verify Open Food Facts Source Records.
 
 ## Start development servers
 
-The frontend currently uses its checked-in Dataset Snapshot for offline Product Lookup. The stable backend API remains available independently; connecting the Shopper interface and translation controls is deferred to #90. The ordinary backend also exposes the stable Compare Products API under `/api/v1/photo-comparison/`.
+The frontend uses the stable Product Lookup and Product Search APIs by default. The checked-in Dataset Snapshot remains available through an explicit offline/demo adapter and is not the default application path. The backend supports optional on-demand Khmer Translation with `language=km`; the main Shopper interface remains English-first, and its translation controls remain tracked in #90. The ordinary backend also exposes the stable Compare Products API under `/api/v1/photo-comparison/`.
 
 Run the backend and frontend in separate terminals:
 
@@ -164,8 +164,8 @@ Redis, translation caches, or ordinary logs.
 
 The ordinary backend serves the stable API at `/api/v1/photo-comparison/`; the
 standalone app serves the same behavior under its development-only experimental
-prefix and browser page. The reviewed multilingual corpus in #111 remains
-deferred.
+prefix and browser page. The reviewed multilingual corpus and transcription tool
+from #111 were closed as not planned and are outside this implementation.
 
 ## Verification
 

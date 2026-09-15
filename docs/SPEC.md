@@ -2,7 +2,7 @@
 
 ## Status
 
-This specification defines the backend-first product direction implemented by the current repository. The read-only backend foundation uses MongoDB for the Open Food Facts Dataset Snapshot and generated translation data, Redis for disposable caching and rate limiting, and FastAPI as the frontend contract owner. The bounded ingredient-matching prototype remains source-based evidence only; it is not a safety, allergen-free, or verification verdict.
+This specification defines the product and API behavior implemented by the current repository. The read-only backend uses MongoDB for the Open Food Facts Dataset Snapshot and generated translation data, Redis for disposable caching and rate limiting, and FastAPI as the frontend contract owner. The bounded ingredient-matching prototype remains source-based evidence only; it is not a safety, allergen-free, or verification verdict.
 
 The backend simplification and removal of obsolete relational/application wiring are represented in the current checkout. Historical issue references below remain useful for provenance, but the current code and contract sections are authoritative.
 
@@ -15,17 +15,17 @@ The MVP:
 - decodes Barcodes on the shopper's device;
 - finds Source Records in one static local Dataset Snapshot;
 - presents consumer-facing Open Food Facts information with visible Source Attribution;
-- develops the information architecture in English before adding Khmer localization;
-- later generates Khmer Translation on demand while preserving Original Text; and
+- develops the information architecture in English while Khmer localization is introduced incrementally;
+- supports optional on-demand Khmer Translation while preserving Original Text; and
 - remains anonymous and read-only.
 
 The MVP does not own a Product catalog, accept contributions, or verify source data. Barcode camera frames stay on the device. Compare Products is the one bounded exception that sends package photos for provider processing, retaining no photos or comparison history. The MVP does not produce health, safety, allergen-free, Halal, authenticity, legal, compliance, or purchase verdicts.
 
-## 2. Current milestone
+## 2. Current repository capability
 
-The first backend milestone is one cached, read-only Product Lookup endpoint over the configured Dataset Snapshot. It establishes Barcode validation, source provenance, missing-state behavior, the stable Product projection, and source-based allergen evidence.
+The current checkout includes the stable cached Product Lookup endpoint, paginated Product Search, source-based allergen analysis, optional on-demand Khmer Translation with isolated generated-data persistence, and the bounded Compare Products API. The main frontend uses the stable Product Lookup and Product Search routes by default; its checked-in Dataset Snapshot remains an explicit offline/demo adapter. The main Shopper interface is English-first, while Compare Products currently exposes English and Khmer UI.
 
-Search is an optional parallel follow-on. It is not required for the first endpoint, but it is not blocked by a formal phase gate once it can reuse stable lookup foundations.
+The foundational Product Lookup acceptance criteria in section 11 and the issue-specific sections that follow remain as implementation history and contract detail. They are not a statement that the repository is still at the first backend milestone.
 
 ## 3. Stable Product Lookup API
 
@@ -224,9 +224,9 @@ Source Assessments remain visibly attributed Open Food Facts calculations. Life 
 
 ## 8. Khmer localization
 
-Khmer localization begins after the English information architecture is refined.
+The main Shopper interface remains English-first while Khmer localization is introduced incrementally. Compare Products currently enables English and Khmer UI; the stable Product Lookup API supports opt-in Khmer Translation for clients that request `language=km`.
 
-- Khmer becomes the primary display language.
+- Khmer is the intended primary display language for the public product experience.
 - Original Text remains available per translated field through a clear control.
 - Khmer Translation is generated on demand rather than for the whole Dataset Snapshot.
 - Translation output is cached against Dataset Snapshot version, source content, and translation configuration.
@@ -235,7 +235,7 @@ Khmer localization begins after the English information architecture is refined.
 - Fluent human review is required for interface vocabulary, navigation, explanations, disclaimers, and accessibility copy.
 - Individual Product translations are not presented as human-reviewed or verified.
 
-Translation provider and model selection are deferred until this phase.
+The current provider and model are fixed to Gemini `gemini-3.8-flash` under translation configuration `v1`; provider or model changes require an explicit product and specification decision.
 
 ## 9. Privacy and measurement
 
@@ -266,7 +266,9 @@ with `pnpm generated-data:init`; web startup does not create its collections or
 indexes. A future relational store would require a new product requirement and
 an accepted ADR rather than restoring the removed migration history.
 
-## 11. First milestone acceptance criteria
+## 11. Foundational milestone acceptance criteria
+
+These criteria document the completed first backend milestone; they are retained for provenance and do not describe the full current repository scope.
 
 The first backend milestone is complete when:
 
@@ -399,7 +401,7 @@ The stable Product Lookup endpoint integrates optional on-demand Khmer Translati
 
 ## 18. Trustworthy existing Khmer Translation fields (Issue #94)
 
-The frontend Product Lookup request sends `language=km`. Application locale state and standards-based document language tags use `km`. `language=kh` is unsupported. Omitting the language returns `not_requested` without generation.
+The main frontend Product Lookup request currently omits the language parameter, so it receives `meta.translation.status="not_requested"` and does not generate translation. Clients that opt into Khmer Translation send `language=km`; `language=kh` is unsupported. Application locale state and standards-based document language tags use `km` when Khmer is enabled.
 
 The four existing field envelopes share selection and classification across generation, cache reuse, provider failure, coordination failure, and emergency fallback. Selection prefers source-provided Khmer (including recognized language variants or conservative script detection), then the Source Record language, English, and deterministic fallback. Script detection does not manufacture language metadata. Human-readable category Original Text retains its source wording and language; taxonomy identifiers are not translation prose.
 
@@ -858,14 +860,15 @@ The Product Search endpoint `GET /api/v1/products/search` provides Barcode searc
     - Valid Barcodes look up zero or one Product summary from the Dataset Snapshot independently of text index readiness.
     - If the Product is absent from the Dataset Snapshot, HTTP 200 is returned with an empty products list (`data.products: []`).
     - If the Product is found, HTTP 200 is returned with a single `ProductSummary` item.
-    - `ProductSummary` includes `barcode`, selected `name` (`OriginalText` provenance), `brands`, `manufacturing_places` (the Open Food Facts manufacturing-place field presented as “Made in”), `quantity`, `thumbnail` (`SourceImage` provenance), and individual `Source Attribution` (`https://world.openfoodfacts.org/product/{barcode}`). It does not calculate full Product details or invoke `Khmer Translation`.
+    - `ProductSummary` includes `barcode`, selected `name` (`OriginalText` provenance), selected `generic_name` (`OriginalText` provenance), `brands`, `manufacturing_places` (the Open Food Facts manufacturing-place field presented as “Made in”), `quantity`, `packaging`, `labels`, `thumbnail` (`SourceImage` provenance), and individual `Source Attribution` (`https://world.openfoodfacts.org/product/{barcode}`). It does not calculate full Product details or invoke `Khmer Translation`.
     - Top-level `meta` provides `Source Attribution` for Open Food Facts (`https://world.openfoodfacts.org`), `Dataset Snapshot` metadata, and nullable `pagination.next_cursor` (`null` for Barcode queries).
 
 4. **Text Search Indexing & Readiness**:
-    - Search index lifecycle creates a schema version 1 compound index collection per active Dataset Snapshot.
+    - Search index lifecycle creates a schema version 3 compound index collection per active Dataset Snapshot. The indexed summaries carry the source-derived generic name, packaging, and labels needed for comparison-first Product results.
+    - Shopper-facing Product search results use a comparison-first, image-free list: Product name first, then Product type, Company plus quantity, or Barcode; compact Size, Pack, labels, Made in, and Barcode metadata remain visible without opening each Product. A single result-level `Source Data Unavailable` notice summarizes missing Product names.
     - Indexes include `ix_search_name_tokens` (`name_tokens: 1`), `ix_search_brand_tokens` (`brand_tokens: 1`), and `ix_search_sort` (`name_sort: 1, code: 1`).
     - Only records with valid Barcodes (`normalize_identifier`) are indexed; invalid `Source Records` increment `excluded_count`.
-    - Manifest metadata (`search_index`) tracks `status: "READY"`, `schema_version: 1`, `document_count`, and `excluded_count`.
+    - Manifest metadata (`search_index`) tracks `status: "READY"`, `schema_version: 3`, `document_count`, and `excluded_count`.
     - If the search index is missing, incompatible, or not ready, text searches return HTTP 503 with error code `search_unavailable`, while Barcode searches continue to operate without degradation.
 
 5. **Text Ranking & Localized Name Selection**:
@@ -1119,8 +1122,8 @@ owner-checked seed transcriptions are reproducible image evidence.
 
 Compare Products preserves the existing deterministic comparison engine and
 semantics rather than introducing a second comparison engine. The reviewed
-multilingual corpus and transcription tool from #111 remain deferred and are not
-treated as completed requirements.
+multilingual corpus and transcription tool from #111 were closed as not planned
+and are not treated as requirements for the current implementation.
 
 The integration defaults are one to three JPEG or PNG photos per Product, 10 MiB
 per photo, 32 MiB per request, 25 megapixels per decoded image, 1 MiB per

@@ -73,7 +73,7 @@ export const PackagingCard: React.FC<PackagingCardProps> = ({
                 {countries.length > 0 && (
                     <div className="space-y-1.5">
                         <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 sm:text-sm">
-                            <MapPin className="h-3.5 w-3.5 text-neutral-400" />
+                            <MapPin className="h-3.5 w-3.5 text-neutral-500" />
                             <span>Countries Sold</span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
@@ -93,7 +93,7 @@ export const PackagingCard: React.FC<PackagingCardProps> = ({
                 {manufacturing && (
                     <div className="space-y-1">
                         <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 sm:text-sm">
-                            <Warehouse className="h-3.5 w-3.5 text-neutral-400" />
+                            <Warehouse className="h-3.5 w-3.5 text-neutral-500" />
                             <span>Manufacturing Places</span>
                         </div>
                         <p className="rounded-xl border border-neutral-200/60 bg-neutral-50 p-2.5 text-xs leading-relaxed text-neutral-700 sm:text-sm">
@@ -105,7 +105,7 @@ export const PackagingCard: React.FC<PackagingCardProps> = ({
                 {storage && (
                     <div className="space-y-1">
                         <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 sm:text-sm">
-                            <ThermometerSnowflake className="h-3.5 w-3.5 text-neutral-400" />
+                            <ThermometerSnowflake className="h-3.5 w-3.5 text-neutral-500" />
                             <span>Storage Instructions</span>
                         </div>
                         <p className="rounded-xl border border-neutral-200/60 bg-neutral-50 p-2.5 text-xs leading-relaxed text-neutral-700 sm:text-sm">

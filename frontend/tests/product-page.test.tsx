@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { MemoryRouter, Route, Routes } from "react-router"
+import { MemoryRouter, Route, Routes, useNavigate } from "react-router"
 import { afterEach, describe, expect, test, vi } from "vitest"
 
+import type { AllergenAnalysisResponse } from "../src/api/generated"
 import type { ProductLookup } from "../src/features/product/api"
 import { ProductPage } from "../src/features/product/ProductPage"
 import { LearnArticlePage } from "../src/features/learn/LearnPage"
@@ -40,7 +41,7 @@ describe("Product page (life-goods-viewer layout)", () => {
         localStorage.clear()
     })
 
-    test("presents product details and grouped Symbols content", async () => {
+    test("presents the Summary tab and keeps Product detail navigation in the tab rail", async () => {
         const user = userEvent.setup()
         renderProduct(
             vi.fn<ProductLookup>().mockResolvedValue(productResponse()),
@@ -52,18 +53,31 @@ describe("Product page (life-goods-viewer layout)", () => {
         })
         expect(heading).toHaveFocus()
 
+        expect(screen.getByRole("banner")).toHaveAttribute(
+            "data-glass-surface",
+            "",
+        )
+        const backButton = screen.getByRole("button", {
+            name: "Back to search",
+        })
+        expect(backButton).toHaveAttribute("data-glass", "neutral")
+        expect(
+            screen.queryByRole("button", { name: "New Search" }),
+        ).not.toBeInTheDocument()
+        expect(heading.closest('[data-glass-surface=""]')).toBeInTheDocument()
+
         // Hero content
         expect(screen.getByText(/Example Foods/i)).toBeVisible()
         expect(screen.getByText("100 g")).toBeVisible()
         expect(screen.getByText("4006381333931")).toBeVisible()
         expect(screen.getByText("Barcode", { exact: true })).toBeVisible()
         expect(screen.getByText("Quantity", { exact: true })).toBeVisible()
-        const manufacturingPlaceRow = screen.getByText("Made in", {
+        const barcodeCountryRow = screen.getByText("Barcode country", {
             exact: true,
         }).parentElement
-        expect(manufacturingPlaceRow).not.toBeNull()
+        expect(barcodeCountryRow).not.toBeNull()
         expect(
-            within(manufacturingPlaceRow as HTMLElement).getByText("Cambodia", {
+            within(barcodeCountryRow as HTMLElement).getByText("Germany", {
                 exact: true,
             }),
         ).toBeVisible()
@@ -78,94 +92,205 @@ describe("Product page (life-goods-viewer layout)", () => {
         ).not.toBeInTheDocument()
 
         expect(
-            screen.queryByRole("heading", { name: "Source Assessments" }),
+            screen.queryByLabelText("Source Attribution"),
         ).not.toBeInTheDocument()
         const productDetails = screen.getByRole("heading", {
             name: "Product Details",
         })
         expect(productDetails).toBeVisible()
 
-        // Unknown ingredient analysis is omitted from the Product page.
+        // Summary is the default and contains attributed Source Assessments.
+        const summaryPanel = screen.getByRole("tabpanel")
+        expect(
+            within(summaryPanel).getByRole("heading", {
+                name: "Source Assessments",
+            }),
+        ).toBeVisible()
+        expect(
+            within(summaryPanel).getByText(
+                "Open Food Facts calculations; not Life Goods judgments or purchase recommendations.",
+            ),
+        ).toBeVisible()
+        expect(
+            within(summaryPanel).getByRole("heading", {
+                name: "Nutrient Levels",
+            }),
+        ).toBeVisible()
+        expect(
+            within(summaryPanel).queryByText("Ingredients List"),
+        ).not.toBeInTheDocument()
+        expect(
+            within(summaryPanel).queryByText("Nutrition Facts Table"),
+        ).not.toBeInTheDocument()
+        expect(
+            within(summaryPanel).queryByText(
+                "Packaging Components & Materials",
+            ),
+        ).not.toBeInTheDocument()
         expect(
             screen.queryByText("Dietary & Ingredient Analysis"),
         ).not.toBeInTheDocument()
-        expect(screen.getByText("Ingredients List")).toBeVisible()
         expect(screen.queryByText("Show All Sections")).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("heading", { name: "More Product details" }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole("navigation", {
+                name: "Product detail sections",
+            }),
+        ).not.toBeInTheDocument()
 
         // Navigation Tabs
-        expect(screen.getByRole("tab", { name: "Overview" })).toBeVisible()
+        expect(screen.getByRole("tab", { name: "Summary" })).toBeVisible()
         expect(screen.getByRole("tab", { name: "Ingredients" })).toBeVisible()
         expect(screen.getByRole("tab", { name: "Nutrition" })).toBeVisible()
-        expect(screen.getByRole("tab", { name: "Symbols" })).toBeVisible()
+        expect(
+            screen.getByRole("tab", { name: "Labels & packaging" }),
+        ).toBeVisible()
+        expect(
+            screen.getByRole("tablist", {
+                name: "Product detail sections",
+            }),
+        ).toBeVisible()
+        expect(screen.getByRole("tab", { name: "Summary" })).toHaveAttribute(
+            "aria-selected",
+            "true",
+        )
+        expect(
+            screen
+                .getByRole("tab", { name: "Ingredients" })
+                .closest('[data-glass-surface=""]'),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("tab", { name: "Ingredients" }),
+        ).not.toHaveAttribute("data-glass")
+        expect(summaryPanel.closest("[data-glass-surface]")).toBeNull()
         expect(
             screen.queryByRole("tab", { name: /Photos/ }),
         ).not.toBeInTheDocument()
         expect(
             screen.getAllByRole("tab").map((tab) => tab.textContent),
-        ).toEqual(["Ingredients", "Nutrition", "Symbols", "Overview"])
+        ).toEqual(["Summary", "Ingredients", "Nutrition", "Labels & packaging"])
 
+        await user.click(screen.getByRole("tab", { name: "Ingredients" }))
         const ingredientsPanel = screen.getByRole("tabpanel")
         expect(
-            within(ingredientsPanel).queryByRole("heading", {
-                name: "Source Assessments",
+            within(ingredientsPanel).getByRole("heading", {
+                name: "Ingredients List",
             }),
-        ).not.toBeInTheDocument()
-        expect(
-            within(ingredientsPanel).queryByRole("heading", {
-                name: "Packaging Components & Materials",
-            }),
-        ).not.toBeInTheDocument()
-
-        await user.click(screen.getByRole("tab", { name: "Symbols" }))
-
-        // Source Assessments belong to the Symbols section.
-        const symbolsPanel = screen.getByRole("tabpanel", { name: "Symbols" })
-        expect(
-            within(symbolsPanel).getByText("Nutri-Score").closest("p"),
-        ).toHaveTextContent("Nutri-Score D")
-        expect(
-            within(symbolsPanel).getByText("Ultra-processed foods"),
         ).toBeVisible()
-        expect(within(symbolsPanel).getByText("NOVA group 4")).toBeVisible()
-        expect(
-            within(symbolsPanel).getByText("Green-Score").closest("p"),
-        ).toHaveTextContent("Green-Score C")
-        const nutriScoreLink = within(symbolsPanel).getByRole("link", {
-            name: /Nutri-Score D/,
-        })
-        expect(nutriScoreLink).toHaveAttribute("href", "/learn/nutri-score")
-        expect(nutriScoreLink.firstElementChild).toHaveClass("bg-orange-50")
-
-        const novaGroupLink = within(symbolsPanel).getByRole("link", {
-            name: /Ultra-processed foods/,
-        })
-        expect(novaGroupLink).toHaveAttribute(
-            "href",
-            "/learn/nova-food-classification",
+        const evidenceDisclosure = within(ingredientsPanel).getByText(
+            "Show source evidence",
         )
-        expect(novaGroupLink.firstElementChild).toHaveClass("bg-red-50")
-
-        const greenScoreLink = within(symbolsPanel).getByRole("link", {
-            name: /Green-Score C/,
-        })
-        expect(greenScoreLink).toHaveAttribute("href", "/learn/green-score")
-        expect(greenScoreLink.firstElementChild).toHaveClass("bg-amber-50")
+        const sourceEvidenceDetails = evidenceDisclosure.closest("details")
+        expect(sourceEvidenceDetails).not.toBeNull()
+        expect(sourceEvidenceDetails).not.toHaveAttribute("open")
         expect(
-            within(symbolsPanel).getByRole("heading", {
-                name: "Source Assessments",
-            }),
-        ).toBeVisible()
-        expect(
-            screen.queryByText(
-                "Open Food Facts calculations; not Life Goods judgments or purchase recommendations.",
+            within(ingredientsPanel).queryByText(
+                "View wording and source context",
             ),
         ).not.toBeInTheDocument()
-
+        const sourceSummaries =
+            sourceEvidenceDetails?.querySelectorAll("summary") ?? []
+        expect(sourceSummaries.length).toBeGreaterThan(1)
+        const [parentSummary, ...childSummaries] = Array.from(sourceSummaries)
+        if (!parentSummary) throw new Error("Expected source evidence summary")
+        expect(parentSummary).toHaveClass(
+            "w-full",
+            "px-3",
+            "bg-info-50",
+            "text-base",
+            "font-extrabold",
+            "rounded-xl",
+        )
+        expect(parentSummary.nextElementSibling).not.toHaveClass("mt-1")
+        childSummaries.forEach((summary) => {
+            expect(summary).toHaveClass(
+                "w-full",
+                "pl-8",
+                "pr-3",
+                "hover:bg-info-50",
+                "hover:text-info-800",
+                "rounded-xl",
+                "transition-colors",
+            )
+            expect(summary).not.toHaveClass(
+                "hover:bg-neutral-50",
+                "rounded-none",
+            )
+        })
         expect(
-            screen.getByRole("heading", {
+            within(ingredientsPanel).queryByRole("heading", {
+                name: "Source Assessments",
+            }),
+        ).not.toBeInTheDocument()
+        expect(
+            within(ingredientsPanel).queryByRole("heading", {
+                name: "Packaging Components & Materials",
+            }),
+        ).not.toBeInTheDocument()
+
+        await user.click(screen.getByRole("tab", { name: "Nutrition" }))
+        const nutritionPanel = screen.getByRole("tabpanel")
+        expect(
+            within(nutritionPanel).getByRole("heading", {
+                name: "Nutrition Facts Table",
+            }),
+        ).toBeVisible()
+        expect(
+            within(nutritionPanel).getByRole("heading", {
+                name: "Nutrient Levels",
+            }),
+        ).toBeVisible()
+        const nutritionHeading = within(nutritionPanel).getByRole("heading", {
+            name: "Nutrition Facts Table",
+        })
+        const nutrientLevelsHeading = within(nutritionPanel).getByRole(
+            "heading",
+            { name: "Nutrient Levels" },
+        )
+        expect(
+            nutrientLevelsHeading.compareDocumentPosition(nutritionHeading) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy()
+        expect(
+            within(nutritionPanel).getByRole("button", { name: /^Fat/ }),
+        ).toHaveAttribute("aria-expanded", "false")
+
+        await user.click(
+            screen.getByRole("tab", { name: "Labels & packaging" }),
+        )
+        const labelsPanel = screen.getByRole("tabpanel")
+        expect(
+            within(labelsPanel).getByRole("heading", {
+                name: "Labels, Certifications & Awards",
+            }),
+        ).toBeVisible()
+        expect(
+            within(labelsPanel).getByRole("heading", {
                 name: "Packaging Components & Materials",
             }),
         ).toBeVisible()
+        expect(
+            within(labelsPanel).getByRole("heading", {
+                name: "Data Source & Citation",
+            }),
+        ).toBeVisible()
+        expect(
+            within(labelsPanel).queryByText(
+                "https://world.openfoodfacts.org/product/4006381333931",
+            ),
+        ).not.toBeInTheDocument()
+        expect(
+            within(labelsPanel).queryByRole("link", {
+                name: "https://world.openfoodfacts.org/product/4006381333931",
+            }),
+        ).not.toBeInTheDocument()
+        expect(
+            within(labelsPanel).queryByRole("heading", {
+                name: "Source Assessments",
+            }),
+        ).not.toBeInTheDocument()
     })
 
     test("returns to the Search page from the Product header", async () => {
@@ -175,14 +300,12 @@ describe("Product page (life-goods-viewer layout)", () => {
         )
 
         await screen.findByRole("heading", { name: "Dark Chocolate" })
-        await user.click(
-            screen.getAllByRole("button", { name: "Back to search" })[0]!,
-        )
+        await user.click(screen.getByRole("button", { name: "Back to search" }))
 
         expect(screen.getByTestId("search-page")).toBeVisible()
     })
 
-    test("shows Source Record labels in the Symbols tab", async () => {
+    test("shows Source Record labels in the Labels & packaging tab", async () => {
         const user = userEvent.setup()
         renderProduct(
             vi
@@ -193,7 +316,9 @@ describe("Product page (life-goods-viewer layout)", () => {
         )
 
         await screen.findByRole("heading", { name: "Dark Chocolate" })
-        await user.click(screen.getByRole("tab", { name: "Symbols" }))
+        await user.click(
+            screen.getByRole("tab", { name: "Labels & packaging" }),
+        )
 
         expect(
             screen.getByRole("heading", {
@@ -208,7 +333,7 @@ describe("Product page (life-goods-viewer layout)", () => {
         ).toBeVisible()
     })
 
-    test("aggregates every Product Detail section in Overview", async () => {
+    test("surfaces Nutrient Levels in Summary while keeping detail cards scoped", async () => {
         const user = userEvent.setup()
         renderProduct(
             vi
@@ -219,60 +344,367 @@ describe("Product page (life-goods-viewer layout)", () => {
         )
 
         await screen.findByRole("heading", { name: "Dark Chocolate" })
-        await user.click(screen.getByRole("tab", { name: "Overview" }))
-
-        const overview = screen.getByRole("tabpanel")
+        const summary = screen.getByRole("tabpanel")
         expect(
-            within(overview).queryByRole("heading", {
-                name: "Product Characteristics & Classification",
-            }),
-        ).not.toBeInTheDocument()
-        expect(
-            within(overview).queryByRole("heading", {
-                name: "Origin & Distribution",
-            }),
-        ).not.toBeInTheDocument()
-        expect(
-            within(overview).queryByRole("heading", {
-                name: "Dietary & Ingredient Analysis",
-            }),
-        ).not.toBeInTheDocument()
-        expect(
-            within(overview).getByRole("heading", { name: "Ingredients List" }),
-        ).toBeVisible()
-        expect(
-            within(overview).getByRole("heading", {
-                name: "Food Additives & E-Numbers",
-            }),
-        ).toBeVisible()
-        expect(
-            within(overview).getByRole("heading", { name: "Nutrient Levels" }),
-        ).toBeVisible()
-        expect(
-            within(overview).getByRole("heading", {
-                name: "Nutrition Facts Table",
-            }),
-        ).toBeVisible()
-        expect(
-            within(overview).getByRole("heading", {
+            within(summary).getByRole("heading", {
                 name: "Source Assessments",
             }),
         ).toBeVisible()
         expect(
-            within(overview).getByRole("heading", {
-                name: "Labels, Certifications & Awards",
+            within(summary).getByRole("heading", {
+                name: "Nutrient Levels",
             }),
         ).toBeVisible()
         expect(
-            within(overview).getByRole("heading", {
+            within(summary).queryByRole("heading", {
+                name: "Ingredients List",
+            }),
+        ).not.toBeInTheDocument()
+        expect(
+            within(summary).queryByRole("heading", {
+                name: "Nutrition Facts Table",
+            }),
+        ).not.toBeInTheDocument()
+        expect(
+            within(summary).queryByRole("heading", {
                 name: "Packaging Components & Materials",
             }),
+        ).not.toBeInTheDocument()
+
+        await user.click(screen.getByRole("tab", { name: "Ingredients" }))
+        const ingredients = screen.getByRole("tabpanel")
+        expect(
+            within(ingredients).getByRole("heading", {
+                name: "Ingredients List",
+            }),
+        ).toBeVisible()
+        expect(
+            within(ingredients).getByRole("heading", {
+                name: "Food Additives & E-Numbers",
+            }),
+        ).toBeVisible()
+        const additiveDetails = within(ingredients)
+            .getByText("E322")
+            .closest("details")
+        expect(additiveDetails).not.toHaveAttribute("open")
+        await user.click(
+            within(additiveDetails as HTMLElement).getByText("E322"),
+        )
+        expect(additiveDetails).toHaveAttribute("open")
+        expect(
+            within(additiveDetails as HTMLElement).getByText(
+                /generic term for/,
+            ),
+        ).toBeVisible()
+        expect(
+            within(additiveDetails as HTMLElement).queryByText("Functions"),
+        ).toBeVisible()
+        expect(
+            within(additiveDetails as HTMLElement).getByText("Antioxidant"),
+        ).toBeVisible()
+        expect(
+            within(additiveDetails as HTMLElement).getByText("Emulsifier"),
         ).toBeVisible()
 
-        const citationHeading = within(overview).getByRole("heading", {
-            name: "Data Source & Citation",
+        const description = within(additiveDetails as HTMLElement).queryByText(
+            "Source Data Unavailable",
+        )
+        expect(description).not.toBeInTheDocument()
+
+        await user.click(screen.getByRole("tab", { name: "Nutrition" }))
+        const nutrition = screen.getByRole("tabpanel")
+        expect(
+            within(nutrition).getByRole("heading", {
+                name: "Nutrition Facts Table",
+            }),
+        ).toBeVisible()
+        expect(
+            within(nutrition).queryByRole("heading", {
+                name: "Ingredients List",
+            }),
+        ).not.toBeInTheDocument()
+
+        await user.click(
+            screen.getByRole("tab", { name: "Labels & packaging" }),
+        )
+        const labels = screen.getByRole("tabpanel")
+        expect(
+            within(labels).getByRole("heading", {
+                name: "Data Source & Citation",
+            }),
+        ).toBeVisible()
+        expect(
+            within(labels).queryByRole("heading", {
+                name: "Nutrition Facts Table",
+            }),
+        ).not.toBeInTheDocument()
+    })
+
+    test("shows the additive name and description when the taxonomy has them", async () => {
+        const user = userEvent.setup()
+        renderProduct(
+            vi
+                .fn<ProductLookup>()
+                .mockResolvedValue(
+                    productResponse({ additives_tags: ["en:e282"] }),
+                ),
+        )
+
+        await screen.findByRole("heading", { name: "Dark Chocolate" })
+        await user.click(screen.getByRole("tab", { name: "Ingredients" }))
+
+        const ingredients = screen.getByRole("tabpanel")
+        const additives = within(ingredients).getByRole("heading", {
+            name: "Food Additives & E-Numbers",
         })
-        expect(overview.lastElementChild).toContainElement(citationHeading)
+        const additiveCard = additives.closest(".source-sheet") as HTMLElement
+        const additiveDetails = within(additiveCard)
+            .getByText("E282")
+            .closest("details") as HTMLElement
+
+        expect(additiveDetails).not.toHaveAttribute("open")
+        await user.click(within(additiveDetails).getByText("E282"))
+
+        expect(
+            within(additiveDetails).getByText("Calcium propionate"),
+        ).toBeVisible()
+        expect(
+            within(additiveDetails).getByText(
+                /Calcium propionate has the formula/,
+            ),
+        ).toBeVisible()
+        expect(
+            within(additiveDetails).queryByText("Source Data Unavailable"),
+        ).not.toBeInTheDocument()
+        expect(
+            within(additiveDetails).queryByText(/taxonomy reference/i),
+        ).not.toBeInTheDocument()
+    })
+
+    test("shows additive functions when the taxonomy has no description", async () => {
+        const user = userEvent.setup()
+        renderProduct(
+            vi
+                .fn<ProductLookup>()
+                .mockResolvedValue(
+                    productResponse({ additives_tags: ["en:e322i"] }),
+                ),
+        )
+
+        await screen.findByRole("heading", { name: "Dark Chocolate" })
+        await user.click(screen.getByRole("tab", { name: "Ingredients" }))
+
+        const ingredients = screen.getByRole("tabpanel")
+        const additiveDetails = within(ingredients)
+            .getByText("E322I")
+            .closest("details") as HTMLElement
+
+        await user.click(within(additiveDetails).getByText("E322I"))
+
+        expect(within(additiveDetails).getByText("Lecithin")).toBeVisible()
+        expect(within(additiveDetails).getByText("Functions")).toBeVisible()
+        expect(within(additiveDetails).getByText("Antioxidant")).toBeVisible()
+        expect(within(additiveDetails).getByText("Emulsifier")).toBeVisible()
+        expect(
+            within(additiveDetails).queryByText("Source Data Unavailable"),
+        ).not.toBeInTheDocument()
+    })
+
+    test("shows Source Data Unavailable when no additive reference details exist", async () => {
+        const user = userEvent.setup()
+        renderProduct(
+            vi
+                .fn<ProductLookup>()
+                .mockResolvedValue(
+                    productResponse({ additives_tags: ["en:e503"] }),
+                ),
+        )
+
+        await screen.findByRole("heading", { name: "Dark Chocolate" })
+        await user.click(screen.getByRole("tab", { name: "Ingredients" }))
+
+        const ingredients = screen.getByRole("tabpanel")
+        const additiveDetails = within(ingredients)
+            .getByText("E503")
+            .closest("details") as HTMLElement
+
+        await user.click(within(additiveDetails).getByText("E503"))
+
+        expect(
+            within(additiveDetails).getByText("Ammonium carbonates"),
+        ).toBeVisible()
+        expect(
+            within(additiveDetails).getByText("Source Data Unavailable"),
+        ).toBeVisible()
+    })
+
+    test("summarizes allergen ingredients and additives before showing evidence", async () => {
+        const user = userEvent.setup()
+        const allergenAnalysis: AllergenAnalysisResponse = {
+            off: { state: "available", tags: ["en:milk"] },
+            ingredient_matching: {
+                state: "completed",
+                quality: "clear",
+                tags: [],
+                evidence: [],
+                qualifications: [],
+                limitations: [],
+                unmatched_texts: [],
+                unmatched_spans: [],
+            },
+            comparison: {
+                state: "available",
+                in_both: [],
+                off_only: ["en:milk"],
+                ingredient_matching_only: [],
+                sets_equal: false,
+            },
+        }
+        renderProduct(
+            vi.fn<ProductLookup>().mockResolvedValue(
+                productResponse(
+                    {
+                        additives_tags: ["en:e322", "en:e330"],
+                    },
+                    allergenAnalysis,
+                ),
+            ),
+        )
+
+        await screen.findByRole("heading", { name: "Dark Chocolate" })
+        const summary = screen.getByRole("tabpanel", { name: "Summary" })
+
+        expect(
+            within(summary).getByRole("heading", {
+                name: "Ingredients at a glance",
+            }),
+        ).toBeVisible()
+        expect(within(summary).getByText("Allergen ingredients")).toBeVisible()
+        expect(within(summary).getByText("Milk")).toBeVisible()
+        expect(within(summary).getByText("E322")).toBeVisible()
+        expect(within(summary).getByText("E330")).toBeVisible()
+        expect(
+            within(summary).queryByText("Ingredient and wording evidence"),
+        ).not.toBeInTheDocument()
+
+        await user.click(
+            within(summary).getByRole("button", {
+                name: "View ingredient evidence",
+            }),
+        )
+
+        const ingredients = screen.getByRole("tabpanel", {
+            name: "Ingredients",
+        })
+        expect(
+            within(ingredients).getByRole("heading", {
+                name: "Allergens and traces",
+            }),
+        ).toBeVisible()
+        expect(
+            within(ingredients).getByRole("heading", {
+                name: "Food Additives & E-Numbers",
+            }),
+        ).toBeVisible()
+    })
+
+    test("keeps the Summary panel as the default after a Product changes", async () => {
+        const user = userEvent.setup()
+        const lookup = vi
+            .fn<ProductLookup>()
+            .mockResolvedValueOnce(productResponse())
+            .mockResolvedValueOnce(
+                productResponse({
+                    code: "3017620422003",
+                    product_name_en: "Second Product",
+                }),
+            )
+
+        function ProductRouteControls() {
+            const navigate = useNavigate()
+            return (
+                <button
+                    type="button"
+                    onClick={() => void navigate("/products/3017620422003")}
+                >
+                    Switch Product
+                </button>
+            )
+        }
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+        render(
+            <QueryClientProvider client={queryClient}>
+                <MemoryRouter initialEntries={["/products/4006381333931"]}>
+                    <ProductRouteControls />
+                    <Routes>
+                        <Route
+                            path="/products/:barcode"
+                            element={<ProductPage lookup={lookup} />}
+                        />
+                    </Routes>
+                </MemoryRouter>
+            </QueryClientProvider>,
+        )
+
+        await screen.findByRole("heading", { name: "Dark Chocolate" })
+        await user.click(screen.getByRole("tab", { name: "Ingredients" }))
+        expect(
+            screen.getByRole("tab", { name: "Ingredients" }),
+        ).toHaveAttribute("aria-selected", "true")
+
+        await user.click(screen.getByRole("button", { name: "Switch Product" }))
+        await screen.findByRole("heading", { name: "Second Product" })
+        expect(screen.getByRole("tab", { name: "Summary" })).toHaveAttribute(
+            "aria-selected",
+            "true",
+        )
+    })
+
+    test("scrolls the newly selected Product panel into view", async () => {
+        const user = userEvent.setup()
+        const scrollIntoView = vi.fn()
+        Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+            configurable: true,
+            value: scrollIntoView,
+        })
+        renderProduct(
+            vi.fn<ProductLookup>().mockResolvedValue(productResponse()),
+        )
+
+        await screen.findByRole("heading", { name: "Dark Chocolate" })
+        await user.click(screen.getByRole("tab", { name: "Nutrition" }))
+
+        expect(scrollIntoView).toHaveBeenCalledWith({
+            behavior: "smooth",
+            block: "start",
+        })
+    })
+
+    test("keeps the long tab label scrollable and keyboard navigable", async () => {
+        const user = userEvent.setup()
+        renderProduct(
+            vi.fn<ProductLookup>().mockResolvedValue(productResponse()),
+        )
+
+        await screen.findByRole("heading", { name: "Dark Chocolate" })
+        const tablist = screen.getByRole("tablist", {
+            name: "Product detail sections",
+        })
+        const labelsTab = screen.getByRole("tab", {
+            name: "Labels & packaging",
+        })
+        expect(tablist).toHaveClass("min-w-max")
+        expect(labelsTab).toHaveClass("shrink-0")
+
+        const summaryTab = screen.getByRole("tab", { name: "Summary" })
+        summaryTab.focus()
+        await user.keyboard("{ArrowRight}")
+        expect(
+            screen.getByRole("tab", { name: "Ingredients" }),
+        ).toHaveAttribute("aria-selected", "true")
     })
 
     test("returns from a score lesson to the result scroll position", async () => {
@@ -287,13 +719,13 @@ describe("Product page (life-goods-viewer layout)", () => {
         )
 
         await screen.findByRole("heading", { name: "Dark Chocolate" })
-        await user.click(screen.getByRole("tab", { name: "Symbols" }))
-        const symbolsPanel = screen.getByRole("tabpanel", { name: "Symbols" })
-        await user.click(
-            within(symbolsPanel).getByRole("link", {
-                name: /Nutri-Score D/,
-            }),
-        )
+        await user.click(screen.getByRole("tab", { name: "Summary" }))
+        const summaryPanel = screen.getByRole("tabpanel", { name: "Summary" })
+        const nutriScoreLink = within(summaryPanel).getByRole("link", {
+            name: /Nutri-Score D/,
+        })
+        expect(nutriScoreLink).toHaveClass("rounded-xl", "overflow-hidden")
+        await user.click(nutriScoreLink)
 
         expect(
             await screen.findByRole("heading", { name: "Nutri-Score" }),
@@ -309,34 +741,31 @@ describe("Product page (life-goods-viewer layout)", () => {
     })
 
     test("shows titled assessment results with source context", async () => {
-        const user = userEvent.setup()
         renderProduct(
             vi.fn<ProductLookup>().mockResolvedValue(productResponse()),
         )
 
         await screen.findByRole("heading", { name: "Dark Chocolate" })
-        await user.click(screen.getByRole("tab", { name: "Symbols" }))
-
-        const symbolsPanel = screen.getByRole("tabpanel", { name: "Symbols" })
+        const summaryPanel = screen.getByRole("tabpanel", { name: "Summary" })
         expect(
-            within(symbolsPanel).getByText("Nutri-Score").closest("p"),
+            within(summaryPanel).getByText("Nutri-Score").closest("p"),
         ).toHaveTextContent("Nutri-Score D")
         expect(
-            within(symbolsPanel).getByText("Ultra-processed foods"),
+            within(summaryPanel).getByText("Ultra-processed foods"),
         ).toBeVisible()
         expect(
-            within(symbolsPanel).getByText("Green-Score").closest("p"),
+            within(summaryPanel).getByText("Green-Score").closest("p"),
         ).toHaveTextContent("Green-Score C")
         expect(
-            within(symbolsPanel).getByRole("heading", {
+            within(summaryPanel).getByRole("heading", {
                 name: "Source Assessments",
             }),
         ).toBeVisible()
         expect(
-            screen.queryByText(
+            within(summaryPanel).getByText(
                 "Open Food Facts calculations; not Life Goods judgments or purchase recommendations.",
             ),
-        ).not.toBeInTheDocument()
+        ).toBeVisible()
     })
 
     test("shows only available Halal and Additive label highlights", async () => {
@@ -364,7 +793,13 @@ describe("Product page (life-goods-viewer layout)", () => {
             "border-info-200",
             "bg-info-50",
             "text-info-800",
+            "px-2.5",
+            "py-0.5",
+            "text-sm",
         )
+        expect(halalHighlight).toHaveClass("px-2.5", "py-0.5", "text-sm")
+        expect(additiveHighlight).not.toHaveClass("px-3", "py-1")
+        expect(halalHighlight).not.toHaveClass("px-3", "py-1")
         expect(
             within(highlights).queryByText(/listed/i),
         ).not.toBeInTheDocument()
@@ -492,6 +927,7 @@ describe("Product page (life-goods-viewer layout)", () => {
     })
 
     test("keeps non-match evidence below the hidden compact notice", async () => {
+        const user = userEvent.setup()
         localStorage.setItem(
             "lifegoods_selected_concerns",
             JSON.stringify(["en:peanuts"]),
@@ -562,6 +998,7 @@ describe("Product page (life-goods-viewer layout)", () => {
         renderProduct(vi.fn<ProductLookup>().mockResolvedValue(response))
 
         await screen.findByRole("heading", { name: "Dark Chocolate" })
+        await user.click(screen.getByRole("tab", { name: "Ingredients" }))
         expect(
             screen.queryByRole("status", {
                 name: /Peanuts/,
@@ -570,6 +1007,8 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(
             screen.getByText("Ingredient and wording evidence"),
         ).toBeVisible()
+        await user.click(screen.getByText("Show source evidence"))
+        await user.click(screen.getByText("Peanuts", { selector: "span" }))
         expect(screen.getByText("May contain")).toBeVisible()
         expect(screen.getByText("Negated wording")).toBeVisible()
         expect(screen.getByText("Unclear wording")).toBeVisible()
@@ -664,6 +1103,7 @@ describe("Product page (life-goods-viewer layout)", () => {
         const ingredientsTable = screen.getByRole("table")
         expect(ingredientsTable).toBeVisible()
         expect(within(ingredientsTable).getAllByRole("row")).toHaveLength(4)
+        expect(ingredientsTable).toHaveClass("border-collapse")
         expect(
             within(ingredientsTable).queryByText(/^#\d+$/),
         ).not.toBeInTheDocument()
@@ -727,6 +1167,14 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(screen.getByText("Nutrition Facts Table")).toBeVisible()
         expect(screen.getByText("Total Fat")).toBeVisible()
         expect(screen.getByText("43 g")).toBeVisible()
+        const nutritionTable = screen.getByRole("table")
+        expect(nutritionTable).toHaveClass("border-collapse")
+        expect(
+            within(nutritionTable)
+                .getAllByRole("row")
+                .slice(1)
+                .every((row) => row.classList.contains("table-row-hover")),
+        ).toBe(true)
     })
 
     test("renders NotFoundCard without sample products for 404 / product_not_found", async () => {
@@ -738,6 +1186,10 @@ describe("Product page (life-goods-viewer layout)", () => {
         renderProduct(lookup, "3017620422003")
 
         expect(await screen.findByText("No Package Record Found")).toBeVisible()
+        expect(screen.getByRole("banner")).toHaveAttribute(
+            "data-glass-surface",
+            "",
+        )
         expect(
             screen.getAllByText("3017620422003").length,
         ).toBeGreaterThanOrEqual(1)
@@ -767,6 +1219,10 @@ describe("Product page (life-goods-viewer layout)", () => {
         renderProduct(lookup)
 
         expect(await screen.findByText("Unable to Load Product")).toBeVisible()
+        expect(screen.getByRole("banner")).toHaveAttribute(
+            "data-glass-surface",
+            "",
+        )
         expect(screen.getByText("Network connection failed")).toBeVisible()
 
         const retryButton = screen.getByRole("button", { name: "Try Again" })
@@ -803,12 +1259,12 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(
             await screen.findByRole("heading", { name: "Sparse Product" }),
         ).toBeVisible()
-        const manufacturingPlaceRow = screen.getByText("Made in", {
+        const barcodeCountryRow = screen.getByText("Barcode country", {
             exact: true,
         }).parentElement
-        expect(manufacturingPlaceRow).not.toBeNull()
+        expect(barcodeCountryRow).not.toBeNull()
         expect(
-            within(manufacturingPlaceRow as HTMLElement).getByText("N/A", {
+            within(barcodeCountryRow as HTMLElement).getByText("Germany", {
                 exact: true,
             }),
         ).toBeVisible()
@@ -817,9 +1273,12 @@ describe("Product page (life-goods-viewer layout)", () => {
         }).parentElement
         expect(quantityRow).not.toBeNull()
         expect(
-            within(quantityRow as HTMLElement).getByText("N/A", {
-                exact: true,
-            }),
+            within(quantityRow as HTMLElement).getByText(
+                "Source Data Unavailable",
+                {
+                    exact: true,
+                },
+            ),
         ).toBeVisible()
         expect(
             screen.queryByText("Allergen Findings", { exact: true }),

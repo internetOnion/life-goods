@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { MemoryRouter, Route, Routes, useLocation } from "react-router"
+import { Link, MemoryRouter, Route, Routes, useLocation } from "react-router"
+import { StrictMode } from "react"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import { ScanPage } from "../src/features/scan/ScanPage"
@@ -32,20 +33,31 @@ function renderPage() {
 
 function renderScannerJourney() {
     return render(
-        <LocaleProvider>
-            <MemoryRouter>
-                <AppShell>
-                    <Routes>
-                        <Route path="/" element={<ScanPage />} />
-                        <Route
-                            path="/products/:barcode"
-                            element={<h1>Product result</h1>}
-                        />
-                    </Routes>
-                    <CurrentLocation />
-                </AppShell>
-            </MemoryRouter>
-        </LocaleProvider>,
+        <StrictMode>
+            <LocaleProvider>
+                <MemoryRouter>
+                    <AppShell>
+                        <Routes>
+                            <Route path="/" element={<ScanPage />} />
+                            <Route
+                                path="/products/:barcode"
+                                element={<h1>Product result</h1>}
+                            />
+                            <Route
+                                path="/search"
+                                element={
+                                    <>
+                                        <h1>Other page</h1>
+                                        <Link to="/">Back to Scan</Link>
+                                    </>
+                                }
+                            />
+                        </Routes>
+                        <CurrentLocation />
+                    </AppShell>
+                </MemoryRouter>
+            </LocaleProvider>
+        </StrictMode>,
     )
 }
 
@@ -80,6 +92,14 @@ describe("camera Barcode scanner", () => {
         expect(
             screen.getByText("Scanning happens on your device."),
         ).toBeVisible()
+        expect(
+            screen
+                .getByRole("heading", { name: "Private camera scanning" })
+                .closest('[data-glass-surface="camera"]'),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: "Start camera" }),
+        ).toHaveAttribute("data-glass", "primary")
         expect(screen.getByRole("link", { name: "Search" })).toHaveAttribute(
             "href",
             "/search",
@@ -121,12 +141,22 @@ describe("camera Barcode scanner", () => {
             name: "Turn flash on",
         })
         expect(flashButton).toHaveAttribute("aria-pressed", "false")
+        expect(flashButton).toHaveAttribute("data-glass", "neutral")
+        expect(
+            screen.getByRole("button", { name: "Pause camera" }),
+        ).toHaveAttribute("data-glass", "neutral")
+        expect(
+            screen.getByRole("button", { name: "Switch camera" }),
+        ).toHaveAttribute("data-glass", "neutral")
 
         await user.click(flashButton)
         await waitFor(() => expect(setTorchMock).toHaveBeenCalledWith(true))
         expect(
             screen.getByRole("button", { name: "Turn flash off" }),
         ).toHaveAttribute("aria-pressed", "true")
+        expect(
+            screen.getByRole("button", { name: "Turn flash off" }),
+        ).toHaveAttribute("data-glass", "selected")
 
         await user.click(screen.getByRole("button", { name: "Turn flash off" }))
         await waitFor(() => expect(setTorchMock).toHaveBeenCalledWith(false))
@@ -167,6 +197,26 @@ describe("camera Barcode scanner", () => {
         )
     })
 
+    test("shows a dark frosted recovery panel when the camera is paused", async () => {
+        const user = userEvent.setup()
+        sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
+        startMock.mockResolvedValue({ stop: vi.fn() })
+        renderPage()
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
+
+        await user.click(screen.getByRole("button", { name: "Pause camera" }))
+
+        const pausedHeading = screen.getByRole("heading", {
+            name: "Camera paused",
+        })
+        expect(
+            pausedHeading.closest('[data-glass-surface="camera"]'),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: "Resume camera" }),
+        ).toHaveAttribute("data-glass", "primary")
+    })
+
     test("shows recovery actions when an automatic camera restart times out", async () => {
         sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
         const timeoutError = new Error("Camera start timed out")
@@ -187,11 +237,16 @@ describe("camera Barcode scanner", () => {
             "The camera took too long to start. Try again, or enter the Barcode instead.",
         )
         expect(
+            screen
+                .getByRole("heading", { name: "Camera unavailable" })
+                .closest('[data-glass-surface="camera"]'),
+        ).toBeInTheDocument()
+        expect(
             screen.getByRole("button", { name: "Try camera again" }),
-        ).toBeVisible()
+        ).toHaveAttribute("data-glass", "neutral")
         expect(
             screen.getByRole("link", { name: "Enter a Barcode instead" }),
-        ).toBeVisible()
+        ).toHaveAttribute("data-glass", "selected")
     })
 
     test("opens the Product page for a valid on-device result with sensory feedback", async () => {
@@ -217,6 +272,7 @@ describe("camera Barcode scanner", () => {
         startMock.mockResolvedValue({ stop: vi.fn() })
         renderScannerJourney()
         await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
+        expect(screen.getByRole("status")).toHaveTextContent("Ready to scan")
 
         const onResult = startMock.mock.calls[0]?.[1] as (value: string) => void
         act(() => onResult("4006381333931"))
@@ -230,6 +286,36 @@ describe("camera Barcode scanner", () => {
             facingMode: "environment",
         })
         expect(screen.getByRole("status")).toHaveTextContent("Ready to scan")
+    })
+
+    test("restarts after leaving while automatic camera startup is pending", async () => {
+        const user = userEvent.setup()
+        let resolveFirst: ((session: { stop: () => void }) => void) | undefined
+        const firstStopMock = vi.fn()
+        const secondStopMock = vi.fn()
+
+        startMock
+            .mockImplementationOnce(
+                () =>
+                    new Promise((resolve) => {
+                        resolveFirst = resolve
+                    }),
+            )
+            .mockResolvedValueOnce({ stop: secondStopMock })
+        sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
+        renderScannerJourney()
+
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
+        await user.click(screen.getByRole("link", { name: "Search" }))
+        await screen.findByRole("heading", { name: "Other page" })
+
+        resolveFirst?.({ stop: firstStopMock })
+        await waitFor(() => expect(firstStopMock).toHaveBeenCalledTimes(1))
+
+        await user.click(screen.getByRole("link", { name: "Back to Scan" }))
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(2))
+        expect(screen.getByRole("status")).toHaveTextContent("Ready to scan")
+        expect(secondStopMock).not.toHaveBeenCalled()
     })
 
     test("sends an invalid result to typed Barcode correction", async () => {
@@ -258,9 +344,9 @@ describe("camera Barcode scanner", () => {
         const searchBar = searchBars[0]!
         expect(searchBar).toBeVisible()
         expect(searchBar).toHaveAttribute("href", "/search")
-        expect(
-            screen.getByText("Search Product, company or country..."),
-        ).toBeVisible()
+        expect(searchBar).toHaveAttribute("data-glass", "neutral")
+        expect(searchBar).toHaveClass("font-normal")
+        expect(screen.getByText("barcode, product, or brand")).toBeVisible()
 
         await user.click(searchBar)
         expect(stopMock).toHaveBeenCalled()

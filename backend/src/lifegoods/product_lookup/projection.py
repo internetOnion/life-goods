@@ -797,20 +797,35 @@ def extract_preferred_name(
     record: dict[str, Any],
     record_language: str | None = None,
 ) -> OriginalText | None:
+    return extract_preferred_original_text(record, "product_name", record_language)
+
+
+def extract_preferred_original_text(
+    record: dict[str, Any],
+    base_field: str,
+    record_language: str | None = None,
+) -> OriginalText | None:
     resolved_record_language = (
         record_language if record_language is not None else _source_language(record)
     )
-    names = _original_texts(record, "product_name", resolved_record_language)
-    if not names:
+    texts = _original_texts(record, base_field, resolved_record_language)
+    if not texts:
         return None
     if resolved_record_language:
-        for name in names:
-            if name.language == resolved_record_language:
-                return name
-    for name in names:
-        if name.language == "en":
-            return name
-    return names[0]
+        for text in texts:
+            if text.language == resolved_record_language:
+                return text
+    for text in texts:
+        if text.language == "en":
+            return text
+    return texts[0]
+
+
+def extract_preferred_generic_name(
+    record: dict[str, Any],
+    record_language: str | None = None,
+) -> OriginalText | None:
+    return extract_preferred_original_text(record, "generic_name", record_language)
 
 
 def extract_brands(record: dict[str, Any]) -> list[str]:
@@ -829,6 +844,31 @@ def extract_quantity(record: dict[str, Any]) -> str | None:
     return _text_value(record.get("quantity"))
 
 
+def extract_packaging(record: dict[str, Any]) -> str | None:
+    record_language = _source_language(record)
+    for field in ("packaging", "packaging_text"):
+        packaging = extract_preferred_original_text(record, field, record_language)
+        if packaging:
+            return packaging.value
+
+    for field in ("packaging_tags", "packaging_shapes_tags"):
+        values = [
+            _display_taxonomy_tag(value)
+            for value in _split_values(record.get(field))
+        ]
+        values = _unique_values(values)
+        if values:
+            return ", ".join(values)
+    return None
+
+
+def extract_labels(record: dict[str, Any]) -> list[str]:
+    return [
+        _display_taxonomy_tag(value)
+        for value in _list_values(record, "labels", "labels_tags")
+    ]
+
+
 def project_product_summary(
     source_record: dict[str, Any] | None,
     *,
@@ -840,9 +880,12 @@ def project_product_summary(
     return ProductSummary(
         barcode=resolved_barcode,
         name=extract_preferred_name(record, record_language),
+        generic_name=extract_preferred_generic_name(record, record_language),
         brands=extract_brands(record),
         manufacturing_places=extract_manufacturing_places(record),
         quantity=extract_quantity(record),
+        packaging=extract_packaging(record),
+        labels=extract_labels(record),
         thumbnail=extract_front_image(record, resolved_barcode, record_language),
         source=SourceAttributionResponse(
             name="Open Food Facts",

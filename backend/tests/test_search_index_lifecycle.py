@@ -22,6 +22,9 @@ def test_index_document_valid_and_invalid_codes() -> None:
             "brands": "Example Brand",
             "manufacturing_places": "Cambodia, France",
             "quantity": "100g",
+            "generic_name_en": "Dark chocolate bar",
+            "packaging_tags": ["en:paper-box"],
+            "labels_tags": ["en:organic", "en:vegetarian"],
         }
     )
     assert doc is not None
@@ -34,6 +37,13 @@ def test_index_document_valid_and_invalid_codes() -> None:
     assert "សូកូឡាខ្មៅ" in doc["name_tokens"]
     assert doc["name_sort"] == "dark chocolate"
     assert len(doc["names"]) == 2
+    assert doc["generic_name"] == {
+        "value": "Dark chocolate bar",
+        "language": "en",
+        "source_field": "generic_name_en",
+    }
+    assert doc["packaging"] == "paper box"
+    assert doc["labels"] == ["organic", "vegetarian"]
 
     # Valid UPC-A with leading zero
     upc = index_document({"code": "012345678905", "product_name": "Zero Code"})

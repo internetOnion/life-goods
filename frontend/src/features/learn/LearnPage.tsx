@@ -1,11 +1,11 @@
 import {
     ArrowLeftIcon,
     ArrowRightIcon,
-    BarcodeIcon,
     BookOpenTextIcon,
     CalendarBlankIcon,
     ChartBarIcon,
     CaretRightIcon,
+    FileTextIcon,
     InfoIcon,
     ListBulletsIcon,
     MagnifyingGlassIcon,
@@ -14,14 +14,24 @@ import {
     WarningCircleIcon,
     XIcon,
 } from "@phosphor-icons/react"
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react"
+import {
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type ReactNode,
+    type RefObject,
+} from "react"
 import { Link, useLocation, useParams } from "react-router"
 
 import { appRoutes } from "@/app/routes"
+import { BrandMark } from "@/components/brand/BrandMark"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getProductLessonLocationState } from "@/features/product/navigation"
 import { usePageMetadata } from "@/lib/metadata"
+import { cn } from "@/lib/utils"
+import { useAppShellNavigation } from "@/ui/AppShellNavigation"
 
 import {
     KNOWLEDGE_ENTRIES,
@@ -102,15 +112,6 @@ function categoryIcon(category: LearnCategory) {
     }
 }
 
-const categoryTileSurfaces: Record<LearnCategory, string> = {
-    label: "bg-[#f8f5f1]",
-    ingredients: "bg-[#eef2f6]",
-    allergens: "bg-[#f3eff5]",
-    halal: "bg-[#eef4f0]",
-    marks: "bg-[#f4f0ea]",
-    "food-scores": "bg-[#f2f1ea]",
-}
-
 const foodScoreTableLabels = {
     en: {
         heading: "Score levels and meaning",
@@ -184,23 +185,6 @@ function foodScoreVisual(slug: string, label: string): FoodScoreVisual {
     }
 
     return FOOD_SCORE_VISUALS.neutral
-}
-
-function topicIcon(topic: LearnTopic) {
-    switch (topic) {
-        case "declarations":
-            return ListBulletsIcon
-        case "halal":
-            return ScalesIcon
-        case "evidence":
-            return InfoIcon
-        case "ingredients":
-            return BarcodeIcon
-        case "dates":
-            return CalendarBlankIcon
-        default:
-            return BookOpenTextIcon
-    }
 }
 
 function categoryForTopic(topic: LearnTopic): LearnCategory {
@@ -354,7 +338,7 @@ function LearnIndexPage({ locale }: LearnIndexPageProps) {
     }
 
     return (
-        <main className="page-rail sm:px-6 sm:py-12">
+        <main className="page-rail pb-[calc(4rem_+_env(safe-area-inset-bottom))] sm:px-6 sm:py-12">
             <h1
                 ref={headingRef}
                 tabIndex={-1}
@@ -374,16 +358,21 @@ function LearnIndexPage({ locale }: LearnIndexPageProps) {
                 >
                     {t("learn.searchLabel")}
                 </label>
-                <div className="border-input bg-background focus-within:border-ring focus-within:ring-ring/40 mt-2 flex min-h-14 items-center gap-3 rounded-xl border px-4 transition-colors focus-within:ring-2">
-                    <MagnifyingGlassIcon
-                        className="text-muted-foreground shrink-0"
-                        aria-hidden="true"
-                        size={23}
-                    />
+                <div
+                    data-glass="neutral"
+                    data-glass-surface=""
+                    className="group focus-within:border-primary-500 focus-within:ring-primary-500/25 relative mt-2 flex h-[60px] w-full items-center rounded-full pr-20 pl-[3.25rem] text-base text-neutral-600 transition-colors focus-within:ring-2"
+                >
+                    <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center">
+                        <BrandMark size={22} />
+                    </span>
                     <Input
+                        data-learn-search=""
                         id="learn-search"
-                        className="h-13 min-w-0 flex-1 rounded-none border-0 bg-transparent px-0 text-base shadow-none outline-none focus-visible:ring-0 sm:text-lg"
-                        type="search"
+                        className="h-full min-w-0 flex-1 appearance-none rounded-none border-0 bg-transparent px-0 text-base shadow-none outline-none placeholder:text-neutral-600 focus-visible:ring-0 sm:text-base"
+                        type="text"
+                        inputMode="search"
+                        role="searchbox"
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
                         onKeyDown={(event) => {
@@ -397,14 +386,22 @@ function LearnIndexPage({ locale }: LearnIndexPageProps) {
                     {search ? (
                         <Button
                             aria-label={t("learn.clearSearch")}
-                            className="text-muted-foreground hover:bg-muted size-11 shrink-0 rounded-full p-0"
+                            className="absolute top-1/2 right-0 size-[60px] -translate-y-1/2 rounded-full bg-neutral-800 p-0 text-white shadow-[0_6px_14px_-10px_rgba(19,21,25,0.75)] hover:bg-neutral-900 active:bg-neutral-950"
                             onClick={() => setSearch("")}
                             type="button"
                             variant="ghost"
                         >
-                            <XIcon aria-hidden="true" size={20} />
+                            <XIcon aria-hidden="true" size={22} weight="bold" />
                         </Button>
-                    ) : null}
+                    ) : (
+                        <span className="pointer-events-none absolute top-1/2 right-0 grid size-[60px] -translate-y-1/2 place-items-center rounded-full bg-neutral-800 text-white shadow-[0_6px_14px_-10px_rgba(19,21,25,0.75)]">
+                            <MagnifyingGlassIcon
+                                size={22}
+                                weight="bold"
+                                aria-hidden="true"
+                            />
+                        </span>
+                    )}
                 </div>
             </section>
 
@@ -417,7 +414,7 @@ function LearnIndexPage({ locale }: LearnIndexPageProps) {
                         <div>
                             <h2
                                 id="learn-guides-heading"
-                                className="text-xl leading-[1.7] font-bold"
+                                className="text-xl leading-tight font-extrabold tracking-[-0.02em]"
                             >
                                 {t("learn.guidesTitle")}
                             </h2>
@@ -448,7 +445,7 @@ function LearnIndexPage({ locale }: LearnIndexPageProps) {
                     />
                     <h2
                         id="learn-no-results"
-                        className="mt-3 text-lg leading-[1.7] font-bold"
+                        className="mt-3 text-lg leading-snug font-extrabold"
                     >
                         {t("learn.noResults")}
                     </h2>
@@ -466,12 +463,12 @@ function LearnIndexPage({ locale }: LearnIndexPageProps) {
                 </section>
             ) : browsing && resultCount > 0 ? (
                 <section
-                    className="mt-10"
+                    className="mt-8"
                     aria-labelledby="learn-results-heading"
                 >
                     <h2
                         id="learn-results-heading"
-                        className="text-xl leading-[1.7] font-bold"
+                        className="text-xl leading-tight font-extrabold tracking-[-0.02em]"
                     >
                         {t("learn.categoriesTitle")}
                     </h2>
@@ -489,19 +486,16 @@ function LearnIndexPage({ locale }: LearnIndexPageProps) {
                                     key={guide.category}
                                     aria-labelledby={`learn-category-${guide.category}`}
                                 >
-                                    <div className="flex items-baseline justify-between gap-4">
-                                        <h3
-                                            id={`learn-category-${guide.category}`}
-                                            className="text-lg leading-[1.7] font-bold"
-                                        >
-                                            {localized(guide.title, locale)}
-                                        </h3>
-                                        <span className="text-muted-foreground shrink-0 text-xs font-bold tabular-nums">
-                                            {structuredEntries.length +
-                                                supportingEntries.length}
-                                        </span>
-                                    </div>
-                                    <div className="divide-border border-border mt-3 divide-y border-y">
+                                    <LearnCategoryHeading
+                                        id={`learn-category-${guide.category}`}
+                                        category={guide.category}
+                                        title={localized(guide.title, locale)}
+                                        count={
+                                            structuredEntries.length +
+                                            supportingEntries.length
+                                        }
+                                    />
+                                    <div className="divide-border border-border mt-3 divide-y overflow-hidden rounded-2xl border bg-white">
                                         {structuredEntries.map((entry) => (
                                             <StructuredEntryRow
                                                 key={entry.id}
@@ -581,9 +575,10 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
     return (
         <>
             {entry?.kind === "simulated" ? <LearnDemoNotice active /> : null}
-            <main className="page-rail min-w-0 sm:px-6 sm:py-12">
+            <main className="page-rail min-w-0 pb-[calc(4rem_+_env(safe-area-inset-bottom))] sm:px-6 sm:py-12">
                 <Link
-                    className="text-primary hover:bg-accent focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-bold no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                    data-glass="neutral"
+                    className="focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-bold text-neutral-800 no-underline transition-colors hover:bg-white hover:text-neutral-950 focus-visible:ring-2 focus-visible:outline-none"
                     to={appRoutes.learn}
                 >
                     <ArrowLeftIcon aria-hidden="true" size={20} weight="bold" />
@@ -608,22 +603,22 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
                                 {t("learn.englishContent")}
                             </p>
                         ) : null}
-                        <p className="text-muted-foreground text-body-lg mt-4 max-w-[65ch] leading-loose">
+                        <p className="text-muted-foreground text-body-lg mt-4 max-w-[65ch] leading-relaxed">
                             {localized(entry.summary, contentLocale)}
                         </p>
 
                         {entry.kind === "sourced" && entry.learningOutcome ? (
                             <section
-                                className="border-border mt-8 border-y py-5"
+                                className="border-border mt-8 border-t py-5"
                                 aria-labelledby="learn-outcome"
                             >
                                 <h2
                                     id="learn-outcome"
-                                    className="text-base leading-[1.7] font-bold"
+                                    className="text-base leading-snug font-extrabold"
                                 >
                                     {t("learn.learningOutcomeTitle")}
                                 </h2>
-                                <p className="mt-1 max-w-[70ch] text-base leading-loose">
+                                <p className="mt-1 max-w-[70ch] text-base leading-relaxed">
                                     {localized(
                                         entry.learningOutcome,
                                         contentLocale,
@@ -633,12 +628,12 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
                         ) : null}
 
                         <section
-                            className="border-border mt-9 border-t pt-7"
+                            className="border-border mt-8 border-t pt-6"
                             aria-labelledby="learn-explanation"
                         >
                             <h2
                                 id="learn-explanation"
-                                className="text-xl leading-[1.7] font-bold"
+                                className="text-xl leading-tight font-extrabold tracking-[-0.02em]"
                             >
                                 {entry.kind === "sourced"
                                     ? t("learn.sourceSummaryTitle")
@@ -649,16 +644,16 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
                                     {t("learn.sourceSummaryHint")}
                                 </p>
                             ) : null}
-                            <p className="text-body-lg mt-3 max-w-[70ch] leading-loose break-words">
+                            <p className="text-body-lg mt-3 max-w-[70ch] leading-relaxed break-words">
                                 {localized(entry.body, contentLocale)}
                             </p>
                             {entry.kind === "sourced" &&
                             entry.keyPoints?.length ? (
                                 <>
-                                    <h3 className="mt-7 text-lg leading-relaxed font-bold">
+                                    <h3 className="mt-7 text-lg leading-snug font-extrabold">
                                         {t("learn.keyPointsTitle")}
                                     </h3>
-                                    <ul className="marker:text-primary text-body-lg mt-3 max-w-[70ch] list-disc space-y-3 pl-6 leading-loose break-words">
+                                    <ul className="marker:text-primary text-body-lg mt-3 max-w-[70ch] list-disc space-y-3 pl-6 leading-relaxed break-words">
                                         {(entry.keyPoints ?? []).map(
                                             (point, index) => (
                                                 <li
@@ -678,21 +673,23 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
 
                         {entry.kind === "sourced" && entry.doesNotProve ? (
                             <section
-                                className="border-border bg-muted mt-9 rounded-xl border p-5 sm:p-6"
+                                className="border-border bg-muted mt-8 rounded-xl border p-4 sm:p-5"
                                 aria-labelledby="learn-boundary"
                             >
                                 <h2
                                     id="learn-boundary"
-                                    className="flex items-start gap-2 text-base leading-[1.7] font-bold"
+                                    className="icon-heading-row text-base leading-snug font-extrabold"
                                 >
                                     <InfoIcon
-                                        className="text-primary mt-1 shrink-0"
+                                        className="text-primary shrink-0"
                                         aria-hidden="true"
                                         size={18}
                                     />
-                                    {t("learn.doesNotProveTitle")}
+                                    <span className="icon-heading-title">
+                                        {t("learn.doesNotProveTitle")}
+                                    </span>
                                 </h2>
-                                <p className="mt-1 max-w-[70ch] text-base leading-loose">
+                                <p className="mt-1 max-w-[70ch] text-base leading-relaxed">
                                     {localized(
                                         entry.doesNotProve,
                                         contentLocale,
@@ -703,7 +700,7 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
 
                         {entry.kind === "sourced" ? (
                             <>
-                                <dl className="divide-border border-border mt-9 w-full min-w-0 divide-y border-y">
+                                <dl className="mt-8 grid w-full min-w-0 gap-4">
                                     <LearnMetadataRow
                                         label={t("learn.publisherLabel")}
                                         value={localized(
@@ -756,100 +753,80 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
                                     ) : null}
                                 </dl>
 
-                                <section
-                                    className="border-border mt-9 border-t pt-7"
-                                    aria-labelledby="learn-source-documents"
+                                <LearnSourceShelf
+                                    headingId="learn-source-documents"
+                                    heading={t("learn.sourceDocumentsTitle")}
+                                    disclosure={localized(
+                                        entry.sourceDisclosure,
+                                        contentLocale,
+                                    )}
                                 >
-                                    <h2
-                                        id="learn-source-documents"
-                                        className="text-xl leading-[1.7] font-bold"
-                                    >
-                                        {t("learn.sourceDocumentsTitle")}
-                                    </h2>
-                                    <ul className="divide-border border-border mt-3 divide-y border-y">
+                                    <ul className="space-y-5">
                                         {entry.sources.map((source) => (
                                             <li
-                                                className="min-w-0 py-4"
+                                                className="flex min-w-0 items-start gap-3"
                                                 key={source.url}
                                             >
-                                                <LearnSourceSummary
-                                                    name={localized(
-                                                        source.label,
-                                                        contentLocale,
-                                                    )}
-                                                    url={source.url}
-                                                />
+                                                <LearnSourceMarker />
+                                                <div className="min-w-0 flex-1">
+                                                    <LearnSourceSummary
+                                                        name={localized(
+                                                            source.label,
+                                                            contentLocale,
+                                                        )}
+                                                        url={source.url}
+                                                    />
+                                                </div>
                                             </li>
                                         ))}
                                     </ul>
-                                    <p className="border-border text-muted-foreground mt-6 border-t pt-5 text-sm leading-relaxed">
-                                        {localized(
-                                            entry.sourceDisclosure,
-                                            contentLocale,
-                                        )}
-                                    </p>
-                                </section>
+                                </LearnSourceShelf>
                             </>
                         ) : (
-                            <p className="border-border bg-muted text-muted-foreground mt-9 rounded-xl border p-4 text-sm leading-relaxed sm:p-5">
+                            <p className="border-border bg-muted text-muted-foreground mt-8 rounded-xl border p-4 text-sm leading-relaxed sm:p-5">
                                 {t("learn.simulatedDisclosure")}
                             </p>
                         )}
 
                         {relatedEntries && relatedEntries.length > 0 ? (
                             <section
-                                className="border-border mt-10 border-t pt-7"
+                                className="border-border mt-8 border-t pt-6"
                                 aria-labelledby="learn-related"
                             >
                                 <h2
                                     id="learn-related"
-                                    className="text-xl leading-[1.7] font-bold"
+                                    className="text-xl leading-tight font-extrabold tracking-[-0.02em]"
                                 >
                                     {t("learn.relatedTitle")}
                                 </h2>
-                                <div className="divide-border border-border mt-3 divide-y border-y">
+                                <div className="divide-border border-border mt-3 divide-y overflow-hidden rounded-2xl border bg-white">
                                     {relatedEntries.map((related) => (
-                                        <Link
+                                        <LearnDisclosureRow
                                             key={related.slug}
-                                            className="hover:bg-accent focus-visible:ring-ring flex min-h-14 items-center justify-between gap-4 py-3 no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none"
                                             to={articlePath(related.slug)}
-                                        >
-                                            <span className="min-w-0">
-                                                <span className="text-primary block text-xs leading-relaxed font-bold">
-                                                    {t(
-                                                        `learn.topics.${related.topic}`,
-                                                    )}
-                                                </span>
-                                                <span className="block text-base leading-relaxed font-bold">
-                                                    {localized(
-                                                        related.title,
-                                                        locale,
-                                                    )}
-                                                </span>
-                                            </span>
-                                            <CaretRightIcon
-                                                className="text-primary shrink-0"
-                                                aria-hidden="true"
-                                                size={20}
-                                                weight="bold"
-                                            />
-                                        </Link>
+                                            title={localized(
+                                                related.title,
+                                                locale,
+                                            )}
+                                            context={t(
+                                                `learn.topics.${related.topic}`,
+                                            )}
+                                        />
                                     ))}
                                 </div>
                             </section>
                         ) : null}
 
-                        <Link
-                            className="bg-primary text-primary-foreground hover:bg-brand-hover focus-visible:ring-ring focus-visible:ring-offset-background mt-10 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 py-2 text-sm font-bold no-underline transition-colors focus-visible:ring-2 focus-visible:ring-offset-2"
-                            to={appRoutes.home}
-                        >
-                            {t("learn.scanCta")}
-                            <ArrowRightIcon
-                                aria-hidden="true"
-                                size={19}
-                                weight="bold"
-                            />
-                        </Link>
+                        <Button asChild className="mt-8 rounded-xl px-5">
+                            <Link to={appRoutes.home}>
+                                {t("learn.scanCta")}
+                                <ArrowRightIcon
+                                    aria-hidden="true"
+                                    size={19}
+                                    weight="bold"
+                                />
+                            </Link>
+                        </Button>
                     </article>
                 ) : (
                     <section className="mt-8" aria-labelledby="missing-article">
@@ -861,7 +838,7 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
                         >
                             {t("learn.unavailableTitle")}
                         </h1>
-                        <p className="text-muted-foreground text-body-lg mt-3 max-w-[62ch] leading-loose">
+                        <p className="text-muted-foreground text-body-lg mt-3 max-w-[62ch] leading-relaxed">
                             {t("learn.unavailableBody")}
                         </p>
                     </section>
@@ -886,9 +863,10 @@ export function LearnGuidePage() {
     }, [guideSlug])
 
     return (
-        <main className="mx-auto w-full max-w-xl min-w-0 px-4 pt-8 pb-[calc(4rem_+_env(safe-area-inset-bottom))] sm:px-6 sm:pt-12">
+        <main className="mx-auto w-full max-w-xl min-w-0 px-4 pt-8 pb-[calc(5rem_+_env(safe-area-inset-bottom))] sm:px-6 sm:pt-12">
             <Link
-                className="text-primary hover:bg-accent focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-bold no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                data-glass="neutral"
+                className="focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-bold text-neutral-800 no-underline transition-colors hover:bg-white hover:text-neutral-950 focus-visible:ring-2 focus-visible:outline-none"
                 to={appRoutes.learn}
             >
                 <ArrowLeftIcon aria-hidden="true" size={20} weight="bold" />
@@ -897,18 +875,23 @@ export function LearnGuidePage() {
 
             {guide ? (
                 <article className="mt-7" lang={locale}>
-                    <div>
+                    <div className="icon-heading-row">
+                        <LearnCategoryIcon
+                            category={guide.category}
+                            className="bg-muted text-primary size-11 shrink-0 rounded-xl"
+                            iconSize={22}
+                        />
                         <h1
                             ref={headingRef}
                             tabIndex={-1}
-                            className="text-display leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
+                            className="icon-heading-title text-display leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
                         >
                             {localized(guide.title, locale)}
                         </h1>
-                        <p className="text-muted-foreground mt-2 max-w-[65ch] text-base leading-relaxed">
-                            {localized(guide.intro, locale)}
-                        </p>
                     </div>
+                    <p className="text-muted-foreground mt-2 max-w-[65ch] text-base leading-relaxed">
+                        {localized(guide.intro, locale)}
+                    </p>
 
                     <section
                         className="mt-5 sm:mt-7"
@@ -916,18 +899,22 @@ export function LearnGuidePage() {
                     >
                         <h2
                             id="guide-lessons-heading"
-                            className="text-xl leading-[1.7] font-bold"
+                            className="text-xl leading-tight font-extrabold tracking-[-0.02em]"
                         >
                             {t("learn.guideLessonsTitle")}
                         </h2>
-                        <ol className="divide-border border-border mt-4 divide-y overflow-hidden rounded-2xl border bg-white px-4 sm:px-6">
-                            {guide.entryIds.map((entryId) => {
+                        <ol className="divide-border border-border mt-4 divide-y overflow-hidden rounded-2xl border bg-white">
+                            {guide.entryIds.map((entryId, index) => {
                                 const entry = LEARN_ENTRY_BY_ID.get(entryId)
                                 return entry ? (
                                     <li key={entry.id}>
                                         <StructuredEntryRow
                                             entry={entry}
                                             locale={locale}
+                                            context={t("learn.lessonPosition", {
+                                                current: index + 1,
+                                                total: guide.entryIds.length,
+                                            })}
                                         />
                                     </li>
                                 ) : null
@@ -939,10 +926,10 @@ export function LearnGuidePage() {
                                 guide.category,
                         ).length > 0 ? (
                             <div className="mt-8">
-                                <h3 className="text-base leading-[1.7] font-bold">
+                                <h3 className="text-base leading-snug font-extrabold">
                                     {t("learn.supportingTitle")}
                                 </h3>
-                                <div className="divide-border border-border mt-3 divide-y border-y">
+                                <div className="divide-border border-border mt-3 divide-y overflow-hidden rounded-2xl border bg-white">
                                     {SUPPORTING_ENTRIES.filter(
                                         (entry) =>
                                             categoryForTopic(entry.topic) ===
@@ -969,7 +956,7 @@ export function LearnGuidePage() {
                     >
                         {t("learn.unavailableGuideTitle")}
                     </h1>
-                    <p className="text-muted-foreground text-body-lg mt-3 max-w-[62ch] leading-loose">
+                    <p className="text-muted-foreground text-body-lg mt-3 max-w-[62ch] leading-relaxed">
                         {t("learn.unavailableBody")}
                     </p>
                 </section>
@@ -1010,7 +997,7 @@ function FoodScoreReferenceTable({
         <section className="mt-7" aria-labelledby="food-score-reference">
             <h3
                 id="food-score-reference"
-                className="text-lg leading-relaxed font-bold"
+                className="text-lg leading-snug font-extrabold"
             >
                 {labels.heading}
             </h3>
@@ -1062,7 +1049,7 @@ function FoodScoreReferenceTable({
                                                 </span>
                                             </span>
                                         </th>
-                                        <td className="px-4 py-3.5 align-top leading-[1.7] text-neutral-700">
+                                        <td className="px-4 py-3.5 align-top leading-relaxed text-neutral-700">
                                             {fact.detail
                                                 ? localized(fact.detail, locale)
                                                 : null}
@@ -1095,11 +1082,11 @@ function AllergenIngredientReference({
         >
             <h3
                 id="allergen-ingredient-reference"
-                className="text-lg leading-relaxed font-bold"
+                className="text-lg leading-snug font-extrabold"
             >
                 {t("learn.allergenIngredientsTitle")}
             </h3>
-            <div className="divide-border border-border mt-3 divide-y border-y">
+            <div className="divide-border border-border mt-3 divide-y border-t">
                 {groups.map((group) => {
                     const notes = group.examples.filter(
                         (example) => example.note,
@@ -1192,6 +1179,7 @@ function StructuredLearnArticle({
     locale: LearnLocale
 }) {
     const { t } = useTranslation()
+    const { setBottomDockVisible } = useAppShellNavigation()
     const location = useLocation()
     const productReturn = getProductLessonLocationState(location.state)
     const guide = LEARN_GUIDES.find(
@@ -1205,11 +1193,26 @@ function StructuredLearnArticle({
     const backTo =
         productReturn?.returnTo ??
         (guide ? guidePath(guide.slug) : appRoutes.learn)
+    const hasLessonNavigation = Boolean(guide && stepIndex >= 0)
+
+    useEffect(() => {
+        setBottomDockVisible(hasLessonNavigation)
+
+        return () => setBottomDockVisible(false)
+    }, [hasLessonNavigation, setBottomDockVisible])
 
     return (
-        <main className="mx-auto w-full max-w-xl min-w-0 px-4 pt-8 pb-[calc(3rem_+_env(safe-area-inset-bottom))] sm:px-6 sm:pt-12">
+        <main
+            className={cn(
+                "mx-auto w-full max-w-xl min-w-0 px-4 pt-8 sm:px-6 sm:pt-12",
+                hasLessonNavigation
+                    ? "pb-[calc(5.75rem+env(safe-area-inset-bottom))]"
+                    : "pb-[calc(4rem+env(safe-area-inset-bottom))]",
+            )}
+        >
             <Link
-                className="text-primary hover:bg-accent focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-bold no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                data-glass="neutral"
+                className="focus-visible:ring-ring -ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-bold text-neutral-800 no-underline transition-colors hover:bg-white hover:text-neutral-950 focus-visible:ring-2 focus-visible:outline-none"
                 to={backTo}
                 state={
                     productReturn
@@ -1225,9 +1228,6 @@ function StructuredLearnArticle({
                       : t("learn.backToLearn")}
             </Link>
             <article className="mt-7" lang={locale}>
-                <p className="text-primary text-sm leading-relaxed font-bold tabular-nums">
-                    {entry.id}
-                </p>
                 <h1
                     ref={headingRef}
                     tabIndex={-1}
@@ -1235,7 +1235,7 @@ function StructuredLearnArticle({
                 >
                     {localized(entry.title, locale)}
                 </h1>
-                <p className="text-muted-foreground text-body-lg mt-4 max-w-[65ch] leading-loose">
+                <p className="text-muted-foreground text-body-lg mt-4 max-w-[65ch] leading-relaxed">
                     {localized(entry.summary, locale)}
                 </p>
                 {guide && stepIndex >= 0 ? (
@@ -1248,19 +1248,19 @@ function StructuredLearnArticle({
                 ) : null}
 
                 <section
-                    className="border-border mt-9 border-t pt-7"
+                    className="border-border mt-8 border-t pt-6"
                     aria-labelledby="structured-explanation"
                 >
                     <h2
                         id="structured-explanation"
-                        className="text-xl leading-[1.7] font-bold"
+                        className="text-xl leading-tight font-extrabold tracking-[-0.02em]"
                     >
                         {t("learn.sourceSummaryTitle")}
                     </h2>
                     <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
                         {t("learn.sourceSummaryHint")}
                     </p>
-                    <p className="mt-3 max-w-[70ch] text-[1.05rem] leading-loose">
+                    <p className="text-body-lg mt-3 max-w-[70ch] leading-relaxed">
                         {localized(entry.body, locale)}
                     </p>
                     {entry.allergenIngredientGroups?.length ? (
@@ -1275,7 +1275,7 @@ function StructuredLearnArticle({
                             locale={locale}
                         />
                     ) : entry.facts?.length ? (
-                        <dl className="divide-border border-border mt-6 divide-y border-y">
+                        <dl className="divide-border border-border mt-6 divide-y border-t">
                             {entry.facts.map((fact) => (
                                 <div
                                     className="py-4 sm:grid sm:grid-cols-[13rem_minmax(0,1fr)] sm:gap-6"
@@ -1285,7 +1285,7 @@ function StructuredLearnArticle({
                                         {localized(fact.label, locale)}
                                     </dt>
                                     {fact.detail ? (
-                                        <dd className="text-muted-foreground mt-1 leading-[1.7] sm:mt-0">
+                                        <dd className="text-muted-foreground mt-1 leading-relaxed sm:mt-0">
                                             {localized(fact.detail, locale)}
                                         </dd>
                                     ) : null}
@@ -1296,97 +1296,97 @@ function StructuredLearnArticle({
                 </section>
 
                 <section
-                    className="border-border bg-muted mt-9 rounded-xl border p-5 sm:p-6"
+                    className="border-border bg-muted mt-8 rounded-xl border p-4 sm:p-5"
                     aria-labelledby="structured-boundary"
                 >
                     <h2
                         id="structured-boundary"
-                        className="flex items-start gap-2 text-base leading-[1.7] font-bold"
+                        className="icon-heading-row text-base leading-snug font-extrabold"
                     >
                         <InfoIcon
-                            className="text-primary mt-1 shrink-0"
+                            className="text-primary shrink-0"
                             aria-hidden="true"
                             size={18}
                         />
-                        {t("learn.doesNotProveTitle")}
+                        <span className="icon-heading-title">
+                            {t("learn.doesNotProveTitle")}
+                        </span>
                     </h2>
-                    <p className="mt-2 max-w-[70ch] leading-loose">
+                    <p className="mt-2 max-w-[70ch] leading-relaxed">
                         {localized(entry.doesNotImply, locale)}
                     </p>
                 </section>
 
-                <section
-                    className="border-border mt-9 border-t pt-7"
-                    aria-labelledby="structured-sources"
+                <LearnSourceShelf
+                    headingId="structured-sources"
+                    heading={t("learn.sourceDocumentsTitle")}
+                    disclosure={t("learn.internationalDisclosure")}
                 >
-                    <h2
-                        id="structured-sources"
-                        className="text-xl leading-[1.7] font-bold"
-                    >
-                        {t("learn.sourceDocumentsTitle")}
-                    </h2>
-                    <div className="divide-border border-border mt-3 divide-y border-y">
+                    <div className="space-y-5">
                         {sources.map(({ reference, source }) => (
                             <div
-                                className="py-4"
+                                className="flex min-w-0 items-start gap-3"
                                 key={`${source.id}-${reference.section}`}
                             >
-                                <LearnSourceSummary
-                                    name={localized(source.name, locale)}
-                                    url={source.url}
-                                    plainText={source.plainText}
-                                />
-                                <dl className="text-muted-foreground mt-2 grid gap-1 text-sm leading-relaxed sm:grid-cols-2 sm:gap-x-6">
-                                    <div>
-                                        <dt className="text-foreground inline font-bold">
-                                            {t("learn.sectionLabel")}:{" "}
-                                        </dt>
-                                        <dd className="inline">
-                                            {reference.section}
-                                        </dd>
-                                    </div>
-                                    <div>
-                                        <dt className="text-foreground inline font-bold">
-                                            {t("learn.versionLabel")}:{" "}
-                                        </dt>
-                                        <dd className="inline">
-                                            {source.version}
-                                        </dd>
-                                    </div>
-                                    <div>
-                                        <dt className="text-foreground inline font-bold">
-                                            {t("learn.publisherLabel")}:{" "}
-                                        </dt>
-                                        <dd className="inline">
-                                            {localized(
-                                                source.publisher,
-                                                locale,
-                                            )}
-                                        </dd>
-                                    </div>
-                                    <div>
-                                        <dt className="text-foreground inline font-bold">
-                                            {t("learn.jurisdictionLabel")}:{" "}
-                                        </dt>
-                                        <dd className="inline">
-                                            {localized(
-                                                source.jurisdiction,
-                                                locale,
-                                            )}
-                                        </dd>
-                                    </div>
-                                </dl>
+                                <LearnSourceMarker />
+                                <div className="min-w-0 flex-1">
+                                    <LearnSourceSummary
+                                        name={localized(source.name, locale)}
+                                        url={source.url}
+                                        plainText={source.plainText}
+                                    />
+                                    <dl className="text-info-800 mt-3 grid gap-x-6 gap-y-1 text-sm leading-relaxed sm:grid-cols-2">
+                                        <div>
+                                            <dt className="text-info-700 inline font-bold">
+                                                {t("learn.sectionLabel")}:{" "}
+                                            </dt>
+                                            <dd className="inline">
+                                                {reference.section}
+                                            </dd>
+                                        </div>
+                                        <div>
+                                            <dt className="text-info-700 inline font-bold">
+                                                {t("learn.versionLabel")}:{" "}
+                                            </dt>
+                                            <dd className="inline">
+                                                {source.version}
+                                            </dd>
+                                        </div>
+                                        <div>
+                                            <dt className="text-info-700 inline font-bold">
+                                                {t("learn.publisherLabel")}
+                                                :{" "}
+                                            </dt>
+                                            <dd className="inline">
+                                                {localized(
+                                                    source.publisher,
+                                                    locale,
+                                                )}
+                                            </dd>
+                                        </div>
+                                        <div>
+                                            <dt className="text-info-700 inline font-bold">
+                                                {t("learn.jurisdictionLabel")}
+                                                :{" "}
+                                            </dt>
+                                            <dd className="inline">
+                                                {localized(
+                                                    source.jurisdiction,
+                                                    locale,
+                                                )}
+                                            </dd>
+                                        </div>
+                                    </dl>
+                                </div>
                             </div>
                         ))}
                     </div>
-                    <p className="text-muted-foreground mt-5 text-sm leading-relaxed">
-                        {t("learn.internationalDisclosure")}
-                    </p>
-                </section>
+                </LearnSourceShelf>
 
                 {guide && stepIndex >= 0 ? (
                     <nav
-                        className="mt-9 overflow-hidden py-4 sm:py-5"
+                        data-glass-surface=""
+                        className="glass-surface fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-40 w-fit max-w-[calc(100%-2rem)] -translate-x-1/2 rounded-full p-1.5 select-none sm:p-2"
                         aria-label={t("learn.lessonNavigationLabel")}
                     >
                         <LessonPagination
@@ -1399,16 +1399,16 @@ function StructuredLearnArticle({
 
                 {entry.relatedEntryIds.length > 0 ? (
                     <section
-                        className="border-border mt-10 border-t pt-7"
+                        className="border-border mt-8 border-t pt-6"
                         aria-labelledby="structured-related"
                     >
                         <h2
                             id="structured-related"
-                            className="text-xl leading-[1.7] font-bold"
+                            className="text-xl leading-tight font-extrabold tracking-[-0.02em]"
                         >
                             {t("learn.relatedTitle")}
                         </h2>
-                        <div className="divide-border border-border mt-3 divide-y border-y">
+                        <div className="divide-border border-border mt-3 divide-y overflow-hidden rounded-2xl border bg-white">
                             {entry.relatedEntryIds.map((entryId) => {
                                 const related = LEARN_ENTRY_BY_ID.get(entryId)
                                 return related ? (
@@ -1416,6 +1416,11 @@ function StructuredLearnArticle({
                                         key={related.id}
                                         entry={related}
                                         locale={locale}
+                                        context={
+                                            guide
+                                                ? localized(guide.title, locale)
+                                                : undefined
+                                        }
                                     />
                                 ) : null
                             })}
@@ -1440,20 +1445,26 @@ function LessonPagination({
     const totalPages = guide.entryIds.length
     const currentPage = currentIndex + 1
     const pageNumbers = lessonPageNumbers(totalPages, currentPage)
+    const hasFirstLessonVisible = pageNumbers.includes(1)
+    const hasLastLessonVisible = pageNumbers.includes(totalPages)
     const firstEntry = LEARN_ENTRY_BY_ID.get(guide.entryIds[0]!)
     const lastEntry = LEARN_ENTRY_BY_ID.get(guide.entryIds[totalPages - 1]!)
 
     const linkClassName =
-        "focus-visible:ring-primary-500 inline-flex h-11 shrink-0 items-center justify-center rounded-lg px-3 text-sm font-semibold no-underline transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none sm:h-12 sm:px-4"
+        "focus-visible:ring-primary-500 inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-semibold no-underline transition-[background-color,color,box-shadow,transform] duration-150 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.98] motion-reduce:transition-none"
     const pageClassName =
-        "focus-visible:ring-primary-500 inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-base font-semibold tabular-nums no-underline transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none sm:size-12"
+        "focus-visible:ring-primary-500 inline-flex size-11 shrink-0 items-center justify-center rounded-full text-base font-semibold tabular-nums no-underline transition-[background-color,color,box-shadow,transform] duration-150 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.98] motion-reduce:transition-none"
+    const quietClassName =
+        "!text-neutral-600 hover:bg-white/70 hover:!text-neutral-950"
+    const activeClassName =
+        "bg-primary-100 !text-primary-800 shadow-[inset_0_1px_0_rgb(255_255_255/0.8)] ring-1 ring-inset ring-primary-200"
 
     return (
-        <div className="-mx-1 [scrollbar-width:none] overflow-x-auto px-1 [&::-webkit-scrollbar]:hidden">
-            <div className="mx-auto flex min-w-max items-center justify-center gap-2 sm:gap-3">
-                {currentPage > 1 && firstEntry ? (
+        <div className="[scrollbar-width:none] overflow-x-auto [&::-webkit-scrollbar]:hidden">
+            <div className="flex min-w-max items-center justify-center gap-1 sm:gap-1.5">
+                {currentPage > 1 && !hasFirstLessonVisible && firstEntry ? (
                     <Link
-                        className={`${linkClassName} bg-neutral-100 text-neutral-700 hover:bg-neutral-200`}
+                        className={`${linkClassName} ${quietClassName}`}
                         to={articlePath(firstEntry.slug)}
                         aria-label={t("learn.firstLesson")}
                     >
@@ -1470,7 +1481,7 @@ function LessonPagination({
                     const isCurrent = page === currentPage
                     return (
                         <Link
-                            className={`${pageClassName} ${isCurrent ? "bg-primary-600 !text-white shadow-[0_8px_18px_-12px_rgba(153,86,19,0.95)]" : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"}`}
+                            className={`${pageClassName} ${isCurrent ? activeClassName : quietClassName}`}
                             key={entry.id}
                             to={articlePath(entry.slug)}
                             aria-current={isCurrent ? "page" : undefined}
@@ -1481,9 +1492,11 @@ function LessonPagination({
                     )
                 })}
 
-                {currentPage < totalPages && lastEntry ? (
+                {currentPage < totalPages &&
+                !hasLastLessonVisible &&
+                lastEntry ? (
                     <Link
-                        className={`${linkClassName} bg-neutral-100 text-neutral-700 hover:bg-neutral-200`}
+                        className={`${linkClassName} ${quietClassName}`}
                         to={articlePath(lastEntry.slug)}
                         aria-label={t("learn.lastLesson")}
                     >
@@ -1501,7 +1514,7 @@ function lessonPageNumbers(totalPages: number, currentPage: number) {
     }
 
     if (currentPage <= 3) {
-        return [1, 2, 3]
+        return [1, 2, 3, 4]
     }
 
     if (currentPage >= totalPages - 2) {
@@ -1528,15 +1541,123 @@ function LearnGuideTile({
 
     return (
         <Link
-            className={`focus-visible:ring-ring group hover:border-primary-400 relative flex min-h-32 flex-col justify-between overflow-hidden rounded-2xl border border-neutral-300 p-5 no-underline transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_-16px_rgba(19,21,25,0.55)] focus-visible:ring-2 focus-visible:outline-none sm:min-h-36 sm:p-6 ${categoryTileSurfaces[guide.category]}`}
+            data-glass-surface="learn-tile"
+            data-learn-category={guide.category}
+            className="glass-surface focus-visible:ring-ring group hover:border-primary-400 relative flex min-h-32 flex-col justify-between overflow-hidden rounded-2xl p-5 no-underline transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_-16px_rgba(19,21,25,0.55)] focus-visible:ring-2 focus-visible:outline-none sm:min-h-36 sm:p-6"
             to={guidePath(guide.slug)}
         >
-            <span className="text-primary-700 grid size-10 place-items-center rounded-xl transition-transform duration-200 group-hover:scale-105">
+            <span
+                data-learn-category-icon=""
+                className="text-primary-700 grid size-10 place-items-center rounded-xl transition-transform duration-200 group-hover:scale-105"
+            >
                 <Icon aria-hidden="true" size={23} weight="duotone" />
             </span>
-            <h3 className="block max-w-[14ch] text-base leading-[1.45] font-bold text-neutral-950 sm:text-lg">
+            <h3 className="block max-w-[14ch] text-base leading-snug font-extrabold text-neutral-950 sm:text-lg">
                 {localized(guide.title, locale)}
             </h3>
+        </Link>
+    )
+}
+
+function LearnCategoryIcon({
+    category,
+    className,
+    iconSize = 22,
+}: {
+    category: LearnCategory
+    className?: string
+    iconSize?: number
+}) {
+    const Icon = categoryIcon(category)
+
+    return (
+        <span
+            data-learn-category-icon=""
+            data-learn-category={category}
+            className={cn("grid place-items-center", className)}
+        >
+            <Icon aria-hidden="true" size={iconSize} weight="duotone" />
+        </span>
+    )
+}
+
+function LearnCategoryHeading({
+    id,
+    category,
+    title,
+    count,
+}: {
+    id: string
+    category: LearnCategory
+    title: string
+    count?: number
+}) {
+    return (
+        <div className="flex items-center justify-between gap-4">
+            <div className="icon-heading-row">
+                <LearnCategoryIcon
+                    category={category}
+                    className="bg-muted text-primary size-10 shrink-0 rounded-xl"
+                />
+                <h3
+                    id={id}
+                    className="icon-heading-title text-lg leading-snug font-extrabold tracking-[-0.01em] wrap-anywhere"
+                >
+                    {title}
+                </h3>
+            </div>
+            {count !== undefined ? (
+                <span className="text-muted-foreground shrink-0 text-xs font-bold tabular-nums">
+                    {count}
+                </span>
+            ) : null}
+        </div>
+    )
+}
+
+type LearnDisclosureRowProps = {
+    to: string
+    title: string
+    context?: string
+    className?: string
+}
+
+function LearnDisclosureRow({
+    to,
+    title,
+    context,
+    className,
+}: LearnDisclosureRowProps) {
+    return (
+        <Link
+            data-learn-row=""
+            className={cn(
+                "hover:bg-accent focus-visible:ring-ring group flex min-h-14 items-center gap-3 rounded-xl px-4 py-3 no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none sm:px-5",
+                className,
+            )}
+            to={to}
+        >
+            <span className="min-w-0 flex-1">
+                {context ? (
+                    <span className="text-muted-foreground block text-xs leading-normal font-bold wrap-anywhere">
+                        {context}
+                    </span>
+                ) : null}
+                <span
+                    className={cn(
+                        "text-foreground block text-base leading-snug font-extrabold wrap-anywhere",
+                        context && "mt-0.5",
+                    )}
+                >
+                    {title}
+                </span>
+            </span>
+            <CaretRightIcon
+                className="text-muted-foreground group-hover:text-primary shrink-0 transition-colors"
+                aria-hidden="true"
+                size={22}
+                weight="bold"
+            />
         </Link>
     )
 }
@@ -1544,34 +1665,21 @@ function LearnGuideTile({
 function StructuredEntryRow({
     entry,
     locale,
+    context,
+    className,
 }: {
     entry: LearnEntry
     locale: LearnLocale
+    context?: string
+    className?: string
 }) {
-    const Icon = categoryIcon(entry.category)
     return (
-        <Link
-            className="hover:bg-accent focus-visible:ring-ring group flex min-h-20 items-center gap-4 py-5 no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none sm:min-h-24 sm:py-6"
+        <LearnDisclosureRow
             to={articlePath(entry.slug)}
-        >
-            <span className="bg-muted text-primary grid size-11 shrink-0 place-items-center rounded-xl sm:size-12">
-                <Icon aria-hidden="true" size={22} weight="duotone" />
-            </span>
-            <span className="min-w-0 flex-1">
-                <span className="text-primary block text-xs leading-relaxed font-bold tabular-nums">
-                    {entry.id}
-                </span>
-                <span className="block text-base leading-[1.55] font-bold text-balance sm:text-lg">
-                    {localized(entry.title, locale)}
-                </span>
-            </span>
-            <CaretRightIcon
-                className="text-muted-foreground shrink-0"
-                aria-hidden="true"
-                size={24}
-                weight="bold"
-            />
-        </Link>
+            title={localized(entry.title, locale)}
+            context={context}
+            className={className}
+        />
     )
 }
 
@@ -1582,12 +1690,55 @@ type LearnMetadataRowProps = {
 
 function LearnMetadataRow({ label, value }: LearnMetadataRowProps) {
     return (
-        <div className="grid min-w-0 gap-1 py-4 sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-x-6">
-            <dt className="font-bold">{label}</dt>
+        <div className="grid min-w-0 gap-1 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-baseline sm:gap-x-6">
+            <dt className="text-muted-foreground text-sm font-bold">{label}</dt>
             <dd className="text-muted-foreground mt-1 min-w-0 text-sm leading-relaxed break-words">
                 {value}
             </dd>
         </div>
+    )
+}
+
+type LearnSourceShelfProps = {
+    children: ReactNode
+    disclosure: string
+    heading: string
+    headingId: string
+}
+
+function LearnSourceShelf({
+    children,
+    disclosure,
+    heading,
+    headingId,
+}: LearnSourceShelfProps) {
+    return (
+        <section
+            className="border-info-200/90 bg-info-100/80 mt-8 rounded-2xl border p-4 sm:p-5"
+            aria-labelledby={headingId}
+        >
+            <h2
+                id={headingId}
+                className="text-info-950 text-xl leading-tight font-extrabold tracking-[-0.02em]"
+            >
+                {heading}
+            </h2>
+            <div className="mt-5">{children}</div>
+            <p className="text-info-800 mt-6 rounded-xl bg-white/75 p-4 text-sm leading-relaxed">
+                {disclosure}
+            </p>
+        </section>
+    )
+}
+
+function LearnSourceMarker() {
+    return (
+        <span
+            aria-hidden="true"
+            className="text-info-700 mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl bg-white/80"
+        >
+            <FileTextIcon size={18} weight="duotone" />
+        </span>
     )
 }
 
@@ -1606,16 +1757,22 @@ function LearnSourceSummary({
 }: LearnSourceSummaryProps) {
     return (
         <span className="block min-w-0">
-            <span
-                className={`text-foreground block font-bold ${plainText ? "underline decoration-1 underline-offset-4" : ""}`}
-            >
-                {name}
-            </span>
             {url ? (
-                <span className="text-muted-foreground mt-1 block font-mono text-xs leading-relaxed break-all">
-                    {url}
+                <a
+                    className="text-info-950 focus-visible:ring-info-500 hover:text-info-700 block font-bold underline decoration-1 underline-offset-4 transition-colors focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                    href={url}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                >
+                    {name}
+                </a>
+            ) : (
+                <span
+                    className={`text-info-950 block font-bold ${plainText ? "underline decoration-1 underline-offset-4" : ""}`}
+                >
+                    {name}
                 </span>
-            ) : null}
+            )}
             {section ? (
                 <span className="text-muted-foreground mt-1 block text-xs leading-relaxed">
                     {section}
@@ -1632,33 +1789,12 @@ type LearnArticleCardProps = {
 
 function LearnArticleCard({ entry, locale }: LearnArticleCardProps) {
     const { t } = useTranslation()
-    const Icon = topicIcon(entry.topic)
 
     return (
-        <Link
-            className="hover:bg-accent focus-visible:ring-ring group flex min-h-14 items-center gap-4 py-4 no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none sm:py-5"
+        <LearnDisclosureRow
             to={articlePath(entry.slug)}
-        >
-            <span className="bg-muted text-primary grid size-10 shrink-0 place-items-center rounded-lg">
-                <Icon aria-hidden="true" size={20} weight="duotone" />
-            </span>
-            <span className="min-w-0 flex-1">
-                <span className="text-primary block text-xs leading-relaxed font-bold">
-                    {t(`learn.topics.${entry.topic}`)}
-                </span>
-                <span className="text-foreground block text-base leading-[1.55] font-bold text-balance sm:text-lg">
-                    {localized(entry.title, locale)}
-                </span>
-                <span className="text-muted-foreground mt-1 block text-sm leading-[1.7]">
-                    {localized(entry.cardSummary, locale)}
-                </span>
-            </span>
-            <CaretRightIcon
-                className="text-primary shrink-0"
-                aria-hidden="true"
-                size={20}
-                weight="bold"
-            />
-        </Link>
+            title={localized(entry.title, locale)}
+            context={t(`learn.topics.${entry.topic}`)}
+        />
     )
 }

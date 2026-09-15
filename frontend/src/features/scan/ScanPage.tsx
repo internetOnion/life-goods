@@ -362,8 +362,15 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
     )
 
     useEffect(() => {
-        if (hasStartedCameraThisSession()) void startCamera()
+        let autoStartTimer: ReturnType<typeof setTimeout> | null = null
+        if (hasStartedCameraThisSession()) {
+            autoStartTimer = setTimeout(() => {
+                autoStartTimer = null
+                void startCamera()
+            }, 0)
+        }
         return () => {
+            if (autoStartTimer !== null) clearTimeout(autoStartTimer)
             clearAcquisitionTimer()
             releaseCamera()
         }
@@ -484,7 +491,10 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
 
                 {cameraState === "consent" ? (
                     <div className="relative z-20 grid min-h-[24rem] place-items-center px-6 py-10 text-center sm:min-h-[27rem] sm:px-10">
-                        <div className="max-w-xs">
+                        <div
+                            data-glass-surface="camera"
+                            className="max-w-xs rounded-2xl p-5 sm:p-6"
+                        >
                             <PrivacyScannerIllustration className="mx-auto mb-2 drop-shadow-md" />
                             <h2 className="mt-5 text-xl font-bold tracking-tight text-white">
                                 {text.privacyTitle}
@@ -493,7 +503,9 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                                 {text.privacyBody}
                             </p>
                             <Button
-                                className="mt-5 min-h-11 rounded-xl bg-[#995613] px-6 text-sm font-bold text-white transition-all hover:bg-[#7B440D] active:scale-[0.98] active:bg-[#5A320B]"
+                                appearance="glass"
+                                glassTone="primary"
+                                className="mt-5 min-h-11 rounded-full px-6 text-sm font-bold"
                                 type="button"
                                 onClick={beginFirstCameraSession}
                             >
@@ -510,7 +522,10 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
 
                 {cameraState === "starting" ? (
                     <div className="relative z-20 grid min-h-[24rem] place-items-center px-6 text-center sm:min-h-[27rem]">
-                        <div className="flex flex-col items-center">
+                        <div
+                            data-glass-surface="camera"
+                            className="flex flex-col items-center rounded-2xl px-6 py-5"
+                        >
                             <ArrowClockwiseIcon
                                 className="text-[#E7B583] motion-safe:animate-spin"
                                 size={34}
@@ -526,7 +541,10 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
 
                 {cameraState === "paused" ? (
                     <div className="relative z-20 grid min-h-[24rem] place-items-center px-6 py-10 text-center sm:min-h-[27rem]">
-                        <div className="max-w-sm">
+                        <div
+                            data-glass-surface="camera"
+                            className="max-w-sm rounded-2xl p-5 sm:p-6"
+                        >
                             <div
                                 className="mx-auto grid size-16 place-items-center rounded-2xl bg-[#303843] text-[#C6CFDD]"
                                 aria-hidden="true"
@@ -540,7 +558,9 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                                 {text.pausedBody}
                             </p>
                             <Button
-                                className="mt-6 min-h-11 rounded-xl bg-[#995613] px-6 text-sm font-bold text-white transition-all hover:bg-[#7B440D] active:scale-[0.98] active:bg-[#5A320B]"
+                                appearance="glass"
+                                glassTone="primary"
+                                className="mt-6 min-h-11 rounded-full px-6 text-sm font-bold"
                                 type="button"
                                 onClick={resumeCamera}
                             >
@@ -557,7 +577,10 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
 
                 {cameraState === "error" ? (
                     <div className="relative z-20 grid min-h-[24rem] place-items-center px-6 py-10 text-center sm:min-h-[27rem]">
-                        <div className="max-w-sm">
+                        <div
+                            data-glass-surface="camera"
+                            className="max-w-sm rounded-2xl p-5 sm:p-6"
+                        >
                             <div
                                 className="mx-auto grid size-16 place-items-center rounded-2xl bg-[#431515] text-[#D99191] ring-1 ring-[#681D1D]"
                                 aria-hidden="true"
@@ -572,7 +595,10 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                             </p>
                             <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:justify-center">
                                 <Button
-                                    className="min-h-12 rounded-xl bg-[#303843] px-6 font-bold text-white ring-1 ring-[#526073] transition-all hover:bg-[#404C5B] active:scale-[0.98]"
+                                    appearance="glass"
+                                    glassTone="neutral"
+                                    variant="ghost"
+                                    className="min-h-12 rounded-full px-6 font-bold"
                                     type="button"
                                     onClick={() => void startCamera()}
                                     disabled={!canUseCamera(videoRef.current)}
@@ -584,13 +610,20 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                                     />
                                     <span>{text.tryAgain}</span>
                                 </Button>
-                                <Link
-                                    to="/search"
-                                    onClick={handleSearchNavigation}
-                                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#F3E8DD] px-5 text-sm font-bold text-[#5A320B] shadow-[0_8px_20px_-14px_rgba(90,50,11,0.8)] ring-1 ring-[#E8C9A4] transition-all hover:bg-[#FFF8F0] focus-visible:ring-2 focus-visible:ring-[#F3E8DD] focus-visible:ring-offset-2 focus-visible:ring-offset-[#131519] focus-visible:outline-none active:scale-[0.98]"
+                                <Button
+                                    asChild
+                                    appearance="glass"
+                                    glassTone="selected"
+                                    variant="ghost"
+                                    className="min-h-12 rounded-full px-5 text-sm font-bold"
                                 >
-                                    <span>{text.enterBarcode}</span>
-                                </Link>
+                                    <Link
+                                        to="/search"
+                                        onClick={handleSearchNavigation}
+                                    >
+                                        <span>{text.enterBarcode}</span>
+                                    </Link>
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -615,13 +648,12 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                         {cameraState === "scanning" ? (
                             <div className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-end gap-3 bg-gradient-to-t from-black/85 via-black/45 to-transparent p-4 pt-16">
                                 <Button
-                                    className={cn(
-                                        "size-12 rounded-full border p-0 backdrop-blur-sm transition-all focus-visible:ring-white focus-visible:ring-offset-[#131519] active:scale-95",
-                                        torchEnabled
-                                            ? "border-[#E7B583] bg-[#E7B583] text-[#131519] hover:bg-[#F3E8DD]"
-                                            : "border-white/30 bg-black/60 text-white hover:bg-black/80 hover:text-white active:bg-black/90",
-                                    )}
-                                    variant="outline"
+                                    appearance="glass"
+                                    glassTone={
+                                        torchEnabled ? "selected" : "neutral"
+                                    }
+                                    className="size-12 rounded-full p-0 focus-visible:ring-white focus-visible:ring-offset-[#131519] active:scale-95"
+                                    variant="ghost"
                                     type="button"
                                     aria-label={
                                         !torchAvailable
@@ -646,8 +678,10 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                                     />
                                 </Button>
                                 <Button
-                                    className="ml-auto size-12 rounded-full border border-white/30 bg-black/60 p-0 text-white backdrop-blur-sm transition-all hover:bg-black/80 hover:text-white focus-visible:ring-white focus-visible:ring-offset-[#131519] active:scale-95 active:bg-black/90"
-                                    variant="outline"
+                                    appearance="glass"
+                                    glassTone="neutral"
+                                    className="ml-auto size-12 rounded-full p-0 focus-visible:ring-white focus-visible:ring-offset-[#131519] active:scale-95"
+                                    variant="ghost"
                                     type="button"
                                     aria-label={text.pause}
                                     onClick={pauseCamera}
@@ -659,8 +693,10 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                                     />
                                 </Button>
                                 <Button
-                                    className="size-12 rounded-full border border-white/30 bg-black/60 p-0 text-white backdrop-blur-sm transition-all hover:bg-black/80 hover:text-white focus-visible:ring-white focus-visible:ring-offset-[#131519] active:scale-95 active:bg-black/90"
-                                    variant="outline"
+                                    appearance="glass"
+                                    glassTone="neutral"
+                                    className="size-12 rounded-full p-0 focus-visible:ring-white focus-visible:ring-offset-[#131519] active:scale-95"
+                                    variant="ghost"
                                     type="button"
                                     aria-label={text.switch}
                                     onClick={switchCamera}
@@ -691,29 +727,36 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
             </section>
 
             <div className="mx-auto mt-4 w-full max-w-lg">
-                <Link
-                    to="/search"
-                    onClick={handleSearchNavigation}
-                    aria-label={text.searchLabel}
+                <Button
+                    asChild
+                    appearance="glass"
+                    glassTone="neutral"
+                    variant="ghost"
                     className={cn(
-                        "group relative flex h-[60px] w-full items-center rounded-full border border-neutral-200/90 bg-white pr-20 pl-[3.25rem] text-base text-neutral-400 shadow-[0_6px_14px_-10px_rgba(19,21,25,0.55)] transition-all duration-150 select-none [view-transition-name:search-bar]",
-                        "focus-visible:ring-primary-500 hover:border-neutral-300 hover:shadow-md focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.99]",
+                        "group relative flex h-[60px] w-full items-center rounded-full pr-20 pl-[3.25rem] text-base font-normal text-neutral-600 select-none [view-transition-name:search-bar]",
+                        "focus-visible:ring-primary-500 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
                     )}
                 >
-                    <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center">
-                        <BrandMark size={22} />
-                    </span>
-                    <span className="min-w-0 flex-1 truncate">
-                        {text.searchPlaceholder}
-                    </span>
-                    <span className="pointer-events-none absolute top-1/2 right-1.5 grid size-[52px] -translate-y-1/2 place-items-center rounded-full bg-neutral-800 text-white shadow-[0_6px_14px_-10px_rgba(19,21,25,0.75)]">
-                        <MagnifyingGlassIcon
-                            size={22}
-                            weight="bold"
-                            aria-hidden="true"
-                        />
-                    </span>
-                </Link>
+                    <Link
+                        to="/search"
+                        onClick={handleSearchNavigation}
+                        aria-label={text.searchLabel}
+                    >
+                        <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center">
+                            <BrandMark size={22} />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate">
+                            {text.searchPlaceholder}
+                        </span>
+                        <span className="pointer-events-none absolute top-1/2 right-0 grid size-[60px] -translate-y-1/2 place-items-center rounded-full bg-neutral-800 text-white shadow-[0_6px_14px_-10px_rgba(19,21,25,0.75)]">
+                            <MagnifyingGlassIcon
+                                size={22}
+                                weight="bold"
+                                aria-hidden="true"
+                            />
+                        </span>
+                    </Link>
+                </Button>
             </div>
         </main>
     )

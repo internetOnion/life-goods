@@ -147,6 +147,107 @@ export function CeleryIcon({
     )
 }
 
+export function GlutenIcon({
+    size = 24,
+    weight = "regular",
+    className,
+    ...props
+}: AllergenIconProps) {
+    const strokeWidth = weight === "bold" ? 22 : 16
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 256 256"
+            width={size}
+            height={size}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className={className}
+            {...props}
+        >
+            {/* Wheat stalk with paired grain heads */}
+            <path d="M128 224 V42" />
+            <path d="M128 78 C112 72 99 60 92 44 C110 46 123 57 128 72" />
+            <path d="M128 108 C110 102 96 90 88 74 C106 76 121 87 128 102" />
+            <path d="M128 138 C110 132 96 120 88 104 C106 106 121 117 128 132" />
+            <path d="M128 78 C144 72 157 60 164 44 C146 46 133 57 128 72" />
+            <path d="M128 108 C146 102 160 90 168 74 C150 76 135 87 128 102" />
+            <path d="M128 138 C146 132 160 120 168 104 C150 106 135 117 128 132" />
+        </svg>
+    )
+}
+
+export function LupinIcon({
+    size = 24,
+    weight = "regular",
+    className,
+    ...props
+}: AllergenIconProps) {
+    const strokeWidth = weight === "bold" ? 22 : 16
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 256 256"
+            width={size}
+            height={size}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className={className}
+            {...props}
+        >
+            {/* Lupin's tall flower spike and palmate leaves */}
+            <path d="M128 224 V54" />
+            <path d="M128 164 C108 164 92 154 82 138 C102 137 119 146 128 158" />
+            <path d="M128 164 C148 164 164 154 174 138 C154 137 137 146 128 158" />
+            <path d="M128 198 C108 198 94 188 84 174 C103 173 119 181 128 192" />
+            <path d="M128 198 C148 198 162 188 172 174 C153 173 137 181 128 192" />
+            <path d="M128 38 C116 42 110 52 112 64 C114 76 120 82 128 88 C136 82 142 76 144 64 C146 52 140 42 128 38 Z" />
+            <path d="M128 58 C120 56 116 60 116 66 C116 72 121 76 128 78 C135 76 140 72 140 66 C140 60 136 56 128 58 Z" />
+            <path d="M128 88 C120 86 116 90 116 96 C116 102 121 106 128 108 C135 106 140 102 140 96 C140 90 136 86 128 88 Z" />
+            <path d="M128 118 C120 116 116 120 116 126 C116 132 121 136 128 138 C135 136 140 132 140 126 C140 120 136 116 128 118 Z" />
+        </svg>
+    )
+}
+
+export function MilkIcon({
+    size = 24,
+    weight = "regular",
+    className,
+    ...props
+}: AllergenIconProps) {
+    const strokeWidth = weight === "bold" ? 22 : 16
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 256 256"
+            width={size}
+            height={size}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className={className}
+            {...props}
+        >
+            {/* Milk bottle with cap and label band */}
+            <path d="M104 40 H152 V60 H104 Z" />
+            <path d="M94 60 H162 V76 C162 86 174 92 178 106 V210 C178 220 170 228 160 228 H96 C86 228 78 220 78 210 V106 C82 92 94 86 94 76 Z" />
+            <path d="M82 112 H174" />
+            <path d="M94 154 H162" />
+        </svg>
+    )
+}
+
 export function SesameIcon({
     size = 24,
     weight = "regular",

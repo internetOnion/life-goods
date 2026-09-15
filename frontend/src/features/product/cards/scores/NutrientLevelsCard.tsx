@@ -472,7 +472,7 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
                                     aria-expanded={isExpanded}
                                     aria-controls={`nutrient-details-${m.key}`}
                                     aria-label={`${m.label}${amountLabel ? ` ${amountLabel}` : ""} ${statusLabel}`}
-                                    className="h-auto min-h-16 w-full cursor-pointer items-center justify-between gap-2 rounded-none p-2 text-left font-normal transition-colors hover:bg-neutral-50/60 sm:min-h-18 sm:gap-2.5 sm:p-2.5"
+                                    className="h-auto min-h-16 w-full cursor-pointer items-center justify-between gap-2 rounded-xl p-2 text-left font-normal transition-colors hover:bg-neutral-50/60 sm:min-h-18 sm:gap-2.5 sm:p-2.5"
                                 >
                                     <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
                                         <MetricIcon className="size-7 shrink-0 text-neutral-500 sm:size-8" />
@@ -522,12 +522,12 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
 
                                         {isExpanded ? (
                                             <ChevronUp
-                                                className="size-4 text-neutral-400 transition-colors group-hover:text-neutral-600"
+                                                className="size-4 text-neutral-500 transition-colors group-hover:text-neutral-700"
                                                 aria-hidden="true"
                                             />
                                         ) : (
                                             <ChevronDown
-                                                className="size-4 text-neutral-400 transition-colors group-hover:text-neutral-600"
+                                                className="size-4 text-neutral-500 transition-colors group-hover:text-neutral-700"
                                                 aria-hidden="true"
                                             />
                                         )}
@@ -632,18 +632,18 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
                         className="text-micro flex h-auto w-full cursor-pointer items-center justify-between gap-2 p-0 py-1 text-left font-medium whitespace-normal text-neutral-500 transition-colors hover:bg-transparent hover:text-neutral-800"
                     >
                         <div className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
-                            <Info className="h-3 w-3 shrink-0 text-neutral-400" />
+                            <Info className="h-3 w-3 shrink-0 text-neutral-500" />
                             <span className="text-micro min-w-0 leading-snug">
                                 Official Nutritional Standards{" "}
-                                <span className="font-normal text-neutral-400">
+                                <span className="font-normal text-neutral-600">
                                     (UK FSA per 100g)
                                 </span>
                             </span>
                         </div>
                         {showStandards ? (
-                            <ChevronUp className="h-3 w-3 shrink-0 text-neutral-400" />
+                            <ChevronUp className="h-3 w-3 shrink-0 text-neutral-500" />
                         ) : (
-                            <ChevronDown className="h-3 w-3 shrink-0 text-neutral-400" />
+                            <ChevronDown className="h-3 w-3 shrink-0 text-neutral-500" />
                         )}
                     </Button>
 

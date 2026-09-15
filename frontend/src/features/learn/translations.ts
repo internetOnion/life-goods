@@ -30,6 +30,7 @@ export const learnTranslations = {
             supportingHint:
                 "ឯកសារច្បាប់ ស្តង់ដារ និងមេរៀនអំពីប្រភពដែលរក្សាទុកដាច់ដោយឡែកពីមគ្គុទ្ទេសក៍អានស្លាក។",
             guideLessonsTitle: "មេរៀនក្នុងមគ្គុទ្ទេសក៍នេះ",
+            lessonPosition: "មេរៀន {{current}} ក្នុងចំណោម {{total}}",
             stepProgress: "ជំហាន {{current}} នៃ {{total}}",
             lessonNavigationLabel: "ការរុករកមេរៀន",
             previousLesson: "មេរៀនមុន",
@@ -92,7 +93,7 @@ export const learnTranslations = {
             guidesHint:
                 "Choose a guide for a quick comparison table and detailed lessons.",
             searchLabel: "Search topics",
-            searchPlaceholder: "Search by topic, title, or source",
+            searchPlaceholder: "search by topic, title, or source",
             clearSearch: "Clear search",
             resultsCount: "Showing {{count}} lessons",
             noResults: "No topics match your search.",
@@ -114,6 +115,7 @@ export const learnTranslations = {
             supportingHint:
                 "Legal documents, standards, and source-literacy lessons kept separate from the practical guides.",
             guideLessonsTitle: "Lessons in this guide",
+            lessonPosition: "Lesson {{current}} of {{total}}",
             stepProgress: "Step {{current}} of {{total}}",
             lessonNavigationLabel: "Lesson navigation",
             previousLesson: "Previous lesson",

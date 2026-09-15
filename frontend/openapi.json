@@ -2311,6 +2311,23 @@
             "title": "Brands",
             "type": "array"
           },
+          "generic_name": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OriginalText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Labels",
+            "type": "array"
+          },
           "manufacturing_places": {
             "items": {
               "type": "string"
@@ -2327,6 +2344,17 @@
                 "type": "null"
               }
             ]
+          },
+          "packaging": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Packaging"
           },
           "quantity": {
             "anyOf": [

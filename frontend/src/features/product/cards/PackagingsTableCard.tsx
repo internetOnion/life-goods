@@ -92,7 +92,7 @@ export const PackagingsTableCard: React.FC<PackagingsTableCardProps> = ({
                                         return (
                                             <tr
                                                 key={idx}
-                                                className="transition-colors hover:bg-neutral-50/70"
+                                                className="table-row-hover"
                                             >
                                                 <td className="px-3 py-2.5 align-middle text-xs font-semibold text-neutral-900 capitalize sm:text-sm">
                                                     {shape}
@@ -106,7 +106,7 @@ export const PackagingsTableCard: React.FC<PackagingsTableCardProps> = ({
                                                     pkg.weightMeasured !==
                                                         undefined ? (
                                                         <span className="inline-flex items-center justify-start gap-1 whitespace-nowrap tabular-nums">
-                                                            <Scale className="h-3 w-3 shrink-0 text-neutral-400" />
+                                                            <Scale className="h-3 w-3 shrink-0 text-neutral-500" />
                                                             <span>
                                                                 {
                                                                     pkg.weightMeasured
@@ -115,7 +115,7 @@ export const PackagingsTableCard: React.FC<PackagingsTableCardProps> = ({
                                                             </span>
                                                         </span>
                                                     ) : (
-                                                        <span className="font-mono text-xs whitespace-nowrap text-neutral-400">
+                                                        <span className="font-mono text-xs whitespace-nowrap text-neutral-600">
                                                             Source Data
                                                             Unavailable
                                                         </span>
@@ -143,7 +143,7 @@ export const PackagingsTableCard: React.FC<PackagingsTableCardProps> = ({
                                                             </span>
                                                         </Badge>
                                                     ) : (
-                                                        <span className="text-micro text-neutral-400">
+                                                        <span className="text-micro text-neutral-600">
                                                             Source Data
                                                             Unavailable
                                                         </span>

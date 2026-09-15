@@ -39,7 +39,7 @@ export function DataAndLicensesPage() {
                     remain external community data. They may be incomplete,
                     inconsistent, outdated, or incorrect.
                 </p>
-                <dl className="divide-info-200/70 border-info-200/70 mt-5 divide-y border-y">
+                <dl className="divide-info-200/70 border-info-200/70 mt-5 divide-y border-t">
                     <div className="grid gap-1 py-3 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-5">
                         <dt className="text-info-700 text-xs font-bold tracking-[0.06em] uppercase">
                             Source
@@ -63,7 +63,7 @@ export function DataAndLicensesPage() {
                 <h2 className="text-xl font-extrabold tracking-[-0.02em] text-neutral-950">
                     Reuse terms
                 </h2>
-                <dl className="mt-4 divide-y divide-neutral-200 border-y border-neutral-200">
+                <dl className="mt-4 divide-y divide-neutral-200 border-t border-neutral-200">
                     <LicenseRow
                         label="Database"
                         value="Open Database License"

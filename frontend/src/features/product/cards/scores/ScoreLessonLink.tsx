@@ -2,6 +2,7 @@ import React from "react"
 import { Link, useLocation, useNavigate } from "react-router"
 
 import type { ProductLessonLocationState } from "@/features/product/navigation"
+import { cn } from "@/lib/utils"
 
 type ScoreLessonLinkProps = {
     to: string
@@ -38,7 +39,11 @@ export function ScoreLessonLink({
     }
 
     return (
-        <Link to={to} className={className} onClick={handleClick}>
+        <Link
+            to={to}
+            className={cn("block overflow-hidden rounded-xl", className)}
+            onClick={handleClick}
+        >
             {children}
         </Link>
     )

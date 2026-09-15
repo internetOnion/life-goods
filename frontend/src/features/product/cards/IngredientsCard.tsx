@@ -162,7 +162,7 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                         <div className="flex items-center justify-between gap-3 border-b border-neutral-200 bg-neutral-50 px-3 py-1.5">
                             <div className="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-neutral-600">
                                 <Languages
-                                    className="text-info-600 size-3.5 shrink-0"
+                                    className="text-info-700 size-3.5 shrink-0"
                                     aria-hidden="true"
                                 />
                                 <span>Ingredient language</span>
@@ -179,7 +179,7 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                                 onChange={(event) =>
                                     setSelectedLanguage(event.target.value)
                                 }
-                                className="h-10 min-h-0 max-w-[9rem] rounded-lg bg-white px-3 text-xs font-bold"
+                                className="h-10 min-h-0 max-w-[9rem] rounded-lg bg-white pr-10 pl-3 text-xs font-bold"
                             >
                                 {availableLanguages.map(({ code, name }) => (
                                     <option key={code} value={code}>
@@ -218,7 +218,7 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                                 {parsed.ingredients.map((item) => (
                                     <tr
                                         key={item.id + item.name}
-                                        className="transition-colors hover:bg-neutral-50/70"
+                                        className="table-row-hover"
                                     >
                                         <td className="px-3 py-2 align-top text-xs font-semibold text-neutral-900 sm:text-sm">
                                             <div className="min-w-0 space-y-1">
@@ -236,7 +236,7 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                                                                 strokeWidth="1.5"
                                                                 strokeLinecap="round"
                                                                 strokeLinejoin="round"
-                                                                className="text-info-500 size-4 shrink-0"
+                                                                className="text-info-700 size-4 shrink-0"
                                                                 aria-hidden="true"
                                                             >
                                                                 <path d="M3 0v12c0 3.314 2.686 6 6 6h4" />

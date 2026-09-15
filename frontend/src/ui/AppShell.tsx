@@ -9,6 +9,7 @@ import { NavLink, useLocation } from "react-router"
 
 import { appRoutes } from "@/app/routes"
 import { SplashScreen } from "@/components/brand/SplashScreen"
+import { ScrollToTopButton } from "@/components/layout/ScrollToTopButton"
 import { cn } from "@/lib/utils"
 import { AppShellNavigationContext } from "./AppShellNavigation"
 
@@ -17,11 +18,6 @@ type AppShellProps = {
 }
 
 const navigation = [
-    {
-        to: appRoutes.learn,
-        label: "Learn",
-        icon: BookOpenTextIcon,
-    },
     {
         to: appRoutes.home,
         label: "Scan",
@@ -34,6 +30,11 @@ const navigation = [
         icon: ScalesIcon,
     },
     {
+        to: appRoutes.learn,
+        label: "Learn",
+        icon: BookOpenTextIcon,
+    },
+    {
         to: appRoutes.concerns,
         label: "Concerns",
         icon: ListChecksIcon,
@@ -44,9 +45,14 @@ export function AppShell({ children }: AppShellProps) {
     const location = useLocation()
     const [showSplash, setShowSplash] = useState(true)
     const isSearchRoute = location.pathname.startsWith(appRoutes.search)
+    const isLearnArticleRoute =
+        location.pathname.startsWith(`${appRoutes.learn}/`) &&
+        !location.pathname.startsWith(`${appRoutes.learn}/guides/`)
     const [isPrimaryNavigationHidden, setPrimaryNavigationHidden] =
         useState(false)
-    const showPrimaryNavigation = !isSearchRoute && !isPrimaryNavigationHidden
+    const [isBottomDockVisible, setBottomDockVisible] = useState(false)
+    const showPrimaryNavigation =
+        !isSearchRoute && !isLearnArticleRoute && !isPrimaryNavigationHidden
 
     useEffect(() => {
         const prefersReducedMotion =
@@ -73,7 +79,7 @@ export function AppShell({ children }: AppShellProps) {
 
     return (
         <AppShellNavigationContext.Provider
-            value={{ setPrimaryNavigationHidden }}
+            value={{ setBottomDockVisible, setPrimaryNavigationHidden }}
         >
             <div className="bg-background text-foreground flex min-h-svh min-w-0 flex-col">
                 {showSplash && <SplashScreen />}
@@ -87,6 +93,10 @@ export function AppShell({ children }: AppShellProps) {
                 >
                     {children}
                 </div>
+
+                <ScrollToTopButton
+                    hasBottomDock={showPrimaryNavigation || isBottomDockVisible}
+                />
 
                 {showPrimaryNavigation && (
                     <nav

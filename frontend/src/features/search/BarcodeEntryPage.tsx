@@ -1,32 +1,41 @@
 import {
     ArrowLeftIcon,
     CircleNotchIcon,
-    XIcon,
+    ClockCounterClockwiseIcon,
     InfoIcon,
     MagnifyingGlassIcon,
-    ClockCounterClockwiseIcon,
+    PackageIcon,
+    TrashIcon,
+    XIcon,
 } from "@phosphor-icons/react"
 import { type FormEvent, useEffect, useRef, useState } from "react"
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router"
 
 import { Button } from "@/components/ui/button"
 import { BrandMark } from "@/components/brand/BrandMark"
-import { PackageImagePlaceholder } from "@/components/illustrations"
 import { Input } from "@/components/ui/input"
-import { buildProxiedImageUrl } from "@/features/product/adapter"
 import { validateIdentifier } from "@/features/scan/identifier"
 import { usePageMetadata } from "@/lib/metadata"
-import { getRecentScans, type ScanHistoryItem } from "@/lib/history"
+import {
+    clearRecentScans,
+    getRecentScans,
+    removeScanItem,
+    type ScanHistoryItem,
+} from "@/lib/history"
 import { cn } from "@/lib/utils"
 
 import { searchProducts, type ProductSearchResult } from "./api"
 import {
+    clearRecentSearches,
     getRecentSearches,
     removeRecentSearch,
     saveRecentSearch,
     type SearchHistoryItem,
 } from "./history"
-import { RecentProductCard } from "./RecentProductCard"
+import {
+    ProductListItem,
+    ProductNameUnavailableNotice,
+} from "./ProductListItem"
 
 type SearchLocationState = {
     invalidBarcode?: string
@@ -46,17 +55,58 @@ function isBarcodeInput(value: string) {
     return /^[\d\s-]+$/.test(value)
 }
 
-function productName(result: ProductSearchResult) {
-    return result.name?.value ?? "Unnamed Product"
-}
-
 function brandName(result: ProductSearchResult) {
     return result.brands?.join(", ") || null
 }
 
-function manufacturingPlaceName(result: ProductSearchResult) {
-    return result.manufacturing_places?.join(", ") || null
+type RecentActivityItem =
+    | {
+          kind: "query"
+          key: string
+          timestamp: number
+          item: SearchHistoryItem
+      }
+    | {
+          kind: "product"
+          key: string
+          timestamp: number
+          item: ScanHistoryItem
+      }
+
+function getRecentActivity(
+    searchHistory: SearchHistoryItem[],
+    recentProducts: ScanHistoryItem[],
+) {
+    return [
+        ...searchHistory.map<RecentActivityItem>((item) => ({
+            kind: "query",
+            key: `query-${item.query}-${item.searchedAt}`,
+            timestamp: item.searchedAt,
+            item,
+        })),
+        ...recentProducts.slice(0, 4).map<RecentActivityItem>((item) => ({
+            kind: "product",
+            key: `product-${item.identifier}`,
+            timestamp: item.timestamp,
+            item,
+        })),
+    ]
+        .sort((left, right) => right.timestamp - left.timestamp)
+        .slice(0, 8)
 }
+
+const recentActivityRowClass =
+    "h-16 min-h-16 items-center gap-3 px-2.5 py-2 text-left transition-colors hover:bg-transparent focus-visible:bg-neutral-50 sm:px-3"
+const recentActivityIconClass =
+    "flex size-8 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600"
+const recentActivityPrimaryClass =
+    "type-supporting block truncate font-semibold text-neutral-900"
+const recentActivitySecondaryClass =
+    "type-caption mt-0.5 block truncate text-neutral-500"
+const recentActivityRemoveClass =
+    "mr-1 size-10 shrink-0 rounded-lg bg-transparent text-neutral-600 hover:bg-transparent hover:text-error-700 focus-visible:ring-2 focus-visible:ring-offset-1 sm:mr-1.5"
+const recentActivityItemClass =
+    "relative flex w-full min-w-0 items-center rounded-xl bg-transparent transition-colors hover:bg-neutral-50"
 
 export function BarcodeEntryPage() {
     const [searchParams] = useSearchParams()
@@ -80,7 +130,8 @@ export function BarcodeEntryPage() {
     const [results, setResults] = useState<ProductSearchResult[]>([])
     const [nextCursor, setNextCursor] = useState<string | null>(null)
     const [isLoadingMore, setIsLoadingMore] = useState(false)
-    const [recentProducts] = useState<ScanHistoryItem[]>(getRecentScans)
+    const [recentProducts, setRecentProducts] =
+        useState<ScanHistoryItem[]>(getRecentScans)
     const [searchHistory, setSearchHistory] =
         useState<SearchHistoryItem[]>(getRecentSearches)
     const searchRequestRef = useRef(0)
@@ -151,7 +202,9 @@ export function BarcodeEntryPage() {
         }
         const validation = validateIdentifier(trimmed)
         if (validation.valid) {
-            await runProductSearch(trimmed)
+            setSearchHistory(saveRecentSearch(trimmed))
+            searchRequestRef.current += 1
+            void navigate(`/products/${validation.value}`)
             return
         }
 
@@ -188,6 +241,25 @@ export function BarcodeEntryPage() {
         setSearchHistory(removeRecentSearch(item.query))
     }
 
+    const removeProduct = (item: ScanHistoryItem) => {
+        removeScanItem(item.identifier)
+        setRecentProducts((current) =>
+            current.filter((product) => product.identifier !== item.identifier),
+        )
+    }
+
+    const clearRecentActivity = () => {
+        clearRecentSearches()
+        clearRecentScans()
+        setSearchHistory([])
+        setRecentProducts([])
+    }
+
+    const recentActivity = getRecentActivity(searchHistory, recentProducts)
+    const missingProductNameCount = results.filter(
+        (result) => !result.name?.value?.trim(),
+    ).length
+
     return (
         <main className="page-rail page-rail-tight sm:px-6 sm:pt-4">
             <h1 ref={headingRef} tabIndex={-1} className="sr-only">
@@ -208,7 +280,7 @@ export function BarcodeEntryPage() {
                         />
                     </Link>
                 </Button>
-                <span className="pointer-events-none absolute inset-x-0 text-center text-lg font-extrabold text-neutral-900">
+                <span className="type-section-title pointer-events-none absolute inset-x-0 text-center text-neutral-900">
                     Search
                 </span>
             </div>
@@ -226,7 +298,7 @@ export function BarcodeEntryPage() {
                         id="search"
                         aria-label="Search"
                         className={cn(
-                            "h-[60px] rounded-full border-neutral-200/90 bg-white pr-20 pl-[3.25rem] text-base shadow-[0_6px_14px_-10px_rgba(19,21,25,0.55)] placeholder:text-neutral-400",
+                            "h-[60px] rounded-full border-neutral-200/90 bg-white pr-20 pl-[3.25rem] text-xs shadow-[0_6px_14px_-10px_rgba(19,21,25,0.55)] placeholder:text-neutral-600 sm:text-sm lg:text-base",
                             error &&
                                 "border-error-500 focus-visible:ring-error-500/25",
                         )}
@@ -242,12 +314,12 @@ export function BarcodeEntryPage() {
                         spellCheck={false}
                         aria-invalid={error ? true : undefined}
                         aria-describedby={error ? "search-error" : undefined}
-                        placeholder="Search Product, company or country..."
+                        placeholder="barcode, product, or brand"
                     />
                 </div>
 
                 <Button
-                    className="absolute top-1/2 right-1.5 size-[52px] -translate-y-1/2 rounded-full bg-neutral-800 p-0 text-white shadow-[0_6px_14px_-10px_rgba(19,21,25,0.75)] hover:bg-neutral-900 active:bg-neutral-950 disabled:opacity-80"
+                    className="absolute top-1/2 right-0 size-[60px] -translate-y-1/2 rounded-full bg-neutral-800 p-0 text-white shadow-[0_6px_14px_-10px_rgba(19,21,25,0.75)] hover:bg-neutral-900 active:bg-neutral-950 disabled:opacity-80"
                     type="submit"
                     aria-label="Search"
                     disabled={searchStatus === "loading"}
@@ -272,99 +344,179 @@ export function BarcodeEntryPage() {
             {searchStatus === "idle" && !query && !error ? (
                 <section
                     className="mx-auto mt-6 w-full max-w-lg text-left"
-                    aria-labelledby="search-history-heading"
-                >
-                    <div className="min-w-0">
-                        <h2
-                            id="search-history-heading"
-                            className="text-sm font-extrabold text-neutral-900"
-                        >
-                            Search history
-                        </h2>
-                    </div>
-                    {searchHistory.length ? (
-                        <ul className="mt-3 grid grid-cols-2 gap-2">
-                            {searchHistory.map((item) => (
-                                <li
-                                    className="flex min-w-0 items-center rounded-lg border border-neutral-300/90 bg-white shadow-[0_5px_12px_-12px_rgba(19,21,25,0.65)] transition-[border-color,background-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-neutral-400 hover:bg-neutral-50/70 hover:shadow-[0_8px_18px_-14px_rgba(19,21,25,0.7)]"
-                                    key={`${item.query}-${item.searchedAt}`}
-                                >
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        className="group min-h-10 min-w-0 flex-1 justify-start gap-1.5 rounded-lg px-2 py-1 text-left focus-visible:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:translate-y-0 sm:px-2.5"
-                                        onClick={() => replaySearch(item)}
-                                        aria-label={`Search again for ${item.query}`}
-                                    >
-                                        <ClockCounterClockwiseIcon
-                                            className="text-info-500 group-hover:text-info-600 shrink-0 transition-colors"
-                                            size={16}
-                                            weight="duotone"
-                                            aria-hidden="true"
-                                        />
-                                        <span className="min-w-0 truncate text-xs font-semibold tracking-[-0.01em] text-neutral-800">
-                                            {item.query}
-                                        </span>
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon-sm"
-                                        className="focus-visible:ring-primary-500 mr-0.5 size-9 shrink-0 rounded-md text-neutral-400 hover:bg-neutral-100 hover:text-neutral-800 focus-visible:ring-2 focus-visible:ring-offset-1"
-                                        onClick={() => removeSearch(item)}
-                                        aria-label={`Remove ${item.query} from search history`}
-                                    >
-                                        <XIcon
-                                            size={16}
-                                            weight="bold"
-                                            aria-hidden="true"
-                                        />
-                                    </Button>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className="mt-3 py-1 text-center text-sm leading-relaxed text-neutral-600">
-                            You haven&apos;t searched yet.
-                        </p>
-                    )}
-                </section>
-            ) : null}
-
-            {searchStatus === "idle" && !query && !error ? (
-                <section
-                    className="mx-auto mt-8 w-full max-w-lg text-left"
-                    aria-labelledby="recent-searches-heading"
+                    aria-labelledby="recent-activity-heading"
                 >
                     <div className="flex items-center justify-between gap-4">
                         <div className="min-w-0">
                             <h2
-                                id="recent-searches-heading"
-                                className="text-sm font-extrabold text-neutral-900"
+                                id="recent-activity-heading"
+                                className="type-section-title text-neutral-900"
                             >
-                                Recent searches
+                                Recent activity
                             </h2>
                         </div>
-                        {recentProducts.length ? (
-                            <Link
-                                to="/search/recent"
-                                className="text-primary-700 hover:bg-primary-50 hover:text-primary-800 focus-visible:ring-primary-500 shrink-0 rounded-lg px-2.5 py-2 text-sm font-extrabold transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-                            >
-                                See more
-                            </Link>
-                        ) : null}
+                        <div className="flex shrink-0 items-center gap-1">
+                            {recentProducts.length ? (
+                                <Link
+                                    to="/search/recent"
+                                    className="type-supporting text-primary-700 hover:bg-primary-50 hover:text-primary-800 focus-visible:ring-primary-500 rounded-xl px-2.5 py-2 font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                                >
+                                    See all
+                                </Link>
+                            ) : null}
+                            {recentActivity.length ? (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="px-2.5 text-neutral-600"
+                                    onClick={clearRecentActivity}
+                                >
+                                    <TrashIcon size={16} aria-hidden="true" />
+                                    Clear all
+                                </Button>
+                            ) : null}
+                        </div>
                     </div>
-                    {recentProducts.length ? (
-                        <ul className="mt-3 space-y-2.5">
-                            {recentProducts.slice(0, 4).map((item) => (
-                                <li key={item.identifier}>
-                                    <RecentProductCard item={item} />
-                                </li>
-                            ))}
+                    {recentActivity.length ? (
+                        <ul className="mt-3 divide-y divide-neutral-200 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white">
+                            {recentActivity.map((activity) => {
+                                if (activity.kind === "query") {
+                                    return (
+                                        <li
+                                            className={recentActivityItemClass}
+                                            key={activity.key}
+                                        >
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                className={`${recentActivityRowClass} flex min-w-0 flex-1 justify-start rounded-none`}
+                                                onClick={() =>
+                                                    replaySearch(activity.item)
+                                                }
+                                                aria-label={`Search again for ${activity.item.query}`}
+                                            >
+                                                <span
+                                                    className={
+                                                        recentActivityIconClass
+                                                    }
+                                                >
+                                                    <ClockCounterClockwiseIcon
+                                                        size={17}
+                                                        weight="duotone"
+                                                        aria-hidden="true"
+                                                    />
+                                                </span>
+                                                <span className="min-w-0">
+                                                    <span
+                                                        className={
+                                                            recentActivityPrimaryClass
+                                                        }
+                                                    >
+                                                        {activity.item.query}
+                                                    </span>
+                                                    <span
+                                                        className={
+                                                            recentActivitySecondaryClass
+                                                        }
+                                                    >
+                                                        Search term
+                                                    </span>
+                                                </span>
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                className={
+                                                    recentActivityRemoveClass
+                                                }
+                                                onClick={() =>
+                                                    removeSearch(activity.item)
+                                                }
+                                                aria-label={`Remove ${activity.item.query} from search history`}
+                                            >
+                                                <XIcon
+                                                    size={16}
+                                                    weight="bold"
+                                                    aria-hidden="true"
+                                                />
+                                            </Button>
+                                        </li>
+                                    )
+                                }
+
+                                return (
+                                    <li
+                                        className={recentActivityItemClass}
+                                        key={activity.key}
+                                    >
+                                        <Button
+                                            asChild
+                                            variant="ghost"
+                                            className={`${recentActivityRowClass} flex min-w-0 flex-1 justify-start rounded-none`}
+                                        >
+                                            <Link
+                                                to={`/products/${activity.item.identifier}`}
+                                                aria-label={`View Product ${activity.item.identifier}`}
+                                            >
+                                                <span
+                                                    className={
+                                                        recentActivityIconClass
+                                                    }
+                                                >
+                                                    <PackageIcon
+                                                        size={17}
+                                                        weight="duotone"
+                                                        aria-hidden="true"
+                                                    />
+                                                </span>
+                                                <span className="min-w-0">
+                                                    <span
+                                                        className={
+                                                            recentActivityPrimaryClass
+                                                        }
+                                                    >
+                                                        {
+                                                            activity.item
+                                                                .identifier
+                                                        }
+                                                    </span>
+                                                    <span
+                                                        className={
+                                                            recentActivitySecondaryClass
+                                                        }
+                                                    >
+                                                        Product
+                                                    </span>
+                                                </span>
+                                            </Link>
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            className={
+                                                recentActivityRemoveClass
+                                            }
+                                            onClick={() =>
+                                                removeProduct(activity.item)
+                                            }
+                                            aria-label={`Remove Product ${activity.item.identifier} from recent activity`}
+                                        >
+                                            <XIcon
+                                                size={16}
+                                                weight="bold"
+                                                aria-hidden="true"
+                                            />
+                                        </Button>
+                                    </li>
+                                )
+                            })}
                         </ul>
                     ) : (
                         <p className="mt-3 py-1 text-center text-sm leading-relaxed text-neutral-600">
-                            You haven&apos;t viewed any Products yet.
+                            Search for a Product to start your history.
                         </p>
                     )}
                 </section>
@@ -373,7 +525,7 @@ export function BarcodeEntryPage() {
             {error ? (
                 <div
                     id="search-error"
-                    className="bg-error-50 text-error-800 mt-4 flex items-start gap-2 rounded-xl px-3.5 py-3 text-sm font-semibold"
+                    className="type-supporting bg-error-50 text-error-800 mt-4 flex items-start gap-2 rounded-xl px-3.5 py-3 font-semibold"
                     role="alert"
                 >
                     <InfoIcon
@@ -397,14 +549,17 @@ export function BarcodeEntryPage() {
                         {[0, 1, 2].map((item) => (
                             <div
                                 key={item}
-                                className="flex min-h-32 animate-pulse items-start gap-3 rounded-2xl border border-neutral-200 bg-white p-3"
+                                className="grid min-h-20 animate-pulse grid-cols-[2.75rem_minmax(0,1fr)_5rem] items-start gap-3 rounded-2xl border border-neutral-200 bg-white p-3 sm:min-h-[5.5rem]"
                             >
-                                <div className="size-20 shrink-0 rounded-xl bg-neutral-100" />
-                                <div className="min-w-0 flex-1 space-y-2 pt-1">
+                                <div className="size-11 rounded-xl bg-neutral-100" />
+                                <div className="min-w-0 space-y-2 pt-1">
                                     <div className="h-4 w-3/4 rounded bg-neutral-100" />
                                     <div className="h-3 w-full rounded bg-neutral-100" />
                                     <div className="h-3 w-5/6 rounded bg-neutral-100" />
-                                    <div className="h-3 w-2/3 rounded bg-neutral-100" />
+                                </div>
+                                <div className="space-y-2 pt-1">
+                                    <div className="h-3 w-full rounded bg-neutral-100" />
+                                    <div className="h-3 w-4/5 rounded bg-neutral-100" />
                                 </div>
                             </div>
                         ))}
@@ -414,100 +569,39 @@ export function BarcodeEntryPage() {
 
             {searchStatus === "results" ? (
                 <section
-                    className="mx-auto mt-5 w-full max-w-lg"
+                    className="mx-auto mt-5 w-full max-w-5xl"
                     aria-live="polite"
                 >
                     <div className="mb-3 flex items-baseline justify-between gap-3">
-                        <h2 className="text-base font-extrabold text-neutral-900">
+                        <h2 className="type-section-title text-neutral-900">
                             Products
                         </h2>
-                        <span className="text-caption font-semibold text-neutral-500">
+                        <span className="type-caption text-neutral-500">
                             {results.length} found
                         </span>
                     </div>
-                    <div className="space-y-2.5">
+                    <ProductNameUnavailableNotice
+                        missingCount={missingProductNameCount}
+                        totalCount={results.length}
+                    />
+                    <div className="shadow-source-sheet divide-y divide-neutral-200/90 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white">
                         {results.map((result) => {
-                            const name = productName(result)
-                            const brand = brandName(result)
-                            const manufacturingPlace =
-                                manufacturingPlaceName(result)
-                            const imageUrl = result.thumbnail?.url
-                                ? buildProxiedImageUrl(result.thumbnail.url)
-                                : null
-
                             return (
-                                <Button
+                                <ProductListItem
                                     key={result.barcode}
-                                    type="button"
-                                    variant="ghost"
-                                    className="group focus-visible:ring-primary-500 flex h-auto min-h-32 w-full items-start justify-start gap-3 rounded-2xl border border-neutral-200 bg-white p-3 text-left whitespace-normal shadow-none transition-[border-color,background-color,transform] duration-150 hover:border-neutral-300 hover:bg-neutral-50 focus-visible:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-[0.99]"
-                                    onClick={() => {
-                                        void navigate(
-                                            `/products/${result.barcode}`,
-                                            {
-                                                state: {
-                                                    fromBarcodeEntry: true,
-                                                },
-                                            },
-                                        )
+                                    product={{
+                                        barcode: result.barcode,
+                                        name: result.name?.value,
+                                        genericName: result.generic_name?.value,
+                                        brand: brandName(result),
                                     }}
-                                    aria-label={`View ${name}`}
-                                >
-                                    <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-neutral-50">
-                                        {imageUrl ? (
-                                            <img
-                                                src={imageUrl}
-                                                alt=""
-                                                className="size-full object-contain p-1"
-                                            />
-                                        ) : (
-                                            <PackageImagePlaceholder
-                                                className="size-full p-1"
-                                                label="Source Image Unavailable"
-                                            />
-                                        )}
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <h3 className="text-sm leading-snug font-extrabold wrap-anywhere text-neutral-900 sm:text-base">
-                                            {name}
-                                            {result.quantity ? (
-                                                <span className="ml-1 font-semibold text-neutral-500">
-                                                    · {result.quantity}
-                                                </span>
-                                            ) : null}
-                                        </h3>
-                                        <dl className="mt-2 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-2 gap-y-1 text-xs leading-snug">
-                                            <dt className="font-bold text-neutral-500">
-                                                Company
-                                            </dt>
-                                            <dd className="m-0 font-semibold wrap-anywhere text-neutral-700">
-                                                {brand || "N/A"}
-                                            </dd>
-                                            <dt className="font-bold text-neutral-500">
-                                                Made in
-                                            </dt>
-                                            <dd className="m-0 font-semibold wrap-anywhere text-neutral-700 capitalize">
-                                                {manufacturingPlace || "N/A"}
-                                            </dd>
-                                            <dt className="font-bold text-neutral-500">
-                                                Barcode
-                                            </dt>
-                                            <dd className="m-0 font-mono wrap-anywhere text-neutral-600">
-                                                {result.barcode}
-                                            </dd>
-                                        </dl>
-                                    </div>
-                                    <span
-                                        className="text-primary-600 self-center text-2xl leading-none font-bold transition-transform group-hover:translate-x-0.5"
-                                        aria-hidden="true"
-                                    >
-                                        &gt;
-                                    </span>
-                                </Button>
+                                    to={`/products/${result.barcode}`}
+                                    state={{ fromBarcodeEntry: true }}
+                                />
                             )
                         })}
                     </div>
-                    <p className="mt-3 text-center text-[0.6875rem] leading-relaxed text-neutral-500">
+                    <p className="type-caption mt-3 text-center text-neutral-500">
                         Data from Open Food Facts
                     </p>
                     {nextCursor ? (
@@ -540,7 +634,7 @@ export function BarcodeEntryPage() {
                     <h2 className="text-base font-extrabold text-neutral-900">
                         No Products found
                     </h2>
-                    <p className="mt-1.5 text-sm leading-relaxed text-neutral-500">
+                    <p className="type-supporting mt-1.5 text-neutral-500">
                         Try a different Product name, company, or country.
                     </p>
                 </div>

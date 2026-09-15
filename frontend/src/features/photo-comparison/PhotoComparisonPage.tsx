@@ -106,7 +106,8 @@ export function PhotoComparisonPage({
     extractPhotos = extractProductPhotos,
     compare = compareProducts,
 }: PhotoComparisonPageProps = {}) {
-    const { setPrimaryNavigationHidden } = useAppShellNavigation()
+    const { setBottomDockVisible, setPrimaryNavigationHidden } =
+        useAppShellNavigation()
     const { locale } = useLocale()
     const { t } = useCompareTranslation()
 
@@ -207,11 +208,13 @@ export function PhotoComparisonPage({
 
     useEffect(() => {
         setPrimaryNavigationHidden(flowPhase !== "intro")
+        setBottomDockVisible(flowPhase === "capture" || flowPhase === "review")
 
         return () => {
+            setBottomDockVisible(false)
             setPrimaryNavigationHidden(false)
         }
-    }, [flowPhase, setPrimaryNavigationHidden])
+    }, [flowPhase, setBottomDockVisible, setPrimaryNavigationHidden])
 
     useEffect(() => {
         if (
@@ -1222,7 +1225,7 @@ export function PhotoComparisonPage({
             {/* Main Content */}
             <main
                 aria-busy={processingStep !== "idle"}
-                className="mx-auto w-full max-w-3xl px-4 py-5 pb-32 sm:px-6 sm:py-7 sm:pb-12"
+                className="page-rail pb-32 sm:px-6 sm:pt-12 sm:pb-12"
             >
                 {/* Header / Toolbar */}
                 {isResultsPage ? (
@@ -1237,7 +1240,7 @@ export function PhotoComparisonPage({
                             <span>{t("editProducts")}</span>
                         </Button>
                         <div className="flex items-center gap-2">
-                            <LanguageSelector />
+                            <LanguageSelector appearance="glass" />
                             <Button
                                 type="button"
                                 variant="outline"
@@ -1258,7 +1261,7 @@ export function PhotoComparisonPage({
                     <div className="flex flex-col gap-2">
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                                <h1 className="text-2xl font-extrabold tracking-tight text-neutral-950 sm:text-3xl">
+                                <h1 className="text-display leading-[1.12] font-extrabold tracking-[-0.03em] text-balance text-neutral-950">
                                     {t("pageTitle")}
                                 </h1>
                                 <p className="mt-1 text-xs text-neutral-500 sm:text-sm">
@@ -1266,7 +1269,7 @@ export function PhotoComparisonPage({
                                 </p>
                             </div>
                             <div className="flex shrink-0 items-center gap-2">
-                                <LanguageSelector />
+                                <LanguageSelector appearance="glass" />
                                 {flowPhase !== "intro" &&
                                     flowPhase !== "processing" && (
                                         <Button
@@ -1436,23 +1439,21 @@ export function PhotoComparisonPage({
                                 className=""
                                 aria-labelledby="compare-intro-heading"
                             >
-                                <div className="flex items-start gap-3">
+                                <div className="icon-heading-row">
                                     <span className="bg-primary-100 text-primary-800 flex size-10 shrink-0 items-center justify-center rounded-xl">
                                         <Scales size={25} weight="bold" />
                                     </span>
-                                    <div className="min-w-0">
-                                        <h2
-                                            id="compare-intro-heading"
-                                            tabIndex={-1}
-                                            className="text-xl font-extrabold tracking-tight text-neutral-950 sm:text-2xl"
-                                        >
-                                            {t("compareTwo")}
-                                        </h2>
-                                        <p className="mt-2 text-sm leading-relaxed text-neutral-600 sm:text-base">
-                                            {t("intro")}
-                                        </p>
-                                    </div>
+                                    <h2
+                                        id="compare-intro-heading"
+                                        tabIndex={-1}
+                                        className="icon-heading-title text-xl font-extrabold tracking-tight text-neutral-950 sm:text-2xl"
+                                    >
+                                        {t("compareTwo")}
+                                    </h2>
                                 </div>
+                                <p className="icon-heading-supporting mt-2 text-sm leading-relaxed text-neutral-600 sm:text-base">
+                                    {t("intro")}
+                                </p>
 
                                 <div className="mt-5 flex flex-col gap-2 sm:flex-row">
                                     <Button
@@ -1572,7 +1573,7 @@ export function PhotoComparisonPage({
                                             .nutrition_columns?.length ?? 0) >
                                             1) && (
                                         <section
-                                            className="mt-3 border-y border-neutral-200/80 py-3"
+                                            className="mt-3 border-t border-neutral-200/80 py-3"
                                             aria-labelledby="compare-basis-heading"
                                         >
                                             <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
@@ -1802,7 +1803,7 @@ export function PhotoComparisonPage({
                             (rightProduct.extraction?.nutrition_columns
                                 ?.length ?? 0) > 1) && (
                             <section
-                                className="border-y border-neutral-200/80 py-3"
+                                className="border-t border-neutral-200/80 py-3"
                                 aria-labelledby="results-basis-heading"
                             >
                                 <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -1823,37 +1824,49 @@ export function PhotoComparisonPage({
                                             <span className="text-xs font-semibold text-neutral-700">
                                                 {leftProduct.title}:
                                             </span>
-                                            {leftProduct.extraction?.nutrition_columns?.map(
-                                                (col) => {
-                                                    const isSelected =
-                                                        leftProduct.selectedColumnId ===
-                                                        col.column_id
-                                                    return (
-                                                        <Button
-                                                            key={col.column_id}
-                                                            type="button"
-                                                            variant={
-                                                                isSelected
-                                                                    ? "default"
-                                                                    : "outline"
-                                                            }
-                                                            size="sm"
-                                                            onClick={() =>
-                                                                handleSelectColumn(
-                                                                    "left",
-                                                                    col.column_id,
-                                                                )
-                                                            }
-                                                            className="h-8 text-xs font-semibold"
-                                                        >
-                                                            {col.label ||
-                                                                t(
-                                                                    "nutritionColumn",
-                                                                )}
-                                                        </Button>
-                                                    )
-                                                },
-                                            )}
+                                            <div
+                                                data-glass-surface=""
+                                                className="glass-surface flex max-w-full min-w-0 flex-wrap gap-1 rounded-xl p-1"
+                                                role="group"
+                                                aria-label={leftProduct.title}
+                                            >
+                                                {leftProduct.extraction?.nutrition_columns?.map(
+                                                    (col) => {
+                                                        const isSelected =
+                                                            leftProduct.selectedColumnId ===
+                                                            col.column_id
+                                                        return (
+                                                            <Button
+                                                                key={
+                                                                    col.column_id
+                                                                }
+                                                                type="button"
+                                                                variant="ghost"
+                                                                glassTone={
+                                                                    isSelected
+                                                                        ? "selected"
+                                                                        : "neutral"
+                                                                }
+                                                                aria-pressed={
+                                                                    isSelected
+                                                                }
+                                                                onClick={() =>
+                                                                    handleSelectColumn(
+                                                                        "left",
+                                                                        col.column_id,
+                                                                    )
+                                                                }
+                                                                className="min-h-11 px-3 text-xs font-semibold"
+                                                            >
+                                                                {col.label ||
+                                                                    t(
+                                                                        "nutritionColumn",
+                                                                    )}
+                                                            </Button>
+                                                        )
+                                                    },
+                                                )}
+                                            </div>
                                         </div>
                                     )}
                                     {(rightProduct.extraction?.nutrition_columns
@@ -1862,37 +1875,49 @@ export function PhotoComparisonPage({
                                             <span className="text-xs font-semibold text-neutral-700">
                                                 {rightProduct.title}:
                                             </span>
-                                            {rightProduct.extraction?.nutrition_columns?.map(
-                                                (col) => {
-                                                    const isSelected =
-                                                        rightProduct.selectedColumnId ===
-                                                        col.column_id
-                                                    return (
-                                                        <Button
-                                                            key={col.column_id}
-                                                            type="button"
-                                                            variant={
-                                                                isSelected
-                                                                    ? "default"
-                                                                    : "outline"
-                                                            }
-                                                            size="sm"
-                                                            onClick={() =>
-                                                                handleSelectColumn(
-                                                                    "right",
-                                                                    col.column_id,
-                                                                )
-                                                            }
-                                                            className="h-8 text-xs font-semibold"
-                                                        >
-                                                            {col.label ||
-                                                                t(
-                                                                    "nutritionColumn",
-                                                                )}
-                                                        </Button>
-                                                    )
-                                                },
-                                            )}
+                                            <div
+                                                data-glass-surface=""
+                                                className="glass-surface flex max-w-full min-w-0 flex-wrap gap-1 rounded-xl p-1"
+                                                role="group"
+                                                aria-label={rightProduct.title}
+                                            >
+                                                {rightProduct.extraction?.nutrition_columns?.map(
+                                                    (col) => {
+                                                        const isSelected =
+                                                            rightProduct.selectedColumnId ===
+                                                            col.column_id
+                                                        return (
+                                                            <Button
+                                                                key={
+                                                                    col.column_id
+                                                                }
+                                                                type="button"
+                                                                variant="ghost"
+                                                                glassTone={
+                                                                    isSelected
+                                                                        ? "selected"
+                                                                        : "neutral"
+                                                                }
+                                                                aria-pressed={
+                                                                    isSelected
+                                                                }
+                                                                onClick={() =>
+                                                                    handleSelectColumn(
+                                                                        "right",
+                                                                        col.column_id,
+                                                                    )
+                                                                }
+                                                                className="min-h-11 px-3 text-xs font-semibold"
+                                                            >
+                                                                {col.label ||
+                                                                    t(
+                                                                        "nutritionColumn",
+                                                                    )}
+                                                            </Button>
+                                                        )
+                                                    },
+                                                )}
+                                            </div>
                                         </div>
                                     )}
                                 </div>

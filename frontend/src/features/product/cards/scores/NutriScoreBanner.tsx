@@ -76,7 +76,7 @@ export const NutriScoreBanner: React.FC<NutriScoreBannerProps> = ({
             className="focus-visible:ring-primary-500 block no-underline focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
         >
             <div
-                className={`flex min-h-20 flex-row items-center gap-3 px-4 py-3.5 transition-colors sm:px-5 ${activeGrade.surfaceClassName}`}
+                className={`flex min-h-20 flex-row items-center gap-3 rounded-xl px-4 py-3.5 transition-colors sm:px-5 ${activeGrade.surfaceClassName}`}
             >
                 <div className="flex w-16 shrink-0 items-center justify-center select-none">
                     <img

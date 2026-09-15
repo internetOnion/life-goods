@@ -3,7 +3,7 @@ export const scanTranslations = {
         scan: {
             title: "Scan a Barcode",
             cameraLabel: "Barcode scanner",
-            searchPlaceholder: "Search Product, company or country...",
+            searchPlaceholder: "barcode, product, or brand",
             searchLabel: "Search",
             privacyTitle: "Private camera scanning",
             privacyBody: "Scanning happens on your device.",

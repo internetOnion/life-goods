@@ -65,7 +65,7 @@ export const IngredientsAnalysisCard: React.FC<
                 title: "Palm Oil",
                 status: "Palm Oil Status Unknown",
                 color: "bg-neutral-50 text-neutral-600 border-neutral-200/80",
-                iconColor: "text-neutral-400",
+                iconColor: "text-neutral-500",
             }
         }
 
@@ -98,7 +98,7 @@ export const IngredientsAnalysisCard: React.FC<
                 title: "Vegan",
                 status: "Vegan Status Unknown",
                 color: "bg-neutral-50 text-neutral-600 border-neutral-200",
-                iconColor: "text-neutral-400",
+                iconColor: "text-neutral-500",
             }
         }
 
@@ -131,7 +131,7 @@ export const IngredientsAnalysisCard: React.FC<
             title: "Vegetarian",
             status: "Vegetarian Status Unknown",
             color: "bg-neutral-50 text-neutral-600 border-neutral-200",
-            iconColor: "text-neutral-400",
+            iconColor: "text-neutral-500",
         }
     }
 
@@ -221,6 +221,10 @@ export const IngredientsAnalysisCard: React.FC<
                         </div>
                     )}
                 </div>
+                <p className="mt-3 border-t border-neutral-200/80 pt-3 text-xs leading-relaxed text-neutral-500">
+                    Source analysis from Open Food Facts; not a Life Goods
+                    judgment.
+                </p>
             </CardContent>
         </Card>
     )

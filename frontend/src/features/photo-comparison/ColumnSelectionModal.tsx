@@ -145,7 +145,7 @@ export function ColumnSelectionModal({
                                             preparation: prepLabel,
                                         })}
                                     </p>
-                                    <p className="mt-1 text-xs text-neutral-400">
+                                    <p className="mt-1 text-xs text-neutral-600">
                                         {fieldCount > 0
                                             ? t("fieldsDetected", {
                                                   count: fieldCount,
