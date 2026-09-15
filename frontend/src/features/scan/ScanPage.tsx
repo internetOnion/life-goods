@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button"
 import { PrivacyScannerIllustration } from "@/components/illustrations"
 import { BrandLockup, BrandMark } from "@/components/brand/BrandMark"
 import { LanguageSelector } from "@/components/layout/LanguageSelector"
+import { useLocale } from "@/i18n/locale"
 import { usePageMetadata } from "@/lib/metadata"
 import { cn } from "@/lib/utils"
 
@@ -42,7 +43,6 @@ type CameraErrorKey =
     | "errorInterrupted"
     | "errorTimeout"
 
-const text = scanTranslations.en.scan
 const ACQUISITION_LATCH_MS = 180
 const CAMERA_RESTART_TIMEOUT_MS = 5000
 const cameraStartedSessionKey = "lifegoods.scan.camera-started.v1"
@@ -141,6 +141,7 @@ type SearchViewTransitionDocument = Document & {
 
 export function ScanPage({ onBarcodeChange }: ScanPageProps) {
     const navigate = useNavigate()
+    const { locale } = useLocale()
     usePageMetadata()
     const [cameraState, setCameraState] = useState<CameraState>("consent")
     const [cameraMessage, setCameraMessage] = useState<string | null>(null)
@@ -158,6 +159,9 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
     const acquisitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
         null,
     )
+    const text = scanTranslations[locale].scan
+    const textRef = useRef(text)
+    textRef.current = text
 
     const clearAcquisitionTimer = useCallback(() => {
         if (acquisitionTimerRef.current !== null) {
@@ -287,13 +291,13 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                 window.isSecureContext === false
             ) {
                 setCameraState("error")
-                setCameraMessage(text.errorInsecure)
+                setCameraMessage(textRef.current.errorInsecure)
                 return
             }
 
             if (!canUseCamera(videoRef.current)) {
                 setCameraState("error")
-                setCameraMessage(text.errorUnsupported)
+                setCameraMessage(textRef.current.errorUnsupported)
                 return
             }
 
@@ -318,7 +322,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                         if (cameraRun !== cameraRunRef.current) return
                         releaseCamera()
                         setCameraState("error")
-                        setCameraMessage(text[cameraErrorKey(error)])
+                        setCameraMessage(textRef.current[cameraErrorKey(error)])
                     },
                     {
                         ...(useAcquisitionDeadline
@@ -349,7 +353,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
             } catch (error) {
                 if (cameraRun !== cameraRunRef.current) return
                 setCameraState("error")
-                setCameraMessage(text[cameraErrorKey(error)])
+                setCameraMessage(textRef.current[cameraErrorKey(error)])
                 cameraSessionRef.current = null
             } finally {
                 if (cameraStartAbortRef.current === abortController) {

@@ -24,10 +24,12 @@ function CurrentLocation() {
 
 function renderPage() {
     return render(
-        <MemoryRouter>
-            <ScanPage />
-            <CurrentLocation />
-        </MemoryRouter>,
+        <LocaleProvider>
+            <MemoryRouter>
+                <ScanPage />
+                <CurrentLocation />
+            </MemoryRouter>
+        </LocaleProvider>,
     )
 }
 
@@ -107,6 +109,35 @@ describe("camera Barcode scanner", () => {
         )
     })
 
+    test("renders the Khmer consent and typed Barcode affordance", () => {
+        window.localStorage.setItem("lifegoods.locale.v1", "km")
+        renderPage()
+
+        expect(
+            screen.getByRole("heading", { name: "ស្កេនបាកូដ" }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("heading", {
+                name: "ស្កេនដោយរក្សាភាពឯកជន",
+            }),
+        ).toBeVisible()
+        expect(
+            screen.getByText("ការស្កេនកើតឡើងនៅលើឧបករណ៍របស់អ្នក។"),
+        ).toBeVisible()
+        expect(
+            screen.getByRole("button", { name: "ចាប់ផ្តើមកាមេរ៉ា" }),
+        ).toBeVisible()
+        expect(
+            screen.getByRole("region", { name: "ម៉ាស៊ីនស្កេនបាកូដ" }),
+        ).toBeInTheDocument()
+        expect(screen.getByRole("link", { name: "ស្វែងរក" })).toHaveAttribute(
+            "href",
+            "/search",
+        )
+        expect(screen.getByText("បញ្ចូលបាកូដ ឈ្មោះផលិតផល ឬម៉ាក")).toBeVisible()
+        expect(document.documentElement).toHaveAttribute("lang", "km")
+    })
+
     test("starts after consent and remembers only a session flag", async () => {
         const user = userEvent.setup()
         startMock.mockResolvedValue({ stop: vi.fn() })
@@ -124,6 +155,21 @@ describe("camera Barcode scanner", () => {
             "true",
         )
         expect(screen.getByRole("status")).toHaveTextContent("Ready to scan")
+    })
+
+    test("renders Khmer starting and ready-to-scan states", async () => {
+        const user = userEvent.setup()
+        window.localStorage.setItem("lifegoods.locale.v1", "km")
+        startMock.mockResolvedValue({ stop: vi.fn() })
+        renderPage()
+
+        await user.click(
+            screen.getByRole("button", { name: "ចាប់ផ្តើមកាមេរ៉ា" }),
+        )
+        expect(screen.getByRole("status")).toHaveTextContent(
+            "រួចរាល់សម្រាប់ស្កេន",
+        )
+        expect(screen.getByText("កាន់បាកូដនៅក្នុងស៊ុម")).toBeVisible()
     })
 
     test("toggles the camera flash from the bottom control dock", async () => {
@@ -161,6 +207,62 @@ describe("camera Barcode scanner", () => {
 
         await user.click(screen.getByRole("button", { name: "Turn flash off" }))
         await waitFor(() => expect(setTorchMock).toHaveBeenCalledWith(false))
+    })
+
+    test("localizes the Khmer camera controls and flash error", async () => {
+        const user = userEvent.setup()
+        window.localStorage.setItem("lifegoods.locale.v1", "km")
+        sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
+        const setTorchMock = vi
+            .fn()
+            .mockResolvedValueOnce(undefined)
+            .mockRejectedValueOnce(new Error("flash"))
+        startMock.mockResolvedValue({
+            stop: vi.fn(),
+            torchAvailable: true,
+            setTorch: setTorchMock,
+        })
+        renderPage()
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
+
+        expect(
+            screen.getByRole("button", { name: "បើកពន្លឺកាមេរ៉ា" }),
+        ).toBeVisible()
+        expect(
+            screen.getByRole("button", { name: "ផ្អាកកាមេរ៉ា" }),
+        ).toBeVisible()
+        expect(
+            screen.getByRole("button", { name: "ប្តូរកាមេរ៉ា" }),
+        ).toBeVisible()
+
+        await user.click(
+            screen.getByRole("button", { name: "បើកពន្លឺកាមេរ៉ា" }),
+        )
+        await waitFor(() => expect(setTorchMock).toHaveBeenCalledWith(true))
+        expect(
+            screen.getByRole("button", { name: "បិទពន្លឺកាមេរ៉ា" }),
+        ).toHaveAttribute("aria-pressed", "true")
+
+        await user.click(
+            screen.getByRole("button", { name: "បិទពន្លឺកាមេរ៉ា" }),
+        )
+        expect(await screen.findByRole("status")).toHaveTextContent(
+            "មិនអាចប្តូរពន្លឺបានទេ។ សាកល្បងម្តងទៀត។",
+        )
+    })
+
+    test("localizes unavailable Khmer flash controls", async () => {
+        window.localStorage.setItem("lifegoods.locale.v1", "km")
+        sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
+        startMock.mockResolvedValue({ stop: vi.fn(), torchAvailable: false })
+        renderPage()
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
+
+        const flashButton = screen.getByRole("button", {
+            name: "កាមេរ៉ានេះមិនមានពន្លឺទេ។",
+        })
+        expect(flashButton).toBeDisabled()
+        expect(flashButton).toHaveAttribute("title", "កាមេរ៉ានេះមិនមានពន្លឺទេ។")
     })
 
     test("does not restart camera while the Android permission prompt is pending", async () => {
@@ -218,6 +320,24 @@ describe("camera Barcode scanner", () => {
         ).toHaveAttribute("data-glass", "primary")
     })
 
+    test("renders the Khmer paused state and resume control", async () => {
+        const user = userEvent.setup()
+        window.localStorage.setItem("lifegoods.locale.v1", "km")
+        sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
+        startMock.mockResolvedValue({ stop: vi.fn() })
+        renderPage()
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
+
+        await user.click(screen.getByRole("button", { name: "ផ្អាកកាមេរ៉ា" }))
+
+        expect(
+            screen.getByRole("heading", { name: "កាមេរ៉ាបានផ្អាក" }),
+        ).toBeVisible()
+        expect(
+            screen.getByRole("button", { name: "បន្តកាមេរ៉ា" }),
+        ).toBeVisible()
+    })
+
     test("shows recovery actions when an automatic camera restart times out", async () => {
         sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
         const timeoutError = new Error("Camera start timed out")
@@ -250,6 +370,45 @@ describe("camera Barcode scanner", () => {
         ).toHaveAttribute("data-glass", "selected")
     })
 
+    test.each([
+        ["NotAllowedError", "អនុញ្ញាតឱ្យប្រើកាមេរ៉ា"],
+        ["NotFoundError", "រកមិនឃើញកាមេរ៉ាទេ"],
+        ["NotReadableError", "បិទកម្មវិធីផ្សេង"],
+        ["CameraPreviewError", "ផ្ទុកទំព័រនេះឡើងវិញ"],
+        ["Error", "ពិនិត្យការកំណត់"],
+        ["OverconstrainedError", "ប្រើកម្មវិធីរុករកបច្ចុប្បន្ន"],
+        ["AbortError", "ត្រឡប់មកទំព័រនេះ"],
+        ["CameraStartTimeoutError", "ចំណាយពេលយូរពេក"],
+    ] as const)(
+        "localizes the Khmer camera error for %s",
+        async (errorName, expectedMessage) => {
+            const error = new Error(errorName)
+            error.name = errorName
+            window.localStorage.setItem("lifegoods.locale.v1", "km")
+            sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
+            startMock.mockRejectedValue(error)
+            renderPage()
+
+            expect(await screen.findByRole("alert")).toHaveTextContent(
+                expectedMessage,
+            )
+        },
+    )
+
+    test("localizes the insecure-context camera error in Khmer", async () => {
+        window.localStorage.setItem("lifegoods.locale.v1", "km")
+        sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
+        Object.defineProperty(window, "isSecureContext", {
+            configurable: true,
+            value: false,
+        })
+        renderPage()
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "បើកទំព័រនេះតាម HTTPS",
+        )
+    })
+
     test("opens the Product page for a valid on-device result with sensory feedback", async () => {
         sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
         startMock.mockResolvedValue({ stop: vi.fn() })
@@ -265,6 +424,20 @@ describe("camera Barcode scanner", () => {
                 "/products/4006381333931",
             ),
         )
+    })
+
+    test("renders Khmer detected status and aperture labels", async () => {
+        window.localStorage.setItem("lifegoods.locale.v1", "km")
+        sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
+        startMock.mockResolvedValue({ stop: vi.fn() })
+        renderPage()
+        await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
+
+        const onResult = startMock.mock.calls[0]?.[1] as (value: string) => void
+        act(() => onResult("4 006381 333931"))
+
+        expect(screen.getByRole("status")).toHaveTextContent("បានរកឃើញបាកូដ")
+        expect(screen.getAllByText("បានរកឃើញបាកូដ")).toHaveLength(3)
     })
 
     test("starts a fresh bounded camera session after returning through the Scan tab", async () => {
@@ -351,6 +524,25 @@ describe("camera Barcode scanner", () => {
 
         await user.click(searchBar)
         expect(stopMock).toHaveBeenCalled()
+        expect(screen.getByTestId("location")).toHaveTextContent("/search")
+    })
+
+    test("localizes the Khmer typed Barcode fallback link", async () => {
+        const user = userEvent.setup()
+        window.localStorage.setItem("lifegoods.locale.v1", "km")
+        sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
+        const error = new Error("No camera")
+        error.name = "NotFoundError"
+        startMock.mockRejectedValue(error)
+        renderPage()
+
+        await screen.findByRole("alert")
+        const fallback = screen.getByRole("link", {
+            name: "បញ្ចូលបាកូដជំនួស",
+        })
+        expect(fallback).toHaveAttribute("href", "/search")
+
+        await user.click(fallback)
         expect(screen.getByTestId("location")).toHaveTextContent("/search")
     })
 })
