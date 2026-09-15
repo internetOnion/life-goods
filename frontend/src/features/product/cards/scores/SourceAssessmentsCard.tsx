@@ -2,6 +2,8 @@ import { BadgeInfo } from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
+import { useProductTranslation } from "../../translations"
+
 import { EcoScoreBanner } from "./EcoScoreBanner"
 import { NovaGroupBanner } from "./NovaGroupBanner"
 import { NutriScoreBanner } from "./NutriScoreBanner"
@@ -27,6 +29,7 @@ export function SourceAssessmentsCard({
     ecoscoreGrade,
     ecoscoreScore,
 }: SourceAssessmentsCardProps) {
+    const { t } = useProductTranslation()
     return (
         <Card className="overflow-hidden border-neutral-200/90 bg-white shadow-xs">
             {showHeader && (
@@ -37,13 +40,12 @@ export function SourceAssessmentsCard({
                         </div>
                         <div className="min-w-0">
                             <CardTitle className="text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
-                                Source Assessments
+                                {t("sourceAssessments")}
                             </CardTitle>
                         </div>
                     </div>
                     <p className="text-xs leading-relaxed text-neutral-600">
-                        Open Food Facts calculations; not Life Goods judgments
-                        or purchase recommendations.
+                        {t("sourceAssessmentsDescription")}
                     </p>
                 </CardHeader>
             )}
@@ -55,7 +57,7 @@ export function SourceAssessmentsCard({
             >
                 <div
                     className="divide-y divide-neutral-200"
-                    aria-label="Open Food Facts Source Assessments"
+                    aria-label={t("openFoodFactsSourceAssessments")}
                 >
                     <NutriScoreBanner
                         grade={nutriscoreGrade}

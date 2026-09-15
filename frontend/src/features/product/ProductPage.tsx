@@ -12,6 +12,7 @@ import { Header } from "@/components/layout/Header"
 import { saveScanItem } from "@/lib/history"
 import { validateIdentifier } from "@/lib/identifier"
 import { usePageMetadata } from "@/lib/metadata"
+import { useLocale } from "@/i18n/locale"
 
 import { lookupProduct, type ProductLookup } from "./api"
 import { adaptProductLookup } from "./adapter"
@@ -35,6 +36,8 @@ import {
     findSelectedConcernMatches,
     useSelectedConcernStorage,
 } from "@/features/concerns/matching"
+import { getTranslatedFieldText } from "./translation-utils"
+import { translateProductError, useProductTranslation } from "./translations"
 
 type ProductPageProps = {
     lookup?: ProductLookup
@@ -52,6 +55,8 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
     const { barcode = "" } = useParams()
     const location = useLocation()
     const navigate = useNavigate()
+    const { locale } = useLocale()
+    const { t } = useProductTranslation()
 
     const validation = useMemo(() => validateIdentifier(barcode), [barcode])
     const normalizedBarcode = validation.valid ? validation.value : ""
@@ -82,8 +87,11 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
     }, [barcode, navigate, validation])
 
     const productQuery = useQuery({
-        queryKey: ["product", normalizedBarcode],
-        queryFn: () => lookup(normalizedBarcode),
+        queryKey: ["product", normalizedBarcode, locale],
+        queryFn: () =>
+            locale === "en"
+                ? lookup(normalizedBarcode)
+                : lookup(normalizedBarcode, locale),
         enabled: Boolean(normalizedBarcode),
         retry: false,
     })
@@ -189,12 +197,20 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
         }
     }, [productQuery.data])
 
+    const pageProductName = adapted?.projection
+        ? getTranslatedFieldText(
+              adapted.projection.identity.name,
+              locale,
+              offView?.productName,
+          )
+        : offView?.productName
+
     usePageMetadata({
-        title: offView?.productName
-            ? offView.productName
-            : barcode
-              ? `Barcode ${barcode}`
-              : "Product Lookup",
+        title:
+            pageProductName ||
+            (barcode
+                ? t("barcodePageTitle", { barcode })
+                : t("productLookupTitle")),
     })
 
     useEffect(() => {
@@ -245,7 +261,7 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                 appearance="glass"
                 showBackButton={true}
                 onBack={() => void navigate("/search")}
-                backLabel="Back to search"
+                backLabel={t("backToSearch")}
             />
 
             <Container>
@@ -277,11 +293,13 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                 </div>
                                 <div className="space-y-1">
                                     <h2 className="text-error-950 text-base font-bold sm:text-lg">
-                                        Unable to Load Product
+                                        {t("unableToLoadProduct")}
                                     </h2>
                                     <p className="text-error-800 text-xs sm:text-sm">
-                                        {productQuery.error?.message ||
-                                            "An unexpected network or service error occurred while retrieving package data."}
+                                        {translateProductError(
+                                            locale,
+                                            productQuery.error,
+                                        )}
                                     </p>
                                 </div>
                                 <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
@@ -293,7 +311,7 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                         }
                                         className="border-error-300 text-error-900 hover:bg-error-100"
                                     >
-                                        Try Again
+                                        {t("tryAgain")}
                                     </Button>
                                     <Button
                                         variant="ghost"
@@ -302,7 +320,7 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                         className="gap-1 text-neutral-600 hover:text-neutral-900"
                                     >
                                         <ArrowLeft className="h-4 w-4" />
-                                        <span>Back to Search</span>
+                                        <span>{t("backToSearch")}</span>
                                     </Button>
                                 </div>
                             </CardContent>
@@ -317,6 +335,8 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                             candidate={candidate}
                             identifier={adapted.normalizedIdentifier || barcode}
                             genericName={offView.genericName}
+                            projection={adapted.projection}
+                            categoryItems={adapted.projection?.category_items}
                             headingRef={headingRef}
                             selectedConcernMatches={selectedConcernMatches}
                         />
@@ -325,10 +345,10 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                         <div className="flex items-center gap-3 pt-2">
                             <div className="space-y-0.5">
                                 <h2 className="text-base font-extrabold tracking-[-0.02em] text-neutral-950 sm:text-lg">
-                                    Product Details
+                                    {t("productDetails")}
                                 </h2>
                                 <p className="text-xs text-neutral-500">
-                                    Browse categorized sections
+                                    {t("browseCategorizedSections")}
                                 </p>
                             </div>
                         </div>
@@ -348,32 +368,32 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                     className="no-scrollbar flex items-center overflow-x-auto overscroll-x-contain scroll-smooth px-4 sm:px-6"
                                 >
                                     <TabsList
-                                        aria-label="Product detail sections"
-                                        className="flex h-auto w-max min-w-max items-center justify-start gap-0 border-none bg-transparent p-0 sm:min-w-full sm:justify-center"
+                                        aria-label={t("productDetailSections")}
+                                        className="flex h-auto w-full min-w-max items-center justify-center gap-0 border-none bg-transparent p-0"
                                     >
                                         <TabsTrigger
                                             value="summary"
                                             className="shrink-0"
                                         >
-                                            Summary
+                                            {t("summary")}
                                         </TabsTrigger>
                                         <TabsTrigger
                                             value="ingredients"
                                             className="shrink-0"
                                         >
-                                            Ingredients
+                                            {t("ingredients")}
                                         </TabsTrigger>
                                         <TabsTrigger
                                             value="nutrition"
                                             className="shrink-0"
                                         >
-                                            Nutrition
+                                            {t("nutrition")}
                                         </TabsTrigger>
                                         <TabsTrigger
                                             value="labels"
                                             className="shrink-0"
                                         >
-                                            Labels &amp; packaging
+                                            {t("labelsPackaging")}
                                         </TabsTrigger>
                                     </TabsList>
                                 </div>
@@ -430,6 +450,9 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                             >
                                 <IngredientsCard
                                     labelEvidence={labelEvidence}
+                                    ingredientsField={
+                                        adapted.projection?.ingredients_text
+                                    }
                                 />
                                 <AllergenCard
                                     analysis={candidate.allergen_analysis}
@@ -465,6 +488,18 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                 <PackagingsTableCard
                                     packagings={offView.packagings}
                                     packagingText={offView.packagingText}
+                                    descriptionItems={
+                                        adapted.projection?.packaging
+                                            .description_items
+                                    }
+                                    recyclingInstructionItems={
+                                        adapted.projection?.packaging
+                                            .recycling_instruction_items
+                                    }
+                                    storageInstructionItems={
+                                        adapted.projection
+                                            ?.storage_instruction_items
+                                    }
                                 />
                                 <ProvenanceCard candidate={candidate} />
                             </TabsContent>

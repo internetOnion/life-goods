@@ -1,4 +1,5 @@
 import json
+import logging
 import random
 import time
 from collections.abc import Callable
@@ -36,6 +37,21 @@ DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 DEFAULT_MODEL = "gemini-3.8-flash"
 DEFAULT_TIMEOUT_SECONDS = 12.0
 RETRYABLE_STATUS_CODES = {408, 429, *range(500, 600)}
+logger = logging.getLogger(__name__)
+
+
+def _http_failure_category(status_code: int) -> str:
+    if status_code in {401, 403}:
+        return "authentication"
+    if status_code == 408:
+        return "timeout"
+    if status_code == 429:
+        return "rate_limited"
+    if 400 <= status_code < 500:
+        return "request_rejected"
+    if status_code >= 500:
+        return "provider_unavailable"
+    return "http_error"
 
 
 class GeminiTranslationAdapter:
@@ -73,11 +89,44 @@ class GeminiTranslationAdapter:
         self._client = http_client or httpx.Client(timeout=timeout_seconds)
         self._backoff_seconds = backoff_seconds
 
+    def _log_failure(
+        self,
+        request: ProviderTranslationRequest,
+        failure_category: str,
+        *,
+        attempts: int,
+        input_bytes: int,
+        latency_ms: float | None = None,
+        http_status: int | None = None,
+    ) -> None:
+        logger.warning(
+            "Gemini translation provider failure",
+            extra={
+                "event": "translation_provider_failure",
+                "dependency": "gemini",
+                "provider": self.provider_name,
+                "model": self._model,
+                "failure_category": failure_category,
+                "attempts": attempts,
+                "field_count": len(request.fields),
+                "field_names": sorted(request.fields),
+                "input_bytes": input_bytes,
+                "latency_ms": latency_ms,
+                "http_status": http_status,
+            },
+        )
+
     def translate(self, request: ProviderTranslationRequest) -> ProviderTranslationResponse:
         deadline = request.deadline or TranslationDeadline(self._timeout_seconds)
         try:
             return self._translate(request, deadline)
         except TranslationDeadlineExceeded:
+            self._log_failure(
+                request,
+                "deadline_exceeded",
+                attempts=0,
+                input_bytes=0,
+            )
             return ProviderTranslationResponse(
                 translations={},
                 status="error",
@@ -121,9 +170,8 @@ class GeminiTranslationAdapter:
         last_error: str | None = None
 
         for attempt in range(2):
-            remaining_timeout = min(self._timeout_seconds, deadline.remaining())
-
             try:
+                remaining_timeout = min(self._timeout_seconds, deadline.remaining())
                 resp = deadline.run(
                     partial(
                         self._client.post,
@@ -136,10 +184,33 @@ class GeminiTranslationAdapter:
 
                 if resp.status_code == 200:
                     elapsed_ms = round((time.perf_counter() - start_time) * 1000.0, 2)
-                    res_json = resp.json()
+                    try:
+                        res_json = resp.json()
+                    except Exception:
+                        self._log_failure(
+                            request,
+                            "invalid_provider_response",
+                            attempts=attempt + 1,
+                            input_bytes=len(body_bytes),
+                            latency_ms=elapsed_ms,
+                        )
+                        return ProviderTranslationResponse(
+                            translations={},
+                            latency_ms=elapsed_ms,
+                            attempts=attempt + 1,
+                            status="error",
+                            error_message="Invalid provider response",
+                        )
 
                     candidates = res_json.get("candidates", [])
                     if not candidates:
+                        self._log_failure(
+                            request,
+                            "empty_response",
+                            attempts=attempt + 1,
+                            input_bytes=len(body_bytes),
+                            latency_ms=elapsed_ms,
+                        )
                         return ProviderTranslationResponse(
                             translations={},
                             raw_response=resp.text,
@@ -152,6 +223,18 @@ class GeminiTranslationAdapter:
                     cand = candidates[0]
                     finish_reason = cand.get("finishReason", "")
                     if finish_reason != "STOP":
+                        failure_category = (
+                            "safety_blocked"
+                            if finish_reason == "SAFETY"
+                            else "incomplete_response"
+                        )
+                        self._log_failure(
+                            request,
+                            failure_category,
+                            attempts=attempt + 1,
+                            input_bytes=len(body_bytes),
+                            latency_ms=elapsed_ms,
+                        )
                         return ProviderTranslationResponse(
                             translations={},
                             raw_response=resp.text,
@@ -166,7 +249,18 @@ class GeminiTranslationAdapter:
                         )
 
                     parts = cand.get("content", {}).get("parts", [])
-                    if not parts or not parts[0].get("text"):
+                    if (
+                        not parts
+                        or not isinstance(parts[0].get("text"), str)
+                        or not parts[0]["text"]
+                    ):
+                        self._log_failure(
+                            request,
+                            "empty_response",
+                            attempts=attempt + 1,
+                            input_bytes=len(body_bytes),
+                            latency_ms=elapsed_ms,
+                        )
                         return ProviderTranslationResponse(
                             translations={},
                             raw_response=resp.text,
@@ -180,6 +274,13 @@ class GeminiTranslationAdapter:
                     try:
                         parsed = json.loads(content_text)
                     except json.JSONDecodeError:
+                        self._log_failure(
+                            request,
+                            "invalid_json",
+                            attempts=attempt + 1,
+                            input_bytes=len(body_bytes),
+                            latency_ms=elapsed_ms,
+                        )
                         return ProviderTranslationResponse(
                             translations={},
                             raw_response=content_text,
@@ -192,6 +293,13 @@ class GeminiTranslationAdapter:
                     raw_dict = parsed.get("translations") if isinstance(parsed, dict) else None
 
                     if not isinstance(raw_dict, dict):
+                        self._log_failure(
+                            request,
+                            "invalid_response_envelope",
+                            attempts=attempt + 1,
+                            input_bytes=len(body_bytes),
+                            latency_ms=elapsed_ms,
+                        )
                         return ProviderTranslationResponse(
                             translations={},
                             status="error",
@@ -227,6 +335,14 @@ class GeminiTranslationAdapter:
                     continue
 
                 elapsed_ms = round((time.perf_counter() - start_time) * 1000.0, 2)
+                self._log_failure(
+                    request,
+                    _http_failure_category(resp.status_code),
+                    attempts=attempt + 1,
+                    input_bytes=len(body_bytes),
+                    latency_ms=elapsed_ms,
+                    http_status=resp.status_code,
+                )
                 return ProviderTranslationResponse(
                     translations={},
                     raw_response=resp.text,
@@ -239,6 +355,13 @@ class GeminiTranslationAdapter:
 
             except TranslationDeadlineExceeded:
                 elapsed_ms = round((time.perf_counter() - start_time) * 1000.0, 2)
+                self._log_failure(
+                    request,
+                    "deadline_exceeded",
+                    attempts=attempt + 1,
+                    input_bytes=len(body_bytes),
+                    latency_ms=elapsed_ms,
+                )
                 return ProviderTranslationResponse(
                     translations={},
                     latency_ms=elapsed_ms,
@@ -247,10 +370,10 @@ class GeminiTranslationAdapter:
                     status="error",
                     error_message="Translation deadline exceeded",
                 )
-            except (httpx.TimeoutException, httpx.NetworkError) as e:
+            except (httpx.TimeoutException, httpx.NetworkError) as error:
                 last_error = (
                     "Provider timed out"
-                    if isinstance(e, httpx.TimeoutException)
+                    if isinstance(error, httpx.TimeoutException)
                     else "Provider network error"
                 )
                 if attempt == 0:
@@ -259,6 +382,13 @@ class GeminiTranslationAdapter:
                     continue
             except Exception:
                 elapsed_ms = round((time.perf_counter() - start_time) * 1000.0, 2)
+                self._log_failure(
+                    request,
+                    "invalid_provider_response",
+                    attempts=attempt + 1,
+                    input_bytes=len(body_bytes),
+                    latency_ms=elapsed_ms,
+                )
                 return ProviderTranslationResponse(
                     translations={},
                     latency_ms=elapsed_ms,
@@ -268,6 +398,13 @@ class GeminiTranslationAdapter:
                 )
 
         elapsed_ms = round((time.perf_counter() - start_time) * 1000.0, 2)
+        self._log_failure(
+            request,
+            "timeout" if last_error == "Provider timed out" else "network_error",
+            attempts=2,
+            input_bytes=len(body_bytes),
+            latency_ms=elapsed_ms,
+        )
         return ProviderTranslationResponse(
             translations={},
             latency_ms=elapsed_ms,

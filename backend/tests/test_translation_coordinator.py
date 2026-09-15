@@ -304,7 +304,9 @@ def test_coordinator_retries_partial_translation_after_short_cache() -> None:
     assert repo.get_aggregate_stats().artifacts_count == 1
 
 
-def test_coordinator_stores_complete_failure_as_temporary_cooldown() -> None:
+def test_coordinator_stores_complete_failure_as_temporary_cooldown(
+    caplog,
+) -> None:
     now = datetime(2026, 9, 5, 12, 0, 0, tzinfo=UTC)
     current_time = [now]
     clock = [100.0]
@@ -336,9 +338,16 @@ def test_coordinator_stores_complete_failure_as_temporary_cooldown() -> None:
     assert stats.active_cooldowns_count == 1
 
     # 2nd call: within cooldown period -> returns UNAVAILABLE without calling provider
-    result2 = coordinator.get_or_generate_translation(product)
+    with caplog.at_level("INFO", logger="lifegoods.generated_data.coordinator"):
+        result2 = coordinator.get_or_generate_translation(product)
     assert result2.overall_status == TranslationOverallStatus.UNAVAILABLE
     assert provider.call_count == 1
+    cooldown_logs = [
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "translation_generation_skipped"
+    ]
+    assert cooldown_logs[-1].failure_category == "cooldown"
 
     # Advance time past cooldown (60s)
     current_time[0] = now + timedelta(seconds=61)
@@ -392,7 +401,7 @@ def test_coordinator_quarantined_artifact_is_withdrawn() -> None:
         assert field.khmer_translation is None
 
 
-def test_coordinator_shared_generation_budget_fails_closed() -> None:
+def test_coordinator_shared_generation_budget_fails_closed(caplog) -> None:
     provider = FakeTranslationProvider(
         canned_translations={
             "product_name": "តែបៃតង",
@@ -420,9 +429,16 @@ def test_coordinator_shared_generation_budget_fails_closed() -> None:
     assert provider.call_count == 1
 
     # 2nd call with different content exceeds budget -> fails closed
-    res2 = coordinator.get_or_generate_translation(_make_product(name="Product 2"))
+    with caplog.at_level("INFO", logger="lifegoods.generated_data.coordinator"):
+        res2 = coordinator.get_or_generate_translation(_make_product(name="Product 2"))
     assert res2.overall_status == TranslationOverallStatus.UNAVAILABLE
     assert provider.call_count == 1
+    budget_logs = [
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "translation_generation_skipped"
+    ]
+    assert budget_logs[-1].failure_category == "budget_exhausted"
 
 
 def test_coordinator_identical_canonical_input_reused_across_dataset_snapshots() -> None:

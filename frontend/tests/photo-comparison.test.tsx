@@ -503,8 +503,8 @@ describe("Compare Products frontend page (/compare)", () => {
             screen.getByRole("button", { name: "Get started" }),
         ).toBeInTheDocument()
         expect(
-            screen.getByRole("button", { name: "Language: English" }),
-        ).toHaveAttribute("data-glass", "neutral")
+            screen.queryByRole("button", { name: /Language:/i }),
+        ).not.toBeInTheDocument()
         expect(
             screen.queryByRole("button", { name: /Choose from library/i }),
         ).not.toBeInTheDocument()
@@ -522,9 +522,9 @@ describe("Compare Products frontend page (/compare)", () => {
         ).not.toBeInTheDocument()
     })
 
-    test("renders the Compare workflow in its independently persisted Khmer locale", async () => {
+    test("uses the shared Scan locale without a Compare language control", async () => {
         const user = userEvent.setup()
-        renderRoute("/compare")
+        renderRoute("/")
 
         await user.click(
             screen.getByRole("button", { name: "Language: English" }),
@@ -532,21 +532,16 @@ describe("Compare Products frontend page (/compare)", () => {
         await user.click(
             screen.getByRole("menuitemradio", { name: "Khmer (ខ្មែរ)" }),
         )
+        await user.click(screen.getByRole("link", { name: "ប្រៀបធៀប" }))
 
         expect(
             screen.getByRole("heading", { name: "ប្រៀបធៀបផលិតផល" }),
         ).toBeInTheDocument()
         expect(document.documentElement).toHaveAttribute("lang", "km")
-        expect(window.localStorage.getItem("lifegoods.compare.locale.v1")).toBe(
-            "km",
-        )
-
-        await user.click(screen.getByRole("button", { name: "ចាប់ផ្តើម" }))
-        expect(screen.getByDisplayValue("ផលិតផល ក")).toBeInTheDocument()
+        expect(window.localStorage.getItem("lifegoods.locale.v1")).toBe("km")
         expect(
-            screen.getByRole("button", { name: "ភាសា៖ ខ្មែរ" }),
-        ).toBeInTheDocument()
-        window.localStorage.removeItem("lifegoods.compare.locale.v1")
+            screen.queryByRole("button", { name: /Language:/i }),
+        ).not.toBeInTheDocument()
     })
 
     test("replaces the shared primary navigation with a floating photo dock", () => {

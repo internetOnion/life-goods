@@ -587,13 +587,10 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
 
                 {entry ? (
                     <article className="mt-7 min-w-0" lang={contentLocale}>
-                        <p className="text-primary text-sm leading-relaxed font-bold">
-                            {t(`learn.topics.${entry.topic}`)}
-                        </p>
                         <h1
                             ref={headingRef}
                             tabIndex={-1}
-                            className="text-display mt-2 leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
+                            className="text-display leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
                         >
                             {localized(entry.title, contentLocale)}
                         </h1>

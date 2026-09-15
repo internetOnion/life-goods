@@ -1,6 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { useState } from "react"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import { LanguageSelector } from "@/components/layout/LanguageSelector"
@@ -23,28 +22,6 @@ function renderLocaleUi() {
             <LanguageSelector />
             <LocaleProbe />
         </LocaleProvider>,
-    )
-}
-
-function ScopedCompareLocale() {
-    const [showCompare, setShowCompare] = useState(true)
-    return (
-        <LocaleProvider>
-            <button type="button" onClick={() => setShowCompare(false)}>
-                Leave compare
-            </button>
-            {showCompare ? (
-                <LocaleProvider
-                    enabledLocales={["en", "km"]}
-                    storageKey="lifegoods.compare.locale.v1"
-                >
-                    <LanguageSelector />
-                    <LocaleProbe />
-                </LocaleProvider>
-            ) : (
-                <LocaleProbe />
-            )}
-        </LocaleProvider>
     )
 }
 
@@ -122,39 +99,10 @@ describe("application locale", () => {
         expect(screen.getByText("km:km,en")).toBeVisible()
     })
 
-    test("enables and persists Khmer only inside the Compare locale scope", async () => {
-        const user = userEvent.setup()
-        render(<ScopedCompareLocale />)
-
-        const trigger = screen.getByRole("button", {
-            name: "Language: English",
-        })
-        await user.click(trigger)
-        await user.click(
-            screen.getByRole("menuitemradio", { name: "Khmer (ខ្មែរ)" }),
-        )
-
-        expect(screen.getByText("km:en,km")).toBeVisible()
-        expect(window.localStorage.getItem("lifegoods.compare.locale.v1")).toBe(
-            "km",
-        )
-        expect(window.localStorage.getItem("lifegoods.locale.v1")).toBeNull()
-        expect(document.documentElement).toHaveAttribute("lang", "km")
-
-        await user.click(screen.getByRole("button", { name: "Leave compare" }))
-        await waitFor(() =>
-            expect(document.documentElement).toHaveAttribute("lang", "km"),
-        )
-        expect(screen.getByText("km:km,en")).toBeVisible()
-    })
-
     test("supports keyboard menu navigation and restores trigger focus", async () => {
         const user = userEvent.setup()
         render(
-            <LocaleProvider
-                enabledLocales={["en", "km"]}
-                storageKey="lifegoods.compare.locale.v1"
-            >
+            <LocaleProvider enabledLocales={["en", "km"]}>
                 <LanguageSelector />
             </LocaleProvider>,
         )
@@ -179,12 +127,9 @@ describe("application locale", () => {
 
     test("supports keyboard navigation and focus restoration from Khmer", async () => {
         const user = userEvent.setup()
-        window.localStorage.setItem("lifegoods.compare.locale.v1", "km")
+        window.localStorage.setItem("lifegoods.locale.v1", "km")
         render(
-            <LocaleProvider
-                enabledLocales={["en", "km"]}
-                storageKey="lifegoods.compare.locale.v1"
-            >
+            <LocaleProvider enabledLocales={["en", "km"]}>
                 <LanguageSelector />
             </LocaleProvider>,
         )

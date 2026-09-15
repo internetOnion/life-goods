@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ProductLookupMetaResponse } from "@/features/product/types"
 
+import { useProductTranslation } from "../translations"
+
 interface RawRecordCardProps {
     meta: ProductLookupMetaResponse
     rawRecord: Record<string, unknown>
@@ -14,6 +16,7 @@ export const RawRecordCard: React.FC<RawRecordCardProps> = ({
     meta,
     rawRecord,
 }) => {
+    const { t } = useProductTranslation()
     const [isOpen, setIsOpen] = useState(false)
     const [isCopied, setIsCopied] = useState(false)
 
@@ -36,7 +39,7 @@ export const RawRecordCard: React.FC<RawRecordCardProps> = ({
                 <div className="flex items-center gap-2">
                     <Terminal className="h-4 w-4 text-neutral-500" />
                     <CardTitle className="text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
-                        Raw API Data & Developer Inspector
+                        {t("rawRecordTitle")}
                     </CardTitle>
                 </div>
 
@@ -47,14 +50,16 @@ export const RawRecordCard: React.FC<RawRecordCardProps> = ({
                             size="sm"
                             type="button"
                             onClick={handleCopy}
-                        className="inline-flex h-auto cursor-pointer items-center gap-1 rounded-xl bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-600 hover:bg-neutral-200 hover:text-neutral-900"
+                            className="inline-flex h-auto cursor-pointer items-center gap-1 rounded-xl bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-600 hover:bg-neutral-200 hover:text-neutral-900"
                         >
                             {isCopied ? (
                                 <Check className="h-3 w-3 text-emerald-600" />
                             ) : (
                                 <Copy className="h-3 w-3 text-neutral-500" />
                             )}
-                            <span>{isCopied ? "Copied" : "Copy JSON"}</span>
+                            <span>
+                                {isCopied ? t("copied") : t("copyJson")}
+                            </span>
                         </Button>
                     )}
 
@@ -65,16 +70,18 @@ export const RawRecordCard: React.FC<RawRecordCardProps> = ({
                         onClick={() => setIsOpen(!isOpen)}
                         className="cursor-pointer rounded-lg text-xs font-semibold"
                     >
-                        {isOpen ? "Hide Inspector" : "Inspect JSON"}
+                        {isOpen ? t("hideInspector") : t("inspectJson")}
                     </Button>
                 </div>
             </CardHeader>
 
             <CardContent className="space-y-3 p-4 pt-2 text-xs sm:p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-neutral-200/60 bg-neutral-50 p-2.5 font-mono text-xs text-neutral-700">
-                    <span>Route: /api/v1/products/:barcode</span>
+                    <span>{t("apiRoute")}</span>
                     <span className="text-neutral-500">
-                        Snapshot: {meta.dataset.version}
+                        {t("snapshotLabel", {
+                            version: meta.dataset.version,
+                        })}
                     </span>
                 </div>
 
@@ -87,8 +94,7 @@ export const RawRecordCard: React.FC<RawRecordCardProps> = ({
                 )}
 
                 <p className="text-xs font-medium text-neutral-500">
-                    Full verbatim response payload returned by the local Open
-                    Food Facts database.
+                    {t("rawRecordDescription")}
                 </p>
             </CardContent>
         </Card>

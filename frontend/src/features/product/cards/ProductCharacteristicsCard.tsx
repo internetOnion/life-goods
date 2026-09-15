@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { OpenFoodFactsProductView } from "@/features/product/types"
 
+import { translateTaxonomyValue, useProductTranslation } from "../translations"
+
 interface ProductCharacteristicsCardProps {
     product: OpenFoodFactsProductView
 }
@@ -18,6 +20,7 @@ interface ProductCharacteristicsCardProps {
 export const ProductCharacteristicsCard: React.FC<
     ProductCharacteristicsCardProps
 > = ({ product }) => {
+    const { locale, t } = useProductTranslation()
     const hasContent = Boolean(
         product.genericName ||
         product.categories.length > 0 ||
@@ -37,7 +40,7 @@ export const ProductCharacteristicsCard: React.FC<
                         <Tag className="h-4 w-4" />
                     </div>
                     <CardTitle className="text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
-                        Product Characteristics & Classification
+                        {t("productCharacteristics")}
                     </CardTitle>
                 </div>
             </CardHeader>
@@ -58,7 +61,9 @@ export const ProductCharacteristicsCard: React.FC<
                         <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 sm:text-sm">
                             <BookmarkCheck className="h-3.5 w-3.5 text-neutral-500" />
                             <span>
-                                Categories ({product.categories.length})
+                                {t("categoriesCount", {
+                                    count: product.categories.length,
+                                })}
                             </span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
@@ -68,7 +73,7 @@ export const ProductCharacteristicsCard: React.FC<
                                     variant="secondary"
                                     className="text-xs font-semibold capitalize"
                                 >
-                                    {cat}
+                                    {translateTaxonomyValue(locale, cat)}
                                 </Badge>
                             ))}
                         </div>
@@ -80,7 +85,7 @@ export const ProductCharacteristicsCard: React.FC<
                     <div className="space-y-1.5 border-t border-neutral-100 pt-1">
                         <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 sm:text-sm">
                             <Store className="h-3.5 w-3.5 text-neutral-500" />
-                            <span>Stores / Retailers</span>
+                            <span>{t("storesRetailers")}</span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                             {product.stores.map((s, idx) => (
@@ -100,7 +105,7 @@ export const ProductCharacteristicsCard: React.FC<
                 {product.embCodes.length > 0 && (
                     <div className="space-y-1 border-t border-neutral-100 pt-1">
                         <span className="text-caption block font-bold tracking-[0.06em] text-neutral-500 uppercase">
-                            Traceability / EMB Codes:
+                            {t("traceabilityCodes")}
                         </span>
                         <div className="flex flex-wrap gap-1.5">
                             {product.embCodes.map((code, idx) => (
@@ -122,7 +127,9 @@ export const ProductCharacteristicsCard: React.FC<
                         {product.customerService && (
                             <div className="flex items-center gap-1.5">
                                 <Headphones className="h-3.5 w-3.5 text-neutral-500" />
-                                <span>Service: {product.customerService}</span>
+                                <span>
+                                    {t("service")}: {product.customerService}
+                                </span>
                             </div>
                         )}
                         {product.link && (
@@ -132,7 +139,7 @@ export const ProductCharacteristicsCard: React.FC<
                                 rel="noopener noreferrer"
                                 className="text-info-700 hover:text-info-800 inline-flex items-center gap-1 underline underline-offset-2"
                             >
-                                <span>Product Website</span>
+                                <span>{t("productWebsite")}</span>
                                 <ExternalLink className="h-3 w-3" />
                             </a>
                         )}

@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import quote
@@ -45,7 +46,11 @@ from lifegoods.product_lookup.contracts import (
     SourceRecordMetadataProjection,
 )
 from lifegoods.translation.module import KhmerTranslationModule
-from lifegoods.translation.provider import FakeTranslationProvider
+from lifegoods.translation.provider import (
+    FakeTranslationProvider,
+    ProviderTranslationRequest,
+    ProviderTranslationResponse,
+)
 
 FIXTURES = Path(__file__).parent / "fixtures" / "open_food_facts"
 VERSION_ID = "dataset-2026-08-27"
@@ -1001,6 +1006,73 @@ def test_v1_product_lookup_with_language_kh_generates_translation() -> None:
     assert provider.call_count == 1
 
 
+def test_v1_product_lookup_translates_nutella_prose_fields_together() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "3017620422003",
+            "lang": "fr",
+            "product_name": "Nutella",
+            "ingredients_text": (
+                "Sucre, huile de palme, NOISETTES 13%, cacao maigre 7,4%, "
+                "LAIT écrémé en poudre 6,6%, émulsifiants: lécithines [SOJA]; vanilline."
+            ),
+            "conservation_conditions": (
+                "A conserver au sec et à l'abri de la chaleur. "
+                "Ne pas mettre au réfrigérateur."
+            ),
+            "packaging_text": "1 pot en verre",
+            "recycling_instructions_to_discard": "À recycler",
+        }
+    )
+
+    class AllFieldsKhmerProvider(FakeTranslationProvider):
+        def translate(self, request: ProviderTranslationRequest) -> ProviderTranslationResponse:
+            self.call_count += 1
+            self.last_request = request
+
+            def translate_value(value: str) -> str:
+                parts = re.split(r"(__LG_TOK_\d+__)", value)
+                return " ".join(
+                    part if re.fullmatch(r"__LG_TOK_\d+__", part) else "ខ្មែរ"
+                    for part in parts
+                    if part.strip()
+                )
+
+            return ProviderTranslationResponse(
+                translations={
+                    field_name: translate_value(value)
+                    for field_name, value in request.fields.items()
+                },
+                status="success",
+            )
+
+    provider = AllFieldsKhmerProvider()
+    with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
+        response = client.get("/api/v1/products/3017620422003?language=km")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["translation"]["status"] == "complete"
+    product = body["data"]["product"]
+    assert product["ingredients_text"]["translation_status"] == "generated"
+    assert "ខ្មែរ" in product["ingredients_text"]["khmer_translation"]
+
+    assert provider.last_request is not None
+    assert set(provider.last_request.fields) == {
+        "product_name",
+        "ingredients_text",
+        "storage_instruction_0",
+        "packaging_description_0",
+        "recycling_instruction_0",
+    }
+    assert product["storage_instruction_items"][0]["translation_status"] == "generated"
+    assert product["packaging"]["description_items"][0]["translation_status"] == "generated"
+    assert product["packaging"]["recycling_instruction_items"][0]["translation_status"] == (
+        "generated"
+    )
+
+
 def test_v1_product_lookup_source_khmer_not_needed() -> None:
     database = _dataset_database()
     database[COLLECTION_NAME].insert_one(
@@ -1182,7 +1254,9 @@ def test_v1_product_lookup_cooldown_returns_200_with_original_text_and_unavailab
         assert provider.call_count == 1
 
 
-def test_v1_product_lookup_store_degraded_returns_original_text() -> None:
+def test_v1_product_lookup_store_degraded_returns_original_text(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     database = _dataset_database()
     database[COLLECTION_NAME].insert_one(
         {
@@ -1197,7 +1271,10 @@ def test_v1_product_lookup_store_degraded_returns_original_text() -> None:
 
     coord = _make_test_coordinator(repository=FailingRepo())
 
-    with _client(database, coordinator=coord) as client:
+    with (
+        caplog.at_level("WARNING", logger="lifegoods.generated_data.coordinator"),
+        _client(database, coordinator=coord) as client,
+    ):
         response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
@@ -1212,6 +1289,12 @@ def test_v1_product_lookup_store_degraded_returns_original_text() -> None:
         body["data"]["product"]["identity"]["name"]["selected_original_text"]["value"]
         == "Dark Chocolate"
     )
+    store_logs = [
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "translation_store_degraded"
+    ]
+    assert getattr(store_logs[-1], "failure_category", None) == "store_unavailable"
 
 
 def test_v1_product_lookup_budget_exhausted_returns_original_text() -> None:

@@ -8,30 +8,41 @@ import type { AllergenAnalysisResponse } from "../src/api/generated"
 import type { ProductLookup } from "../src/features/product/api"
 import { ProductPage } from "../src/features/product/ProductPage"
 import { LearnArticlePage } from "../src/features/learn/LearnPage"
+import { LocaleProvider } from "../src/i18n/LocaleProvider"
+import type { AppLocale } from "../src/i18n/locale"
 import { productResponse } from "./product-fixtures"
 
 function renderProduct(
     lookup: ProductLookup,
     initialBarcode = "4006381333931",
+    locale: AppLocale = "en",
 ) {
+    window.localStorage.setItem("lifegoods.locale.v1", locale)
     const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false } },
     })
     return render(
         <QueryClientProvider client={queryClient}>
-            <MemoryRouter initialEntries={[`/products/${initialBarcode}`]}>
-                <Routes>
-                    <Route
-                        path="/products/:barcode"
-                        element={<ProductPage lookup={lookup} />}
-                    />
-                    <Route
-                        path="/search"
-                        element={<div data-testid="search-page">Search</div>}
-                    />
-                    <Route path="/learn/:slug" element={<LearnArticlePage />} />
-                </Routes>
-            </MemoryRouter>
+            <LocaleProvider>
+                <MemoryRouter initialEntries={["/products/" + initialBarcode]}>
+                    <Routes>
+                        <Route
+                            path="/products/:barcode"
+                            element={<ProductPage lookup={lookup} />}
+                        />
+                        <Route
+                            path="/search"
+                            element={
+                                <div data-testid="search-page">Search</div>
+                            }
+                        />
+                        <Route
+                            path="/learn/:slug"
+                            element={<LearnArticlePage />}
+                        />
+                    </Routes>
+                </MemoryRouter>
+            </LocaleProvider>
         </QueryClientProvider>,
     )
 }
@@ -290,6 +301,180 @@ describe("Product page (life-goods-viewer layout)", () => {
             within(labelsPanel).queryByRole("heading", {
                 name: "Source Assessments",
             }),
+        ).not.toBeInTheDocument()
+    })
+
+    test("renders translated identity, ingredients, packaging, and localized labels in Khmer", async () => {
+        const user = userEvent.setup()
+        const response = productResponse()
+        const product = response.data.product
+        product.identity.name = {
+            selected_original_text: {
+                value: "Dark Chocolate",
+                language: "en",
+                source_field: "product_name_en",
+            },
+            khmer_translation: "សូកូឡាខ្មៅ",
+            translation_status: "generated",
+        }
+        product.identity.generic_name = {
+            selected_original_text: {
+                value: "Chocolate bar",
+                language: "en",
+                source_field: "generic_name_en",
+            },
+            khmer_translation: "បន្ទះសូកូឡា",
+            translation_status: "generated",
+        }
+        product.category_items = [
+            {
+                key: "category:0",
+                selected_original_text: {
+                    value: "Chocolate",
+                    language: "en",
+                    source_field: "categories_tags",
+                },
+                khmer_translation: "សូកូឡា",
+                translation_status: "generated",
+            },
+        ]
+        product.ingredients_text = {
+            selected_original_text: {
+                value: "Sucre, huile de palme, NOISETTES 13%",
+                language: "fr",
+                source_field: "ingredients_text_fr",
+            },
+            khmer_translation: "ស្ករ ប្រេងដូង គ្រាប់ហាសែលណាត់ 13%",
+            translation_status: "generated",
+        }
+        product.packaging.description_items = [
+            {
+                key: "packaging:0",
+                selected_original_text: {
+                    value: "Paper wrapper",
+                    language: "en",
+                    source_field: "packaging_text_en",
+                },
+                khmer_translation: "សំបកក្រដាស",
+                translation_status: "generated",
+            },
+        ]
+        product.packaging.recycling_instruction_items = [
+            {
+                key: "recycling:0",
+                selected_original_text: {
+                    value: "Recycle with paper",
+                    language: "en",
+                    source_field: "recycling_instructions_en",
+                },
+                khmer_translation: "កែច្នៃជាមួយក្រដាស",
+                translation_status: "generated",
+            },
+        ]
+        product.storage_instruction_items = [
+            {
+                key: "storage:0",
+                selected_original_text: {
+                    value: "Store in a cool, dry place",
+                    language: "en",
+                    source_field: "storage_instructions_en",
+                },
+                khmer_translation: "រក្សាទុកនៅកន្លែងត្រជាក់ និងស្ងួត",
+                translation_status: "generated",
+            },
+        ]
+        const lookup = vi.fn<ProductLookup>().mockResolvedValue(response)
+
+        renderProduct(lookup, "4006381333931", "km")
+
+        expect(await screen.findByText("សូកូឡាខ្មៅ")).toBeVisible()
+        expect(lookup).toHaveBeenCalledWith("4006381333931", "km")
+        expect(
+            screen.getByRole("heading", { name: "ព័ត៌មានលម្អិតផលិតផល" }),
+        ).toBeVisible()
+        expect(screen.getByText("ប្រភេទផលិតផល")).toBeVisible()
+        expect(screen.getByText("សូកូឡា")).toBeVisible()
+        expect(screen.getByRole("tab", { name: "គ្រឿងផ្សំ" })).toBeVisible()
+
+        const originalButtons = screen.getAllByRole("button", {
+            name: "បង្ហាញអត្ថបទដើម",
+        })
+        expect(originalButtons.length).toBeGreaterThan(0)
+        await user.click(screen.getByRole("tab", { name: "គ្រឿងផ្សំ" }))
+        expect(
+            screen.getAllByText("ស្ករ ប្រេងដូង គ្រាប់ហាសែលណាត់ 13%").length,
+        ).toBeGreaterThan(0)
+        expect(
+            screen.queryByText("Sucre, huile de palme, NOISETTES 13%"),
+        ).not.toBeInTheDocument()
+        const ingredientsPanel = screen.getByRole("tabpanel", {
+            name: "គ្រឿងផ្សំ",
+        })
+        const ingredientLanguage = within(ingredientsPanel).getByRole(
+            "combobox",
+            { name: "ភាសាគ្រឿងផ្សំ" },
+        )
+        expect(ingredientLanguage).toHaveValue("km")
+        expect(
+            within(ingredientLanguage).getByRole("option", {
+                name: "ភាសាខ្មែរ",
+            }),
+        ).toBeInTheDocument()
+        expect(
+            within(ingredientLanguage).getByRole("option", {
+                name: "ភាសាអង់គ្លេស",
+            }),
+        ).toBeInTheDocument()
+        await user.click(
+            within(ingredientsPanel).getByRole("button", {
+                name: "បង្ហាញអត្ថបទដើម",
+            }),
+        )
+        expect(
+            screen.getByText("Sucre, huile de palme, NOISETTES 13%"),
+        ).toBeVisible()
+        await user.selectOptions(ingredientLanguage, "en")
+        expect(ingredientLanguage).toHaveValue("en")
+        expect(within(ingredientsPanel).getByText("Cocoa mass")).toBeVisible()
+        expect(
+            within(ingredientsPanel).queryByText("ម៉ាសកាកាវ"),
+        ).not.toBeInTheDocument()
+
+        await user.click(screen.getByRole("tab", { name: "ស្លាក និងវេចខ្ចប់" }))
+        expect(screen.getByText("សំបកក្រដាស")).toBeVisible()
+        expect(screen.getByText("កែច្នៃជាមួយក្រដាស")).toBeVisible()
+        expect(
+            screen.getByText("រក្សាទុកនៅកន្លែងត្រជាក់ និងស្ងួត"),
+        ).toBeVisible()
+    })
+
+    test("falls back to Original Text when Khmer Translation is unavailable", async () => {
+        const user = userEvent.setup()
+        const response = productResponse()
+        response.data.product.ingredients_text = {
+            selected_original_text: {
+                value: "Cocoa mass, sugar, cocoa butter",
+                language: "en",
+                source_field: "ingredients_text_en",
+            },
+            khmer_translation: null,
+            translation_status: "translation_unavailable",
+        }
+
+        renderProduct(
+            vi.fn<ProductLookup>().mockResolvedValue(response),
+            "4006381333931",
+            "km",
+        )
+
+        await user.click(await screen.findByRole("tab", { name: "គ្រឿងផ្សំ" }))
+
+        const ingredientsPanel = screen.getByRole("tabpanel", {
+            name: "គ្រឿងផ្សំ",
+        })
+        expect(within(ingredientsPanel).getByText("Cocoa mass")).toBeVisible()
+        expect(
+            within(ingredientsPanel).queryByText("ការបកប្រែជាភាសាខ្មែរ"),
         ).not.toBeInTheDocument()
     })
 
@@ -1112,6 +1297,7 @@ describe("Product page (life-goods-viewer layout)", () => {
             name: "Ingredient language",
         })
         expect(languageSelect).toHaveValue("en")
+        expect(languageSelect).toHaveClass("h-11", "max-w-[8rem]")
         expect(within(languageSelect).getByText("English")).toBeInTheDocument()
         expect(within(languageSelect).getByText("Khmer")).toBeInTheDocument()
 
@@ -1207,6 +1393,27 @@ describe("Product page (life-goods-viewer layout)", () => {
             name: /Scan Another Barcode/i,
         })
         expect(backButton).toBeVisible()
+    })
+
+    test("localizes missing Product states in Khmer", async () => {
+        const lookup = vi.fn<ProductLookup>().mockRejectedValue({
+            status: 404,
+            error: { code: "product_not_found" },
+        })
+
+        renderProduct(lookup, "3017620422003", "km")
+
+        expect(
+            await screen.findByText("រកមិនឃើញកំណត់ត្រាកញ្ចប់ទេ"),
+        ).toBeVisible()
+        expect(
+            screen.getByText(
+                "ផលិតផលត្រូវតែមានក្នុង Dataset Snapshot ដែលបានទាញយក ទើបអាចបង្ហាញបាន។",
+            ),
+        ).toBeVisible()
+        expect(
+            screen.getByRole("button", { name: "ស្កេនបាកូដមួយទៀត" }),
+        ).toBeVisible()
     })
 
     test("shows error recovery with Try Again for network/dataset errors", async () => {

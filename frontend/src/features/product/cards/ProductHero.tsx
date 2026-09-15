@@ -9,14 +9,25 @@ import type {
     PackageMatchCandidateResponse,
     PackageMatchReferenceImageResponse,
 } from "@/features/product/types"
+import type { ProductProjection, TranslatableTextItem } from "@/api/generated"
 import { getBarcodeCountry } from "@/lib/barcode-country"
 import { cn } from "@/lib/utils"
 import type { ConcernMatch } from "@/features/concerns/matching"
+
+import { TranslatedField } from "../TranslatedField"
+import { getTranslatedFieldText } from "../translation-utils"
+import {
+    translateConcernLabel,
+    translateTaxonomyValue,
+    useProductTranslation,
+} from "../translations"
 
 interface ProductHeroProps {
     candidate: PackageMatchCandidateResponse
     identifier: string
     genericName?: string | null
+    projection?: ProductProjection | null
+    categoryItems?: TranslatableTextItem[]
     headingRef?: React.Ref<HTMLHeadingElement>
     selectedConcernMatches?: ConcernMatch[]
 }
@@ -25,9 +36,12 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
     candidate,
     identifier,
     genericName,
+    projection,
+    categoryItems = [],
     headingRef,
     selectedConcernMatches = [],
 }) => {
+    const { locale, t } = useProductTranslation()
     const [selectedImageIndex, setSelectedImageIndex] = useState(0)
     const [isZoomOpen, setIsZoomOpen] = useState(false)
     const [isCopied, setIsCopied] = useState(false)
@@ -41,8 +55,37 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
         identityEvidence.find(
             (e) => e.field === "name" && (e.language === "en" || !e.language),
         ) || identityEvidence.find((e) => e.field === "name")
-    const productName = (nameItem?.value as string) || "Unlabeled Product"
+    const productName = (nameItem?.value as string) || t("unlabeledProduct")
+    const displayProductName = projection
+        ? getTranslatedFieldText(
+              projection.identity.name,
+              locale,
+              productName,
+          ) || t("sourceDataUnavailable")
+        : productName
+    const displayGenericName = projection
+        ? getTranslatedFieldText(
+              projection.identity.generic_name,
+              locale,
+              genericName,
+          )
+        : genericName
     const barcodeCountry = getBarcodeCountry(identifier)
+
+    const getImageRoleLabel = (role?: string | null) => {
+        switch (role) {
+            case "front":
+                return t("frontImage")
+            case "ingredients":
+                return t("ingredientsImage")
+            case "nutrition":
+                return t("nutritionImage")
+            case "packaging":
+                return t("packagingImage")
+            default:
+                return t("productImage")
+        }
+    }
 
     // Extract brand
     const brandItem = identityEvidence.find((e) => e.field === "brands")
@@ -106,7 +149,13 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
         ...new Set(
             selectedConcernMatches
                 .filter((match) => match.hasCompactMatch)
-                .map((match) => match.concernLabel),
+                .map((match) =>
+                    translateConcernLabel(
+                        locale,
+                        match.concernId,
+                        match.concernLabel,
+                    ),
+                ),
         ),
     ]
 
@@ -135,7 +184,12 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                         tabIndex={canZoomImage ? 0 : undefined}
                         aria-label={
                             canZoomImage
-                                ? `View ${productName} ${currentImage?.role || "product"} image`
+                                ? t("viewProductImage", {
+                                      name: displayProductName,
+                                      role: getImageRoleLabel(
+                                          currentImage?.role,
+                                      ),
+                                  })
                                 : undefined
                         }
                         onClick={() => canZoomImage && setIsZoomOpen(true)}
@@ -153,7 +207,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                             <>
                                 <img
                                     src={currentImage.url}
-                                    alt={productName}
+                                    alt={displayProductName}
                                     className="h-full w-full object-contain p-3 transition-transform duration-300 group-hover:scale-[1.02]"
                                     onError={() => setImageFailed(true)}
                                 />
@@ -165,12 +219,14 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                                         variant="subtle"
                                         className="text-micro border-neutral-200/80 bg-white/95 font-semibold tracking-wider text-neutral-800 uppercase shadow-sm backdrop-blur-xs"
                                     >
-                                        {currentImage.role}
+                                        {getImageRoleLabel(currentImage.role)}
                                     </Badge>
                                 </div>
                             </>
                         ) : (
-                            <PackageImagePlaceholder />
+                            <PackageImagePlaceholder
+                                label={t("sourceImageUnavailable")}
+                            />
                         )}
                     </div>
 
@@ -185,7 +241,9 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                                         variant="ghost"
                                         size="icon"
                                         type="button"
-                                        aria-label={`Select ${img.role} product image`}
+                                        aria-label={t("selectProductImage", {
+                                            role: getImageRoleLabel(img.role),
+                                        })}
                                         aria-pressed={isSelected}
                                         onClick={() => {
                                             setSelectedImageIndex(idx)
@@ -216,32 +274,64 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                         tabIndex={-1}
                         className="text-display-product max-w-[18ch] leading-[1.12] font-extrabold tracking-[-0.03em] text-balance wrap-anywhere text-neutral-950 focus:outline-none"
                     >
-                        {productName}
+                        {projection ? (
+                            <TranslatedField
+                                field={projection.identity.name}
+                                fallback={productName}
+                                textClassName="text-display-product leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
+                            />
+                        ) : (
+                            displayProductName
+                        )}
                     </h1>
 
                     {matchedConcernLabels.length > 0 && (
                         <div
                             role="status"
-                            aria-label={`Selected allergens found: ${matchedConcernLabels.join(", ")}`}
+                            aria-label={`${t("selectedAllergensFound")}: ${matchedConcernLabels.join(", ")}`}
                             className="border-warning-200 bg-warning-50 text-warning-950 rounded-xl border p-3 text-sm font-semibold"
                         >
                             <p className="text-caption mb-1 font-medium">
-                                Selected allergens found
+                                {t("selectedAllergensFound")}
                             </p>
                             <p>{matchedConcernLabels.join(", ")}</p>
                         </div>
                     )}
 
-                    {genericName && (
-                        <p className="max-w-prose text-sm leading-relaxed font-medium text-neutral-600 italic">
-                            {genericName}
-                        </p>
+                    {displayGenericName && (
+                        <TranslatedField
+                            field={projection?.identity.generic_name}
+                            fallback={displayGenericName}
+                            className="max-w-prose text-sm leading-relaxed font-medium text-neutral-600 italic"
+                        />
+                    )}
+
+                    {categoryItems.length > 0 && (
+                        <div className="min-w-0 space-y-2">
+                            <span className="text-caption block font-bold tracking-[0.08em] text-neutral-500 uppercase">
+                                {t("categories")}
+                            </span>
+                            <div className="flex min-w-0 flex-wrap gap-2">
+                                {categoryItems.map((item) => (
+                                    <div
+                                        key={item.key}
+                                        className="max-w-full min-w-0 rounded-xl border border-neutral-200/80 bg-neutral-50 px-2.5 py-2"
+                                    >
+                                        <TranslatedField
+                                            field={item}
+                                            compact
+                                            textClassName="text-xs font-semibold text-neutral-800"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     )}
 
                     {brandName && (
                         <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-neutral-600">
                             <span className="text-caption font-bold tracking-[0.08em] text-neutral-500 uppercase">
-                                Brand
+                                {t("brand")}
                             </span>
                             <span className="font-bold text-neutral-950">
                                 {brandName}
@@ -253,7 +343,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                     <div className="divide-y divide-neutral-100 rounded-xl border border-neutral-200/80 bg-white p-3 text-xs">
                         <div className="grid min-h-16 grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-2.5">
                             <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
-                                Barcode
+                                {t("barcode")}
                             </span>
                             <Button
                                 variant="ghost"
@@ -263,10 +353,12 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                                 type="button"
                                 onClick={handleCopyBarcode}
                                 aria-label={
-                                    isCopied ? "Barcode copied" : "Copy barcode"
+                                    isCopied
+                                        ? t("barcodeCopied")
+                                        : t("copyBarcode")
                                 }
                                 className="focus-visible:ring-primary-500 inline-flex h-auto min-h-11 w-full min-w-0 cursor-pointer items-center justify-end gap-2.5 rounded-full px-1.5 py-1 text-right font-mono text-xs font-semibold tracking-[0.04em] whitespace-normal text-neutral-900 tabular-nums transition-colors focus-visible:ring-2 sm:text-sm"
-                                title="Copy Barcode"
+                                title={t("copyBarcodeTitle")}
                             >
                                 <span className="min-w-0 wrap-anywhere">
                                     {identifier}
@@ -281,30 +373,35 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
 
                         <div className="grid min-h-16 grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-2.5">
                             <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
-                                Quantity
+                                {t("quantity")}
                             </span>
                             <span className="min-w-0 text-right font-mono text-xs font-semibold text-neutral-900 tabular-nums sm:text-sm">
-                                {quantity || "Source Data Unavailable"}
+                                {quantity || t("sourceDataUnavailable")}
                             </span>
                         </div>
 
                         <div className="grid min-h-16 grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-2.5">
                             <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
-                                Barcode country
+                                {t("barcodeCountry")}
                             </span>
                             <span className="min-w-0 text-right text-xs font-semibold wrap-anywhere text-neutral-900 sm:text-sm">
-                                {barcodeCountry || "Source Data Unavailable"}
+                                {barcodeCountry
+                                    ? translateTaxonomyValue(
+                                          locale,
+                                          barcodeCountry,
+                                      )
+                                    : t("sourceDataUnavailable")}
                             </span>
                         </div>
                     </div>
 
                     {hasLabelHighlights && (
                         <div
-                            aria-label="Product label highlights"
+                            aria-label={t("productLabelHighlights")}
                             className="grid grid-cols-[6rem_minmax(0,1fr)] items-start justify-end gap-3 pt-4"
                         >
                             <span className="text-caption min-w-0 pt-1 font-bold tracking-[0.06em] text-neutral-500 uppercase">
-                                On the label
+                                {t("onTheLabel")}
                             </span>
                             <div className="flex min-w-0 flex-wrap justify-end gap-2">
                                 {hasHalalClaim && (
@@ -312,7 +409,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                                         variant="outline"
                                         className="border-info-200 bg-info-50 text-info-800 text-sm font-semibold"
                                     >
-                                        Halal
+                                        {t("halal")}
                                     </Badge>
                                 )}
 
@@ -321,7 +418,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                                         variant="outline"
                                         className="border-info-200 bg-info-50 text-info-800 text-sm font-semibold"
                                     >
-                                        Additive
+                                        {t("additive")}
                                     </Badge>
                                 )}
                             </div>
@@ -334,22 +431,25 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
             {currentImage && (
                 <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
                     <DialogContent
+                        closeLabel={t("close")}
                         closeClassName="size-12"
                         className="max-w-2xl border-neutral-800 bg-neutral-950 p-4 text-white"
                     >
                         <DialogTitle className="text-sm font-semibold text-neutral-200">
-                            {productName} — {currentImage.role.toUpperCase()}
+                            {displayProductName} —{" "}
+                            {getImageRoleLabel(currentImage.role)}
                         </DialogTitle>
                         <div className="relative flex aspect-square w-full items-center justify-center p-2 sm:aspect-[4/3]">
                             <img
                                 src={currentImage.url}
-                                alt={productName}
+                                alt={displayProductName}
                                 className="max-h-full max-w-full rounded-xl object-contain"
                             />
                         </div>
                         {currentImage.attribution && (
                             <p className="text-caption text-center text-neutral-600">
-                                Photo attribution: {currentImage.attribution} (
+                                {t("photoAttribution")}:{" "}
+                                {currentImage.attribution} (
                                 {currentImage.license_name || "CC BY-SA"})
                             </p>
                         )}

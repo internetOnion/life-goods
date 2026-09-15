@@ -19,8 +19,6 @@ import { LocaleProvider } from "@/i18n/LocaleProvider"
 
 import { appRoutes } from "./routes"
 
-const compareLocales = ["en", "km"] as const
-
 type AppProps = {
     lookup?: ProductLookup
     demoMode?: boolean
@@ -67,14 +65,7 @@ export function App({ lookup = lookupProduct, demoMode = false }: AppProps) {
                     />
                     <Route
                         path={appRoutes.compare}
-                        element={
-                            <LocaleProvider
-                                enabledLocales={compareLocales}
-                                storageKey="lifegoods.compare.locale.v1"
-                            >
-                                <PhotoComparisonPage />
-                            </LocaleProvider>
-                        }
+                        element={<PhotoComparisonPage />}
                     />
                     <Route
                         path="/experimental/photo-comparison"

@@ -160,6 +160,16 @@ class TranslationCoordinator:
             },
         )
 
+    @staticmethod
+    def _log_generation_skip(failure_category: str) -> None:
+        logger.info(
+            "Translation generation skipped",
+            extra={
+                "event": "translation_generation_skipped",
+                "failure_category": failure_category,
+            },
+        )
+
     def get_or_generate_translation(
         self,
         product: ProductProjection,
@@ -208,6 +218,7 @@ class TranslationCoordinator:
         # 2. Check quarantine in durable store
         try:
             if deadline.run(lambda: self._repository.is_quarantined(content_hash, config_fp)):
+                self._log_generation_skip("artifact_quarantined")
                 return unavailable_result(
                     product, content_hash, config_fp, "Artifact is quarantined"
                 )
@@ -227,6 +238,7 @@ class TranslationCoordinator:
                     deadline.run(partial(self._cache.put, stored))
                     return reconstruct_result_from_artifact(stored, product)
                 if deadline.run(lambda: self._repository.is_cooling_down(content_hash, config_fp)):
+                    self._log_generation_skip("cooldown")
                     return unavailable_result(
                         product, content_hash, config_fp, "Generation cooled down"
                     )
@@ -234,11 +246,13 @@ class TranslationCoordinator:
                 self._record_store_degradation(error)
 
         if self._is_store_degraded():
+            self._log_generation_skip("store_unavailable")
             return unavailable_result(
                 product, content_hash, config_fp, "Generated store unavailable"
             )
 
         if not self._module.generation_enabled:
+            self._log_generation_skip("provider_not_configured")
             return unavailable_result(
                 product, content_hash, config_fp, "Provider is not configured"
             )
@@ -259,6 +273,7 @@ class TranslationCoordinator:
             )
         except PyMongoError as error:
             self._record_store_degradation(error)
+            self._log_generation_skip("lease_unavailable")
             return unavailable_result(
                 product, content_hash, config_fp, "Could not acquire generation lease"
             )
@@ -268,6 +283,7 @@ class TranslationCoordinator:
                 # Won the lease: check project-wide generation budget (fail-closed).
                 budget_ok, _ = deadline.run(self._budget.try_acquire)
                 if not budget_ok:
+                    self._log_generation_skip("budget_exhausted")
                     return unavailable_result(
                         product, content_hash, config_fp, "Generation budget exhausted"
                     )
@@ -289,6 +305,15 @@ class TranslationCoordinator:
                             field_name
                             for field_name, field in result.fields.items()
                             if field.status == TranslationFieldStatus.TRANSLATION_UNAVAILABLE
+                        ),
+                        "failure_category": (
+                            "provider_translation_unavailable"
+                            if result.overall_status == TranslationOverallStatus.UNAVAILABLE
+                            else (
+                                "partial_field_translation"
+                                if result.overall_status == TranslationOverallStatus.PARTIAL
+                                else None
+                            )
                         ),
                     },
                 )
@@ -355,6 +380,7 @@ class TranslationCoordinator:
                         if deadline.run(
                             lambda: self._repository.is_cooling_down(content_hash, config_fp)
                         ):
+                            self._log_generation_skip("cooldown")
                             return unavailable_result(
                                 product,
                                 content_hash,

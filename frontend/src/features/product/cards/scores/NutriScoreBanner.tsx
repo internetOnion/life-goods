@@ -2,6 +2,7 @@ import React from "react"
 import { ChevronRight } from "lucide-react"
 
 import { ScoreLessonLink } from "./ScoreLessonLink"
+import { useProductTranslation } from "../../translations"
 
 interface NutriScoreBannerProps {
     grade?: "a" | "b" | "c" | "d" | "e" | "unknown" | null
@@ -12,7 +13,6 @@ interface NutriScoreBannerProps {
 interface GradeConfig {
     key: string
     label: string
-    desc: string
     surfaceClassName: string
 }
 
@@ -20,31 +20,26 @@ const NUTRI_GRADES: GradeConfig[] = [
     {
         key: "a",
         label: "A",
-        desc: "Very good nutritional quality",
         surfaceClassName: "bg-emerald-50 hover:bg-emerald-100",
     },
     {
         key: "b",
         label: "B",
-        desc: "Good nutritional quality",
         surfaceClassName: "bg-lime-50 hover:bg-lime-100",
     },
     {
         key: "c",
         label: "C",
-        desc: "Average nutritional quality",
         surfaceClassName: "bg-amber-50 hover:bg-amber-100",
     },
     {
         key: "d",
         label: "D",
-        desc: "Poor nutritional quality",
         surfaceClassName: "bg-orange-50 hover:bg-orange-100",
     },
     {
         key: "e",
         label: "E",
-        desc: "Very poor nutritional quality",
         surfaceClassName: "bg-red-50 hover:bg-red-100",
     },
 ]
@@ -64,11 +59,23 @@ function getNutriScoreAsset(grade?: string | null): string {
 export const NutriScoreBanner: React.FC<NutriScoreBannerProps> = ({
     grade,
 }) => {
+    const { t } = useProductTranslation()
     const normalizedGrade = grade ? grade.toLowerCase() : null
     const activeGrade = NUTRI_GRADES.find(
         (item) => item.key === normalizedGrade,
     )
     if (!activeGrade) return null
+
+    const descriptionKey =
+        normalizedGrade === "a"
+            ? "veryGoodNutritionalQuality"
+            : normalizedGrade === "b"
+              ? "goodNutritionalQuality"
+              : normalizedGrade === "c"
+                ? "averageNutritionalQuality"
+                : normalizedGrade === "d"
+                  ? "poorNutritionalQuality"
+                  : "veryPoorNutritionalQuality"
 
     return (
         <ScoreLessonLink
@@ -96,7 +103,7 @@ export const NutriScoreBanner: React.FC<NutriScoreBannerProps> = ({
                         </span>
                     </p>
                     <p className="mt-1 text-sm leading-snug text-neutral-600">
-                        {activeGrade.desc}
+                        {t(descriptionKey)}
                     </p>
                 </div>
                 <ChevronRight
