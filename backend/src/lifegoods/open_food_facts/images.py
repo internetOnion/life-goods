@@ -1,3 +1,4 @@
+import logging
 from collections import OrderedDict
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -14,6 +15,8 @@ from lifegoods.open_food_facts.models import (
     ExternalImageUnavailableError,
     ExternalImageUrlInvalidError,
 )
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_MAX_IMAGE_BYTES = 10 * 1024 * 1024
 DEFAULT_MAX_CACHE_BYTES = 32 * 1024 * 1024
@@ -42,7 +45,8 @@ class OpenFoodFactsImageSource:
         *,
         image_base_url: str,
         user_agent: str,
-        timeout_seconds: float,
+        connect_timeout_seconds: float,
+        read_timeout_seconds: float,
         requests_per_minute: int,
         max_image_bytes: int = DEFAULT_MAX_IMAGE_BYTES,
         max_cache_bytes: int = DEFAULT_MAX_CACHE_BYTES,
@@ -53,7 +57,14 @@ class OpenFoodFactsImageSource:
         self._client = client
         self._image_origin = _origin(image_base_url)
         self._user_agent = user_agent
-        self._timeout_seconds = timeout_seconds
+        self._connect_timeout_seconds = connect_timeout_seconds
+        self._read_timeout_seconds = read_timeout_seconds
+        self._timeout = httpx.Timeout(
+            connect=connect_timeout_seconds,
+            read=read_timeout_seconds,
+            write=read_timeout_seconds,
+            pool=connect_timeout_seconds,
+        )
         self._max_image_bytes = max_image_bytes
         self._max_cache_bytes = max_cache_bytes
         self._cache_ttl_seconds = cache_ttl_seconds
@@ -76,8 +87,14 @@ class OpenFoodFactsImageSource:
             if cached is not None:
                 return cached
             if not self._request_budget.try_acquire():
+                logger.warning(
+                    "OFF image request budget exhausted; refusing %s", url
+                )
                 raise ExternalImageUnavailableError("OFF image request budget is exhausted")
             if not self._request_slots.acquire(blocking=False):
+                logger.warning(
+                    "OFF image request concurrency exhausted; refusing %s", url
+                )
                 raise ExternalImageUnavailableError(
                     "OFF image request concurrency is exhausted"
                 )
@@ -94,12 +111,16 @@ class OpenFoodFactsImageSource:
                 "GET",
                 url,
                 headers={"accept": "image/*", "user-agent": self._user_agent},
-                timeout=self._timeout_seconds,
+                timeout=self._timeout,
                 follow_redirects=False,
             ) as response:
                 if response.status_code in {404, 410}:
+                    logger.info("OFF image no longer exists: %s", url)
                     raise ExternalImageNotFoundError("OFF image no longer exists")
                 if response.status_code != 200:
+                    self._log_unavailable(
+                        url, f"OFF image request returned status {response.status_code}"
+                    )
                     raise ExternalImageUnavailableError(
                         "OFF image request did not succeed"
                     )
@@ -107,6 +128,9 @@ class OpenFoodFactsImageSource:
                     response.headers.get("content-type", "").split(";", 1)[0].lower()
                 )
                 if media_type not in ALLOWED_IMAGE_MEDIA_TYPES:
+                    self._log_unavailable(
+                        url, f"OFF image response type is not supported: {media_type!r}"
+                    )
                     raise ExternalImageUnavailableError(
                         "OFF image response type is not supported"
                     )
@@ -115,10 +139,20 @@ class OpenFoodFactsImageSource:
                 if content_length is not None:
                     try:
                         if int(content_length) > self._max_image_bytes:
+                            self._log_unavailable(
+                                url,
+                                "OFF image response is too large: "
+                                f"{content_length} bytes",
+                            )
                             raise ExternalImageUnavailableError(
                                 "OFF image response is too large"
                             )
                     except ValueError as error:
+                        self._log_unavailable(
+                            url,
+                            "OFF image response has an invalid content length: "
+                            f"{content_length!r}",
+                        )
                         raise ExternalImageUnavailableError(
                             "OFF image response has an invalid content length"
                         ) from error
@@ -128,6 +162,9 @@ class OpenFoodFactsImageSource:
                 for chunk in response.iter_bytes():
                     total_bytes += len(chunk)
                     if total_bytes > self._max_image_bytes:
+                        self._log_unavailable(
+                            url, "OFF image response is too large while streaming"
+                        )
                         raise ExternalImageUnavailableError(
                             "OFF image response is too large"
                         )
@@ -135,14 +172,28 @@ class OpenFoodFactsImageSource:
         except (ExternalImageNotFoundError, ExternalImageUnavailableError):
             raise
         except httpx.HTTPError as error:
+            self._log_unavailable(
+                url,
+                "OFF image request failed: "
+                f"{type(error).__name__}: {error} "
+                f"(connect={self._connect_timeout_seconds}s, "
+                f"read={self._read_timeout_seconds}s)",
+            )
             raise ExternalImageUnavailableError("OFF image request failed") from error
 
         content = b"".join(chunks)
         if not _matches_media_type(content, media_type):
+            self._log_unavailable(
+                url, f"OFF image content does not match media type {media_type!r}"
+            )
             raise ExternalImageUnavailableError(
                 "OFF image content does not match its media type"
             )
         return ExternalImage(content=content, media_type=media_type)
+
+    @staticmethod
+    def _log_unavailable(url: str, reason: str) -> None:
+        logger.warning("OFF image unavailable for %s: %s", url, reason)
 
     def _cached(self, url: str) -> ExternalImage | None:
         with self._cache_lock:

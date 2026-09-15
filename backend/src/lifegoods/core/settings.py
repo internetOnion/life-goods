@@ -4,7 +4,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from lifegoods.translation.deadline import DEFAULT_TRANSLATION_DEADLINE_SECONDS
 
 DEFAULT_OPEN_FOOD_FACTS_IMAGE_BASE_URL = "https://images.openfoodfacts.org"
-DEFAULT_OPEN_FOOD_FACTS_IMAGE_TIMEOUT_SECONDS = 2.0
+DEFAULT_OPEN_FOOD_FACTS_IMAGE_CONNECT_TIMEOUT_SECONDS = 15.0
+DEFAULT_OPEN_FOOD_FACTS_IMAGE_TIMEOUT_SECONDS = 20.0
 DEFAULT_OPEN_FOOD_FACTS_USER_AGENT = (
     "LifeGoods/0.1.0 (https://github.com/internetOnion/life-goods)"
 )
@@ -46,6 +47,9 @@ class Settings(BaseSettings):
     environment: str = "development"
     allowed_origins: tuple[str, ...] = ("http://localhost:5173",)
     open_food_facts_image_base_url: str = DEFAULT_OPEN_FOOD_FACTS_IMAGE_BASE_URL
+    open_food_facts_image_connect_timeout_seconds: float = (
+        DEFAULT_OPEN_FOOD_FACTS_IMAGE_CONNECT_TIMEOUT_SECONDS
+    )
     open_food_facts_image_timeout_seconds: float = (
         DEFAULT_OPEN_FOOD_FACTS_IMAGE_TIMEOUT_SECONDS
     )

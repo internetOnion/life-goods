@@ -223,7 +223,10 @@ def create_app(
             image_http_client,
             image_base_url=resolved_settings.open_food_facts_image_base_url,
             user_agent=resolved_settings.open_food_facts_user_agent,
-            timeout_seconds=resolved_settings.open_food_facts_image_timeout_seconds,
+            connect_timeout_seconds=(
+                resolved_settings.open_food_facts_image_connect_timeout_seconds
+            ),
+            read_timeout_seconds=resolved_settings.open_food_facts_image_timeout_seconds,
             requests_per_minute=resolved_settings.open_food_facts_image_requests_per_minute,
         )
     else:

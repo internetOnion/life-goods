@@ -28,12 +28,15 @@ def image_source(
     max_image_bytes: int = 10 * 1024 * 1024,
     requests_per_minute: int = 60,
     cache_ttl_seconds: float = 24 * 60 * 60,
+    connect_timeout_seconds: float = 15,
+    read_timeout_seconds: float = 20,
     monotonic: Callable[[], float] | None = None,
 ) -> OpenFoodFactsImageSource:
     kwargs: dict[str, Any] = {
         "image_base_url": "https://images.openfoodfacts.org",
         "user_agent": "LifeGoods tests",
-        "timeout_seconds": 2,
+        "connect_timeout_seconds": connect_timeout_seconds,
+        "read_timeout_seconds": read_timeout_seconds,
         "requests_per_minute": requests_per_minute,
         "max_image_bytes": max_image_bytes,
         "cache_ttl_seconds": cache_ttl_seconds,
@@ -63,6 +66,28 @@ def test_fetches_only_supported_images_from_the_configured_origin() -> None:
     assert len(requests) == 1
     assert requests[0].headers["accept"] == "image/*"
     assert requests[0].headers["user-agent"] == "LifeGoods tests"
+
+
+def test_applies_the_configured_connect_and_read_timeouts() -> None:
+    requests: list[httpx.Request] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(
+            200, content=JPEG_BYTES, headers={"content-type": "image/jpeg"}
+        )
+
+    source = image_source(
+        httpx.MockTransport(respond),
+        connect_timeout_seconds=15,
+        read_timeout_seconds=20,
+    )
+    source.fetch(IMAGE_URL)
+
+    timeout = requests[0].extensions["timeout"]
+    assert timeout["connect"] == 15
+    assert timeout["read"] == 20
+    assert timeout["pool"] == 15
 
 
 @pytest.mark.parametrize(
