@@ -57,7 +57,7 @@ describe("Life Goods routes", () => {
             within(navigation)
                 .getAllByRole("link")
                 .map((link) => link.textContent),
-        ).toEqual(["Scan", "Learn", "Compare", "Concerns"])
+        ).toEqual(["Scan", "Compare", "Learn", "Concerns"])
         expect(screen.getByRole("link", { name: "Scan" })).toHaveAttribute(
             "aria-current",
             "page",
@@ -134,7 +134,7 @@ describe("Life Goods routes", () => {
 
         const { unmount: unmountConcerns } = renderRoute("/concerns")
         expect(
-            screen.getByRole("heading", { name: "Dietary & Allergy Concerns" }),
+            screen.getByRole("heading", { name: "Allergy Concerns" }),
         ).toHaveFocus()
         const concernsNavigation = screen.getByRole("navigation", {
             name: "Primary navigation",
@@ -149,7 +149,7 @@ describe("Life Goods routes", () => {
 
         const { unmount: unmountAllergies } = renderRoute("/allergies")
         expect(
-            screen.getByRole("heading", { name: "Dietary & Allergy Concerns" }),
+            screen.getByRole("heading", { name: "Allergy Concerns" }),
         ).toHaveFocus()
         unmountAllergies()
 
@@ -170,9 +170,9 @@ describe("Life Goods routes", () => {
             .closest("dl")
         expect(sourceDetails).toHaveClass("border-t")
         expect(sourceDetails).not.toHaveClass("border-y")
-        const reuseTerms = screen
-            .getByRole("heading", { name: "Reuse terms" })
-            .nextElementSibling
+        const reuseTerms = screen.getByRole("heading", {
+            name: "Reuse terms",
+        }).nextElementSibling
         expect(reuseTerms).toHaveClass("border-t")
         expect(reuseTerms).not.toHaveClass("border-y")
     })
@@ -198,16 +198,25 @@ describe("Life Goods routes", () => {
         renderRoute("/search/recent")
 
         expect(
-            screen.getByRole("heading", { name: "Products you viewed" }),
+            screen.getByRole("heading", {
+                name: "Viewed Products",
+                level: 1,
+            }),
         ).toHaveFocus()
+        expect(
+            screen.getByRole("heading", {
+                name: "Products you viewed",
+                level: 2,
+            }),
+        ).toBeVisible()
         expect(screen.getByText("Nutella Spread 400g")).toBeVisible()
-        expect(screen.getByText("Ferrero")).toBeVisible()
         expect(screen.getByText("Hazelnut spread")).toBeVisible()
-        expect(screen.getByText("400 g")).toBeVisible()
-        expect(screen.getByText("Glass jar")).toBeVisible()
-        expect(screen.getByText("Vegetarian")).toBeVisible()
-        expect(screen.getByText("France")).toBeVisible()
-        expect(screen.getByText("3017620422003")).toBeVisible()
+        expect(screen.queryByText("Ferrero")).not.toBeInTheDocument()
+        expect(screen.queryByText("400 g")).not.toBeInTheDocument()
+        expect(screen.queryByText("Glass jar")).not.toBeInTheDocument()
+        expect(screen.queryByText("Vegetarian")).not.toBeInTheDocument()
+        expect(screen.queryByText("France")).not.toBeInTheDocument()
+        expect(screen.queryByText("3017620422003")).not.toBeInTheDocument()
         expect(screen.queryByRole("img")).not.toBeInTheDocument()
         expect(
             screen.queryByRole("navigation", { name: "Primary navigation" }),
@@ -223,6 +232,28 @@ describe("Life Goods routes", () => {
         expect(
             await screen.findByRole("heading", { name: "Dark Chocolate" }),
         ).toHaveFocus()
+        expect(lookup).toHaveBeenCalledWith("4006381333931")
+    })
+
+    test("shows the Product not-found state after direct Barcode navigation", async () => {
+        const user = userEvent.setup()
+        const lookup = vi.fn<ProductLookup>().mockRejectedValue({
+            status: 404,
+            code: "product_not_found",
+        })
+        renderRoute("/search", lookup)
+
+        await user.type(
+            screen.getByRole("textbox", { name: "Search" }),
+            "4 006381 333931",
+        )
+        await user.click(screen.getByRole("button", { name: "Search" }))
+
+        expect(
+            await screen.findByRole("heading", {
+                name: "No Package Record Found",
+            }),
+        ).toBeVisible()
         expect(lookup).toHaveBeenCalledWith("4006381333931")
     })
 

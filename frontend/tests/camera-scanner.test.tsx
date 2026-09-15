@@ -345,9 +345,8 @@ describe("camera Barcode scanner", () => {
         expect(searchBar).toBeVisible()
         expect(searchBar).toHaveAttribute("href", "/search")
         expect(searchBar).toHaveAttribute("data-glass", "neutral")
-        expect(
-            screen.getByText("Search Product, company or country..."),
-        ).toBeVisible()
+        expect(searchBar).toHaveClass("font-normal")
+        expect(screen.getByText("barcode, product, or brand")).toBeVisible()
 
         await user.click(searchBar)
         expect(stopMock).toHaveBeenCalled()

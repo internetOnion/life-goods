@@ -13,7 +13,7 @@ describe("ConcernsPage", () => {
 
         expect(
             screen.getByRole("heading", {
-                name: "Dietary & Allergy Concerns",
+                name: "Allergy Concerns",
             }),
         ).toBeInTheDocument()
         expect(

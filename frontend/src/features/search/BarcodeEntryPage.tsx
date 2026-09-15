@@ -9,7 +9,7 @@ import {
     XIcon,
 } from "@phosphor-icons/react"
 import { type FormEvent, useEffect, useRef, useState } from "react"
-import { Link, useLocation, useSearchParams } from "react-router"
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router"
 
 import { Button } from "@/components/ui/button"
 import { BrandMark } from "@/components/brand/BrandMark"
@@ -59,10 +59,6 @@ function brandName(result: ProductSearchResult) {
     return result.brands?.join(", ") || null
 }
 
-function manufacturingPlaceName(result: ProductSearchResult) {
-    return result.manufacturing_places?.join(", ") || null
-}
-
 type RecentActivityItem =
     | {
           kind: "query"
@@ -104,9 +100,9 @@ const recentActivityRowClass =
 const recentActivityIconClass =
     "flex size-8 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600"
 const recentActivityPrimaryClass =
-    "block truncate text-sm font-extrabold tracking-[-0.01em] text-neutral-900"
+    "type-supporting block truncate font-semibold text-neutral-900"
 const recentActivitySecondaryClass =
-    "mt-0.5 block truncate text-xs font-semibold text-neutral-500"
+    "type-caption mt-0.5 block truncate text-neutral-500"
 const recentActivityRemoveClass =
     "mr-1 size-10 shrink-0 rounded-lg bg-transparent text-neutral-600 hover:bg-transparent hover:text-error-700 focus-visible:ring-2 focus-visible:ring-offset-1 sm:mr-1.5"
 const recentActivityItemClass =
@@ -115,6 +111,7 @@ const recentActivityItemClass =
 export function BarcodeEntryPage() {
     const [searchParams] = useSearchParams()
     const location = useLocation()
+    const navigate = useNavigate()
     const locationState = location.state as SearchLocationState | null
     const initialValue = searchParams.get("q") ?? ""
     const initialValidation = initialValue
@@ -205,7 +202,9 @@ export function BarcodeEntryPage() {
         }
         const validation = validateIdentifier(trimmed)
         if (validation.valid) {
-            await runProductSearch(trimmed)
+            setSearchHistory(saveRecentSearch(trimmed))
+            searchRequestRef.current += 1
+            void navigate(`/products/${validation.value}`)
             return
         }
 
@@ -281,7 +280,7 @@ export function BarcodeEntryPage() {
                         />
                     </Link>
                 </Button>
-                <span className="pointer-events-none absolute inset-x-0 text-center text-lg font-extrabold text-neutral-900">
+                <span className="type-section-title pointer-events-none absolute inset-x-0 text-center text-neutral-900">
                     Search
                 </span>
             </div>
@@ -299,7 +298,7 @@ export function BarcodeEntryPage() {
                         id="search"
                         aria-label="Search"
                         className={cn(
-                            "h-[60px] rounded-full border-neutral-200/90 bg-white pr-20 pl-[3.25rem] text-base shadow-[0_6px_14px_-10px_rgba(19,21,25,0.55)] placeholder:text-neutral-600",
+                            "h-[60px] rounded-full border-neutral-200/90 bg-white pr-20 pl-[3.25rem] text-xs shadow-[0_6px_14px_-10px_rgba(19,21,25,0.55)] placeholder:text-neutral-600 sm:text-sm lg:text-base",
                             error &&
                                 "border-error-500 focus-visible:ring-error-500/25",
                         )}
@@ -315,7 +314,7 @@ export function BarcodeEntryPage() {
                         spellCheck={false}
                         aria-invalid={error ? true : undefined}
                         aria-describedby={error ? "search-error" : undefined}
-                        placeholder="Search Product, company or country..."
+                        placeholder="barcode, product, or brand"
                     />
                 </div>
 
@@ -351,7 +350,7 @@ export function BarcodeEntryPage() {
                         <div className="min-w-0">
                             <h2
                                 id="recent-activity-heading"
-                                className="text-sm font-extrabold text-neutral-900"
+                                className="type-section-title text-neutral-900"
                             >
                                 Recent activity
                             </h2>
@@ -360,7 +359,7 @@ export function BarcodeEntryPage() {
                             {recentProducts.length ? (
                                 <Link
                                     to="/search/recent"
-                                    className="text-primary-700 hover:bg-primary-50 hover:text-primary-800 focus-visible:ring-primary-500 rounded-xl px-2.5 py-2 text-sm font-extrabold transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                                    className="type-supporting text-primary-700 hover:bg-primary-50 hover:text-primary-800 focus-visible:ring-primary-500 rounded-xl px-2.5 py-2 font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                                 >
                                     See all
                                 </Link>
@@ -526,7 +525,7 @@ export function BarcodeEntryPage() {
             {error ? (
                 <div
                     id="search-error"
-                    className="bg-error-50 text-error-800 mt-4 flex items-start gap-2 rounded-xl px-3.5 py-3 text-sm font-semibold"
+                    className="type-supporting bg-error-50 text-error-800 mt-4 flex items-start gap-2 rounded-xl px-3.5 py-3 font-semibold"
                     role="alert"
                 >
                     <InfoIcon
@@ -574,10 +573,10 @@ export function BarcodeEntryPage() {
                     aria-live="polite"
                 >
                     <div className="mb-3 flex items-baseline justify-between gap-3">
-                        <h2 className="text-base font-extrabold text-neutral-900">
+                        <h2 className="type-section-title text-neutral-900">
                             Products
                         </h2>
-                        <span className="text-caption font-semibold text-neutral-500">
+                        <span className="type-caption text-neutral-500">
                             {results.length} found
                         </span>
                     </div>
@@ -595,11 +594,6 @@ export function BarcodeEntryPage() {
                                         name: result.name?.value,
                                         genericName: result.generic_name?.value,
                                         brand: brandName(result),
-                                        quantity: result.quantity,
-                                        manufacturingPlace:
-                                            manufacturingPlaceName(result),
-                                        packaging: result.packaging,
-                                        labels: result.labels,
                                     }}
                                     to={`/products/${result.barcode}`}
                                     state={{ fromBarcodeEntry: true }}
@@ -607,7 +601,7 @@ export function BarcodeEntryPage() {
                             )
                         })}
                     </div>
-                    <p className="text-caption mt-3 text-center leading-relaxed text-neutral-500">
+                    <p className="type-caption mt-3 text-center text-neutral-500">
                         Data from Open Food Facts
                     </p>
                     {nextCursor ? (
@@ -640,7 +634,7 @@ export function BarcodeEntryPage() {
                     <h2 className="text-base font-extrabold text-neutral-900">
                         No Products found
                     </h2>
-                    <p className="mt-1.5 text-sm leading-relaxed text-neutral-500">
+                    <p className="type-supporting mt-1.5 text-neutral-500">
                         Try a different Product name, company, or country.
                     </p>
                 </div>

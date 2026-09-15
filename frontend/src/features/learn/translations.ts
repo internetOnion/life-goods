@@ -93,7 +93,7 @@ export const learnTranslations = {
             guidesHint:
                 "Choose a guide for a quick comparison table and detailed lessons.",
             searchLabel: "Search topics",
-            searchPlaceholder: "Search by topic, title, or source",
+            searchPlaceholder: "search by topic, title, or source",
             clearSearch: "Clear search",
             resultsCount: "Showing {{count}} lessons",
             noResults: "No topics match your search.",

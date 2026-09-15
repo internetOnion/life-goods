@@ -132,24 +132,40 @@ describe("search page", () => {
                 name: "Nutella",
             }),
         ).toBeVisible()
-        expect(within(resultCard).getByText("Product details")).toBeVisible()
         expect(within(resultCard).getByText("Product type")).toBeVisible()
         expect(within(resultCard).getByText("Hazelnut spread")).toBeVisible()
-        expect(within(resultCard).getByText("Size")).toBeVisible()
-        expect(within(resultCard).getByText("400 g")).toBeVisible()
-        expect(within(resultCard).getByText("Pack")).toBeVisible()
-        expect(within(resultCard).getByText("Glass jar")).toBeVisible()
-        expect(within(resultCard).getByText("Vegetarian")).toBeVisible()
-        expect(within(resultCard).getByText("Company")).toBeVisible()
-        expect(within(resultCard).getByText("Made in")).toBeVisible()
-        expect(within(resultCard).getByText("Cambodia")).toBeVisible()
-        expect(within(resultCard).getByText("Barcode")).toBeVisible()
-        expect(within(resultCard).getByText("3017620422003")).toBeVisible()
+        expect(
+            within(resultCard).queryByText("Product details"),
+        ).not.toBeInTheDocument()
+        expect(within(resultCard).queryByText("400 g")).not.toBeInTheDocument()
+        expect(
+            within(resultCard).queryByText("Glass jar"),
+        ).not.toBeInTheDocument()
+        expect(
+            within(resultCard).queryByText("Vegetarian"),
+        ).not.toBeInTheDocument()
+        expect(
+            within(resultCard).queryByText("Company"),
+        ).not.toBeInTheDocument()
+        expect(
+            within(resultCard).queryByText("Made in"),
+        ).not.toBeInTheDocument()
+        expect(
+            within(resultCard).queryByText("Cambodia"),
+        ).not.toBeInTheDocument()
+        expect(
+            within(resultCard).queryByText("Barcode"),
+        ).not.toBeInTheDocument()
+        expect(
+            within(resultCard).queryByText("3017620422003"),
+        ).not.toBeInTheDocument()
         expect(within(resultCard).queryByRole("img")).not.toBeInTheDocument()
+        expect(screen.getByText("Data from Open Food Facts")).toBeVisible()
+        expect(screen.getAllByText("Data from Open Food Facts")).toHaveLength(1)
         expect(mockedSearchProducts).toHaveBeenCalledWith("Nutella")
     })
 
-    test("uses Product type and pack details when the Product name is unavailable", async () => {
+    test("uses the Product type as the identity fallback when the Product name is unavailable", async () => {
         const user = userEvent.setup()
         mockedSearchProducts.mockResolvedValue({
             results: [{ ...searchResult, name: null }],
@@ -171,11 +187,50 @@ describe("search page", () => {
                 name: "Hazelnut spread",
             }),
         ).toBeVisible()
-        expect(within(resultCard).getByText("Glass jar")).toBeVisible()
-        expect(within(resultCard).getByText("Vegetarian")).toBeVisible()
+        expect(
+            within(resultCard).queryByText("Glass jar"),
+        ).not.toBeInTheDocument()
+        expect(
+            within(resultCard).queryByText("Vegetarian"),
+        ).not.toBeInTheDocument()
         expect(screen.getByRole("status")).toHaveTextContent(
-            "Product name: Source Data Unavailable for 1 of 1 Source Records.",
+            "Product name: Source Data Unavailable for 1 of 1 Source Records. Open a Product below to read the available source details.",
         )
+        expect(
+            within(resultCard).queryByText("Source Data Unavailable"),
+        ).not.toBeInTheDocument()
+    })
+
+    test("uses the brand as the identity fallback when name and type are unavailable", async () => {
+        const user = userEvent.setup()
+        mockedSearchProducts.mockResolvedValue({
+            results: [
+                {
+                    ...searchResult,
+                    name: null,
+                    generic_name: null,
+                    brands: ["Ferrero"],
+                },
+            ],
+            nextCursor: null,
+        })
+        renderPage()
+
+        await user.type(
+            screen.getByRole("textbox", { name: "Search" }),
+            "Nutella",
+        )
+        await user.keyboard("{Enter}")
+
+        const resultCard = await screen.findByRole("link", {
+            name: "View Ferrero Product 3017620422003",
+        })
+        expect(
+            within(resultCard).getByRole("heading", { name: "Ferrero" }),
+        ).toBeVisible()
+        expect(
+            within(resultCard).queryByText("Product type"),
+        ).not.toBeInTheDocument()
         expect(
             within(resultCard).queryByText("Source Data Unavailable"),
         ).not.toBeInTheDocument()
@@ -209,16 +264,23 @@ describe("search page", () => {
             name: "View Product 3017620422003",
         })
         expect(
+            within(resultCard).getByRole("heading", {
+                name: "Source Data Unavailable",
+            }),
+        ).toBeVisible()
+        expect(
             within(resultCard).queryByText("Company"),
         ).not.toBeInTheDocument()
-        expect(within(resultCard).getByText("Barcode country")).toBeVisible()
-        expect(within(resultCard).getByText("France")).toBeVisible()
-        expect(screen.getByRole("status")).toHaveTextContent(
-            "Product name: Source Data Unavailable for 1 of 1 Source Records.",
-        )
         expect(
-            within(resultCard).queryByText("Source Data Unavailable"),
+            within(resultCard).queryByText("Barcode country"),
         ).not.toBeInTheDocument()
+        expect(within(resultCard).queryByText("France")).not.toBeInTheDocument()
+        expect(
+            within(resultCard).queryByText("3017620422003"),
+        ).not.toBeInTheDocument()
+        expect(screen.getByRole("status")).toHaveTextContent(
+            "Product name: Source Data Unavailable for 1 of 1 Source Records. Open a Product below to read the available source details.",
+        )
     })
 
     test("keeps Product links and pagination functional for comparison results", async () => {
@@ -269,21 +331,8 @@ describe("search page", () => {
         )
     })
 
-    test("shows a recognized Barcode card before opening its Product page", async () => {
+    test("opens a valid Barcode directly after clicking Search", async () => {
         const user = userEvent.setup()
-        mockedSearchProducts.mockResolvedValue({
-            results: [
-                {
-                    ...searchResult,
-                    barcode: "4006381333931",
-                    name: {
-                        ...searchResult.name!,
-                        value: "Recognized Product",
-                    },
-                },
-            ],
-            nextCursor: null,
-        })
         renderPage()
         await user.type(
             screen.getByRole("textbox", { name: "Search" }),
@@ -291,20 +340,31 @@ describe("search page", () => {
         )
         await user.click(screen.getByRole("button", { name: "Search" }))
 
-        const productCard = await screen.findByRole("link", {
-            name: "View Recognized Product",
-        })
-        expect(screen.getByTestId("location")).toHaveTextContent("/search")
-        expect(within(productCard).getByText("4006381333931")).toBeVisible()
-        expect(mockedSearchProducts).toHaveBeenCalledWith("4 006381 333931")
+        expect(screen.getByTestId("location")).toHaveTextContent(
+            "/products/4006381333931",
+        )
+        expect(mockedSearchProducts).not.toHaveBeenCalled()
         expect(localStorage.getItem("lifegoods.search-history.v1")).toContain(
             "4 006381 333931",
         )
+    })
 
-        await user.click(productCard)
+    test("opens a valid Barcode directly after pressing Enter", async () => {
+        const user = userEvent.setup()
+        renderPage()
+
+        await user.type(
+            screen.getByRole("textbox", { name: "Search" }),
+            "3017620422003",
+        )
+        await user.keyboard("{Enter}")
 
         expect(screen.getByTestId("location")).toHaveTextContent(
-            "/products/4006381333931",
+            "/products/3017620422003",
+        )
+        expect(mockedSearchProducts).not.toHaveBeenCalled()
+        expect(localStorage.getItem("lifegoods.search-history.v1")).toContain(
+            "3017620422003",
         )
     })
 

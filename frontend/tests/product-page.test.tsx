@@ -214,7 +214,10 @@ describe("Product page (life-goods-viewer layout)", () => {
                 "rounded-xl",
                 "transition-colors",
             )
-            expect(summary).not.toHaveClass("hover:bg-neutral-50", "rounded-none")
+            expect(summary).not.toHaveClass(
+                "hover:bg-neutral-50",
+                "rounded-none",
+            )
         })
         expect(
             within(ingredientsPanel).queryByRole("heading", {
@@ -395,7 +398,18 @@ describe("Product page (life-goods-viewer layout)", () => {
         ).toBeVisible()
         expect(
             within(additiveDetails as HTMLElement).queryByText("Functions"),
-        ).not.toBeInTheDocument()
+        ).toBeVisible()
+        expect(
+            within(additiveDetails as HTMLElement).getByText("Antioxidant"),
+        ).toBeVisible()
+        expect(
+            within(additiveDetails as HTMLElement).getByText("Emulsifier"),
+        ).toBeVisible()
+
+        const description = within(additiveDetails as HTMLElement).queryByText(
+            "Source Data Unavailable",
+        )
+        expect(description).not.toBeInTheDocument()
 
         await user.click(screen.getByRole("tab", { name: "Nutrition" }))
         const nutrition = screen.getByRole("tabpanel")
@@ -465,6 +479,63 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(
             within(additiveDetails).queryByText(/taxonomy reference/i),
         ).not.toBeInTheDocument()
+    })
+
+    test("shows additive functions when the taxonomy has no description", async () => {
+        const user = userEvent.setup()
+        renderProduct(
+            vi
+                .fn<ProductLookup>()
+                .mockResolvedValue(
+                    productResponse({ additives_tags: ["en:e322i"] }),
+                ),
+        )
+
+        await screen.findByRole("heading", { name: "Dark Chocolate" })
+        await user.click(screen.getByRole("tab", { name: "Ingredients" }))
+
+        const ingredients = screen.getByRole("tabpanel")
+        const additiveDetails = within(ingredients)
+            .getByText("E322I")
+            .closest("details") as HTMLElement
+
+        await user.click(within(additiveDetails).getByText("E322I"))
+
+        expect(within(additiveDetails).getByText("Lecithin")).toBeVisible()
+        expect(within(additiveDetails).getByText("Functions")).toBeVisible()
+        expect(within(additiveDetails).getByText("Antioxidant")).toBeVisible()
+        expect(within(additiveDetails).getByText("Emulsifier")).toBeVisible()
+        expect(
+            within(additiveDetails).queryByText("Source Data Unavailable"),
+        ).not.toBeInTheDocument()
+    })
+
+    test("shows Source Data Unavailable when no additive reference details exist", async () => {
+        const user = userEvent.setup()
+        renderProduct(
+            vi
+                .fn<ProductLookup>()
+                .mockResolvedValue(
+                    productResponse({ additives_tags: ["en:e503"] }),
+                ),
+        )
+
+        await screen.findByRole("heading", { name: "Dark Chocolate" })
+        await user.click(screen.getByRole("tab", { name: "Ingredients" }))
+
+        const ingredients = screen.getByRole("tabpanel")
+        const additiveDetails = within(ingredients)
+            .getByText("E503")
+            .closest("details") as HTMLElement
+
+        await user.click(within(additiveDetails).getByText("E503"))
+
+        expect(
+            within(additiveDetails).getByText("Ammonium carbonates"),
+        ).toBeVisible()
+        expect(
+            within(additiveDetails).getByText("Source Data Unavailable"),
+        ).toBeVisible()
     })
 
     test("summarizes allergen ingredients and additives before showing evidence", async () => {
@@ -722,7 +793,13 @@ describe("Product page (life-goods-viewer layout)", () => {
             "border-info-200",
             "bg-info-50",
             "text-info-800",
+            "px-2.5",
+            "py-0.5",
+            "text-sm",
         )
+        expect(halalHighlight).toHaveClass("px-2.5", "py-0.5", "text-sm")
+        expect(additiveHighlight).not.toHaveClass("px-3", "py-1")
+        expect(halalHighlight).not.toHaveClass("px-3", "py-1")
         expect(
             within(highlights).queryByText(/listed/i),
         ).not.toBeInTheDocument()

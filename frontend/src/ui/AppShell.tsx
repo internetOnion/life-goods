@@ -25,14 +25,14 @@ const navigation = [
         end: true,
     },
     {
-        to: appRoutes.learn,
-        label: "Learn",
-        icon: BookOpenTextIcon,
-    },
-    {
         to: appRoutes.compare,
         label: "Compare",
         icon: ScalesIcon,
+    },
+    {
+        to: appRoutes.learn,
+        label: "Learn",
+        icon: BookOpenTextIcon,
     },
     {
         to: appRoutes.concerns,

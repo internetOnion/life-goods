@@ -327,6 +327,44 @@
         120ms forwards;
 }
 
+@utility type-page-title {
+    font-family: var(--font-sans);
+    font-size: var(--text-display);
+    font-weight: 800;
+    line-height: 1.12;
+    letter-spacing: -0.03em;
+}
+
+@utility type-section-title {
+    font-family: var(--font-sans);
+    font-size: var(--text-xl);
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+}
+
+@utility type-row-title {
+    font-family: var(--font-sans);
+    font-size: var(--text-lg);
+    font-weight: 800;
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+}
+
+@utility type-supporting {
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+@utility type-caption {
+    font-family: var(--font-sans);
+    font-size: var(--text-caption);
+    font-weight: 600;
+    line-height: 1.5;
+}
+
 @keyframes splash-mark-entrance {
     0%,
     8% {

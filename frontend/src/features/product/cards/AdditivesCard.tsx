@@ -168,10 +168,14 @@ export const AdditivesCard: React.FC<AdditivesCardProps> = ({
 
     const formattedAdditives = rawTags.map((tag) => {
         const cleanTag = cleanAdditiveTag(tag)
+        const reference = ADDITIVE_REFERENCES[cleanTag]
         return {
             tag: cleanTag,
             code: cleanTag.toUpperCase(),
-            reference: ADDITIVE_REFERENCES[cleanTag],
+            reference,
+            hasDetails: Boolean(
+                reference?.description || reference?.functions?.length,
+            ),
         }
     })
 
@@ -215,10 +219,37 @@ export const AdditivesCard: React.FC<AdditivesCardProps> = ({
                                     aria-hidden="true"
                                 />
                             </summary>
-                            <p className="px-2 pt-1 pb-3 text-sm leading-relaxed wrap-anywhere text-neutral-700">
-                                {add.reference?.description ||
-                                    "Source Data Unavailable"}
-                            </p>
+                            <div className="space-y-3 px-2 pt-1 pb-3">
+                                {add.reference?.description ? (
+                                    <p className="text-sm leading-relaxed wrap-anywhere text-neutral-700">
+                                        {add.reference.description}
+                                    </p>
+                                ) : null}
+                                {add.reference?.functions?.length ? (
+                                    <div className="space-y-1.5">
+                                        <p className="text-xs font-bold tracking-wide text-neutral-500 uppercase">
+                                            Functions
+                                        </p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {add.reference.functions.map(
+                                                (functionName) => (
+                                                    <Badge
+                                                        key={functionName}
+                                                        variant="subtle"
+                                                    >
+                                                        {functionName}
+                                                    </Badge>
+                                                ),
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : null}
+                                {!add.hasDetails ? (
+                                    <p className="text-sm leading-relaxed wrap-anywhere text-neutral-700">
+                                        Source Data Unavailable
+                                    </p>
+                                ) : null}
+                            </div>
                         </details>
                     ))}
                 </div>

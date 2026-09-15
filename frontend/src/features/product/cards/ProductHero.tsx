@@ -308,15 +308,21 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                             </span>
                             <div className="flex min-w-0 flex-wrap justify-end gap-2">
                                 {hasHalalClaim && (
-                                    <span className="border-info-200 bg-info-50 text-info-800 rounded-full border px-3 py-1 text-sm font-semibold">
+                                    <Badge
+                                        variant="outline"
+                                        className="border-info-200 bg-info-50 text-info-800 text-sm font-semibold"
+                                    >
                                         Halal
-                                    </span>
+                                    </Badge>
                                 )}
 
                                 {additivesCount > 0 && (
-                                    <span className="border-info-200 bg-info-50 text-info-800 rounded-full border px-3 py-1 text-sm font-semibold">
+                                    <Badge
+                                        variant="outline"
+                                        className="border-info-200 bg-info-50 text-info-800 text-sm font-semibold"
+                                    >
                                         Additive
-                                    </span>
+                                    </Badge>
                                 )}
                             </div>
                         </div>

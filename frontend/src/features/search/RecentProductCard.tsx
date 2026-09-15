@@ -14,10 +14,6 @@ export function RecentProductCard({ item }: RecentProductCardProps) {
                 name: item.name,
                 genericName: item.genericName,
                 brand: item.brand,
-                quantity: item.quantity,
-                manufacturingPlace: item.manufacturingPlace,
-                packaging: item.packaging,
-                labels: item.labels,
             }}
             to={`/products/${item.identifier}`}
         />

@@ -733,7 +733,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                     glassTone="neutral"
                     variant="ghost"
                     className={cn(
-                        "group relative flex h-[60px] w-full items-center rounded-full pr-20 pl-[3.25rem] text-base text-neutral-600 select-none [view-transition-name:search-bar]",
+                        "group relative flex h-[60px] w-full items-center rounded-full pr-20 pl-[3.25rem] text-base font-normal text-neutral-600 select-none [view-transition-name:search-bar]",
                         "focus-visible:ring-primary-500 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
                     )}
                 >

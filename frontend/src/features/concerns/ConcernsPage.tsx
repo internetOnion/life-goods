@@ -15,7 +15,7 @@ export function ConcernsPage() {
     const headingRef = useRef<HTMLHeadingElement>(null)
 
     usePageMetadata({
-        title: "Dietary & Allergy Concerns",
+        title: "Allergy Concerns",
         description:
             "Select dietary concerns and allergens to highlight when looking up Products.",
     })
@@ -46,12 +46,8 @@ export function ConcernsPage() {
                 tabIndex={-1}
                 className="text-display leading-[1.12] font-extrabold tracking-[-0.03em] text-balance text-neutral-950"
             >
-                Dietary & Allergy Concerns
+                Allergy Concerns
             </h1>
-            <p className="mt-3 text-base leading-relaxed text-neutral-600">
-                Select ingredients or allergens you want to be mindful of when
-                reviewing Product labels.
-            </p>
             {storage.storageError && (
                 <p role="alert" className="text-error-800 mt-3 text-sm">
                     Your choices could not be saved. They will last only for
@@ -86,7 +82,6 @@ export function ConcernsPage() {
                 {selectedOptions.length > 0 ? (
                     <div className="mt-3.5 flex flex-wrap gap-2">
                         {selectedOptions.map((opt) => {
-                            const Icon = opt.icon
                             return (
                                 <Button
                                     key={opt.id}
@@ -97,7 +92,6 @@ export function ConcernsPage() {
                                     className="focus-visible:ring-primary-500 inline-flex h-auto min-h-11 items-center gap-1.5 rounded-full py-1 pr-2 pl-3 text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:outline-none"
                                     aria-label={`Remove ${opt.label}`}
                                 >
-                                    <Icon size={16} weight="bold" />
                                     <span>{opt.label}</span>
                                     <XIcon size={14} weight="bold" />
                                 </Button>
@@ -126,7 +120,6 @@ export function ConcernsPage() {
                         Select allergy and dietary concerns
                     </legend>
                     {ALLERGEN_OPTIONS.map((opt) => {
-                        const Icon = opt.icon
                         const isChecked = selected.includes(opt.id)
                         const inputId = `concern-${opt.id}`
 
@@ -158,19 +151,6 @@ export function ConcernsPage() {
                                     aria-hidden="true"
                                 >
                                     <CheckIcon size={16} weight="bold" />
-                                </div>
-                                <div
-                                    className={`grid size-11 shrink-0 place-items-center rounded-xl transition-colors ${
-                                        isChecked
-                                            ? "bg-primary-100 text-primary-800"
-                                            : "bg-neutral-100 text-neutral-600"
-                                    }`}
-                                    aria-hidden="true"
-                                >
-                                    <Icon
-                                        size={22}
-                                        weight={isChecked ? "bold" : "regular"}
-                                    />
                                 </div>
                                 <span className="text-sm font-bold text-neutral-800 sm:text-base">
                                     {opt.label}

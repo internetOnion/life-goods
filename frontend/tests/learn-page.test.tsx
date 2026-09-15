@@ -62,7 +62,7 @@ describe("LearnPage", () => {
         renderLearn("/learn")
 
         const searchInput = screen.getByPlaceholderText(
-            "Search by topic, title, or source",
+            "search by topic, title, or source",
         )
         const searchShell = searchInput.parentElement
         expect(searchShell).toHaveAttribute("data-glass-surface", "")
@@ -86,7 +86,7 @@ describe("LearnPage", () => {
         expect(guideTiles[0]).toHaveAttribute("data-learn-category", "label")
 
         fireEvent.change(
-            screen.getByPlaceholderText("Search by topic, title, or source"),
+            screen.getByPlaceholderText("search by topic, title, or source"),
             { target: { value: "allergen" } },
         )
 
@@ -106,7 +106,7 @@ describe("LearnPage", () => {
         renderLearn("/learn")
 
         const searchInput = screen.getByPlaceholderText(
-            "Search by topic, title, or source",
+            "search by topic, title, or source",
         )
         expect(
             screen.queryByRole("button", { name: "Clear search" }),
@@ -125,7 +125,7 @@ describe("LearnPage", () => {
         renderLearn("/learn")
 
         const searchInput = screen.getByPlaceholderText(
-            "Search by topic, title, or source",
+            "search by topic, title, or source",
         )
         fireEvent.change(searchInput, { target: { value: "allergen" } })
 
@@ -153,7 +153,7 @@ describe("LearnPage", () => {
 
         const searchRender = renderLearn("/learn")
         fireEvent.change(
-            screen.getByPlaceholderText("Search by topic, title, or source"),
+            screen.getByPlaceholderText("search by topic, title, or source"),
             { target: { value: "Name of the food" } },
         )
         expect(screen.getByText("Name of the food")).toBeVisible()
@@ -197,7 +197,7 @@ describe("LearnPage", () => {
         renderLearn("/learn")
 
         fireEvent.change(
-            screen.getByPlaceholderText("Search by topic, title, or source"),
+            screen.getByPlaceholderText("search by topic, title, or source"),
             { target: { value: "Law on Food Safety" } },
         )
 
@@ -233,7 +233,7 @@ describe("LearnPage", () => {
         renderLearn("/learn")
 
         const searchInput = screen.getByPlaceholderText(
-            "Search by topic, title, or source",
+            "search by topic, title, or source",
         )
 
         for (const query of ["whey", "tahini", "soba"]) {
@@ -301,7 +301,7 @@ describe("LearnPage", () => {
         renderLearn("/learn")
 
         fireEvent.click(
-            screen.getByPlaceholderText("Search by topic, title, or source"),
+            screen.getByPlaceholderText("search by topic, title, or source"),
         )
 
         expect(
@@ -477,10 +477,7 @@ describe("LearnPage", () => {
         renderLearn("/learn/list-of-ingredients")
 
         const guideBackLink = screen.getAllByRole("link")[0]
-        expect(guideBackLink).toHaveAttribute(
-            "data-glass",
-            "neutral",
-        )
+        expect(guideBackLink).toHaveAttribute("data-glass", "neutral")
         expect(guideBackLink).toHaveClass("rounded-xl")
         expect(
             screen.getByRole("navigation", { name: "Lesson navigation" }),
@@ -511,7 +508,7 @@ describe("LearnPage", () => {
         renderLearn("/learn")
 
         fireEvent.change(
-            screen.getByPlaceholderText("Search by topic, title, or source"),
+            screen.getByPlaceholderText("search by topic, title, or source"),
             { target: { value: "not-a-real-topic" } },
         )
 

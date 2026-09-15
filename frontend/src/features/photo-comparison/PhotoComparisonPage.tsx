@@ -1225,7 +1225,7 @@ export function PhotoComparisonPage({
             {/* Main Content */}
             <main
                 aria-busy={processingStep !== "idle"}
-                className="mx-auto w-full max-w-xl px-4 py-5 pb-32 sm:px-6 sm:py-7 sm:pb-12"
+                className="page-rail pb-32 sm:px-6 sm:pt-12 sm:pb-12"
             >
                 {/* Header / Toolbar */}
                 {isResultsPage ? (
@@ -1261,7 +1261,7 @@ export function PhotoComparisonPage({
                     <div className="flex flex-col gap-2">
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                                <h1 className="text-2xl font-extrabold tracking-tight text-neutral-950 sm:text-3xl">
+                                <h1 className="text-display leading-[1.12] font-extrabold tracking-[-0.03em] text-balance text-neutral-950">
                                     {t("pageTitle")}
                                 </h1>
                                 <p className="mt-1 text-xs text-neutral-500 sm:text-sm">

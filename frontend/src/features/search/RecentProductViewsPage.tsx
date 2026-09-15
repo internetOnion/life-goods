@@ -36,7 +36,7 @@ export function RecentProductViewsPage() {
     ).length
 
     return (
-        <main className="page-rail page-rail-tight sm:px-6 sm:pt-4">
+        <main className="page-rail sm:px-6 sm:pt-12">
             <div className="relative flex min-h-11 items-center justify-center">
                 <Button
                     asChild
@@ -52,26 +52,28 @@ export function RecentProductViewsPage() {
                         />
                     </Link>
                 </Button>
-                <span className="pointer-events-none absolute inset-x-0 text-center text-lg font-extrabold text-neutral-900">
+                <h1
+                    ref={headingRef}
+                    tabIndex={-1}
+                    className="type-page-title pointer-events-none absolute inset-x-0 text-center text-balance text-neutral-900"
+                >
                     Viewed Products
-                </span>
+                </h1>
             </div>
 
             <section
-                className="mx-auto mt-6 w-full max-w-5xl"
-                aria-labelledby="all-recent-searches-heading"
+                className="mx-auto mt-8 w-full max-w-5xl"
+                aria-labelledby="recent-products-heading"
             >
                 <div className="flex items-end justify-between gap-4">
                     <div>
-                        <h1
-                            ref={headingRef}
-                            tabIndex={-1}
-                            id="all-recent-searches-heading"
-                            className="text-xl font-extrabold tracking-tight text-neutral-950"
+                        <h2
+                            id="recent-products-heading"
+                            className="type-section-title text-neutral-950"
                         >
                             Products you viewed
-                        </h1>
-                        <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+                        </h2>
+                        <p className="type-supporting mt-1 text-neutral-600">
                             Saved only for this browser session.
                         </p>
                     </div>
@@ -105,10 +107,10 @@ export function RecentProductViewsPage() {
                     </>
                 ) : (
                     <div className="mt-5 rounded-2xl border border-dashed border-neutral-300 bg-white px-5 py-8 text-center">
-                        <p className="text-sm font-semibold text-neutral-800">
+                        <p className="type-supporting font-semibold text-neutral-800">
                             You haven&apos;t viewed any Products yet.
                         </p>
-                        <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+                        <p className="type-supporting mt-1 text-neutral-600">
                             Search for a Product to start your session history.
                         </p>
                         <Button asChild className="mt-5">
