@@ -1,5 +1,4 @@
 import { render, screen } from "@testing-library/react"
-import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, test } from "vitest"
 
 import type { TranslatableField } from "../src/api/generated"
@@ -28,8 +27,7 @@ describe("TranslatedField", () => {
         window.localStorage.clear()
     })
 
-    test("shows generated Khmer and reveals Original Text with a 44px disclosure", async () => {
-        const user = userEvent.setup()
+    test("shows generated Khmer without a per-field source disclosure", () => {
         renderField({
             selected_original_text: original("Dark Chocolate"),
             khmer_translation: "សូកូឡាខ្មៅ",
@@ -37,18 +35,15 @@ describe("TranslatedField", () => {
         })
 
         expect(screen.getByText("សូកូឡាខ្មៅ")).toBeVisible()
-        expect(screen.getByText("ការបកប្រែជាភាសាខ្មែរ")).toBeVisible()
+        expect(
+            screen.queryByText("ការបកប្រែជាភាសាខ្មែរ"),
+        ).not.toBeInTheDocument()
         expect(screen.queryByText("បង្កើតដោយម៉ាស៊ីន")).not.toBeInTheDocument()
 
-        const disclosure = screen.getByRole("button", {
-            name: "បង្ហាញអត្ថបទដើម",
-        })
-        expect(disclosure).toHaveClass("min-h-11")
-        await user.click(disclosure)
-        expect(screen.getByText("Dark Chocolate")).toBeVisible()
         expect(
-            screen.getByRole("button", { name: "លាក់អត្ថបទដើម" }),
-        ).toBeVisible()
+            screen.queryByRole("button", { name: "បង្ហាញអត្ថបទដើម" }),
+        ).not.toBeInTheDocument()
+        expect(screen.queryByText("Dark Chocolate")).not.toBeInTheDocument()
     })
 
     test("keeps source-provided Khmer without machine-generated labeling", () => {
@@ -58,7 +53,7 @@ describe("TranslatedField", () => {
         })
 
         expect(screen.getByText("សូកូឡាខ្មៅ")).toBeVisible()
-        expect(screen.getByText("អត្ថបទដើម")).toBeVisible()
+        expect(screen.queryByText("អត្ថបទដើម")).not.toBeInTheDocument()
         expect(screen.queryByText("បង្កើតដោយម៉ាស៊ីន")).not.toBeInTheDocument()
     })
 
@@ -71,6 +66,9 @@ describe("TranslatedField", () => {
 
         expect(screen.getByText("Cocoa mass, sugar")).toBeVisible()
         expect(
+            screen.queryByRole("button", { name: "បង្ហាញអត្ថបទដើម" }),
+        ).not.toBeInTheDocument()
+        expect(
             screen.getByText("មិនអាចបកប្រែជាភាសាខ្មែរ; កំពុងបង្ហាញអត្ថបទដើម"),
         ).toBeVisible()
     })
@@ -80,7 +78,7 @@ describe("TranslatedField", () => {
             translation_status: "source_data_unavailable",
         })
 
-        expect(screen.getByText("មិនមានទិន្នន័យប្រភព")).toBeVisible()
+        expect(screen.getByText("មិនមានទិន្នន័យ")).toBeVisible()
     })
 
     test("preserves long text in a wrapping container", () => {

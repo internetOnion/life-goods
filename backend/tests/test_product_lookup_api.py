@@ -45,7 +45,10 @@ from lifegoods.product_lookup.contracts import (
     SourceAssessmentsProjection,
     SourceRecordMetadataProjection,
 )
-from lifegoods.translation.module import KhmerTranslationModule
+from lifegoods.translation.module import (
+    TRANSLATION_CONFIG_VERSION,
+    KhmerTranslationModule,
+)
 from lifegoods.translation.provider import (
     FakeTranslationProvider,
     ProviderTranslationRequest,
@@ -973,7 +976,7 @@ def test_v1_product_lookup_with_language_kh_generates_translation() -> None:
     assert body["meta"]["translation"]["metadata"]["machine_generated"] is True
     assert body["meta"]["translation"]["metadata"]["provider"] == "test-fake"
     assert body["meta"]["translation"]["metadata"]["model"] == "canned-translations"
-    assert body["meta"]["translation"]["metadata"]["configuration_version"] == "v1"
+    assert body["meta"]["translation"]["metadata"]["configuration_version"] == "v2"
     assert body["meta"]["translation"]["metadata"]["generated_at"] is not None
 
     # Source attribution remains unchanged
@@ -1071,6 +1074,92 @@ def test_v1_product_lookup_translates_nutella_prose_fields_together() -> None:
     assert product["packaging"]["recycling_instruction_items"][0]["translation_status"] == (
         "generated"
     )
+
+
+def test_product_lookup_translates_unknown_packaging_component_fields() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "lang": "en",
+            "packagings": [
+                {
+                    "shape": "en:lid",
+                    "material": "en:glass",
+                    "recycling": "en:recycle",
+                },
+                {
+                    "shape": "en:clamping-ring",
+                    "material": "fr:plastique-et-metal",
+                    "recycling": "fr:a-recycler",
+                },
+            ],
+        }
+    )
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "packaging_component_1_shape": "ចិញ្ចៀនរឹត",
+            "packaging_component_1_material": "ប្លាស្ទិក និងលោហៈ",
+            "packaging_component_1_recycling": "អាចកែច្នៃឡើងវិញ",
+        }
+    )
+
+    with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
+        response = client.get("/api/v1/products/4006381333931?language=km")
+
+    assert response.status_code == 200
+    body = response.json()
+    components = body["data"]["product"]["packaging"]["components"]
+    assert provider.last_request is not None
+    assert provider.last_request.fields == {
+        "packaging_component_1_shape": "clamping ring",
+        "packaging_component_1_material": "plastique et metal",
+        "packaging_component_1_recycling": "a recycler",
+    }
+    assert components[0]["shape_field"]["khmer_translation"] == "គម្រប"
+    assert components[0]["material_field"]["khmer_translation"] == "កញ្ចក់"
+    assert components[0]["recycling_field"]["khmer_translation"] == "អាចកែច្នៃឡើងវិញ"
+    assert components[1]["shape_field"]["translation_status"] == "generated"
+    assert components[1]["shape_field"]["selected_original_text"] == {
+        "value": "clamping ring",
+        "language": "en",
+        "source_field": "packagings[1].shape",
+    }
+    assert components[1]["material_field"]["translation_status"] == "generated"
+    assert components[1]["recycling_field"]["translation_status"] == "generated"
+
+
+def test_product_lookup_preserves_component_original_text_when_provider_fails() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "lang": "en",
+            "packagings": [
+                {
+                    "shape": "en:clamping-ring",
+                    "material": "fr:plastique-et-metal",
+                    "recycling": "fr:a-recycler",
+                }
+            ],
+        }
+    )
+    provider = FakeTranslationProvider(should_fail=True)
+
+    with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
+        response = client.get("/api/v1/products/4006381333931?language=km")
+
+    assert response.status_code == 200
+    component = response.json()["data"]["product"]["packaging"]["components"][0]
+    for field_name, source_value in (
+        ("shape_field", "clamping ring"),
+        ("material_field", "plastique et metal"),
+        ("recycling_field", "a recycler"),
+    ):
+        field = component[field_name]
+        assert field["translation_status"] == "translation_unavailable"
+        assert field["khmer_translation"] is None
+        assert field["selected_original_text"]["value"] == source_value
 
 
 def test_v1_product_lookup_source_khmer_not_needed() -> None:
@@ -1843,7 +1932,9 @@ def test_startup_without_credentials_only_reuses_compatible_generated_artifacts(
         else:
             module = KhmerTranslationModule(
                 provider,
-                config_version="v0" if artifact_kind == "old" else "v1",
+                    config_version=(
+                        "v0" if artifact_kind == "old" else TRANSLATION_CONFIG_VERSION
+                    ),
             )
         artifact = result_to_stored_artifact(
             module.translate_product(project_source_record(record))

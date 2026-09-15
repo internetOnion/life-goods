@@ -74,7 +74,7 @@ const khmerSearch: SearchTranslations = {
     products: "ផលិតផល",
     foundCount: "រកឃើញ {{count}}",
     productType: "ប្រភេទផលិតផល",
-    sourceDataUnavailable: "មិនមានទិន្នន័យប្រភព",
+    sourceDataUnavailable: "មិនមានទិន្នន័យ",
     loadingProducts: "កំពុងទាញយកផលិតផល…",
     loadMoreProducts: "ទាញយកផលិតផលបន្ថែម",
     noProductsFound: "រកមិនឃើញផលិតផលទេ",

@@ -110,17 +110,22 @@ describe("Product page (life-goods-viewer layout)", () => {
         })
         expect(productDetails).toBeVisible()
 
-        // Summary is the default and contains attributed Source Assessments.
+        // Summary is the default and contains attributed Source Assessment banners.
         const summaryPanel = screen.getByRole("tabpanel")
         expect(
-            within(summaryPanel).getByRole("heading", {
+            within(summaryPanel).queryByRole("heading", {
                 name: "Source Assessments",
             }),
-        ).toBeVisible()
+        ).not.toBeInTheDocument()
         expect(
-            within(summaryPanel).getByText(
+            within(summaryPanel).queryByText(
                 "Open Food Facts calculations; not Life Goods judgments or purchase recommendations.",
             ),
+        ).not.toBeInTheDocument()
+        expect(
+            within(summaryPanel).getByRole("link", {
+                name: /Nutri-Score D/,
+            }),
         ).toBeVisible()
         expect(
             within(summaryPanel).getByRole("heading", {
@@ -388,6 +393,7 @@ describe("Product page (life-goods-viewer layout)", () => {
         renderProduct(lookup, "4006381333931", "km")
 
         expect(await screen.findByText("សូកូឡាខ្មៅ")).toBeVisible()
+        expect(screen.getByText("Example Foods")).toBeVisible()
         expect(lookup).toHaveBeenCalledWith("4006381333931", "km")
         expect(
             screen.getByRole("heading", { name: "ព័ត៌មានលម្អិតផលិតផល" }),
@@ -395,11 +401,14 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(screen.getByText("ប្រភេទផលិតផល")).toBeVisible()
         expect(screen.getByText("សូកូឡា")).toBeVisible()
         expect(screen.getByRole("tab", { name: "គ្រឿងផ្សំ" })).toBeVisible()
+        expect(
+            screen.queryByText("ការបកប្រែជាភាសាខ្មែរ"),
+        ).not.toBeInTheDocument()
 
-        const originalButtons = screen.getAllByRole("button", {
+        const originalButtons = screen.queryAllByRole("button", {
             name: "បង្ហាញអត្ថបទដើម",
         })
-        expect(originalButtons.length).toBeGreaterThan(0)
+        expect(originalButtons).toHaveLength(0)
         await user.click(screen.getByRole("tab", { name: "គ្រឿងផ្សំ" }))
         expect(
             screen.getAllByText("ស្ករ ប្រេងដូង គ្រាប់ហាសែលណាត់ 13%").length,
@@ -425,14 +434,11 @@ describe("Product page (life-goods-viewer layout)", () => {
                 name: "ភាសាអង់គ្លេស",
             }),
         ).toBeInTheDocument()
-        await user.click(
-            within(ingredientsPanel).getByRole("button", {
-                name: "បង្ហាញអត្ថបទដើម",
-            }),
-        )
         expect(
-            screen.getByText("Sucre, huile de palme, NOISETTES 13%"),
-        ).toBeVisible()
+            within(ingredientsPanel).queryByText("អត្ថបទដើម", {
+                exact: true,
+            }),
+        ).not.toBeInTheDocument()
         await user.selectOptions(ingredientLanguage, "en")
         expect(ingredientLanguage).toHaveValue("en")
         expect(within(ingredientsPanel).getByText("Cocoa mass")).toBeVisible()
@@ -518,6 +524,32 @@ describe("Product page (life-goods-viewer layout)", () => {
         ).toBeVisible()
     })
 
+    test("renders curated Khmer label translations and preserves unknown labels", async () => {
+        const user = userEvent.setup()
+        renderProduct(
+            vi.fn<ProductLookup>().mockResolvedValue(
+                productResponse({
+                    labels_tags: [
+                        "en:fair-trade",
+                        "en:organic",
+                        "fr:commerce-equitable",
+                        "fr:unreviewed-label",
+                    ],
+                }),
+            ),
+            "4006381333931",
+            "km",
+        )
+
+        await screen.findByRole("heading", { name: "Dark Chocolate" })
+        await user.click(screen.getByRole("tab", { name: "ស្លាក និងវេចខ្ចប់" }))
+
+        expect(screen.getAllByText("ពាណិជ្ជកម្មយុត្តិធម៌")).toHaveLength(2)
+        expect(screen.getByText("សរីរាង្គ")).toBeVisible()
+        expect(screen.getByText("unreviewed label")).toBeVisible()
+        expect(screen.queryByText("fair trade")).not.toBeInTheDocument()
+    })
+
     test("surfaces Nutrient Levels in Summary while keeping detail cards scoped", async () => {
         const user = userEvent.setup()
         renderProduct(
@@ -531,8 +563,13 @@ describe("Product page (life-goods-viewer layout)", () => {
         await screen.findByRole("heading", { name: "Dark Chocolate" })
         const summary = screen.getByRole("tabpanel")
         expect(
-            within(summary).getByRole("heading", {
+            within(summary).queryByRole("heading", {
                 name: "Source Assessments",
+            }),
+        ).not.toBeInTheDocument()
+        expect(
+            within(summary).getByRole("link", {
+                name: /Nutri-Score D/,
             }),
         ).toBeVisible()
         expect(
@@ -925,7 +962,7 @@ describe("Product page (life-goods-viewer layout)", () => {
         scrollToSpy.mockRestore()
     })
 
-    test("shows titled assessment results with source context", async () => {
+    test("shows assessment results with source banners", async () => {
         renderProduct(
             vi.fn<ProductLookup>().mockResolvedValue(productResponse()),
         )
@@ -942,15 +979,10 @@ describe("Product page (life-goods-viewer layout)", () => {
             within(summaryPanel).getByText("Green-Score").closest("p"),
         ).toHaveTextContent("Green-Score C")
         expect(
-            within(summaryPanel).getByRole("heading", {
+            within(summaryPanel).queryByRole("heading", {
                 name: "Source Assessments",
             }),
-        ).toBeVisible()
-        expect(
-            within(summaryPanel).getByText(
-                "Open Food Facts calculations; not Life Goods judgments or purchase recommendations.",
-            ),
-        ).toBeVisible()
+        ).not.toBeInTheDocument()
     })
 
     test("shows only available Halal and Additive label highlights", async () => {

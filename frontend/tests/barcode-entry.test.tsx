@@ -793,7 +793,7 @@ describe("search page", () => {
         ).not.toBeInTheDocument()
         expect(screen.getByText("Nutella")).toBeVisible()
         expect(
-            screen.getByRole("heading", { name: "មិនមានទិន្នន័យប្រភព" }),
+            screen.getByRole("heading", { name: "មិនមានទិន្នន័យ" }),
         ).toBeVisible()
     })
 

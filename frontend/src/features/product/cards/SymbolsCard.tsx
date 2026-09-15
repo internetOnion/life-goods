@@ -3,7 +3,7 @@ import { BadgeCheck } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-import { translateTaxonomyValue, useProductTranslation } from "../translations"
+import { translateLabelValue, useProductTranslation } from "../translations"
 
 type SymbolsCardProps = {
     labels: string[]
@@ -31,9 +31,9 @@ export function SymbolsCard({ labels }: SymbolsCardProps) {
                             <Badge
                                 key={label}
                                 variant="outline"
-                                className="bg-neutral-50 text-xs font-semibold capitalize"
+                                className="max-w-full min-w-0 bg-neutral-50 text-xs leading-snug font-semibold wrap-anywhere whitespace-normal"
                             >
-                                {translateTaxonomyValue(locale, label)}
+                                {translateLabelValue(locale, label)}
                             </Badge>
                         ))}
                     </div>

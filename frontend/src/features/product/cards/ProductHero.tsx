@@ -319,7 +319,6 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                                     >
                                         <TranslatedField
                                             field={item}
-                                            compact
                                             textClassName="text-xs font-semibold text-neutral-800"
                                         />
                                     </div>
@@ -340,8 +339,8 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                     )}
 
                     {/* Quick Factual Summary Divider Rows (Neutral) */}
-                    <div className="divide-y divide-neutral-100 rounded-xl border border-neutral-200/80 bg-white p-3 text-xs">
-                        <div className="grid min-h-16 grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-2.5">
+                    <div className="divide-y divide-neutral-100 rounded-xl border border-neutral-200/80 bg-white p-2 text-xs">
+                        <div className="grid min-h-12 grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-2 py-1">
                             <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                 {t("barcode")}
                             </span>
@@ -357,7 +356,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                                         ? t("barcodeCopied")
                                         : t("copyBarcode")
                                 }
-                                className="focus-visible:ring-primary-500 inline-flex h-auto min-h-11 w-full min-w-0 cursor-pointer items-center justify-end gap-2.5 rounded-full px-1.5 py-1 text-right font-mono text-xs font-semibold tracking-[0.04em] whitespace-normal text-neutral-900 tabular-nums transition-colors focus-visible:ring-2 sm:text-sm"
+                                className="focus-visible:ring-primary-500 inline-flex h-auto min-h-11 w-full min-w-0 cursor-pointer items-center justify-end gap-2 rounded-full px-1.5 py-0.5 text-right font-mono text-xs font-semibold tracking-[0.04em] whitespace-normal text-neutral-900 tabular-nums transition-colors focus-visible:ring-2 sm:text-sm"
                                 title={t("copyBarcodeTitle")}
                             >
                                 <span className="min-w-0 wrap-anywhere">
@@ -371,7 +370,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                             </Button>
                         </div>
 
-                        <div className="grid min-h-16 grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-2.5">
+                        <div className="grid min-h-12 grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-2 py-1">
                             <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                 {t("quantity")}
                             </span>
@@ -380,7 +379,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                             </span>
                         </div>
 
-                        <div className="grid min-h-16 grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 py-2.5">
+                        <div className="grid min-h-12 grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-2 py-1">
                             <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                 {t("barcodeCountry")}
                             </span>

@@ -1,4 +1,6 @@
 import { useLocale, type AppLocale } from "@/i18n/locale"
+import labelsTaxonomyTranslations from "@shared/labels-taxonomy-km.json"
+import packagingTaxonomyTranslations from "@shared/packaging-taxonomy-km.json"
 
 const englishProduct = {
     backToSearch: "Back to search",
@@ -22,10 +24,6 @@ const englishProduct = {
     sourceDataUnavailable: "Source Data Unavailable",
     sourceDataUnavailableDetail:
         "The Source Record did not include this information.",
-    khmerTranslation: "Khmer Translation",
-    originalText: "Original Text",
-    showOriginalText: "Show Original Text",
-    hideOriginalText: "Hide Original Text",
     translationUnavailable:
         "Khmer Translation unavailable; Original Text shown",
     selectedAllergensFound: "Selected allergens found",
@@ -290,12 +288,8 @@ const khmerProduct: ProductTranslations = {
     nutrition: "អាហារូបត្ថម្ភ",
     labelsPackaging: "ស្លាក និងវេចខ្ចប់",
     productDetailSections: "ផ្នែកព័ត៌មានលម្អិតផលិតផល",
-    sourceDataUnavailable: "មិនមានទិន្នន័យប្រភព",
+    sourceDataUnavailable: "មិនមានទិន្នន័យ",
     sourceDataUnavailableDetail: "ប្រភពទិន្នន័យមិនមានព័ត៌មាននេះទេ។",
-    khmerTranslation: "ការបកប្រែជាភាសាខ្មែរ",
-    originalText: "អត្ថបទដើម",
-    showOriginalText: "បង្ហាញអត្ថបទដើម",
-    hideOriginalText: "លាក់អត្ថបទដើម",
     translationUnavailable: "មិនអាចបកប្រែជាភាសាខ្មែរ; កំពុងបង្ហាញអត្ថបទដើម",
     selectedAllergensFound: "រកឃើញអាលែហ្ស៊ីដែលបានជ្រើសរើស",
     productLabelHighlights: "ចំណុចសំខាន់លើស្លាកផលិតផល",
@@ -804,26 +798,6 @@ const TAXONOMY_TRANSLATIONS_KM: Record<string, string> = {
     "sans gluten": "គ្មានគ្លុយតែន",
     "no gluten": "គ្មានគ្លុយតែន",
     "no-gluten": "គ្មានគ្លុយតែន",
-    bag: "ថង់",
-    envelope: "ស្រោមកញ្ចប់",
-    bottle: "ដប",
-    jar: "ដបកែវ",
-    lid: "គម្រប",
-    backing: "ស្រទាប់ខាងក្រោយ",
-    label: "ស្លាក",
-    "screw cap": "គម្របបង្វិល",
-    plaque: "បន្ទះ",
-    seal: "ត្រា",
-    glass: "កញ្ចក់",
-    "clear glass": "កញ្ចក់ថ្លា",
-    paperboard: "ក្រដាសកាតុង",
-    "non corrugated cardboard": "ក្រដាសកាតុងមិនមានរលក",
-    "82 c pap": "ក្រដាស 82 C/PAP",
-    "pp 5 polypropylene": "ប៉ូលីប្រូពីលីន PP 5",
-    "o 7 other plastics": "ប្លាស្ទិកផ្សេងទៀត O 7",
-    paper: "ក្រដាស",
-    plastic: "ប្លាស្ទិក",
-    recycle: "អាចកែច្នៃឡើងវិញ",
     france: "បារាំង",
     bulgaria: "ប៊ុលហ្គារី",
     slovenia: "ស្លូវេនី",
@@ -897,6 +871,11 @@ const TAXONOMY_TRANSLATIONS_KM: Record<string, string> = {
     thai: "ភាសាថៃ",
     vietnamese: "ភាសាវៀតណាម",
     chinese: "ភាសាចិន",
+    ...packagingTaxonomyTranslations,
+}
+
+const LABEL_TAXONOMY_TRANSLATIONS_KM: Record<string, string> = {
+    ...labelsTaxonomyTranslations,
 }
 
 export function getAdditiveReference(
@@ -919,6 +898,24 @@ export function translateTaxonomyValue(
         .trim()
         .toLowerCase()
     return TAXONOMY_TRANSLATIONS_KM[normalized] ?? value
+}
+
+function normalizeLabelValue(value: string): string {
+    return value
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/^(?:[a-z]{2,3}:)+/i, "")
+        .replace(/[-_]+/g, " ")
+        .replace(/[’']/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase()
+}
+
+export function translateLabelValue(locale: AppLocale, value: string): string {
+    if (locale !== "km") return value
+    const normalized = normalizeLabelValue(value)
+    return LABEL_TAXONOMY_TRANSLATIONS_KM[normalized] ?? value
 }
 
 export function translateConcernLabel(

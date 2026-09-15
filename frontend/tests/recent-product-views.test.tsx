@@ -64,7 +64,7 @@ describe("recent Product views page", () => {
 
         expect(screen.getByRole("button", { name: "លុបទាំងអស់" })).toBeVisible()
         expect(
-            screen.getByRole("heading", { name: "មិនមានទិន្នន័យប្រភព" }),
+            screen.getByRole("heading", { name: "មិនមានទិន្នន័យ" }),
         ).toBeVisible()
         expect(
             screen.getByRole("link", {

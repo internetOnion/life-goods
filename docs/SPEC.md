@@ -227,10 +227,11 @@ Source Assessments remain visibly attributed Open Food Facts calculations. Life 
 The shared shell and Scan/Home experience support English and Khmer, with Khmer as the first-time default and a persisted English or Khmer preference. Remaining main-app pages are localized incrementally. Compare Products retains its independent English and Khmer UI scope; the stable Product Lookup API supports opt-in Khmer Translation for clients that request `language=km`.
 
 - Khmer is the intended primary display language for the public product experience.
-- Original Text remains available per translated field through a clear control.
+- Original Text remains retained in the Source Record; the Khmer Product page does not render per-field Show Original Text controls.
 - Khmer Translation is generated on demand rather than for the whole Dataset Snapshot.
 - Translation output is cached against Dataset Snapshot version, source content, and translation configuration.
-- Machine-generated text is visibly identified.
+- The selected locale supplies the display-language context; standalone Khmer Translation and Original Text field markers are omitted.
+- Generated output is not presented as human-reviewed or verified.
 - Translation failure falls back to Original Text and does not fail Product Lookup.
 - Fluent human review is required for interface vocabulary, navigation, explanations, disclaimers, and accessibility copy.
 - Individual Product translations are not presented as human-reviewed or verified.
@@ -609,8 +610,9 @@ Packaging items participate in the **v1** configuration fingerprint, including i
 The shared translation deadline, generation budget, failure behavior, Source
 Attribution, and Barcode/Shopper privacy boundaries remain in force. No backfill,
 automatic artifact deletion is introduced. When Khmer is selected, the frontend
-renders translated packaging description, recycling, and storage items with a
-per-field Original Text control.
+renders translated packaging description, recycling, and storage items without
+per-field Original Text controls. Packaging component table cells also omit
+standalone translation or source markers to preserve compact, consistent rows.
 
 Example packaging fragment for a partial response (`meta.translation.status` is
 `partial`; machine-generated provenance remains in `meta.translation.metadata`):

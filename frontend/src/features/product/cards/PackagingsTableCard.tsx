@@ -1,7 +1,10 @@
 import { PackageOpen, Recycle, Scale } from "lucide-react"
 import React from "react"
 
-import type { TranslatableTextItem } from "@/api/generated"
+import type {
+    PackagingComponent as ApiPackagingComponent,
+    TranslatableTextItem,
+} from "@/api/generated"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollContainer } from "@/components/ui/scroll-container"
@@ -16,6 +19,7 @@ interface PackagingsTableCardProps {
     descriptionItems?: TranslatableTextItem[]
     recyclingInstructionItems?: TranslatableTextItem[]
     storageInstructionItems?: TranslatableTextItem[]
+    packagingComponents?: ApiPackagingComponent[]
 }
 
 function isListLikePackagingDescription(value: string): boolean {
@@ -64,6 +68,7 @@ export const PackagingsTableCard: React.FC<PackagingsTableCardProps> = ({
     descriptionItems = [],
     recyclingInstructionItems = [],
     storageInstructionItems = [],
+    packagingComponents = [],
 }) => {
     const { locale, t } = useProductTranslation()
     const visibleDescriptionItems = descriptionItems.filter(
@@ -188,17 +193,23 @@ export const PackagingsTableCard: React.FC<PackagingsTableCardProps> = ({
                                 </thead>
                                 <tbody className="divide-y divide-neutral-200/60 bg-white">
                                     {packagings.map((pkg, idx) => {
+                                        const apiComponent =
+                                            packagingComponents[idx]
                                         const shape = pkg.shape
-                                            ? translateTaxonomyValue(
-                                                  locale,
-                                                  pkg.shape,
-                                              )
+                                            ? apiComponent?.shape_field
+                                                ? undefined
+                                                : translateTaxonomyValue(
+                                                      locale,
+                                                      pkg.shape,
+                                                  )
                                             : t("part")
                                         const material = pkg.material
-                                            ? translateTaxonomyValue(
-                                                  locale,
-                                                  pkg.material,
-                                              )
+                                            ? apiComponent?.material_field
+                                                ? undefined
+                                                : translateTaxonomyValue(
+                                                      locale,
+                                                      pkg.material,
+                                                  )
                                             : t("unspecified")
                                         const recyclingLower =
                                             pkg.recycling?.toLowerCase() || ""
@@ -216,10 +227,32 @@ export const PackagingsTableCard: React.FC<PackagingsTableCardProps> = ({
                                                 className="table-row-hover"
                                             >
                                                 <td className="px-3 py-2.5 align-middle text-xs font-semibold text-neutral-900 capitalize sm:text-sm">
-                                                    {shape}
+                                                    {apiComponent?.shape_field ? (
+                                                        <TranslatedField
+                                                            field={
+                                                                apiComponent.shape_field
+                                                            }
+                                                            fallback={pkg.shape}
+                                                            textClassName="text-xs font-semibold text-neutral-900 sm:text-sm"
+                                                        />
+                                                    ) : (
+                                                        shape
+                                                    )}
                                                 </td>
                                                 <td className="px-3 py-2.5 align-middle text-xs font-medium whitespace-nowrap text-neutral-700 capitalize">
-                                                    {material}
+                                                    {apiComponent?.material_field ? (
+                                                        <TranslatedField
+                                                            field={
+                                                                apiComponent.material_field
+                                                            }
+                                                            fallback={
+                                                                pkg.material
+                                                            }
+                                                            textClassName="text-xs font-medium text-neutral-700 sm:text-sm"
+                                                        />
+                                                    ) : (
+                                                        material
+                                                    )}
                                                 </td>
                                                 <td className="px-3 py-2.5 text-left align-middle font-mono text-xs font-semibold whitespace-nowrap text-neutral-800 tabular-nums">
                                                     {pkg.weightMeasured !==
@@ -261,9 +294,22 @@ export const PackagingsTableCard: React.FC<PackagingsTableCardProps> = ({
                                                                 }`}
                                                             />
                                                             <span className="capitalize">
-                                                                {translateTaxonomyValue(
-                                                                    locale,
-                                                                    pkg.recycling,
+                                                                {apiComponent?.recycling_field ? (
+                                                                    <TranslatedField
+                                                                        field={
+                                                                            apiComponent.recycling_field
+                                                                        }
+                                                                        fallback={
+                                                                            pkg.recycling
+                                                                        }
+                                                                        className="min-w-0 whitespace-normal"
+                                                                        textClassName="text-xs leading-normal font-medium capitalize"
+                                                                    />
+                                                                ) : (
+                                                                    translateTaxonomyValue(
+                                                                        locale,
+                                                                        pkg.recycling,
+                                                                    )
                                                                 )}
                                                             </span>
                                                         </Badge>

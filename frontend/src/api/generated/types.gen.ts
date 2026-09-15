@@ -801,6 +801,7 @@ export type PackagingComponent = {
      * Material
      */
     material?: string | null;
+    material_field?: TranslatableTextItem | null;
     number_of_units?: NutritionAmount | null;
     /**
      * Quantity Per Unit
@@ -810,10 +811,12 @@ export type PackagingComponent = {
      * Recycling
      */
     recycling?: string | null;
+    recycling_field?: TranslatableTextItem | null;
     /**
      * Shape
      */
     shape?: string | null;
+    shape_field?: TranslatableTextItem | null;
     weight_measured?: NutritionAmount | null;
 };
 

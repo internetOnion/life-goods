@@ -8,6 +8,7 @@ import {
     getAdditiveReference,
     productTranslationKeys,
     translateProduct,
+    translateLabelValue,
     translateTaxonomyValue,
 } from "@/features/product/translations"
 
@@ -33,11 +34,51 @@ describe("Product translation bundle", () => {
         expect(translateTaxonomyValue("km", "en:en:no-gluten")).toBe(
             "គ្មានគ្លុយតែន",
         )
-        expect(translateTaxonomyValue("km", "en:jar")).toBe("ពាង")
+        expect(translateTaxonomyValue("km", "en:jar")).toBe("ដបកែវ")
         expect(translateTaxonomyValue("km", "en:glass")).toBe("កញ្ចក់")
         expect(translateTaxonomyValue("km", "en:unknown-value")).toBe(
             "en:unknown-value",
         )
+    })
+
+    test("translates known label taxonomy values and preserves unknown values", () => {
+        const expectedLabels: Record<string, string> = {
+            "Fair Trade": "ពាណិជ្ជកម្មយុត្តិធម៌",
+            Organic: "សរីរាង្គ",
+            "Eu Organic": "សរីរាង្គសហភាពអឺរ៉ុប",
+            "Non Eu Agriculture": "កសិកម្មក្រៅសហភាពអឺរ៉ុប",
+            "Eu Agriculture": "កសិកម្មសហភាពអឺរ៉ុប",
+            "Eu Non Eu Agriculture": "កសិកម្មសហភាពអឺរ៉ុប និងក្រៅសហភាពអឺរ៉ុប",
+            "Fr Bio 01": "FR-BIO-01 (កសិកម្មសរីរាង្គ)",
+            Nutriscore: "Nutri-Score",
+            "Nutriscore Grade A": "Nutri-Score កម្រិត A",
+            "Nutriscore Grade A New Calculation":
+                "Nutri-Score កម្រិត A (ការគណនាថ្មី)",
+            "Ab Agriculture Biologique": "សញ្ញា AB – កសិកម្មសរីរាង្គ",
+            "Agri Ethique France": "កសិកម្មប្រកបដោយសីលធម៌បារាំង",
+            Triman: "សញ្ញា Triman",
+            "1% Pour La Planète": "1% សម្រាប់ភពផែនដី",
+            "Commerce Équitable": "ពាណិជ្ជកម្មយុត្តិធម៌",
+            "Fabriqué En France": "ផលិតនៅប្រទេសបារាំង",
+            "Farine De Blé Français": "ម្សៅស្រូវសាលីបារាំង",
+            Végétarien: "អាហារបួស",
+        }
+
+        for (const [source, expected] of Object.entries(expectedLabels)) {
+            expect(translateLabelValue("km", source), source).toBe(expected)
+        }
+
+        expect(translateLabelValue("km", "en:fair-trade")).toBe(
+            "ពាណិជ្ជកម្មយុត្តិធម៌",
+        )
+        expect(translateLabelValue("km", "fr:commerce-equitable")).toBe(
+            "ពាណិជ្ជកម្មយុត្តិធម៌",
+        )
+        expect(translateLabelValue("km", "fr:vegetarien")).toBe("អាហារបួស")
+        expect(translateLabelValue("km", "en:unreviewed-label")).toBe(
+            "en:unreviewed-label",
+        )
+        expect(translateLabelValue("en", "en:fair-trade")).toBe("en:fair-trade")
     })
 })
 

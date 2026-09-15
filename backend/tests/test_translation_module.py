@@ -11,7 +11,7 @@ from lifegoods.translation.contracts import (
     TranslationFieldStatus,
     TranslationOverallStatus,
 )
-from lifegoods.translation.module import KhmerTranslationModule
+from lifegoods.translation.module import TRANSLATION_CONFIG_VERSION, KhmerTranslationModule
 from lifegoods.translation.provider import FakeTranslationProvider
 
 
@@ -553,4 +553,4 @@ def test_category_items_partial_leaves_legacy_categories_unavailable() -> None:
 
 def test_configuration_version_v1() -> None:
     module = KhmerTranslationModule(provider=None)
-    assert module._config_version == "v1"
+    assert module._config_version == TRANSLATION_CONFIG_VERSION

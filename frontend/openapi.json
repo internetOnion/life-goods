@@ -1691,6 +1691,16 @@
             ],
             "title": "Material"
           },
+          "material_field": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TranslatableTextItem"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "number_of_units": {
             "anyOf": [
               {
@@ -1723,6 +1733,16 @@
             ],
             "title": "Recycling"
           },
+          "recycling_field": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TranslatableTextItem"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "shape": {
             "anyOf": [
               {
@@ -1733,6 +1753,16 @@
               }
             ],
             "title": "Shape"
+          },
+          "shape_field": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TranslatableTextItem"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "weight_measured": {
             "anyOf": [

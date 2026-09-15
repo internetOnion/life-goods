@@ -195,6 +195,9 @@ class PackagingComponent(BaseModel):
     shape: str | None = None
     material: str | None = None
     recycling: str | None = None
+    shape_field: TranslatableTextItem | None = None
+    material_field: TranslatableTextItem | None = None
+    recycling_field: TranslatableTextItem | None = None
     quantity_per_unit: str | None = None
     weight_measured: NutritionAmount | None = None
     number_of_units: NutritionAmount | None = None

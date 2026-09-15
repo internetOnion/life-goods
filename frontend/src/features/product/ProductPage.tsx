@@ -411,6 +411,7 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                             >
                                 {hasSourceAssessments && (
                                     <SourceAssessmentsCard
+                                        showHeader={false}
                                         nutriscoreGrade={
                                             offView.nutriscoreGrade
                                         }
@@ -487,6 +488,9 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                 <SymbolsCard labels={offView.labels} />
                                 <PackagingsTableCard
                                     packagings={offView.packagings}
+                                    packagingComponents={
+                                        adapted.projection?.packaging.components
+                                    }
                                     packagingText={offView.packagingText}
                                     descriptionItems={
                                         adapted.projection?.packaging

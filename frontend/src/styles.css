@@ -505,6 +505,11 @@
         box-sizing: border-box;
         border-color: var(--color-border);
     }
+
+    button,
+    input {
+        font: inherit;
+    }
 }
 
 html {
@@ -566,11 +571,6 @@ samp,
 pre {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
-}
-
-button,
-input {
-    font: inherit;
 }
 
 button,

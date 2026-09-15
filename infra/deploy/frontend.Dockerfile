@@ -19,6 +19,7 @@ RUN pnpm install --frozen-lockfile
 
 # Application source (frontend only; backend not needed for the SPA build).
 COPY frontend/ ./frontend/
+COPY shared/ ./shared/
 
 ARG VITE_MVP_DEMO_MODE=false
 ENV VITE_MVP_DEMO_MODE=${VITE_MVP_DEMO_MODE}

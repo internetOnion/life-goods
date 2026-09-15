@@ -6,7 +6,6 @@ from lifegoods.product_lookup import (
     NovaSourceAssessment,
     NutritionRow,
     OriginalText,
-    PackagingComponent,
     ProductLookupMetadataResponse,
     ProductLookupMetaResponse,
     SourceAttributionResponse,
@@ -450,16 +449,23 @@ def test_projects_data_rich_record_directly() -> None:
     assert product.packaging.materials == ["paperboard", "plastic"]
     assert product.packaging.shapes == ["carton"]
     assert product.packaging.recycling == ["recycle"]
-    assert product.packaging.components == [
-        PackagingComponent(
-            shape="bottle",
-            material="plastic",
-            recycling="recycle",
-            quantity_per_unit="1 L",
-            weight_measured="32",
-            number_of_units=1,
-        )
-    ]
+    assert len(product.packaging.components) == 1
+    component = product.packaging.components[0]
+    assert (component.shape, component.material, component.recycling) == (
+        "bottle",
+        "plastic",
+        "recycle",
+    )
+    assert component.quantity_per_unit == "1 L"
+    assert component.weight_measured == "32"
+    assert component.number_of_units == 1
+    assert component.shape_field is not None
+    assert component.shape_field.translation_status == "generated"
+    assert component.shape_field.khmer_translation == "ដប"
+    assert component.material_field is not None
+    assert component.material_field.khmer_translation == "ប្លាស្ទិក"
+    assert component.recycling_field is not None
+    assert component.recycling_field.khmer_translation == "អាចកែច្នៃឡើងវិញ"
     assert product.environment.origins == ["finland"]
     assert product.environment.manufacturing_places == ["Phnom Penh"]
     assert product.environment.carbon_footprint_100g == 21.5
