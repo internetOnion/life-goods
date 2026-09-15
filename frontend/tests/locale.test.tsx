@@ -4,6 +4,7 @@ import { useState } from "react"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import { LanguageSelector } from "@/components/layout/LanguageSelector"
+import { Header } from "@/components/layout/Header"
 import { LocaleProvider } from "@/i18n/LocaleProvider"
 import { useLocale } from "@/i18n/locale"
 
@@ -54,17 +55,44 @@ describe("application locale", () => {
         vi.restoreAllMocks()
     })
 
-    test("defaults to English and ignores unavailable stored Khmer", () => {
-        window.localStorage.setItem("lifegoods.locale.v1", "km")
+    test("defaults to Khmer and ignores an unavailable stored locale", () => {
+        window.localStorage.setItem("lifegoods.locale.v1", "fr")
 
         renderLocaleUi()
 
-        expect(screen.getByText("en:en")).toBeVisible()
+        expect(screen.getByText("km:km,en")).toBeVisible()
+        expect(document.documentElement).toHaveAttribute("lang", "km")
+    })
+
+    test("preserves a stored English preference", () => {
+        window.localStorage.setItem("lifegoods.locale.v1", "en")
+
+        renderLocaleUi()
+
+        expect(screen.getByText("en:km,en")).toBeVisible()
         expect(document.documentElement).toHaveAttribute("lang", "en")
     })
 
-    test("presents English as selected and Khmer as coming soon", async () => {
+    test("persists a selected Khmer preference", async () => {
         const user = userEvent.setup()
+        window.localStorage.setItem("lifegoods.locale.v1", "en")
+        renderLocaleUi()
+
+        await user.click(
+            screen.getByRole("button", { name: "Language: English" }),
+        )
+        await user.click(
+            screen.getByRole("menuitemradio", { name: "Khmer (ខ្មែរ)" }),
+        )
+
+        expect(screen.getByText("km:km,en")).toBeVisible()
+        expect(window.localStorage.getItem("lifegoods.locale.v1")).toBe("km")
+        expect(document.documentElement).toHaveAttribute("lang", "km")
+    })
+
+    test("presents English as available when Khmer is selected", async () => {
+        const user = userEvent.setup()
+        window.localStorage.setItem("lifegoods.locale.v1", "en")
         renderLocaleUi()
 
         const trigger = screen.getByRole("button", {
@@ -79,19 +107,19 @@ describe("application locale", () => {
         ).toHaveAttribute("aria-checked", "true")
         expect(
             screen.getByRole("menuitemradio", {
-                name: "Khmer (ខ្មែរ) Coming soon",
+                name: "Khmer (ខ្មែរ)",
             }),
-        ).toBeDisabled()
+        ).not.toBeDisabled()
     })
 
-    test("falls back to English when local storage cannot be read", () => {
+    test("falls back to Khmer when local storage cannot be read", () => {
         vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
             throw new Error("storage unavailable")
         })
 
         renderLocaleUi()
 
-        expect(screen.getByText("en:en")).toBeVisible()
+        expect(screen.getByText("km:km,en")).toBeVisible()
     })
 
     test("enables and persists Khmer only inside the Compare locale scope", async () => {
@@ -115,9 +143,9 @@ describe("application locale", () => {
 
         await user.click(screen.getByRole("button", { name: "Leave compare" }))
         await waitFor(() =>
-            expect(document.documentElement).toHaveAttribute("lang", "en"),
+            expect(document.documentElement).toHaveAttribute("lang", "km"),
         )
-        expect(screen.getByText("en:en")).toBeVisible()
+        expect(screen.getByText("km:km,en")).toBeVisible()
     })
 
     test("supports keyboard menu navigation and restores trigger focus", async () => {
@@ -149,7 +177,36 @@ describe("application locale", () => {
         expect(trigger).toHaveFocus()
     })
 
+    test("supports keyboard navigation and focus restoration from Khmer", async () => {
+        const user = userEvent.setup()
+        window.localStorage.setItem("lifegoods.compare.locale.v1", "km")
+        render(
+            <LocaleProvider
+                enabledLocales={["en", "km"]}
+                storageKey="lifegoods.compare.locale.v1"
+            >
+                <LanguageSelector />
+            </LocaleProvider>,
+        )
+
+        const trigger = screen.getByRole("button", { name: "ភាសា៖ ខ្មែរ" })
+        trigger.focus()
+        await user.keyboard("{Enter}")
+        await waitFor(() =>
+            expect(
+                screen.getByRole("menuitemradio", { name: "ខ្មែរ" }),
+            ).toHaveFocus(),
+        )
+        await user.keyboard("{ArrowUp}")
+        expect(
+            screen.getByRole("menuitemradio", { name: "អង់គ្លេស" }),
+        ).toHaveFocus()
+        await user.keyboard("{Escape}")
+        expect(trigger).toHaveFocus()
+    })
+
     test("supports the optional glass trigger without changing solid mode", () => {
+        window.localStorage.setItem("lifegoods.locale.v1", "en")
         const { rerender } = render(
             <LocaleProvider>
                 <LanguageSelector />
@@ -169,5 +226,17 @@ describe("application locale", () => {
         expect(
             screen.getByRole("button", { name: "Language: English" }),
         ).toHaveAttribute("data-glass", "neutral")
+    })
+
+    test("localizes the Header back-button fallback in Khmer", () => {
+        render(
+            <LocaleProvider>
+                <Header showBackButton />
+            </LocaleProvider>,
+        )
+
+        expect(
+            screen.getByRole("button", { name: "ត្រឡប់ទៅម៉ាស៊ីនស្កេន" }),
+        ).toBeVisible()
     })
 })

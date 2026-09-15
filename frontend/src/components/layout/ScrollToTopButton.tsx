@@ -2,6 +2,7 @@ import { ArrowUpIcon } from "@phosphor-icons/react"
 import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import { useAppTranslation } from "@/i18n/translations"
 import { cn } from "@/lib/utils"
 
 const SCROLL_THRESHOLD = 480
@@ -13,6 +14,7 @@ type ScrollToTopButtonProps = {
 export function ScrollToTopButton({
     hasBottomDock = false,
 }: ScrollToTopButtonProps) {
+    const { t } = useAppTranslation()
     const [isVisible, setIsVisible] = useState(false)
 
     useEffect(() => {
@@ -52,8 +54,8 @@ export function ScrollToTopButton({
                     ? "bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))]"
                     : "bottom-[calc(1rem+env(safe-area-inset-bottom,0px))]",
             )}
-            aria-label="Back to top"
-            title="Back to top"
+            aria-label={t("backToTop")}
+            title={t("backToTop")}
             onClick={handleClick}
         >
             <ArrowUpIcon size={20} weight="bold" aria-hidden="true" />

@@ -27,6 +27,8 @@ import type {
 import type { ProductLookup } from "../src/features/product/api"
 
 function renderRoute(path: string, lookup = vi.fn<ProductLookup>()) {
+    window.localStorage.setItem("lifegoods.locale.v1", "en")
+
     const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false } },
     })

@@ -10,6 +10,7 @@ import { NavLink, useLocation } from "react-router"
 import { appRoutes } from "@/app/routes"
 import { SplashScreen } from "@/components/brand/SplashScreen"
 import { ScrollToTopButton } from "@/components/layout/ScrollToTopButton"
+import { useAppTranslation } from "@/i18n/translations"
 import { cn } from "@/lib/utils"
 import { AppShellNavigationContext } from "./AppShellNavigation"
 
@@ -20,28 +21,29 @@ type AppShellProps = {
 const navigation = [
     {
         to: appRoutes.home,
-        label: "Scan",
+        labelKey: "scan",
         icon: ScanIcon,
         end: true,
     },
     {
         to: appRoutes.compare,
-        label: "Compare",
+        labelKey: "compare",
         icon: ScalesIcon,
     },
     {
         to: appRoutes.learn,
-        label: "Learn",
+        labelKey: "learn",
         icon: BookOpenTextIcon,
     },
     {
         to: appRoutes.concerns,
-        label: "Concerns",
+        labelKey: "concerns",
         icon: ListChecksIcon,
     },
 ] as const
 
 export function AppShell({ children }: AppShellProps) {
+    const { t } = useAppTranslation()
     const location = useLocation()
     const [showSplash, setShowSplash] = useState(true)
     const isSearchRoute = location.pathname.startsWith(appRoutes.search)
@@ -102,13 +104,14 @@ export function AppShell({ children }: AppShellProps) {
                     <nav
                         data-glass-surface=""
                         className="glass-surface fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-40 w-[calc(100%-2rem)] max-w-[20rem] -translate-x-1/2 rounded-full p-1 select-none"
-                        aria-label="Primary navigation"
+                        aria-label={t("primaryNavigation")}
                     >
                         <div className="grid min-h-[3.125rem] w-full grid-cols-4 items-stretch gap-1">
                             {navigation.map(
-                                ({ to, label, icon: Icon, ...props }) => {
+                                ({ to, labelKey, icon: Icon, ...props }) => {
                                     const isEnd =
                                         "end" in props ? props.end : undefined
+                                    const label = t(labelKey)
 
                                     return (
                                         <NavLink

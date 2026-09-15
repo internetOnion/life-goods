@@ -66,6 +66,7 @@ const vibrateMock = vi.fn()
 describe("camera Barcode scanner", () => {
     beforeEach(() => {
         sessionStorage.clear()
+        window.localStorage.setItem("lifegoods.locale.v1", "en")
         startMock.mockReset()
         vibrateMock.mockReset()
         vi.stubGlobal("navigator", {

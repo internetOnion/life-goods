@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { useLocale } from "@/i18n/locale"
+import { useAppTranslation } from "@/i18n/translations"
 import { cn } from "@/lib/utils"
 
 type LanguageSelectorProps = {
@@ -16,32 +17,22 @@ export function LanguageSelector({
     placement = "bottom",
     appearance = "solid",
 }: LanguageSelectorProps) {
-    const { locale, setLocale } = useLocale()
-    const { enabledLocales } = useLocale()
+    const { locale, setLocale, enabledLocales } = useLocale()
+    const { t } = useAppTranslation()
     const [isOpen, setIsOpen] = useState(false)
     const rootRef = useRef<HTMLDivElement>(null)
     const triggerRef = useRef<HTMLButtonElement>(null)
     const englishRef = useRef<HTMLButtonElement>(null)
     const khmerRef = useRef<HTMLButtonElement>(null)
     const khmerEnabled = enabledLocales.includes("km")
-    const isKhmer = locale === "km"
-    const labels = isKhmer
-        ? {
-              trigger: "ភាសា៖ ខ្មែរ",
-              short: "ខ្មែរ",
-              choose: "ជ្រើសរើសភាសា",
-              english: "អង់គ្លេស",
-              khmer: "ខ្មែរ",
-              comingSoon: "មកដល់ឆាប់ៗនេះ",
-          }
-        : {
-              trigger: "Language: English",
-              short: "EN",
-              choose: "Choose language",
-              english: "English",
-              khmer: "Khmer (ខ្មែរ)",
-              comingSoon: "Coming soon",
-          }
+    const labels = {
+        trigger: t("languageTrigger"),
+        short: t("languageShort"),
+        choose: t("chooseLanguage"),
+        english: t("english"),
+        khmer: t("khmer"),
+        comingSoon: t("comingSoon"),
+    }
 
     useEffect(() => {
         if (!isOpen) return
