@@ -313,7 +313,7 @@ describe("Life Goods routes", () => {
             within(navigation)
                 .getAllByRole("link")
                 .map((link) => link.textContent),
-        ).toEqual(["ស្កេន", "ប្រៀបធៀប", "ស្វែងយល់", "កង្វល់អាឡែហ្ស៊ី"])
+        ).toEqual(["ស្កេន", "ប្រៀបធៀប", "ស្វែងយល់", "កង្វល់"])
         expect(
             screen.getByRole("button", { name: "ភាសា៖ ខ្មែរ" }),
         ).toBeVisible()

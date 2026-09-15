@@ -21,7 +21,7 @@ const khmerTranslations: Record<keyof typeof englishTranslations, string> = {
     scan: "ស្កេន",
     compare: "ប្រៀបធៀប",
     learn: "ស្វែងយល់",
-    concerns: "កង្វល់អាឡែហ្ស៊ី",
+    concerns: "កង្វល់",
     languageTrigger: "ភាសា៖ ខ្មែរ",
     languageShort: "ខ្មែរ",
     chooseLanguage: "ជ្រើសរើសភាសា",
