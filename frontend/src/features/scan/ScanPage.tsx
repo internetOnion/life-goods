@@ -111,34 +111,6 @@ function canUseCamera(video: HTMLVideoElement | null) {
     )
 }
 
-function prepareSearchBridge() {
-    if (typeof document === "undefined") return
-    let bridge = document.getElementById(
-        "mobile-keyboard-bridge",
-    ) as HTMLInputElement | null
-    if (!bridge) {
-        bridge = document.createElement("input")
-        bridge.id = "mobile-keyboard-bridge"
-        bridge.type = "text"
-        bridge.inputMode = "search"
-        bridge.autocomplete = "off"
-        bridge.setAttribute("aria-hidden", "true")
-        bridge.tabIndex = -1
-        bridge.className =
-            "fixed -top-96 left-0 opacity-0 pointer-events-none text-base"
-        document.body.appendChild(bridge)
-    }
-    try {
-        bridge.focus()
-    } catch {
-        // ignore
-    }
-}
-
-type SearchViewTransitionDocument = Document & {
-    startViewTransition?: (update: () => void | Promise<void>) => unknown
-}
-
 export function ScanPage({ onBarcodeChange }: ScanPageProps) {
     const navigate = useNavigate()
     const { locale } = useLocale()
@@ -181,53 +153,32 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
         if (videoRef.current) videoRef.current.srcObject = null
     }, [clearAcquisitionTimer])
 
+    const navigateToSearch = useCallback(() => {
+        releaseCamera()
+        flushSync(() => {
+            void navigate("/search", { state: { autoFocus: true } })
+        })
+        const searchInput = document.getElementById(
+            "search",
+        ) as HTMLInputElement | null
+        searchInput?.focus({ preventScroll: true })
+    }, [navigate, releaseCamera])
+
+    const handleSearchPointerDown = useCallback(
+        (e: React.PointerEvent<HTMLAnchorElement>) => {
+            if (e.pointerType === "mouse") return
+            e.preventDefault()
+            navigateToSearch()
+        },
+        [navigateToSearch],
+    )
+
     const handleSearchNavigation = useCallback(
         (e: React.MouseEvent<HTMLAnchorElement>) => {
             e.preventDefault()
-            releaseCamera()
-            prepareSearchBridge()
-
-            const updateSearchRoute = () => {
-                flushSync(() => {
-                    void navigate("/search", { state: { autoFocus: true } })
-                })
-            }
-            const transitionDocument = document as SearchViewTransitionDocument
-
-            if (transitionDocument.startViewTransition) {
-                try {
-                    transitionDocument.startViewTransition(updateSearchRoute)
-                } catch {
-                    // A second click can arrive while a view transition is active.
-                    // Keep navigation reliable even when the browser rejects it.
-                    updateSearchRoute()
-                }
-            } else {
-                updateSearchRoute()
-            }
-
-            const searchInput = document.getElementById(
-                "search",
-            ) as HTMLInputElement | null
-            if (searchInput) {
-                searchInput.focus()
-                const bridge = document.getElementById("mobile-keyboard-bridge")
-                bridge?.remove()
-            } else {
-                setTimeout(() => {
-                    if (typeof document === "undefined") return
-                    const target = document.getElementById(
-                        "search",
-                    ) as HTMLInputElement | null
-                    target?.focus()
-                    const bridge = document.getElementById(
-                        "mobile-keyboard-bridge",
-                    )
-                    bridge?.remove()
-                }, 50)
-            }
+            navigateToSearch()
         },
-        [navigate, releaseCamera],
+        [navigateToSearch],
     )
 
     const handleCameraResult = useCallback(
@@ -623,6 +574,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                                 >
                                     <Link
                                         to="/search"
+                                        onPointerDown={handleSearchPointerDown}
                                         onClick={handleSearchNavigation}
                                     >
                                         <span>{text.enterBarcode}</span>
@@ -743,6 +695,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                 >
                     <Link
                         to="/search"
+                        onPointerDown={handleSearchPointerDown}
                         onClick={handleSearchNavigation}
                         aria-label={text.searchLabel}
                     >

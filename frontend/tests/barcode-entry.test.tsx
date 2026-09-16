@@ -82,6 +82,32 @@ describe("search page", () => {
         })
     })
 
+    test("keeps Search input text readable on mobile", () => {
+        renderPage()
+
+        const input = screen.getByRole("textbox", { name: "Search" })
+
+        expect(input).toHaveClass("text-base")
+        expect(input).not.toHaveClass("text-xs")
+        expect(input).not.toHaveClass("sm:text-sm")
+        expect(input).not.toHaveClass("lg:text-base")
+    })
+
+    test("focuses Search input and requests the mobile search keyboard", async () => {
+        const user = userEvent.setup()
+        renderPage()
+
+        const input = screen.getByRole("textbox", { name: "Search" })
+
+        expect(input).not.toHaveFocus()
+        expect(input).toHaveAttribute("inputmode", "search")
+        expect(input).toHaveAttribute("enterkeyhint", "search")
+
+        await user.click(input)
+
+        expect(input).toHaveFocus()
+    })
+
     test("keeps the empty recent activity layout when search is submitted empty", async () => {
         const user = userEvent.setup()
         renderPage()
