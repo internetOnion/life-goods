@@ -17,10 +17,10 @@ if (
     )
 }
 const config = JSON.parse(
-    await readFile(
+    (await readFile(
         new URL("../infra/cloudflare/wrangler.jsonc", import.meta.url),
         "utf8",
-    ),
+    )).replace(/,\s*([}\]])/g, "$1"),
 )
 config.vpc_services[0].service_id = serviceId
 await writeFile(configPath, JSON.stringify(config, null, 2))

@@ -25,7 +25,7 @@ function renderRoute(
     })
     return render(
         <QueryClientProvider client={queryClient}>
-            <MemoryRouter initialEntries={[path]}>
+            <MemoryRouter initialEntries={[path]} useTransitions={false}>
                 <App lookup={lookup} />
             </MemoryRouter>
         </QueryClientProvider>,
@@ -275,14 +275,45 @@ describe("Life Goods routes", () => {
         ).toHaveFocus()
     })
 
-    test("clicking search bar from scanner navigates without activating text entry", async () => {
+    test("clicking search bar from scanner activates text entry", async () => {
         const user = userEvent.setup()
         renderRoute("/")
         const searchLink = screen.getByRole("link", { name: "Search" })
         await user.click(searchLink)
-        expect(
-            screen.getByRole("textbox", { name: "Search" }),
-        ).not.toHaveFocus()
+        expect(screen.getByRole("textbox", { name: "Search" })).toHaveFocus()
+    })
+
+    test("focuses Search before the activation event finishes bubbling", () => {
+        renderRoute("/")
+        let focusedDuringActivation = false
+        const observeActivation = () => {
+            const input = document.getElementById("search")
+            focusedDuringActivation =
+                input instanceof HTMLInputElement &&
+                document.activeElement === input
+        }
+        document.addEventListener("click", observeActivation)
+        try {
+            fireEvent.click(screen.getByRole("link", { name: "Search" }))
+        } finally {
+            document.removeEventListener("click", observeActivation)
+        }
+        expect(focusedDuringActivation).toBe(true)
+    })
+
+    test("activates Search with Enter and focuses it again after returning to Scan", async () => {
+        const user = userEvent.setup()
+        renderRoute("/")
+        screen.getByRole("link", { name: "Search" }).focus()
+        await user.keyboard("{Enter}")
+        expect(screen.getByRole("textbox", { name: "Search" })).toHaveFocus()
+
+        await user.click(screen.getByRole("link", { name: "Back to scanner" }))
+        await user.click(screen.getByRole("link", { name: "Search" }))
+        const input = screen.getByRole("textbox", { name: "Search" })
+        expect(input).toHaveFocus()
+        await user.keyboard("milk")
+        expect(input).toHaveValue("milk")
     })
 
     test("clicking Learn in the bottom navigation opens the guide grid", async () => {

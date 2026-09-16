@@ -36,6 +36,7 @@ import { ProductListItem } from "./ProductListItem"
 import { useSearchTranslation, type SearchTranslationKey } from "./translations"
 
 type SearchLocationState = {
+    autoFocus?: boolean
     invalidBarcode?: string
 }
 
@@ -131,6 +132,7 @@ export function BarcodeEntryPage() {
     const location = useLocation()
     const navigate = useNavigate()
     const locationState = location.state as SearchLocationState | null
+    const shouldFocusSearch = locationState?.autoFocus === true
     const initialValue = searchParams.get("q") ?? ""
     const [query, setQuery] = useState(initialValue)
     const [error, setError] = useState<SearchError | null>(() =>
@@ -146,6 +148,7 @@ export function BarcodeEntryPage() {
         useState<SearchHistoryItem[]>(getRecentSearches)
     const searchRequestRef = useRef(0)
     const headingRef = useRef<HTMLHeadingElement>(null)
+    const searchInputRef = useRef<HTMLInputElement>(null)
 
     usePageMetadata({
         title: t("pageTitle"),
@@ -153,8 +156,12 @@ export function BarcodeEntryPage() {
     })
 
     useEffect(() => {
+        if (shouldFocusSearch) {
+            searchInputRef.current?.focus({ preventScroll: true })
+            return
+        }
         headingRef.current?.focus({ preventScroll: true })
-    }, [])
+    }, [shouldFocusSearch])
 
     const runProductSearch = async (searchQuery: string) => {
         const trimmed = searchQuery.trim()
@@ -298,9 +305,10 @@ export function BarcodeEntryPage() {
                     </span>
                     <Input
                         id="search"
+                        ref={searchInputRef}
                         aria-label={t("searchLabel")}
                         className={cn(
-                            "h-[60px] rounded-full border-neutral-200/90 bg-white pr-20 pl-[3.25rem] text-xs shadow-[0_6px_14px_-10px_rgba(19,21,25,0.55)] placeholder:text-neutral-600 sm:text-sm lg:text-base",
+                            "h-[60px] rounded-full border-neutral-200/90 bg-white pr-20 pl-[3.25rem] text-base shadow-[0_6px_14px_-10px_rgba(19,21,25,0.55)] placeholder:text-neutral-600",
                             error &&
                                 "border-error-500 focus-visible:ring-error-500/25",
                         )}
@@ -313,6 +321,8 @@ export function BarcodeEntryPage() {
                             if (error) setError(null)
                         }}
                         autoComplete="off"
+                        inputMode="search"
+                        enterKeyHint="search"
                         spellCheck={false}
                         aria-invalid={error ? true : undefined}
                         aria-describedby={error ? "search-error" : undefined}
