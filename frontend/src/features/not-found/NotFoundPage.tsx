@@ -4,14 +4,16 @@ import { Link } from "react-router"
 
 import { Button } from "@/components/ui/button"
 import { SnapshotNotFoundIllustration } from "@/components/illustrations"
+import { useAppTranslation } from "@/i18n/translations"
 import { usePageMetadata } from "@/lib/metadata"
 
 export function NotFoundPage() {
+    const { t } = useAppTranslation()
     const headingRef = useRef<HTMLHeadingElement>(null)
 
     usePageMetadata({
-        title: "Page not found",
-        description: "There is no Life Goods page at this address.",
+        title: t("notFoundTitle"),
+        description: t("notFoundDescription"),
     })
 
     useEffect(() => {
@@ -28,15 +30,14 @@ export function NotFoundPage() {
                 ref={headingRef}
                 tabIndex={-1}
             >
-                Page not found
+                {t("notFoundTitle")}
             </h1>
             <p className="mt-4 max-w-[60ch] text-lg leading-relaxed text-neutral-600">
-                There is no Life Goods page at this address. Return to the
-                scanner to look up a Product.
+                {t("notFoundDescription")}
             </p>
             <Button asChild className="mt-7 w-fit">
                 <Link to="/">
-                    Scan a Barcode
+                    {t("scanBarcode")}
                     <ArrowRightIcon
                         aria-hidden="true"
                         size={18}

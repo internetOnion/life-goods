@@ -462,7 +462,7 @@ function AmountTableRow({
     const hasVisibleDifference = row.state === "comparable"
 
     return (
-        <tr className="grid grid-cols-2 gap-x-3 gap-y-2 border-b border-neutral-200/90 py-3 last:border-b-0 sm:table-row sm:border-0 sm:py-0 sm:table-row-hover">
+        <tr className="sm:table-row-hover grid grid-cols-2 gap-x-3 gap-y-2 border-b border-neutral-200/90 py-3 last:border-b-0 sm:table-row sm:border-0 sm:py-0">
             {/* Nutrient column */}
             <td className="col-span-2 block border-b border-neutral-100 pb-2 sm:table-cell sm:border-b-0 sm:px-4 sm:py-3.5 sm:align-top">
                 <div className="text-sm font-extrabold text-neutral-950">
@@ -596,7 +596,7 @@ function PercentageTableRow({
     )
 
     return (
-        <tr className="grid grid-cols-2 gap-x-3 gap-y-2 border-b border-neutral-200/90 py-3 last:border-b-0 sm:table-row sm:border-0 sm:py-0 sm:table-row-hover">
+        <tr className="sm:table-row-hover grid grid-cols-2 gap-x-3 gap-y-2 border-b border-neutral-200/90 py-3 last:border-b-0 sm:table-row sm:border-0 sm:py-0">
             {/* Nutrient column */}
             <td className="col-span-2 block border-b border-neutral-100 pb-2 sm:table-cell sm:border-b-0 sm:px-4 sm:py-3.5 sm:align-top">
                 <div className="text-sm font-extrabold text-neutral-950">

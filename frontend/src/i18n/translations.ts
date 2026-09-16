@@ -14,6 +14,10 @@ const englishTranslations = {
     comingSoon: "Coming soon",
     backToTop: "Back to top",
     backToScanner: "Back to scanner",
+    notFoundTitle: "Page not found",
+    notFoundDescription:
+        "There is no Life Goods page at this address. Return to the scanner to look up a Product.",
+    scanBarcode: "Scan a Barcode",
 } as const
 
 const khmerTranslations: Record<keyof typeof englishTranslations, string> = {
@@ -30,6 +34,10 @@ const khmerTranslations: Record<keyof typeof englishTranslations, string> = {
     comingSoon: "មកដល់ឆាប់ៗនេះ",
     backToTop: "ត្រឡប់ទៅខាងលើ",
     backToScanner: "ត្រឡប់ទៅម៉ាស៊ីនស្កេន",
+    notFoundTitle: "រកមិនឃើញទំព័រ",
+    notFoundDescription:
+        "មិនមានទំព័រ Life Goods នៅអាសយដ្ឋាននេះទេ។ ត្រឡប់ទៅទំព័រស្កេនដើម្បីស្វែងរកផលិតផល។",
+    scanBarcode: "ស្កេនបាកូដ",
 }
 
 export const appTranslations = {
