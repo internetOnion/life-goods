@@ -12,6 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pymongo.errors import AutoReconnect, PyMongoError
 
+from lifegoods.core.settings import Settings
 from lifegoods.generated_data.budget import InMemoryTranslationBudgetLimiter
 from lifegoods.generated_data.cache import InMemoryTranslationHotCache
 from lifegoods.generated_data.coordinator import (
@@ -114,11 +115,13 @@ def _client(
     coordinator: TranslationCoordinator | None = None,
     client_address: tuple[str, int] = ("testclient", 50000),
     ingredient_matcher=None,
+    settings: Settings | None = None,
 ) -> TestClient:
     redis_client = redis_client or fakeredis.FakeRedis(decode_responses=True)
     source = OpenFoodFactsDatasetSource(database)
     coord = coordinator if coordinator is not None else _make_test_coordinator()
     app = create_app(
+        settings=settings,
         product_lookup_source=source,
         product_lookup_cache=RedisProductLookupCache(redis_client, ttl_seconds=3600),
         product_lookup_limiter=(
@@ -786,6 +789,40 @@ def test_rate_limit_isolated_by_client_and_ignores_forwarded_headers() -> None:
     ]
     assert len(rate_limit_keys) == 2
     assert all("203.0.113" not in key for key in rate_limit_keys)
+
+
+def test_rate_limit_uses_forwarded_client_when_proxy_is_trusted() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].create_index("code")
+    redis_client = fakeredis.FakeRedis(decode_responses=True)
+    settings = Settings(
+        _env_file=None,  # pyright: ignore[reportCallIssue]
+        trusted_proxy_cidrs=("172.20.0.0/16",),
+    )
+
+    with _client(
+        database,
+        redis_client=redis_client,
+        requests_per_minute=1,
+        client_address=("172.20.0.5", 50000),
+        settings=settings,
+    ) as client:
+        first_client = client.get(
+            "/api/v1/products/4006381333931",
+            headers={"x-forwarded-for": "198.51.100.10"},
+        )
+        second_client = client.get(
+            "/api/v1/products/4006381333931",
+            headers={"x-forwarded-for": "198.51.100.11"},
+        )
+        repeated_client = client.get(
+            "/api/v1/products/4006381333931",
+            headers={"x-forwarded-for": "198.51.100.10"},
+        )
+
+    assert first_client.status_code == 404
+    assert second_client.status_code == 404
+    assert repeated_client.status_code == 429
 
 
 def test_metrics_are_aggregate_and_exclude_barcode_and_client_address() -> None:

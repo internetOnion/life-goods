@@ -1063,6 +1063,13 @@ prompts, provider bodies, and provider responses do not enter ordinary logs,
 databases, or translation caches. Gemini-side retention remains governed by the
 configured provider.
 
+When the application is behind a reverse proxy, the deployment must configure
+`LIFEGOODS_TRUSTED_PROXY_CIDRS` with the proxy network as a JSON-encoded array of
+IP/CIDR values. Only requests whose direct peer is in one of those networks may
+use `X-Forwarded-For` for anonymous per-IP limiting; untrusted or malformed
+forwarded headers fall back to the direct peer address. The default is empty for
+direct/local development.
+
 Gemini extraction uses the existing API-key setting and the exact
 `gemini-3.8-flash` model with a dedicated visible-evidence prompt. It requests
 structured JSON, rejects malformed output or unknown image references, and

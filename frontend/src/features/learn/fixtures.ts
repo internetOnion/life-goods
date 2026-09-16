@@ -433,7 +433,10 @@ export const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
         kind: "sourced",
         slug: "what-a-barcode-can-tell-you",
         topic: "evidence",
-        title: { en: "What a barcode can—and cannot—tell you" },
+        title: {
+            km: "អ្វីដែលបាកូដអាច និងមិនអាចប្រាប់អ្នកបាន",
+            en: "What a barcode can—and cannot—tell you",
+        },
         summary: {
             en: "A barcode is an identifier for a Package Variant, not proof that every detail on the package is current or authentic.",
         },
@@ -471,7 +474,10 @@ export const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
         kind: "sourced",
         slug: "where-product-data-comes-from",
         topic: "evidence",
-        title: { en: "Where Product information comes from" },
+        title: {
+            km: "ព័ត៌មានផលិតផលមកពីណា",
+            en: "Where Product information comes from",
+        },
         summary: {
             en: "Open Food Facts is a collaborative external dataset. Its records can help with lookup, but fields may be missing, stale, or incorrect.",
         },
@@ -508,7 +514,10 @@ export const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
         kind: "sourced",
         slug: "what-additives-and-ins-numbers-mean",
         topic: "ingredients",
-        title: { en: "What additive names and INS numbers mean" },
+        title: {
+            km: "អត្ថន័យនៃឈ្មោះសារធាតុបន្ថែម និងលេខ INS",
+            en: "What additive names and INS numbers mean",
+        },
         summary: {
             en: "Additive names, synonyms, INS numbers, and functional classes describe what an ingredient does in a food.",
         },
@@ -545,7 +554,10 @@ export const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
         kind: "sourced",
         slug: "date-and-lot-markings",
         topic: "dates",
-        title: { en: "Dates, lot codes, and storage instructions" },
+        title: {
+            km: "កាលបរិច្ឆេទ លេខឡូត និងការណែនាំអំពីការរក្សាទុក",
+            en: "Dates, lot codes, and storage instructions",
+        },
         summary: {
             en: "Date marks and lot codes answer different questions about a package and should be read with their exact label wording.",
         },
@@ -584,7 +596,10 @@ export const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
         kind: "sourced",
         slug: "evidence-uncertainty-unreadable-labels",
         topic: "evidence",
-        title: { en: "When a label is unreadable or incomplete" },
+        title: {
+            km: "នៅពេលស្លាកអានមិនបាន ឬមិនពេញលេញ",
+            en: "When a label is unreadable or incomplete",
+        },
         summary: {
             en: "A cropped, blurry, or incomplete label leaves Evidence uncertain; an unreadable field is not the same as an absent declaration.",
         },

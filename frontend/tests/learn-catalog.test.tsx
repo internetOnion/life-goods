@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react"
 import { MemoryRouter } from "react-router"
-import { beforeEach, describe, expect, test, vi } from "vitest"
+import { describe, expect, test, vi } from "vitest"
 
 import { App } from "../src/app/App"
 import { LEARN_ENTRIES } from "../src/features/learn/entries"
@@ -11,10 +11,12 @@ import {
     allergenIngredientGroupErrors,
     learnCatalogErrors,
 } from "../src/features/learn/validation"
-import i18n from "../src/features/learn/translations"
+import type { AppLocale } from "../src/i18n/locale"
 import type { ProductLookup } from "../src/features/product/api"
 
-function renderRoute(path: string) {
+function renderRoute(path: string, locale: AppLocale = "en") {
+    window.localStorage.setItem("lifegoods.locale.v1", locale)
+
     return render(
         <MemoryRouter initialEntries={[path]}>
             <App lookup={vi.fn<ProductLookup>()} demoMode={false} />
@@ -23,10 +25,6 @@ function renderRoute(path: string) {
 }
 
 describe("structured Learn catalog", () => {
-    beforeEach(async () => {
-        await i18n.changeLanguage("en")
-    })
-
     test("has a valid bilingual 31-entry catalog in six guides", () => {
         expect(learnCatalogErrors()).toEqual([])
         expect(LEARN_ENTRIES).toHaveLength(31)
