@@ -15,7 +15,11 @@ from lifegoods.ingredient_matching.models import (
 )
 
 DEFAULT_TAXONOMY_PATH = (
-    Path(__file__).resolve().parents[3]
+    (
+        Path.cwd()
+        if (Path.cwd() / "data" / "open_food_facts").is_dir()
+        else Path(__file__).resolve().parents[3]
+    )
     / "data"
     / "open_food_facts"
     / "taxonomies"
@@ -151,11 +155,7 @@ def _build_allergen_paths(
         visiting.add(tag)
         paths: dict[str, list[str]] = {}
         raw_allergens = raw_entry.get("allergens", {})
-        direct_allergen = (
-            raw_allergens.get("en")
-            if isinstance(raw_allergens, dict)
-            else None
-        )
+        direct_allergen = raw_allergens.get("en") if isinstance(raw_allergens, dict) else None
         if direct_allergen is not None:
             if not isinstance(direct_allergen, str) or direct_allergen not in allergen_tags:
                 raise ValueError(f"Ingredient taxonomy allergen target is invalid: {tag}")
@@ -172,7 +172,4 @@ def _build_allergen_paths(
         resolved[tag] = paths
         return paths
 
-    return {
-        tag: [path for path in resolve(tag).values()]
-        for tag in taxonomy
-    }
+    return {tag: [path for path in resolve(tag).values()] for tag in taxonomy}

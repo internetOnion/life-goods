@@ -15,7 +15,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN addgroup --system --gid 10001 lifegoods \
     && adduser --system --uid 10001 --ingroup lifegoods lifegoods
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.8.22 /uv /usr/local/bin/uv
 
 WORKDIR /app
 
@@ -25,11 +25,13 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 COPY backend/src ./src
 COPY shared ./shared
+COPY backend/data ./data
 # Build the wheel from the copied source and install it into the venv.
 RUN uv build --no-sources \
     && uv pip install --no-deps --no-cache-dir dist/*.whl \
     && rm -rf src dist
 
+ENV UV_CACHE_DIR=/tmp/uv-cache
 USER lifegoods
 
 EXPOSE 8000
@@ -37,4 +39,4 @@ EXPOSE 8000
 # Hardened uvicorn: hide server header, cap concurrency, single worker (lightweight).
 CMD ["uv", "run", "--no-sync", "uvicorn", "lifegoods.main:app", \
      "--host", "0.0.0.0", "--port", "8000", \
-     "--no-server-header", "--limit-concurrency", "40"]
+     "--no-server-header", "--no-proxy-headers", "--no-access-log", "--limit-concurrency", "40"]

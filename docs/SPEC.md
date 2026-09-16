@@ -1150,3 +1150,14 @@ rejection, exception, cancellation, reset, and unmount, and no photos, extracted
 label text, or comparison history are retained. Application cleanup does not make
 a zero-retention promise for the provider; provider-side retention is documented
 separately.
+
+## Deployment health probes
+
+`GET /api/health/live` returns `{ "status": "alive" }` without dependency checks.
+`GET /api/health/ready` returns `{ "status": "ready" }` with HTTP 200 only when
+MongoDB is reachable, the selected Dataset Snapshot and unique Barcode index are
+available, the current Product Search collection/indexes are ready, the isolated
+generated-data schema is compatible, and Redis responds. Otherwise it returns
+HTTP 503 `{ "status": "not_ready" }`, without dependency errors or credentials.
+These read-only probes never call the AI provider or modify storage and remain
+blocked through the public staging Worker. Responses are not cached.

@@ -11,6 +11,7 @@ from scalar_fastapi import get_scalar_api_reference
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from lifegoods.core.errors import ErrorCode, ErrorDetail, ErrorEnvelope
+from lifegoods.core.health import ReadinessProbe, build_health_router
 from lifegoods.core.security import SecurityHeadersMiddleware, TrustedProxyClientMiddleware
 from lifegoods.core.settings import Settings
 from lifegoods.generated_data.budget import RedisTranslationBudgetLimiter
@@ -254,6 +255,9 @@ def create_app(
     photo_comparison_service = PhotoComparisonService()
 
     app = FastAPI(title="Life Goods API", version="0.1.0")
+    readiness_probe = ReadinessProbe(resolved_settings)
+    app.include_router(build_health_router(readiness_probe))
+    app.router.add_event_handler("shutdown", readiness_probe.close)
     app.add_middleware(
         TrustedProxyClientMiddleware,
         trusted_proxy_cidrs=resolved_settings.trusted_proxy_cidrs,

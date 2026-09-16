@@ -201,3 +201,10 @@ docker compose --env-file infra/secrets/prod/.env -f infra/compose/docker-compos
 An empty `LIFEGOODS_GEMINI_API_KEY` disables generation; Product Lookup still
 returns available Original Text. These commands do not activate generation or
 change the Dataset Snapshot. CORS origins are a JSON array in the secrets file.
+
+## Cloudflare and VPS staging
+
+The split staging deployment reuses an existing MongoDB Dataset Snapshot and serves
+the frontend through Cloudflare Workers Static Assets. Follow
+[the staging deployment procedure](docs/staging-deployment.md) before changing the VPS.
+The legacy full-site Compose files are not used for this topology.

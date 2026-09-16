@@ -1,0 +1,46 @@
+# Disposable LOCAL integration services, never attach to the VPS dataset network.
+services:
+    mongodb:
+        image: mongo:8.2
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: test_admin
+            MONGO_INITDB_ROOT_PASSWORD: disposable_test_admin
+        ports: ["127.0.0.1:37018:27017"]
+        volumes:
+            - ../deploy/init-test-mongodb.js:/docker-entrypoint-initdb.d/init-test-mongodb.js:ro
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "mongosh",
+                    "--quiet",
+                    "--username",
+                    "test_admin",
+                    "--password",
+                    "disposable_test_admin",
+                    "--authenticationDatabase",
+                    "admin",
+                    "--eval",
+                    "db.adminCommand({ping:1})",
+                ]
+            interval: 5s
+            timeout: 5s
+            retries: 20
+    redis:
+        image: redis:7.4-alpine
+        command:
+            [
+                "redis-server",
+                "--requirepass",
+                "disposable_test_redis",
+                "--save",
+                "",
+                "--appendonly",
+                "no",
+            ]
+        ports: ["127.0.0.1:36380:6379"]
+        healthcheck:
+            test: ["CMD", "redis-cli", "-a", "disposable_test_redis", "ping"]
+            interval: 5s
+            timeout: 5s
+            retries: 20

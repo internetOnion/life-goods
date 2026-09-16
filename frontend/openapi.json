@@ -919,6 +919,19 @@
         "title": "GradedSourceAssessment",
         "type": "object"
       },
+      "HealthStatus": {
+        "properties": {
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "HealthStatus",
+        "type": "object"
+      },
       "ImageEvidence": {
         "additionalProperties": false,
         "properties": {
@@ -3160,6 +3173,58 @@
         "summary": "Match experimental ingredient taxonomy entries",
         "tags": [
           "Ingredient Matching"
+        ]
+      }
+    },
+    "/api/health/live": {
+      "get": {
+        "operationId": "live_api_health_live_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Live",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/api/health/ready": {
+      "get": {
+        "operationId": "ready_api_health_ready_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                }
+              }
+            },
+            "description": "Dependencies not ready"
+          }
+        },
+        "summary": "Ready",
+        "tags": [
+          "Operations"
         ]
       }
     },

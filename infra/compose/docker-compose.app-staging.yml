@@ -1,0 +1,114 @@
+# Adds applications beside the existing dataset deployment. Never owns MongoDB.
+services:
+    backend:
+        image: ${LIFEGOODS_BACKEND_IMAGE:?Set the commit-tagged backend image}
+        restart: unless-stopped
+        env_file: ../secrets/app-staging/.env
+        environment:
+            LIFEGOODS_ENVIRONMENT: staging
+            LIFEGOODS_TRUSTED_PROXY_CIDRS: '["172.30.85.3/32"]'
+            LIFEGOODS_GENERATED_TRANSLATION_BUDGET_PER_MINUTE: "5"
+            LIFEGOODS_PHOTO_COMPARISON_REQUESTS_PER_MINUTE: "2"
+        command:
+            [
+                "uv",
+                "run",
+                "--no-sync",
+                "uvicorn",
+                "lifegoods.main:app",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8000",
+                "--no-server-header",
+                "--no-proxy-headers",
+                "--no-access-log",
+                "--limit-concurrency",
+                "40",
+            ]
+        networks:
+            api:
+                ipv4_address: 172.30.85.2
+            dataset: {}
+            cache: {}
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "/app/.venv/bin/python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health/ready', timeout=15)",
+                ]
+            interval: 30s
+            timeout: 20s
+            retries: 3
+            start_period: 30s
+        depends_on:
+            redis:
+                condition: service_healthy
+        mem_limit: 1g
+        pids_limit: 256
+        logging:
+            driver: json-file
+            options: { max-size: "10m", max-file: "3" }
+
+    redis:
+        image: redis:7.4-alpine
+        restart: unless-stopped
+        environment:
+            REDIS_PASSWORD: ${LIFEGOODS_REDIS_PASSWORD:?Set a Redis password}
+        # Persist no rate-limit/client state. Disable eviction so admission state cannot
+        # disappear under cache pressure. A full Redis rejects writes and paid work fails closed.
+        command:
+            [
+                "sh",
+                "-c",
+                'exec redis-server --requirepass "$$REDIS_PASSWORD" --save "" --appendonly no --maxmemory 160mb --maxmemory-policy noeviction',
+            ]
+        networks: [cache]
+        healthcheck:
+            test:
+                [
+                    "CMD-SHELL",
+                    'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG',
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        mem_limit: 256m
+        pids_limit: 128
+        logging:
+            driver: json-file
+            options: { max-size: "5m", max-file: "2" }
+
+    cloudflared:
+        image: ${LIFEGOODS_CLOUDFLARED_IMAGE:?Set a pinned cloudflared image}
+        restart: unless-stopped
+        command:
+            [
+                "tunnel",
+                "--no-autoupdate",
+                "run",
+                "--token-file",
+                "/run/secrets/tunnel-token",
+            ]
+        volumes:
+            - ../secrets/app-staging/tunnel-token:/run/secrets/tunnel-token:ro
+        networks:
+            api:
+                ipv4_address: 172.30.85.3
+        mem_limit: 192m
+        pids_limit: 128
+        logging:
+            driver: json-file
+            options: { max-size: "5m", max-file: "2" }
+
+networks:
+    api:
+        ipam:
+            config: [{ subnet: "172.30.85.0/29" }]
+    cache:
+        internal: true
+    dataset:
+        external: true
+        name: ${LIFEGOODS_DATASET_NETWORK:?Set the existing MongoDB Docker network}

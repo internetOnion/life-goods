@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { ComparePhotoComparisonData, ComparePhotoComparisonErrors, ComparePhotoComparisonResponses, ExtractPhotoComparisonData, ExtractPhotoComparisonErrors, ExtractPhotoComparisonResponses, GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetProductData, GetProductErrors, GetProductResponses, MatchExperimentalIngredientsData, MatchExperimentalIngredientsErrors, MatchExperimentalIngredientsResponses, SearchProductsData, SearchProductsErrors, SearchProductsResponses } from './types.gen';
+import type { ComparePhotoComparisonData, ComparePhotoComparisonErrors, ComparePhotoComparisonResponses, ExtractPhotoComparisonData, ExtractPhotoComparisonErrors, ExtractPhotoComparisonResponses, GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetProductData, GetProductErrors, GetProductResponses, LiveApiHealthLiveGetData, LiveApiHealthLiveGetResponses, MatchExperimentalIngredientsData, MatchExperimentalIngredientsErrors, MatchExperimentalIngredientsResponses, ReadyApiHealthReadyGetData, ReadyApiHealthReadyGetErrors, ReadyApiHealthReadyGetResponses, SearchProductsData, SearchProductsErrors, SearchProductsResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -30,6 +30,26 @@ export const matchExperimentalIngredients = <ThrowOnError extends boolean = fals
             'Content-Type': 'application/json',
             ...options.headers
         }
+    });
+};
+
+/**
+ * Live
+ */
+export const liveApiHealthLiveGet = <ThrowOnError extends boolean = false>(options?: Options<LiveApiHealthLiveGetData, ThrowOnError>) => {
+    return (options?.client ?? client).get<LiveApiHealthLiveGetResponses, unknown, ThrowOnError>({
+        url: '/api/health/live',
+        ...options
+    });
+};
+
+/**
+ * Ready
+ */
+export const readyApiHealthReadyGet = <ThrowOnError extends boolean = false>(options?: Options<ReadyApiHealthReadyGetData, ThrowOnError>) => {
+    return (options?.client ?? client).get<ReadyApiHealthReadyGetResponses, ReadyApiHealthReadyGetErrors, ThrowOnError>({
+        url: '/api/health/ready',
+        ...options
     });
 };
 

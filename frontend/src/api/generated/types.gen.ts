@@ -423,6 +423,16 @@ export type GradedSourceAssessment = {
 };
 
 /**
+ * HealthStatus
+ */
+export type HealthStatus = {
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
  * ImageEvidence
  */
 export type ImageEvidence = {
@@ -1477,6 +1487,47 @@ export type MatchExperimentalIngredientsResponses = {
 };
 
 export type MatchExperimentalIngredientsResponse = MatchExperimentalIngredientsResponses[keyof MatchExperimentalIngredientsResponses];
+
+export type LiveApiHealthLiveGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/health/live';
+};
+
+export type LiveApiHealthLiveGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: HealthStatus;
+};
+
+export type LiveApiHealthLiveGetResponse = LiveApiHealthLiveGetResponses[keyof LiveApiHealthLiveGetResponses];
+
+export type ReadyApiHealthReadyGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/health/ready';
+};
+
+export type ReadyApiHealthReadyGetErrors = {
+    /**
+     * Dependencies not ready
+     */
+    503: HealthStatus;
+};
+
+export type ReadyApiHealthReadyGetError = ReadyApiHealthReadyGetErrors[keyof ReadyApiHealthReadyGetErrors];
+
+export type ReadyApiHealthReadyGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: HealthStatus;
+};
+
+export type ReadyApiHealthReadyGetResponse = ReadyApiHealthReadyGetResponses[keyof ReadyApiHealthReadyGetResponses];
 
 export type GetOpenFoodFactsImageData = {
     body?: never;

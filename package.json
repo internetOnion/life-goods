@@ -28,11 +28,15 @@
         "benchmark:run": "uv run --project backend python -m lifegoods.translation.benchmark.cli run --mode offline",
         "benchmark:live": "uv run --project backend python -m lifegoods.translation.benchmark.cli run --mode live",
         "api:generate": "uv run --project backend python backend/scripts/export_openapi.py && pnpm --dir frontend api:generate",
-        "api:check": "pnpm api:generate && git diff --exit-code -- frontend/openapi.json frontend/src/api/generated"
+        "api:check": "pnpm api:generate && git diff --exit-code -- frontend/openapi.json frontend/src/api/generated",
+        "staging:frontend:deploy": "node scripts/cloudflare-staging.mjs",
+        "staging:proxy:test": "node --test infra/cloudflare/worker.test.mjs",
+        "staging:integration:test": "node scripts/staging-integration.mjs"
     },
     "devDependencies": {
         "prettier": "^3.9.6",
         "prettier-plugin-tailwindcss": "^0.8.1",
-        "pyright": "^1.1.400"
+        "pyright": "^1.1.400",
+        "wrangler": "^4.131.2"
     }
 }
