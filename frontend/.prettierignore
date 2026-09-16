@@ -1,0 +1,6 @@
+dist/
+node_modules/
+.impeccable/
+src/api/generated/
+openapi.json
+test-results/

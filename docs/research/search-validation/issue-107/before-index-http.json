@@ -1,0 +1,62 @@
+[
+  {
+    "query": "8847100567574",
+    "status": 200,
+    "body": {
+      "data": {
+        "products": [
+          {
+            "barcode": "8847100567574",
+            "name": {
+              "value": "កូកា-កូឡា",
+              "language": "km",
+              "source_field": "product_name"
+            },
+            "brands": [
+              "Coca-Cola"
+            ],
+            "quantity": null,
+            "thumbnail": {
+              "url": "https://images.openfoodfacts.org/images/products/884/710/056/7574/front_km.10.400.jpg",
+              "language": "km",
+              "source_field": "images.selected.front.km.rev"
+            },
+            "source": {
+              "name": "Open Food Facts",
+              "product_url": "https://world.openfoodfacts.org/product/8847100567574"
+            }
+          }
+        ]
+      },
+      "meta": {
+        "source": {
+          "name": "Open Food Facts",
+          "product_url": "https://world.openfoodfacts.org"
+        },
+        "dataset": {
+          "version": "9f6d5359fa944e458804c1b63e7365a7",
+          "retrieved_at": "2026-08-27T14:14:59.017000Z"
+        },
+        "pagination": {
+          "next_cursor": null
+        }
+      }
+    }
+  },
+  {
+    "query": "coca col",
+    "status": 503,
+    "body": {
+      "error": {
+        "code": "search_unavailable",
+        "message": "Text search is temporarily unavailable"
+      },
+      "meta": {
+        "dataset": {
+          "version": "9f6d5359fa944e458804c1b63e7365a7",
+          "retrieved_at": "2026-08-27T14:14:59.017000Z"
+        }
+      }
+    }
+  }
+]

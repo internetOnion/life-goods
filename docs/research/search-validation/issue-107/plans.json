@@ -1,0 +1,2118 @@
+[
+  {
+    "kind": "common",
+    "query": "Kroger",
+    "command": {
+      "aggregate": "off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+      "pipeline": [
+        {
+          "$match": {
+            "$and": [
+              {
+                "$or": [
+                  {
+                    "name_tokens": {
+                      "$regex": "^kroger"
+                    }
+                  },
+                  {
+                    "brand_tokens": {
+                      "$regex": "^kroger"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "$set": {
+            "rank": {
+              "$switch": {
+                "branches": [
+                  {
+                    "case": {
+                      "$in": [
+                        "kroger",
+                        "$brand_values"
+                      ]
+                    },
+                    "then": 0
+                  },
+                  {
+                    "case": {
+                      "$in": [
+                        "kroger",
+                        "$name_values"
+                      ]
+                    },
+                    "then": 1
+                  },
+                  {
+                    "case": {
+                      "$or": [
+                        {
+                          "$in": [
+                            "kroger",
+                            "$name_tokens"
+                          ]
+                        },
+                        {
+                          "$in": [
+                            "kroger",
+                            "$brand_tokens"
+                          ]
+                        }
+                      ]
+                    },
+                    "then": 2
+                  }
+                ],
+                "default": 3
+              }
+            }
+          }
+        },
+        {
+          "$sort": {
+            "rank": 1,
+            "name_sort": 1,
+            "code": 1
+          }
+        },
+        {
+          "$limit": 21
+        }
+      ],
+      "cursor": {},
+      "maxTimeMS": 2000
+    },
+    "explain": {
+      "explainVersion": "1",
+      "stages": [
+        {
+          "$cursor": {
+            "queryPlanner": {
+              "namespace": "lifegoods_off.off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+              "parsedQuery": {
+                "$or": [
+                  {
+                    "brand_tokens": {
+                      "$regex": "^kroger"
+                    }
+                  },
+                  {
+                    "name_tokens": {
+                      "$regex": "^kroger"
+                    }
+                  }
+                ]
+              },
+              "indexFilterSet": false,
+              "queryHash": "E3CB0A89",
+              "planCacheShapeHash": "E3CB0A89",
+              "planCacheKey": "7449252B",
+              "optimizationTimeMillis": 0,
+              "maxIndexedOrSolutionsReached": false,
+              "maxIndexedAndSolutionsReached": false,
+              "maxScansToExplodeReached": false,
+              "prunedSimilarIndexes": false,
+              "winningPlan": {
+                "isCached": false,
+                "stage": "SUBPLAN",
+                "inputStage": {
+                  "stage": "FETCH",
+                  "inputStage": {
+                    "stage": "OR",
+                    "inputStages": [
+                      {
+                        "stage": "IXSCAN",
+                        "keyPattern": {
+                          "name_tokens": 1
+                        },
+                        "indexName": "ix_search_name_tokens",
+                        "isMultiKey": true,
+                        "multiKeyPaths": {
+                          "name_tokens": [
+                            "name_tokens"
+                          ]
+                        },
+                        "isUnique": false,
+                        "isSparse": false,
+                        "isPartial": false,
+                        "indexVersion": 2,
+                        "direction": "forward",
+                        "indexBounds": {
+                          "name_tokens": [
+                            "[\"kroger\", \"kroges\")",
+                            "[/^kroger/, /^kroger/]"
+                          ]
+                        }
+                      },
+                      {
+                        "stage": "IXSCAN",
+                        "keyPattern": {
+                          "brand_tokens": 1
+                        },
+                        "indexName": "ix_search_brand_tokens",
+                        "isMultiKey": true,
+                        "multiKeyPaths": {
+                          "brand_tokens": [
+                            "brand_tokens"
+                          ]
+                        },
+                        "isUnique": false,
+                        "isSparse": false,
+                        "isPartial": false,
+                        "indexVersion": 2,
+                        "direction": "forward",
+                        "indexBounds": {
+                          "brand_tokens": [
+                            "[\"kroger\", \"kroges\")",
+                            "[/^kroger/, /^kroger/]"
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "rejectedPlans": []
+            },
+            "executionStats": {
+              "executionSuccess": true,
+              "nReturned": 7399,
+              "executionTimeMillis": 22,
+              "totalKeysExamined": 8396,
+              "totalDocsExamined": 7399,
+              "executionStages": {
+                "isCached": false,
+                "stage": "SUBPLAN",
+                "nReturned": 7399,
+                "executionTimeMillisEstimate": 5,
+                "works": 8398,
+                "advanced": 7399,
+                "needTime": 998,
+                "needYield": 0,
+                "saveState": 9,
+                "restoreState": 8,
+                "isEOF": 1,
+                "inputStage": {
+                  "stage": "FETCH",
+                  "nReturned": 7399,
+                  "executionTimeMillisEstimate": 5,
+                  "works": 8398,
+                  "advanced": 7399,
+                  "needTime": 998,
+                  "needYield": 0,
+                  "saveState": 9,
+                  "restoreState": 8,
+                  "isEOF": 1,
+                  "docsExamined": 7399,
+                  "alreadyHasObj": 0,
+                  "inputStage": {
+                    "stage": "OR",
+                    "nReturned": 7399,
+                    "executionTimeMillisEstimate": 0,
+                    "works": 8398,
+                    "advanced": 7399,
+                    "needTime": 998,
+                    "needYield": 0,
+                    "saveState": 9,
+                    "restoreState": 8,
+                    "isEOF": 1,
+                    "dupsTested": 8394,
+                    "dupsDropped": 995,
+                    "inputStages": [
+                      {
+                        "stage": "IXSCAN",
+                        "nReturned": 1106,
+                        "executionTimeMillisEstimate": 0,
+                        "works": 1108,
+                        "advanced": 1106,
+                        "needTime": 1,
+                        "needYield": 0,
+                        "saveState": 9,
+                        "restoreState": 8,
+                        "isEOF": 1,
+                        "keyPattern": {
+                          "name_tokens": 1
+                        },
+                        "indexName": "ix_search_name_tokens",
+                        "isMultiKey": true,
+                        "multiKeyPaths": {
+                          "name_tokens": [
+                            "name_tokens"
+                          ]
+                        },
+                        "isUnique": false,
+                        "isSparse": false,
+                        "isPartial": false,
+                        "indexVersion": 2,
+                        "direction": "forward",
+                        "indexBounds": {
+                          "name_tokens": [
+                            "[\"kroger\", \"kroges\")",
+                            "[/^kroger/, /^kroger/]"
+                          ]
+                        },
+                        "keysExamined": 1107,
+                        "seeks": 2,
+                        "dupsTested": 1106,
+                        "dupsDropped": 0
+                      },
+                      {
+                        "stage": "IXSCAN",
+                        "nReturned": 7288,
+                        "executionTimeMillisEstimate": 0,
+                        "works": 7290,
+                        "advanced": 7288,
+                        "needTime": 1,
+                        "needYield": 0,
+                        "saveState": 9,
+                        "restoreState": 8,
+                        "isEOF": 1,
+                        "keyPattern": {
+                          "brand_tokens": 1
+                        },
+                        "indexName": "ix_search_brand_tokens",
+                        "isMultiKey": true,
+                        "multiKeyPaths": {
+                          "brand_tokens": [
+                            "brand_tokens"
+                          ]
+                        },
+                        "isUnique": false,
+                        "isSparse": false,
+                        "isPartial": false,
+                        "indexVersion": 2,
+                        "direction": "forward",
+                        "indexBounds": {
+                          "brand_tokens": [
+                            "[\"kroger\", \"kroges\")",
+                            "[/^kroger/, /^kroger/]"
+                          ]
+                        },
+                        "keysExamined": 7289,
+                        "seeks": 2,
+                        "dupsTested": 7288,
+                        "dupsDropped": 0
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "nReturned": 7399,
+          "executionTimeMillisEstimate": 13
+        },
+        {
+          "$set": {
+            "rank": {
+              "$switch": {
+                "branches": [
+                  {
+                    "case": {
+                      "$in": [
+                        {
+                          "$const": "kroger"
+                        },
+                        "$brand_values"
+                      ]
+                    },
+                    "then": {
+                      "$const": 0
+                    }
+                  },
+                  {
+                    "case": {
+                      "$in": [
+                        {
+                          "$const": "kroger"
+                        },
+                        "$name_values"
+                      ]
+                    },
+                    "then": {
+                      "$const": 1
+                    }
+                  },
+                  {
+                    "case": {
+                      "$or": [
+                        {
+                          "$in": [
+                            {
+                              "$const": "kroger"
+                            },
+                            "$name_tokens"
+                          ]
+                        },
+                        {
+                          "$in": [
+                            {
+                              "$const": "kroger"
+                            },
+                            "$brand_tokens"
+                          ]
+                        }
+                      ]
+                    },
+                    "then": {
+                      "$const": 2
+                    }
+                  }
+                ],
+                "default": {
+                  "$const": 3
+                }
+              }
+            }
+          },
+          "nReturned": 7399,
+          "executionTimeMillisEstimate": 15
+        },
+        {
+          "$sort": {
+            "sortKey": {
+              "rank": 1,
+              "name_sort": 1,
+              "code": 1
+            },
+            "limit": 21
+          },
+          "totalDataSizeSortedBytesEstimate": 14026,
+          "usedDisk": false,
+          "spills": 0,
+          "spilledDataStorageSize": 0,
+          "nReturned": 21,
+          "executionTimeMillisEstimate": 17
+        }
+      ],
+      "queryShapeHash": "541BA6C1EEFD7E030F2E44B751C7AD6A33BA0AA0BB3BF0E3B7AF9447D0E76412",
+      "serverInfo": {
+        "host": "254c5de9ff4a",
+        "port": 27017,
+        "version": "8.2.12",
+        "gitVersion": "0f912e80210b8fdfdcec618b14b6c0fced055cb8"
+      },
+      "serverParameters": {
+        "internalQueryFacetBufferSizeBytes": 104857600,
+        "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+        "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+        "internalDocumentSourceGroupMaxMemoryBytes": 104857600,
+        "internalQueryMaxBlockingSortMemoryUsageBytes": 104857600,
+        "internalQueryProhibitBlockingMergeOnMongoS": 0,
+        "internalQueryMaxAddToSetBytes": 104857600,
+        "internalDocumentSourceSetWindowFieldsMaxMemoryBytes": 104857600,
+        "internalQueryFrameworkControl": "trySbeRestricted",
+        "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+      },
+      "command": {
+        "aggregate": "off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+        "pipeline": [
+          {
+            "$match": {
+              "$and": [
+                {
+                  "$or": [
+                    {
+                      "name_tokens": {
+                        "$regex": "^kroger"
+                      }
+                    },
+                    {
+                      "brand_tokens": {
+                        "$regex": "^kroger"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "$set": {
+              "rank": {
+                "$switch": {
+                  "branches": [
+                    {
+                      "case": {
+                        "$in": [
+                          "kroger",
+                          "$brand_values"
+                        ]
+                      },
+                      "then": 0
+                    },
+                    {
+                      "case": {
+                        "$in": [
+                          "kroger",
+                          "$name_values"
+                        ]
+                      },
+                      "then": 1
+                    },
+                    {
+                      "case": {
+                        "$or": [
+                          {
+                            "$in": [
+                              "kroger",
+                              "$name_tokens"
+                            ]
+                          },
+                          {
+                            "$in": [
+                              "kroger",
+                              "$brand_tokens"
+                            ]
+                          }
+                        ]
+                      },
+                      "then": 2
+                    }
+                  ],
+                  "default": 3
+                }
+              }
+            }
+          },
+          {
+            "$sort": {
+              "rank": 1,
+              "name_sort": 1,
+              "code": 1
+            }
+          },
+          {
+            "$limit": 21
+          }
+        ],
+        "cursor": {},
+        "maxTimeMS": 2000,
+        "$db": "lifegoods_off"
+      },
+      "ok": 1.0
+    }
+  },
+  {
+    "kind": "rare",
+    "query": "កូកា-កូឡា",
+    "command": {
+      "aggregate": "off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+      "pipeline": [
+        {
+          "$match": {
+            "$and": [
+              {
+                "$or": [
+                  {
+                    "name_tokens": "កូកា"
+                  },
+                  {
+                    "brand_tokens": "កូកា"
+                  }
+                ]
+              },
+              {
+                "$or": [
+                  {
+                    "name_tokens": {
+                      "$regex": "^កូឡា"
+                    }
+                  },
+                  {
+                    "brand_tokens": {
+                      "$regex": "^កូឡា"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "$set": {
+            "rank": {
+              "$switch": {
+                "branches": [
+                  {
+                    "case": {
+                      "$in": [
+                        "កូកា កូឡា",
+                        "$brand_values"
+                      ]
+                    },
+                    "then": 0
+                  },
+                  {
+                    "case": {
+                      "$in": [
+                        "កូកា កូឡា",
+                        "$name_values"
+                      ]
+                    },
+                    "then": 1
+                  },
+                  {
+                    "case": {
+                      "$or": [
+                        {
+                          "$in": [
+                            "កូឡា",
+                            "$name_tokens"
+                          ]
+                        },
+                        {
+                          "$in": [
+                            "កូឡា",
+                            "$brand_tokens"
+                          ]
+                        }
+                      ]
+                    },
+                    "then": 2
+                  }
+                ],
+                "default": 3
+              }
+            }
+          }
+        },
+        {
+          "$sort": {
+            "rank": 1,
+            "name_sort": 1,
+            "code": 1
+          }
+        },
+        {
+          "$limit": 21
+        }
+      ],
+      "cursor": {},
+      "maxTimeMS": 2000
+    },
+    "explain": {
+      "explainVersion": "1",
+      "stages": [
+        {
+          "$cursor": {
+            "queryPlanner": {
+              "namespace": "lifegoods_off.off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+              "parsedQuery": {
+                "$and": [
+                  {
+                    "$or": [
+                      {
+                        "brand_tokens": {
+                          "$eq": "កូកា"
+                        }
+                      },
+                      {
+                        "name_tokens": {
+                          "$eq": "កូកា"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "$or": [
+                      {
+                        "brand_tokens": {
+                          "$regex": "^កូឡា"
+                        }
+                      },
+                      {
+                        "name_tokens": {
+                          "$regex": "^កូឡា"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "indexFilterSet": false,
+              "queryHash": "309F8943",
+              "planCacheShapeHash": "309F8943",
+              "planCacheKey": "4FD71776",
+              "optimizationTimeMillis": 0,
+              "maxIndexedOrSolutionsReached": false,
+              "maxIndexedAndSolutionsReached": false,
+              "maxScansToExplodeReached": false,
+              "prunedSimilarIndexes": false,
+              "winningPlan": {
+                "isCached": true,
+                "stage": "FETCH",
+                "filter": {
+                  "$or": [
+                    {
+                      "brand_tokens": {
+                        "$regex": "^កូឡា"
+                      }
+                    },
+                    {
+                      "name_tokens": {
+                        "$regex": "^កូឡា"
+                      }
+                    }
+                  ]
+                },
+                "inputStage": {
+                  "stage": "OR",
+                  "inputStages": [
+                    {
+                      "stage": "IXSCAN",
+                      "keyPattern": {
+                        "name_tokens": 1
+                      },
+                      "indexName": "ix_search_name_tokens",
+                      "isMultiKey": true,
+                      "multiKeyPaths": {
+                        "name_tokens": [
+                          "name_tokens"
+                        ]
+                      },
+                      "isUnique": false,
+                      "isSparse": false,
+                      "isPartial": false,
+                      "indexVersion": 2,
+                      "direction": "forward",
+                      "indexBounds": {
+                        "name_tokens": [
+                          "[\"កូកា\", \"កូកា\"]"
+                        ]
+                      }
+                    },
+                    {
+                      "stage": "IXSCAN",
+                      "keyPattern": {
+                        "brand_tokens": 1
+                      },
+                      "indexName": "ix_search_brand_tokens",
+                      "isMultiKey": true,
+                      "multiKeyPaths": {
+                        "brand_tokens": [
+                          "brand_tokens"
+                        ]
+                      },
+                      "isUnique": false,
+                      "isSparse": false,
+                      "isPartial": false,
+                      "indexVersion": 2,
+                      "direction": "forward",
+                      "indexBounds": {
+                        "brand_tokens": [
+                          "[\"កូកា\", \"កូកា\"]"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "rejectedPlans": [
+                {
+                  "isCached": false,
+                  "stage": "FETCH",
+                  "filter": {
+                    "$or": [
+                      {
+                        "brand_tokens": {
+                          "$eq": "កូកា"
+                        }
+                      },
+                      {
+                        "name_tokens": {
+                          "$eq": "កូកា"
+                        }
+                      }
+                    ]
+                  },
+                  "inputStage": {
+                    "stage": "OR",
+                    "inputStages": [
+                      {
+                        "stage": "IXSCAN",
+                        "keyPattern": {
+                          "name_tokens": 1
+                        },
+                        "indexName": "ix_search_name_tokens",
+                        "isMultiKey": true,
+                        "multiKeyPaths": {
+                          "name_tokens": [
+                            "name_tokens"
+                          ]
+                        },
+                        "isUnique": false,
+                        "isSparse": false,
+                        "isPartial": false,
+                        "indexVersion": 2,
+                        "direction": "forward",
+                        "indexBounds": {
+                          "name_tokens": [
+                            "[\"កូឡា\", \"កូឡិ\")",
+                            "[/^កូឡា/, /^កូឡា/]"
+                          ]
+                        }
+                      },
+                      {
+                        "stage": "IXSCAN",
+                        "keyPattern": {
+                          "brand_tokens": 1
+                        },
+                        "indexName": "ix_search_brand_tokens",
+                        "isMultiKey": true,
+                        "multiKeyPaths": {
+                          "brand_tokens": [
+                            "brand_tokens"
+                          ]
+                        },
+                        "isUnique": false,
+                        "isSparse": false,
+                        "isPartial": false,
+                        "indexVersion": 2,
+                        "direction": "forward",
+                        "indexBounds": {
+                          "brand_tokens": [
+                            "[\"កូឡា\", \"កូឡិ\")",
+                            "[/^កូឡា/, /^កូឡា/]"
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "executionStats": {
+              "executionSuccess": true,
+              "nReturned": 1,
+              "executionTimeMillis": 0,
+              "totalKeysExamined": 1,
+              "totalDocsExamined": 1,
+              "executionStages": {
+                "isCached": true,
+                "stage": "FETCH",
+                "filter": {
+                  "$or": [
+                    {
+                      "brand_tokens": {
+                        "$regex": "^កូឡា"
+                      }
+                    },
+                    {
+                      "name_tokens": {
+                        "$regex": "^កូឡា"
+                      }
+                    }
+                  ]
+                },
+                "nReturned": 1,
+                "executionTimeMillisEstimate": 0,
+                "works": 4,
+                "advanced": 1,
+                "needTime": 1,
+                "needYield": 0,
+                "saveState": 2,
+                "restoreState": 1,
+                "isEOF": 1,
+                "docsExamined": 1,
+                "alreadyHasObj": 0,
+                "inputStage": {
+                  "stage": "OR",
+                  "nReturned": 1,
+                  "executionTimeMillisEstimate": 0,
+                  "works": 3,
+                  "advanced": 1,
+                  "needTime": 1,
+                  "needYield": 0,
+                  "saveState": 2,
+                  "restoreState": 1,
+                  "isEOF": 1,
+                  "dupsTested": 1,
+                  "dupsDropped": 0,
+                  "inputStages": [
+                    {
+                      "stage": "IXSCAN",
+                      "nReturned": 1,
+                      "executionTimeMillisEstimate": 0,
+                      "works": 2,
+                      "advanced": 1,
+                      "needTime": 0,
+                      "needYield": 0,
+                      "saveState": 2,
+                      "restoreState": 1,
+                      "isEOF": 1,
+                      "keyPattern": {
+                        "name_tokens": 1
+                      },
+                      "indexName": "ix_search_name_tokens",
+                      "isMultiKey": true,
+                      "multiKeyPaths": {
+                        "name_tokens": [
+                          "name_tokens"
+                        ]
+                      },
+                      "isUnique": false,
+                      "isSparse": false,
+                      "isPartial": false,
+                      "indexVersion": 2,
+                      "direction": "forward",
+                      "indexBounds": {
+                        "name_tokens": [
+                          "[\"កូកា\", \"កូកា\"]"
+                        ]
+                      },
+                      "keysExamined": 1,
+                      "seeks": 1,
+                      "dupsTested": 1,
+                      "dupsDropped": 0
+                    },
+                    {
+                      "stage": "IXSCAN",
+                      "nReturned": 0,
+                      "executionTimeMillisEstimate": 0,
+                      "works": 1,
+                      "advanced": 0,
+                      "needTime": 0,
+                      "needYield": 0,
+                      "saveState": 2,
+                      "restoreState": 1,
+                      "isEOF": 1,
+                      "keyPattern": {
+                        "brand_tokens": 1
+                      },
+                      "indexName": "ix_search_brand_tokens",
+                      "isMultiKey": true,
+                      "multiKeyPaths": {
+                        "brand_tokens": [
+                          "brand_tokens"
+                        ]
+                      },
+                      "isUnique": false,
+                      "isSparse": false,
+                      "isPartial": false,
+                      "indexVersion": 2,
+                      "direction": "forward",
+                      "indexBounds": {
+                        "brand_tokens": [
+                          "[\"កូកា\", \"កូកា\"]"
+                        ]
+                      },
+                      "keysExamined": 0,
+                      "seeks": 1,
+                      "dupsTested": 0,
+                      "dupsDropped": 0
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "nReturned": 1,
+          "executionTimeMillisEstimate": 0
+        },
+        {
+          "$set": {
+            "rank": {
+              "$switch": {
+                "branches": [
+                  {
+                    "case": {
+                      "$in": [
+                        {
+                          "$const": "កូកា កូឡា"
+                        },
+                        "$brand_values"
+                      ]
+                    },
+                    "then": {
+                      "$const": 0
+                    }
+                  },
+                  {
+                    "case": {
+                      "$in": [
+                        {
+                          "$const": "កូកា កូឡា"
+                        },
+                        "$name_values"
+                      ]
+                    },
+                    "then": {
+                      "$const": 1
+                    }
+                  },
+                  {
+                    "case": {
+                      "$or": [
+                        {
+                          "$in": [
+                            {
+                              "$const": "កូឡា"
+                            },
+                            "$name_tokens"
+                          ]
+                        },
+                        {
+                          "$in": [
+                            {
+                              "$const": "កូឡា"
+                            },
+                            "$brand_tokens"
+                          ]
+                        }
+                      ]
+                    },
+                    "then": {
+                      "$const": 2
+                    }
+                  }
+                ],
+                "default": {
+                  "$const": 3
+                }
+              }
+            }
+          },
+          "nReturned": 1,
+          "executionTimeMillisEstimate": 0
+        },
+        {
+          "$sort": {
+            "sortKey": {
+              "rank": 1,
+              "name_sort": 1,
+              "code": 1
+            },
+            "limit": 21
+          },
+          "totalDataSizeSortedBytesEstimate": 1428,
+          "usedDisk": false,
+          "spills": 0,
+          "spilledDataStorageSize": 0,
+          "nReturned": 1,
+          "executionTimeMillisEstimate": 0
+        }
+      ],
+      "queryShapeHash": "5BB94E83DC7C7E5A4BF68527626198D4AEB1EF39A9F6CD399EE0CAB1400760A2",
+      "serverInfo": {
+        "host": "254c5de9ff4a",
+        "port": 27017,
+        "version": "8.2.12",
+        "gitVersion": "0f912e80210b8fdfdcec618b14b6c0fced055cb8"
+      },
+      "serverParameters": {
+        "internalQueryFacetBufferSizeBytes": 104857600,
+        "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+        "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+        "internalDocumentSourceGroupMaxMemoryBytes": 104857600,
+        "internalQueryMaxBlockingSortMemoryUsageBytes": 104857600,
+        "internalQueryProhibitBlockingMergeOnMongoS": 0,
+        "internalQueryMaxAddToSetBytes": 104857600,
+        "internalDocumentSourceSetWindowFieldsMaxMemoryBytes": 104857600,
+        "internalQueryFrameworkControl": "trySbeRestricted",
+        "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+      },
+      "command": {
+        "aggregate": "off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+        "pipeline": [
+          {
+            "$match": {
+              "$and": [
+                {
+                  "$or": [
+                    {
+                      "name_tokens": "កូកា"
+                    },
+                    {
+                      "brand_tokens": "កូកា"
+                    }
+                  ]
+                },
+                {
+                  "$or": [
+                    {
+                      "name_tokens": {
+                        "$regex": "^កូឡា"
+                      }
+                    },
+                    {
+                      "brand_tokens": {
+                        "$regex": "^កូឡា"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "$set": {
+              "rank": {
+                "$switch": {
+                  "branches": [
+                    {
+                      "case": {
+                        "$in": [
+                          "កូកា កូឡា",
+                          "$brand_values"
+                        ]
+                      },
+                      "then": 0
+                    },
+                    {
+                      "case": {
+                        "$in": [
+                          "កូកា កូឡា",
+                          "$name_values"
+                        ]
+                      },
+                      "then": 1
+                    },
+                    {
+                      "case": {
+                        "$or": [
+                          {
+                            "$in": [
+                              "កូឡា",
+                              "$name_tokens"
+                            ]
+                          },
+                          {
+                            "$in": [
+                              "កូឡា",
+                              "$brand_tokens"
+                            ]
+                          }
+                        ]
+                      },
+                      "then": 2
+                    }
+                  ],
+                  "default": 3
+                }
+              }
+            }
+          },
+          {
+            "$sort": {
+              "rank": 1,
+              "name_sort": 1,
+              "code": 1
+            }
+          },
+          {
+            "$limit": 21
+          }
+        ],
+        "cursor": {},
+        "maxTimeMS": 2000,
+        "$db": "lifegoods_off"
+      },
+      "ok": 1.0
+    }
+  },
+  {
+    "kind": "no-match",
+    "query": "zzlifegoodsabsent107",
+    "command": {
+      "aggregate": "off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+      "pipeline": [
+        {
+          "$match": {
+            "$and": [
+              {
+                "$or": [
+                  {
+                    "name_tokens": {
+                      "$regex": "^zzlifegoodsabsent107"
+                    }
+                  },
+                  {
+                    "brand_tokens": {
+                      "$regex": "^zzlifegoodsabsent107"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "$set": {
+            "rank": {
+              "$switch": {
+                "branches": [
+                  {
+                    "case": {
+                      "$in": [
+                        "zzlifegoodsabsent107",
+                        "$brand_values"
+                      ]
+                    },
+                    "then": 0
+                  },
+                  {
+                    "case": {
+                      "$in": [
+                        "zzlifegoodsabsent107",
+                        "$name_values"
+                      ]
+                    },
+                    "then": 1
+                  },
+                  {
+                    "case": {
+                      "$or": [
+                        {
+                          "$in": [
+                            "zzlifegoodsabsent107",
+                            "$name_tokens"
+                          ]
+                        },
+                        {
+                          "$in": [
+                            "zzlifegoodsabsent107",
+                            "$brand_tokens"
+                          ]
+                        }
+                      ]
+                    },
+                    "then": 2
+                  }
+                ],
+                "default": 3
+              }
+            }
+          }
+        },
+        {
+          "$sort": {
+            "rank": 1,
+            "name_sort": 1,
+            "code": 1
+          }
+        },
+        {
+          "$limit": 21
+        }
+      ],
+      "cursor": {},
+      "maxTimeMS": 2000
+    },
+    "explain": {
+      "explainVersion": "1",
+      "stages": [
+        {
+          "$cursor": {
+            "queryPlanner": {
+              "namespace": "lifegoods_off.off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+              "parsedQuery": {
+                "$or": [
+                  {
+                    "brand_tokens": {
+                      "$regex": "^zzlifegoodsabsent107"
+                    }
+                  },
+                  {
+                    "name_tokens": {
+                      "$regex": "^zzlifegoodsabsent107"
+                    }
+                  }
+                ]
+              },
+              "indexFilterSet": false,
+              "queryHash": "E3CB0A89",
+              "planCacheShapeHash": "E3CB0A89",
+              "planCacheKey": "7449252B",
+              "optimizationTimeMillis": 0,
+              "maxIndexedOrSolutionsReached": false,
+              "maxIndexedAndSolutionsReached": false,
+              "maxScansToExplodeReached": false,
+              "prunedSimilarIndexes": false,
+              "winningPlan": {
+                "isCached": false,
+                "stage": "SUBPLAN",
+                "inputStage": {
+                  "stage": "FETCH",
+                  "inputStage": {
+                    "stage": "OR",
+                    "inputStages": [
+                      {
+                        "stage": "IXSCAN",
+                        "keyPattern": {
+                          "name_tokens": 1
+                        },
+                        "indexName": "ix_search_name_tokens",
+                        "isMultiKey": true,
+                        "multiKeyPaths": {
+                          "name_tokens": [
+                            "name_tokens"
+                          ]
+                        },
+                        "isUnique": false,
+                        "isSparse": false,
+                        "isPartial": false,
+                        "indexVersion": 2,
+                        "direction": "forward",
+                        "indexBounds": {
+                          "name_tokens": [
+                            "[\"zzlifegoodsabsent107\", \"zzlifegoodsabsent108\")",
+                            "[/^zzlifegoodsabsent107/, /^zzlifegoodsabsent107/]"
+                          ]
+                        }
+                      },
+                      {
+                        "stage": "IXSCAN",
+                        "keyPattern": {
+                          "brand_tokens": 1
+                        },
+                        "indexName": "ix_search_brand_tokens",
+                        "isMultiKey": true,
+                        "multiKeyPaths": {
+                          "brand_tokens": [
+                            "brand_tokens"
+                          ]
+                        },
+                        "isUnique": false,
+                        "isSparse": false,
+                        "isPartial": false,
+                        "indexVersion": 2,
+                        "direction": "forward",
+                        "indexBounds": {
+                          "brand_tokens": [
+                            "[\"zzlifegoodsabsent107\", \"zzlifegoodsabsent108\")",
+                            "[/^zzlifegoodsabsent107/, /^zzlifegoodsabsent107/]"
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "rejectedPlans": []
+            },
+            "executionStats": {
+              "executionSuccess": true,
+              "nReturned": 0,
+              "executionTimeMillis": 0,
+              "totalKeysExamined": 2,
+              "totalDocsExamined": 0,
+              "executionStages": {
+                "isCached": false,
+                "stage": "SUBPLAN",
+                "nReturned": 0,
+                "executionTimeMillisEstimate": 0,
+                "works": 4,
+                "advanced": 0,
+                "needTime": 3,
+                "needYield": 0,
+                "saveState": 2,
+                "restoreState": 1,
+                "isEOF": 1,
+                "inputStage": {
+                  "stage": "FETCH",
+                  "nReturned": 0,
+                  "executionTimeMillisEstimate": 0,
+                  "works": 4,
+                  "advanced": 0,
+                  "needTime": 3,
+                  "needYield": 0,
+                  "saveState": 2,
+                  "restoreState": 1,
+                  "isEOF": 1,
+                  "docsExamined": 0,
+                  "alreadyHasObj": 0,
+                  "inputStage": {
+                    "stage": "OR",
+                    "nReturned": 0,
+                    "executionTimeMillisEstimate": 0,
+                    "works": 4,
+                    "advanced": 0,
+                    "needTime": 3,
+                    "needYield": 0,
+                    "saveState": 2,
+                    "restoreState": 1,
+                    "isEOF": 1,
+                    "dupsTested": 0,
+                    "dupsDropped": 0,
+                    "inputStages": [
+                      {
+                        "stage": "IXSCAN",
+                        "nReturned": 0,
+                        "executionTimeMillisEstimate": 0,
+                        "works": 2,
+                        "advanced": 0,
+                        "needTime": 1,
+                        "needYield": 0,
+                        "saveState": 2,
+                        "restoreState": 1,
+                        "isEOF": 1,
+                        "keyPattern": {
+                          "name_tokens": 1
+                        },
+                        "indexName": "ix_search_name_tokens",
+                        "isMultiKey": true,
+                        "multiKeyPaths": {
+                          "name_tokens": [
+                            "name_tokens"
+                          ]
+                        },
+                        "isUnique": false,
+                        "isSparse": false,
+                        "isPartial": false,
+                        "indexVersion": 2,
+                        "direction": "forward",
+                        "indexBounds": {
+                          "name_tokens": [
+                            "[\"zzlifegoodsabsent107\", \"zzlifegoodsabsent108\")",
+                            "[/^zzlifegoodsabsent107/, /^zzlifegoodsabsent107/]"
+                          ]
+                        },
+                        "keysExamined": 1,
+                        "seeks": 2,
+                        "dupsTested": 0,
+                        "dupsDropped": 0
+                      },
+                      {
+                        "stage": "IXSCAN",
+                        "nReturned": 0,
+                        "executionTimeMillisEstimate": 0,
+                        "works": 2,
+                        "advanced": 0,
+                        "needTime": 1,
+                        "needYield": 0,
+                        "saveState": 2,
+                        "restoreState": 1,
+                        "isEOF": 1,
+                        "keyPattern": {
+                          "brand_tokens": 1
+                        },
+                        "indexName": "ix_search_brand_tokens",
+                        "isMultiKey": true,
+                        "multiKeyPaths": {
+                          "brand_tokens": [
+                            "brand_tokens"
+                          ]
+                        },
+                        "isUnique": false,
+                        "isSparse": false,
+                        "isPartial": false,
+                        "indexVersion": 2,
+                        "direction": "forward",
+                        "indexBounds": {
+                          "brand_tokens": [
+                            "[\"zzlifegoodsabsent107\", \"zzlifegoodsabsent108\")",
+                            "[/^zzlifegoodsabsent107/, /^zzlifegoodsabsent107/]"
+                          ]
+                        },
+                        "keysExamined": 1,
+                        "seeks": 2,
+                        "dupsTested": 0,
+                        "dupsDropped": 0
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "nReturned": 0,
+          "executionTimeMillisEstimate": 0
+        },
+        {
+          "$set": {
+            "rank": {
+              "$switch": {
+                "branches": [
+                  {
+                    "case": {
+                      "$in": [
+                        {
+                          "$const": "zzlifegoodsabsent107"
+                        },
+                        "$brand_values"
+                      ]
+                    },
+                    "then": {
+                      "$const": 0
+                    }
+                  },
+                  {
+                    "case": {
+                      "$in": [
+                        {
+                          "$const": "zzlifegoodsabsent107"
+                        },
+                        "$name_values"
+                      ]
+                    },
+                    "then": {
+                      "$const": 1
+                    }
+                  },
+                  {
+                    "case": {
+                      "$or": [
+                        {
+                          "$in": [
+                            {
+                              "$const": "zzlifegoodsabsent107"
+                            },
+                            "$name_tokens"
+                          ]
+                        },
+                        {
+                          "$in": [
+                            {
+                              "$const": "zzlifegoodsabsent107"
+                            },
+                            "$brand_tokens"
+                          ]
+                        }
+                      ]
+                    },
+                    "then": {
+                      "$const": 2
+                    }
+                  }
+                ],
+                "default": {
+                  "$const": 3
+                }
+              }
+            }
+          },
+          "nReturned": 0,
+          "executionTimeMillisEstimate": 0
+        },
+        {
+          "$sort": {
+            "sortKey": {
+              "rank": 1,
+              "name_sort": 1,
+              "code": 1
+            },
+            "limit": 21
+          },
+          "totalDataSizeSortedBytesEstimate": 0,
+          "usedDisk": false,
+          "spills": 0,
+          "spilledDataStorageSize": 0,
+          "nReturned": 0,
+          "executionTimeMillisEstimate": 0
+        }
+      ],
+      "queryShapeHash": "541BA6C1EEFD7E030F2E44B751C7AD6A33BA0AA0BB3BF0E3B7AF9447D0E76412",
+      "serverInfo": {
+        "host": "254c5de9ff4a",
+        "port": 27017,
+        "version": "8.2.12",
+        "gitVersion": "0f912e80210b8fdfdcec618b14b6c0fced055cb8"
+      },
+      "serverParameters": {
+        "internalQueryFacetBufferSizeBytes": 104857600,
+        "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+        "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+        "internalDocumentSourceGroupMaxMemoryBytes": 104857600,
+        "internalQueryMaxBlockingSortMemoryUsageBytes": 104857600,
+        "internalQueryProhibitBlockingMergeOnMongoS": 0,
+        "internalQueryMaxAddToSetBytes": 104857600,
+        "internalDocumentSourceSetWindowFieldsMaxMemoryBytes": 104857600,
+        "internalQueryFrameworkControl": "trySbeRestricted",
+        "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+      },
+      "command": {
+        "aggregate": "off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+        "pipeline": [
+          {
+            "$match": {
+              "$and": [
+                {
+                  "$or": [
+                    {
+                      "name_tokens": {
+                        "$regex": "^zzlifegoodsabsent107"
+                      }
+                    },
+                    {
+                      "brand_tokens": {
+                        "$regex": "^zzlifegoodsabsent107"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "$set": {
+              "rank": {
+                "$switch": {
+                  "branches": [
+                    {
+                      "case": {
+                        "$in": [
+                          "zzlifegoodsabsent107",
+                          "$brand_values"
+                        ]
+                      },
+                      "then": 0
+                    },
+                    {
+                      "case": {
+                        "$in": [
+                          "zzlifegoodsabsent107",
+                          "$name_values"
+                        ]
+                      },
+                      "then": 1
+                    },
+                    {
+                      "case": {
+                        "$or": [
+                          {
+                            "$in": [
+                              "zzlifegoodsabsent107",
+                              "$name_tokens"
+                            ]
+                          },
+                          {
+                            "$in": [
+                              "zzlifegoodsabsent107",
+                              "$brand_tokens"
+                            ]
+                          }
+                        ]
+                      },
+                      "then": 2
+                    }
+                  ],
+                  "default": 3
+                }
+              }
+            }
+          },
+          {
+            "$sort": {
+              "rank": 1,
+              "name_sort": 1,
+              "code": 1
+            }
+          },
+          {
+            "$limit": 21
+          }
+        ],
+        "cursor": {},
+        "maxTimeMS": 2000,
+        "$db": "lifegoods_off"
+      },
+      "ok": 1.0
+    }
+  },
+  {
+    "kind": "short-prefix",
+    "query": "co",
+    "retrieval_error": "SearchIndexTimeoutError",
+    "command": {
+      "aggregate": "off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+      "pipeline": [
+        {
+          "$match": {
+            "$and": [
+              {
+                "$or": [
+                  {
+                    "name_tokens": {
+                      "$regex": "^co"
+                    }
+                  },
+                  {
+                    "brand_tokens": {
+                      "$regex": "^co"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "$set": {
+            "rank": {
+              "$switch": {
+                "branches": [
+                  {
+                    "case": {
+                      "$in": [
+                        "co",
+                        "$brand_values"
+                      ]
+                    },
+                    "then": 0
+                  },
+                  {
+                    "case": {
+                      "$in": [
+                        "co",
+                        "$name_values"
+                      ]
+                    },
+                    "then": 1
+                  },
+                  {
+                    "case": {
+                      "$or": [
+                        {
+                          "$in": [
+                            "co",
+                            "$name_tokens"
+                          ]
+                        },
+                        {
+                          "$in": [
+                            "co",
+                            "$brand_tokens"
+                          ]
+                        }
+                      ]
+                    },
+                    "then": 2
+                  }
+                ],
+                "default": 3
+              }
+            }
+          }
+        },
+        {
+          "$sort": {
+            "rank": 1,
+            "name_sort": 1,
+            "code": 1
+          }
+        },
+        {
+          "$limit": 21
+        }
+      ],
+      "cursor": {},
+      "maxTimeMS": 2000
+    },
+    "explain": {
+      "explainVersion": "1",
+      "stages": [
+        {
+          "$cursor": {
+            "queryPlanner": {
+              "namespace": "lifegoods_off.off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+              "parsedQuery": {
+                "$or": [
+                  {
+                    "brand_tokens": {
+                      "$regex": "^co"
+                    }
+                  },
+                  {
+                    "name_tokens": {
+                      "$regex": "^co"
+                    }
+                  }
+                ]
+              },
+              "indexFilterSet": false,
+              "queryHash": "E3CB0A89",
+              "planCacheShapeHash": "E3CB0A89",
+              "planCacheKey": "7449252B",
+              "optimizationTimeMillis": 0,
+              "maxIndexedOrSolutionsReached": false,
+              "maxIndexedAndSolutionsReached": false,
+              "maxScansToExplodeReached": false,
+              "prunedSimilarIndexes": false,
+              "winningPlan": {
+                "isCached": false,
+                "stage": "SUBPLAN",
+                "inputStage": {
+                  "stage": "FETCH",
+                  "inputStage": {
+                    "stage": "OR",
+                    "inputStages": [
+                      {
+                        "stage": "IXSCAN",
+                        "keyPattern": {
+                          "name_tokens": 1
+                        },
+                        "indexName": "ix_search_name_tokens",
+                        "isMultiKey": true,
+                        "multiKeyPaths": {
+                          "name_tokens": [
+                            "name_tokens"
+                          ]
+                        },
+                        "isUnique": false,
+                        "isSparse": false,
+                        "isPartial": false,
+                        "indexVersion": 2,
+                        "direction": "forward",
+                        "indexBounds": {
+                          "name_tokens": [
+                            "[\"co\", \"cp\")",
+                            "[/^co/, /^co/]"
+                          ]
+                        }
+                      },
+                      {
+                        "stage": "IXSCAN",
+                        "keyPattern": {
+                          "brand_tokens": 1
+                        },
+                        "indexName": "ix_search_brand_tokens",
+                        "isMultiKey": true,
+                        "multiKeyPaths": {
+                          "brand_tokens": [
+                            "brand_tokens"
+                          ]
+                        },
+                        "isUnique": false,
+                        "isSparse": false,
+                        "isPartial": false,
+                        "indexVersion": 2,
+                        "direction": "forward",
+                        "indexBounds": {
+                          "brand_tokens": [
+                            "[\"co\", \"cp\")",
+                            "[/^co/, /^co/]"
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "rejectedPlans": []
+            },
+            "executionStats": {
+              "executionSuccess": true,
+              "nReturned": 498632,
+              "executionTimeMillis": 1877,
+              "totalKeysExamined": 558846,
+              "totalDocsExamined": 498632,
+              "executionStages": {
+                "isCached": false,
+                "stage": "SUBPLAN",
+                "nReturned": 498632,
+                "executionTimeMillisEstimate": 544,
+                "works": 558848,
+                "advanced": 498632,
+                "needTime": 60215,
+                "needYield": 0,
+                "saveState": 186,
+                "restoreState": 185,
+                "isEOF": 1,
+                "inputStage": {
+                  "stage": "FETCH",
+                  "nReturned": 498632,
+                  "executionTimeMillisEstimate": 537,
+                  "works": 558848,
+                  "advanced": 498632,
+                  "needTime": 60215,
+                  "needYield": 0,
+                  "saveState": 186,
+                  "restoreState": 185,
+                  "isEOF": 1,
+                  "docsExamined": 498632,
+                  "alreadyHasObj": 0,
+                  "inputStage": {
+                    "stage": "OR",
+                    "nReturned": 498632,
+                    "executionTimeMillisEstimate": 116,
+                    "works": 558848,
+                    "advanced": 498632,
+                    "needTime": 60215,
+                    "needYield": 0,
+                    "saveState": 186,
+                    "restoreState": 185,
+                    "isEOF": 1,
+                    "dupsTested": 528567,
+                    "dupsDropped": 29935,
+                    "inputStages": [
+                      {
+                        "stage": "IXSCAN",
+                        "nReturned": 376371,
+                        "executionTimeMillisEstimate": 22,
+                        "works": 398542,
+                        "advanced": 376371,
+                        "needTime": 22170,
+                        "needYield": 0,
+                        "saveState": 186,
+                        "restoreState": 185,
+                        "isEOF": 1,
+                        "keyPattern": {
+                          "name_tokens": 1
+                        },
+                        "indexName": "ix_search_name_tokens",
+                        "isMultiKey": true,
+                        "multiKeyPaths": {
+                          "name_tokens": [
+                            "name_tokens"
+                          ]
+                        },
+                        "isUnique": false,
+                        "isSparse": false,
+                        "isPartial": false,
+                        "indexVersion": 2,
+                        "direction": "forward",
+                        "indexBounds": {
+                          "name_tokens": [
+                            "[\"co\", \"cp\")",
+                            "[/^co/, /^co/]"
+                          ]
+                        },
+                        "keysExamined": 398541,
+                        "seeks": 2,
+                        "dupsTested": 398540,
+                        "dupsDropped": 22169
+                      },
+                      {
+                        "stage": "IXSCAN",
+                        "nReturned": 152196,
+                        "executionTimeMillisEstimate": 57,
+                        "works": 160306,
+                        "advanced": 152196,
+                        "needTime": 8109,
+                        "needYield": 0,
+                        "saveState": 186,
+                        "restoreState": 185,
+                        "isEOF": 1,
+                        "keyPattern": {
+                          "brand_tokens": 1
+                        },
+                        "indexName": "ix_search_brand_tokens",
+                        "isMultiKey": true,
+                        "multiKeyPaths": {
+                          "brand_tokens": [
+                            "brand_tokens"
+                          ]
+                        },
+                        "isUnique": false,
+                        "isSparse": false,
+                        "isPartial": false,
+                        "indexVersion": 2,
+                        "direction": "forward",
+                        "indexBounds": {
+                          "brand_tokens": [
+                            "[\"co\", \"cp\")",
+                            "[/^co/, /^co/]"
+                          ]
+                        },
+                        "keysExamined": 160305,
+                        "seeks": 2,
+                        "dupsTested": 160304,
+                        "dupsDropped": 8108
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "nReturned": 498632,
+          "executionTimeMillisEstimate": 1084
+        },
+        {
+          "$set": {
+            "rank": {
+              "$switch": {
+                "branches": [
+                  {
+                    "case": {
+                      "$in": [
+                        {
+                          "$const": "co"
+                        },
+                        "$brand_values"
+                      ]
+                    },
+                    "then": {
+                      "$const": 0
+                    }
+                  },
+                  {
+                    "case": {
+                      "$in": [
+                        {
+                          "$const": "co"
+                        },
+                        "$name_values"
+                      ]
+                    },
+                    "then": {
+                      "$const": 1
+                    }
+                  },
+                  {
+                    "case": {
+                      "$or": [
+                        {
+                          "$in": [
+                            {
+                              "$const": "co"
+                            },
+                            "$name_tokens"
+                          ]
+                        },
+                        {
+                          "$in": [
+                            {
+                              "$const": "co"
+                            },
+                            "$brand_tokens"
+                          ]
+                        }
+                      ]
+                    },
+                    "then": {
+                      "$const": 2
+                    }
+                  }
+                ],
+                "default": {
+                  "$const": 3
+                }
+              }
+            }
+          },
+          "nReturned": 498632,
+          "executionTimeMillisEstimate": 1547
+        },
+        {
+          "$sort": {
+            "sortKey": {
+              "rank": 1,
+              "name_sort": 1,
+              "code": 1
+            },
+            "limit": 21
+          },
+          "totalDataSizeSortedBytesEstimate": 19104,
+          "usedDisk": false,
+          "spills": 0,
+          "spilledDataStorageSize": 0,
+          "nReturned": 21,
+          "executionTimeMillisEstimate": 1877
+        }
+      ],
+      "queryShapeHash": "541BA6C1EEFD7E030F2E44B751C7AD6A33BA0AA0BB3BF0E3B7AF9447D0E76412",
+      "serverInfo": {
+        "host": "254c5de9ff4a",
+        "port": 27017,
+        "version": "8.2.12",
+        "gitVersion": "0f912e80210b8fdfdcec618b14b6c0fced055cb8"
+      },
+      "serverParameters": {
+        "internalQueryFacetBufferSizeBytes": 104857600,
+        "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+        "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+        "internalDocumentSourceGroupMaxMemoryBytes": 104857600,
+        "internalQueryMaxBlockingSortMemoryUsageBytes": 104857600,
+        "internalQueryProhibitBlockingMergeOnMongoS": 0,
+        "internalQueryMaxAddToSetBytes": 104857600,
+        "internalDocumentSourceSetWindowFieldsMaxMemoryBytes": 104857600,
+        "internalQueryFrameworkControl": "trySbeRestricted",
+        "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+      },
+      "command": {
+        "aggregate": "off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+        "pipeline": [
+          {
+            "$match": {
+              "$and": [
+                {
+                  "$or": [
+                    {
+                      "name_tokens": {
+                        "$regex": "^co"
+                      }
+                    },
+                    {
+                      "brand_tokens": {
+                        "$regex": "^co"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "$set": {
+              "rank": {
+                "$switch": {
+                  "branches": [
+                    {
+                      "case": {
+                        "$in": [
+                          "co",
+                          "$brand_values"
+                        ]
+                      },
+                      "then": 0
+                    },
+                    {
+                      "case": {
+                        "$in": [
+                          "co",
+                          "$name_values"
+                        ]
+                      },
+                      "then": 1
+                    },
+                    {
+                      "case": {
+                        "$or": [
+                          {
+                            "$in": [
+                              "co",
+                              "$name_tokens"
+                            ]
+                          },
+                          {
+                            "$in": [
+                              "co",
+                              "$brand_tokens"
+                            ]
+                          }
+                        ]
+                      },
+                      "then": 2
+                    }
+                  ],
+                  "default": 3
+                }
+              }
+            }
+          },
+          {
+            "$sort": {
+              "rank": 1,
+              "name_sort": 1,
+              "code": 1
+            }
+          },
+          {
+            "$limit": 21
+          }
+        ],
+        "cursor": {},
+        "maxTimeMS": 2000,
+        "$db": "lifegoods_off"
+      },
+      "ok": 1.0
+    }
+  }
+]

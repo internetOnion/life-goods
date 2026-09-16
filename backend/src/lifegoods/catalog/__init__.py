@@ -1,1 +1,0 @@
-"""Durable Product catalog."""

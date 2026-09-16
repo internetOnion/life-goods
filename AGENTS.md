@@ -1,31 +1,63 @@
-# Repository Guidelines
+# Agent Guide
 
-## Project Structure & Module Organization
+## Before changing
 
-This is a pnpm/uv monorepo with a React/Vite Web Client, FastAPI backend, generated OpenAPI client, SQLAlchemy/Alembic persistence, and focused frontend/backend/e2e tests. Read `CONTEXT.md` for the domain glossary, `docs/SPEC.md` for MVP behavior, `docs/DATA_MODEL.md` for entities and provenance, and relevant `docs/adr/` decisions before changing the model. Research belongs in `docs/research/`; Mermaid source and rendered diagrams belong in `docs/diagrams/`.
+- For product, domain, API, source-data, translation, privacy, or persistence work, read `PRODUCT.md`, `CONTEXT.md`, `docs/SPEC.md`, and applicable accepted ADRs.
+- For shopper-facing UI, read `PRODUCT.md` and the relevant specification. Create `DESIGN.md` only when a new visual direction has actually been designed and accepted.
+- Use the exact glossary terms and capitalization: `Shopper`, `Product`, `Barcode`, `Product Lookup`, `Source Record`, `Dataset Snapshot`, `Source Attribution`, `Source Assessment`, `Source Data Unavailable`, `Original Text`, and `Khmer Translation`.
+- `CONTEXT.md` is a glossary only. Keep behavior, API shapes, storage choices, and implementation plans out of it.
 
-The implementation layout is `frontend/` (React/Vite/TypeScript Web Client), `backend/` (FastAPI/Python application, matching domain, persistence, migrations, and scripts), `evaluation/` (datasets and model evaluation), and `infra/` (local services). Keep Package Capture media isolated from catalog data and training data.
+## Structure
 
-## Build, Test, and Development Commands
+- `frontend/` is the only pnpm workspace package; `backend/` is a separate Python 3.13 uv project.
+- `frontend/src/main.tsx` is the React entrypoint. `frontend/src/app/App.tsx` composes routes, and feature behavior lives under `frontend/src/features/`.
+- `backend/src/lifegoods/main.py` is the FastAPI app factory.
+- `backend/src/lifegoods/product_lookup/` encapsulates stable Product Lookup, projection, caching, and rate limiting.
+- `backend/src/lifegoods/open_food_facts/` contains the local Open Food Facts dataset import and read foundation.
+- `backend/src/lifegoods/identifiers/` contains Barcode validation and normalization.
+- FastAPI owns the frontend contract. `frontend/openapi.json` and `frontend/src/api/generated/` are generated files.
 
-Use the root scripts for the normal verification loop: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm test:e2e`, and `pnpm api:check`. Start local PostgreSQL with `docker compose -f infra/compose.yaml up -d postgres`, apply migrations with `pnpm db:migrate`, and run the API and Web Client with `pnpm backend:dev` and `pnpm dev`. Use `pnpm backend:sync` to provision Python dependencies. For documentation-only changes, use `git diff --check`.
+## Current commands
 
-## Coding Style & Naming Conventions
+- Requirements are Node.js 24, pnpm, Python 3.13, uv, and Docker Compose.
+- Install with `pnpm install` and `pnpm backend:install`.
+- Start MongoDB and Redis with `docker compose -f infra/compose.yaml up -d`.
+- Reset the local Redis cache and rate-limit state with `pnpm redis:reset`.
+- Inspect and activate the local Open Food Facts snapshot with `pnpm off:dataset -- list` and `pnpm off:dataset -- activate <version_id>`.
+- Run `pnpm backend:dev` and `pnpm dev` in separate terminals for HTTP development at `http://localhost:5173`.
+- Use `pnpm dev:https` for camera testing at `https://localhost:5173`.
+- The normal verification set is `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`, and `pnpm api:check`.
+- After changing an API route or response, run `pnpm api:generate`; use `pnpm api:check` to detect committed OpenAPI/client drift. Never edit generated files by hand.
 
-Use strict TypeScript and typed Python. Keep HTTP handlers thin and put domain behavior in application services. Use the glossary’s exact terms and capitalization: `Product`, `Package Variant`, `Package Revision`, `Claim`, `Evidence`, `Package Match`, and `Shopper Guidance`. Preserve field-level provenance; never collapse external data into a product-wide verification flag.
+## Product boundaries
 
-## Testing Guidelines
+- Life Goods is a read-only presentation layer over a static local Open Food Facts Dataset Snapshot.
+- Open Food Facts remains visibly attributed external source data. Local hosting, integrity checks, and caching do not verify it or make it a Life Goods catalog.
+- Source Data Unavailable is unknown, not a negative assertion.
+- Source Assessments remain attributed Open Food Facts calculations; do not present them as Life Goods judgments.
+- Do not introduce Product contributions, verification, package capture, camera uploads, accounts, server-side scan history, or personalization into the MVP.
+- Do not introduce safety, health, allergen-free, Halal, legal/compliance, authenticity, or purchase verdicts.
+- Decode camera frames on-device. Send only the Barcode to the backend.
+- Keep Barcode-level and Shopper-level data out of analytics.
 
-Test observable behavior at the highest useful seam. Backend behavior uses pytest; focused Web Client behavior uses Vitest and Testing Library; browser journeys use Playwright. The current vertical slice covers identifier validation, Package Match lookup outcomes, accessibility, localization, and failure recovery. Use deterministic catalog fixtures rather than mutable live responses. Cover uncertainty, missing-data semantics, privacy, retention, and source attribution—not only successful matches.
+## Project conventions
 
-## Commit & Pull Request Guidelines
+- TypeScript is strict; unused locals and parameters fail typecheck.
+- Frontend formatting uses the root Prettier configuration and Tailwind plugin. Use `pnpm frontend:lint:format` or `pnpm --dir frontend lint:format`.
+- All scripts, package commands, tools, and path operations must work across Windows, macOS, and Linux. Do not use POSIX-only inline environment assignments or hardcoded shell-specific path separators.
+- The current backend has no PostgreSQL or Alembic runtime. Do not reintroduce relational persistence or legacy application wiring unless the current specification and an accepted ADR explicitly require it.
+- Create documentation lazily. `PRODUCT.md` defines product intent, `CONTEXT.md` defines language, `docs/SPEC.md` defines current behavior, and `docs/adr/` records only decisions that are hard to reverse, surprising without context, and the result of a real tradeoff.
+- Put new research in `docs/research/` and Mermaid source plus rendered output in `docs/diagrams/` only when the work actually requires them.
+- Icons and illustrations are not restricted to Phosphor. Use any icon library or custom SVG as long as it has high semantic fidelity (truthfully represents the underlying concept without mismatched compromises) and is vibe-coded to match the Life Goods visual identity (non-generic, tactile, cohesive stroke weights and tones).
+- Use lowercase Conventional-style commit prefixes (`feat:`, `fix:`, `docs:`, `test:`, `chore:`) only when a commit is explicitly requested.
 
-Existing commits use short, imperative, lowercase Conventional-style prefixes such as `docs: update technology stack`. Use `feat:`, `fix:`, `docs:`, `test:`, or `chore:` with a focused subject. Pull requests should explain user-visible behavior, link the relevant GitHub issue, describe tests run, call out migrations or privacy implications, and include screenshots for UI changes.
+## Issue tracking
 
-## Agent Workflow & Safety Boundaries
+Issues and implementation tickets use GitHub Issues for `internetOnion/life-goods`. Labels use lowercase, colon-separated namespaces:
 
-Before implementation, inspect applicable ADRs, especially claim-level provenance and private Package Capture isolation. Prefer small vertical slices, preserve uncertainty explicitly, and keep unsupported safety, Halal, legal, and authenticity conclusions out of the product. Use `apply_patch` for edits, avoid destructive Git commands, and update documentation when a domain or architecture decision changes.
+- `area:` `frontend`, `backend`, `documentation`
+- `status:` `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `in-progress`, `blocked`, `wontfix`, `duplicate`, `invalid`, `post-mvp`
+- `type:` `bug`, `enhancement`, `question`, `epic`
+- `community:` `good-first-issue`, `help-wanted`
 
-## Design Context
-
-When changing shopper-facing UI or making product/design decisions, read `PRODUCT.md` for product identity, audience, principles, and accessibility, then read `DESIGN.md` for the current visual direction and interface guardrails. Treat the linked Figma concept as an evolving structural reference; implementation remains governed by the repository specification, user stories, glossary, and ADRs.
+The previous Wave taxonomy is obsolete and should not guide new work.

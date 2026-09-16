@@ -1,0 +1,48 @@
+{
+  "case": "q22",
+  "query": "Mini Frutas",
+  "indexed_source_summary": {
+    "code": "8410100094199",
+    "record_language": "en",
+    "name_tokens": [
+      "a",
+      "con",
+      "fantasmikos",
+      "frutas",
+      "gluten",
+      "haamu",
+      "helados",
+      "jätskiauto",
+      "mehujää",
+      "mini",
+      "sabores",
+      "sin",
+      "variados"
+    ],
+    "names": [
+      {
+        "value": "Fantasmikos",
+        "language": "en",
+        "source_field": "product_name"
+      },
+      {
+        "value": "Haamu Mini Mehujää Jätskiauto",
+        "language": "fi",
+        "source_field": "product_name_fi"
+      },
+      {
+        "value": "Fantasmikos helados con sabores variados a frutas sin gluten",
+        "language": "fr",
+        "source_field": "product_name_fr"
+      },
+      {
+        "value": "Fantasmikos",
+        "language": "es",
+        "source_field": "product_name_es"
+      }
+    ],
+    "brands": [
+      "Nestlé"
+    ]
+  }
+}

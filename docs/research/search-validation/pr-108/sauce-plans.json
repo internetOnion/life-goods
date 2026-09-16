@@ -1,0 +1,1833 @@
+{
+  "query": "Sauce \u00c0",
+  "retrieval_ms": 1525.7034579990432,
+  "commands": [
+    {
+      "command": {
+        "aggregate": "off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+        "pipeline": [
+          {
+            "$match": {
+              "$and": [
+                {
+                  "$or": [
+                    {
+                      "name_tokens": "sauce"
+                    },
+                    {
+                      "brand_tokens": "sauce"
+                    }
+                  ]
+                },
+                {
+                  "$or": [
+                    {
+                      "name_tokens": "\u00e0"
+                    },
+                    {
+                      "brand_tokens": "\u00e0"
+                    }
+                  ]
+                },
+                {
+                  "brand_values": "sauce \u00e0"
+                }
+              ]
+            }
+          },
+          {
+            "$sort": {
+              "name_sort": 1,
+              "code": 1
+            }
+          },
+          {
+            "$limit": 21
+          }
+        ],
+        "cursor": {},
+        "maxTimeMS": 1999
+      },
+      "explain": {
+        "explainVersion": "1",
+        "queryPlanner": {
+          "namespace": "lifegoods_off.off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+          "parsedQuery": {
+            "$and": [
+              {
+                "$or": [
+                  {
+                    "brand_tokens": {
+                      "$eq": "sauce"
+                    }
+                  },
+                  {
+                    "name_tokens": {
+                      "$eq": "sauce"
+                    }
+                  }
+                ]
+              },
+              {
+                "$or": [
+                  {
+                    "brand_tokens": {
+                      "$eq": "\u00e0"
+                    }
+                  },
+                  {
+                    "name_tokens": {
+                      "$eq": "\u00e0"
+                    }
+                  }
+                ]
+              },
+              {
+                "brand_values": {
+                  "$eq": "sauce \u00e0"
+                }
+              }
+            ]
+          },
+          "indexFilterSet": false,
+          "queryHash": "504E7236",
+          "planCacheShapeHash": "504E7236",
+          "planCacheKey": "1E4D8687",
+          "optimizationTimeMillis": 257,
+          "optimizedPipeline": true,
+          "maxIndexedOrSolutionsReached": false,
+          "maxIndexedAndSolutionsReached": false,
+          "maxScansToExplodeReached": false,
+          "prunedSimilarIndexes": false,
+          "winningPlan": {
+            "isCached": false,
+            "stage": "SORT",
+            "sortPattern": {
+              "name_sort": 1,
+              "code": 1
+            },
+            "memLimit": 104857600,
+            "limitAmount": 21,
+            "type": "simple",
+            "inputStage": {
+              "stage": "FETCH",
+              "filter": {
+                "$and": [
+                  {
+                    "$or": [
+                      {
+                        "brand_tokens": {
+                          "$eq": "sauce"
+                        }
+                      },
+                      {
+                        "name_tokens": {
+                          "$eq": "sauce"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "brand_values": {
+                      "$eq": "sauce \u00e0"
+                    }
+                  }
+                ]
+              },
+              "inputStage": {
+                "stage": "OR",
+                "inputStages": [
+                  {
+                    "stage": "IXSCAN",
+                    "keyPattern": {
+                      "name_tokens": 1
+                    },
+                    "indexName": "ix_search_name_tokens",
+                    "isMultiKey": true,
+                    "multiKeyPaths": {
+                      "name_tokens": [
+                        "name_tokens"
+                      ]
+                    },
+                    "isUnique": false,
+                    "isSparse": false,
+                    "isPartial": false,
+                    "indexVersion": 2,
+                    "direction": "forward",
+                    "indexBounds": {
+                      "name_tokens": [
+                        "[\"\u00e0\", \"\u00e0\"]"
+                      ]
+                    }
+                  },
+                  {
+                    "stage": "IXSCAN",
+                    "keyPattern": {
+                      "brand_tokens": 1
+                    },
+                    "indexName": "ix_search_brand_tokens",
+                    "isMultiKey": true,
+                    "multiKeyPaths": {
+                      "brand_tokens": [
+                        "brand_tokens"
+                      ]
+                    },
+                    "isUnique": false,
+                    "isSparse": false,
+                    "isPartial": false,
+                    "indexVersion": 2,
+                    "direction": "forward",
+                    "indexBounds": {
+                      "brand_tokens": [
+                        "[\"\u00e0\", \"\u00e0\"]"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "rejectedPlans": [
+            {
+              "isCached": false,
+              "stage": "LIMIT",
+              "limitAmount": 21,
+              "inputStage": {
+                "stage": "FETCH",
+                "filter": {
+                  "$and": [
+                    {
+                      "$or": [
+                        {
+                          "brand_tokens": {
+                            "$eq": "sauce"
+                          }
+                        },
+                        {
+                          "name_tokens": {
+                            "$eq": "sauce"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "$or": [
+                        {
+                          "brand_tokens": {
+                            "$eq": "\u00e0"
+                          }
+                        },
+                        {
+                          "name_tokens": {
+                            "$eq": "\u00e0"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "brand_values": {
+                        "$eq": "sauce \u00e0"
+                      }
+                    }
+                  ]
+                },
+                "inputStage": {
+                  "stage": "IXSCAN",
+                  "keyPattern": {
+                    "name_sort": 1,
+                    "code": 1
+                  },
+                  "indexName": "ix_search_sort",
+                  "isMultiKey": false,
+                  "multiKeyPaths": {
+                    "name_sort": [],
+                    "code": []
+                  },
+                  "isUnique": false,
+                  "isSparse": false,
+                  "isPartial": false,
+                  "indexVersion": 2,
+                  "direction": "forward",
+                  "indexBounds": {
+                    "name_sort": [
+                      "[MinKey, MaxKey]"
+                    ],
+                    "code": [
+                      "[MinKey, MaxKey]"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "isCached": false,
+              "stage": "SORT",
+              "sortPattern": {
+                "name_sort": 1,
+                "code": 1
+              },
+              "memLimit": 104857600,
+              "limitAmount": 21,
+              "type": "simple",
+              "inputStage": {
+                "stage": "FETCH",
+                "filter": {
+                  "$and": [
+                    {
+                      "$or": [
+                        {
+                          "brand_tokens": {
+                            "$eq": "\u00e0"
+                          }
+                        },
+                        {
+                          "name_tokens": {
+                            "$eq": "\u00e0"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "brand_values": {
+                        "$eq": "sauce \u00e0"
+                      }
+                    }
+                  ]
+                },
+                "inputStage": {
+                  "stage": "OR",
+                  "inputStages": [
+                    {
+                      "stage": "IXSCAN",
+                      "keyPattern": {
+                        "name_tokens": 1
+                      },
+                      "indexName": "ix_search_name_tokens",
+                      "isMultiKey": true,
+                      "multiKeyPaths": {
+                        "name_tokens": [
+                          "name_tokens"
+                        ]
+                      },
+                      "isUnique": false,
+                      "isSparse": false,
+                      "isPartial": false,
+                      "indexVersion": 2,
+                      "direction": "forward",
+                      "indexBounds": {
+                        "name_tokens": [
+                          "[\"sauce\", \"sauce\"]"
+                        ]
+                      }
+                    },
+                    {
+                      "stage": "IXSCAN",
+                      "keyPattern": {
+                        "brand_tokens": 1
+                      },
+                      "indexName": "ix_search_brand_tokens",
+                      "isMultiKey": true,
+                      "multiKeyPaths": {
+                        "brand_tokens": [
+                          "brand_tokens"
+                        ]
+                      },
+                      "isUnique": false,
+                      "isSparse": false,
+                      "isPartial": false,
+                      "indexVersion": 2,
+                      "direction": "forward",
+                      "indexBounds": {
+                        "brand_tokens": [
+                          "[\"sauce\", \"sauce\"]"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "executionStats": {
+          "executionSuccess": true,
+          "nReturned": 0,
+          "executionTimeMillis": 257,
+          "totalKeysExamined": 51169,
+          "totalDocsExamined": 51074,
+          "executionStages": {
+            "isCached": false,
+            "stage": "SORT",
+            "nReturned": 0,
+            "executionTimeMillisEstimate": 47,
+            "works": 51173,
+            "advanced": 0,
+            "needTime": 51171,
+            "needYield": 0,
+            "saveState": 19,
+            "restoreState": 19,
+            "isEOF": 1,
+            "sortPattern": {
+              "name_sort": 1,
+              "code": 1
+            },
+            "memLimit": 104857600,
+            "limitAmount": 21,
+            "type": "simple",
+            "totalDataSizeSorted": 0,
+            "usedDisk": false,
+            "spills": 0,
+            "spilledRecords": 0,
+            "spilledBytes": 0,
+            "spilledDataStorageSize": 0,
+            "inputStage": {
+              "stage": "FETCH",
+              "filter": {
+                "$and": [
+                  {
+                    "$or": [
+                      {
+                        "brand_tokens": {
+                          "$eq": "sauce"
+                        }
+                      },
+                      {
+                        "name_tokens": {
+                          "$eq": "sauce"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "brand_values": {
+                      "$eq": "sauce \u00e0"
+                    }
+                  }
+                ]
+              },
+              "nReturned": 0,
+              "executionTimeMillisEstimate": 47,
+              "works": 51171,
+              "advanced": 0,
+              "needTime": 51170,
+              "needYield": 0,
+              "saveState": 19,
+              "restoreState": 19,
+              "isEOF": 1,
+              "docsExamined": 51074,
+              "alreadyHasObj": 0,
+              "inputStage": {
+                "stage": "OR",
+                "nReturned": 51074,
+                "executionTimeMillisEstimate": 12,
+                "works": 51171,
+                "advanced": 51074,
+                "needTime": 96,
+                "needYield": 0,
+                "saveState": 19,
+                "restoreState": 19,
+                "isEOF": 1,
+                "dupsTested": 51169,
+                "dupsDropped": 95,
+                "inputStages": [
+                  {
+                    "stage": "IXSCAN",
+                    "nReturned": 50142,
+                    "executionTimeMillisEstimate": 0,
+                    "works": 50143,
+                    "advanced": 50142,
+                    "needTime": 0,
+                    "needYield": 0,
+                    "saveState": 19,
+                    "restoreState": 19,
+                    "isEOF": 1,
+                    "keyPattern": {
+                      "name_tokens": 1
+                    },
+                    "indexName": "ix_search_name_tokens",
+                    "isMultiKey": true,
+                    "multiKeyPaths": {
+                      "name_tokens": [
+                        "name_tokens"
+                      ]
+                    },
+                    "isUnique": false,
+                    "isSparse": false,
+                    "isPartial": false,
+                    "indexVersion": 2,
+                    "direction": "forward",
+                    "indexBounds": {
+                      "name_tokens": [
+                        "[\"\u00e0\", \"\u00e0\"]"
+                      ]
+                    },
+                    "keysExamined": 50142,
+                    "seeks": 1,
+                    "dupsTested": 50142,
+                    "dupsDropped": 0
+                  },
+                  {
+                    "stage": "IXSCAN",
+                    "nReturned": 1027,
+                    "executionTimeMillisEstimate": 0,
+                    "works": 1028,
+                    "advanced": 1027,
+                    "needTime": 0,
+                    "needYield": 0,
+                    "saveState": 19,
+                    "restoreState": 19,
+                    "isEOF": 1,
+                    "keyPattern": {
+                      "brand_tokens": 1
+                    },
+                    "indexName": "ix_search_brand_tokens",
+                    "isMultiKey": true,
+                    "multiKeyPaths": {
+                      "brand_tokens": [
+                        "brand_tokens"
+                      ]
+                    },
+                    "isUnique": false,
+                    "isSparse": false,
+                    "isPartial": false,
+                    "indexVersion": 2,
+                    "direction": "forward",
+                    "indexBounds": {
+                      "brand_tokens": [
+                        "[\"\u00e0\", \"\u00e0\"]"
+                      ]
+                    },
+                    "keysExamined": 1027,
+                    "seeks": 1,
+                    "dupsTested": 1027,
+                    "dupsDropped": 0
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "queryShapeHash": "F7647247BDCDDF6A1D0BD4237696312980D70A55475E44077ED0651294F9A506",
+        "command": {
+          "aggregate": "off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+          "pipeline": [
+            {
+              "$match": {
+                "$and": [
+                  {
+                    "$or": [
+                      {
+                        "name_tokens": "sauce"
+                      },
+                      {
+                        "brand_tokens": "sauce"
+                      }
+                    ]
+                  },
+                  {
+                    "$or": [
+                      {
+                        "name_tokens": "\u00e0"
+                      },
+                      {
+                        "brand_tokens": "\u00e0"
+                      }
+                    ]
+                  },
+                  {
+                    "brand_values": "sauce \u00e0"
+                  }
+                ]
+              }
+            },
+            {
+              "$sort": {
+                "name_sort": 1,
+                "code": 1
+              }
+            },
+            {
+              "$limit": 21
+            }
+          ],
+          "cursor": {},
+          "maxTimeMS": 1999,
+          "$db": "lifegoods_off"
+        },
+        "serverInfo": {
+          "host": "254c5de9ff4a",
+          "port": 27017,
+          "version": "8.2.12",
+          "gitVersion": "0f912e80210b8fdfdcec618b14b6c0fced055cb8"
+        },
+        "serverParameters": {
+          "internalQueryFacetBufferSizeBytes": 104857600,
+          "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+          "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+          "internalDocumentSourceGroupMaxMemoryBytes": 104857600,
+          "internalQueryMaxBlockingSortMemoryUsageBytes": 104857600,
+          "internalQueryProhibitBlockingMergeOnMongoS": 0,
+          "internalQueryMaxAddToSetBytes": 104857600,
+          "internalDocumentSourceSetWindowFieldsMaxMemoryBytes": 104857600,
+          "internalQueryFrameworkControl": "trySbeRestricted",
+          "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+        },
+        "ok": 1.0
+      }
+    },
+    {
+      "command": {
+        "aggregate": "off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+        "pipeline": [
+          {
+            "$match": {
+              "$and": [
+                {
+                  "$or": [
+                    {
+                      "name_tokens": "sauce"
+                    },
+                    {
+                      "brand_tokens": "sauce"
+                    }
+                  ]
+                },
+                {
+                  "$or": [
+                    {
+                      "name_tokens": "\u00e0"
+                    },
+                    {
+                      "brand_tokens": "\u00e0"
+                    }
+                  ]
+                },
+                {
+                  "name_values": "sauce \u00e0"
+                },
+                {
+                  "$nor": [
+                    {
+                      "brand_values": "sauce \u00e0"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "$sort": {
+              "name_sort": 1,
+              "code": 1
+            }
+          },
+          {
+            "$limit": 21
+          }
+        ],
+        "cursor": {},
+        "maxTimeMS": 1068
+      },
+      "explain": {
+        "explainVersion": "1",
+        "queryPlanner": {
+          "namespace": "lifegoods_off.off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+          "parsedQuery": {
+            "$and": [
+              {
+                "$or": [
+                  {
+                    "brand_tokens": {
+                      "$eq": "sauce"
+                    }
+                  },
+                  {
+                    "name_tokens": {
+                      "$eq": "sauce"
+                    }
+                  }
+                ]
+              },
+              {
+                "$or": [
+                  {
+                    "brand_tokens": {
+                      "$eq": "\u00e0"
+                    }
+                  },
+                  {
+                    "name_tokens": {
+                      "$eq": "\u00e0"
+                    }
+                  }
+                ]
+              },
+              {
+                "name_values": {
+                  "$eq": "sauce \u00e0"
+                }
+              },
+              {
+                "brand_values": {
+                  "$not": {
+                    "$eq": "sauce \u00e0"
+                  }
+                }
+              }
+            ]
+          },
+          "indexFilterSet": false,
+          "queryHash": "D98C7FC0",
+          "planCacheShapeHash": "D98C7FC0",
+          "planCacheKey": "C6F2F184",
+          "optimizationTimeMillis": 244,
+          "optimizedPipeline": true,
+          "maxIndexedOrSolutionsReached": false,
+          "maxIndexedAndSolutionsReached": false,
+          "maxScansToExplodeReached": false,
+          "prunedSimilarIndexes": false,
+          "winningPlan": {
+            "isCached": false,
+            "stage": "SORT",
+            "sortPattern": {
+              "name_sort": 1,
+              "code": 1
+            },
+            "memLimit": 104857600,
+            "limitAmount": 21,
+            "type": "simple",
+            "inputStage": {
+              "stage": "FETCH",
+              "filter": {
+                "$and": [
+                  {
+                    "$or": [
+                      {
+                        "brand_tokens": {
+                          "$eq": "sauce"
+                        }
+                      },
+                      {
+                        "name_tokens": {
+                          "$eq": "sauce"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "brand_values": {
+                      "$not": {
+                        "$eq": "sauce \u00e0"
+                      }
+                    }
+                  },
+                  {
+                    "name_values": {
+                      "$eq": "sauce \u00e0"
+                    }
+                  }
+                ]
+              },
+              "inputStage": {
+                "stage": "OR",
+                "inputStages": [
+                  {
+                    "stage": "IXSCAN",
+                    "keyPattern": {
+                      "name_tokens": 1
+                    },
+                    "indexName": "ix_search_name_tokens",
+                    "isMultiKey": true,
+                    "multiKeyPaths": {
+                      "name_tokens": [
+                        "name_tokens"
+                      ]
+                    },
+                    "isUnique": false,
+                    "isSparse": false,
+                    "isPartial": false,
+                    "indexVersion": 2,
+                    "direction": "forward",
+                    "indexBounds": {
+                      "name_tokens": [
+                        "[\"\u00e0\", \"\u00e0\"]"
+                      ]
+                    }
+                  },
+                  {
+                    "stage": "IXSCAN",
+                    "keyPattern": {
+                      "brand_tokens": 1
+                    },
+                    "indexName": "ix_search_brand_tokens",
+                    "isMultiKey": true,
+                    "multiKeyPaths": {
+                      "brand_tokens": [
+                        "brand_tokens"
+                      ]
+                    },
+                    "isUnique": false,
+                    "isSparse": false,
+                    "isPartial": false,
+                    "indexVersion": 2,
+                    "direction": "forward",
+                    "indexBounds": {
+                      "brand_tokens": [
+                        "[\"\u00e0\", \"\u00e0\"]"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "rejectedPlans": [
+            {
+              "isCached": false,
+              "stage": "LIMIT",
+              "limitAmount": 21,
+              "inputStage": {
+                "stage": "FETCH",
+                "filter": {
+                  "$and": [
+                    {
+                      "$or": [
+                        {
+                          "brand_tokens": {
+                            "$eq": "sauce"
+                          }
+                        },
+                        {
+                          "name_tokens": {
+                            "$eq": "sauce"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "$or": [
+                        {
+                          "brand_tokens": {
+                            "$eq": "\u00e0"
+                          }
+                        },
+                        {
+                          "name_tokens": {
+                            "$eq": "\u00e0"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "name_values": {
+                        "$eq": "sauce \u00e0"
+                      }
+                    },
+                    {
+                      "brand_values": {
+                        "$not": {
+                          "$eq": "sauce \u00e0"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "inputStage": {
+                  "stage": "IXSCAN",
+                  "keyPattern": {
+                    "name_sort": 1,
+                    "code": 1
+                  },
+                  "indexName": "ix_search_sort",
+                  "isMultiKey": false,
+                  "multiKeyPaths": {
+                    "name_sort": [],
+                    "code": []
+                  },
+                  "isUnique": false,
+                  "isSparse": false,
+                  "isPartial": false,
+                  "indexVersion": 2,
+                  "direction": "forward",
+                  "indexBounds": {
+                    "name_sort": [
+                      "[MinKey, MaxKey]"
+                    ],
+                    "code": [
+                      "[MinKey, MaxKey]"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "isCached": false,
+              "stage": "SORT",
+              "sortPattern": {
+                "name_sort": 1,
+                "code": 1
+              },
+              "memLimit": 104857600,
+              "limitAmount": 21,
+              "type": "simple",
+              "inputStage": {
+                "stage": "FETCH",
+                "filter": {
+                  "$and": [
+                    {
+                      "$or": [
+                        {
+                          "brand_tokens": {
+                            "$eq": "\u00e0"
+                          }
+                        },
+                        {
+                          "name_tokens": {
+                            "$eq": "\u00e0"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "brand_values": {
+                        "$not": {
+                          "$eq": "sauce \u00e0"
+                        }
+                      }
+                    },
+                    {
+                      "name_values": {
+                        "$eq": "sauce \u00e0"
+                      }
+                    }
+                  ]
+                },
+                "inputStage": {
+                  "stage": "OR",
+                  "inputStages": [
+                    {
+                      "stage": "IXSCAN",
+                      "keyPattern": {
+                        "name_tokens": 1
+                      },
+                      "indexName": "ix_search_name_tokens",
+                      "isMultiKey": true,
+                      "multiKeyPaths": {
+                        "name_tokens": [
+                          "name_tokens"
+                        ]
+                      },
+                      "isUnique": false,
+                      "isSparse": false,
+                      "isPartial": false,
+                      "indexVersion": 2,
+                      "direction": "forward",
+                      "indexBounds": {
+                        "name_tokens": [
+                          "[\"sauce\", \"sauce\"]"
+                        ]
+                      }
+                    },
+                    {
+                      "stage": "IXSCAN",
+                      "keyPattern": {
+                        "brand_tokens": 1
+                      },
+                      "indexName": "ix_search_brand_tokens",
+                      "isMultiKey": true,
+                      "multiKeyPaths": {
+                        "brand_tokens": [
+                          "brand_tokens"
+                        ]
+                      },
+                      "isUnique": false,
+                      "isSparse": false,
+                      "isPartial": false,
+                      "indexVersion": 2,
+                      "direction": "forward",
+                      "indexBounds": {
+                        "brand_tokens": [
+                          "[\"sauce\", \"sauce\"]"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "executionStats": {
+          "executionSuccess": true,
+          "nReturned": 0,
+          "executionTimeMillis": 244,
+          "totalKeysExamined": 51169,
+          "totalDocsExamined": 51074,
+          "executionStages": {
+            "isCached": false,
+            "stage": "SORT",
+            "nReturned": 0,
+            "executionTimeMillisEstimate": 107,
+            "works": 51173,
+            "advanced": 0,
+            "needTime": 51171,
+            "needYield": 0,
+            "saveState": 19,
+            "restoreState": 19,
+            "isEOF": 1,
+            "sortPattern": {
+              "name_sort": 1,
+              "code": 1
+            },
+            "memLimit": 104857600,
+            "limitAmount": 21,
+            "type": "simple",
+            "totalDataSizeSorted": 0,
+            "usedDisk": false,
+            "spills": 0,
+            "spilledRecords": 0,
+            "spilledBytes": 0,
+            "spilledDataStorageSize": 0,
+            "inputStage": {
+              "stage": "FETCH",
+              "filter": {
+                "$and": [
+                  {
+                    "$or": [
+                      {
+                        "brand_tokens": {
+                          "$eq": "sauce"
+                        }
+                      },
+                      {
+                        "name_tokens": {
+                          "$eq": "sauce"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "brand_values": {
+                      "$not": {
+                        "$eq": "sauce \u00e0"
+                      }
+                    }
+                  },
+                  {
+                    "name_values": {
+                      "$eq": "sauce \u00e0"
+                    }
+                  }
+                ]
+              },
+              "nReturned": 0,
+              "executionTimeMillisEstimate": 107,
+              "works": 51171,
+              "advanced": 0,
+              "needTime": 51170,
+              "needYield": 0,
+              "saveState": 19,
+              "restoreState": 19,
+              "isEOF": 1,
+              "docsExamined": 51074,
+              "alreadyHasObj": 0,
+              "inputStage": {
+                "stage": "OR",
+                "nReturned": 51074,
+                "executionTimeMillisEstimate": 48,
+                "works": 51171,
+                "advanced": 51074,
+                "needTime": 96,
+                "needYield": 0,
+                "saveState": 19,
+                "restoreState": 19,
+                "isEOF": 1,
+                "dupsTested": 51169,
+                "dupsDropped": 95,
+                "inputStages": [
+                  {
+                    "stage": "IXSCAN",
+                    "nReturned": 50142,
+                    "executionTimeMillisEstimate": 48,
+                    "works": 50143,
+                    "advanced": 50142,
+                    "needTime": 0,
+                    "needYield": 0,
+                    "saveState": 19,
+                    "restoreState": 19,
+                    "isEOF": 1,
+                    "keyPattern": {
+                      "name_tokens": 1
+                    },
+                    "indexName": "ix_search_name_tokens",
+                    "isMultiKey": true,
+                    "multiKeyPaths": {
+                      "name_tokens": [
+                        "name_tokens"
+                      ]
+                    },
+                    "isUnique": false,
+                    "isSparse": false,
+                    "isPartial": false,
+                    "indexVersion": 2,
+                    "direction": "forward",
+                    "indexBounds": {
+                      "name_tokens": [
+                        "[\"\u00e0\", \"\u00e0\"]"
+                      ]
+                    },
+                    "keysExamined": 50142,
+                    "seeks": 1,
+                    "dupsTested": 50142,
+                    "dupsDropped": 0
+                  },
+                  {
+                    "stage": "IXSCAN",
+                    "nReturned": 1027,
+                    "executionTimeMillisEstimate": 0,
+                    "works": 1028,
+                    "advanced": 1027,
+                    "needTime": 0,
+                    "needYield": 0,
+                    "saveState": 19,
+                    "restoreState": 19,
+                    "isEOF": 1,
+                    "keyPattern": {
+                      "brand_tokens": 1
+                    },
+                    "indexName": "ix_search_brand_tokens",
+                    "isMultiKey": true,
+                    "multiKeyPaths": {
+                      "brand_tokens": [
+                        "brand_tokens"
+                      ]
+                    },
+                    "isUnique": false,
+                    "isSparse": false,
+                    "isPartial": false,
+                    "indexVersion": 2,
+                    "direction": "forward",
+                    "indexBounds": {
+                      "brand_tokens": [
+                        "[\"\u00e0\", \"\u00e0\"]"
+                      ]
+                    },
+                    "keysExamined": 1027,
+                    "seeks": 1,
+                    "dupsTested": 1027,
+                    "dupsDropped": 0
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "queryShapeHash": "8F6933A613503103A353E33E11C1973338F998B54FC2CA726760E6A4A9061948",
+        "command": {
+          "aggregate": "off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+          "pipeline": [
+            {
+              "$match": {
+                "$and": [
+                  {
+                    "$or": [
+                      {
+                        "name_tokens": "sauce"
+                      },
+                      {
+                        "brand_tokens": "sauce"
+                      }
+                    ]
+                  },
+                  {
+                    "$or": [
+                      {
+                        "name_tokens": "\u00e0"
+                      },
+                      {
+                        "brand_tokens": "\u00e0"
+                      }
+                    ]
+                  },
+                  {
+                    "name_values": "sauce \u00e0"
+                  },
+                  {
+                    "$nor": [
+                      {
+                        "brand_values": "sauce \u00e0"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "$sort": {
+                "name_sort": 1,
+                "code": 1
+              }
+            },
+            {
+              "$limit": 21
+            }
+          ],
+          "cursor": {},
+          "maxTimeMS": 1068,
+          "$db": "lifegoods_off"
+        },
+        "serverInfo": {
+          "host": "254c5de9ff4a",
+          "port": 27017,
+          "version": "8.2.12",
+          "gitVersion": "0f912e80210b8fdfdcec618b14b6c0fced055cb8"
+        },
+        "serverParameters": {
+          "internalQueryFacetBufferSizeBytes": 104857600,
+          "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+          "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+          "internalDocumentSourceGroupMaxMemoryBytes": 104857600,
+          "internalQueryMaxBlockingSortMemoryUsageBytes": 104857600,
+          "internalQueryProhibitBlockingMergeOnMongoS": 0,
+          "internalQueryMaxAddToSetBytes": 104857600,
+          "internalDocumentSourceSetWindowFieldsMaxMemoryBytes": 104857600,
+          "internalQueryFrameworkControl": "trySbeRestricted",
+          "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+        },
+        "ok": 1.0
+      }
+    },
+    {
+      "command": {
+        "aggregate": "off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+        "pipeline": [
+          {
+            "$match": {
+              "$and": [
+                {
+                  "$or": [
+                    {
+                      "name_tokens": "sauce"
+                    },
+                    {
+                      "brand_tokens": "sauce"
+                    }
+                  ]
+                },
+                {
+                  "$or": [
+                    {
+                      "name_tokens": "\u00e0"
+                    },
+                    {
+                      "brand_tokens": "\u00e0"
+                    }
+                  ]
+                },
+                {
+                  "$nor": [
+                    {
+                      "brand_values": "sauce \u00e0"
+                    },
+                    {
+                      "name_values": "sauce \u00e0"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "$sort": {
+              "name_sort": 1,
+              "code": 1
+            }
+          },
+          {
+            "$limit": 21
+          }
+        ],
+        "cursor": {},
+        "maxTimeMS": 745
+      },
+      "explain": {
+        "explainVersion": "1",
+        "queryPlanner": {
+          "namespace": "lifegoods_off.off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+          "parsedQuery": {
+            "$and": [
+              {
+                "$or": [
+                  {
+                    "brand_tokens": {
+                      "$eq": "sauce"
+                    }
+                  },
+                  {
+                    "name_tokens": {
+                      "$eq": "sauce"
+                    }
+                  }
+                ]
+              },
+              {
+                "$or": [
+                  {
+                    "brand_tokens": {
+                      "$eq": "\u00e0"
+                    }
+                  },
+                  {
+                    "name_tokens": {
+                      "$eq": "\u00e0"
+                    }
+                  }
+                ]
+              },
+              {
+                "$nor": [
+                  {
+                    "brand_values": {
+                      "$eq": "sauce \u00e0"
+                    }
+                  },
+                  {
+                    "name_values": {
+                      "$eq": "sauce \u00e0"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "indexFilterSet": false,
+          "queryHash": "BEF49FDA",
+          "planCacheShapeHash": "BEF49FDA",
+          "planCacheKey": "C2645153",
+          "optimizationTimeMillis": 268,
+          "optimizedPipeline": true,
+          "maxIndexedOrSolutionsReached": false,
+          "maxIndexedAndSolutionsReached": false,
+          "maxScansToExplodeReached": false,
+          "prunedSimilarIndexes": false,
+          "winningPlan": {
+            "isCached": false,
+            "stage": "SORT",
+            "sortPattern": {
+              "name_sort": 1,
+              "code": 1
+            },
+            "memLimit": 104857600,
+            "limitAmount": 21,
+            "type": "simple",
+            "inputStage": {
+              "stage": "FETCH",
+              "filter": {
+                "$and": [
+                  {
+                    "$or": [
+                      {
+                        "brand_tokens": {
+                          "$eq": "sauce"
+                        }
+                      },
+                      {
+                        "name_tokens": {
+                          "$eq": "sauce"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "$nor": [
+                      {
+                        "brand_values": {
+                          "$eq": "sauce \u00e0"
+                        }
+                      },
+                      {
+                        "name_values": {
+                          "$eq": "sauce \u00e0"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "inputStage": {
+                "stage": "OR",
+                "inputStages": [
+                  {
+                    "stage": "IXSCAN",
+                    "keyPattern": {
+                      "name_tokens": 1
+                    },
+                    "indexName": "ix_search_name_tokens",
+                    "isMultiKey": true,
+                    "multiKeyPaths": {
+                      "name_tokens": [
+                        "name_tokens"
+                      ]
+                    },
+                    "isUnique": false,
+                    "isSparse": false,
+                    "isPartial": false,
+                    "indexVersion": 2,
+                    "direction": "forward",
+                    "indexBounds": {
+                      "name_tokens": [
+                        "[\"\u00e0\", \"\u00e0\"]"
+                      ]
+                    }
+                  },
+                  {
+                    "stage": "IXSCAN",
+                    "keyPattern": {
+                      "brand_tokens": 1
+                    },
+                    "indexName": "ix_search_brand_tokens",
+                    "isMultiKey": true,
+                    "multiKeyPaths": {
+                      "brand_tokens": [
+                        "brand_tokens"
+                      ]
+                    },
+                    "isUnique": false,
+                    "isSparse": false,
+                    "isPartial": false,
+                    "indexVersion": 2,
+                    "direction": "forward",
+                    "indexBounds": {
+                      "brand_tokens": [
+                        "[\"\u00e0\", \"\u00e0\"]"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "rejectedPlans": [
+            {
+              "isCached": false,
+              "stage": "SORT",
+              "sortPattern": {
+                "name_sort": 1,
+                "code": 1
+              },
+              "memLimit": 104857600,
+              "limitAmount": 21,
+              "type": "simple",
+              "inputStage": {
+                "stage": "FETCH",
+                "filter": {
+                  "$and": [
+                    {
+                      "$or": [
+                        {
+                          "brand_tokens": {
+                            "$eq": "\u00e0"
+                          }
+                        },
+                        {
+                          "name_tokens": {
+                            "$eq": "\u00e0"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "$nor": [
+                        {
+                          "brand_values": {
+                            "$eq": "sauce \u00e0"
+                          }
+                        },
+                        {
+                          "name_values": {
+                            "$eq": "sauce \u00e0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "inputStage": {
+                  "stage": "OR",
+                  "inputStages": [
+                    {
+                      "stage": "IXSCAN",
+                      "keyPattern": {
+                        "name_tokens": 1
+                      },
+                      "indexName": "ix_search_name_tokens",
+                      "isMultiKey": true,
+                      "multiKeyPaths": {
+                        "name_tokens": [
+                          "name_tokens"
+                        ]
+                      },
+                      "isUnique": false,
+                      "isSparse": false,
+                      "isPartial": false,
+                      "indexVersion": 2,
+                      "direction": "forward",
+                      "indexBounds": {
+                        "name_tokens": [
+                          "[\"sauce\", \"sauce\"]"
+                        ]
+                      }
+                    },
+                    {
+                      "stage": "IXSCAN",
+                      "keyPattern": {
+                        "brand_tokens": 1
+                      },
+                      "indexName": "ix_search_brand_tokens",
+                      "isMultiKey": true,
+                      "multiKeyPaths": {
+                        "brand_tokens": [
+                          "brand_tokens"
+                        ]
+                      },
+                      "isUnique": false,
+                      "isSparse": false,
+                      "isPartial": false,
+                      "indexVersion": 2,
+                      "direction": "forward",
+                      "indexBounds": {
+                        "brand_tokens": [
+                          "[\"sauce\", \"sauce\"]"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "isCached": false,
+              "stage": "LIMIT",
+              "limitAmount": 21,
+              "inputStage": {
+                "stage": "FETCH",
+                "filter": {
+                  "$and": [
+                    {
+                      "$or": [
+                        {
+                          "brand_tokens": {
+                            "$eq": "sauce"
+                          }
+                        },
+                        {
+                          "name_tokens": {
+                            "$eq": "sauce"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "$or": [
+                        {
+                          "brand_tokens": {
+                            "$eq": "\u00e0"
+                          }
+                        },
+                        {
+                          "name_tokens": {
+                            "$eq": "\u00e0"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "$nor": [
+                        {
+                          "brand_values": {
+                            "$eq": "sauce \u00e0"
+                          }
+                        },
+                        {
+                          "name_values": {
+                            "$eq": "sauce \u00e0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "inputStage": {
+                  "stage": "IXSCAN",
+                  "keyPattern": {
+                    "name_sort": 1,
+                    "code": 1
+                  },
+                  "indexName": "ix_search_sort",
+                  "isMultiKey": false,
+                  "multiKeyPaths": {
+                    "name_sort": [],
+                    "code": []
+                  },
+                  "isUnique": false,
+                  "isSparse": false,
+                  "isPartial": false,
+                  "indexVersion": 2,
+                  "direction": "forward",
+                  "indexBounds": {
+                    "name_sort": [
+                      "[MinKey, MaxKey]"
+                    ],
+                    "code": [
+                      "[MinKey, MaxKey]"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "executionStats": {
+          "executionSuccess": true,
+          "nReturned": 21,
+          "executionTimeMillis": 268,
+          "totalKeysExamined": 51169,
+          "totalDocsExamined": 51074,
+          "executionStages": {
+            "isCached": false,
+            "stage": "SORT",
+            "nReturned": 21,
+            "executionTimeMillisEstimate": 78,
+            "works": 51193,
+            "advanced": 21,
+            "needTime": 51171,
+            "needYield": 0,
+            "saveState": 20,
+            "restoreState": 20,
+            "isEOF": 1,
+            "sortPattern": {
+              "name_sort": 1,
+              "code": 1
+            },
+            "memLimit": 104857600,
+            "limitAmount": 21,
+            "type": "simple",
+            "totalDataSizeSorted": 24270,
+            "usedDisk": false,
+            "spills": 0,
+            "spilledRecords": 0,
+            "spilledBytes": 0,
+            "spilledDataStorageSize": 0,
+            "inputStage": {
+              "stage": "FETCH",
+              "filter": {
+                "$and": [
+                  {
+                    "$or": [
+                      {
+                        "brand_tokens": {
+                          "$eq": "sauce"
+                        }
+                      },
+                      {
+                        "name_tokens": {
+                          "$eq": "sauce"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "$nor": [
+                      {
+                        "brand_values": {
+                          "$eq": "sauce \u00e0"
+                        }
+                      },
+                      {
+                        "name_values": {
+                          "$eq": "sauce \u00e0"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "nReturned": 1737,
+              "executionTimeMillisEstimate": 78,
+              "works": 51171,
+              "advanced": 1737,
+              "needTime": 49433,
+              "needYield": 0,
+              "saveState": 20,
+              "restoreState": 20,
+              "isEOF": 1,
+              "docsExamined": 51074,
+              "alreadyHasObj": 0,
+              "inputStage": {
+                "stage": "OR",
+                "nReturned": 51074,
+                "executionTimeMillisEstimate": 0,
+                "works": 51171,
+                "advanced": 51074,
+                "needTime": 96,
+                "needYield": 0,
+                "saveState": 20,
+                "restoreState": 20,
+                "isEOF": 1,
+                "dupsTested": 51169,
+                "dupsDropped": 95,
+                "inputStages": [
+                  {
+                    "stage": "IXSCAN",
+                    "nReturned": 50142,
+                    "executionTimeMillisEstimate": 0,
+                    "works": 50143,
+                    "advanced": 50142,
+                    "needTime": 0,
+                    "needYield": 0,
+                    "saveState": 20,
+                    "restoreState": 20,
+                    "isEOF": 1,
+                    "keyPattern": {
+                      "name_tokens": 1
+                    },
+                    "indexName": "ix_search_name_tokens",
+                    "isMultiKey": true,
+                    "multiKeyPaths": {
+                      "name_tokens": [
+                        "name_tokens"
+                      ]
+                    },
+                    "isUnique": false,
+                    "isSparse": false,
+                    "isPartial": false,
+                    "indexVersion": 2,
+                    "direction": "forward",
+                    "indexBounds": {
+                      "name_tokens": [
+                        "[\"\u00e0\", \"\u00e0\"]"
+                      ]
+                    },
+                    "keysExamined": 50142,
+                    "seeks": 1,
+                    "dupsTested": 50142,
+                    "dupsDropped": 0
+                  },
+                  {
+                    "stage": "IXSCAN",
+                    "nReturned": 1027,
+                    "executionTimeMillisEstimate": 0,
+                    "works": 1028,
+                    "advanced": 1027,
+                    "needTime": 0,
+                    "needYield": 0,
+                    "saveState": 20,
+                    "restoreState": 20,
+                    "isEOF": 1,
+                    "keyPattern": {
+                      "brand_tokens": 1
+                    },
+                    "indexName": "ix_search_brand_tokens",
+                    "isMultiKey": true,
+                    "multiKeyPaths": {
+                      "brand_tokens": [
+                        "brand_tokens"
+                      ]
+                    },
+                    "isUnique": false,
+                    "isSparse": false,
+                    "isPartial": false,
+                    "indexVersion": 2,
+                    "direction": "forward",
+                    "indexBounds": {
+                      "brand_tokens": [
+                        "[\"\u00e0\", \"\u00e0\"]"
+                      ]
+                    },
+                    "keysExamined": 1027,
+                    "seeks": 1,
+                    "dupsTested": 1027,
+                    "dupsDropped": 0
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "queryShapeHash": "CFD449BFCE48E4E9DE852B4503B7F7703AC72CB7115EB59C2FCBAD260E378290",
+        "command": {
+          "aggregate": "off_product_search_9f6d5359fa944e458804c1b63e7365a7",
+          "pipeline": [
+            {
+              "$match": {
+                "$and": [
+                  {
+                    "$or": [
+                      {
+                        "name_tokens": "sauce"
+                      },
+                      {
+                        "brand_tokens": "sauce"
+                      }
+                    ]
+                  },
+                  {
+                    "$or": [
+                      {
+                        "name_tokens": "\u00e0"
+                      },
+                      {
+                        "brand_tokens": "\u00e0"
+                      }
+                    ]
+                  },
+                  {
+                    "$nor": [
+                      {
+                        "brand_values": "sauce \u00e0"
+                      },
+                      {
+                        "name_values": "sauce \u00e0"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "$sort": {
+                "name_sort": 1,
+                "code": 1
+              }
+            },
+            {
+              "$limit": 21
+            }
+          ],
+          "cursor": {},
+          "maxTimeMS": 745,
+          "$db": "lifegoods_off"
+        },
+        "serverInfo": {
+          "host": "254c5de9ff4a",
+          "port": 27017,
+          "version": "8.2.12",
+          "gitVersion": "0f912e80210b8fdfdcec618b14b6c0fced055cb8"
+        },
+        "serverParameters": {
+          "internalQueryFacetBufferSizeBytes": 104857600,
+          "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+          "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+          "internalDocumentSourceGroupMaxMemoryBytes": 104857600,
+          "internalQueryMaxBlockingSortMemoryUsageBytes": 104857600,
+          "internalQueryProhibitBlockingMergeOnMongoS": 0,
+          "internalQueryMaxAddToSetBytes": 104857600,
+          "internalDocumentSourceSetWindowFieldsMaxMemoryBytes": 104857600,
+          "internalQueryFrameworkControl": "trySbeRestricted",
+          "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+        },
+        "ok": 1.0
+      }
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "source": "Open Food Facts",
+  "snapshot_date": "2026-09-08",
+  "downloaded_at": "2026-09-08T17:07:58Z",
+  "files": {
+    "ingredients.full.json": {
+      "url": "https://static.openfoodfacts.org/data/taxonomies/ingredients.full.json",
+      "source_revision": {
+        "last_modified": "2026-09-08T07:09:16Z",
+        "etag": "6a9fb49c-644564"
+      },
+      "sha256": "b635e3a211eb2f07de2e113f7487a882cd1777efe86deea5a9197aa9a61a45df",
+      "item_count": 6455
+    },
+    "allergens.full.json": {
+      "url": "https://static.openfoodfacts.org/data/taxonomies/allergens.full.json",
+      "source_revision": {
+        "last_modified": "2026-09-08T07:09:06Z",
+        "etag": "6a9fb492-15b15"
+      },
+      "sha256": "05905753380d4cf03a6c3297457afce8b979b8a60aa1ccde87f120b3849ef8c2",
+      "item_count": 27
+    }
+  }
+}

@@ -1,19 +1,42 @@
 services:
-  postgres:
-    image: postgres:18-alpine
+
+  mongodb:
+    image: mongo:8.2
     environment:
-      POSTGRES_DB: lifegoods
-      POSTGRES_USER: lifegoods
-      POSTGRES_PASSWORD: lifegoods
+      MONGO_INITDB_ROOT_USERNAME: ${LIFEGOODS_MONGO_ROOT_USER:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${LIFEGOODS_MONGO_ROOT_PASSWORD:-lifegoods_root}
+      LIFEGOODS_OFF_DATABASE: ${LIFEGOODS_OFF_MONGODB_DATABASE:-lifegoods_off}
+      LIFEGOODS_OFF_READER_USERNAME: ${LIFEGOODS_OFF_READER_USER:-lifegoods_reader}
+      LIFEGOODS_OFF_READER_PASSWORD: ${LIFEGOODS_OFF_READER_PASSWORD:-lifegoods_reader}
+      LIFEGOODS_OFF_WRITER_USERNAME: ${LIFEGOODS_OFF_WRITER_USER:-lifegoods_writer}
+      LIFEGOODS_OFF_WRITER_PASSWORD: ${LIFEGOODS_OFF_WRITER_PASSWORD:-lifegoods_writer}
+      LIFEGOODS_GENERATED_DATABASE: ${LIFEGOODS_GENERATED_MONGODB_DATABASE:-lifegoods_generated}
+      LIFEGOODS_GENERATED_USERNAME: ${LIFEGOODS_GENERATED_MONGODB_USER:-lifegoods_generated}
+      LIFEGOODS_GENERATED_PASSWORD: ${LIFEGOODS_GENERATED_MONGODB_PASSWORD:-lifegoods_generated}
     ports:
-      - "5433:5432"
+      - "${LIFEGOODS_OFF_MONGODB_PORT:-27018}:27017"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U lifegoods -d lifegoods"]
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --quiet --username ${LIFEGOODS_MONGO_ROOT_USER:-root} --password ${LIFEGOODS_MONGO_ROOT_PASSWORD:-lifegoods_root} --authenticationDatabase admin --eval 'db.adminCommand({ ping: 1 })'",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - lifegoods-mongodb:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+
+  redis:
+    image: redis:8.2-alpine
+    ports:
+      - "${LIFEGOODS_REDIS_PORT:-6380}:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
       interval: 5s
       timeout: 5s
       retries: 10
-    volumes:
-      - lifegoods-postgres:/var/lib/postgresql
 
 volumes:
-  lifegoods-postgres:
+  lifegoods-mongodb:

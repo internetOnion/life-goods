@@ -1,0 +1,409 @@
+{
+  "query": "Lutti Lutti Bubblizz",
+  "mutation": "Append four non-base64 exclamation marks to a valid token",
+  "expected_status": 422,
+  "status": 200,
+  "body": {
+    "data": {
+      "products": [
+        {
+          "barcode": "3664346354790",
+          "name": {
+            "value": "Bubblizz mix",
+            "language": "fr",
+            "source_field": "product_name"
+          },
+          "brands": [
+            "Lutti"
+          ],
+          "quantity": "500 g",
+          "thumbnail": {
+            "url": "https://images.openfoodfacts.org/images/products/366/434/635/4790/front_fr.3.400.jpg",
+            "language": "fr",
+            "source_field": "images.selected.front.fr.rev"
+          },
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org/product/3664346354790"
+          }
+        },
+        {
+          "barcode": "00044226",
+          "name": {
+            "value": "Bubblizz Original",
+            "language": "en",
+            "source_field": "product_name_en"
+          },
+          "brands": [
+            "Lutti",
+            "Carambar"
+          ],
+          "quantity": null,
+          "thumbnail": null,
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org/product/00044226"
+          }
+        },
+        {
+          "barcode": "0400963018942",
+          "name": {
+            "value": "Bubblizz Original",
+            "language": "en",
+            "source_field": "product_name"
+          },
+          "brands": [
+            "Lutti"
+          ],
+          "quantity": null,
+          "thumbnail": null,
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org/product/0400963018942"
+          }
+        },
+        {
+          "barcode": "3116740032366",
+          "name": {
+            "value": "Bubblizz Original",
+            "language": "fr",
+            "source_field": "product_name"
+          },
+          "brands": [
+            "Lutti"
+          ],
+          "quantity": "100 g",
+          "thumbnail": {
+            "url": "https://images.openfoodfacts.org/images/products/311/674/003/2366/front_fr.15.400.jpg",
+            "language": "fr",
+            "source_field": "images.selected.front.fr.rev"
+          },
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org/product/3116740032366"
+          }
+        },
+        {
+          "barcode": "3664346333443",
+          "name": {
+            "value": "Bubblizz original",
+            "language": "fr",
+            "source_field": "product_name"
+          },
+          "brands": [
+            "Lutti"
+          ],
+          "quantity": null,
+          "thumbnail": {
+            "url": "https://images.openfoodfacts.org/images/products/366/434/633/3443/front_fr.3.400.jpg",
+            "language": "fr",
+            "source_field": "images.selected.front.fr.rev"
+          },
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org/product/3664346333443"
+          }
+        },
+        {
+          "barcode": "3664346347426",
+          "name": {
+            "value": "Bubblizz Original",
+            "language": "en",
+            "source_field": "product_name"
+          },
+          "brands": [
+            "Lutti"
+          ],
+          "quantity": null,
+          "thumbnail": {
+            "url": "https://images.openfoodfacts.org/images/products/366/434/634/7426/front_en.38.400.jpg",
+            "language": "en",
+            "source_field": "images.selected.front.en.rev"
+          },
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org/product/3664346347426"
+          }
+        },
+        {
+          "barcode": "5410057169110",
+          "name": {
+            "value": "Bubblizz Original",
+            "language": "nl",
+            "source_field": "product_name"
+          },
+          "brands": [
+            "Lutti"
+          ],
+          "quantity": "275 g",
+          "thumbnail": {
+            "url": "https://images.openfoodfacts.org/images/products/541/005/716/9110/front_fr.23.400.jpg",
+            "language": "fr",
+            "source_field": "images.selected.front.fr.rev"
+          },
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org/product/5410057169110"
+          }
+        },
+        {
+          "barcode": "3664346352857",
+          "name": {
+            "value": "Bubblizz sweety",
+            "language": "fr",
+            "source_field": "product_name_fr"
+          },
+          "brands": [
+            "Lutti"
+          ],
+          "quantity": "350g",
+          "thumbnail": {
+            "url": "https://images.openfoodfacts.org/images/products/366/434/635/2857/front_en.7.400.jpg",
+            "language": "en",
+            "source_field": "images.selected.front.en.rev"
+          },
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org/product/3664346352857"
+          }
+        },
+        {
+          "barcode": "3116740036555",
+          "name": {
+            "value": "Bubblizz xl",
+            "language": "fr",
+            "source_field": "product_name"
+          },
+          "brands": [
+            "Lutti"
+          ],
+          "quantity": "1 kg",
+          "thumbnail": {
+            "url": "https://images.openfoodfacts.org/images/products/311/674/003/6555/front_fr.14.400.jpg",
+            "language": "fr",
+            "source_field": "images.selected.front.fr.rev"
+          },
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org/product/3116740036555"
+          }
+        },
+        {
+          "barcode": "3116740033950",
+          "name": {
+            "value": "Bubblizz 130g Lutti",
+            "language": "en",
+            "source_field": "product_name_en"
+          },
+          "brands": [
+            "Conaxess trade norway"
+          ],
+          "quantity": "130 g",
+          "thumbnail": {
+            "url": "https://images.openfoodfacts.org/images/products/311/674/003/3950/front_fr.19.400.jpg",
+            "language": "fr",
+            "source_field": "images.selected.front.fr.rev"
+          },
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org/product/3116740033950"
+          }
+        },
+        {
+          "barcode": "3116740018858",
+          "name": {
+            "value": "Lutti bubblizz",
+            "language": "fr",
+            "source_field": "product_name"
+          },
+          "brands": [
+            "Lutti"
+          ],
+          "quantity": null,
+          "thumbnail": {
+            "url": "https://images.openfoodfacts.org/images/products/311/674/001/8858/front_fr.14.400.jpg",
+            "language": "fr",
+            "source_field": "images.selected.front.fr.rev"
+          },
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org/product/3116740018858"
+          }
+        },
+        {
+          "barcode": "3664346354882",
+          "name": {
+            "value": "LUTTI bubblizz",
+            "language": "nl",
+            "source_field": "product_name"
+          },
+          "brands": [
+            "LUTTI"
+          ],
+          "quantity": "100g",
+          "thumbnail": null,
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org/product/3664346354882"
+          }
+        },
+        {
+          "barcode": "3664346332507",
+          "name": {
+            "value": "Lutti Bubblizz doux",
+            "language": "fr",
+            "source_field": "product_name"
+          },
+          "brands": [
+            "Lutti"
+          ],
+          "quantity": "180",
+          "thumbnail": {
+            "url": "https://images.openfoodfacts.org/images/products/366/434/633/2507/front_fr.5.400.jpg",
+            "language": "fr",
+            "source_field": "images.selected.front.fr.rev"
+          },
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org/product/3664346332507"
+          }
+        },
+        {
+          "barcode": "3664346346443",
+          "name": {
+            "value": "Lutti Bubblizz Fizz",
+            "language": "fr",
+            "source_field": "product_name_fr"
+          },
+          "brands": [],
+          "quantity": null,
+          "thumbnail": {
+            "url": "https://images.openfoodfacts.org/images/products/366/434/634/6443/front_en.8.400.jpg",
+            "language": "en",
+            "source_field": "images.selected.front.en.rev"
+          },
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org/product/3664346346443"
+          }
+        },
+        {
+          "barcode": "3116740036548",
+          "name": {
+            "value": "Lutti Bubblizz Tendre",
+            "language": "fr",
+            "source_field": "product_name"
+          },
+          "brands": [
+            "Lutti"
+          ],
+          "quantity": "200 g",
+          "thumbnail": {
+            "url": "https://images.openfoodfacts.org/images/products/311/674/003/6548/front_fr.20.400.jpg",
+            "language": "fr",
+            "source_field": "images.selected.front.fr.rev"
+          },
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org/product/3116740036548"
+          }
+        },
+        {
+          "barcode": "3664346354189",
+          "name": {
+            "value": "LUTTI Clip. Papier Bubblizz Megafizz",
+            "language": "nl",
+            "source_field": "product_name_nl"
+          },
+          "brands": [
+            "LUTTI"
+          ],
+          "quantity": "15g",
+          "thumbnail": {
+            "url": "https://images.openfoodfacts.org/images/products/366/434/635/4189/front_fr.3.400.jpg",
+            "language": "fr",
+            "source_field": "images.selected.front.fr.rev"
+          },
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org/product/3664346354189"
+          }
+        },
+        {
+          "barcode": "3116740028543",
+          "name": {
+            "value": "Lutti Spaghetti Gum Bubblizz",
+            "language": "fr",
+            "source_field": "product_name"
+          },
+          "brands": [],
+          "quantity": null,
+          "thumbnail": {
+            "url": "https://images.openfoodfacts.org/images/products/311/674/002/8543/front_fr.3.400.jpg",
+            "language": "fr",
+            "source_field": "images.selected.front.fr.rev"
+          },
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org/product/3116740028543"
+          }
+        },
+        {
+          "barcode": "3116740035411",
+          "name": {
+            "value": "Mini bubblizz",
+            "language": "fr",
+            "source_field": "product_name"
+          },
+          "brands": [
+            "Lutti"
+          ],
+          "quantity": null,
+          "thumbnail": {
+            "url": "https://images.openfoodfacts.org/images/products/311/674/003/5411/front_fr.3.400.jpg",
+            "language": "fr",
+            "source_field": "images.selected.front.fr.rev"
+          },
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org/product/3116740035411"
+          }
+        },
+        {
+          "barcode": "7039010593533",
+          "name": {
+            "value": "Smågodt Bubblizz Original",
+            "language": "nb",
+            "source_field": "product_name"
+          },
+          "brands": [
+            "Fun Light",
+            "Lutti",
+            "Orkla",
+            "Orkla Foods"
+          ],
+          "quantity": "0,8L",
+          "thumbnail": null,
+          "source": {
+            "name": "Open Food Facts",
+            "product_url": "https://world.openfoodfacts.org/product/7039010593533"
+          }
+        }
+      ]
+    },
+    "meta": {
+      "source": {
+        "name": "Open Food Facts",
+        "product_url": "https://world.openfoodfacts.org"
+      },
+      "dataset": {
+        "version": "9f6d5359fa944e458804c1b63e7365a7",
+        "retrieved_at": "2026-08-27T14:14:59.017000Z"
+      },
+      "pagination": {
+        "next_cursor": null
+      }
+    }
+  },
+  "passed": false
+}

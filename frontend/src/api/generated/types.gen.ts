@@ -5,9 +5,272 @@ export type ClientOptions = {
 };
 
 /**
+ * AllergenAnalysisResponse
+ */
+export type AllergenAnalysisResponse = {
+    comparison: AllergenComparisonResponse;
+    ingredient_matching: IngredientMatchingAllergenResponse;
+    off: OffAllergenAnalysisResponse;
+};
+
+/**
+ * AllergenComparisonResponse
+ */
+export type AllergenComparisonResponse = {
+    /**
+     * In Both
+     */
+    in_both: Array<string>;
+    /**
+     * Ingredient Matching Only
+     */
+    ingredient_matching_only: Array<string>;
+    /**
+     * Off Only
+     */
+    off_only: Array<string>;
+    /**
+     * Sets Equal
+     */
+    sets_equal: boolean | null;
+    /**
+     * State
+     */
+    state: 'available' | 'unavailable';
+};
+
+/**
+ * AllergenEvidenceResponse
+ */
+export type AllergenEvidenceResponse = {
+    /**
+     * Alias
+     */
+    alias: string;
+    /**
+     * Allergens
+     */
+    allergens: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Ambiguous
+     */
+    ambiguous: boolean;
+    /**
+     * End
+     */
+    end: number;
+    /**
+     * Ingredient Tags
+     */
+    ingredient_tags: Array<string>;
+    /**
+     * Matched Text
+     */
+    matched_text: string;
+    /**
+     * Name
+     */
+    name: string | null;
+    /**
+     * Parents
+     */
+    parents: Array<string>;
+    /**
+     * Qualification
+     */
+    qualification: 'positive_mention' | 'precautionary_statement' | 'negated_mention' | 'unresolved_context';
+    /**
+     * Start
+     */
+    start: number;
+};
+
+/**
+ * AllergenInputResponse
+ */
+export type AllergenInputResponse = {
+    /**
+     * Language
+     */
+    language: string;
+    /**
+     * Source Field
+     */
+    source_field: string;
+};
+
+/**
+ * AllergenUnmatchedSpanResponse
+ */
+export type AllergenUnmatchedSpanResponse = {
+    /**
+     * End
+     */
+    end: number;
+    /**
+     * Start
+     */
+    start: number;
+    /**
+     * Text
+     */
+    text: string;
+};
+
+/**
+ * Body_extractPhotoComparison
+ */
+export type BodyExtractPhotoComparison = {
+    /**
+     * Photos
+     * One to 3 JPEG or PNG photos, submitted in preview order.
+     */
+    photos: Array<Blob | File>;
+    /**
+     * Product Id
+     * Local Product panel identifier.
+     */
+    product_id: string;
+};
+
+/**
+ * ComparisonResponse
+ */
+export type ComparisonResponse = {
+    /**
+     * Calculated From Submitted Evidence
+     */
+    calculated_from_submitted_evidence?: true;
+    /**
+     * Left Product Id
+     */
+    left_product_id: string;
+    /**
+     * Right Product Id
+     */
+    right_product_id: string;
+    /**
+     * Rows
+     */
+    rows?: Array<ComparisonRow>;
+    /**
+     * Schema Version
+     */
+    schema_version?: number;
+};
+
+/**
+ * ComparisonRow
+ */
+export type ComparisonRow = {
+    /**
+     * Assumptions
+     */
+    assumptions?: Array<string>;
+    /**
+     * Calculation Basis
+     */
+    calculation_basis?: string | null;
+    derived_difference?: DerivedValue | null;
+    left?: ReportedValue | null;
+    normalized_left?: DerivedValue | null;
+    normalized_right?: DerivedValue | null;
+    /**
+     * Nutrient
+     */
+    nutrient: string;
+    /**
+     * Reason
+     */
+    reason?: string | null;
+    right?: ReportedValue | null;
+    row_kind?: NutrientRowKind;
+    state: ComparisonState;
+};
+
+/**
+ * ComparisonState
+ */
+export type ComparisonState = 'comparable' | 'conditional' | 'not_comparable';
+
+/**
+ * DatasetSnapshotResponse
+ */
+export type DatasetSnapshotResponse = {
+    /**
+     * Retrieved At
+     */
+    retrieved_at: string;
+    /**
+     * Version
+     */
+    version: string;
+};
+
+/**
+ * DerivationInput
+ */
+export type DerivationInput = {
+    /**
+     * Evidence
+     */
+    evidence: Array<EvidencePointer>;
+    kind: DerivationInputKind;
+    normalized_unit: MeasurementUnit;
+    /**
+     * Normalized Value
+     */
+    normalized_value: string;
+    /**
+     * Source Id
+     */
+    source_id: string;
+};
+
+/**
+ * DerivationInputKind
+ */
+export type DerivationInputKind = 'reported_field' | 'package_quantity' | 'serving_quantity';
+
+/**
+ * DerivedValue
+ */
+export type DerivedValue = {
+    /**
+     * Inputs
+     */
+    inputs: Array<DerivationInput>;
+    target_basis: NutritionBasis;
+    unit: MeasurementUnit;
+    /**
+     * Value
+     */
+    value: string;
+};
+
+/**
+ * EnvironmentProjection
+ */
+export type EnvironmentProjection = {
+    carbon_footprint_100g?: NutritionAmount | null;
+    carbon_footprint_from_known_ingredients_100g?: NutritionAmount | null;
+    carbon_footprint_from_meat_or_fish_100g?: NutritionAmount | null;
+    /**
+     * Manufacturing Places
+     */
+    manufacturing_places?: Array<string>;
+    /**
+     * Origins
+     */
+    origins?: Array<string>;
+};
+
+/**
  * ErrorCode
  */
-export type ErrorCode = 'IDENTIFIER_REQUIRED' | 'IDENTIFIER_CHARACTERS_INVALID' | 'IDENTIFIER_LENGTH_UNSUPPORTED' | 'IDENTIFIER_CHECK_DIGIT_INVALID' | 'PACKAGE_MATCH_SOURCE_UNAVAILABLE';
+export type ErrorCode = 'IDENTIFIER_REQUIRED' | 'IDENTIFIER_CHARACTERS_INVALID' | 'IDENTIFIER_LENGTH_UNSUPPORTED' | 'IDENTIFIER_CHECK_DIGIT_INVALID' | 'REQUEST_BODY_INVALID' | 'PACKAGE_MATCH_SOURCE_UNAVAILABLE' | 'PACKAGE_SEARCH_QUERY_INVALID' | 'REFERENCE_IMAGE_URL_INVALID' | 'REFERENCE_IMAGE_NOT_FOUND' | 'REFERENCE_IMAGE_SOURCE_UNAVAILABLE' | 'RATE_LIMIT_EXCEEDED' | 'SEARCH_QUERY_REQUIRED' | 'SEARCH_QUERY_INVALID' | 'SEARCH_RESULTS_NOT_FOUND';
 
 /**
  * ErrorDetail
@@ -28,124 +291,959 @@ export type ErrorEnvelope = {
 };
 
 /**
- * IdentifierScheme
+ * EvidencePointer
  */
-export type IdentifierScheme = 'GTIN_8' | 'UPC_A' | 'EAN_13' | 'GTIN_14';
+export type EvidencePointer = {
+    /**
+     * Image Id
+     */
+    image_id: string;
+    region?: ImageRegion | null;
+};
 
 /**
- * PackageMatchCandidateResponse
+ * Extraction
  */
-export type PackageMatchCandidateResponse = {
+export type Extraction = {
     /**
-     * External Record Id
+     * Configuration Version
      */
-    external_record_id: string | null;
+    configuration_version?: string | null;
+    identity?: ProductIdentity | null;
     /**
-     * Identity Evidence
+     * Images
      */
-    identity_evidence: Array<PackageMatchEvidenceResponse>;
+    images: Array<ImageEvidence>;
     /**
-     * Is Current
+     * Model
      */
-    is_current: boolean | null;
+    model?: string | null;
     /**
-     * Label Evidence
+     * Nutrition Columns
      */
-    label_evidence: Array<PackageMatchEvidenceResponse>;
-    /**
-     * Package Variant Id
-     */
-    package_variant_id: string | null;
+    nutrition_columns?: Array<NutritionColumn>;
+    outcome: ExtractionOutcome;
+    package_quantity?: Quantity | null;
     /**
      * Product Id
      */
-    product_id: string | null;
+    product_id: string;
     /**
-     * Reference Images
+     * Provider
      */
-    reference_images: Array<PackageMatchReferenceImageResponse>;
+    provider?: string | null;
     /**
-     * Retrieved At
+     * Retake Reasons
      */
-    retrieved_at: string | null;
-    source: PackageMatchSourceResponse | null;
-    source_kind: PackageMatchSourceKind;
+    retake_reasons?: Array<string>;
     /**
-     * Source Revision
+     * Schema Version
      */
-    source_revision: string | null;
+    schema_version?: number;
 };
 
 /**
- * PackageMatchEvidenceResponse
+ * ExtractionOutcome
  */
-export type PackageMatchEvidenceResponse = {
+export type ExtractionOutcome = 'complete' | 'partial' | 'retake_required';
+
+/**
+ * FieldObservation
+ * Literal package evidence plus conservative optional normalization.
+ */
+export type FieldObservation = {
     /**
-     * Field
+     * Alternatives
      */
-    field: string;
+    alternatives?: Array<ObservationAlternative>;
+    /**
+     * Evidence
+     */
+    evidence?: Array<EvidencePointer>;
+    /**
+     * Field Id
+     */
+    field_id: string;
+    /**
+     * Label
+     */
+    label?: string | null;
     /**
      * Language
      */
-    language: string | null;
+    language?: string;
+    normalized_unit?: MeasurementUnit | null;
     /**
-     * Observed At
+     * Normalized Value
      */
-    observed_at: string | null;
+    normalized_value?: string | null;
     /**
-     * Retrieved At
+     * Nutrient
      */
-    retrieved_at: string;
+    nutrient?: string | null;
     /**
-     * Source Field
+     * Original Script
      */
-    source_field: string;
+    original_script?: string | null;
+    qualifier?: ValueQualifier;
+    row_kind?: NutrientRowKind;
+    state?: FieldState;
     /**
-     * Source Name
+     * Unit Text
      */
-    source_name: string;
+    unit_text?: string | null;
     /**
-     * Source Url
+     * Value Text
      */
-    source_url: string;
-    /**
-     * Value
-     */
-    value: unknown;
+    value_text?: string | null;
 };
 
 /**
- * PackageMatchReferenceImageResponse
+ * FieldState
  */
-export type PackageMatchReferenceImageResponse = {
+export type FieldState = 'readable' | 'unreadable' | 'ambiguous' | 'conflicting' | 'not_visible';
+
+/**
+ * GradedSourceAssessment
+ */
+export type GradedSourceAssessment = {
     /**
-     * Attribution
+     * Grade
      */
-    attribution: string;
+    grade?: string | null;
+    score?: NutritionAmount | null;
     /**
-     * Language
+     * Source Fields
      */
-    language: string | null;
+    source_fields?: Array<string>;
     /**
-     * License Name
+     * Version
      */
-    license_name: string;
+    version?: string | null;
+};
+
+/**
+ * HealthStatus
+ */
+export type HealthStatus = {
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
+ * ImageEvidence
+ */
+export type ImageEvidence = {
+    /**
+     * Height
+     */
+    height: number;
+    /**
+     * Image Id
+     */
+    image_id: string;
+    /**
+     * Original Image Id
+     */
+    original_image_id: string;
+    /**
+     * Processed Image Id
+     */
+    processed_image_id?: string | null;
     /**
      * Role
      */
     role: string;
     /**
+     * Width
+     */
+    width: number;
+};
+
+/**
+ * ImageRegion
+ * Normalized coordinates in the inclusive [0, 1] image coordinate space.
+ */
+export type ImageRegion = {
+    /**
+     * Height
+     */
+    height: number;
+    /**
+     * Width
+     */
+    width: number;
+    /**
+     * X
+     */
+    x: number;
+    /**
+     * Y
+     */
+    y: number;
+};
+
+/**
+ * IngredientMatchDataResponse
+ */
+export type IngredientMatchDataResponse = {
+    /**
+     * Ingredient Tags
+     */
+    ingredient_tags: Array<string>;
+    /**
+     * Matches
+     */
+    matches: Array<IngredientMatchDetailResponse>;
+};
+
+/**
+ * IngredientMatchDetailResponse
+ */
+export type IngredientMatchDetailResponse = {
+    /**
+     * Alias
+     */
+    alias: string;
+    /**
+     * Ambiguous
+     */
+    ambiguous: boolean;
+    /**
+     * End
+     */
+    end: number;
+    /**
+     * Matched Text
+     */
+    matched_text: string;
+    /**
+     * Name
+     */
+    name: string | null;
+    /**
+     * Parents
+     */
+    parents: Array<string>;
+    /**
+     * Qualification
+     */
+    qualification: 'positive_mention' | 'precautionary_statement' | 'negated_mention' | 'unresolved_context';
+    /**
+     * Start
+     */
+    start: number;
+    /**
+     * Tags
+     */
+    tags: Array<string>;
+};
+
+/**
+ * IngredientMatchErrorDetail
+ */
+export type IngredientMatchErrorDetail = {
+    /**
+     * Code
+     */
+    code: 'invalid_ingredient_text' | 'prototype_unavailable';
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * IngredientMatchErrorResponse
+ */
+export type IngredientMatchErrorResponse = {
+    error: IngredientMatchErrorDetail;
+};
+
+/**
+ * IngredientMatchRequest
+ */
+export type IngredientMatchRequest = {
+    /**
+     * Ingredient Text
+     * English ingredient text to match against the prototype taxonomy.
+     */
+    ingredient_text: string;
+};
+
+/**
+ * IngredientMatchResponse
+ */
+export type IngredientMatchResponse = {
+    data: IngredientMatchDataResponse;
+    source: IngredientMatchSourceResponse;
+};
+
+/**
+ * IngredientMatchSourceResponse
+ */
+export type IngredientMatchSourceResponse = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Taxonomy Sha256
+     */
+    taxonomy_sha256: string;
+};
+
+/**
+ * IngredientMatchingAllergenResponse
+ */
+export type IngredientMatchingAllergenResponse = {
+    /**
+     * Allergen Taxonomy Sha256
+     */
+    allergen_taxonomy_sha256?: string | null;
+    /**
+     * Evidence
+     */
+    evidence: Array<AllergenEvidenceResponse>;
+    input?: AllergenInputResponse | null;
+    /**
+     * Limitations
+     */
+    limitations: Array<string>;
+    /**
+     * Qualifications
+     */
+    qualifications: Array<AllergenEvidenceResponse>;
+    /**
+     * Quality
+     */
+    quality?: 'clear' | 'ambiguous' | 'insufficient' | null;
+    /**
+     * Reason
+     */
+    reason?: string | null;
+    /**
+     * State
+     */
+    state: 'completed' | 'unavailable';
+    /**
+     * Tags
+     */
+    tags: Array<string>;
+    /**
+     * Taxonomy Sha256
+     */
+    taxonomy_sha256?: string | null;
+    /**
+     * Unmatched Spans
+     */
+    unmatched_spans: Array<AllergenUnmatchedSpanResponse>;
+    /**
+     * Unmatched Texts
+     */
+    unmatched_texts: Array<string>;
+};
+
+/**
+ * MeasurementUnit
+ */
+export type MeasurementUnit = 'g' | 'mg' | 'µg' | 'kg' | 'ml' | 'l' | 'kcal' | 'kJ' | '%' | 'count' | 'unknown';
+
+/**
+ * NovaSourceAssessment
+ */
+export type NovaSourceAssessment = {
+    group: NutritionAmount;
+    /**
+     * Source Field
+     */
+    source_field: string;
+};
+
+/**
+ * NutrientRowKind
+ */
+export type NutrientRowKind = 'amount' | 'percentage' | 'combined' | 'other';
+
+export type NutritionAmount = number | number | string;
+
+/**
+ * NutritionBasis
+ */
+export type NutritionBasis = 'per_package' | 'per_serving' | 'per_100g' | 'per_100ml' | 'unknown' | 'other';
+
+/**
+ * NutritionColumn
+ */
+export type NutritionColumn = {
+    basis?: NutritionBasis;
+    /**
+     * Basis Evidence
+     */
+    basis_evidence?: Array<EvidencePointer>;
+    /**
+     * Column Id
+     */
+    column_id: string;
+    /**
+     * Fields
+     */
+    fields?: Array<FieldObservation>;
+    /**
+     * Label
+     */
+    label?: string | null;
+    /**
+     * Preparation Evidence
+     */
+    preparation_evidence?: Array<EvidencePointer>;
+    preparation_state?: PreparationState;
+    serving_quantity?: Quantity | null;
+    serving_quantity_state?: FieldState;
+};
+
+/**
+ * NutritionProjection
+ */
+export type NutritionProjection = {
+    /**
+     * Basis
+     */
+    basis?: string | null;
+    /**
+     * Rows
+     */
+    rows?: Array<NutritionRow>;
+    /**
+     * Serving Size
+     */
+    serving_size?: string | null;
+};
+
+/**
+ * NutritionRow
+ */
+export type NutritionRow = {
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Nutrient
+     */
+    nutrient: string;
+    per_100g?: NutritionAmount | null;
+    per_serving?: NutritionAmount | null;
+    /**
+     * Unit
+     */
+    unit?: string | null;
+    value?: NutritionAmount | null;
+};
+
+/**
+ * ObservationAlternative
+ * A competing literal reading retained for an ambiguous or conflicting field.
+ */
+export type ObservationAlternative = {
+    /**
+     * Evidence
+     */
+    evidence?: Array<EvidencePointer>;
+    /**
+     * Language
+     */
+    language?: string;
+    /**
+     * Original Script
+     */
+    original_script?: string | null;
+    state?: FieldState;
+    /**
+     * Unit Text
+     */
+    unit_text?: string | null;
+    /**
+     * Value Text
+     */
+    value_text?: string | null;
+};
+
+/**
+ * OffAllergenAnalysisResponse
+ */
+export type OffAllergenAnalysisResponse = {
+    /**
+     * State
+     */
+    state: 'available' | 'empty' | 'missing' | 'invalid';
+    /**
+     * Tags
+     */
+    tags: Array<string>;
+};
+
+/**
+ * OriginalText
+ */
+export type OriginalText = {
+    /**
+     * Language
+     */
+    language?: string | null;
+    /**
      * Source Field
      */
     source_field: string;
     /**
-     * Source Name
+     * Value
      */
-    source_name: string;
+    value: string;
+};
+
+/**
+ * PackagingComponent
+ */
+export type PackagingComponent = {
     /**
-     * Source Url
+     * Material
      */
-    source_url: string;
+    material?: string | null;
+    material_field?: TranslatableTextItem | null;
+    number_of_units?: NutritionAmount | null;
+    /**
+     * Quantity Per Unit
+     */
+    quantity_per_unit?: string | null;
+    /**
+     * Recycling
+     */
+    recycling?: string | null;
+    recycling_field?: TranslatableTextItem | null;
+    /**
+     * Shape
+     */
+    shape?: string | null;
+    shape_field?: TranslatableTextItem | null;
+    weight_measured?: NutritionAmount | null;
+};
+
+/**
+ * PackagingProjection
+ */
+export type PackagingProjection = {
+    /**
+     * Components
+     */
+    components?: Array<PackagingComponent>;
+    /**
+     * Description Items
+     */
+    description_items?: Array<TranslatableTextItem>;
+    /**
+     * Materials
+     */
+    materials?: Array<string>;
+    /**
+     * Recycling
+     */
+    recycling?: Array<string>;
+    /**
+     * Recycling Instruction Items
+     */
+    recycling_instruction_items?: Array<TranslatableTextItem>;
+    /**
+     * Recycling Instructions
+     */
+    recycling_instructions?: Array<OriginalText>;
+    /**
+     * Shapes
+     */
+    shapes?: Array<string>;
+    /**
+     * Texts
+     */
+    texts?: Array<OriginalText>;
+};
+
+/**
+ * PhotoComparisonErrorCode
+ */
+export type PhotoComparisonErrorCode = 'request_invalid' | 'size_limit_exceeded' | 'unsupported_image_format' | 'rate_limit_exceeded' | 'capacity_limit_exceeded' | 'provider_output_invalid' | 'provider_unavailable' | 'provider_timeout' | 'internal_error';
+
+/**
+ * PhotoComparisonErrorDetail
+ */
+export type PhotoComparisonErrorDetail = {
+    code: PhotoComparisonErrorCode;
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * PhotoComparisonErrorResponse
+ */
+export type PhotoComparisonErrorResponse = {
+    error: PhotoComparisonErrorDetail;
+};
+
+/**
+ * PreparationState
+ */
+export type PreparationState = 'as_sold' | 'as_prepared' | 'unknown';
+
+/**
+ * ProductIdentity
+ */
+export type ProductIdentity = {
+    brand?: FieldObservation | null;
+    name?: FieldObservation | null;
+};
+
+/**
+ * ProductIdentityProjection
+ */
+export type ProductIdentityProjection = {
+    /**
+     * Barcode
+     */
+    barcode?: string | null;
+    /**
+     * Brands
+     */
+    brands?: Array<string>;
+    generic_name?: TranslatableField;
+    /**
+     * Generic Names
+     */
+    generic_names?: Array<OriginalText>;
+    name?: TranslatableField;
+    /**
+     * Names
+     */
+    names?: Array<OriginalText>;
+    preferred_name?: OriginalText | null;
+    /**
+     * Quantity
+     */
+    quantity?: string | null;
+};
+
+/**
+ * ProductLookupErrorCode
+ */
+export type ProductLookupErrorCode = 'invalid_barcode' | 'product_not_found' | 'dataset_unavailable' | 'rate_limit_exceeded' | 'internal_error' | 'unsupported_language';
+
+/**
+ * ProductLookupErrorDetail
+ */
+export type ProductLookupErrorDetail = {
+    code: ProductLookupErrorCode;
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * ProductLookupErrorMetaResponse
+ */
+export type ProductLookupErrorMetaResponse = {
+    dataset: DatasetSnapshotResponse;
+};
+
+/**
+ * ProductLookupErrorResponse
+ */
+export type ProductLookupErrorResponse = {
+    error: ProductLookupErrorDetail;
+    meta?: ProductLookupErrorMetaResponse | null;
+};
+
+/**
+ * ProductLookupMetadataResponse
+ */
+export type ProductLookupMetadataResponse = {
+    /**
+     * Barcode
+     */
+    barcode: string;
+};
+
+/**
+ * ProductProjection
+ */
+export type ProductProjection = {
+    /**
+     * Additives
+     */
+    additives?: Array<string>;
+    assessments: SourceAssessmentsProjection;
+    /**
+     * Categories
+     */
+    categories?: Array<string>;
+    categories_text?: TranslatableField;
+    /**
+     * Category Items
+     */
+    category_items?: Array<TranslatableTextItem>;
+    /**
+     * Countries
+     */
+    countries?: Array<string>;
+    environment: EnvironmentProjection;
+    front_image?: SourceImage | null;
+    identity: ProductIdentityProjection;
+    /**
+     * Ingredients
+     */
+    ingredients?: Array<OriginalText>;
+    ingredients_text?: TranslatableField;
+    /**
+     * Labels
+     */
+    labels?: Array<string>;
+    nutrition: NutritionProjection;
+    packaging: PackagingProjection;
+    source: SourceRecordMetadataProjection;
+    /**
+     * Storage Instruction Items
+     */
+    storage_instruction_items?: Array<StorageInstructionItem>;
+    /**
+     * Storage Instructions
+     */
+    storage_instructions?: Array<OriginalText>;
+    taxonomy_references?: TaxonomyReferencesProjection;
+};
+
+/**
+ * ProductProjectionData
+ */
+export type ProductProjectionData = {
+    allergen_analysis: AllergenAnalysisResponse;
+    product: ProductProjection;
+};
+
+/**
+ * ProductProjectionMetaResponse
+ */
+export type ProductProjectionMetaResponse = {
+    dataset: DatasetSnapshotResponse;
+    lookup: ProductLookupMetadataResponse;
+    source: SourceAttributionResponse;
+    translation?: TranslationMetaResponse;
+};
+
+/**
+ * ProductProjectionResponse
+ */
+export type ProductProjectionResponse = {
+    data: ProductProjectionData;
+    meta: ProductProjectionMetaResponse;
+};
+
+/**
+ * ProductSearchDataResponse
+ */
+export type ProductSearchDataResponse = {
+    /**
+     * Products
+     */
+    products?: Array<ProductSummary>;
+};
+
+/**
+ * ProductSearchErrorCode
+ */
+export type ProductSearchErrorCode = 'invalid_query' | 'invalid_barcode' | 'invalid_cursor' | 'search_unavailable' | 'search_timeout' | 'dataset_unavailable' | 'rate_limit_exceeded' | 'internal_error';
+
+/**
+ * ProductSearchErrorDetail
+ */
+export type ProductSearchErrorDetail = {
+    code: ProductSearchErrorCode;
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * ProductSearchErrorResponse
+ */
+export type ProductSearchErrorResponse = {
+    error: ProductSearchErrorDetail;
+    meta?: ProductLookupErrorMetaResponse | null;
+};
+
+/**
+ * ProductSearchMetaResponse
+ */
+export type ProductSearchMetaResponse = {
+    dataset: DatasetSnapshotResponse;
+    pagination?: SearchPaginationMetaResponse;
+    source: SourceAttributionResponse;
+};
+
+/**
+ * ProductSearchResponse
+ */
+export type ProductSearchResponse = {
+    data: ProductSearchDataResponse;
+    meta: ProductSearchMetaResponse;
+};
+
+/**
+ * ProductSummary
+ */
+export type ProductSummary = {
+    /**
+     * Barcode
+     */
+    barcode: string;
+    /**
+     * Brands
+     */
+    brands?: Array<string>;
+    generic_name?: OriginalText | null;
+    /**
+     * Labels
+     */
+    labels?: Array<string>;
+    /**
+     * Manufacturing Places
+     */
+    manufacturing_places?: Array<string>;
+    name?: OriginalText | null;
+    /**
+     * Packaging
+     */
+    packaging?: string | null;
+    /**
+     * Quantity
+     */
+    quantity?: string | null;
+    source: SourceAttributionResponse;
+    thumbnail?: SourceImage | null;
+};
+
+/**
+ * Quantity
+ */
+export type Quantity = {
+    /**
+     * Alternatives
+     */
+    alternatives?: Array<ObservationAlternative>;
+    /**
+     * Evidence
+     */
+    evidence?: Array<EvidencePointer>;
+    /**
+     * Field Id
+     */
+    field_id: string;
+    /**
+     * Label
+     */
+    label?: string | null;
+    /**
+     * Language
+     */
+    language?: string;
+    normalized_unit?: MeasurementUnit | null;
+    /**
+     * Normalized Value
+     */
+    normalized_value?: string | null;
+    qualifier?: ValueQualifier;
+    state?: FieldState;
+    /**
+     * Unit Text
+     */
+    unit_text?: string | null;
+    /**
+     * Value Text
+     */
+    value_text?: string | null;
+};
+
+/**
+ * ReportedValue
+ * A complete nutrition field plus the column context that reported it.
+ */
+export type ReportedValue = {
+    basis?: NutritionBasis;
+    /**
+     * Basis Evidence
+     */
+    basis_evidence?: Array<EvidencePointer>;
+    /**
+     * Column Id
+     */
+    column_id: string;
+    observation: FieldObservation;
+    package_quantity?: Quantity | null;
+    /**
+     * Preparation Evidence
+     */
+    preparation_evidence?: Array<EvidencePointer>;
+    preparation_state?: PreparationState;
+    serving_quantity?: Quantity | null;
+    serving_quantity_state?: FieldState;
+};
+
+/**
+ * SearchPaginationMetaResponse
+ */
+export type SearchPaginationMetaResponse = {
+    /**
+     * Next Cursor
+     */
+    next_cursor?: string | null;
+};
+
+/**
+ * SourceAssessmentsProjection
+ */
+export type SourceAssessmentsProjection = {
+    green_score?: GradedSourceAssessment | null;
+    nova?: NovaSourceAssessment | null;
+    nutri_score?: GradedSourceAssessment | null;
+};
+
+/**
+ * SourceAttributionResponse
+ */
+export type SourceAttributionResponse = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Product Url
+     */
+    product_url: string;
+};
+
+/**
+ * SourceImage
+ */
+export type SourceImage = {
+    /**
+     * Language
+     */
+    language?: string | null;
+    /**
+     * Source Field
+     */
+    source_field: string;
     /**
      * Url
      */
@@ -153,97 +1251,527 @@ export type PackageMatchReferenceImageResponse = {
 };
 
 /**
- * PackageMatchSourceKind
+ * SourceRecordMetadataProjection
  */
-export type PackageMatchSourceKind = 'REVIEWED_CATALOG' | 'OPEN_FOOD_FACTS';
-
-/**
- * PackageMatchSourceResponse
- */
-export type PackageMatchSourceResponse = {
+export type SourceRecordMetadataProjection = {
     /**
-     * Attribution
+     * Completeness
      */
-    attribution: string;
+    completeness?: number | null;
     /**
-     * Base Url
+     * Created At
      */
-    base_url: string;
+    created_at?: string | null;
     /**
-     * Contents License
+     * Creator
      */
-    contents_license: string;
+    creator?: string | null;
     /**
-     * Database License
+     * Data Quality Warnings
      */
-    database_license: string;
+    data_quality_warnings?: Array<string>;
     /**
-     * Image License
+     * Dataset Version
      */
-    image_license: string;
+    dataset_version?: string | null;
+    /**
+     * Languages
+     */
+    languages?: Array<string>;
+    /**
+     * Last Modified At
+     */
+    last_modified_at?: string | null;
     /**
      * Name
      */
-    name: string;
+    name?: string | null;
     /**
-     * Record Url
+     * Product Url
      */
-    record_url: string;
+    product_url?: string | null;
     /**
-     * Source Type
+     * Record Language
      */
-    source_type: string;
+    record_language?: string | null;
     /**
-     * Terms Version
+     * Retrieved At
      */
-    terms_version: string | null;
+    retrieved_at?: string | null;
 };
 
 /**
- * PackageMatchesResponse
+ * StorageInstructionItem
  */
-export type PackageMatchesResponse = {
+export type StorageInstructionItem = {
     /**
-     * Candidates
+     * Key
      */
-    candidates: Array<PackageMatchCandidateResponse>;
+    key: string;
     /**
-     * Normalized Identifier
+     * Khmer Translation
      */
-    normalized_identifier: string;
-    scheme: IdentifierScheme;
+    khmer_translation?: string | null;
+    /**
+     * Original Texts
+     */
+    original_texts?: Array<OriginalText>;
+    selected_original_text?: OriginalText | null;
+    translation_status?: TranslationFieldStatus;
 };
 
-export type GetPackageMatchesData = {
+/**
+ * TaxonomyReference
+ */
+export type TaxonomyReference = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Source Field
+     */
+    source_field: string;
+};
+
+/**
+ * TaxonomyReferencesProjection
+ */
+export type TaxonomyReferencesProjection = {
+    /**
+     * Additives
+     */
+    additives?: Array<TaxonomyReference>;
+    /**
+     * Categories
+     */
+    categories?: Array<TaxonomyReference>;
+    /**
+     * Countries
+     */
+    countries?: Array<TaxonomyReference>;
+    /**
+     * Labels
+     */
+    labels?: Array<TaxonomyReference>;
+    /**
+     * Packaging Materials
+     */
+    packaging_materials?: Array<TaxonomyReference>;
+    /**
+     * Packaging Recycling Terms
+     */
+    packaging_recycling_terms?: Array<TaxonomyReference>;
+    /**
+     * Packaging Shapes
+     */
+    packaging_shapes?: Array<TaxonomyReference>;
+};
+
+/**
+ * TranslatableField
+ * Original Text and its independent Khmer Translation outcome.
+ *
+ * generated selects khmer_translation. source_khmer_available selects Khmer
+ * Original Text; original_text_preserved selects intentionally unchanged text.
+ * translation_unavailable and not_requested retain Original Text.
+ * source_data_unavailable has no source text to display.
+ */
+export type TranslatableField = {
+    /**
+     * Khmer Translation
+     */
+    khmer_translation?: string | null;
+    /**
+     * Original Texts
+     */
+    original_texts?: Array<OriginalText>;
+    selected_original_text?: OriginalText | null;
+    translation_status?: TranslationFieldStatus;
+};
+
+/**
+ * TranslatableTextItem
+ */
+export type TranslatableTextItem = {
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Khmer Translation
+     */
+    khmer_translation?: string | null;
+    /**
+     * Original Texts
+     */
+    original_texts?: Array<OriginalText>;
+    selected_original_text?: OriginalText | null;
+    translation_status?: TranslationFieldStatus;
+};
+
+/**
+ * TranslationFieldStatus
+ */
+export type TranslationFieldStatus = 'not_requested' | 'source_khmer_available' | 'original_text_preserved' | 'generated' | 'source_data_unavailable' | 'translation_unavailable';
+
+/**
+ * TranslationMetaResponse
+ */
+export type TranslationMetaResponse = {
+    metadata?: TranslationMetadataResponse | null;
+    status: TranslationOverallStatus;
+};
+
+/**
+ * TranslationMetadataResponse
+ */
+export type TranslationMetadataResponse = {
+    /**
+     * Configuration Version
+     */
+    configuration_version: string;
+    /**
+     * Generated At
+     */
+    generated_at: string;
+    /**
+     * Machine Generated
+     */
+    machine_generated?: boolean;
+    /**
+     * Model
+     */
+    model: string;
+    /**
+     * Provider
+     */
+    provider: string;
+};
+
+/**
+ * TranslationOverallStatus
+ */
+export type TranslationOverallStatus = 'not_requested' | 'not_needed' | 'complete' | 'partial' | 'unavailable';
+
+/**
+ * ValueQualifier
+ */
+export type ValueQualifier = 'exact' | 'less_than' | 'greater_than' | 'approximate';
+
+export type MatchExperimentalIngredientsData = {
+    body: IngredientMatchRequest;
+    path?: never;
+    query?: never;
+    url: '/api/experimental/ingredient-matches';
+};
+
+export type MatchExperimentalIngredientsErrors = {
+    /**
+     * Unprocessable Content
+     */
+    422: IngredientMatchErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: IngredientMatchErrorResponse;
+};
+
+export type MatchExperimentalIngredientsError = MatchExperimentalIngredientsErrors[keyof MatchExperimentalIngredientsErrors];
+
+export type MatchExperimentalIngredientsResponses = {
+    /**
+     * Successful Response
+     */
+    200: IngredientMatchResponse;
+};
+
+export type MatchExperimentalIngredientsResponse = MatchExperimentalIngredientsResponses[keyof MatchExperimentalIngredientsResponses];
+
+export type LiveApiHealthLiveGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/health/live';
+};
+
+export type LiveApiHealthLiveGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: HealthStatus;
+};
+
+export type LiveApiHealthLiveGetResponse = LiveApiHealthLiveGetResponses[keyof LiveApiHealthLiveGetResponses];
+
+export type ReadyApiHealthReadyGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/health/ready';
+};
+
+export type ReadyApiHealthReadyGetErrors = {
+    /**
+     * Dependencies not ready
+     */
+    503: HealthStatus;
+};
+
+export type ReadyApiHealthReadyGetError = ReadyApiHealthReadyGetErrors[keyof ReadyApiHealthReadyGetErrors];
+
+export type ReadyApiHealthReadyGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: HealthStatus;
+};
+
+export type ReadyApiHealthReadyGetResponse = ReadyApiHealthReadyGetResponses[keyof ReadyApiHealthReadyGetResponses];
+
+export type GetOpenFoodFactsImageData = {
     body?: never;
     path?: never;
     query: {
         /**
-         * Identifier
+         * Url
          */
-        identifier: string;
+        url: string;
     };
-    url: '/api/v1/package-matches';
+    url: '/api/v1/open-food-facts-images';
 };
 
-export type GetPackageMatchesErrors = {
+export type GetOpenFoodFactsImageErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorEnvelope;
+    /**
+     * Not Found
+     */
+    404: ErrorEnvelope;
     /**
      * Unprocessable Content
      */
     422: ErrorEnvelope;
     /**
-     * Service Unavailable
+     * Bad Gateway
      */
-    503: ErrorEnvelope;
+    502: ErrorEnvelope;
 };
 
-export type GetPackageMatchesError = GetPackageMatchesErrors[keyof GetPackageMatchesErrors];
+export type GetOpenFoodFactsImageError = GetOpenFoodFactsImageErrors[keyof GetOpenFoodFactsImageErrors];
 
-export type GetPackageMatchesResponses = {
+export type GetOpenFoodFactsImageResponses = {
     /**
      * Successful Response
      */
-    200: PackageMatchesResponse;
+    200: Blob | File;
 };
 
-export type GetPackageMatchesResponse = GetPackageMatchesResponses[keyof GetPackageMatchesResponses];
+export type GetOpenFoodFactsImageResponse = GetOpenFoodFactsImageResponses[keyof GetOpenFoodFactsImageResponses];
+
+export type ComparePhotoComparisonData = {
+    /**
+     * ComparisonRequest
+     */
+    body: {
+        left: Extraction;
+        /**
+         * Left Column Id
+         */
+        left_column_id?: string | null;
+        right: Extraction;
+        /**
+         * Right Column Id
+         */
+        right_column_id?: string | null;
+        /**
+         * Schema Version
+         */
+        schema_version?: number;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/photo-comparison/comparisons';
+};
+
+export type ComparePhotoComparisonErrors = {
+    /**
+     * Content Too Large
+     */
+    413: PhotoComparisonErrorResponse;
+    /**
+     * Unprocessable Content
+     */
+    422: PhotoComparisonErrorResponse;
+    /**
+     * Internal Server Error
+     */
+    500: PhotoComparisonErrorResponse;
+};
+
+export type ComparePhotoComparisonError = ComparePhotoComparisonErrors[keyof ComparePhotoComparisonErrors];
+
+export type ComparePhotoComparisonResponses = {
+    /**
+     * Reported and deterministic comparison rows.
+     */
+    200: ComparisonResponse;
+};
+
+export type ComparePhotoComparisonResponse = ComparePhotoComparisonResponses[keyof ComparePhotoComparisonResponses];
+
+export type ExtractPhotoComparisonData = {
+    body: BodyExtractPhotoComparison;
+    path?: never;
+    query?: never;
+    url: '/api/v1/photo-comparison/extractions';
+};
+
+export type ExtractPhotoComparisonErrors = {
+    /**
+     * Content Too Large
+     */
+    413: PhotoComparisonErrorResponse;
+    /**
+     * Unsupported Media Type
+     */
+    415: PhotoComparisonErrorResponse;
+    /**
+     * Unprocessable Content
+     */
+    422: PhotoComparisonErrorResponse;
+    /**
+     * Too Many Requests
+     */
+    429: PhotoComparisonErrorResponse;
+    /**
+     * Internal Server Error
+     */
+    500: PhotoComparisonErrorResponse;
+    /**
+     * Bad Gateway
+     */
+    502: PhotoComparisonErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: PhotoComparisonErrorResponse;
+    /**
+     * Gateway Timeout
+     */
+    504: PhotoComparisonErrorResponse;
+};
+
+export type ExtractPhotoComparisonError = ExtractPhotoComparisonErrors[keyof ExtractPhotoComparisonErrors];
+
+export type ExtractPhotoComparisonResponses = {
+    /**
+     * Validated visible-evidence extraction, complete, partial, or retake-required.
+     */
+    200: Extraction;
+};
+
+export type ExtractPhotoComparisonResponse = ExtractPhotoComparisonResponses[keyof ExtractPhotoComparisonResponses];
+
+export type SearchProductsData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Q
+         * Search query: Barcode, product name, or brand (complete words and optional final-word prefix).
+         */
+        q: string;
+        /**
+         * Cursor
+         * Optional continuation token for pagination.
+         */
+        cursor?: string | null;
+    };
+    url: '/api/v1/products/search';
+};
+
+export type SearchProductsErrors = {
+    /**
+     * Unprocessable Content
+     */
+    422: ProductSearchErrorResponse;
+    /**
+     * Too Many Requests
+     */
+    429: ProductSearchErrorResponse;
+    /**
+     * Internal Server Error
+     */
+    500: ProductSearchErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: ProductSearchErrorResponse;
+};
+
+export type SearchProductsError = SearchProductsErrors[keyof SearchProductsErrors];
+
+export type SearchProductsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProductSearchResponse;
+};
+
+export type SearchProductsResponse = SearchProductsResponses[keyof SearchProductsResponses];
+
+export type GetProductData = {
+    body?: never;
+    path: {
+        /**
+         * Barcode
+         * GTIN-8, UPC-A, EAN-13, or GTIN-14 Product Barcode.
+         */
+        barcode: string;
+    };
+    query?: {
+        /**
+         * Language
+         * Optional target language for product translation. Only 'km' is supported; other language values return unsupported_language. Omit to skip generation. External source language tags remain unchanged.
+         */
+        language?: string | null;
+    };
+    url: '/api/v1/products/{barcode}';
+};
+
+export type GetProductErrors = {
+    /**
+     * Not Found
+     */
+    404: ProductLookupErrorResponse;
+    /**
+     * Unprocessable Content
+     */
+    422: ProductLookupErrorResponse;
+    /**
+     * Too Many Requests
+     */
+    429: ProductLookupErrorResponse;
+    /**
+     * Internal Server Error
+     */
+    500: ProductLookupErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: ProductLookupErrorResponse;
+};
+
+export type GetProductError = GetProductErrors[keyof GetProductErrors];
+
+export type GetProductResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProductProjectionResponse;
+};
+
+export type GetProductResponse = GetProductResponses[keyof GetProductResponses];

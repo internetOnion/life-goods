@@ -1,7 +1,7 @@
 {
-  "code": "8850000000006",
+  "code": "8850000000003",
   "product": {
-    "code": "8850000000006",
+    "code": "8850000000003",
     "product_name_th": "ขนมตัวอย่าง",
     "brands": "",
     "quantity": null,
@@ -11,6 +11,9 @@
     "allergens_tags": [],
     "traces": null,
     "traces_tags": [],
+    "additives_tags": [],
+    "manufacturing_places": "",
+    "labels_tags": [],
     "nutriments": {},
     "languages_tags": ["en:thai"],
     "countries_tags": [],

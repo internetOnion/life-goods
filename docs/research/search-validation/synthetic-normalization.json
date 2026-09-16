@@ -1,0 +1,40 @@
+{
+  "synthetic": true,
+  "purpose": "Normalization diagnostics, not dataset relevance or latency",
+  "cases": [
+    {
+      "original_text": "ទឹកដោះគោ",
+      "normalized": "ទ កដ គ",
+      "tokens": [
+        "ទ",
+        "កដ",
+        "គ"
+      ]
+    },
+    {
+      "original_text": "Milk ទឹកដោះគោ",
+      "normalized": "milk ទ កដ គ",
+      "tokens": [
+        "milk",
+        "ទ",
+        "កដ",
+        "គ"
+      ]
+    },
+    {
+      "original_text": "  CAFÉ—Milk! ",
+      "normalized": "café milk",
+      "tokens": [
+        "café",
+        "milk"
+      ]
+    },
+    {
+      "original_text": "ＭＩＬＫ",
+      "normalized": "milk",
+      "tokens": [
+        "milk"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+    "source_kind": "OPEN_FOOD_FACTS",
+    "external_record_id": "8850000000003",
+    "source": {
+        "name": "Open Food Facts",
+        "source_type": "COMMUNITY_DATABASE",
+        "base_url": "https://world.openfoodfacts.org",
+        "record_url": "https://world.openfoodfacts.org/product/8850000000003",
+        "attribution": "Open Food Facts contributors",
+        "database_license": "ODbL",
+        "contents_license": "Database Contents License",
+        "image_license": "CC BY-SA",
+        "terms_version": null
+    },
+    "identity_evidence": [
+        {
+            "field": "identifier",
+            "value": "8850000000003",
+            "source_field": "code",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/8850000000003",
+            "language": null,
+            "observed_at": null,
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        }
+    ],
+    "label_evidence": [
+        {
+            "field": "packaging_languages",
+            "value": ["en:thai"],
+            "source_field": "languages_tags",
+            "source_name": "Open Food Facts",
+            "source_url": "https://world.openfoodfacts.org/product/8850000000003",
+            "language": null,
+            "observed_at": null,
+            "retrieved_at": "2026-08-24T10:00:00Z"
+        }
+    ],
+    "reference_images": [],
+    "retrieved_at": "2026-08-24T10:00:00Z",
+    "source_revision": null,
+    "allergen_assessment": {
+        "status": "NOT_ASSESSED",
+        "reason": "FEATURE_DISABLED",
+        "evidence_coverage": "NOT_ASSESSED",
+        "engine_version": null,
+        "reference_dataset_version": null,
+        "concepts": [],
+        "findings": [],
+        "source_signals": []
+    },
+    "halal_ingredient_assessment": {
+        "status": "NOT_ASSESSED",
+        "reason": "FEATURE_DISABLED",
+        "outcome": "NOT_ASSESSED",
+        "evidence_coverage": "NOT_ASSESSED",
+        "engine_version": null,
+        "reference_dataset_version": null,
+        "checked_evidence": [],
+        "findings": []
+    },
+    "dataset_version": {
+        "id": "dataset-2026-08-27",
+        "source_url": "https://static.openfoodfacts.org/data/export.jsonl.gz",
+        "retrieved_at": "2026-08-27T08:00:00Z",
+        "activated_at": "2026-08-27T09:00:00Z",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+}

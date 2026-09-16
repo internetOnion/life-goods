@@ -1,0 +1,13 @@
+# Apply with the ORIGINAL dataset Compose project/files after verifying mounts,
+# backup restoration, and that this exact project owns the running container.
+services:
+    mongodb:
+        command:
+            [
+                "mongod",
+                "--auth",
+                "--bind_ip_all",
+                "--wiredTigerCacheSizeGB",
+                "1",
+            ]
+        mem_limit: 2g
