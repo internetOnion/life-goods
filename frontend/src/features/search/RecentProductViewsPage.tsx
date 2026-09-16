@@ -10,17 +10,18 @@ import {
 } from "@/lib/history"
 import { usePageMetadata } from "@/lib/metadata"
 
-import { ProductNameUnavailableNotice } from "./ProductListItem"
 import { RecentProductCard } from "./RecentProductCard"
+import { useSearchTranslation } from "./translations"
 
 export function RecentProductViewsPage() {
+    const { t } = useSearchTranslation()
     const [recentProducts, setRecentProducts] =
         useState<ScanHistoryItem[]>(getRecentScans)
     const headingRef = useRef<HTMLHeadingElement>(null)
 
     usePageMetadata({
-        title: "Viewed Products",
-        description: "Products viewed recently in this Life Goods session.",
+        title: t("viewedProductsPageTitle"),
+        description: t("viewedProductsPageDescription"),
     })
 
     useEffect(() => {
@@ -31,10 +32,6 @@ export function RecentProductViewsPage() {
         clearRecentScans()
         setRecentProducts([])
     }
-    const missingProductNameCount = recentProducts.filter(
-        (item) => !item.name?.trim() || item.name === "Unlabeled Product",
-    ).length
-
     return (
         <main className="page-rail sm:px-6 sm:pt-12">
             <div className="relative flex min-h-11 items-center justify-center">
@@ -44,7 +41,7 @@ export function RecentProductViewsPage() {
                     size="icon"
                     className="relative z-10 mr-auto -ml-1 size-11 shrink-0 rounded-full text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950"
                 >
-                    <Link to="/search" aria-label="Back to search">
+                    <Link to="/search" aria-label={t("backToSearch")}>
                         <ArrowLeftIcon
                             size={20}
                             weight="bold"
@@ -57,7 +54,7 @@ export function RecentProductViewsPage() {
                     tabIndex={-1}
                     className="type-page-title pointer-events-none absolute inset-x-0 text-center text-balance text-neutral-900"
                 >
-                    Viewed Products
+                    {t("viewedProductsPageTitle")}
                 </h1>
             </div>
 
@@ -71,10 +68,10 @@ export function RecentProductViewsPage() {
                             id="recent-products-heading"
                             className="type-section-title text-neutral-950"
                         >
-                            Products you viewed
+                            {t("productsYouViewed")}
                         </h2>
                         <p className="type-supporting mt-1 text-neutral-600">
-                            Saved only for this browser session.
+                            {t("sessionOnly")}
                         </p>
                     </div>
                     {recentProducts.length ? (
@@ -86,17 +83,13 @@ export function RecentProductViewsPage() {
                             onClick={clearHistory}
                         >
                             <TrashIcon size={16} aria-hidden="true" />
-                            Clear all
+                            {t("clearAll")}
                         </Button>
                     ) : null}
                 </div>
 
                 {recentProducts.length ? (
                     <>
-                        <ProductNameUnavailableNotice
-                            missingCount={missingProductNameCount}
-                            totalCount={recentProducts.length}
-                        />
                         <ul className="shadow-source-sheet mt-5 divide-y divide-neutral-200/90 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white">
                             {recentProducts.map((item) => (
                                 <li key={item.identifier}>
@@ -108,13 +101,13 @@ export function RecentProductViewsPage() {
                 ) : (
                     <div className="mt-5 rounded-2xl border border-dashed border-neutral-300 bg-white px-5 py-8 text-center">
                         <p className="type-supporting font-semibold text-neutral-800">
-                            You haven&apos;t viewed any Products yet.
+                            {t("noViewedProducts")}
                         </p>
                         <p className="type-supporting mt-1 text-neutral-600">
-                            Search for a Product to start your session history.
+                            {t("startSearchHistory")}
                         </p>
                         <Button asChild className="mt-5">
-                            <Link to="/search">Search Products</Link>
+                            <Link to="/search">{t("searchProducts")}</Link>
                         </Button>
                     </div>
                 )}

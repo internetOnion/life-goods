@@ -34,6 +34,7 @@ from lifegoods.translation.selection import (
     extract_eligible_fields,
     select_field_original_text,
 )
+from lifegoods.translation.taxonomy import translate_packaging_taxonomy
 
 NUTRITION_NUTRIENTS: tuple[tuple[str, str], ...] = (
     ("energy-kj", "Energy"),
@@ -473,20 +474,78 @@ def extract_front_image(
 _extract_front_image = extract_front_image
 
 
-def _packaging_components(record: dict[str, Any]) -> list[PackagingComponent]:
+def _packaging_component_field(
+    value: Any,
+    *,
+    key: str,
+    source_field: str,
+    record_language: str | None,
+) -> TranslatableTextItem | None:
+    raw_value = _text_value(value)
+    if not raw_value:
+        return None
+
+    language_match = TAXONOMY_TAG_PREFIX.match(raw_value)
+    language = language_match.group(0)[:-1] if language_match else record_language
+    original = OriginalText(
+        value=_display_taxonomy_tag(raw_value),
+        language=language,
+        source_field=source_field,
+    )
+    translation = translate_packaging_taxonomy(original.value)
+    return TranslatableTextItem(
+        key=key,
+        original_texts=[original],
+        selected_original_text=original,
+        translation_status=(
+            TranslationFieldStatus.GENERATED
+            if translation
+            else TranslationFieldStatus.NOT_REQUESTED
+        ),
+        khmer_translation=translation,
+    )
+
+
+def _packaging_components(
+    record: dict[str, Any], record_language: str | None = None
+) -> list[PackagingComponent]:
     packagings = record.get("packagings")
     if not isinstance(packagings, list):
         return []
     result: list[PackagingComponent] = []
-    seen: set[str] = set()
+    seen: set[tuple[Any, ...]] = set()
 
-    for item in packagings:
+    for source_index, item in enumerate(packagings):
         if not _is_record(item):
             continue
+        shape_field = _packaging_component_field(
+            item.get("shape"),
+            key=f"packaging_component_{source_index}_shape",
+            source_field=f"packagings[{source_index}].shape",
+            record_language=record_language,
+        )
+        material_field = _packaging_component_field(
+            item.get("material"),
+            key=f"packaging_component_{source_index}_material",
+            source_field=f"packagings[{source_index}].material",
+            record_language=record_language,
+        )
+        recycling_field = _packaging_component_field(
+            item.get("recycling"),
+            key=f"packaging_component_{source_index}_recycling",
+            source_field=f"packagings[{source_index}].recycling",
+            record_language=record_language,
+        )
+        shape = shape_field.selected_original_text if shape_field else None
+        material = material_field.selected_original_text if material_field else None
+        recycling = recycling_field.selected_original_text if recycling_field else None
         comp = PackagingComponent(
-            shape=_display_taxonomy_value(item.get("shape")),
-            material=_display_taxonomy_value(item.get("material")),
-            recycling=_display_taxonomy_value(item.get("recycling")),
+            shape=shape.value if shape else None,
+            material=material.value if material else None,
+            recycling=recycling.value if recycling else None,
+            shape_field=shape_field,
+            material_field=material_field,
+            recycling_field=recycling_field,
             quantity_per_unit=_text_value(item.get("quantity_per_unit")),
             weight_measured=_amount_value(item.get("weight_measured")),
             number_of_units=_amount_value(item.get("number_of_units")),
@@ -504,7 +563,14 @@ def _packaging_components(record: dict[str, Any]) -> list[PackagingComponent]:
         )
         if not has_any_value:
             continue
-        key = comp.model_dump_json()
+        key = (
+            comp.shape,
+            comp.material,
+            comp.recycling,
+            comp.quantity_per_unit,
+            comp.weight_measured,
+            comp.number_of_units,
+        )
         if key not in seen:
             seen.add(key)
             result.append(comp)
@@ -1011,7 +1077,7 @@ def project_source_record(
             ),
             texts=packaging_texts,
             recycling_instructions=recycling_instructions,
-            components=_packaging_components(record),
+            components=_packaging_components(record, record_language=record_language),
             materials=packaging_materials,
             shapes=packaging_shapes,
             recycling=packaging_recycling,

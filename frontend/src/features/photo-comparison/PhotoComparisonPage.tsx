@@ -7,7 +7,6 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { GlassButton as Button } from "@/components/ui/button"
-import { LanguageSelector } from "@/components/layout/LanguageSelector"
 import { Input } from "@/components/ui/input"
 import { useLocale } from "@/i18n/locale"
 import { usePageMetadata } from "@/lib/metadata"
@@ -1240,7 +1239,6 @@ export function PhotoComparisonPage({
                             <span>{t("editProducts")}</span>
                         </Button>
                         <div className="flex items-center gap-2">
-                            <LanguageSelector appearance="glass" />
                             <Button
                                 type="button"
                                 variant="outline"
@@ -1269,7 +1267,6 @@ export function PhotoComparisonPage({
                                 </p>
                             </div>
                             <div className="flex shrink-0 items-center gap-2">
-                                <LanguageSelector appearance="glass" />
                                 {flowPhase !== "intro" &&
                                     flowPhase !== "processing" && (
                                         <Button

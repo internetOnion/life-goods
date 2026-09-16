@@ -73,10 +73,6 @@ const SUPPORTING_ENTRIES = KNOWLEDGE_ENTRIES.filter(
         entry.kind === "sourced" && !MERGED_SUPPORTING_SLUGS.has(entry.slug),
 )
 
-function currentLocale(language: string | undefined): LearnLocale {
-    return language === "en" ? "en" : "km"
-}
-
 function localized(value: LocalizedText | undefined, locale: LearnLocale) {
     return value?.[locale] ?? value?.en ?? ""
 }
@@ -205,13 +201,13 @@ function categoryForTopic(topic: LearnTopic): LearnCategory {
 }
 
 export function LearnPage() {
-    const { i18n, t } = useTranslation()
+    const { locale, t } = useTranslation()
     usePageMetadata({
         title: t("learn.title"),
         description: t("learn.intro"),
     })
 
-    return <LearnIndexPage locale={currentLocale(i18n.resolvedLanguage)} />
+    return <LearnIndexPage locale={locale} />
 }
 
 type LearnIndexPageProps = {
@@ -526,10 +522,9 @@ type LearnArticlePageProps = {
 }
 
 export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
-    const { t, i18n } = useTranslation()
+    const { locale, t } = useTranslation()
     const { slug } = useParams<{ slug: string }>()
     const headingRef = useRef<HTMLHeadingElement>(null)
-    const locale = currentLocale(i18n.resolvedLanguage)
     const structuredEntry = slug
         ? (LEARN_ENTRY_BY_SLUG.get(slug) ??
           LEARN_ENTRY_BY_ID.get(LEGACY_ENTRY_ALIASES.get(slug) ?? ""))
@@ -537,15 +532,21 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
     const matchedEntry = KNOWLEDGE_ENTRIES.find((item) => item.slug === slug)
     const entry =
         matchedEntry?.kind === "sourced" || demoMode ? matchedEntry : undefined
-    const contentLocale = entry && entry.title.km ? locale : "en"
+    const titleLocale = entry && entry.title.km ? locale : "en"
+    const contentLocale =
+        entry && locale === "km" && entry.summary.km && entry.body.km
+            ? "km"
+            : "en"
     const hasLanguageFallback = Boolean(
-        entry && locale === "km" && !entry.title.km,
+        entry && locale === "km" && contentLocale === "en",
     )
     usePageMetadata({
         title:
-            structuredEntry?.title.en ??
-            entry?.title.en ??
-            t("learn.unavailableTitle"),
+            (structuredEntry
+                ? localized(structuredEntry.title, locale)
+                : entry
+                  ? localized(entry.title, locale)
+                  : undefined) ?? t("learn.unavailableTitle"),
     })
 
     useEffect(() => {
@@ -587,15 +588,13 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
 
                 {entry ? (
                     <article className="mt-7 min-w-0" lang={contentLocale}>
-                        <p className="text-primary text-sm leading-relaxed font-bold">
-                            {t(`learn.topics.${entry.topic}`)}
-                        </p>
                         <h1
                             ref={headingRef}
                             tabIndex={-1}
-                            className="text-display mt-2 leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
+                            lang={titleLocale}
+                            className="text-display leading-[1.12] font-extrabold tracking-[-0.03em] text-balance"
                         >
-                            {localized(entry.title, contentLocale)}
+                            {localized(entry.title, titleLocale)}
                         </h1>
                         {hasLanguageFallback ? (
                             <p className="bg-muted text-muted-foreground mt-4 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs leading-relaxed font-bold">
@@ -849,13 +848,14 @@ export function LearnArticlePage({ demoMode = false }: LearnArticlePageProps) {
 }
 
 export function LearnGuidePage() {
-    const { i18n, t } = useTranslation()
+    const { locale, t } = useTranslation()
     const { guideSlug } = useParams<{ guideSlug: string }>()
-    const locale = currentLocale(i18n.resolvedLanguage)
     const guide = LEARN_GUIDES.find((candidate) => candidate.slug === guideSlug)
     const headingRef = useRef<HTMLHeadingElement>(null)
     usePageMetadata({
-        title: guide?.title.en ?? t("learn.unavailableGuideTitle"),
+        title: guide
+            ? localized(guide.title, locale)
+            : t("learn.unavailableGuideTitle"),
     })
 
     useEffect(() => {

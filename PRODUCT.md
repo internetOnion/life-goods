@@ -16,7 +16,7 @@ The first audience is Khmer-speaking Shoppers using a mobile phone while shoppin
 
 Life Goods makes Open Food Facts data easier to access and understand without creating a separate food catalog or verification system. A Shopper scans a packaged-food Barcode and receives a readable presentation of the available Source Record. Typed Barcode entry is the fallback when scanning is unavailable or unsuccessful. When a Barcode or Source Record cannot help, a Shopper can instead compare two Products from photos of their nutrition labels.
 
-The English prototype explores a mobile information architecture against complete, sparse, multilingual, irregular, and data-rich Source Records. The public MVP follows with Khmer localization, on-demand Khmer Translation, and Original Text available per translated field.
+The English prototype explores a mobile information architecture against complete, sparse, multilingual, irregular, and data-rich Source Records. The public MVP follows with Khmer localization and on-demand Khmer Translation while retaining Original Text in the Source Record.
 
 Success means a Shopper can move quickly from a Barcode to understandable Product information while always being able to distinguish source data, Source Assessments, generated translation, and Source Data Unavailable.
 
@@ -36,7 +36,7 @@ The primary workflow happens one-handed on a mobile phone in a shop. The Shopper
 - Compare Products from nutrition-label photos, including when a Barcode or Source Record is unavailable, with transient provider processing and no retained comparison history
 - Independent ingredient-text allergen evidence compared with Open Food Facts allergen tags
 - English information-architecture prototype before the Khmer public MVP
-- On-demand Khmer Translation in the public MVP, with Original Text available per translated field
+- On-demand Khmer Translation in the public MVP while retaining Original Text in the Source Record
 - Translation failure falls back to Original Text instead of failing Product Lookup
 - Visible Source Attribution on every Product page and a global data-and-licenses notice
 - Privacy-preserving aggregate operational metrics only; no accounts, saved Products, persistent scan history, comparison history, personalization, Barcode-level analytics, persistent Shopper identifiers, or retained comparison photos
@@ -99,7 +99,7 @@ The product name and wordmark use the spaced form “Life Goods.” The supplied
 
 1. **Source breadth before hierarchy.** First learn which Open Food Facts data is useful; then refine how it is prioritized.
 2. **Localization without ownership.** Life Goods translates and redesigns the experience but does not present source data as its own catalog.
-3. **Original meaning remains accessible.** Khmer Translation never replaces Original Text and is always identified as machine-generated.
+3. **Original meaning remains accessible.** Khmer Translation never replaces Original Text in the Source Record; the selected locale supplies display-language context and generated output is not presented as human-reviewed or verified.
 4. **Missing means unknown.** An absent field is Source Data Unavailable, not evidence that a property is absent.
 5. **Attribution stays visible.** Every Product page identifies Open Food Facts as the source and links to applicable data and image licensing information.
 6. **Lookup works without translation.** A translation failure falls back to Original Text instead of failing the Product page.

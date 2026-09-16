@@ -4,9 +4,12 @@ import React from "react"
 import type { AllergenAnalysisResponse } from "@/api/generated"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { getConcernOptionByTag } from "@/features/concerns/allergens"
+import { translateConcernLabel } from "@/features/concerns/translations"
 import type { ConcernMatch } from "@/features/concerns/matching"
 import type { PackageMatchEvidenceResponse } from "@/features/product/types"
-import { cn } from "@/lib/utils"
+
+import { useProductTranslation } from "../translations"
 
 interface AllergenCardProps {
     analysis?: AllergenAnalysisResponse | null
@@ -19,6 +22,13 @@ function displayTag(tag: string): string {
         .replace(/^[a-z]{2}:/i, "")
         .replace(/-/g, " ")
         .replace(/\b\w/g, (character) => character.toUpperCase())
+}
+
+function translatedTag(locale: "en" | "km", tag: string): string {
+    const option = getConcernOptionByTag(tag)
+    return option
+        ? translateConcernLabel(locale, option.id, option.label)
+        : displayTag(tag)
 }
 
 function evidenceTags(
@@ -58,6 +68,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
     labelEvidence,
     concernMatches = [],
 }) => {
+    const { locale, t } = useProductTranslation()
     const declarationTags =
         analysis?.off.state === "available"
             ? analysis.off.tags
@@ -77,7 +88,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                         <ShieldAlert className="h-4 w-4" />
                     </div>
                     <CardTitle className="text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
-                        Allergens and traces
+                        {t("allergensAndTraces")}
                     </CardTitle>
                 </div>
             </CardHeader>
@@ -89,7 +100,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                             id="allergen-declarations-heading"
                             className="text-xs font-bold tracking-[0.06em] text-neutral-500 uppercase sm:text-sm"
                         >
-                            Open Food Facts declarations
+                            {t("openFoodFactsDeclarations")}
                         </h3>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                             {declarationTags.map((tag) => (
@@ -98,7 +109,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                     variant="warning"
                                     className="px-2.5 py-0.5 text-sm font-semibold"
                                 >
-                                    {displayTag(tag)}
+                                    {translatedTag(locale, tag)}
                                 </Badge>
                             ))}
                         </div>
@@ -111,7 +122,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                             id="allergen-traces-heading"
                             className="text-xs font-bold tracking-[0.06em] text-neutral-500 uppercase sm:text-sm"
                         >
-                            Open Food Facts traces
+                            {t("openFoodFactsTraces")}
                         </h3>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                             {traceTags.map((tag) => (
@@ -120,7 +131,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                     variant="outline"
                                     className="px-2.5 py-0.5 text-sm font-medium text-neutral-600"
                                 >
-                                    {displayTag(tag)}
+                                    {translatedTag(locale, tag)}
                                 </Badge>
                             ))}
                         </div>
@@ -137,18 +148,18 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                 id="allergen-evidence-heading"
                                 className="text-xs font-bold tracking-[0.06em] text-neutral-500 uppercase sm:text-sm"
                             >
-                                Ingredient and wording evidence
+                                {t("ingredientWordingEvidence")}
                             </h3>
                             <span className="shrink-0 font-mono text-xs font-semibold text-neutral-600 tabular-nums">
                                 {detailedMatches.length}{" "}
                                 {detailedMatches.length === 1
-                                    ? "item"
-                                    : "items"}
+                                    ? t("item")
+                                    : t("items")}
                             </span>
                         </div>
                         <details data-disclosure>
                             <summary className="text-info-800 hover:bg-info-100 hover:text-info-900 focus-visible:bg-info-100 focus-visible:text-info-900 bg-info-50 flex min-h-11 w-full cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-3 text-base font-extrabold tracking-[-0.015em] transition-colors [&::-webkit-details-marker]:hidden">
-                                <span>Show source evidence</span>
+                                <span>{t("showSourceEvidence")}</span>
                                 <ChevronDown
                                     className="disclosure-icon size-4 shrink-0"
                                     aria-hidden="true"
@@ -164,7 +175,11 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                         <summary className="group hover:bg-info-50 hover:text-info-800 focus-visible:bg-info-50 focus-visible:text-info-800 flex min-h-14 w-full cursor-pointer list-none items-center justify-between gap-3 rounded-xl py-3 pr-3 pl-8 text-left text-neutral-800 transition-colors [&::-webkit-details-marker]:hidden">
                                             <span className="min-w-0">
                                                 <span className="group-hover:text-info-800 block text-sm font-semibold transition-colors">
-                                                    {match.concernLabel}
+                                                    {translateConcernLabel(
+                                                        locale,
+                                                        match.concernId,
+                                                        match.concernLabel,
+                                                    )}
                                                 </span>
                                             </span>
                                             <ChevronDown
@@ -177,16 +192,19 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                                 0 && (
                                                 <div>
                                                     <p className="text-xs font-bold tracking-[0.04em] text-neutral-500 uppercase">
-                                                        Ingredient matches
+                                                        {t("ingredientMatches")}
                                                     </p>
                                                     {match.ingredientTexts.map(
                                                         (text) => (
                                                             <p
                                                                 key={`ingredient-${text}`}
                                                             >
-                                                                Found through “
-                                                                {text}” in the
-                                                                ingredient text.
+                                                                {t(
+                                                                    "foundThrough",
+                                                                    {
+                                                                        text,
+                                                                    },
+                                                                )}
                                                             </p>
                                                         ),
                                                     )}
@@ -196,7 +214,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                                 .length > 0 && (
                                                 <div>
                                                     <p className="text-xs font-bold tracking-[0.04em] text-neutral-500 uppercase">
-                                                        May contain
+                                                        {t("mayContain")}
                                                     </p>
                                                     {match.precautionaryStatements.map(
                                                         (text) => (
@@ -213,7 +231,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                                 0 && (
                                                 <div>
                                                     <p className="text-xs font-bold tracking-[0.04em] text-neutral-500 uppercase">
-                                                        Negated wording
+                                                        {t("negatedWording")}
                                                     </p>
                                                     <p>
                                                         {match.negatedWording.join(
@@ -226,7 +244,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                                 0 && (
                                                 <div>
                                                     <p className="text-xs font-bold tracking-[0.04em] text-neutral-500 uppercase">
-                                                        Unclear wording
+                                                        {t("unclearWording")}
                                                     </p>
                                                     <p>
                                                         {match.unclearWording.join(
@@ -237,8 +255,9 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                             )}
                                             {match.informationGap && (
                                                 <p className="text-xs text-neutral-500">
-                                                    Some allergen checks are
-                                                    missing or incomplete.
+                                                    {t(
+                                                        "incompleteAllergenChecks",
+                                                    )}
                                                 </p>
                                             )}
                                         </div>
@@ -253,8 +272,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                     <div className="flex items-center gap-2.5 rounded-xl border border-neutral-200/80 bg-neutral-50/80 p-3 text-xs text-neutral-700">
                         <AlertCircle className="h-4 w-4 shrink-0 text-neutral-500" />
                         <span className="font-medium">
-                            No allergen or trace tags are available from Open
-                            Food Facts.
+                            {t("noAllergenTags")}
                         </span>
                     </div>
                 )}
@@ -262,24 +280,10 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                 {hasUnavailableCheck && (
                     <p className="text-caption flex items-start gap-1.5 border-t border-neutral-100 pt-3 text-neutral-500">
                         <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
-                        Some allergen checks are missing or incomplete. Missing
-                        information does not mean that the Product is free from
-                        an allergen.
+                        {t("incompleteAllergenChecks")}{" "}
+                        {t("missingDoesNotMeanFree")}
                     </p>
                 )}
-
-                <p
-                    className={cn(
-                        "text-caption flex items-start gap-1.5 pt-1 text-neutral-600",
-                        !hasUnavailableCheck && "border-t border-neutral-100",
-                    )}
-                >
-                    <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
-                    <span>
-                        These are Open Food Facts source signals, not a Life
-                        Goods safety or allergen-free judgment.
-                    </span>
-                </p>
             </CardContent>
         </Card>
     )

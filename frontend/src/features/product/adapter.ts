@@ -23,6 +23,7 @@ import type {
 export interface AdaptedProductResult {
     candidate: PackageMatchCandidateResponse
     offView: OpenFoodFactsProductView
+    projection: ProductProjection | null
     normalizedIdentifier: string
     scheme: IdentifierScheme
     rawRecord: Record<string, unknown>
@@ -824,6 +825,7 @@ export function adaptProductLookup(
     return {
         candidate,
         offView,
+        projection: "product" in data && data.product ? data.product : null,
         normalizedIdentifier,
         scheme,
         rawRecord: raw,

@@ -24,6 +24,7 @@ COPY backend/pyproject.toml backend/uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 COPY backend/src ./src
+COPY shared ./shared
 # Build the wheel from the copied source and install it into the venv.
 RUN uv build --no-sources \
     && uv pip install --no-deps --no-cache-dir dist/*.whl \

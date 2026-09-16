@@ -1,11 +1,20 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { beforeEach, describe, expect, test } from "vitest"
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 
 import { ConcernsPage } from "../src/features/concerns/ConcernsPage"
+import { resetSelectedConcernIds } from "../src/features/concerns/storage"
+import { LocaleProvider } from "../src/i18n/LocaleProvider"
 
 describe("ConcernsPage", () => {
     beforeEach(() => {
         localStorage.clear()
+    })
+
+    afterEach(() => {
+        localStorage.clear()
+        document.head
+            .querySelector('meta[data-concerns-test="description"]')
+            ?.remove()
     })
 
     test("renders the concerns header and options without the removed disclaimer", () => {
@@ -32,6 +41,112 @@ describe("ConcernsPage", () => {
         expect(
             screen.getByLabelText("Milk").closest("label"),
         ).not.toHaveAttribute("data-glass")
+    })
+
+    test("renders concern names and controls in Khmer", () => {
+        localStorage.setItem("lifegoods.locale.v1", "km")
+        const metaDescription = document.createElement("meta")
+        metaDescription.name = "description"
+        metaDescription.dataset.concernsTest = "description"
+        document.head.append(metaDescription)
+
+        render(
+            <LocaleProvider>
+                <ConcernsPage />
+            </LocaleProvider>,
+        )
+
+        expect(
+            screen.getByRole("heading", { name: "កង្វល់អាលែហ្ស៊ី" }),
+        ).toBeInTheDocument()
+        expect(document.title).toBe("កង្វល់អាលែហ្ស៊ី | Life Goods")
+        expect(
+            document.querySelector('meta[name="description"]'),
+        ).toHaveAttribute(
+            "content",
+            "ជ្រើសរើសកង្វល់អាហារ និងអាលែហ្ស៊ី ដើម្បីបន្លិចនៅពេលស្វែងរកផលិតផល។",
+        )
+        expect(
+            screen.getByRole("heading", { name: "កង្វល់សកម្ម (0)" }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("heading", {
+                name: "អាលែហ្ស៊ី និងគ្រឿងផ្សំដែលមាន",
+            }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByText("ជ្រើសរើសកង្វល់អាលែហ្ស៊ី និងអាហារ"),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByText(
+                "មិនទាន់បានជ្រើសរើសកង្វល់ទេ។ អ្នកអាចជ្រេីសរេីសពីខាងក្រោម។",
+            ),
+        ).toBeInTheDocument()
+
+        for (const label of [
+            "សេលេរី",
+            "សត្វសមុទ្រមានសំបក",
+            "ស៊ុត",
+            "ត្រី",
+            "គ្លុយតែន",
+            "លូពីន",
+            "ទឹកដោះគោ",
+            "សត្វមូល្លុស",
+            "មេស្តាត",
+            "គ្រាប់ធញ្ញជាតិមានសំបក",
+            "សណ្តែកដី",
+            "គ្រាប់ល្ង",
+            "សណ្តែកសៀង",
+        ]) {
+            expect(screen.getByText(label)).toBeVisible()
+        }
+
+        const milkCheckbox = screen.getByLabelText("ទឹកដោះគោ")
+        fireEvent.click(milkCheckbox)
+
+        expect(milkCheckbox).toBeChecked()
+        expect(
+            screen.getByRole("heading", { name: "កង្វល់សកម្ម (1)" }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: "ដក ទឹកដោះគោ ចេញ" }),
+        ).toBeInTheDocument()
+
+        const resetButton = screen.getByRole("button", {
+            name: "កំណត់ឡើងវិញទាំងអស់",
+        })
+        fireEvent.click(resetButton)
+        expect(
+            screen.getByRole("heading", { name: "កង្វល់សកម្ម (0)" }),
+        ).toBeInTheDocument()
+    })
+
+    test("shows a Khmer storage failure notice while keeping choices in memory", () => {
+        localStorage.setItem("lifegoods.locale.v1", "km")
+        const setItem = vi
+            .spyOn(Storage.prototype, "setItem")
+            .mockImplementation(() => {
+                throw new Error("blocked")
+            })
+
+        try {
+            render(
+                <LocaleProvider>
+                    <ConcernsPage />
+                </LocaleProvider>,
+            )
+
+            const milkCheckbox = screen.getByLabelText("ទឹកដោះគោ")
+            fireEvent.click(milkCheckbox)
+
+            expect(milkCheckbox).toBeChecked()
+            expect(screen.getByRole("alert")).toHaveTextContent(
+                "មិនអាចរក្សាទុកជម្រើសរបស់អ្នកបានទេ។ ជម្រើសទាំងនេះនឹងមានសម្រាប់តែការចូលមើលនេះប៉ុណ្ណោះ។",
+            )
+        } finally {
+            setItem.mockRestore()
+            resetSelectedConcernIds()
+        }
     })
 
     test("toggles an allergen and updates the active count and localStorage", () => {

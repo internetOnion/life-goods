@@ -2,6 +2,7 @@ import React from "react"
 import { ChevronRight } from "lucide-react"
 
 import { ScoreLessonLink } from "./ScoreLessonLink"
+import { useProductTranslation } from "../../translations"
 
 interface EcoScoreBannerProps {
     grade?: "a" | "b" | "c" | "d" | "e" | "unknown" | null
@@ -11,7 +12,6 @@ interface EcoScoreBannerProps {
 interface EcoGradeConfig {
     key: string
     label: string
-    desc: string
     surfaceClassName: string
 }
 
@@ -19,31 +19,26 @@ const ECO_GRADES: EcoGradeConfig[] = [
     {
         key: "a",
         label: "A",
-        desc: "Very low environmental impact",
         surfaceClassName: "bg-emerald-50 hover:bg-emerald-100",
     },
     {
         key: "b",
         label: "B",
-        desc: "Low environmental impact",
         surfaceClassName: "bg-lime-50 hover:bg-lime-100",
     },
     {
         key: "c",
         label: "C",
-        desc: "Moderate environmental impact",
         surfaceClassName: "bg-amber-50 hover:bg-amber-100",
     },
     {
         key: "d",
         label: "D",
-        desc: "High environmental impact",
         surfaceClassName: "bg-orange-50 hover:bg-orange-100",
     },
     {
         key: "e",
         label: "E",
-        desc: "Very high environmental impact",
         surfaceClassName: "bg-red-50 hover:bg-red-100",
     },
 ]
@@ -63,9 +58,21 @@ function getEcoScoreAsset(grade?: string | null): string {
 }
 
 export const EcoScoreBanner: React.FC<EcoScoreBannerProps> = ({ grade }) => {
+    const { t } = useProductTranslation()
     const normalizedGrade = grade ? grade.toLowerCase() : null
     const activeGrade = ECO_GRADES.find((item) => item.key === normalizedGrade)
     if (!activeGrade) return null
+
+    const descriptionKey =
+        normalizedGrade === "a"
+            ? "veryLowEnvironmentalImpact"
+            : normalizedGrade === "b"
+              ? "lowEnvironmentalImpact"
+              : normalizedGrade === "c"
+                ? "moderateEnvironmentalImpact"
+                : normalizedGrade === "d"
+                  ? "highEnvironmentalImpact"
+                  : "veryHighEnvironmentalImpact"
 
     return (
         <ScoreLessonLink
@@ -93,7 +100,7 @@ export const EcoScoreBanner: React.FC<EcoScoreBannerProps> = ({ grade }) => {
                         </span>
                     </p>
                     <p className="mt-1 text-sm leading-snug text-neutral-600">
-                        {activeGrade.desc}
+                        {t(descriptionKey)}
                     </p>
                 </div>
                 <ChevronRight

@@ -1,4 +1,5 @@
 import { getProduct, type ProductProjectionResponse } from "@/api/generated"
+import type { AppLocale } from "@/i18n/locale"
 import type { ProductLookupResponse } from "./types"
 import staticProducts from "@/data/products.json"
 import { normalizeIdentifier } from "@/lib/identifier"
@@ -7,6 +8,7 @@ import { unavailableAllergenAnalysis } from "./defaults"
 
 export type ProductLookup = (
     barcode: string,
+    locale?: AppLocale,
 ) => Promise<ProductLookupResponse | ProductProjectionResponse>
 
 type StaticProduct = {
@@ -21,13 +23,15 @@ const staticProductByBarcode = new Map(
     ]),
 )
 
-/** Looks up a Product through the stable backend API in the English prototype. */
+/** Looks up a Product through the stable backend Product Lookup API. */
 export const lookupProduct = async (
     barcode: string,
+    locale: AppLocale = "en",
 ): Promise<ProductProjectionResponse> => {
     const normalizedBarcode = normalizeIdentifier(barcode)
     const response = await getProduct({
         path: { barcode: normalizedBarcode },
+        query: locale === "km" ? { language: "km" } : undefined,
         throwOnError: true,
     })
 

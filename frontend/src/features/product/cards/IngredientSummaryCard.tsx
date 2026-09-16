@@ -5,7 +5,10 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import type { ConcernMatch } from "@/features/concerns/matching"
 import { getConcernOptionByTag } from "@/features/concerns/allergens"
+import { translateConcernLabel } from "@/features/concerns/translations"
 import type { PackageMatchEvidenceResponse } from "@/features/product/types"
+
+import { useProductTranslation } from "../translations"
 
 interface IngredientSummaryCardProps {
     concernMatches: ConcernMatch[]
@@ -48,13 +51,23 @@ export const IngredientSummaryCard: React.FC<IngredientSummaryCardProps> = ({
     labelEvidence,
     onViewEvidence,
 }) => {
+    const { locale, t } = useProductTranslation()
     const matchedIngredients = uniqueStrings([
         ...concernMatches
             .filter((match) => match.hasCompactMatch)
-            .map((match) => match.concernLabel),
-        ...evidenceTags(labelEvidence, "allergen_tags").map(
-            (tag) => getConcernOptionByTag(tag)?.label ?? displayTag(tag),
-        ),
+            .map((match) =>
+                translateConcernLabel(
+                    locale,
+                    match.concernId,
+                    match.concernLabel,
+                ),
+            ),
+        ...evidenceTags(labelEvidence, "allergen_tags").map((tag) => {
+            const option = getConcernOptionByTag(tag)
+            return option
+                ? translateConcernLabel(locale, option.id, option.label)
+                : displayTag(tag)
+        }),
     ])
     const additiveTags = uniqueStrings(
         evidenceTags(labelEvidence, "additive_tags").map(formatAdditiveTag),
@@ -75,11 +88,10 @@ export const IngredientSummaryCard: React.FC<IngredientSummaryCardProps> = ({
                         id="ingredient-summary-heading"
                         className="text-base font-extrabold tracking-[-0.02em] text-neutral-950 sm:text-lg"
                     >
-                        Ingredients at a glance
+                        {t("ingredientsAtAGlance")}
                     </h3>
                     <p className="mt-1 text-xs leading-relaxed text-neutral-500 sm:text-sm">
-                        Short source-record lists. Open the evidence for the
-                        ingredient wording and context.
+                        {t("viewWordingAndSourceContext")}
                     </p>
                 </div>
                 <div
@@ -97,7 +109,7 @@ export const IngredientSummaryCard: React.FC<IngredientSummaryCardProps> = ({
                             className="text-warning-700 size-4 shrink-0"
                             aria-hidden="true"
                         />
-                        <span>Allergen ingredients</span>
+                        <span>{t("allergenIngredients")}</span>
                     </div>
                     {matchedIngredients.length > 0 ? (
                         <ul className="flex flex-wrap gap-1.5">
@@ -114,7 +126,7 @@ export const IngredientSummaryCard: React.FC<IngredientSummaryCardProps> = ({
                         </ul>
                     ) : (
                         <p className="text-sm text-neutral-500">
-                            Source Data Unavailable
+                            {t("sourceDataUnavailable")}
                         </p>
                     )}
                 </div>
@@ -125,7 +137,7 @@ export const IngredientSummaryCard: React.FC<IngredientSummaryCardProps> = ({
                             className="size-4 shrink-0 text-neutral-600"
                             aria-hidden="true"
                         />
-                        <span>Additives</span>
+                        <span>{t("additive")}</span>
                     </div>
                     {additiveTags.length > 0 ? (
                         <ul className="flex flex-wrap gap-1.5">
@@ -142,7 +154,7 @@ export const IngredientSummaryCard: React.FC<IngredientSummaryCardProps> = ({
                         </ul>
                     ) : (
                         <p className="text-sm text-neutral-500">
-                            Source Data Unavailable
+                            {t("sourceDataUnavailable")}
                         </p>
                     )}
                 </div>
@@ -154,7 +166,7 @@ export const IngredientSummaryCard: React.FC<IngredientSummaryCardProps> = ({
                 onClick={onViewEvidence}
                 className="text-info-700 hover:bg-info-50 hover:text-info-800 mt-2 -ml-3 min-h-11 gap-1 px-3 text-sm font-bold"
             >
-                <span>View ingredient evidence</span>
+                <span>{t("viewIngredientEvidence")}</span>
                 <ChevronRight className="size-4" aria-hidden="true" />
             </Button>
         </section>

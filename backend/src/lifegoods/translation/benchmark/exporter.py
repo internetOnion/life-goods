@@ -8,10 +8,12 @@ from pathlib import Path
 from lifegoods.translation.benchmark.candidate import CandidateOutput
 from lifegoods.translation.benchmark.dataset import BenchmarkDataset
 from lifegoods.translation.benchmark.scorer import BenchmarkEvaluationSummary
+from lifegoods.translation.module import TRANSLATION_CONFIG_VERSION
 
 
 def _value_or_unavailable(value: int | None) -> str:
     return str(value) if value is not None else "unavailable"
+
 
 def export_summary_json(
     summary: BenchmarkEvaluationSummary,
@@ -23,7 +25,7 @@ def export_summary_json(
         {
             "provider": "google",
             "model": summary.candidate_name,
-            "translation_configuration_version": "v1",
+            "translation_configuration_version": TRANSLATION_CONFIG_VERSION,
             "deadline_seconds": 12.0,
             "pricing_source": "https://ai.google.dev/gemini-api/docs/pricing",
         }
@@ -100,7 +102,7 @@ def export_evaluation_report(
         f"Generated: {now_iso}",
         f"Evidence: **{evidence_label}**",
         f"Candidate: `{summary.candidate_name}`",
-        "Translation configuration: `v1`",
+        f"Translation configuration: `{TRANSLATION_CONFIG_VERSION}`",
         f"Dataset: `{summary.benchmark_version}`",
         "",
         evidence_boundary,

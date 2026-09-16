@@ -6,9 +6,20 @@ import { describe, expect, test, vi } from "vitest"
 
 import { App } from "../src/app/App"
 import type { ProductLookup } from "../src/features/product/api"
+import type { AppLocale } from "../src/i18n/locale"
 import { productResponse } from "./product-fixtures"
 
-function renderRoute(path: string, lookup = vi.fn<ProductLookup>()) {
+function renderRoute(
+    path: string,
+    lookup = vi.fn<ProductLookup>(),
+    locale: AppLocale | null = "en",
+) {
+    if (locale === null) {
+        window.localStorage.removeItem("lifegoods.locale.v1")
+    } else {
+        window.localStorage.setItem("lifegoods.locale.v1", locale)
+    }
+
     const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false } },
     })
@@ -290,6 +301,41 @@ describe("Life Goods routes", () => {
             "aria-current",
             "page",
         )
+    })
+
+    test("defaults a new visitor to a Khmer shared shell", () => {
+        renderRoute("/", undefined, null)
+
+        const navigation = screen.getByRole("navigation", {
+            name: "ការរុករកចម្បង",
+        })
+        expect(
+            within(navigation)
+                .getAllByRole("link")
+                .map((link) => link.textContent),
+        ).toEqual(["ស្កេន", "ប្រៀបធៀប", "ស្វែងយល់", "កង្វល់"])
+        expect(
+            screen.getByRole("button", { name: "ភាសា៖ ខ្មែរ" }),
+        ).toBeVisible()
+        expect(document.documentElement).toHaveAttribute("lang", "km")
+    })
+
+    test("localizes the shared back-to-top control for Khmer", () => {
+        Object.defineProperty(window, "scrollY", {
+            configurable: true,
+            value: 0,
+        })
+        renderRoute("/", undefined, "km")
+
+        Object.defineProperty(window, "scrollY", {
+            configurable: true,
+            value: 640,
+        })
+        fireEvent.scroll(window)
+
+        expect(
+            screen.getByRole("button", { name: "ត្រឡប់ទៅខាងលើ" }),
+        ).toBeVisible()
     })
 
     test("marks Compare as current in the bottom navigation on /compare", () => {

@@ -2,6 +2,7 @@ import React from "react"
 import { ChevronRight } from "lucide-react"
 
 import { ScoreLessonLink } from "./ScoreLessonLink"
+import { useProductTranslation } from "../../translations"
 
 interface NovaGroupBannerProps {
     group?: 1 | 2 | 3 | 4 | null
@@ -10,29 +11,24 @@ interface NovaGroupBannerProps {
 
 interface NovaGroupConfig {
     group: number
-    name: string
     surfaceClassName: string
 }
 
 const NOVA_GROUPS: NovaGroupConfig[] = [
     {
         group: 1,
-        name: "Unprocessed or minimally processed foods",
         surfaceClassName: "bg-emerald-50 hover:bg-emerald-100",
     },
     {
         group: 2,
-        name: "Processed culinary ingredients",
         surfaceClassName: "bg-amber-50 hover:bg-amber-100",
     },
     {
         group: 3,
-        name: "Processed foods",
         surfaceClassName: "bg-orange-50 hover:bg-orange-100",
     },
     {
         group: 4,
-        name: "Ultra-processed foods",
         surfaceClassName: "bg-red-50 hover:bg-red-100",
     },
 ]
@@ -48,6 +44,7 @@ export const NovaGroupBanner: React.FC<NovaGroupBannerProps> = ({
     group,
     markers,
 }) => {
+    const { t } = useProductTranslation()
     const activeGroup = NOVA_GROUPS.find((item) => item.group === group)
     if (!activeGroup) return null
 
@@ -69,6 +66,15 @@ export const NovaGroupBanner: React.FC<NovaGroupBannerProps> = ({
         }
     }
 
+    const groupNameKey =
+        group === 1
+            ? "unprocessedFoods"
+            : group === 2
+              ? "processedIngredients"
+              : group === 3
+                ? "processedFoods"
+                : "ultraProcessedFoods"
+
     return (
         <ScoreLessonLink
             to="/learn/nova-food-classification"
@@ -89,14 +95,16 @@ export const NovaGroupBanner: React.FC<NovaGroupBannerProps> = ({
 
                 <div className="min-w-0 flex-1">
                     <p className="text-base leading-tight font-bold tracking-[-0.02em] text-neutral-950">
-                        {activeGroup.name}
+                        {t(groupNameKey)}
                     </p>
                     <p className="mt-1 text-sm leading-snug text-neutral-600">
                         {markerList.length > 0
-                            ? markerList.length +
-                              " ultra-processing marker" +
-                              (markerList.length === 1 ? "" : "s")
-                            : "NOVA group " + group}
+                            ? `${markerList.length} ${t(
+                                  markerList.length === 1
+                                      ? "ultraProcessingMarker"
+                                      : "ultraProcessingMarkers",
+                              )}`
+                            : t("novaGroup", { group: group ?? "" })}
                     </p>
                 </div>
                 <ChevronRight

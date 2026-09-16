@@ -1,34 +1,35 @@
 import { fireEvent, render, screen, within } from "@testing-library/react"
 import { MemoryRouter, Route, Routes } from "react-router"
-import { beforeEach, describe, expect, test } from "vitest"
+import { describe, expect, test } from "vitest"
 
 import {
     LearnArticlePage,
     LearnGuidePage,
     LearnPage,
 } from "../src/features/learn/LearnPage"
-import i18n from "../src/features/learn/translations"
+import { LocaleProvider } from "../src/i18n/LocaleProvider"
+import type { AppLocale } from "../src/i18n/locale"
 
-function renderLearn(path = "/learn") {
+function renderLearn(path = "/learn", locale: AppLocale = "en") {
+    window.localStorage.setItem("lifegoods.locale.v1", locale)
+
     return render(
-        <MemoryRouter initialEntries={[path]}>
-            <Routes>
-                <Route path="/learn" element={<LearnPage />} />
-                <Route
-                    path="/learn/guides/:guideSlug"
-                    element={<LearnGuidePage />}
-                />
-                <Route path="/learn/:slug" element={<LearnArticlePage />} />
-            </Routes>
-        </MemoryRouter>,
+        <LocaleProvider>
+            <MemoryRouter initialEntries={[path]}>
+                <Routes>
+                    <Route path="/learn" element={<LearnPage />} />
+                    <Route
+                        path="/learn/guides/:guideSlug"
+                        element={<LearnGuidePage />}
+                    />
+                    <Route path="/learn/:slug" element={<LearnArticlePage />} />
+                </Routes>
+            </MemoryRouter>
+        </LocaleProvider>,
     )
 }
 
 describe("LearnPage", () => {
-    beforeEach(async () => {
-        await i18n.changeLanguage("en")
-    })
-
     test("renders only the guide grid before searching", () => {
         renderLearn("/learn")
 
@@ -272,9 +273,8 @@ describe("LearnPage", () => {
         expect(screen.getByText("Step 5 of 5")).toBeVisible()
     })
 
-    test("renders the allergen ingredient lesson in Khmer", async () => {
-        await i18n.changeLanguage("km")
-        renderLearn("/learn/common-ingredient-names-by-allergen")
+    test("renders the allergen ingredient lesson in Khmer", () => {
+        renderLearn("/learn/common-ingredient-names-by-allergen", "km")
 
         expect(
             screen.getByRole("heading", {
@@ -287,9 +287,8 @@ describe("LearnPage", () => {
         )
     })
 
-    test("renders Khmer lesson positions in a guide", async () => {
-        await i18n.changeLanguage("km")
-        renderLearn("/learn/guides/how-to-read-a-label")
+    test("renders Khmer lesson positions in a guide", () => {
+        renderLearn("/learn/guides/how-to-read-a-label", "km")
 
         expect(
             screen.getByRole("heading", { name: "របៀបអានស្លាកអាហារ" }),

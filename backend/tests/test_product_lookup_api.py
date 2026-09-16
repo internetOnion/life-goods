@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import quote
@@ -11,6 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pymongo.errors import AutoReconnect, PyMongoError
 
+from lifegoods.core.settings import Settings
 from lifegoods.generated_data.budget import InMemoryTranslationBudgetLimiter
 from lifegoods.generated_data.cache import InMemoryTranslationHotCache
 from lifegoods.generated_data.coordinator import (
@@ -44,8 +46,15 @@ from lifegoods.product_lookup.contracts import (
     SourceAssessmentsProjection,
     SourceRecordMetadataProjection,
 )
-from lifegoods.translation.module import KhmerTranslationModule
-from lifegoods.translation.provider import FakeTranslationProvider
+from lifegoods.translation.module import (
+    TRANSLATION_CONFIG_VERSION,
+    KhmerTranslationModule,
+)
+from lifegoods.translation.provider import (
+    FakeTranslationProvider,
+    ProviderTranslationRequest,
+    ProviderTranslationResponse,
+)
 
 FIXTURES = Path(__file__).parent / "fixtures" / "open_food_facts"
 VERSION_ID = "dataset-2026-08-27"
@@ -106,11 +115,13 @@ def _client(
     coordinator: TranslationCoordinator | None = None,
     client_address: tuple[str, int] = ("testclient", 50000),
     ingredient_matcher=None,
+    settings: Settings | None = None,
 ) -> TestClient:
     redis_client = redis_client or fakeredis.FakeRedis(decode_responses=True)
     source = OpenFoodFactsDatasetSource(database)
     coord = coordinator if coordinator is not None else _make_test_coordinator()
     app = create_app(
+        settings=settings,
         product_lookup_source=source,
         product_lookup_cache=RedisProductLookupCache(redis_client, ttl_seconds=3600),
         product_lookup_limiter=(
@@ -780,6 +791,40 @@ def test_rate_limit_isolated_by_client_and_ignores_forwarded_headers() -> None:
     assert all("203.0.113" not in key for key in rate_limit_keys)
 
 
+def test_rate_limit_uses_forwarded_client_when_proxy_is_trusted() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].create_index("code")
+    redis_client = fakeredis.FakeRedis(decode_responses=True)
+    settings = Settings(
+        _env_file=None,  # pyright: ignore[reportCallIssue]
+        trusted_proxy_cidrs=("172.20.0.0/16",),
+    )
+
+    with _client(
+        database,
+        redis_client=redis_client,
+        requests_per_minute=1,
+        client_address=("172.20.0.5", 50000),
+        settings=settings,
+    ) as client:
+        first_client = client.get(
+            "/api/v1/products/4006381333931",
+            headers={"x-forwarded-for": "198.51.100.10"},
+        )
+        second_client = client.get(
+            "/api/v1/products/4006381333931",
+            headers={"x-forwarded-for": "198.51.100.11"},
+        )
+        repeated_client = client.get(
+            "/api/v1/products/4006381333931",
+            headers={"x-forwarded-for": "198.51.100.10"},
+        )
+
+    assert first_client.status_code == 404
+    assert second_client.status_code == 404
+    assert repeated_client.status_code == 429
+
+
 def test_metrics_are_aggregate_and_exclude_barcode_and_client_address() -> None:
     database = _dataset_database()
     database[COLLECTION_NAME].insert_one({"code": "4006381333931"})
@@ -968,7 +1013,7 @@ def test_v1_product_lookup_with_language_kh_generates_translation() -> None:
     assert body["meta"]["translation"]["metadata"]["machine_generated"] is True
     assert body["meta"]["translation"]["metadata"]["provider"] == "test-fake"
     assert body["meta"]["translation"]["metadata"]["model"] == "canned-translations"
-    assert body["meta"]["translation"]["metadata"]["configuration_version"] == "v1"
+    assert body["meta"]["translation"]["metadata"]["configuration_version"] == "v2"
     assert body["meta"]["translation"]["metadata"]["generated_at"] is not None
 
     # Source attribution remains unchanged
@@ -999,6 +1044,159 @@ def test_v1_product_lookup_with_language_kh_generates_translation() -> None:
     assert product["category_items"][1]["translation_status"] == "generated"
     assert product["category_items"][1]["khmer_translation"] == "អាហារសម្រន់"
     assert provider.call_count == 1
+
+
+def test_v1_product_lookup_translates_nutella_prose_fields_together() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "3017620422003",
+            "lang": "fr",
+            "product_name": "Nutella",
+            "ingredients_text": (
+                "Sucre, huile de palme, NOISETTES 13%, cacao maigre 7,4%, "
+                "LAIT écrémé en poudre 6,6%, émulsifiants: lécithines [SOJA]; vanilline."
+            ),
+            "conservation_conditions": (
+                "A conserver au sec et à l'abri de la chaleur. "
+                "Ne pas mettre au réfrigérateur."
+            ),
+            "packaging_text": "1 pot en verre",
+            "recycling_instructions_to_discard": "À recycler",
+        }
+    )
+
+    class AllFieldsKhmerProvider(FakeTranslationProvider):
+        def translate(self, request: ProviderTranslationRequest) -> ProviderTranslationResponse:
+            self.call_count += 1
+            self.last_request = request
+
+            def translate_value(value: str) -> str:
+                parts = re.split(r"(__LG_TOK_\d+__)", value)
+                return " ".join(
+                    part if re.fullmatch(r"__LG_TOK_\d+__", part) else "ខ្មែរ"
+                    for part in parts
+                    if part.strip()
+                )
+
+            return ProviderTranslationResponse(
+                translations={
+                    field_name: translate_value(value)
+                    for field_name, value in request.fields.items()
+                },
+                status="success",
+            )
+
+    provider = AllFieldsKhmerProvider()
+    with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
+        response = client.get("/api/v1/products/3017620422003?language=km")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["translation"]["status"] == "complete"
+    product = body["data"]["product"]
+    assert product["ingredients_text"]["translation_status"] == "generated"
+    assert "ខ្មែរ" in product["ingredients_text"]["khmer_translation"]
+
+    assert provider.last_request is not None
+    assert set(provider.last_request.fields) == {
+        "product_name",
+        "ingredients_text",
+        "storage_instruction_0",
+        "packaging_description_0",
+        "recycling_instruction_0",
+    }
+    assert product["storage_instruction_items"][0]["translation_status"] == "generated"
+    assert product["packaging"]["description_items"][0]["translation_status"] == "generated"
+    assert product["packaging"]["recycling_instruction_items"][0]["translation_status"] == (
+        "generated"
+    )
+
+
+def test_product_lookup_translates_unknown_packaging_component_fields() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "lang": "en",
+            "packagings": [
+                {
+                    "shape": "en:lid",
+                    "material": "en:glass",
+                    "recycling": "en:recycle",
+                },
+                {
+                    "shape": "en:clamping-ring",
+                    "material": "fr:plastique-et-metal",
+                    "recycling": "fr:a-recycler",
+                },
+            ],
+        }
+    )
+    provider = FakeTranslationProvider(
+        canned_translations={
+            "packaging_component_1_shape": "ចិញ្ចៀនរឹត",
+            "packaging_component_1_material": "ប្លាស្ទិក និងលោហៈ",
+            "packaging_component_1_recycling": "អាចកែច្នៃឡើងវិញ",
+        }
+    )
+
+    with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
+        response = client.get("/api/v1/products/4006381333931?language=km")
+
+    assert response.status_code == 200
+    body = response.json()
+    components = body["data"]["product"]["packaging"]["components"]
+    assert provider.last_request is not None
+    assert provider.last_request.fields == {
+        "packaging_component_1_shape": "clamping ring",
+        "packaging_component_1_material": "plastique et metal",
+        "packaging_component_1_recycling": "a recycler",
+    }
+    assert components[0]["shape_field"]["khmer_translation"] == "គម្រប"
+    assert components[0]["material_field"]["khmer_translation"] == "កញ្ចក់"
+    assert components[0]["recycling_field"]["khmer_translation"] == "អាចកែច្នៃឡើងវិញ"
+    assert components[1]["shape_field"]["translation_status"] == "generated"
+    assert components[1]["shape_field"]["selected_original_text"] == {
+        "value": "clamping ring",
+        "language": "en",
+        "source_field": "packagings[1].shape",
+    }
+    assert components[1]["material_field"]["translation_status"] == "generated"
+    assert components[1]["recycling_field"]["translation_status"] == "generated"
+
+
+def test_product_lookup_preserves_component_original_text_when_provider_fails() -> None:
+    database = _dataset_database()
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "4006381333931",
+            "lang": "en",
+            "packagings": [
+                {
+                    "shape": "en:clamping-ring",
+                    "material": "fr:plastique-et-metal",
+                    "recycling": "fr:a-recycler",
+                }
+            ],
+        }
+    )
+    provider = FakeTranslationProvider(should_fail=True)
+
+    with _client(database, coordinator=_make_test_coordinator(provider=provider)) as client:
+        response = client.get("/api/v1/products/4006381333931?language=km")
+
+    assert response.status_code == 200
+    component = response.json()["data"]["product"]["packaging"]["components"][0]
+    for field_name, source_value in (
+        ("shape_field", "clamping ring"),
+        ("material_field", "plastique et metal"),
+        ("recycling_field", "a recycler"),
+    ):
+        field = component[field_name]
+        assert field["translation_status"] == "translation_unavailable"
+        assert field["khmer_translation"] is None
+        assert field["selected_original_text"]["value"] == source_value
 
 
 def test_v1_product_lookup_source_khmer_not_needed() -> None:
@@ -1182,7 +1380,9 @@ def test_v1_product_lookup_cooldown_returns_200_with_original_text_and_unavailab
         assert provider.call_count == 1
 
 
-def test_v1_product_lookup_store_degraded_returns_original_text() -> None:
+def test_v1_product_lookup_store_degraded_returns_original_text(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     database = _dataset_database()
     database[COLLECTION_NAME].insert_one(
         {
@@ -1197,7 +1397,10 @@ def test_v1_product_lookup_store_degraded_returns_original_text() -> None:
 
     coord = _make_test_coordinator(repository=FailingRepo())
 
-    with _client(database, coordinator=coord) as client:
+    with (
+        caplog.at_level("WARNING", logger="lifegoods.generated_data.coordinator"),
+        _client(database, coordinator=coord) as client,
+    ):
         response = client.get("/api/v1/products/4006381333931?language=km")
 
     assert response.status_code == 200
@@ -1212,6 +1415,12 @@ def test_v1_product_lookup_store_degraded_returns_original_text() -> None:
         body["data"]["product"]["identity"]["name"]["selected_original_text"]["value"]
         == "Dark Chocolate"
     )
+    store_logs = [
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "translation_store_degraded"
+    ]
+    assert getattr(store_logs[-1], "failure_category", None) == "store_unavailable"
 
 
 def test_v1_product_lookup_budget_exhausted_returns_original_text() -> None:
@@ -1760,7 +1969,9 @@ def test_startup_without_credentials_only_reuses_compatible_generated_artifacts(
         else:
             module = KhmerTranslationModule(
                 provider,
-                config_version="v0" if artifact_kind == "old" else "v1",
+                    config_version=(
+                        "v0" if artifact_kind == "old" else TRANSLATION_CONFIG_VERSION
+                    ),
             )
         artifact = result_to_stored_artifact(
             module.translate_product(project_source_record(record))

@@ -11,7 +11,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from scalar_fastapi import get_scalar_api_reference
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from lifegoods.core.security import SecurityHeadersMiddleware
+from lifegoods.core.security import SecurityHeadersMiddleware, TrustedProxyClientMiddleware
 from lifegoods.core.settings import Settings
 from lifegoods.photo_comparison.contracts import (
     PhotoComparisonErrorCode,
@@ -68,6 +68,10 @@ def create_photo_comparison_app(
             "Development entry point for photo evidence extraction and deterministic comparison. "
             "It delegates to the same services and contracts as the ordinary Life Goods API."
         ),
+    )
+    app.add_middleware(
+        TrustedProxyClientMiddleware,
+        trusted_proxy_cidrs=resolved_settings.trusted_proxy_cidrs,
     )
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(PhotoComparisonUploadLimitMiddleware)

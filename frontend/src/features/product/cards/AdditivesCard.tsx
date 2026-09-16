@@ -5,141 +5,10 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { PackageMatchEvidenceResponse } from "@/features/product/types"
 
+import { getAdditiveReference, useProductTranslation } from "../translations"
+
 interface AdditivesCardProps {
     labelEvidence?: PackageMatchEvidenceResponse[]
-}
-
-interface AdditiveReference {
-    name?: string
-    description?: string
-    functions?: string[]
-}
-
-// English additive reference details from the bundled Open Food Facts taxonomy.
-// These describe the additive itself, not its amount or purpose in this Product.
-const ADDITIVE_REFERENCES: Record<string, AdditiveReference> = {
-    e322: {
-        name: "Lecithins",
-        description:
-            "Lecithins are a generic term for yellow-brownish fatty substances occurring in animal and plant tissues. They are used for smoothing food textures, dissolving powders, emulsifying and homogenizing liquid mixtures, and repelling sticking materials. Lecithin refers to a group of compounds found in every living organism and is commercially isolated mainly from soybeans or egg yolk.",
-        functions: ["Antioxidant", "Emulsifier"],
-    },
-    e322i: {
-        name: "Lecithin",
-        functions: ["Antioxidant", "Emulsifier"],
-    },
-    e500: {
-        name: "Sodium carbonates",
-        description:
-            "Sodium carbonates are the generic term for a Na and CO3 combination.",
-        functions: ["Stabiliser", "Thickener"],
-    },
-    e500ii: {
-        name: "Sodium hydrogen carbonate (Baking soda)",
-        description:
-            "Sodium bicarbonate (sodium hydrogen carbonate), commonly known as baking soda, is a chemical compound with the formula NaHCO3.",
-        functions: ["Stabiliser", "Thickener"],
-    },
-    e503: { name: "Ammonium carbonates" },
-    e503ii: {
-        name: "Ammonium hydrogen carbonate",
-        description:
-            "Ammonium bicarbonate is an inorganic compound with the formula NH4HCO3. It is used in the food industry as a raising agent for flat baked goods such as cookies and crackers, and in China in steamed buns and Chinese almond cookies. It was commonly used at home before modern baking powder became available.",
-    },
-    e471: {
-        name: "Mono- and diglycerides of fatty acids",
-        description:
-            "Mono- and diglycerides of fatty acids (E471) are a food additive composed of diglycerides and monoglycerides, used as an emulsifier.",
-        functions: ["Emulsifier", "Stabiliser"],
-    },
-    e472e: {
-        name: "Mono- and diacetyl tartaric acid esters of mono- and diglycerides of fatty acids",
-        functions: ["Emulsifier", "Sequestrant", "Stabiliser"],
-    },
-    e330: {
-        name: "Citric acid",
-        functions: ["Antioxidant", "Sequestrant"],
-    },
-    e415: {
-        name: "Xanthan gum",
-        description:
-            "Xanthan gum is a polysaccharide with many industrial uses, including as a common food additive.",
-        functions: ["Emulsifier", "Stabiliser", "Thickener"],
-    },
-    e412: {
-        name: "Guar gum",
-        functions: ["Emulsifier", "Stabiliser", "Thickener"],
-    },
-    e407: {
-        name: "Carrageenan",
-        functions: [
-            "Carrier",
-            "Emulsifier",
-            "Humectant",
-            "Stabiliser",
-            "Thickener",
-        ],
-    },
-    e440: { name: "Pectins" },
-    e150a: {
-        name: "Plain caramel",
-        description:
-            "Caramel color or caramel coloring is a water-soluble food coloring.",
-        functions: ["Colour"],
-    },
-    e150d: { name: "Sulphite ammonia caramel", functions: ["Colour"] },
-    e160a: { name: "Carotenes", functions: ["Colour"] },
-    e100: { name: "Curcumin", functions: ["Colour"] },
-    e101: { name: "Riboflavin", functions: ["Colour"] },
-    e202: {
-        name: "Potassium sorbate",
-        description:
-            "Potassium sorbate is the potassium salt of sorbic acid, with the chemical formula CH3CH=CH−CH=CH−CO2K.",
-        functions: ["Preservative"],
-    },
-    e211: {
-        name: "Sodium benzoate",
-        description:
-            "Sodium benzoate is a substance with the chemical formula NaC7H5O2.",
-        functions: ["Preservative"],
-    },
-    e282: {
-        name: "Calcium propionate",
-        description:
-            "Calcium propionate has the formula Ca-C2H5COO-2. It is used as a preservative in a wide variety of products, including bread, other baked goods, processed meat, whey, and other dairy products.",
-        functions: ["Preservative"],
-    },
-    e300: {
-        name: "Ascorbic acid (Vitamin C)",
-        functions: ["Antioxidant", "Sequestrant"],
-    },
-    e306: { name: "Tocopherol-rich extract (Vitamin E)" },
-    e450: {
-        name: "Diphosphates",
-        functions: [
-            "Emulsifier",
-            "Humectant",
-            "Sequestrant",
-            "Stabiliser",
-            "Thickener",
-        ],
-    },
-    e452: {
-        name: "Polyphosphates",
-        functions: [
-            "Emulsifier",
-            "Humectant",
-            "Sequestrant",
-            "Stabiliser",
-            "Thickener",
-        ],
-    },
-    e621: {
-        name: "Monosodium glutamate (MSG)",
-        description:
-            "Monosodium glutamate (MSG), also known as sodium glutamate, is the sodium salt of glutamic acid, one of the most abundant naturally occurring non-essential amino acids.",
-        functions: ["Flavour enhancer"],
-    },
 }
 
 function cleanAdditiveTag(tag: string): string {
@@ -149,6 +18,7 @@ function cleanAdditiveTag(tag: string): string {
 export const AdditivesCard: React.FC<AdditivesCardProps> = ({
     labelEvidence,
 }) => {
+    const { locale, t } = useProductTranslation()
     const rawTags = [
         ...new Set(
             (labelEvidence ?? []).flatMap((item) => {
@@ -168,7 +38,7 @@ export const AdditivesCard: React.FC<AdditivesCardProps> = ({
 
     const formattedAdditives = rawTags.map((tag) => {
         const cleanTag = cleanAdditiveTag(tag)
-        const reference = ADDITIVE_REFERENCES[cleanTag]
+        const reference = getAdditiveReference(locale, cleanTag)
         return {
             tag: cleanTag,
             code: cleanTag.toUpperCase(),
@@ -185,14 +55,14 @@ export const AdditivesCard: React.FC<AdditivesCardProps> = ({
                 <div className="flex items-center gap-2">
                     <FlaskConical className="h-4 w-4 text-neutral-500" />
                     <CardTitle className="text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
-                        Food Additives & E-Numbers
+                        {t("foodAdditives")}
                     </CardTitle>
                 </div>
                 <Badge
                     variant="subtle"
                     className="py-0.2 text-caption px-2 font-mono font-semibold tabular-nums"
                 >
-                    {formattedAdditives.length} Listed
+                    {formattedAdditives.length} {t("listed")}
                 </Badge>
             </CardHeader>
 
@@ -211,7 +81,7 @@ export const AdditivesCard: React.FC<AdditivesCardProps> = ({
                                     </span>
                                     <span className="min-w-0 truncate text-sm font-semibold text-neutral-900">
                                         {add.reference?.name ||
-                                            "Source Data Unavailable"}
+                                            t("sourceDataUnavailable")}
                                     </span>
                                 </span>
                                 <ChevronDown
@@ -228,7 +98,7 @@ export const AdditivesCard: React.FC<AdditivesCardProps> = ({
                                 {add.reference?.functions?.length ? (
                                     <div className="space-y-1.5">
                                         <p className="text-xs font-bold tracking-wide text-neutral-500 uppercase">
-                                            Functions
+                                            {t("functions")}
                                         </p>
                                         <div className="flex flex-wrap gap-1.5">
                                             {add.reference.functions.map(
@@ -246,7 +116,7 @@ export const AdditivesCard: React.FC<AdditivesCardProps> = ({
                                 ) : null}
                                 {!add.hasDetails ? (
                                     <p className="text-sm leading-relaxed wrap-anywhere text-neutral-700">
-                                        Source Data Unavailable
+                                        {t("sourceDataUnavailable")}
                                     </p>
                                 ) : null}
                             </div>

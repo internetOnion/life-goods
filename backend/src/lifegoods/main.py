@@ -11,7 +11,7 @@ from scalar_fastapi import get_scalar_api_reference
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from lifegoods.core.errors import ErrorCode, ErrorDetail, ErrorEnvelope
-from lifegoods.core.security import SecurityHeadersMiddleware
+from lifegoods.core.security import SecurityHeadersMiddleware, TrustedProxyClientMiddleware
 from lifegoods.core.settings import Settings
 from lifegoods.generated_data.budget import RedisTranslationBudgetLimiter
 from lifegoods.generated_data.cache import RedisTranslationHotCache
@@ -223,7 +223,10 @@ def create_app(
             image_http_client,
             image_base_url=resolved_settings.open_food_facts_image_base_url,
             user_agent=resolved_settings.open_food_facts_user_agent,
-            timeout_seconds=resolved_settings.open_food_facts_image_timeout_seconds,
+            connect_timeout_seconds=(
+                resolved_settings.open_food_facts_image_connect_timeout_seconds
+            ),
+            read_timeout_seconds=resolved_settings.open_food_facts_image_timeout_seconds,
             requests_per_minute=resolved_settings.open_food_facts_image_requests_per_minute,
         )
     else:
@@ -251,6 +254,10 @@ def create_app(
     photo_comparison_service = PhotoComparisonService()
 
     app = FastAPI(title="Life Goods API", version="0.1.0")
+    app.add_middleware(
+        TrustedProxyClientMiddleware,
+        trusted_proxy_cidrs=resolved_settings.trusted_proxy_cidrs,
+    )
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(PhotoComparisonUploadLimitMiddleware)
     app.add_middleware(

@@ -11,6 +11,8 @@ import type {
 import { formatNutritionAmount, parseNutritionMatrix } from "@/lib/nutrition"
 import { cn } from "@/lib/utils"
 
+import { useProductTranslation } from "../../translations"
+
 export interface NutrientLevelsCardProps {
     levels: NutrientLevels
     labelEvidence?: PackageMatchEvidenceResponse[]
@@ -19,15 +21,10 @@ export interface NutrientLevelsCardProps {
 interface MetricConfig {
     key: keyof NutrientLevels
     matrixKey: string
-    label: string
-    tableLabel: string
     lowThreshold: string
     highThreshold: string
     lowThresholdNum: number
     highThresholdNum: number
-    lowDesc: string
-    modDesc: string
-    highDesc: string
     scaleMax: number
     trackColumns: string
     scaleTicks: readonly ScaleTick[]
@@ -84,15 +81,10 @@ const METRICS: MetricConfig[] = [
     {
         key: "fat",
         matrixKey: "fat",
-        label: "Fat",
-        tableLabel: "Total Fat",
         lowThreshold: "3.0g",
         highThreshold: "17.5g",
         lowThresholdNum: 3.0,
         highThresholdNum: 17.5,
-        lowDesc: "Low (≤ 3.0g / 100g)",
-        modDesc: "Medium (> 3.0g to ≤ 17.5g / 100g)",
-        highDesc: "High (> 17.5g / 100g)",
         scaleMax: 20,
         trackColumns: "grid-cols-[7.5%_7.5%_72.5%_12.5%]",
         scaleTicks: [
@@ -106,15 +98,10 @@ const METRICS: MetricConfig[] = [
     {
         key: "saturatedFat",
         matrixKey: "saturated_fat",
-        label: "Saturated Fat",
-        tableLabel: "Saturated Fat",
         lowThreshold: "1.5g",
         highThreshold: "5.0g",
         lowThresholdNum: 1.5,
         highThresholdNum: 5.0,
-        lowDesc: "Low (≤ 1.5g / 100g)",
-        modDesc: "Medium (> 1.5g to ≤ 5.0g / 100g)",
-        highDesc: "High (> 5.0g / 100g)",
         scaleMax: 10,
         trackColumns: "grid-cols-[7.5%_7.5%_35%_50%]",
         scaleTicks: [
@@ -128,15 +115,10 @@ const METRICS: MetricConfig[] = [
     {
         key: "sugars",
         matrixKey: "sugars",
-        label: "Sugars",
-        tableLabel: "Sugars",
         lowThreshold: "5.0g",
         highThreshold: "22.5g",
         lowThresholdNum: 5.0,
         highThresholdNum: 22.5,
-        lowDesc: "Low (≤ 5.0g / 100g)",
-        modDesc: "Medium (> 5.0g to ≤ 22.5g / 100g)",
-        highDesc: "High (> 22.5g / 100g)",
         scaleMax: 45,
         trackColumns: "grid-cols-[5.56%_5.55%_38.89%_50%]",
         scaleTicks: [
@@ -150,15 +132,10 @@ const METRICS: MetricConfig[] = [
     {
         key: "salt",
         matrixKey: "salt",
-        label: "Salt",
-        tableLabel: "Salt",
         lowThreshold: "0.3g",
         highThreshold: "1.5g",
         lowThresholdNum: 0.3,
         highThresholdNum: 1.5,
-        lowDesc: "Low (≤ 0.3g / 100g)",
-        modDesc: "Medium (> 0.3g to ≤ 1.5g / 100g)",
-        highDesc: "High (> 1.5g / 100g)",
         scaleMax: 2,
         trackColumns: "grid-cols-[7.5%_7.5%_60%_25%]",
         scaleTicks: [
@@ -231,13 +208,6 @@ function getMarkerPercentage(
     if (Number.isNaN(val)) return null
 
     return Math.max(0, Math.min(100, (val / max) * 100))
-}
-
-function getStatusLabel(level: NutrientLevels[keyof NutrientLevels]) {
-    if (level === "high") return "High"
-    if (level === "moderate") return "Medium"
-    if (level === "low") return "Low"
-    return "Source Data Unavailable"
 }
 
 function getFallbackMarkerPercentage(
@@ -370,6 +340,7 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
     levels,
     labelEvidence,
 }) => {
+    const { t } = useProductTranslation()
     const [showStandards, setShowStandards] = useState(false)
     const [expandedMetrics, setExpandedMetrics] = useState<
         Record<string, boolean>
@@ -404,6 +375,20 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
         }
     }
 
+    const getStatusLabel = (level: NutrientLevels[keyof NutrientLevels]) => {
+        if (level === "high") return t("high")
+        if (level === "moderate") return t("medium")
+        if (level === "low") return t("low")
+        return t("sourceDataUnavailable")
+    }
+
+    const getMetricLabel = (key: MetricConfig["key"]) => {
+        if (key === "fat") return t("fat")
+        if (key === "saturatedFat") return t("saturatedFat")
+        if (key === "sugars") return t("sugars")
+        return t("salt")
+    }
+
     return (
         <Card className="overflow-hidden rounded-xl border-neutral-200/80 bg-white shadow-xs">
             {/* Card Header */}
@@ -414,7 +399,7 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
                     </div>
                     <div className="min-w-0">
                         <CardTitle className="truncate text-sm font-bold tracking-[-0.015em] text-neutral-900">
-                            Nutrient Levels
+                            {t("nutrientLevels")}
                         </CardTitle>
                     </div>
                 </div>
@@ -425,7 +410,7 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
                     onClick={toggleAll}
                     className="text-caption h-7 shrink-0 px-2 font-semibold text-neutral-600 hover:text-neutral-950"
                 >
-                    {allExpanded ? "Collapse all" : "Expand all"}
+                    {allExpanded ? t("collapseAll") : t("expandAll")}
                 </Button>
             </CardHeader>
 
@@ -442,8 +427,15 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
                         const isLow = levelVal === "low"
                         const isExpanded = Boolean(expandedMetrics[m.key])
                         const statusLabel = getStatusLabel(levelVal)
+                        const metricLabel = getMetricLabel(m.key)
+                        const lowDescription = `${t("low")} (≤ ${m.lowThreshold} / 100g)`
+                        const mediumDescription = `${t("medium")} (> ${m.lowThreshold} to ≤ ${m.highThreshold} / 100g)`
+                        const highDescription = `${t("high")} (> ${m.highThreshold} / 100g)`
                         const amountLabel = amount
-                            ? `· ${formatNutritionAmount(amount.value)}${amount.unit} per 100g`
+                            ? `· ${t("amountPer100g", {
+                                  value: formatNutritionAmount(amount.value),
+                                  unit: amount.unit,
+                              })}`
                             : ""
 
                         const markerPct = getMarkerPercentage(
@@ -471,14 +463,14 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
                                     onClick={() => toggleMetric(m.key)}
                                     aria-expanded={isExpanded}
                                     aria-controls={`nutrient-details-${m.key}`}
-                                    aria-label={`${m.label}${amountLabel ? ` ${amountLabel}` : ""} ${statusLabel}`}
+                                    aria-label={`${metricLabel}${amountLabel ? ` ${amountLabel}` : ""} ${statusLabel}`}
                                     className="h-auto min-h-16 w-full cursor-pointer items-center justify-between gap-2 rounded-xl p-2 text-left font-normal transition-colors hover:bg-neutral-50/60 sm:min-h-18 sm:gap-2.5 sm:p-2.5"
                                 >
                                     <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
                                         <MetricIcon className="size-7 shrink-0 text-neutral-500 sm:size-8" />
                                         <div className="min-w-0">
                                             <span className="block truncate text-sm leading-tight font-normal text-neutral-950 sm:text-base">
-                                                {m.label}
+                                                {metricLabel}
                                             </span>
                                             <span className="mt-0.5 block truncate text-xs leading-tight text-neutral-500 sm:text-sm">
                                                 {statusLabel}
@@ -545,7 +537,22 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
                                         <div className="ml-[2.75rem] sm:ml-[3.25rem]">
                                             <div
                                                 className="space-y-1"
-                                                aria-label={`${m.label} benchmark scale: ${m.scaleTicks.map((tick) => tick.label).join(", ")}. Current rating: ${statusLabel}. ${m.lowDesc}; ${m.modDesc}; ${m.highDesc}.`}
+                                                aria-label={t(
+                                                    "benchmarkScale",
+                                                    {
+                                                        label: metricLabel,
+                                                        ticks: m.scaleTicks
+                                                            .map(
+                                                                (tick) =>
+                                                                    tick.label,
+                                                            )
+                                                            .join(", "),
+                                                        status: statusLabel,
+                                                        low: lowDescription,
+                                                        medium: mediumDescription,
+                                                        high: highDescription,
+                                                    },
+                                                )}
                                             >
                                                 <div className="relative w-full pt-2">
                                                     <div
@@ -574,7 +581,16 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
                                                             title={
                                                                 amount
                                                                     ? `${amount.value} ${amount.unit} / 100g`
-                                                                    : `Level: ${levelVal}`
+                                                                    : t(
+                                                                          "level",
+                                                                          {
+                                                                              value:
+                                                                                  levelVal ??
+                                                                                  t(
+                                                                                      "statusUnknown",
+                                                                                  ),
+                                                                          },
+                                                                      )
                                                             }
                                                         >
                                                             <div
@@ -634,9 +650,9 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
                         <div className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
                             <Info className="h-3 w-3 shrink-0 text-neutral-500" />
                             <span className="text-micro min-w-0 leading-snug">
-                                Official Nutritional Standards{" "}
+                                {t("officialNutritionalStandards")}{" "}
                                 <span className="font-normal text-neutral-600">
-                                    (UK FSA per 100g)
+                                    ({t("ukFsaPer100g")})
                                 </span>
                             </span>
                         </div>
@@ -650,18 +666,15 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
                     {showStandards && (
                         <div className="animate-in fade-in mt-2 space-y-2 rounded-lg border border-neutral-200/70 bg-neutral-50/60 p-2.5 duration-150">
                             <p className="text-micro leading-relaxed text-neutral-500">
-                                Nutritional benchmark standards were established
-                                by the UK Food Standards Agency (FSA) and UK
-                                Health Ministers for front-of-pack guidance.
-                                Thresholds are evaluated strictly per 100g of
-                                solid food. See the{" "}
+                                {t("nutritionalStandardsExplanation")}{" "}
+                                {t("seeOfficialGuidance")}{" "}
                                 <a
                                     href={FSA_GUIDANCE_URL}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="text-info-700 hover:text-info-800 font-medium underline underline-offset-2"
                                 >
-                                    official UK guidance
+                                    {t("officialGuidance")}
                                 </a>
                                 .
                             </p>
@@ -669,22 +682,22 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
                             <div className="overflow-hidden rounded-lg border border-neutral-200/70 bg-white">
                                 <ScrollContainer
                                     fadeColor="white"
-                                    label="Nutritional benchmark standards table"
+                                    label={t("nutritionalStandardsTable")}
                                 >
                                     <table className="w-full min-w-[340px] border-collapse text-left text-xs">
                                         <thead>
                                             <tr className="text-caption border-b border-neutral-200/70 bg-neutral-50/70 font-medium tracking-wider text-neutral-500 uppercase">
                                                 <th className="px-3 py-2">
-                                                    Nutrient
+                                                    {t("nutrient")}
                                                 </th>
                                                 <th className="px-3 py-2 text-emerald-700">
-                                                    Low
+                                                    {t("low")}
                                                 </th>
                                                 <th className="px-3 py-2 text-amber-700">
-                                                    Medium
+                                                    {t("medium")}
                                                 </th>
                                                 <th className="px-3 py-2 text-rose-700">
-                                                    High
+                                                    {t("high")}
                                                 </th>
                                             </tr>
                                         </thead>
@@ -694,7 +707,9 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
                                                     key={`standard-${metric.key}`}
                                                 >
                                                     <td className="px-3 py-2 font-sans font-medium text-neutral-800">
-                                                        {metric.tableLabel}
+                                                        {getMetricLabel(
+                                                            metric.key,
+                                                        )}
                                                     </td>
                                                     <td className="px-3 py-2 text-emerald-700">
                                                         ≤ {metric.lowThreshold}

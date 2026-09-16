@@ -7,6 +7,7 @@ import { MemoryRouter } from "react-router"
 import { describe, expect, test, vi } from "vitest"
 
 import { App } from "../src/app/App"
+import type { AppLocale } from "../src/i18n/locale"
 import type { ProductLookup } from "../src/features/product/api"
 import { productResponse } from "./product-fixtures"
 
@@ -15,7 +16,12 @@ const rootDir = path.resolve(currentDir, "..")
 const indexHtmlPath = path.join(rootDir, "index.html")
 const publicDirPath = path.join(rootDir, "public")
 
-function renderRoute(routePath: string, lookup = vi.fn<ProductLookup>()) {
+function renderRoute(
+    routePath: string,
+    locale: AppLocale = "en",
+    lookup = vi.fn<ProductLookup>(),
+) {
+    window.localStorage.setItem("lifegoods.locale.v1", locale)
     const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false } },
     })
@@ -136,9 +142,25 @@ describe("Page metadata and favicons", () => {
         const lookup = vi
             .fn<ProductLookup>()
             .mockResolvedValue(productResponse())
-        renderRoute("/products/4006381333931", lookup)
+        renderRoute("/products/4006381333931", "en", lookup)
         await waitFor(() => {
             expect(document.title).toBe("Dark Chocolate | Life Goods")
         })
+    })
+
+    test("localizes Learn page, guide, and article metadata titles", () => {
+        const { unmount: unmountLearn } = renderRoute("/learn", "km")
+        expect(document.title).toBe("ស្វែងយល់ | Life Goods")
+        unmountLearn()
+
+        const { unmount: unmountGuide } = renderRoute(
+            "/learn/guides/how-to-read-a-label",
+            "km",
+        )
+        expect(document.title).toBe("របៀបអានស្លាកអាហារ | Life Goods")
+        unmountGuide()
+
+        renderRoute("/learn/where-product-data-comes-from", "km")
+        expect(document.title).toBe("ព័ត៌មានផលិតផលមកពីណា | Life Goods")
     })
 })

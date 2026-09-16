@@ -1,4 +1,5 @@
 import json
+import logging
 
 import httpx2 as httpx
 import pytest
@@ -185,7 +186,46 @@ def test_gemini_adapter_fails_fast_on_400_without_retrying() -> None:
     assert "HTTP 400" in (response.error_message or "")
 
 
-def test_gemini_adapter_handles_timeout_gracefully() -> None:
+def test_gemini_adapter_logs_sanitized_authentication_diagnostics(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    api_key = "secret-api-key"
+    barcode = "3017620422003"
+    ingredient_text = "Sucre, huile de palme, NOISETTES 13%"
+
+    def handle_request(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            401,
+            text=f"invalid key {api_key} for {barcode}: {ingredient_text}",
+        )
+
+    client = httpx.Client(transport=httpx.MockTransport(handle_request))
+    adapter = GeminiTranslationAdapter(api_key=api_key, http_client=client)
+
+    with caplog.at_level(logging.WARNING, logger="lifegoods.translation.gemini"):
+        response = adapter.translate(
+            ProviderTranslationRequest(
+                fields={"ingredients_text": ingredient_text},
+                brands=[],
+                target_language="km",
+            )
+        )
+
+    assert response.status == "error"
+    record = next(record for record in caplog.records if record.name.endswith("translation.gemini"))
+    assert getattr(record, "event", None) == "translation_provider_failure"
+    assert getattr(record, "failure_category", None) == "authentication"
+    assert getattr(record, "provider", None) == "google"
+    assert getattr(record, "model", None) == "gemini-3.8-flash"
+    assert getattr(record, "field_names", None) == ["ingredients_text"]
+    assert api_key not in caplog.text
+    assert barcode not in caplog.text
+    assert ingredient_text not in caplog.text
+
+
+def test_gemini_adapter_handles_timeout_gracefully(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     def handle_request(request: httpx.Request) -> httpx.Response:
         raise httpx.ReadTimeout("Request timed out", request=request)
 
@@ -202,10 +242,62 @@ def test_gemini_adapter_handles_timeout_gracefully() -> None:
         target_language="km",
     )
 
-    response = adapter.translate(request)
+    with caplog.at_level(logging.WARNING, logger="lifegoods.translation.gemini"):
+        response = adapter.translate(request)
 
     assert response.status == "error"
     assert "timed out" in (response.error_message or "").lower()
+    records = [
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "translation_provider_failure"
+    ]
+    assert getattr(records[-1], "failure_category", None) == "timeout"
+
+
+def test_gemini_adapter_logs_invalid_response_without_response_body(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    barcode = "3017620422003"
+    ingredient_text = "Sucre, huile de palme"
+
+    def handle_request(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "candidates": [
+                    {
+                        "finishReason": "STOP",
+                        "content": {
+                            "parts": [
+                                {
+                                    "text": json.dumps(
+                                        {"unexpected": f"{barcode} {ingredient_text}"}
+                                    )
+                                }
+                            ]
+                        },
+                    }
+                ]
+            },
+        )
+
+    with httpx.Client(transport=httpx.MockTransport(handle_request)) as client:
+        adapter = GeminiTranslationAdapter("test-key", http_client=client)
+        with caplog.at_level(logging.WARNING, logger="lifegoods.translation.gemini"):
+            response = adapter.translate(
+                ProviderTranslationRequest(fields={"ingredients_text": ingredient_text})
+            )
+
+    assert response.status == "error"
+    record = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "translation_provider_failure"
+    )
+    assert getattr(record, "failure_category", None) == "invalid_response_envelope"
+    assert barcode not in caplog.text
+    assert ingredient_text not in caplog.text
 
 
 def test_gemini_adapter_does_not_retry_after_deadline() -> None:

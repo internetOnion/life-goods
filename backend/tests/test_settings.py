@@ -93,6 +93,31 @@ def test_gemini_translation_timeout_can_be_overridden(
     assert settings.gemini_translation_timeout_seconds == 18.5
 
 
+def test_trusted_proxy_cidrs_default_and_environment_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("LIFEGOODS_TRUSTED_PROXY_CIDRS", raising=False)
+    assert settings_from_environment().trusted_proxy_cidrs == ()
+
+    monkeypatch.setenv(
+        "LIFEGOODS_TRUSTED_PROXY_CIDRS",
+        '["172.20.0.5/32", "2001:db8::/64", "172.20.0.5/32"]',
+    )
+    assert settings_from_environment().trusted_proxy_cidrs == (
+        "172.20.0.5/32",
+        "2001:db8::/64",
+    )
+
+
+@pytest.mark.parametrize("value", ['["not-an-ip"]', '["172.20.0.0/99"]'])
+def test_trusted_proxy_cidrs_reject_invalid_values(
+    monkeypatch: pytest.MonkeyPatch, value: str
+) -> None:
+    monkeypatch.setenv("LIFEGOODS_TRUSTED_PROXY_CIDRS", value)
+    with pytest.raises(ValueError, match="trusted proxy CIDR"):
+        settings_from_environment()
+
+
 def test_photo_comparison_request_limit_defaults_and_can_be_overridden(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -126,6 +151,7 @@ def test_production_settings_need_no_relational_database() -> None:
         off_mongodb_uri="mongodb://reader:secret@mongo/off",
         generated_mongodb_uri="mongodb://generated:secret@mongo/generated",
         redis_url="redis://:secret@redis:6379/0",
+        trusted_proxy_cidrs=("172.20.0.0/16",),
     )
     assert not hasattr(settings, "database_url")
 

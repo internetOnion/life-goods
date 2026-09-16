@@ -1,6 +1,4 @@
-import { useSyncExternalStore } from "react"
-
-import type { LearnLocale } from "./types"
+import { useLocale, type AppLocale } from "@/i18n/locale"
 
 export const learnTranslations = {
     km: {
@@ -172,22 +170,9 @@ export const learnTranslations = {
     },
 } as const
 
-type LearnTranslationValues = Record<string, string | number>
-type LearnTranslationListener = () => void
+export type LearnTranslationValues = Record<string, string | number>
 
-let activeLocale: LearnLocale = "en"
-const listeners = new Set<LearnTranslationListener>()
-
-function subscribe(listener: LearnTranslationListener) {
-    listeners.add(listener)
-    return () => listeners.delete(listener)
-}
-
-function getSnapshot() {
-    return activeLocale
-}
-
-function lookupTranslation(key: string, locale: LearnLocale): unknown {
+function lookupTranslation(key: string, locale: AppLocale): unknown {
     return key
         .split(".")
         .reduce<unknown>(
@@ -199,8 +184,12 @@ function lookupTranslation(key: string, locale: LearnLocale): unknown {
         )
 }
 
-function translate(key: string, values?: LearnTranslationValues) {
-    const translated = lookupTranslation(key, activeLocale)
+export function translateLearn(
+    locale: AppLocale,
+    key: string,
+    values?: LearnTranslationValues,
+) {
+    const translated = lookupTranslation(key, locale)
     const fallback = lookupTranslation(key, "en")
     const text =
         typeof translated === "string"
@@ -216,22 +205,12 @@ function translate(key: string, values?: LearnTranslationValues) {
     )
 }
 
-export const learnI18n = {
-    get resolvedLanguage() {
-        return activeLocale
-    },
-    changeLanguage(language: string) {
-        activeLocale = language === "km" ? "km" : "en"
-        listeners.forEach((listener) => listener())
-        return Promise.resolve(learnI18n)
-    },
-    getSnapshot,
-    subscribe,
-}
-
 export function useLearnTranslation() {
-    useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
-    return { i18n: learnI18n, t: translate }
-}
+    const { locale } = useLocale()
 
-export default learnI18n
+    return {
+        locale,
+        t: (key: string, values?: LearnTranslationValues) =>
+            translateLearn(locale, key, values),
+    }
+}

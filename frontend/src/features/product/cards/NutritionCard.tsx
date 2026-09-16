@@ -3,12 +3,10 @@ import React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollContainer } from "@/components/ui/scroll-container"
 import type { PackageMatchEvidenceResponse } from "@/features/product/types"
-import {
-    formatNutritionValue,
-    getBasisLabel,
-    parseNutritionMatrix,
-} from "@/lib/nutrition"
+import { formatNutritionValue, parseNutritionMatrix } from "@/lib/nutrition"
 import { cn } from "@/lib/utils"
+
+import { translateNutrientLabel, useProductTranslation } from "../translations"
 
 function NutritionTableIcon({ className }: { className?: string }) {
     return (
@@ -31,9 +29,9 @@ function NutritionTableIcon({ className }: { className?: string }) {
 }
 
 const SUBCOMPONENT_PARENT_LABELS: Record<string, string> = {
-    saturated_fat: "Total Fat",
-    trans_fat: "Total Fat",
-    sugars: "Total Carbohydrates",
+    saturated_fat: "totalFat",
+    trans_fat: "totalFat",
+    sugars: "totalCarbohydrates",
 }
 
 interface NutritionCardProps {
@@ -43,7 +41,19 @@ interface NutritionCardProps {
 export const NutritionCard: React.FC<NutritionCardProps> = ({
     labelEvidence,
 }) => {
+    const { locale, t } = useProductTranslation()
     const { rows, bases } = parseNutritionMatrix(labelEvidence || [])
+
+    const getNutrientLabel = (key: string, fallback: string) => {
+        return translateNutrientLabel(locale, key, fallback)
+    }
+
+    const getBasisLabel = (basis: string) => {
+        if (basis === "declared") return t("declared")
+        if (basis === "per100g") return t("per100g")
+        if (basis === "perServing") return t("perServing")
+        return t("prepared100g")
+    }
 
     if (rows.length === 0) {
         return (
@@ -54,16 +64,16 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
                             <NutritionTableIcon className="size-4" />
                         </div>
                         <CardTitle className="text-sm font-semibold text-neutral-900">
-                            Nutrition Facts
+                            {t("nutritionFacts")}
                         </CardTitle>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-1 p-4 pt-1 sm:p-5">
                     <p className="text-xs font-semibold text-neutral-700">
-                        Source Data Unavailable
+                        {t("sourceDataUnavailable")}
                     </p>
                     <p className="text-caption text-neutral-500">
-                        No nutrition facts declared in the source record.
+                        {t("sourceDataUnavailableDetail")}
                     </p>
                 </CardContent>
             </Card>
@@ -78,7 +88,7 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
                         <NutritionTableIcon className="size-4" />
                     </div>
                     <CardTitle className="text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
-                        Nutrition Facts Table
+                        {t("nutritionFactsTable")}
                     </CardTitle>
                 </div>
             </CardHeader>
@@ -87,13 +97,13 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
                 <div className="overflow-hidden rounded-xl border border-neutral-200/80 bg-neutral-50/50">
                     <ScrollContainer
                         fadeColor="neutral"
-                        label="Nutrition facts table"
+                        label={t("nutritionFactsTableLabel")}
                     >
                         <table className="w-full border-collapse text-left text-xs">
                             <thead>
                                 <tr className="border-b border-neutral-200 bg-neutral-100/70 font-semibold text-neutral-700">
                                     <th className="min-w-[120px] px-3 py-2.5 text-xs font-bold text-neutral-900">
-                                        Nutrient
+                                        {t("nutrient")}
                                     </th>
                                     {bases.map((basis) => (
                                         <th
@@ -107,9 +117,21 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
                             </thead>
                             <tbody className="divide-y divide-neutral-200/60 bg-white">
                                 {rows.map((row) => {
-                                    const parentLabel =
+                                    const parentLabelKey =
                                         SUBCOMPONENT_PARENT_LABELS[row.key]
-                                    const isSubRow = parentLabel !== undefined
+                                    const isSubRow =
+                                        parentLabelKey !== undefined
+                                    const parentLabel = parentLabelKey
+                                        ? t(
+                                              parentLabelKey as
+                                                  | "totalFat"
+                                                  | "totalCarbohydrates",
+                                          )
+                                        : undefined
+                                    const rowLabel = getNutrientLabel(
+                                        row.key,
+                                        row.label,
+                                    )
                                     return (
                                         <tr
                                             key={row.key}
@@ -139,13 +161,20 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
                                                         </svg>
                                                         <span>
                                                             <span className="sr-only">
-                                                                {`Included in ${parentLabel}: `}
+                                                                {t(
+                                                                    "includedIn",
+                                                                    {
+                                                                        parent:
+                                                                            parentLabel ??
+                                                                            "",
+                                                                    },
+                                                                )}
                                                             </span>
-                                                            {row.label}
+                                                            {rowLabel}
                                                         </span>
                                                     </span>
                                                 ) : (
-                                                    row.label
+                                                    rowLabel
                                                 )}
                                             </td>
                                             {bases.map((basis) => {
@@ -170,8 +199,7 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
                 </div>
 
                 <p className="border-t border-neutral-100 pt-1 text-xs font-medium text-neutral-500">
-                    Source: Nutrition facts table transcribed from the physical
-                    product package.
+                    {t("nutritionSource")}
                 </p>
             </CardContent>
         </Card>

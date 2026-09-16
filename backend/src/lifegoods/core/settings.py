@@ -1,10 +1,12 @@
-from pydantic import AliasChoices, Field, model_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from lifegoods.core.security import normalize_trusted_proxy_cidrs
 from lifegoods.translation.deadline import DEFAULT_TRANSLATION_DEADLINE_SECONDS
 
 DEFAULT_OPEN_FOOD_FACTS_IMAGE_BASE_URL = "https://images.openfoodfacts.org"
-DEFAULT_OPEN_FOOD_FACTS_IMAGE_TIMEOUT_SECONDS = 2.0
+DEFAULT_OPEN_FOOD_FACTS_IMAGE_CONNECT_TIMEOUT_SECONDS = 15.0
+DEFAULT_OPEN_FOOD_FACTS_IMAGE_TIMEOUT_SECONDS = 20.0
 DEFAULT_OPEN_FOOD_FACTS_USER_AGENT = (
     "LifeGoods/0.1.0 (https://github.com/internetOnion/life-goods)"
 )
@@ -45,7 +47,11 @@ class Settings(BaseSettings):
 
     environment: str = "development"
     allowed_origins: tuple[str, ...] = ("http://localhost:5173",)
+    trusted_proxy_cidrs: tuple[str, ...] = ()
     open_food_facts_image_base_url: str = DEFAULT_OPEN_FOOD_FACTS_IMAGE_BASE_URL
+    open_food_facts_image_connect_timeout_seconds: float = (
+        DEFAULT_OPEN_FOOD_FACTS_IMAGE_CONNECT_TIMEOUT_SECONDS
+    )
     open_food_facts_image_timeout_seconds: float = (
         DEFAULT_OPEN_FOOD_FACTS_IMAGE_TIMEOUT_SECONDS
     )
@@ -108,11 +114,21 @@ class Settings(BaseSettings):
         ),
     )
 
+    @field_validator("trusted_proxy_cidrs")
+    @classmethod
+    def _validate_trusted_proxy_cidrs(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        return normalize_trusted_proxy_cidrs(value)
+
     @model_validator(mode="after")
     def _fail_fast_on_known_defaults_in_production(self) -> "Settings":
         env = self.environment.strip().lower()
-        if env not in {"production", "prod"}:
+        if env not in {"production", "prod", "staging"}:
             return self
+        if not self.trusted_proxy_cidrs:
+            raise ValueError(
+                "LIFEGOODS_TRUSTED_PROXY_CIDRS must identify the reverse-proxy "
+                "network in the production or staging environment."
+            )
         if "lifegoods_reader:lifegoods_reader@" in self.off_mongodb_uri:
             raise ValueError(
                 "LIFEGOODS_OFF_MONGODB_URI must not use the development default "

@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import type { ProductPhoto } from "@/features/product/types"
 
+import { translateTaxonomyValue, useProductTranslation } from "../translations"
+
 interface PhotosGalleryCardProps {
     photos: ProductPhoto[]
     productName: string
@@ -16,6 +18,7 @@ export const PhotosGalleryCard: React.FC<PhotosGalleryCardProps> = ({
     photos,
     productName,
 }) => {
+    const { locale, t } = useProductTranslation()
     const [selectedPhoto, setSelectedPhoto] = useState<ProductPhoto | null>(
         null,
     )
@@ -29,16 +32,16 @@ export const PhotosGalleryCard: React.FC<PhotosGalleryCardProps> = ({
                     <div className="flex items-center gap-2">
                         <Images className="h-4 w-4 text-neutral-500" />
                         <CardTitle className="text-sm font-semibold text-neutral-900">
-                            Photo Archive
+                            {t("photoArchive")}
                         </CardTitle>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-1 p-4 pt-1 sm:p-5">
                     <p className="text-xs font-semibold text-neutral-700">
-                        Source Data Unavailable
+                        {t("sourceDataUnavailable")}
                     </p>
                     <p className="text-caption text-neutral-500">
-                        No package photographs archived in the source record.
+                        {t("noPackagePhotographs")}
                     </p>
                 </CardContent>
             </Card>
@@ -62,10 +65,10 @@ export const PhotosGalleryCard: React.FC<PhotosGalleryCardProps> = ({
                 <div className="flex items-center gap-2">
                     <Images className="h-4 w-4 text-neutral-500" />
                     <CardTitle className="text-sm font-semibold text-neutral-900">
-                        Photo Archive & Packaging Scans
+                        {t("photoArchiveTitle")}
                     </CardTitle>
                     <Badge variant="subtle" className="text-micro font-mono">
-                        {photos.length} Total
+                        {photos.length} {t("total")}
                     </Badge>
                 </div>
 
@@ -87,7 +90,7 @@ export const PhotosGalleryCard: React.FC<PhotosGalleryCardProps> = ({
                                         : "hover:text-neutral-900"
                                 }`}
                             >
-                                {r}
+                                {translateTaxonomyValue(locale, r)}
                             </Button>
                         ))}
                     </div>
@@ -104,7 +107,7 @@ export const PhotosGalleryCard: React.FC<PhotosGalleryCardProps> = ({
                         >
                             <img
                                 src={photo.url}
-                                alt={`${productName} - ${photo.role}`}
+                                alt={`${productName} - ${translateTaxonomyValue(locale, photo.role)}`}
                                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                                 onError={() =>
                                     setFailedPhotoIds(
@@ -123,7 +126,7 @@ export const PhotosGalleryCard: React.FC<PhotosGalleryCardProps> = ({
                                     variant="subtle"
                                     className="text-micro bg-white/90 font-semibold text-neutral-800 uppercase backdrop-blur-xs"
                                 >
-                                    {photo.role}
+                                    {translateTaxonomyValue(locale, photo.role)}
                                 </Badge>
                             </div>
                         </div>
@@ -136,17 +139,23 @@ export const PhotosGalleryCard: React.FC<PhotosGalleryCardProps> = ({
                         open={Boolean(selectedPhoto)}
                         onOpenChange={(open) => !open && setSelectedPhoto(null)}
                     >
-                        <DialogContent className="max-w-3xl border-neutral-800 bg-neutral-950 p-4 text-white">
+                        <DialogContent
+                            closeLabel={t("close")}
+                            className="max-w-3xl border-neutral-800 bg-neutral-950 p-4 text-white"
+                        >
                             <DialogTitle className="flex items-center justify-between pr-8 text-sm font-semibold text-neutral-200">
                                 <span>
                                     {productName} —{" "}
-                                    {selectedPhoto.role.toUpperCase()}
+                                    {translateTaxonomyValue(
+                                        locale,
+                                        selectedPhoto.role,
+                                    )}
                                 </span>
                                 <Badge
                                     variant="outline"
                                     className="border-neutral-700 text-neutral-400"
                                 >
-                                    Photo ID: {selectedPhoto.id}
+                                    {t("photoId")}: {selectedPhoto.id}
                                 </Badge>
                             </DialogTitle>
 
@@ -175,7 +184,7 @@ export const PhotosGalleryCard: React.FC<PhotosGalleryCardProps> = ({
                                 </div>
                                 <div className="flex items-center gap-1 text-neutral-500">
                                     <Camera className="h-3 w-3" />
-                                    <span>High-res original available</span>
+                                    <span>{t("highResOriginalAvailable")}</span>
                                 </div>
                             </div>
                         </DialogContent>

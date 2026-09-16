@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { PackageMatchEvidenceResponse } from "@/features/product/types"
 
+import { translateTaxonomyValue, useProductTranslation } from "../translations"
+
 interface PackagingCardProps {
     labelEvidence: PackageMatchEvidenceResponse[]
 }
@@ -12,6 +14,7 @@ interface PackagingCardProps {
 export const PackagingCard: React.FC<PackagingCardProps> = ({
     labelEvidence,
 }) => {
+    const { locale, t } = useProductTranslation()
     const countriesSoldItem = labelEvidence.find(
         (e) => e.field === "countries_sold",
     )
@@ -27,21 +30,14 @@ export const PackagingCard: React.FC<PackagingCardProps> = ({
 
     const countries = Array.isArray(countriesSoldItem?.value)
         ? (countriesSoldItem.value as string[]).map((c) =>
-              c
-                  .replace(/^[a-z]{2}:/, "")
-                  .replace(/_/g, " ")
-                  .replace(/\b\w/g, (l) => l.toUpperCase()),
+              translateTaxonomyValue(locale, c),
           )
         : []
 
     const languages = Array.isArray(packagingLanguagesItem?.value)
         ? (packagingLanguagesItem.value as string[])
               .filter((l) => !/^\d+$/.test(l.replace(/^[a-z]{2}:/, "")))
-              .map((l) =>
-                  l
-                      .replace(/^[a-z]{2}:/, "")
-                      .replace(/\b\w/g, (c) => c.toUpperCase()),
-              )
+              .map((l) => translateTaxonomyValue(locale, l))
         : []
 
     const manufacturing =
@@ -64,7 +60,7 @@ export const PackagingCard: React.FC<PackagingCardProps> = ({
                 <div className="flex items-center gap-2">
                     <Globe className="h-4 w-4 text-neutral-500" />
                     <CardTitle className="text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
-                        Origin & Distribution
+                        {t("countriesSold")} / {t("manufacturingPlaces")}
                     </CardTitle>
                 </div>
             </CardHeader>
@@ -74,7 +70,7 @@ export const PackagingCard: React.FC<PackagingCardProps> = ({
                     <div className="space-y-1.5">
                         <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 sm:text-sm">
                             <MapPin className="h-3.5 w-3.5 text-neutral-500" />
-                            <span>Countries Sold</span>
+                            <span>{t("countriesSold")}</span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                             {countries.map((country) => (
@@ -94,7 +90,7 @@ export const PackagingCard: React.FC<PackagingCardProps> = ({
                     <div className="space-y-1">
                         <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 sm:text-sm">
                             <Warehouse className="h-3.5 w-3.5 text-neutral-500" />
-                            <span>Manufacturing Places</span>
+                            <span>{t("manufacturingPlaces")}</span>
                         </div>
                         <p className="rounded-xl border border-neutral-200/60 bg-neutral-50 p-2.5 text-xs leading-relaxed text-neutral-700 sm:text-sm">
                             {manufacturing}
@@ -106,7 +102,7 @@ export const PackagingCard: React.FC<PackagingCardProps> = ({
                     <div className="space-y-1">
                         <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 sm:text-sm">
                             <ThermometerSnowflake className="h-3.5 w-3.5 text-neutral-500" />
-                            <span>Storage Instructions</span>
+                            <span>{t("storageInstructionLabel")}</span>
                         </div>
                         <p className="rounded-xl border border-neutral-200/60 bg-neutral-50 p-2.5 text-xs leading-relaxed text-neutral-700 sm:text-sm">
                             {storage}
@@ -117,7 +113,7 @@ export const PackagingCard: React.FC<PackagingCardProps> = ({
                 {languages.length > 0 && (
                     <div className="space-y-1.5 pt-1">
                         <span className="text-caption font-bold tracking-[0.06em] text-neutral-500 uppercase">
-                            Package Languages:
+                            {t("languagesRecordedOnLabel")}:
                         </span>
                         <div className="flex flex-wrap gap-1">
                             {languages.slice(0, 8).map((lang) => (

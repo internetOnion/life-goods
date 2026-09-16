@@ -1,10 +1,10 @@
 import { fireEvent, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter, useLocation } from "react-router"
-import { beforeEach, describe, expect, test, vi } from "vitest"
+import { describe, expect, test, vi } from "vitest"
 
 import { App } from "../src/app/App"
-import i18n from "../src/features/learn/translations"
+import type { AppLocale } from "../src/i18n/locale"
 import type { ProductLookup } from "../src/features/product/api"
 
 const recordUrl =
@@ -22,7 +22,13 @@ function LocationProbe() {
     )
 }
 
-function renderRoute(path: string, demoMode: boolean) {
+function renderRoute(
+    path: string,
+    demoMode: boolean,
+    locale: AppLocale = "en",
+) {
+    window.localStorage.setItem("lifegoods.locale.v1", locale)
+
     return render(
         <MemoryRouter initialEntries={[path]}>
             <App lookup={vi.fn<ProductLookup>()} demoMode={demoMode} />
@@ -32,10 +38,6 @@ function renderRoute(path: string, demoMode: boolean) {
 }
 
 describe("Learn source content and Allergies demos", () => {
-    beforeEach(async () => {
-        await i18n.changeLanguage("en")
-    })
-
     test("shows sourced Learn content without demo fixtures", () => {
         const { unmount } = renderRoute("/learn", false)
 
@@ -343,8 +345,7 @@ describe("Learn source content and Allergies demos", () => {
 
     test("renders and searches the sourced content in Khmer", async () => {
         const user = userEvent.setup()
-        await i18n.changeLanguage("km")
-        renderRoute("/learn", false)
+        renderRoute("/learn", false, "km")
 
         expect(screen.getByRole("heading", { name: "ស្វែងយល់" })).toBeVisible()
         expect(screen.getAllByText("ព័ត៌មានពាក់ព័ន្ធហាឡាល់")[0]).toBeVisible()
@@ -358,7 +359,62 @@ describe("Learn source content and Allergies demos", () => {
         ).toBeVisible()
     })
 
+    test("localizes title-only supporting articles and preserves English content", () => {
+        const titleOnlyArticles = [
+            {
+                slug: "where-product-data-comes-from",
+                title: "ព័ត៌មានផលិតផលមកពីណា",
+                content: "Open Food Facts is a collaborative external dataset.",
+            },
+            {
+                slug: "evidence-uncertainty-unreadable-labels",
+                title: "នៅពេលស្លាកអានមិនបាន ឬមិនពេញលេញ",
+                content:
+                    "A cropped, blurry, or incomplete label leaves Evidence uncertain",
+            },
+        ] as const
+
+        for (const article of titleOnlyArticles) {
+            const { unmount } = renderRoute(
+                `/learn/${article.slug}`,
+                false,
+                "km",
+            )
+
+            expect(
+                screen.getByRole("heading", { name: article.title }),
+            ).toBeVisible()
+            expect(
+                screen.getByText(article.content, { exact: false }),
+            ).toBeVisible()
+            expect(
+                screen.getByText("មាតិកានេះជាភាសាអង់គ្លេសដែលបានពិនិត្យ"),
+            ).toBeVisible()
+
+            unmount()
+        }
+    })
+
+    test("provides Khmer titles for every title-only supporting fixture", async () => {
+        const { KNOWLEDGE_ENTRIES } =
+            await import("../src/features/learn/fixtures")
+
+        for (const slug of [
+            "what-a-barcode-can-tell-you",
+            "where-product-data-comes-from",
+            "what-additives-and-ins-numbers-mean",
+            "date-and-lot-markings",
+            "evidence-uncertainty-unreadable-labels",
+        ]) {
+            const entry = KNOWLEDGE_ENTRIES.find(
+                (candidate) => candidate.slug === slug,
+            )
+            expect(entry?.title.km).toBeTruthy()
+        }
+    })
+
     test("keeps the existing Concerns route available", () => {
+        window.localStorage.setItem("lifegoods.locale.v1", "en")
         renderRoute("/allergies", false)
 
         expect(

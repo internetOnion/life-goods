@@ -3,11 +3,14 @@ import { BadgeCheck } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
+import { translateLabelValue, useProductTranslation } from "../translations"
+
 type SymbolsCardProps = {
     labels: string[]
 }
 
 export function SymbolsCard({ labels }: SymbolsCardProps) {
+    const { locale, t } = useProductTranslation()
     return (
         <Card className="border-neutral-200/90 bg-white shadow-xs">
             <CardHeader className="p-4 pb-2 sm:p-5">
@@ -16,7 +19,7 @@ export function SymbolsCard({ labels }: SymbolsCardProps) {
                         <BadgeCheck className="h-4 w-4" />
                     </div>
                     <CardTitle className="text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
-                        Labels, Certifications & Awards
+                        {t("labelsCertificationsAwards")}
                     </CardTitle>
                 </div>
             </CardHeader>
@@ -28,15 +31,15 @@ export function SymbolsCard({ labels }: SymbolsCardProps) {
                             <Badge
                                 key={label}
                                 variant="outline"
-                                className="bg-neutral-50 text-xs font-semibold capitalize"
+                                className="max-w-full min-w-0 bg-neutral-50 text-xs leading-snug font-semibold wrap-anywhere whitespace-normal"
                             >
-                                {label}
+                                {translateLabelValue(locale, label)}
                             </Badge>
                         ))}
                     </div>
                 ) : (
                     <p className="text-sm text-neutral-600">
-                        Source Data Unavailable
+                        {t("sourceDataUnavailable")}
                     </p>
                 )}
             </CardContent>

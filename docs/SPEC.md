@@ -15,7 +15,7 @@ The MVP:
 - decodes Barcodes on the shopper's device;
 - finds Source Records in one static local Dataset Snapshot;
 - presents consumer-facing Open Food Facts information with visible Source Attribution;
-- develops the information architecture in English while Khmer localization is introduced incrementally;
+- develops the information architecture in English while the implemented Shopper experience is localized incrementally;
 - supports optional on-demand Khmer Translation while preserving Original Text; and
 - remains anonymous and read-only.
 
@@ -23,7 +23,7 @@ The MVP does not own a Product catalog, accept contributions, or verify source d
 
 ## 2. Current repository capability
 
-The current checkout includes the stable cached Product Lookup endpoint, paginated Product Search, source-based allergen analysis, optional on-demand Khmer Translation with isolated generated-data persistence, and the bounded Compare Products API. The main frontend uses the stable Product Lookup and Product Search routes by default; its checked-in Dataset Snapshot remains an explicit offline/demo adapter. The main Shopper interface is English-first, while Compare Products currently exposes English and Khmer UI.
+The current checkout includes the stable cached Product Lookup endpoint, paginated Product Search, source-based allergen analysis, optional on-demand Khmer Translation with isolated generated-data persistence, and the bounded Compare Products API. The main frontend uses the stable Product Lookup and Product Search routes by default; its checked-in Dataset Snapshot remains an explicit offline/demo adapter. The shared shell and Scan/Home experience support Khmer and English, with Khmer as the first-time default; remaining main-app pages are localized incrementally. Compare Products retains its independent English and Khmer UI scope.
 
 The foundational Product Lookup acceptance criteria in section 11 and the issue-specific sections that follow remain as implementation history and contract detail. They are not a statement that the repository is still at the first backend milestone.
 
@@ -224,13 +224,14 @@ Source Assessments remain visibly attributed Open Food Facts calculations. Life 
 
 ## 8. Khmer localization
 
-The main Shopper interface remains English-first while Khmer localization is introduced incrementally. Compare Products currently enables English and Khmer UI; the stable Product Lookup API supports opt-in Khmer Translation for clients that request `language=km`.
+The shared shell and Scan/Home experience support English and Khmer, with Khmer as the first-time default and a persisted English or Khmer preference. Remaining main-app pages are localized incrementally. Compare Products retains its independent English and Khmer UI scope; the stable Product Lookup API supports opt-in Khmer Translation for clients that request `language=km`.
 
 - Khmer is the intended primary display language for the public product experience.
-- Original Text remains available per translated field through a clear control.
+- Original Text remains retained in the Source Record; the Khmer Product page does not render per-field Show Original Text controls.
 - Khmer Translation is generated on demand rather than for the whole Dataset Snapshot.
 - Translation output is cached against Dataset Snapshot version, source content, and translation configuration.
-- Machine-generated text is visibly identified.
+- The selected locale supplies the display-language context; standalone Khmer Translation and Original Text field markers are omitted.
+- Generated output is not presented as human-reviewed or verified.
 - Translation failure falls back to Original Text and does not fail Product Lookup.
 - Fluent human review is required for interface vocabulary, navigation, explanations, disclaimers, and accessibility copy.
 - Individual Product translations are not presented as human-reviewed or verified.
@@ -382,7 +383,7 @@ The stable Product Lookup endpoint integrates optional on-demand Khmer Translati
     - The stable response also includes `data.allergen_analysis`, preserving the distinction between Open Food Facts tags, matcher-derived tags, qualifications, unmatched spans, and comparison sets.
 
 2. **Field-Level Co-Location**:
-    - Semantic fields eligible for translation (`identity.name`, `identity.generic_name`, `ingredients_text`, `categories_text`) carry individual translation states: `not_requested`, `source_khmer_available`, `original_text_preserved`, `generated`, `source_data_unavailable`, or `translation_unavailable`.
+    - Semantic fields eligible for translation (`identity.name`, `identity.generic_name`, `ingredients_text`, `categories_text`, individual category items, storage instructions, packaging descriptions, and recycling instructions) carry individual translation states: `not_requested`, `source_khmer_available`, `original_text_preserved`, `generated`, `source_data_unavailable`, or `translation_unavailable`.
     - When translation is generated, `khmer_translation` holds the translated string alongside `original_texts` and `selected_original_text`.
     - Source-provided Khmer is treated as `OriginalText` (`source_khmer_available`) and never receives machine-generated metadata. Empty fields yield `source_data_unavailable` without invoking generation.
 
@@ -399,11 +400,11 @@ The stable Product Lookup endpoint integrates optional on-demand Khmer Translati
     - Per-IP Shopper Product Lookup rate limiting (fail-open) and project-wide translation generation budgeting (fail-closed) operate completely independently.
     - Access logs and metrics strictly exclude Barcode, IP address, Original Text, Khmer Translation, translation prompts, and raw provider payloads.
 
-## 18. Trustworthy existing Khmer Translation fields (Issue #94)
+## 18. Complete Khmer Translation fields (Issue #94)
 
-The main frontend Product Lookup request currently omits the language parameter, so it receives `meta.translation.status="not_requested"` and does not generate translation. Clients that opt into Khmer Translation send `language=km`; `language=kh` is unsupported. Application locale state and standards-based document language tags use `km` when Khmer is enabled.
+The frontend Product Lookup request sends `language=km` whenever Khmer is selected; English requests omit the parameter. `language=kh` is unsupported. Application locale state and standards-based document language tags use `km` when Khmer is enabled.
 
-The four existing field envelopes share selection and classification across generation, cache reuse, provider failure, coordination failure, and emergency fallback. Selection prefers source-provided Khmer (including recognized language variants or conservative script detection), then the Source Record language, English, and deterministic fallback. Script detection does not manufacture language metadata. Human-readable category Original Text retains its source wording and language; taxonomy identifiers are not translation prose.
+All eligible field envelopes share selection and classification across generation, cache reuse, provider failure, coordination failure, and emergency fallback. Selection prefers source-provided Khmer (including recognized language variants or conservative script detection), then the Source Record language, English, and deterministic fallback. Script detection does not manufacture language metadata. Human-readable category, packaging, storage, and recycling Original Text retains its source wording and language; taxonomy identifiers are not translation prose.
 
 | Field status              | Text available for display                                                          |
 | ------------------------- | ----------------------------------------------------------------------------------- |
@@ -418,7 +419,7 @@ With a translation request, the overall status is `not_needed` when no field req
 
 Without Gemini credentials, startup disables generation and writes no new generated artifacts. Compatible existing Google/Gemini artifacts may still be read. Fake providers require explicit injection and canned translations; their `test-fake` / `canned-translations` identity cannot collide with production configuration.
 
-The production translation configuration is `v1`, which includes selection, validation, token protection, and the ingredient chunk limit in its fingerprint. Incompatible and test-provider artifacts cannot satisfy production requests. First use is therefore cold and can regenerate all eligible fields on demand; no automatic deletion or backfill runs.
+The production translation configuration is `v1`, which includes the expanded field selection, validation, token protection, deterministic taxonomy handling, and the ingredient chunk limit in its fingerprint. Incompatible and test-provider artifacts cannot satisfy production requests. Existing compatible artifacts remain durable and can be reused; no automatic deletion or backfill runs.
 
 Validation rejects wrong types, missing outputs, malformed envelopes, incomplete provider responses, broken placeholders, altered protected values, excessive output, and unchanged source prose with a Khmer prefix. Independently valid fields survive. Deterministic tests establish structural behavior, not semantic accuracy or human review. Barcode and Shopper information never enter provider input or artifact identity.
 
@@ -608,7 +609,10 @@ can cause Original Text fallback for long instructions, not shortened translatio
 Packaging items participate in the **v1** configuration fingerprint, including item selection, schema, token protection, and payload/output limits. Complete artifacts remain durable, partial results remain short-lived hot-cache data, and compatible selected text can be reused across Dataset Snapshots while current Original Text provenance is rebuilt.
 The shared translation deadline, generation budget, failure behavior, Source
 Attribution, and Barcode/Shopper privacy boundaries remain in force. No backfill,
-automatic artifact deletion, or frontend packaging display is introduced.
+automatic artifact deletion is introduced. When Khmer is selected, the frontend
+renders translated packaging description, recycling, and storage items without
+per-field Original Text controls. Packaging component table cells also omit
+standalone translation or source markers to preserve compact, consistent rows.
 
 Example packaging fragment for a partial response (`meta.translation.status` is
 `partial`; machine-generated provenance remains in `meta.translation.metadata`):
@@ -1058,6 +1062,13 @@ cancellation, reset, and unmount. Application-side photos, photo-derived text,
 prompts, provider bodies, and provider responses do not enter ordinary logs,
 databases, or translation caches. Gemini-side retention remains governed by the
 configured provider.
+
+When the application is behind a reverse proxy, the deployment must configure
+`LIFEGOODS_TRUSTED_PROXY_CIDRS` with the proxy network as a JSON-encoded array of
+IP/CIDR values. Only requests whose direct peer is in one of those networks may
+use `X-Forwarded-For` for anonymous per-IP limiting; untrusted or malformed
+forwarded headers fall back to the direct peer address. The default is empty for
+direct/local development.
 
 Gemini extraction uses the existing API-key setting and the exact
 `gemini-3.8-flash` model with a dedicated visible-evidence prompt. It requests

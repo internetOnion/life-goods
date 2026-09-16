@@ -5,19 +5,22 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { PackageMatchCandidateResponse } from "@/features/product/types"
 
+import { useProductTranslation } from "../translations"
+
 interface ProvenanceCardProps {
     candidate: PackageMatchCandidateResponse
 }
 
-export const OpenFoodFactsLogo: React.FC<{ className?: string }> = ({
-    className = "h-5 w-5",
-}) => (
+export const OpenFoodFactsLogo: React.FC<{
+    className?: string
+    label?: string
+}> = ({ className = "h-5 w-5", label = "Open Food Facts Logo" }) => (
     <svg
         viewBox="0 0 245 245"
         className={className}
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        aria-label="Open Food Facts Logo"
+        aria-label={label}
     >
         <g>
             <g>
@@ -52,6 +55,7 @@ export const OpenFoodFactsLogo: React.FC<{ className?: string }> = ({
 export const ProvenanceCard: React.FC<ProvenanceCardProps> = ({
     candidate,
 }) => {
+    const { t } = useProductTranslation()
     const source = candidate.source
     const datasetVersion = candidate.dataset_version
     const licensesStr =
@@ -67,14 +71,17 @@ export const ProvenanceCard: React.FC<ProvenanceCardProps> = ({
         <Card className="border-info-200/90 bg-info-50/90 text-info-950 rounded-2xl border shadow-none">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-3 sm:p-5">
                 <CardTitle className="text-info-950 text-sm font-bold tracking-[-0.015em] sm:text-base">
-                    Data Source & Citation
+                    {t("dataSourceCitation")}
                 </CardTitle>
 
                 <Badge
                     variant="subtle"
                     className="border-info-200 text-info-900 flex items-center gap-1.5 bg-white text-xs font-semibold shadow-2xs"
                 >
-                    <OpenFoodFactsLogo className="h-3.5 w-3.5 shrink-0" />
+                    <OpenFoodFactsLogo
+                        className="h-3.5 w-3.5 shrink-0"
+                        label={t("openFoodFactsLogo")}
+                    />
                     <span>{source?.name || "Open Food Facts"}</span>
                 </Badge>
             </CardHeader>
@@ -83,17 +90,17 @@ export const ProvenanceCard: React.FC<ProvenanceCardProps> = ({
                 <div className="divide-info-200/70 border-info-200/70 divide-y border-t text-xs">
                     <div className="flex flex-col justify-between gap-1 py-2 sm:flex-row sm:items-center">
                         <span className="text-info-700 text-caption font-bold tracking-[0.06em] uppercase">
-                            Attribution
+                            {t("attribution")}
                         </span>
                         <span className="text-info-950 truncate text-xs font-semibold sm:text-sm">
                             {source?.attribution ||
-                                "Open Food Facts contributors"}
+                                t("openFoodFactsContributors")}
                         </span>
                     </div>
 
                     <div className="flex flex-col justify-between gap-1 py-2 sm:flex-row sm:items-center">
                         <span className="text-info-700 text-caption font-bold tracking-[0.06em] uppercase">
-                            Data & Image Licenses
+                            {t("dataImageLicenses")}
                         </span>
                         <span className="text-info-950 truncate text-xs font-semibold sm:text-sm">
                             {licensesStr}
@@ -104,7 +111,7 @@ export const ProvenanceCard: React.FC<ProvenanceCardProps> = ({
                         <div className="flex flex-col justify-between gap-1 py-2 sm:flex-row sm:items-baseline">
                             <span className="text-info-700 text-caption flex items-center gap-1 font-bold tracking-[0.06em] uppercase">
                                 <Hash className="h-3 w-3" />
-                                Snapshot SHA-256
+                                {t("snapshotSha256")}
                             </span>
                             <span className="text-info-950 font-mono text-xs break-all tabular-nums sm:max-w-xs sm:truncate">
                                 {datasetVersion.sha256}

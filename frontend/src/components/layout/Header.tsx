@@ -3,6 +3,7 @@ import React from "react"
 
 import { BrandLockup } from "@/components/brand/BrandMark"
 import { Button } from "@/components/ui/button"
+import { useAppTranslation } from "@/i18n/translations"
 import { cn } from "@/lib/utils"
 
 interface HeaderProps {
@@ -16,9 +17,11 @@ export const Header: React.FC<HeaderProps> = ({
     appearance = "solid",
     showBackButton = false,
     onBack,
-    backLabel = "Back to scanner",
+    backLabel,
 }) => {
+    const { t } = useAppTranslation()
     const isGlass = appearance === "glass"
+    const resolvedBackLabel = backLabel ?? t("backToScanner")
 
     return (
         <header
@@ -38,7 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
                             size="icon-sm"
                             onClick={onBack}
                             className="-ml-1 shrink-0 rounded-full text-neutral-600 hover:text-neutral-950"
-                            aria-label={backLabel}
+                            aria-label={resolvedBackLabel}
                         >
                             <ArrowLeft className="h-5 w-5" />
                         </Button>
