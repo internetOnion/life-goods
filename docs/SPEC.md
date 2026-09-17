@@ -1045,10 +1045,13 @@ comparison. Factual differences use deterministic localized templates rather tha
 a second generative interpretation call. Equal values are shown clearly. Missing,
 unreadable, conflicting, qualified, or incompatible values are explained rather
 than shown as zero or as an absence, and usable partial results remain available
-when only some fields are readable. Reported inputs, source-photo evidence, and
-derivation details remain behind accessible disclosure controls. Results contain
-no overall score, winner, or good/bad health color. The page keeps the session in
-memory and provides Reset; it retains no saved history and no manual transcription
+when only some fields are readable. Results show the comparison values, visible
+label percentages, and deterministic state explanations without repeating
+per-row source-photo evidence or derivation disclosures. Source-photo evidence
+remains available in the editable Product Photo Panel, and comparison responses
+retain the underlying evidence and derivation data. Results contain no overall
+score, winner, or good/bad health color. The page keeps the session in memory
+and provides Reset; it retains no saved history and no manual transcription
 editor.
 
 Image input is bounded at 10 MiB per photo, 32 MiB per multipart request, and
@@ -1075,9 +1078,10 @@ Gemini extraction uses the existing API-key setting and the exact
 structured JSON, rejects malformed output or unknown image references, and
 normalizes only explicit numerals and units locally. Missing credentials,
 unsupported provider behavior, timeout, and provider failure return typed errors;
-the app never substitutes fake results or another model. The results view shows
-reported values, original-script evidence, image links, bases, partial or retake
-information, assumptions, and conditional/unavailable comparison rows.
+the app never substitutes fake results or another model. The Product Photo Panel
+shows reported-value evidence and image links; the results view shows bases,
+partial or retake information, assumptions, visible values, percentages, and
+conditional/unavailable comparison rows.
 
 Extraction configuration `photo-extraction-v3` requests compact visible evidence
 with low thinking and a 16,384-token output budget. The provider schema omits
