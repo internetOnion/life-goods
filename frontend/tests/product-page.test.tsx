@@ -83,12 +83,12 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(screen.getByText("4006381333931")).toBeVisible()
         expect(screen.getByText("Barcode", { exact: true })).toBeVisible()
         expect(screen.getByText("Quantity", { exact: true })).toBeVisible()
-        const barcodeCountryRow = screen.getByText("Barcode country", {
+        const allocationRegionRow = screen.getByText("Barcode country", {
             exact: true,
         }).parentElement
-        expect(barcodeCountryRow).not.toBeNull()
+        expect(allocationRegionRow).not.toBeNull()
         expect(
-            within(barcodeCountryRow as HTMLElement).getByText("Germany", {
+            within(allocationRegionRow as HTMLElement).getByText("Germany", {
                 exact: true,
             }),
         ).toBeVisible()
@@ -1581,12 +1581,12 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(
             await screen.findByRole("heading", { name: "Sparse Product" }),
         ).toBeVisible()
-        const barcodeCountryRow = screen.getByText("Barcode country", {
+        const allocationRegionRow = screen.getByText("Barcode country", {
             exact: true,
         }).parentElement
-        expect(barcodeCountryRow).not.toBeNull()
+        expect(allocationRegionRow).not.toBeNull()
         expect(
-            within(barcodeCountryRow as HTMLElement).getByText("Germany", {
+            within(allocationRegionRow as HTMLElement).getByText("Germany", {
                 exact: true,
             }),
         ).toBeVisible()
@@ -1605,10 +1605,90 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(
             screen.queryByText("Allergen Findings", { exact: true }),
         ).not.toBeInTheDocument()
+        const summary = screen.getByRole("tabpanel", { name: "Summary" })
+        expect(
+            within(summary).getByText("Source Data Unavailable", {
+                exact: true,
+            }),
+        ).toBeVisible()
+        expect(
+            within(summary).getByText(
+                "The Source Record did not include this information.",
+                { exact: true },
+            ),
+        ).toBeVisible()
         expect(screen.queryByText("Source Assessments")).not.toBeInTheDocument()
         expect(screen.queryByText("Not computed")).not.toBeInTheDocument()
         expect(screen.queryByText("NOVA not computed")).not.toBeInTheDocument()
         expect(screen.queryByText(/Green-Score/i)).not.toBeInTheDocument()
+    })
+
+    test("uses a separate fallback when the GS1 prefix is non-geographic", async () => {
+        const barcode = "9780306406157"
+        const response = productResponse({
+            code: barcode,
+            product_name_en: "Bookland Example",
+        })
+        response.meta.lookup.barcode = barcode
+        response.meta.source.product_url = `https://world.openfoodfacts.org/product/${barcode}`
+        renderProduct(
+            vi.fn<ProductLookup>().mockResolvedValue(response),
+            barcode,
+        )
+
+        const allocationRegionRow = (
+            await screen.findByText("Barcode country", { exact: true })
+        ).parentElement
+        expect(allocationRegionRow).not.toBeNull()
+        expect(
+            within(allocationRegionRow as HTMLElement).getByText(
+                "Not derivable from this Barcode",
+                { exact: true },
+            ),
+        ).toBeVisible()
+        expect(
+            within(allocationRegionRow as HTMLElement).queryByText(
+                "Source Data Unavailable",
+                { exact: true },
+            ),
+        ).not.toBeInTheDocument()
+    })
+
+    test("localizes the Summary unavailable state in Khmer", async () => {
+        renderProduct(
+            vi.fn<ProductLookup>().mockResolvedValue(
+                productResponse({
+                    product_name_en: "Sparse Product",
+                    brands: "",
+                    quantity: null,
+                    selected_images: {},
+                    ingredients_text_en: "",
+                    categories_tags: [],
+                    labels_tags: [],
+                    countries_tags: [],
+                    nutriments: {},
+                    packaging_text_en: "",
+                    origins_tags: [],
+                    manufacturing_places: "",
+                    nutriscore_grade: null,
+                    environmental_score_grade: null,
+                }),
+            ),
+            "4006381333931",
+            "km",
+        )
+
+        const summary = await screen.findByRole("tabpanel", {
+            name: "សង្ខែប",
+        })
+        expect(
+            within(summary).getByText("មិនមានទិន្នន័យ", { exact: true }),
+        ).toBeVisible()
+        expect(
+            within(summary).getByText("ប្រភពទិន្នន័យមិនមានព័ត៌មាននេះទេ។", {
+                exact: true,
+            }),
+        ).toBeVisible()
     })
 
     test("does not show assessment cards when no valid assessment is available", async () => {
