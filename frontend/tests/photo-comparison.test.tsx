@@ -1028,6 +1028,167 @@ describe("Compare Products frontend page (/compare)", () => {
             "contract-valid",
         )
     })
+
+    test("shows a comparison-level alert and retries without losing extracted labels", async () => {
+        const user = userEvent.setup()
+        const makeExtraction = (productId: string): Extraction => ({
+            schema_version: 1,
+            product_id: productId,
+            images: [],
+            package_quantity: null,
+            nutrition_columns: [
+                {
+                    column_id: `${productId}-column`,
+                    label: "Per 100g",
+                    basis: "per_100g",
+                    fields: [],
+                },
+            ],
+            outcome: "complete",
+            provider: "google",
+            model: "gemini",
+            configuration_version: "1.0.0",
+        })
+        const extractPhotosMock = vi.fn((productId: string) =>
+            Promise.resolve(makeExtraction(productId)),
+        )
+        const compareMock = vi
+            .fn()
+            .mockRejectedValue(new Error("opaque comparison provider detail"))
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+        render(
+            <QueryClientProvider client={queryClient}>
+                <MemoryRouter initialEntries={["/compare"]}>
+                    <PhotoComparisonPage
+                        extractPhotos={extractPhotosMock}
+                        compare={compareMock}
+                    />
+                </MemoryRouter>
+            </QueryClientProvider>,
+        )
+
+        fireEvent.change(
+            document.getElementById("upload-photos-left") as HTMLInputElement,
+            {
+                target: {
+                    files: [
+                        new File(["left"], "left.jpg", { type: "image/jpeg" }),
+                    ],
+                },
+            },
+        )
+        fireEvent.change(
+            document.getElementById("upload-photos-right") as HTMLInputElement,
+            {
+                target: {
+                    files: [
+                        new File(["right"], "right.jpg", {
+                            type: "image/jpeg",
+                        }),
+                    ],
+                },
+            },
+        )
+
+        await user.click(
+            screen.getByRole("button", { name: "Compare Products" }),
+        )
+
+        const alert = await screen.findByRole("alert")
+        expect(
+            within(alert).getByRole("heading", {
+                name: "The comparison could not be completed",
+            }),
+        ).toBeInTheDocument()
+        expect(alert).toHaveTextContent("The request failed. Please retry.")
+        expect(alert).toHaveTextContent(
+            "Your photos are still here. Check your connection and try the comparison again.",
+        )
+        expect(alert).not.toHaveTextContent("opaque comparison provider detail")
+        expect(extractPhotosMock).toHaveBeenCalledTimes(2)
+
+        await user.click(
+            within(alert).getByRole("button", { name: "Retry comparison" }),
+        )
+        await waitFor(() => expect(compareMock).toHaveBeenCalledTimes(2))
+        expect(extractPhotosMock).toHaveBeenCalledTimes(2)
+    })
+
+    test("normalizes every stable API error code without exposing raw messages", () => {
+        expect(
+            formatActionableError(
+                "The request payload is not valid.",
+                "request_invalid",
+            ),
+        ).toBe("Choose a valid JPEG or PNG photo, then try again.")
+        expect(
+            formatActionableError(
+                "Only JPEG and PNG photos are supported.",
+                "unsupported_image_format",
+            ),
+        ).toBe("Choose a valid JPEG or PNG photo, then try again.")
+        expect(
+            formatActionableError(
+                "The upload request must be smaller.",
+                "size_limit_exceeded",
+            ),
+        ).toBe(
+            "The submitted photos are too large. Choose smaller photos and try again.",
+        )
+        expect(
+            formatActionableError(
+                "The extraction limit is 10 requests per minute.",
+                "rate_limit_exceeded",
+            ),
+        ).toBe("Processing capacity has been reached. Wait a moment and retry.")
+        expect(
+            formatActionableError(
+                "The provider is at capacity.",
+                "capacity_limit_exceeded",
+            ),
+        ).toBe("Processing capacity has been reached. Wait a moment and retry.")
+        expect(
+            formatActionableError(
+                "The provider timed out.",
+                "provider_timeout",
+            ),
+        ).toBe(
+            "Photo processing request timed out. Please check your connection and tap Retry.",
+        )
+        expect(
+            formatActionableError(
+                "The provider is unavailable.",
+                "provider_unavailable",
+            ),
+        ).toBe(
+            "Photo processing is temporarily unavailable. Check your connection and retry.",
+        )
+        expect(
+            formatActionableError(
+                "The provider returned invalid output.",
+                "provider_output_invalid",
+            ),
+        ).toBe(
+            "We couldn’t reliably read this label. Try a clearer photo and tap Retry.",
+        )
+        expect(
+            formatActionableError(
+                "provider internals should stay private",
+                "internal_error",
+                "km",
+            ),
+        ).not.toContain("provider internals")
+        expect(
+            formatActionableError(
+                "provider internals should stay private",
+                "internal_error",
+                "km",
+            ),
+        ).toBe("សំណើបានបរាជ័យ។ សូមសាកល្បងម្ដងទៀត។")
+    })
 })
 
 describe("ComparisonSection Shopper-ready presentation", () => {
@@ -1742,6 +1903,82 @@ describe("Photo inspection and UX features", () => {
         fireEvent.click(screen.getByRole("button", { name: /Remove photo 3/i }))
         expect(
             screen.getByRole("button", { name: /Add another photo/i }),
+        ).toBeInTheDocument()
+    })
+
+    test("turns an unreadable preview into an accessible replaceable error state", () => {
+        const onPhotoPreviewError = vi.fn()
+        const photo = {
+            file: new File(["broken"], "broken.jpg", { type: "image/jpeg" }),
+            url: "blob:http://localhost/broken",
+            localId: "broken-photo",
+        }
+        const product: ProductSideState = {
+            id: "left",
+            title: "Product A",
+            number: "1",
+            photos: [photo],
+            extraction: null,
+            selectedColumnId: null,
+            loading: false,
+            error: "This photo could not be opened. Replace it or remove it before comparing.",
+            retry: false,
+            revision: 1,
+        }
+
+        const { rerender } = render(
+            <ProductPhotoPanel
+                product={{ ...product, error: "" }}
+                highlightedPhotoId={null}
+                previewRefs={{ current: {} }}
+                onTitleChange={vi.fn()}
+                onAddFiles={vi.fn()}
+                onRemovePhoto={vi.fn()}
+                onReplacePhoto={vi.fn()}
+                onClearPhotos={vi.fn()}
+                onPhotoPreviewError={onPhotoPreviewError}
+                onSelectColumn={vi.fn()}
+                onFocusEvidence={vi.fn()}
+            />,
+        )
+
+        fireEvent.error(screen.getByAltText("Product A photo 1"))
+        expect(onPhotoPreviewError).toHaveBeenCalledWith(0)
+
+        rerender(
+            <ProductPhotoPanel
+                product={{
+                    ...product,
+                    photos: [{ ...photo, previewError: true }],
+                }}
+                highlightedPhotoId={null}
+                previewRefs={{ current: {} }}
+                onTitleChange={vi.fn()}
+                onAddFiles={vi.fn()}
+                onRemovePhoto={vi.fn()}
+                onReplacePhoto={vi.fn()}
+                onClearPhotos={vi.fn()}
+                onPhotoPreviewError={onPhotoPreviewError}
+                onSelectColumn={vi.fn()}
+                onFocusEvidence={vi.fn()}
+            />,
+        )
+
+        const alert = screen.getByRole("alert")
+        expect(alert).toHaveTextContent("This photo could not be used")
+        expect(alert).toHaveTextContent(
+            "This photo could not be opened. Replace it or remove it before comparing.",
+        )
+        expect(
+            screen.getByRole("img", {
+                name: "This photo could not be opened. Replace it or remove it before comparing.",
+            }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: "Replace photo 1" }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: "Remove photo 1" }),
         ).toBeInTheDocument()
     })
 })

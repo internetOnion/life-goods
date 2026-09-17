@@ -59,6 +59,19 @@ const en = {
     fileTooLarge:
         "{{files}} exceeds the 10 MiB limit. Choose a smaller photo or retake it at standard resolution.",
     noValidImages: "No valid JPEG or PNG photos were selected.",
+    photoErrorTitle: "This photo could not be used",
+    labelReadingErrorTitle: "We couldn’t read this label",
+    comparisonErrorTitle: "The comparison could not be completed",
+    invalidPhotoRequest: "Choose a valid JPEG or PNG photo, then try again.",
+    photoRequestTooLarge:
+        "The submitted photos are too large. Choose smaller photos and try again.",
+    photoPreviewUnavailable:
+        "This photo could not be opened. Replace it or remove it before comparing.",
+    retryReadingProduct: "Retry reading {{product}}",
+    retryPhotoGuidance:
+        "Try a clearer, well-lit photo showing the complete Nutrition Facts panel.",
+    comparisonErrorGuidance:
+        "Your photos are still here. Check your connection and try the comparison again.",
     extractionFailed:
         "The label could not be read. Check your connection and try again.",
     comparisonFailed:
@@ -317,6 +330,19 @@ const km: Record<keyof typeof en, string> = {
     fileTooLarge:
         "{{files}} លើសទំហំកំណត់ 10 MiB។ ជ្រើសរូបតូចជាងនេះ ឬថតម្ដងទៀត។",
     noValidImages: "មិនមានរូប JPEG ឬ PNG ត្រឹមត្រូវត្រូវបានជ្រើសទេ។",
+    photoErrorTitle: "មិនអាចប្រើរូបថតនេះបានទេ",
+    labelReadingErrorTitle: "មិនអាចអានស្លាកនេះបានទេ",
+    comparisonErrorTitle: "មិនអាចបញ្ចប់ការប្រៀបធៀបបានទេ",
+    invalidPhotoRequest: "ជ្រើសរូប JPEG ឬ PNG ត្រឹមត្រូវ ហើយសាកល្បងម្ដងទៀត។",
+    photoRequestTooLarge:
+        "រូបថតដែលបានផ្ញើមានទំហំធំពេក។ ជ្រើសរូបតូចជាងនេះ ហើយសាកល្បងម្ដងទៀត។",
+    photoPreviewUnavailable:
+        "មិនអាចបើករូបថតនេះបានទេ។ ប្ដូរ ឬលុបវាមុនពេលប្រៀបធៀប។",
+    retryReadingProduct: "សាកអាន {{product}} ម្ដងទៀត",
+    retryPhotoGuidance:
+        "សាកថតរូបថ្មីដែលច្បាស់ មានពន្លឺល្អ និងបង្ហាញផ្ទាំងព័ត៌មានអាហារូបត្ថម្ភទាំងមូល។",
+    comparisonErrorGuidance:
+        "រូបថតរបស់អ្នកនៅដដែល។ ពិនិត្យអ៊ីនធឺណិត ហើយសាកប្រៀបធៀបម្ដងទៀត។",
     extractionFailed:
         "មិនអាចអានស្លាកបានទេ។ ពិនិត្យអ៊ីនធឺណិត ហើយសាកល្បងម្ដងទៀត។",
     comparisonFailed:
