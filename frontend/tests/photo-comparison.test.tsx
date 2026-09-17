@@ -490,12 +490,12 @@ describe("Compare Products frontend page (/compare)", () => {
         expect(
             screen.getByRole("heading", {
                 level: 2,
-                name: "Compare two Products",
+                name: "Compare Two Products",
             }),
         ).toBeInTheDocument()
         const introHeading = screen.getByRole("heading", {
             level: 2,
-            name: "Compare two Products",
+            name: "Compare Two Products",
         })
         expect(introHeading).toHaveClass("icon-heading-title")
         expect(introHeading.parentElement).toHaveClass("icon-heading-row")
@@ -660,7 +660,7 @@ describe("Compare Products frontend page (/compare)", () => {
         expect(
             screen.getByRole("heading", {
                 level: 2,
-                name: "Compare two Products",
+                name: "Compare Two Products",
             }),
         ).toBeInTheDocument()
         expect(
@@ -740,7 +740,7 @@ describe("Compare Products frontend page (/compare)", () => {
         expect(
             screen.getByRole("heading", {
                 level: 2,
-                name: "Compare two Products",
+                name: "Compare Two Products",
             }),
         ).toBeInTheDocument()
     })
@@ -1232,7 +1232,7 @@ describe("ComparisonSection Shopper-ready presentation", () => {
         ],
     }
 
-    test("displays normalized amounts, printed labels, and a collapsed label percentages section", () => {
+    test("displays normalized amounts and visible label percentages", () => {
         render(
             <ComparisonSection
                 comparison={mockComparison}
@@ -1252,6 +1252,20 @@ describe("ComparisonSection Shopper-ready presentation", () => {
         })
         expect(comparisonHeading).toHaveClass("icon-heading-title")
         expect(comparisonHeading.parentElement).toHaveClass("icon-heading-row")
+        expect(comparisonHeading).toHaveClass("text-xl")
+        expect(comparisonHeading).toHaveClass("flex", "flex-col")
+        expect(comparisonHeading.children).toHaveLength(3)
+        expect(comparisonHeading.children[0]).toHaveTextContent(
+            "Mama Instant Noodles",
+        )
+        expect(comparisonHeading.children[1]).toHaveTextContent("vs")
+        expect(comparisonHeading.children[2]).toHaveTextContent("Product B")
+        expect(
+            comparisonHeading.parentElement?.querySelector("span"),
+        ).toHaveClass("size-11")
+        expect(
+            screen.queryByText("Based on Photo Evidence."),
+        ).not.toBeInTheDocument()
         expect(
             screen
                 .getAllByRole("table")
@@ -1261,9 +1275,6 @@ describe("ComparisonSection Shopper-ready presentation", () => {
         // 1. Check normalized amounts are displayed prominently
         expect(screen.getAllByText("1,380 mg").length).toBeGreaterThan(0)
         expect(screen.getByText("1,500 mg")).toBeInTheDocument()
-        // Product B printed value is shown underneath
-        expect(screen.getByText("1.5 g")).toBeInTheDocument()
-        expect(screen.getByText(/Printed:/i)).toBeInTheDocument()
 
         // 2. Check nutrient names are clean English, never internal hash IDs
         expect(screen.getAllByText("Sodium")).toHaveLength(2)
@@ -1285,18 +1296,45 @@ describe("ComparisonSection Shopper-ready presentation", () => {
             "1 comparable nutrient · 1 unavailable",
         )
         expect(screen.queryByText(/unconfirmed/i)).not.toBeInTheDocument()
-        expect(
-            screen.getByLabelText("Evidence and calculation for Sodium"),
-        ).toHaveTextContent("Evidence & calculation")
 
-        // 4. Label percentages remain available behind a closed disclosure.
-        const percentageDisclosure = screen
-            .getByText("Show label percentages")
-            .closest("details")
-        expect(percentageDisclosure).not.toBeNull()
-        expect(percentageDisclosure).not.toHaveAttribute("open")
+        const separatedAmountRows = screen
+            .getAllByRole("row")
+            .filter((row) => row.classList.contains("rounded-xl"))
+        expect(separatedAmountRows.length).toBeGreaterThan(0)
+        expect(
+            within(separatedAmountRows[0]!).getByText("Sodium"),
+        ).toBeInTheDocument()
+        expect(
+            within(separatedAmountRows[0]!).getAllByText("Mama Instant Noodles")
+                .length,
+        ).toBeGreaterThan(0)
+        expect(
+            within(separatedAmountRows[0]!).getAllByText("Product B").length,
+        ).toBeGreaterThan(0)
+        expect(
+            screen
+                .getAllByText("Mama Instant Noodles")
+                .some((element) => element.classList.contains("wrap-anywhere")),
+        ).toBe(true)
+        expect(
+            screen
+                .getAllByText("Product B")
+                .some((element) => element.classList.contains("wrap-anywhere")),
+        ).toBe(true)
+        expect(
+            screen.getByRole("heading", { name: "Label percentages" }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByText(
+                "Daily value percentages are label reference values and may use different serving bases.",
+            ),
+        ).toBeInTheDocument()
         expect(screen.getByText("60 %")).toBeInTheDocument()
         expect(screen.getByText("65 %")).toBeInTheDocument()
+        expect(
+            screen.queryByText("Evidence & calculation"),
+        ).not.toBeInTheDocument()
+        expect(screen.queryByText(/View photo 1/i)).not.toBeInTheDocument()
 
         // 5. Check missing data uses "Not found in these photos" and NEVER "Source Data Unavailable"
         expect(
@@ -1305,9 +1343,6 @@ describe("ComparisonSection Shopper-ready presentation", () => {
         expect(
             screen.queryByText(/Source Data Unavailable/i),
         ).not.toBeInTheDocument()
-
-        // 6. Check photo evidence buttons show readable sequence numbers
-        expect(screen.getAllByText(/View photo 1/i).length).toBeGreaterThan(0)
     })
 
     test("displays equal-weight comparison notice when target basis is per_100g and provides directional differences", () => {
@@ -1547,6 +1582,7 @@ describe("Photo inspection and UX features", () => {
     test("ProductPhotoPanel shows detected product identity and allows applying it as title", async () => {
         const user = userEvent.setup()
         const onTitleChange = vi.fn()
+        const onFocusEvidence = vi.fn()
 
         const productWithIdentity: ProductSideState = {
             id: "left",
@@ -1572,7 +1608,15 @@ describe("Photo inspection and UX features", () => {
                         evidence: [],
                     },
                 },
-                images: [],
+                images: [
+                    {
+                        image_id: "label-1",
+                        original_image_id: "label-1",
+                        role: "label",
+                        width: 1200,
+                        height: 900,
+                    },
+                ],
                 package_quantity: null,
                 nutrition_columns: [],
                 outcome: "complete",
@@ -1599,7 +1643,7 @@ describe("Photo inspection and UX features", () => {
                 onClearPhotos={vi.fn()}
                 onExtract={vi.fn()}
                 onSelectColumn={vi.fn()}
-                onFocusEvidence={vi.fn()}
+                onFocusEvidence={onFocusEvidence}
             />,
         )
 
@@ -1609,6 +1653,13 @@ describe("Photo inspection and UX features", () => {
             "lang",
             "und",
         )
+
+        await user.click(screen.getByText("Detected details"))
+        const viewPhotoButton = screen.getByRole("button", {
+            name: "View photo 1",
+        })
+        await user.click(viewPhotoButton)
+        expect(onFocusEvidence).toHaveBeenCalledWith("label-1")
 
         const useAsTitleBtn = screen.getByRole("button", {
             name: /Use as title/i,
@@ -1923,7 +1974,7 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         expect(preparedBasisButton).toHaveAttribute("aria-pressed", "false")
     })
 
-    test("each value states basis and distinguishes dry vs prepared values", () => {
+    test("states shared basis and preparation context for each comparison", () => {
         const mockRow: ComparisonResponse = {
             schema_version: 1,
             calculated_from_submitted_evidence: true,
@@ -2042,12 +2093,13 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         expect(screen.getAllByText("Product A").length).toBeGreaterThan(0)
         expect(screen.getAllByText("Product B").length).toBeGreaterThan(0)
 
-        // Evidence and details are placed behind accessible disclosure controls
-        const disclosures = screen.getAllByText("Evidence & calculation")
-        expect(disclosures.length).toBeGreaterThan(0)
+        // Result rows do not repeat source evidence or derivation details.
+        expect(
+            screen.queryByText("Evidence & calculation"),
+        ).not.toBeInTheDocument()
     })
 
-    test("results lead with Product identities, comparison basis, and nutrition comparison while details sit behind accessible disclosures", () => {
+    test("results lead with Product identities, comparison basis, and nutrition comparison without row evidence disclosures", () => {
         const mockDisclosedComparison: ComparisonResponse = {
             schema_version: 1,
             calculated_from_submitted_evidence: true,
@@ -2208,26 +2260,21 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         expect(screen.getByText("+880 mg")).toBeInTheDocument()
         expect(screen.getByText("Crisps A has more")).toBeInTheDocument()
 
-        // 4. Details sit behind accessible disclosure controls
-        const disclosures = screen.getAllByText("Evidence & calculation")
-        expect(disclosures.length).toBeGreaterThan(0)
+        // The comparison-basis explanation remains available, but row evidence
+        // and derivation disclosures are not repeated in the results.
         expect(
             screen
                 .getByText("How this comparison was calculated")
                 .closest("details"),
         ).not.toHaveAttribute("open")
-        expect(disclosures[0]?.closest("details")).not.toHaveAttribute("open")
-
-        // Inside disclosure: reported printed values that differ from normalized
-        expect(screen.getByText(/Printed:/i)).toBeInTheDocument()
-        expect(screen.getByText("1.38 g")).toBeInTheDocument()
-
-        // Inside disclosure: source photo evidence button
-        expect(screen.getAllByText("View photo 1").length).toBeGreaterThan(0)
+        expect(
+            screen.queryByText("Evidence & calculation"),
+        ).not.toBeInTheDocument()
+        expect(screen.queryByText(/Printed:/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(/View photo 1/i)).not.toBeInTheDocument()
     })
 
-    test("handles partial extractions, unreadable values, and explicit zero distinct from missing data", async () => {
-        const user = userEvent.setup()
+    test("handles partial extractions, unreadable values, and explicit zero distinct from missing data", () => {
         const mockPartialComparison: ComparisonResponse = {
             schema_version: 1,
             calculated_from_submitted_evidence: true,
@@ -2407,20 +2454,13 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         expect(
             screen.queryByText("One or both observations are not readable."),
         ).not.toBeInTheDocument()
-        expect(screen.queryByText("Not comparable")).not.toBeInTheDocument()
+        expect(screen.getAllByText("Not comparable").length).toBeGreaterThan(0)
         expect(
             screen.queryByText("Not found in photos for the other product."),
         ).not.toBeInTheDocument()
-
-        const calciumEvidence = screen.getByLabelText("Evidence for Calcium")
-        expect(calciumEvidence).toHaveTextContent("Evidence")
-        expect(calciumEvidence).not.toHaveTextContent("calculation")
-        await user.click(calciumEvidence)
         expect(
-            screen.getByRole("button", {
-                name: "Calcium for Product A: view photo 1",
-            }),
-        ).toBeInTheDocument()
+            screen.queryByLabelText("Evidence for Calcium"),
+        ).not.toBeInTheDocument()
     })
 
     test("displays conflicting values and suppresses definitive difference for unknown preparation", () => {
@@ -2584,14 +2624,14 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         expect(screen.getByText("500 mg")).toBeInTheDocument()
         expect(screen.getByText("vs 650 mg")).toBeInTheDocument()
 
-        // Conditional normalization details do not occupy the Shopper-facing
-        // Difference column, while the underlying assumptions remain disclosed.
-        expect(screen.queryByText("Conditional")).not.toBeInTheDocument()
+        // Conditional normalization does not produce a definitive Difference;
+        // the row explains why it is not comparable.
+        expect(screen.getAllByText("Not comparable").length).toBeGreaterThan(0)
         expect(
             screen.queryByText(
                 "Preparation state is unknown, so the normalized values are conditional.",
             ),
-        ).not.toBeInTheDocument()
+        ).toBeInTheDocument()
         expect(
             screen.getAllByText(
                 "Preparation state is unknown for at least one Product.",
