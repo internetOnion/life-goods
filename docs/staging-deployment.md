@@ -274,7 +274,14 @@ health only from the VPS/container network. Inspect no request bodies or persona
 fields in ordinary logs; Worker observability and Uvicorn access logs are disabled.
 
 Manually test camera permissions, Barcode decoding, typed entry and photo capture
-on Android and iOS browsers. This cannot be established by unit tests.
+on Android and iOS browsers. For Barcode scanning, exercise the rear-camera torch
+on Android Chrome, Samsung Internet, Firefox for Android, at least one other
+Chromium-based browser such as Edge, Opera or Brave, and Android WebView/PWA where
+available. On a camera/browser combination that exposes the standard torch
+capability, verify that the flash control enables the torch and turns it off again;
+otherwise verify that the control remains clearly unavailable without breaking the
+scanner. Repeat the torch smoke test after switching cameras, and run an iOS smoke
+test to catch regressions. This cannot be established by unit tests.
 
 Measure cold/warm lookup and search latency at five concurrent Shoppers, excluding
 paid AI calls from load generation. Collect aggregate status/latency, disk usage,

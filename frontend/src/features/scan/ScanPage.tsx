@@ -446,12 +446,9 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
 
                 {cameraState === "consent" ? (
                     <div className="relative z-20 grid min-h-[24rem] place-items-center px-6 py-10 text-center sm:min-h-[27rem] sm:px-10">
-                        <div
-                            data-glass-surface="camera"
-                            className="max-w-xs rounded-2xl p-5 sm:p-6"
-                        >
-                            <PrivacyScannerIllustration className="mx-auto mb-2 drop-shadow-md" />
-                            <h2 className="mt-5 text-xl font-bold tracking-tight text-white">
+                        <div className="max-w-[20rem]">
+                            <PrivacyScannerIllustration className="mx-auto drop-shadow-md" />
+                            <h2 className="mt-6 text-xl font-bold tracking-tight text-white">
                                 {text.privacyTitle}
                             </h2>
                             <p className="mt-2 text-sm leading-relaxed text-[#9FB1CB]">
@@ -460,7 +457,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                             <Button
                                 appearance="glass"
                                 glassTone="primary"
-                                className="mt-5 min-h-11 rounded-full px-6 text-sm font-bold"
+                                className="mt-6 min-h-11 rounded-full px-6 text-sm font-bold"
                                 type="button"
                                 onClick={beginFirstCameraSession}
                             >
@@ -477,10 +474,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
 
                 {cameraState === "starting" ? (
                     <div className="relative z-20 grid min-h-[24rem] place-items-center px-6 text-center sm:min-h-[27rem]">
-                        <div
-                            data-glass-surface="camera"
-                            className="flex flex-col items-center rounded-2xl px-6 py-5"
-                        >
+                        <div className="flex max-w-[20rem] flex-col items-center">
                             <ArrowClockwiseIcon
                                 className="text-[#E7B583] motion-safe:animate-spin"
                                 size={34}
@@ -496,10 +490,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
 
                 {cameraState === "paused" ? (
                     <div className="relative z-20 grid min-h-[24rem] place-items-center px-6 py-10 text-center sm:min-h-[27rem]">
-                        <div
-                            data-glass-surface="camera"
-                            className="max-w-sm rounded-2xl p-5 sm:p-6"
-                        >
+                        <div className="flex max-w-[20rem] flex-col items-center">
                             <div
                                 className="mx-auto grid size-16 place-items-center rounded-2xl bg-[#303843] text-[#C6CFDD]"
                                 aria-hidden="true"

@@ -121,7 +121,7 @@ describe("camera Barcode scanner", () => {
             screen
                 .getByRole("heading", { name: "Private camera scanning" })
                 .closest('[data-glass-surface="camera"]'),
-        ).toBeInTheDocument()
+        ).toBeNull()
         expect(
             screen.getByRole("button", { name: "Start camera" }),
         ).toHaveAttribute("data-glass", "primary")
@@ -129,6 +129,29 @@ describe("camera Barcode scanner", () => {
             "href",
             "/search",
         )
+    })
+
+    test("keeps the starting state on the dark camera surface", async () => {
+        const user = userEvent.setup()
+        let resolveStart: (session: { stop: () => void }) => void = () => {}
+        startMock.mockReturnValue(
+            new Promise<{ stop: () => void }>((resolve) => {
+                resolveStart = resolve
+            }),
+        )
+        renderPage()
+
+        await user.click(screen.getByRole("button", { name: "Start camera" }))
+
+        const startingMessage = screen.getByText("Starting camera...", {
+            selector: "p",
+        })
+        expect(startingMessage).toBeVisible()
+        expect(
+            startingMessage.closest('[data-glass-surface="camera"]'),
+        ).toBeNull()
+
+        resolveStart({ stop: vi.fn() })
     })
 
     test("renders the Khmer consent and typed Barcode affordance", () => {
@@ -322,7 +345,7 @@ describe("camera Barcode scanner", () => {
         )
     })
 
-    test("shows a dark frosted recovery panel when the camera is paused", async () => {
+    test("keeps the paused state on the dark camera surface", async () => {
         const user = userEvent.setup()
         sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
         startMock.mockResolvedValue({ stop: vi.fn() })
@@ -336,7 +359,7 @@ describe("camera Barcode scanner", () => {
         })
         expect(
             pausedHeading.closest('[data-glass-surface="camera"]'),
-        ).toBeInTheDocument()
+        ).toBeNull()
         expect(
             screen.getByRole("button", { name: "Resume camera" }),
         ).toHaveAttribute("data-glass", "primary")

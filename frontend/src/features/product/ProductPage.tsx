@@ -36,6 +36,7 @@ import {
     findSelectedConcernMatches,
     useSelectedConcernStorage,
 } from "@/features/concerns/matching"
+import { getIngredientSummaryData, hasNutrientLevelData } from "./summaryData"
 import { getTranslatedFieldText } from "./translation-utils"
 import { translateProductError, useProductTranslation } from "./translations"
 
@@ -147,6 +148,17 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
         offView?.ecoscoreGrade && offView.ecoscoreGrade !== "unknown",
     )
     const hasSourceAssessments = hasNutriScore || hasNovaGroup || hasEcoScore
+    const ingredientSummaryData = getIngredientSummaryData(
+        locale,
+        allConcernMatches,
+        labelEvidence,
+    )
+    const hasSummaryData = Boolean(
+        hasSourceAssessments ||
+        (offView && hasNutrientLevelData(offView.nutrientLevels)) ||
+        ingredientSummaryData.matchedIngredients.length > 0 ||
+        ingredientSummaryData.additiveTags.length > 0,
+    )
 
     useEffect(() => {
         if (!normalizedBarcode) return
@@ -423,38 +435,59 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                 value="summary"
                                 className="scroll-mt-32 space-y-4 pt-2"
                             >
-                                {hasSourceAssessments && (
-                                    <SourceAssessmentsCard
-                                        showHeader={false}
-                                        nutriscoreGrade={
-                                            offView.nutriscoreGrade
-                                        }
-                                        nutriscoreScore={
-                                            offView.nutriscoreScore
-                                        }
-                                        nutriscoreVersion={
-                                            offView.nutriscoreVersion
-                                        }
-                                        novaGroup={offView.novaGroup}
-                                        novaGroupsMarkers={
-                                            offView.novaGroupsMarkers
-                                        }
-                                        ecoscoreGrade={offView.ecoscoreGrade}
-                                        ecoscoreScore={offView.ecoscoreScore}
-                                    />
-                                )}
-                                <NutrientLevelsCard
-                                    levels={offView.nutrientLevels}
-                                    labelEvidence={labelEvidence}
-                                />
+                                {hasSummaryData ? (
+                                    <>
+                                        {hasSourceAssessments && (
+                                            <SourceAssessmentsCard
+                                                showHeader={false}
+                                                nutriscoreGrade={
+                                                    offView.nutriscoreGrade
+                                                }
+                                                nutriscoreScore={
+                                                    offView.nutriscoreScore
+                                                }
+                                                nutriscoreVersion={
+                                                    offView.nutriscoreVersion
+                                                }
+                                                novaGroup={offView.novaGroup}
+                                                novaGroupsMarkers={
+                                                    offView.novaGroupsMarkers
+                                                }
+                                                ecoscoreGrade={
+                                                    offView.ecoscoreGrade
+                                                }
+                                                ecoscoreScore={
+                                                    offView.ecoscoreScore
+                                                }
+                                            />
+                                        )}
+                                        <NutrientLevelsCard
+                                            levels={offView.nutrientLevels}
+                                            labelEvidence={labelEvidence}
+                                        />
 
-                                <IngredientSummaryCard
-                                    concernMatches={allConcernMatches}
-                                    labelEvidence={labelEvidence}
-                                    onViewEvidence={() =>
-                                        handleTabChange("ingredients")
-                                    }
-                                />
+                                        <IngredientSummaryCard
+                                            concernMatches={allConcernMatches}
+                                            labelEvidence={labelEvidence}
+                                            onViewEvidence={() =>
+                                                handleTabChange("ingredients")
+                                            }
+                                        />
+                                    </>
+                                ) : (
+                                    <Card className="rounded-2xl border-neutral-200/90 bg-white shadow-xs">
+                                        <CardContent className="space-y-1 p-4 sm:p-5">
+                                            <p className="text-sm font-semibold text-neutral-900">
+                                                {t("sourceDataUnavailable")}
+                                            </p>
+                                            <p className="text-caption text-neutral-500">
+                                                {t(
+                                                    "sourceDataUnavailableDetail",
+                                                )}
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                )}
                             </TabsContent>
 
                             {/* Tab 2: Ingredients */}

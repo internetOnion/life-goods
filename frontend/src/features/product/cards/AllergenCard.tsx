@@ -268,15 +268,6 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                     </section>
                 )}
 
-                {declarationTags.length === 0 && traceTags.length === 0 && (
-                    <div className="flex items-center gap-2.5 rounded-xl border border-neutral-200/80 bg-neutral-50/80 p-3 text-xs text-neutral-700">
-                        <AlertCircle className="h-4 w-4 shrink-0 text-neutral-500" />
-                        <span className="font-medium">
-                            {t("noAllergenTags")}
-                        </span>
-                    </div>
-                )}
-
                 {hasUnavailableCheck && (
                     <p className="text-caption flex items-start gap-1.5 border-t border-neutral-100 pt-3 text-neutral-500">
                         <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
