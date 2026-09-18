@@ -150,6 +150,9 @@ def _setup_search_database():
     search_col.create_index([("country_tokens", 1)], name="ix_search_country_tokens")
     search_col.create_index([("name_sort", 1), ("code", 1)], name="ix_search_sort")
 
+    from lifegoods.open_food_facts.search_index import ensure_collection_search_indexes
+
+    ensure_collection_search_indexes(search_col)
     return database, version_id, search_col_name
 
 

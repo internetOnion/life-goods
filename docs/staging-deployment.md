@@ -291,3 +291,132 @@ of an application rollback. Record image and Worker version IDs for every releas
 Public production requires automated off-VPS backups and a restore drill, aggregate
 health alerts, provider spending controls, review of measured capacity, and a
 separate production deployment. Staging availability is not production acceptance.
+
+
+## Common-term Product Search rollout
+
+The ordered-query fix adds five indexes to the existing schema-3 derived
+collection. It preserves imported Source Records, summaries, manifest metadata,
+and old indexes. Do not run `reindex-search` for this upgrade. The owner has
+waived the backup gate for staging; production still requires off-VPS backups.
+
+After review, merge, and the successful backend-image workflow, run on the VPS.
+Replace `NEW_COMMIT_SHA` with the full commit built by that workflow:
+
+```bash
+cd /opt/lifegoods-staging
+export LIFEGOODS_BACKEND_IMAGE=ghcr.io/internetonion/life-goods-backend:NEW_COMMIT_SHA
+docker inspect lifegoods-app-staging-backend-1 --format '{{.Config.Image}}'
+docker pull "$LIFEGOODS_BACKEND_IMAGE"
+df -B1 /
+free -h
+docker stats --no-stream
+```
+
+Record the current image for rollback and the disk baseline. Reserve at least
+10 GiB of free space for the additive indexes; check disk and memory in another
+terminal during creation. Pause rollout and return diagnostics if free disk
+approaches that reserve or swapping is sustained; do not kill MongoDB. Create indexes before replacing the running backend.
+Use the dataset writer URI with Docker hostname `mongodb` and its actual password
+(URL-encode reserved password characters). Enter it privately; never paste it:
+
+```bash
+read -r -s -p 'Dataset writer MongoDB URI: ' LIFEGOODS_DATASET_OPERATOR_URI
+printf '\n'
+export LIFEGOODS_DATASET_OPERATOR_URI
+docker compose --project-name lifegoods-app-staging \
+  --env-file infra/secrets/app-staging/.env \
+  -f infra/compose/docker-compose.app-staging.yml \
+  run --rm --no-deps -e LIFEGOODS_DATASET_OPERATOR_URI backend \
+  uv run --no-sync python -m lifegoods.open_food_facts.operator \
+  ensure-search-indexes 93c2b9bc4919422493f4deadc38a3cbc
+unset LIFEGOODS_DATASET_OPERATOR_URI
+```
+
+Expected: `status: READY` and five `ix_search_<field>_sort` names. This may take
+minutes on the full dataset. The command is safe to repeat after interruption;
+an incompatible index definition fails rather than being dropped automatically.
+If it fails, keep the old backend running and return the sanitized error.
+
+Update only `LIFEGOODS_BACKEND_IMAGE` in the protected environment file to the new
+image, then deploy and check readiness:
+
+```bash
+nano infra/secrets/app-staging/.env
+unset LIFEGOODS_BACKEND_IMAGE
+docker compose --project-name lifegoods-app-staging \
+  --env-file infra/secrets/app-staging/.env \
+  -f infra/compose/docker-compose.app-staging.yml up -d backend
+docker compose --project-name lifegoods-app-staging \
+  --env-file infra/secrets/app-staging/.env \
+  -f infra/compose/docker-compose.app-staging.yml exec -T backend \
+  /app/.venv/bin/python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000/api/health/ready', timeout=15).read().decode())"
+```
+
+Expected after startup: `{"status":"ready"}`. No Worker deployment is necessary.
+Verify Product Lookup, varied Product Search, and next-page navigation in the
+browser. In a second VPS terminal, monitor `vmstat 1 310` during this load test:
+
+```bash
+python3 -u - <<'PYQA'
+import collections
+import concurrent.futures
+import statistics
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+
+base = "https://lifegoods-staging.developonion.workers.dev/api/v1/products/search?"
+queries = ["coca cola", "nestle", "rice", "milk", "chocolate", "coca col",
+           "green tea", "coffee", "noodles", "4006381333931"]
+
+def request(query):
+    started = time.monotonic()
+    req = urllib.request.Request(base + urllib.parse.urlencode({"q": query}),
+                                 headers={"User-Agent": "LifeGoods-Staging-QA/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as response:
+            response.read()
+            status = response.status
+    except urllib.error.HTTPError as error:
+        status = error.code
+        error.close()
+    except Exception:
+        status = "connection_error"
+    return status, round((time.monotonic() - started) * 1000)
+
+results = []
+started = time.monotonic()
+with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
+    for round_number in range(30):
+        batch = list(pool.map(request, [queries[(round_number * 5 + i) % len(queries)]
+                                        for i in range(5)]))
+        results.extend(batch)
+        print("Round", round_number + 1, dict(collections.Counter(s for s, _ in batch)))
+        if any(status != 200 for status, _ in batch):
+            print("STOPPED: unexpected response")
+            break
+        time.sleep(max(0, started + (round_number + 1) * 10 - time.monotonic()))
+timings = sorted(ms for _, ms in results)
+print({"requests": len(results), "statuses": dict(collections.Counter(s for s, _ in results)),
+       "median_ms": statistics.median(timings),
+       "p95_ms": timings[min(len(timings) - 1, int(len(timings) * .95))],
+       "max_ms": max(timings)})
+PYQA
+docker stats --no-stream
+df -B1 /
+docker inspect lifegoods-app-staging-backend-1 compose-mongodb-1 \
+  --format '{{.Name}} OOMKilled={{.State.OOMKilled}} Restarts={{.RestartCount}}'
+```
+
+Accept only 150 HTTP 200 responses, no OOM kills or unexpected restarts, and no
+sustained swap-in/out. Compare disk usage before provisioning, after provisioning,
+and after load; record index growth separately. These measurements are pending
+until run against the full VPS dataset. Local integration tests prove ordered
+complete-match queries avoid blocking sorts; they do not prove VPS capacity.
+
+If acceptance fails, restore the previous image value in the protected `.env`,
+run `pull backend` and `up -d backend` with the same Compose flags, and verify
+readiness and Product Lookup. Keep the added indexes: the previous schema-3
+backend ignores them. Return the failure details before another rollout.

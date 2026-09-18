@@ -396,3 +396,21 @@ def test_activation_rollback_and_prune_preserve_active_and_previous() -> None:
     assert active["_id"] == first["_id"]
     assert active["status"] == "ACTIVE"
     assert len(list_versions(database)) == 2
+
+
+def test_cli_ensure_search_indexes_dispatches_without_rebuilding(monkeypatch, capsys) -> None:
+    from lifegoods.open_food_facts import cli
+
+    client = mongomock.MongoClient()
+    monkeypatch.setattr(cli, "MongoClient", lambda *args, **kwargs: client)
+    calls = []
+
+    def ensure(database, version_id):
+        calls.append((database.name, version_id))
+        return {"status": "READY"}
+
+    monkeypatch.setattr(cli, "ensure_search_indexes", ensure)
+    assert cli.main(["--mongo-uri", "mongodb://localhost", "--database", "test",
+                     "ensure-search-indexes", "snapshot"]) == 0
+    assert calls == [("test", "snapshot")]
+    assert json.loads(capsys.readouterr().out) == {"status": "READY"}

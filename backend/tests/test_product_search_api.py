@@ -72,6 +72,9 @@ def _dataset_database_with_search_index():
     search_col.create_index([("brand_tokens", 1)], name="ix_search_brand_tokens")
     search_col.create_index([("country_tokens", 1)], name="ix_search_country_tokens")
     search_col.create_index([("name_sort", 1), ("code", 1)], name="ix_search_sort")
+    from lifegoods.open_food_facts.search_index import ensure_collection_search_indexes
+
+    ensure_collection_search_indexes(search_col)
     return database
 
 
@@ -1142,3 +1145,47 @@ def test_search_shares_timeout_budget_across_ranking_tiers(monkeypatch) -> None:
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "search_timeout"
     assert "data" not in response.json()
+
+
+def test_complete_search_does_not_sort_computed_rank(monkeypatch) -> None:
+    database = _dataset_database_with_search_index()
+    collection = database[SEARCH_COLLECTION_NAME]
+    original = collection.aggregate
+    pipelines = []
+
+    def capture(pipeline, **options):
+        pipelines.append(pipeline)
+        return original(pipeline, **options)
+
+    monkeypatch.setattr(collection, "aggregate", capture)
+    with _client(database) as client:
+        assert client.get("/api/v1/products/search?q=milk").status_code == 200
+    assert pipelines
+    assert all("rank" not in stage.get("$sort", {}) for p in pipelines for stage in p)
+
+
+def test_complete_stream_merge_deduplicates_all_fields_across_pages() -> None:
+    from lifegoods.identifiers import calculate_check_digit
+    from lifegoods.open_food_facts import build_search_index
+
+    database = _dataset_database()
+    codes = []
+    for i in range(25):
+        prefix = f"400638{i:06d}"
+        code = prefix + str(calculate_check_digit(prefix))
+        codes.append(code)
+        database[COLLECTION_NAME].insert_one({
+            "code": code, "product_name": "Rice Food", "brands": "Rice Farm",
+            "manufacturing_places": "Rice Land",
+        })
+    build_search_index(database, VERSION_ID)
+    with _client(database) as client:
+        first = client.get("/api/v1/products/search", params={"q": "rice"}).json()
+        cursor = first["meta"]["pagination"]["next_cursor"]
+        assert cursor is not None
+        second = client.get(
+            "/api/v1/products/search", params={"q": "rice", "cursor": cursor},
+        ).json()
+    actual = [p["barcode"] for p in first["data"]["products"] + second["data"]["products"]]
+    assert actual == sorted(codes)
+    assert second["meta"]["pagination"]["next_cursor"] is None
