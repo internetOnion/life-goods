@@ -31,6 +31,10 @@ function renderProduct(
                             element={<ProductPage lookup={lookup} />}
                         />
                         <Route
+                            path="/"
+                            element={<div data-testid="scan-page">Scan</div>}
+                        />
+                        <Route
                             path="/search"
                             element={
                                 <div data-testid="search-page">Search</div>
@@ -69,7 +73,7 @@ describe("Product page (life-goods-viewer layout)", () => {
             "",
         )
         const backButton = screen.getByRole("button", {
-            name: "Back to search",
+            name: "Back to scanner",
         })
         expect(backButton).toHaveAttribute("data-glass", "neutral")
         expect(
@@ -215,8 +219,8 @@ describe("Product page (life-goods-viewer layout)", () => {
             "w-full",
             "px-3",
             "bg-info-50",
-            "text-base",
-            "font-extrabold",
+            "text-sm",
+            "font-bold",
             "rounded-xl",
         )
         expect(parentSummary.nextElementSibling).not.toHaveClass("mt-1")
@@ -411,8 +415,9 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(originalButtons).toHaveLength(0)
         await user.click(screen.getByRole("tab", { name: "គ្រឿងផ្សំ" }))
         expect(
-            screen.getAllByText("ស្ករ ប្រេងដូង គ្រាប់ហាសែលណាត់ 13%").length,
-        ).toBeGreaterThan(0)
+            screen.queryByText("ស្ករ ប្រេងដូង គ្រាប់ហាសែលណាត់ 13%"),
+        ).not.toBeInTheDocument()
+        expect(screen.getByRole("table")).toBeVisible()
         expect(
             screen.queryByText("Sucre, huile de palme, NOISETTES 13%"),
         ).not.toBeInTheDocument()
@@ -500,16 +505,18 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(lookup).toHaveBeenNthCalledWith(2, "4006381333931")
     })
 
-    test("returns to the Search page from the Product header", async () => {
+    test("returns to the Scan page from the Product header", async () => {
         const user = userEvent.setup()
         renderProduct(
             vi.fn<ProductLookup>().mockResolvedValue(productResponse()),
         )
 
         await screen.findByRole("heading", { name: "Dark Chocolate" })
-        await user.click(screen.getByRole("button", { name: "Back to search" }))
+        await user.click(
+            screen.getByRole("button", { name: "Back to scanner" }),
+        )
 
-        expect(screen.getByTestId("search-page")).toBeVisible()
+        expect(screen.getByTestId("scan-page")).toBeVisible()
     })
 
     test("shows Source Record labels in the Labels & packaging tab", async () => {
@@ -1412,7 +1419,7 @@ describe("Product page (life-goods-viewer layout)", () => {
             name: "Ingredient language",
         })
         expect(languageSelect).toHaveValue("en")
-        expect(languageSelect).toHaveClass("h-11", "max-w-[8rem]")
+        expect(languageSelect).toHaveClass("h-11", "max-w-[7rem]")
         expect(within(languageSelect).getByText("English")).toBeInTheDocument()
         expect(within(languageSelect).getByText("Khmer")).toBeInTheDocument()
 
@@ -1479,6 +1486,7 @@ describe("Product page (life-goods-viewer layout)", () => {
     })
 
     test("renders NotFoundCard without sample products for 404 / product_not_found", async () => {
+        const user = userEvent.setup()
         const lookup = vi.fn<ProductLookup>().mockRejectedValue({
             status: 404,
             error: { code: "product_not_found" },
@@ -1492,8 +1500,8 @@ describe("Product page (life-goods-viewer layout)", () => {
             "",
         )
         expect(
-            screen.getAllByText("3017620422003").length,
-        ).toBeGreaterThanOrEqual(1)
+            screen.queryByText("3017620422003", { exact: true }),
+        ).not.toBeInTheDocument()
         expect(
             screen.queryByText("Try One Of These Sample Products"),
         ).not.toBeInTheDocument()
@@ -1503,11 +1511,21 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(
             screen.queryByText("Coca-Cola 330ml Can"),
         ).not.toBeInTheDocument()
+        expect(
+            screen.queryByText(
+                "Products must be present in the downloaded snapshot dataset to be displayed.",
+            ),
+        ).not.toBeInTheDocument()
 
         const backButton = screen.getByRole("button", {
             name: /Scan Another Barcode/i,
         })
         expect(backButton).toBeVisible()
+        expect(backButton.querySelector("svg")).not.toBeInTheDocument()
+
+        await user.click(backButton)
+        expect(screen.getByTestId("scan-page")).toBeVisible()
+        expect(screen.queryByTestId("search-page")).not.toBeInTheDocument()
     })
 
     test("localizes missing Product states in Khmer", async () => {
@@ -1522,13 +1540,31 @@ describe("Product page (life-goods-viewer layout)", () => {
             await screen.findByText("រកមិនឃើញកំណត់ត្រាកញ្ចប់ទេ"),
         ).toBeVisible()
         expect(
-            screen.getByText(
+            screen.queryByText("3017620422003", { exact: true }),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByText(
                 "ផលិតផលត្រូវតែមានក្នុង Dataset Snapshot ដែលបានទាញយក ទើបអាចបង្ហាញបាន។",
             ),
-        ).toBeVisible()
+        ).not.toBeInTheDocument()
         expect(
             screen.getByRole("button", { name: "ស្កេនបាកូដមួយទៀត" }),
         ).toBeVisible()
+    })
+
+    test("routes the Product header back action to Scan instead of Search", async () => {
+        const user = userEvent.setup()
+        renderProduct(
+            vi.fn<ProductLookup>().mockResolvedValue(productResponse()),
+        )
+
+        await screen.findByRole("heading", { name: "Dark Chocolate" })
+        await user.click(
+            screen.getByRole("button", { name: "Back to scanner" }),
+        )
+
+        expect(screen.getByTestId("scan-page")).toBeVisible()
+        expect(screen.queryByTestId("search-page")).not.toBeInTheDocument()
     })
 
     test("shows error recovery with Try Again for network/dataset errors", async () => {
@@ -1553,6 +1589,25 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(
             await screen.findByRole("heading", { name: "Dark Chocolate" }),
         ).toBeVisible()
+    })
+
+    test("routes the Product error back action to Scan instead of Search", async () => {
+        const user = userEvent.setup()
+        const lookup = vi
+            .fn<ProductLookup>()
+            .mockRejectedValue(new Error("Network connection failed"))
+
+        renderProduct(lookup)
+
+        await screen.findByText("Unable to Load Product")
+        const backButtons = screen.getAllByRole("button", {
+            name: "Back to scanner",
+        })
+        expect(backButtons).toHaveLength(2)
+        await user.click(backButtons[1]!)
+
+        expect(screen.getByTestId("scan-page")).toBeVisible()
+        expect(screen.queryByTestId("search-page")).not.toBeInTheDocument()
     })
 
     test("handles sparse product record gracefully", async () => {
@@ -1679,13 +1734,13 @@ describe("Product page (life-goods-viewer layout)", () => {
         )
 
         const summary = await screen.findByRole("tabpanel", {
-            name: "សង្ខែប",
+            name: "សង្ខេប",
         })
         expect(
             within(summary).getByText("មិនមានទិន្នន័យ", { exact: true }),
         ).toBeVisible()
         expect(
-            within(summary).getByText("ប្រភពទិន្នន័យមិនមានព័ត៌មាននេះទេ។", {
+            within(summary).getByText("មិនមានព័ត៌មាននេះក្នុងទិន្នន័យទេ។", {
                 exact: true,
             }),
         ).toBeVisible()

@@ -165,6 +165,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
     return (
         <div
             data-glass-surface=""
+            data-product-hero=""
             className="glass-surface overflow-hidden rounded-2xl p-3 sm:p-6"
         >
             <div className="grid items-start gap-6">

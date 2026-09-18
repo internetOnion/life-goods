@@ -1543,7 +1543,7 @@ const ARTICLE_EXPANSIONS: Record<
         },
         facts: [
             {
-                label: { km: "ប្រភពស្របច្បាប់", en: "Lawful source" },
+                label: { km: "ស្របច្បាប់", en: "Lawful source" },
                 detail: {
                     km: "មិនមានអ្វីដែលចាត់ទុកថាមិនស្របតាមច្បាប់ឥស្លាម",
                     en: "Contains nothing considered unlawful under Islamic law",
@@ -1565,7 +1565,7 @@ const ARTICLE_EXPANSIONS: Record<
         },
         facts: [
             {
-                label: { km: "ប្រភពសត្វ", en: "Animal sources" },
+                label: { km: "សត្វ", en: "Animal sources" },
                 detail: {
                     km: "ជ្រូក សត្វមួយចំនួន ឈាម និងសត្វដែលមិនបានសម្លាប់តាមច្បាប់ឥស្លាម",
                     en: "Pigs, certain animals, blood, and animals not slaughtered according to Islamic law",
@@ -1573,7 +1573,7 @@ const ARTICLE_EXPANSIONS: Record<
             },
             {
                 label: {
-                    km: "ប្រភពរុក្ខជាតិ និងភេសជ្ជៈ",
+                    km: "រុក្ខជាតិ និងភេសជ្ជៈ",
                     en: "Plant and drink sources",
                 },
                 detail: {
@@ -1612,7 +1612,7 @@ const ARTICLE_EXPANSIONS: Record<
         },
         facts: [
             {
-                label: { km: "ប្រភពផ្លូវការ", en: "Official source" },
+                label: { km: "ផ្លូវការ", en: "Official source" },
                 detail: {
                     km: "CCF នៃក្រសួងពាណិជ្ជកម្មកម្ពុជា",
                     en: "CCF under Cambodia’s Ministry of Commerce",

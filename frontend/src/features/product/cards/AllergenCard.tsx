@@ -158,7 +158,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                             </span>
                         </div>
                         <details data-disclosure>
-                            <summary className="text-info-800 hover:bg-info-100 hover:text-info-900 focus-visible:bg-info-100 focus-visible:text-info-900 bg-info-50 flex min-h-11 w-full cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-3 text-base font-extrabold tracking-[-0.015em] transition-colors [&::-webkit-details-marker]:hidden">
+                            <summary className="text-info-800 hover:bg-info-100 hover:text-info-900 focus-visible:bg-info-100 focus-visible:text-info-900 bg-info-50 flex min-h-11 w-full cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-3 text-sm font-bold tracking-[-0.015em] transition-colors [&::-webkit-details-marker]:hidden">
                                 <span>{t("showSourceEvidence")}</span>
                                 <ChevronDown
                                     className="disclosure-icon size-4 shrink-0"

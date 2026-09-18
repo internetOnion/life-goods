@@ -3,18 +3,17 @@ import { useLocale, type AppLocale } from "@/i18n/locale"
 import { isConcernId, type ConcernId } from "./allergens"
 
 const englishConcerns = {
-    pageTitle: "Allergy Concerns",
-    pageDescription:
-        "Select dietary concerns and allergens to highlight when looking up Products.",
+    pageTitle: "Allergy",
+    pageDescription: "Select allergens to highlight when looking up Products.",
     storageError:
         "Your choices could not be saved. They will last only for this visit.",
-    activeConcerns: "Active Concerns ({{count}})",
+    activeConcerns: "Selected allergens ({{count}})",
     resetAll: "Reset all",
     removeConcern: "Remove {{name}}",
     noSelectedConcerns:
-        "No concerns selected yet. Tap any item below to flag it.",
-    availableConcerns: "Available Allergens & Ingredients",
-    selectConcerns: "Select allergy and dietary concerns",
+        "No allergens selected yet. Choose from the list below.",
+    availableConcerns: "Available allergens",
+    selectConcerns: "Select allergens to highlight",
 } as const
 
 type ConcernTranslations = {
@@ -22,18 +21,18 @@ type ConcernTranslations = {
 }
 
 const khmerConcerns: ConcernTranslations = {
-    pageTitle: "កង្វល់អាលែហ្ស៊ី",
+    pageTitle: "អាលែហ្ស៊ី",
     pageDescription:
-        "ជ្រើសរើសកង្វល់អាហារ និងអាលែហ្ស៊ី ដើម្បីបន្លិចនៅពេលស្វែងរកផលិតផល។",
+        "ជ្រើសរើសសារធាតុបង្កអាលែហ្ស៊ី ដើម្បីបន្លិចនៅពេលស្វែងរកផលិតផល។",
     storageError:
         "មិនអាចរក្សាទុកជម្រើសរបស់អ្នកបានទេ។ ជម្រើសទាំងនេះនឹងមានសម្រាប់តែការចូលមើលនេះប៉ុណ្ណោះ។",
-    activeConcerns: "កង្វល់សកម្ម ({{count}})",
+    activeConcerns: "សារធាតុបង្កអាលែហ្ស៊ីដែលបានជ្រើសរើស ({{count}})",
     resetAll: "កំណត់ឡើងវិញទាំងអស់",
     removeConcern: "ដក {{name}} ចេញ",
     noSelectedConcerns:
-        "មិនទាន់បានជ្រើសរើសកង្វល់ទេ។ អ្នកអាចជ្រេីសរេីសពីខាងក្រោម។",
-    availableConcerns: "អាលែហ្ស៊ី និងគ្រឿងផ្សំដែលមាន",
-    selectConcerns: "ជ្រើសរើសកង្វល់អាលែហ្ស៊ី និងអាហារ",
+        "មិនទាន់បានជ្រើសរើសសារធាតុបង្កអាលែហ្ស៊ីទេ។ ជ្រើសរើសពីបញ្ជីខាងក្រោម។",
+    availableConcerns: "សារធាតុបង្កអាលែហ្ស៊ីដែលមាន",
+    selectConcerns: "ជ្រើសរើសសារធាតុបង្កអាលែហ្ស៊ីដើម្បីបន្លិច",
 }
 
 const khmerConcernLabels: Record<ConcernId, string> = {

@@ -1006,8 +1006,11 @@ current photos survive a failure, and retrying processes only failed or changed
 work. Replacing or removing photos, changing selected columns, resetting, and
 leaving the feature prevent earlier responses from restoring stale results;
 requests are cancelled where possible, and responses belonging to superseded
-state are independently rejected. Reset starts a new pair without earlier photos
-or results.
+state are independently rejected. Restart clears the session and opens empty Product A capture without earlier photos
+or results. Back to start clears the session and returns to the comparison intro,
+restoring primary navigation. Results provide a separate Back to start action, and
+Product A’s Back always returns to that intro, including when editing after results.
+Product B’s Back returns to Product A while preserving the session.
 
 Extraction and comparison are registered by the ordinary Life Goods FastAPI
 application. FastAPI remains the frontend contract authority, and the OpenAPI
@@ -1039,7 +1042,12 @@ Unsupported formats receive a clear unsupported-format message instead of
 promised conversion. When a label contains a sole nutrition column it is
 selected automatically; when several columns exist, the Shopper chooses one with
 its plainly labeled basis and preparation state before continuing, and an
-ambiguous column is never selected silently.
+ambiguous column is never selected silently. The nutrition-column chooser opens
+as a full page on mobile and desktop at `/compare?column=left` or
+`/compare?column=right`, with Back returning to the preceding comparison screen.
+Browser Back preserves the in-memory photos, extraction, and selections; advancing
+to the other Product replaces the chooser history entry. Direct entry without
+the required in-memory extraction returns to `/compare`.
 
 Results lead with Product identities, the comparison basis, and the nutrition
 comparison. Factual differences use deterministic localized templates rather than
@@ -1052,7 +1060,7 @@ per-row source-photo evidence or derivation disclosures. Source-photo evidence
 remains available in the editable Product Photo Panel, and comparison responses
 retain the underlying evidence and derivation data. Results contain no overall
 score, winner, or good/bad health color. The page keeps the session in memory
-and provides Reset; it retains no saved history and no manual transcription
+and provides Restart and Back to start; it retains no saved history and no manual transcription
 editor.
 
 Image input is bounded at 10 MiB per photo, 32 MiB per multipart request, and

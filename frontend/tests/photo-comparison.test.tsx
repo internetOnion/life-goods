@@ -7,7 +7,7 @@ import {
     within,
 } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { MemoryRouter } from "react-router"
+import { MemoryRouter, useLocation, useNavigate } from "react-router"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 
 import { App } from "../src/app/App"
@@ -38,6 +38,33 @@ function renderRoute(path: string, lookup = vi.fn<ProductLookup>()) {
                 <App lookup={lookup} />
             </MemoryRouter>
         </QueryClientProvider>,
+    )
+}
+
+function ComparisonNavigationProbe() {
+    const location = useLocation()
+    const navigate = useNavigate()
+    return (
+        <>
+            <output data-testid="comparison-url">
+                {location.pathname}
+                {location.search}
+            </output>
+            <button
+                onClick={() => {
+                    void navigate(-1)
+                }}
+            >
+                Browser Back
+            </button>
+            <button
+                onClick={() => {
+                    void navigate(1)
+                }}
+            >
+                Browser Forward
+            </button>
+        </>
     )
 }
 
@@ -657,15 +684,21 @@ describe("Compare Products frontend page (/compare)", () => {
             name: /Reset session/i,
         })
         await user.click(resetButton)
+        expect(screen.getByDisplayValue("Product A")).toBeInTheDocument()
+        expect(screen.queryByText("Photo 1")).not.toBeInTheDocument()
         expect(
-            screen.getByRole("heading", {
-                level: 2,
-                name: "Compare Two Products",
-            }),
-        ).toBeInTheDocument()
+            screen.queryByRole("button", { name: "Get started" }),
+        ).not.toBeInTheDocument()
         expect(
             screen.queryByRole("button", { name: "Compare Products" }),
         ).not.toBeInTheDocument()
+        await user.click(screen.getByRole("button", { name: "Back to start" }))
+        expect(
+            screen.getByRole("button", { name: "Get started" }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("navigation", { name: "Primary navigation" }),
+        ).toBeInTheDocument()
     })
 
     test("redirects previous photo-comparison URLs to /compare", () => {
@@ -737,283 +770,351 @@ describe("Compare Products frontend page (/compare)", () => {
         })
         await user.click(resetButton)
 
+        expect(screen.getByDisplayValue("Product A")).toBeInTheDocument()
+        expect(screen.queryByText("Photo 1")).not.toBeInTheDocument()
         expect(
-            screen.getByRole("heading", {
-                level: 2,
-                name: "Compare Two Products",
-            }),
-        ).toBeInTheDocument()
+            screen.queryByRole("button", { name: "Get started" }),
+        ).not.toBeInTheDocument()
     })
 
-    test("one Compare action orchestrates extraction of changed Products and deterministic comparison without separate operations", async () => {
-        const user = userEvent.setup()
-        const extractPhotosMock = vi.fn().mockImplementation((id: string) =>
-            Promise.resolve(
-                id === "left"
-                    ? {
-                          schema_version: 1,
-                          product_id: "left",
-                          images: [
-                              {
-                                  image_id: "img_mama_1",
-                                  original_image_id: "img_mama_1",
-                                  role: "label",
-                                  width: 800,
-                                  height: 600,
-                              },
-                          ],
-                          package_quantity: null,
-                          nutrition_columns: [
-                              {
-                                  column_id: "col1",
-                                  name: "Per 100g",
-                                  state: "readable",
-                                  basis: "per_100g",
-                                  fields: [],
-                              },
-                          ],
-                          outcome: "complete",
-                          provider: "google",
-                          model: "gemini",
-                          configuration_version: "1.0.0",
-                      }
-                    : {
-                          schema_version: 1,
-                          product_id: "right",
-                          images: [
-                              {
-                                  image_id: "img_b_1",
-                                  original_image_id: "img_b_1",
-                                  role: "label",
-                                  width: 800,
-                                  height: 600,
-                              },
-                          ],
-                          package_quantity: null,
-                          nutrition_columns: [
-                              {
-                                  column_id: "col2",
-                                  name: "Per 100g",
-                                  state: "readable",
-                                  basis: "per_100g",
-                                  fields: [],
-                              },
-                          ],
-                          outcome: "complete",
-                          provider: "google",
-                          model: "gemini",
-                          configuration_version: "1.0.0",
-                      },
-            ),
-        )
+    test.each([
+        "restart",
+        "results back",
+        "Product A back",
+        "mutation",
+    ] as const)(
+        "orchestrates comparison and clears the session via %s",
+        async (exitAction) => {
+            const user = userEvent.setup()
+            const extractPhotosMock = vi.fn().mockImplementation((id: string) =>
+                Promise.resolve(
+                    id === "left"
+                        ? {
+                              schema_version: 1,
+                              product_id: "left",
+                              images: [
+                                  {
+                                      image_id: "img_mama_1",
+                                      original_image_id: "img_mama_1",
+                                      role: "label",
+                                      width: 800,
+                                      height: 600,
+                                  },
+                              ],
+                              package_quantity: null,
+                              nutrition_columns: [
+                                  {
+                                      column_id: "col1",
+                                      name: "Per 100g",
+                                      state: "readable",
+                                      basis: "per_100g",
+                                      fields: [],
+                                  },
+                              ],
+                              outcome: "complete",
+                              provider: "google",
+                              model: "gemini",
+                              configuration_version: "1.0.0",
+                          }
+                        : {
+                              schema_version: 1,
+                              product_id: "right",
+                              images: [
+                                  {
+                                      image_id: "img_b_1",
+                                      original_image_id: "img_b_1",
+                                      role: "label",
+                                      width: 800,
+                                      height: 600,
+                                  },
+                              ],
+                              package_quantity: null,
+                              nutrition_columns: [
+                                  {
+                                      column_id: "col2",
+                                      name: "Per 100g",
+                                      state: "readable",
+                                      basis: "per_100g",
+                                      fields: [],
+                                  },
+                              ],
+                              outcome: "complete",
+                              provider: "google",
+                              model: "gemini",
+                              configuration_version: "1.0.0",
+                          },
+                ),
+            )
 
-        const compareMock = vi.fn().mockResolvedValue({
-            schema_version: 1,
-            calculated_from_submitted_evidence: true,
-            left_product_id: "left",
-            right_product_id: "right",
-            rows: [
-                {
-                    nutrient: "sodium",
-                    row_kind: "amount",
-                    state: "comparable",
-                    left: {
-                        column_id: "col1",
-                        observation: {
-                            field_id: "left_sod",
-                            nutrient: "sodium",
-                            label: "Sodium",
-                            state: "readable",
-                            row_kind: "amount",
-                            qualifier: "exact",
-                            value_text: "1,380",
-                            unit_text: "mg",
-                            evidence: [{ image_id: "img_mama_1" }],
+            const compareMock = vi.fn().mockResolvedValue({
+                schema_version: 1,
+                calculated_from_submitted_evidence: true,
+                left_product_id: "left",
+                right_product_id: "right",
+                rows: [
+                    {
+                        nutrient: "sodium",
+                        row_kind: "amount",
+                        state: "comparable",
+                        left: {
+                            column_id: "col1",
+                            observation: {
+                                field_id: "left_sod",
+                                nutrient: "sodium",
+                                label: "Sodium",
+                                state: "readable",
+                                row_kind: "amount",
+                                qualifier: "exact",
+                                value_text: "1,380",
+                                unit_text: "mg",
+                                evidence: [{ image_id: "img_mama_1" }],
+                            },
+                        },
+                        right: {
+                            column_id: "col2",
+                            observation: {
+                                field_id: "right_sod",
+                                nutrient: "sodium",
+                                label: "Sodium",
+                                state: "readable",
+                                row_kind: "amount",
+                                qualifier: "exact",
+                                value_text: "1.5",
+                                unit_text: "g",
+                                evidence: [{ image_id: "img_b_1" }],
+                            },
+                        },
+                        normalized_left: {
+                            value: "1380",
+                            unit: "mg",
+                            target_basis: "per_100g",
+                            inputs: [],
+                        },
+                        normalized_right: {
+                            value: "1500",
+                            unit: "mg",
+                            target_basis: "per_100g",
+                            inputs: [],
                         },
                     },
-                    right: {
-                        column_id: "col2",
-                        observation: {
-                            field_id: "right_sod",
-                            nutrient: "sodium",
-                            label: "Sodium",
-                            state: "readable",
-                            row_kind: "amount",
-                            qualifier: "exact",
-                            value_text: "1.5",
-                            unit_text: "g",
-                            evidence: [{ image_id: "img_b_1" }],
-                        },
-                    },
-                    normalized_left: {
-                        value: "1380",
-                        unit: "mg",
-                        target_basis: "per_100g",
-                        inputs: [],
-                    },
-                    normalized_right: {
-                        value: "1500",
-                        unit: "mg",
-                        target_basis: "per_100g",
-                        inputs: [],
-                    },
-                },
-            ],
-        })
-
-        const queryClient = new QueryClient({
-            defaultOptions: { queries: { retry: false } },
-        })
-        render(
-            <QueryClientProvider client={queryClient}>
-                <MemoryRouter initialEntries={["/compare"]}>
-                    <PhotoComparisonPage
-                        extractPhotos={extractPhotosMock}
-                        compare={compareMock}
-                    />
-                </MemoryRouter>
-            </QueryClientProvider>,
-        )
-
-        // Shopper is not asked to run extraction and calculation as separate operations
-        expect(
-            screen.queryByRole("button", { name: /Read nutrition photos/i }),
-        ).not.toBeInTheDocument()
-
-        // Upload photo for Product A
-        const inputLeft = document.getElementById(
-            "upload-photos-left",
-        ) as HTMLInputElement
-        const fileLeft = new File(["left image"], "left.jpg", {
-            type: "image/jpeg",
-        })
-        fireEvent.change(inputLeft, { target: { files: [fileLeft] } })
-
-        // Upload photo for Product B
-        const inputRight = document.getElementById(
-            "upload-photos-right",
-        ) as HTMLInputElement
-        const fileRight = new File(["right image"], "right.jpg", {
-            type: "image/jpeg",
-        })
-        fireEvent.change(inputRight, { target: { files: [fileRight] } })
-
-        const compareButton = screen.getByRole("button", {
-            name: "Compare Products",
-        })
-        expect(compareButton).toBeEnabled()
-
-        // Clicking Compare once orchestrates extractions and comparison
-        await user.click(compareButton)
-
-        expect(extractPhotosMock).toHaveBeenCalledTimes(2)
-        expect(extractPhotosMock.mock.calls[0]?.[0]).toBe("left")
-        expect(extractPhotosMock.mock.calls[0]?.[1]).toEqual([fileLeft])
-        expect(
-            (
-                extractPhotosMock.mock.calls[0]?.[2] as
-                    { signal?: AbortSignal } | undefined
-            )?.signal,
-        ).toBeInstanceOf(AbortSignal)
-        expect(extractPhotosMock.mock.calls[1]?.[0]).toBe("right")
-        expect(extractPhotosMock.mock.calls[1]?.[1]).toEqual([fileRight])
-        expect(
-            (
-                extractPhotosMock.mock.calls[1]?.[2] as
-                    { signal?: AbortSignal } | undefined
-            )?.signal,
-        ).toBeInstanceOf(AbortSignal)
-        expect(compareMock).toHaveBeenCalledTimes(1)
-
-        // Factual results rendered
-        expect(screen.getByText("Sodium")).toBeInTheDocument()
-        expect(screen.getAllByText("1,380 mg").length).toBeGreaterThan(0)
-
-        // Comparison results render on their own page: no Compare tab, and the
-        // two-step capture stepper is not on screen.
-        expect(
-            screen.getByRole("region", { name: "Comparison results" }),
-        ).toBeInTheDocument()
-        expect(
-            screen.queryByRole("tab", { name: /Compare/i }),
-        ).not.toBeInTheDocument()
-        expect(
-            screen.queryByRole("tab", { name: /Product A/i }),
-        ).not.toBeInTheDocument()
-
-        // Editing returns to the two-step capture while keeping the result.
-        await user.click(screen.getByRole("button", { name: /Edit products/i }))
-        expect(
-            screen.queryByRole("region", { name: "Comparison results" }),
-        ).not.toBeInTheDocument()
-        expect(
-            screen.getByRole("button", { name: /^2 Product B$/i }),
-        ).toHaveAttribute("aria-current", "step")
-        const stepButtons = within(
-            screen.getByRole("navigation", {
-                name: "Comparison steps",
-            }),
-        ).getAllByRole("button")
-        const stepNavigation = screen.getByRole("navigation", {
-            name: "Comparison steps",
-        })
-        expect(stepNavigation.querySelector("ol")).toHaveAttribute(
-            "data-glass-surface",
-            "",
-        )
-        expect(stepButtons[0]).toHaveAttribute("data-glass", "neutral")
-        expect(stepButtons[1]).toHaveAttribute("data-glass", "selected")
-        expect(stepButtons[1]).toHaveAttribute("aria-current", "step")
-        await user.click(stepButtons[0]!)
-        expect(stepButtons[0]).toHaveAttribute("aria-current", "step")
-        await user.click(stepButtons[1]!)
-
-        // Returning to the results page does not re-run extraction or comparison.
-        await user.click(
-            screen.getByRole("button", {
-                name: /Return to comparison results/i,
-            }),
-        )
-        expect(
-            screen.getByRole("region", { name: "Comparison results" }),
-        ).toBeInTheDocument()
-        expect(extractPhotosMock).toHaveBeenCalledTimes(2)
-        expect(compareMock).toHaveBeenCalledTimes(1)
-
-        // A real input mutation still invalidates the stale result.
-        await user.click(screen.getByRole("button", { name: /Edit products/i }))
-        const replacementInput = document.getElementById(
-            "upload-photos-left",
-        ) as HTMLInputElement
-        fireEvent.change(replacementInput, {
-            target: {
-                files: [
-                    new File(["new left image"], "new-left.jpg", {
-                        type: "image/jpeg",
-                    }),
                 ],
-            },
-        })
-        expect(
-            screen.queryByRole("region", { name: "Comparison results" }),
-        ).not.toBeInTheDocument()
-        await user.click(
-            within(
+            })
+
+            const queryClient = new QueryClient({
+                defaultOptions: { queries: { retry: false } },
+            })
+            render(
+                <QueryClientProvider client={queryClient}>
+                    <MemoryRouter initialEntries={["/compare"]}>
+                        <PhotoComparisonPage
+                            extractPhotos={extractPhotosMock}
+                            compare={compareMock}
+                        />
+                    </MemoryRouter>
+                </QueryClientProvider>,
+            )
+
+            // Shopper is not asked to run extraction and calculation as separate operations
+            expect(
+                screen.queryByRole("button", {
+                    name: /Read nutrition photos/i,
+                }),
+            ).not.toBeInTheDocument()
+
+            // Upload photo for Product A
+            const inputLeft = document.getElementById(
+                "upload-photos-left",
+            ) as HTMLInputElement
+            const fileLeft = new File(["left image"], "left.jpg", {
+                type: "image/jpeg",
+            })
+            fireEvent.change(inputLeft, { target: { files: [fileLeft] } })
+
+            // Upload photo for Product B
+            const inputRight = document.getElementById(
+                "upload-photos-right",
+            ) as HTMLInputElement
+            const fileRight = new File(["right image"], "right.jpg", {
+                type: "image/jpeg",
+            })
+            fireEvent.change(inputRight, { target: { files: [fileRight] } })
+
+            const compareButton = screen.getByRole("button", {
+                name: "Compare Products",
+            })
+            expect(compareButton).toBeEnabled()
+
+            // Clicking Compare once orchestrates extractions and comparison
+            await user.click(compareButton)
+
+            expect(extractPhotosMock).toHaveBeenCalledTimes(2)
+            expect(extractPhotosMock.mock.calls[0]?.[0]).toBe("left")
+            expect(extractPhotosMock.mock.calls[0]?.[1]).toEqual([fileLeft])
+            expect(
+                (
+                    extractPhotosMock.mock.calls[0]?.[2] as
+                        { signal?: AbortSignal } | undefined
+                )?.signal,
+            ).toBeInstanceOf(AbortSignal)
+            expect(extractPhotosMock.mock.calls[1]?.[0]).toBe("right")
+            expect(extractPhotosMock.mock.calls[1]?.[1]).toEqual([fileRight])
+            expect(
+                (
+                    extractPhotosMock.mock.calls[1]?.[2] as
+                        { signal?: AbortSignal } | undefined
+                )?.signal,
+            ).toBeInstanceOf(AbortSignal)
+            expect(compareMock).toHaveBeenCalledTimes(1)
+
+            // Factual results rendered
+            expect(screen.getByText("Sodium")).toBeInTheDocument()
+            expect(screen.getAllByText("1,380 mg").length).toBeGreaterThan(0)
+
+            // Comparison results render on their own page: no Compare tab, and the
+            // two-step capture stepper is not on screen.
+            expect(
+                screen.getByRole("region", { name: "Comparison results" }),
+            ).toBeInTheDocument()
+            expect(
+                screen.queryByRole("tab", { name: /Compare/i }),
+            ).not.toBeInTheDocument()
+            expect(
+                screen.queryByRole("tab", { name: /Product A/i }),
+            ).not.toBeInTheDocument()
+
+            // Editing returns to the two-step capture while keeping the result.
+            await user.click(
+                screen.getByRole("button", { name: /Edit products/i }),
+            )
+            expect(
+                screen.queryByRole("region", { name: "Comparison results" }),
+            ).not.toBeInTheDocument()
+            expect(
+                screen.getByRole("button", { name: /^2 Product B$/i }),
+            ).toHaveAttribute("aria-current", "step")
+            const stepButtons = within(
                 screen.getByRole("navigation", {
                     name: "Comparison steps",
                 }),
-            ).getAllByRole("button")[1]!,
-        )
-        expect(
-            screen.queryByRole("button", {
-                name: /Return to comparison results/i,
-            }),
-        ).not.toBeInTheDocument()
-        expect(
-            screen.getByRole("button", { name: "Compare Products" }),
-        ).toBeInTheDocument()
-        expect(compareMock).toHaveBeenCalledTimes(1)
-    })
+            ).getAllByRole("button")
+            const stepNavigation = screen.getByRole("navigation", {
+                name: "Comparison steps",
+            })
+            expect(stepNavigation.querySelector("ol")).toHaveAttribute(
+                "data-glass-surface",
+                "",
+            )
+            expect(stepButtons[0]).toHaveAttribute("data-glass", "neutral")
+            expect(stepButtons[1]).toHaveAttribute("data-glass", "selected")
+            expect(stepButtons[1]).toHaveAttribute("aria-current", "step")
+            await user.click(stepButtons[0]!)
+            expect(stepButtons[0]).toHaveAttribute("aria-current", "step")
+            await user.click(stepButtons[1]!)
+
+            // Returning to the results page does not re-run extraction or comparison.
+            await user.click(
+                screen.getByRole("button", {
+                    name: /Return to comparison results/i,
+                }),
+            )
+            expect(
+                screen.getByRole("region", { name: "Comparison results" }),
+            ).toBeInTheDocument()
+            expect(extractPhotosMock).toHaveBeenCalledTimes(2)
+            expect(compareMock).toHaveBeenCalledTimes(1)
+
+            if (exitAction !== "mutation") {
+                if (exitAction === "Product A back") {
+                    await user.click(
+                        screen.getByRole("button", { name: /Edit products/i }),
+                    )
+                    await user.click(
+                        within(
+                            screen.getByRole("navigation", {
+                                name: "Comparison steps",
+                            }),
+                        ).getAllByRole("button")[0]!,
+                    )
+                }
+                const revokePhotoUrl = vi.spyOn(URL, "revokeObjectURL")
+                revokePhotoUrl.mockClear()
+                await user.click(
+                    screen.getByRole("button", {
+                        name:
+                            exitAction === "restart"
+                                ? "Reset session"
+                                : "Back to start",
+                    }),
+                )
+                expect(
+                    screen.queryByRole("region", {
+                        name: "Comparison results",
+                    }),
+                ).not.toBeInTheDocument()
+                expect(screen.queryByText("Photo 1")).not.toBeInTheDocument()
+                expect(revokePhotoUrl).toHaveBeenCalledTimes(2)
+                if (exitAction !== "restart") {
+                    expect(
+                        screen.getByRole("button", { name: "Get started" }),
+                    ).toBeInTheDocument()
+                    await user.click(
+                        screen.getByRole("button", { name: "Get started" }),
+                    )
+                } else {
+                    expect(
+                        screen.queryByRole("button", { name: "Get started" }),
+                    ).not.toBeInTheDocument()
+                }
+                expect(
+                    screen.getByDisplayValue("Product A"),
+                ).toBeInTheDocument()
+                expect(
+                    screen.getByRole("button", {
+                        name: /Continue to Product B/i,
+                    }),
+                ).toBeDisabled()
+                expect(extractPhotosMock).toHaveBeenCalledTimes(2)
+                expect(compareMock).toHaveBeenCalledTimes(1)
+                return
+            }
+
+            // A real input mutation still invalidates the stale result.
+            await user.click(
+                screen.getByRole("button", { name: /Edit products/i }),
+            )
+            const replacementInput = document.getElementById(
+                "upload-photos-left",
+            ) as HTMLInputElement
+            fireEvent.change(replacementInput, {
+                target: {
+                    files: [
+                        new File(["new left image"], "new-left.jpg", {
+                            type: "image/jpeg",
+                        }),
+                    ],
+                },
+            })
+            expect(
+                screen.queryByRole("region", { name: "Comparison results" }),
+            ).not.toBeInTheDocument()
+            await user.click(
+                within(
+                    screen.getByRole("navigation", {
+                        name: "Comparison steps",
+                    }),
+                ).getAllByRole("button")[1]!,
+            )
+            expect(
+                screen.queryByRole("button", {
+                    name: /Return to comparison results/i,
+                }),
+            ).not.toBeInTheDocument()
+            expect(
+                screen.getByRole("button", { name: "Compare Products" }),
+            ).toBeInTheDocument()
+            expect(compareMock).toHaveBeenCalledTimes(1)
+        },
+    )
 
     test("turns provider contract errors into actionable Shopper guidance", () => {
         const error = new PhotoComparisonApiError(
@@ -1983,6 +2084,29 @@ describe("Photo inspection and UX features", () => {
     })
 })
 
+describe("Nutrition chooser direct entry", () => {
+    test.each(["left", "right", "invalid"])(
+        "clears column=%s without session data",
+        async (side) => {
+            render(
+                <MemoryRouter initialEntries={[`/compare?column=${side}`]}>
+                    <ComparisonNavigationProbe />
+                    <PhotoComparisonPage />
+                </MemoryRouter>,
+            )
+            await waitFor(() =>
+                expect(screen.getByTestId("comparison-url")).toHaveTextContent(
+                    /^\/compare$/,
+                ),
+            )
+            expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+            expect(
+                screen.getByRole("button", { name: "Get started" }),
+            ).toBeInTheDocument()
+        },
+    )
+})
+
 describe("Compare Products uncertainty, partial results, and recovery (#124)", () => {
     test("several columns pause for a plainly labeled selection with basis and prep state, then continue", async () => {
         const user = userEvent.setup()
@@ -2161,18 +2285,18 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
 
         // Pauses because Product A has 2 columns and none was selected!
         expect(
-            screen.getByText(
-                "Select a nutrition column for Product A to continue.",
-            ),
+            await screen.findByRole("heading", {
+                name: "Select nutrition column for Product A",
+            }),
         ).toBeInTheDocument()
         expect(compareMock).not.toHaveBeenCalled()
 
         // Plainly labeled basis and preparation states are visible
         expect(
-            screen.getAllByText("Per 100 g · As sold").length,
+            screen.getAllByText("Basis: Per 100 g (As sold)").length,
         ).toBeGreaterThan(0)
         expect(
-            screen.getByText("Per serving · As prepared"),
+            screen.getByText("Basis: Per serving (As prepared)"),
         ).toBeInTheDocument()
 
         // Select the dry column for Product A -> should continue automatically
@@ -3467,9 +3591,9 @@ describe("Compare Products obsolete-response safety (#125)", () => {
 
         // Both extractions succeed; pauses for column selection because Left has 2 columns
         expect(
-            screen.getByText(
-                "Select a nutrition column for Product A to continue.",
-            ),
+            await screen.findByRole("heading", {
+                name: "Select nutrition column for Product A",
+            }),
         ).toBeInTheDocument()
 
         // Select the first column: "col_dry"
@@ -4030,150 +4154,233 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         expect(compareMock).not.toHaveBeenCalled()
     })
 
-    test("clarified UX: surfaces ColumnSelectionModal when comparing multi-column products and proceeds smoothly on selection", async () => {
-        const user = userEvent.setup()
-        const extractPhotosMock = vi.fn().mockImplementation((id: string) =>
-            Promise.resolve(
-                id === "left"
-                    ? {
-                          schema_version: 1,
-                          product_id: "left",
-                          identity: {
-                              brand: {
-                                  field_id: "b",
-                                  value_text: "Brand Alpha",
+    test.each([false, true])(
+        "nutrition chooser preserves navigation and continues with both Products needing choices: %s",
+        async (bothNeedChoices) => {
+            const user = userEvent.setup()
+            const extractPhotosMock = vi.fn().mockImplementation((id: string) =>
+                Promise.resolve(
+                    id === "left"
+                        ? {
+                              schema_version: 1,
+                              product_id: "left",
+                              identity: {
+                                  brand: {
+                                      field_id: "b",
+                                      value_text: "Brand Alpha",
+                                  },
+                                  name: {
+                                      field_id: "n",
+                                      value_text: "Cereal A",
+                                  },
                               },
-                              name: {
-                                  field_id: "n",
-                                  value_text: "Cereal A",
+                              images: [],
+                              package_quantity: null,
+                              nutrition_columns: [
+                                  {
+                                      column_id: "col_100g",
+                                      label: "Per 100g basis",
+                                      state: "readable",
+                                      basis: "per_100g",
+                                      preparation_state: "as_sold",
+                                      fields: [],
+                                  },
+                                  {
+                                      column_id: "col_serv",
+                                      label: "Per serving basis",
+                                      state: "readable",
+                                      basis: "per_serving",
+                                      preparation_state: "as_prepared",
+                                      fields: [],
+                                  },
+                              ],
+                              outcome: "complete",
+                              provider: "google",
+                              model: "gemini",
+                              configuration_version: "1.0.0",
+                          }
+                        : {
+                              schema_version: 1,
+                              product_id: "right",
+                              identity: {
+                                  name: {
+                                      field_id: "n2",
+                                      value_text: "Cereal B",
+                                  },
                               },
+                              images: [],
+                              package_quantity: null,
+                              nutrition_columns: [
+                                  {
+                                      column_id: "col_right_100g",
+                                      label: "Per 100g",
+                                      state: "readable",
+                                      basis: "per_100g",
+                                      fields: [],
+                                  },
+                                  ...(bothNeedChoices
+                                      ? [
+                                            {
+                                                column_id: "col_right_serv",
+                                                label: "Right serving",
+                                                state: "readable",
+                                                basis: "per_serving",
+                                                preparation_state: "as_sold",
+                                                fields: [],
+                                            },
+                                        ]
+                                      : []),
+                              ],
+                              outcome: "complete",
+                              provider: "google",
+                              model: "gemini",
+                              configuration_version: "1.0.0",
                           },
-                          images: [],
-                          package_quantity: null,
-                          nutrition_columns: [
-                              {
-                                  column_id: "col_100g",
-                                  label: "Per 100g basis",
-                                  state: "readable",
-                                  basis: "per_100g",
-                                  preparation_state: "as_sold",
-                                  fields: [],
-                              },
-                              {
-                                  column_id: "col_serv",
-                                  label: "Per serving basis",
-                                  state: "readable",
-                                  basis: "per_serving",
-                                  preparation_state: "as_prepared",
-                                  fields: [],
-                              },
-                          ],
-                          outcome: "complete",
-                          provider: "google",
-                          model: "gemini",
-                          configuration_version: "1.0.0",
-                      }
-                    : {
-                          schema_version: 1,
-                          product_id: "right",
-                          identity: {
-                              name: {
-                                  field_id: "n2",
-                                  value_text: "Cereal B",
-                              },
-                          },
-                          images: [],
-                          package_quantity: null,
-                          nutrition_columns: [
-                              {
-                                  column_id: "col_right_100g",
-                                  label: "Per 100g",
-                                  state: "readable",
-                                  basis: "per_100g",
-                                  fields: [],
-                              },
-                          ],
-                          outcome: "complete",
-                          provider: "google",
-                          model: "gemini",
-                          configuration_version: "1.0.0",
-                      },
-            ),
-        )
+                ),
+            )
 
-        const compareMock = vi.fn().mockResolvedValue({
-            schema_version: 1,
-            calculated_from_submitted_evidence: true,
-            left_product_id: "left",
-            right_product_id: "right",
-            rows: [],
-        })
+            const compareMock = vi.fn().mockResolvedValue({
+                schema_version: 1,
+                calculated_from_submitted_evidence: true,
+                left_product_id: "left",
+                right_product_id: "right",
+                rows: [],
+            })
 
-        const queryClient = new QueryClient({
-            defaultOptions: { queries: { retry: false } },
-        })
+            const queryClient = new QueryClient({
+                defaultOptions: { queries: { retry: false } },
+            })
 
-        render(
-            <QueryClientProvider client={queryClient}>
-                <MemoryRouter initialEntries={["/compare"]}>
-                    <PhotoComparisonPage
-                        extractPhotos={extractPhotosMock}
-                        compare={compareMock}
-                    />
-                </MemoryRouter>
-            </QueryClientProvider>,
-        )
+            render(
+                <QueryClientProvider client={queryClient}>
+                    <MemoryRouter initialEntries={["/compare"]}>
+                        <ComparisonNavigationProbe />
+                        <PhotoComparisonPage
+                            extractPhotos={extractPhotosMock}
+                            compare={compareMock}
+                        />
+                    </MemoryRouter>
+                </QueryClientProvider>,
+            )
 
-        // Upload photos for both products
-        const inputLeft = document.getElementById(
-            "upload-photos-left",
-        ) as HTMLInputElement
-        const inputRight = document.getElementById(
-            "upload-photos-right",
-        ) as HTMLInputElement
-        fireEvent.change(inputLeft, {
-            target: {
-                files: [new File(["a"], "a.jpg", { type: "image/jpeg" })],
-            },
-        })
-        fireEvent.change(inputRight, {
-            target: {
-                files: [new File(["b"], "b.jpg", { type: "image/jpeg" })],
-            },
-        })
+            // Upload photos for both products
+            const inputLeft = document.getElementById(
+                "upload-photos-left",
+            ) as HTMLInputElement
+            const inputRight = document.getElementById(
+                "upload-photos-right",
+            ) as HTMLInputElement
+            fireEvent.change(inputLeft, {
+                target: {
+                    files: [new File(["a"], "a.jpg", { type: "image/jpeg" })],
+                },
+            })
+            fireEvent.change(inputRight, {
+                target: {
+                    files: [new File(["b"], "b.jpg", { type: "image/jpeg" })],
+                },
+            })
 
-        // Tap Compare Products
-        await user.click(await openCompareReview(user))
+            // Tap Compare Products
+            await user.click(await openCompareReview(user))
 
-        // ColumnSelectionModal is surfaced to clarify which column to use
-        expect(
-            screen.getByRole("dialog", {
-                name: /Select nutrition column for Brand Alpha Cereal A/i,
-            }),
-        ).toBeInTheDocument()
-        expect(
-            screen.getByText(
-                /This package label has multiple nutrition columns/i,
-            ),
-        ).toBeInTheDocument()
+            // ColumnSelectionPage is surfaced to clarify which column to use
+            expect(
+                await screen.findByRole("heading", {
+                    name: /Select nutrition column for Brand Alpha Cereal A/i,
+                }),
+            ).toBeInTheDocument()
+            expect(
+                screen.getByText(
+                    /This package label has multiple nutrition columns/i,
+                ),
+            ).toBeInTheDocument()
 
-        // Tap Choose this basis for the 100g column
-        const chooseBasisBtn = screen.getAllByRole("button", {
-            name: /Select column/i,
-        })[0]
-        expect(chooseBasisBtn).toBeDefined()
-        await user.click(chooseBasisBtn!)
+            expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+            expect(
+                screen.queryByRole("button", { name: "Compare Products" }),
+            ).not.toBeInTheDocument()
+            expect(screen.getByTestId("comparison-url")).toHaveTextContent(
+                "/compare?column=left",
+            )
+            await waitFor(() =>
+                expect(document.activeElement).toBe(
+                    screen.getByRole("heading", {
+                        name: /Select nutrition column for Brand Alpha Cereal A/i,
+                    }),
+                ),
+            )
 
-        // Modal automatically dismisses and comparison proceeds
-        expect(compareMock).toHaveBeenCalledTimes(1)
-        expect(compareMock).toHaveBeenCalledWith(
-            expect.objectContaining({
-                left_column_id: "col_100g",
-                right_column_id: "col_right_100g",
-            }),
-            expect.anything(),
-        )
-    })
+            // Both the visible Back control and browser history preserve the session.
+            for (const backName of ["Back", "Browser Back"]) {
+                await user.click(screen.getByRole("button", { name: backName }))
+                expect(screen.getByTestId("comparison-url")).toHaveTextContent(
+                    /^\/compare$/,
+                )
+                expect(
+                    document.getElementById("upload-photos-left"),
+                ).toBeInTheDocument()
+                expect(
+                    document.getElementById("upload-photos-right"),
+                ).toBeInTheDocument()
+                expect(extractPhotosMock).toHaveBeenCalledTimes(2)
+                expect(compareMock).not.toHaveBeenCalled()
+                await user.click(
+                    screen.getByRole("button", { name: "Browser Forward" }),
+                )
+                expect(screen.getByTestId("comparison-url")).toHaveTextContent(
+                    "/compare?column=left",
+                )
+            }
+
+            // Tap Choose this basis for the 100g column
+            const chooseBasisBtn = screen.getAllByRole("button", {
+                name: /Select column/i,
+            })[0]
+            expect(chooseBasisBtn).toBeDefined()
+            await user.click(chooseBasisBtn!)
+
+            if (bothNeedChoices) {
+                expect(
+                    await screen.findByRole("heading", {
+                        name: /Select nutrition column for Cereal B/i,
+                    }),
+                ).toBeInTheDocument()
+                expect(screen.getByTestId("comparison-url")).toHaveTextContent(
+                    "/compare?column=right",
+                )
+                expect(compareMock).not.toHaveBeenCalled()
+                await user.click(
+                    screen.getByRole("button", { name: "Browser Back" }),
+                )
+                expect(screen.getByTestId("comparison-url")).toHaveTextContent(
+                    /^\/compare$/,
+                )
+                await user.click(
+                    screen.getByRole("button", { name: "Browser Forward" }),
+                )
+                await user.click(
+                    screen.getAllByRole("button", {
+                        name: /Select column/i,
+                    })[0]!,
+                )
+            }
+            expect(screen.getByTestId("comparison-url")).toHaveTextContent(
+                /^\/compare$/,
+            )
+            expect(extractPhotosMock).toHaveBeenCalledTimes(2)
+
+            // Modal automatically dismisses and comparison proceeds
+            expect(compareMock).toHaveBeenCalledTimes(1)
+            expect(compareMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    left_column_id: "col_100g",
+                    right_column_id: "col_right_100g",
+                }),
+                expect.anything(),
+            )
+        },
+    )
 
     test("clarified UX: supports cancelling in-flight processing", async () => {
         const user = userEvent.setup()

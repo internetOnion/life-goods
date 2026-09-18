@@ -6,6 +6,7 @@ import {
     WarningCircle,
 } from "@phosphor-icons/react"
 import { useEffect, useMemo, useRef, useState } from "react"
+import { useLocation, useNavigate } from "react-router"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { GlassButton as Button } from "@/components/ui/button"
@@ -19,7 +20,7 @@ import {
     extractProductPhotos,
     PhotoComparisonApiError,
 } from "./api"
-import { ColumnSelectionModal } from "./ColumnSelectionModal"
+import { ColumnSelectionPage } from "./ColumnSelectionPage"
 import { ComparisonProcessingSheet } from "./ComparisonProcessingSheet"
 import { ComparisonSection } from "./ComparisonSection"
 import { CompareStepper } from "./CompareStepper"
@@ -139,9 +140,84 @@ export function PhotoComparisonPage({
         null,
     )
 
-    const [columnModalSide, setColumnModalSide] = useState<
-        "left" | "right" | null
-    >(null)
+    const location = useLocation()
+    const navigate = useNavigate()
+    const locationRef = useRef(location)
+    locationRef.current = location
+    const columnParam = new URLSearchParams(location.search).get("column")
+    const columnPageSide =
+        columnParam === "left" || columnParam === "right" ? columnParam : null
+    const chooserReturnRef = useRef<{
+        focusId: string | null
+        scrollY: number
+    } | null>(null)
+    const previousColumnSideRef = useRef<CompareSide | null>(null)
+
+    function setColumnPageSide(side: CompareSide | null, replace = false) {
+        const currentLocation = locationRef.current
+        const params = new URLSearchParams(currentLocation.search)
+        if (side && !params.has("column")) {
+            chooserReturnRef.current = {
+                focusId:
+                    document.activeElement?.id || `panel-heading-${activeSide}`,
+                scrollY: window.scrollY,
+            }
+        }
+        if (side) params.set("column", side)
+        else params.delete("column")
+        void navigate(
+            { pathname: currentLocation.pathname, search: params.toString() },
+            { replace },
+        )
+    }
+
+    const chooserProduct =
+        columnPageSide === "left" ? leftProduct : rightProduct
+    const chooserAvailable =
+        columnPageSide !== null && !!chooserProduct.extraction
+
+    useEffect(() => {
+        if (columnParam !== null && !chooserAvailable) {
+            const params = new URLSearchParams(location.search)
+            params.delete("column")
+            void navigate(
+                { pathname: location.pathname, search: params.toString() },
+                { replace: true },
+            )
+        }
+    }, [
+        columnParam,
+        chooserAvailable,
+        location.pathname,
+        location.search,
+        navigate,
+    ])
+
+    useEffect(() => {
+        const previous = previousColumnSideRef.current
+        previousColumnSideRef.current = columnPageSide
+        const frame = window.requestAnimationFrame(() => {
+            if (chooserAvailable) {
+                document
+                    .getElementById("column-selection-heading")
+                    ?.focus({ preventScroll: true })
+                window.scrollTo(0, 0)
+            } else if (
+                previous &&
+                chooserReturnRef.current &&
+                flowPhase === "review"
+            ) {
+                const { focusId, scrollY } = chooserReturnRef.current
+                if (focusId)
+                    document
+                        .getElementById(focusId)
+                        ?.focus({ preventScroll: true })
+                window.scrollTo(0, scrollY)
+            }
+        })
+        return () => window.cancelAnimationFrame(frame)
+    }, [columnPageSide, chooserAvailable, flowPhase])
+
     const [highlightedPhotoId, setHighlightedPhotoId] = useState<string | null>(
         null,
     )
@@ -203,22 +279,35 @@ export function PhotoComparisonPage({
                   : flowPhase === "capture" || flowPhase === "review"
                     ? `panel-heading-${activeSide}`
                     : null
-        if (!targetId || targetId === lastFocusTargetRef.current) return
+        if (
+            chooserAvailable ||
+            !targetId ||
+            targetId === lastFocusTargetRef.current
+        )
+            return
         lastFocusTargetRef.current = targetId
         window.requestAnimationFrame(() => {
             document.getElementById(targetId)?.focus()
         })
-    }, [activeSide, flowPhase])
+    }, [activeSide, flowPhase, chooserAvailable])
 
     useEffect(() => {
         setPrimaryNavigationHidden(flowPhase !== "intro")
-        setBottomDockVisible(flowPhase === "capture" || flowPhase === "review")
+        setBottomDockVisible(
+            !chooserAvailable &&
+                (flowPhase === "capture" || flowPhase === "review"),
+        )
 
         return () => {
             setBottomDockVisible(false)
             setPrimaryNavigationHidden(false)
         }
-    }, [flowPhase, setBottomDockVisible, setPrimaryNavigationHidden])
+    }, [
+        flowPhase,
+        chooserAvailable,
+        setBottomDockVisible,
+        setPrimaryNavigationHidden,
+    ])
 
     useEffect(() => {
         if (
@@ -284,7 +373,7 @@ export function PhotoComparisonPage({
             return
         }
 
-        setFlowPhase(comparison ? "results" : "intro")
+        handleBackToStart()
     }
 
     const abortInFlightExtraction = (side?: "left" | "right") => {
@@ -457,7 +546,7 @@ export function PhotoComparisonPage({
         setRightProduct((prev) => ({ ...prev, loading: false }))
     }
 
-    const handleResetSession = () => {
+    const clearSession = (destination: "intro" | "capture") => {
         sessionIdRef.current += 1
         abortInFlightExtraction()
         abortInFlightComparison()
@@ -472,13 +561,29 @@ export function PhotoComparisonPage({
         setLeftProduct(createInitialProduct("left", t("productA"), "1"))
         setRightProduct(createInitialProduct("right", t("productB"), "2"))
         setInspectionState({ isOpen: false, side: "left", index: 0 })
-        setColumnModalSide(null)
+        setColumnPageSide(null, true)
         setHighlightedPhotoId(null)
         setActiveSide("left")
-        setFlowPhase("intro")
+        chooserReturnRef.current = null
+        previousColumnSideRef.current = null
+        previewRefs.current = {}
+        lastFocusTargetRef.current = null
+        setFlowPhase(destination)
         setProcessingStep("idle")
         invalidateComparison()
+        window.requestAnimationFrame(() => {
+            document
+                .getElementById(
+                    destination === "intro"
+                        ? "compare-intro-heading"
+                        : "panel-heading-left",
+                )
+                ?.focus()
+        })
     }
+
+    const handleResetSession = () => clearSession("capture")
+    const handleBackToStart = () => clearSession("intro")
 
     const handleTitleChange = (
         side: "left" | "right",
@@ -741,28 +846,22 @@ export function PhotoComparisonPage({
             setRightProduct((prev) => ({ ...prev, selectedColumnId: columnId }))
         }
 
-        setColumnModalSide((current) => {
-            if (current === side) {
-                const otherSide = side === "left" ? "right" : "left"
-                const otherExt =
-                    side === "left"
-                        ? rightProductRef.current.extraction
-                        : leftProductRef.current.extraction
-                const otherColId =
-                    side === "left"
-                        ? rightProductRef.current.selectedColumnId
-                        : leftProductRef.current.selectedColumnId
-                if (
-                    otherExt &&
-                    (otherExt.nutrition_columns?.length ?? 0) > 1 &&
-                    !otherColId
-                ) {
-                    return otherSide
-                }
-                return null
-            }
-            return current
-        })
+        if (columnPageSide === side) {
+            const otherSide = side === "left" ? "right" : "left"
+            const otherProduct =
+                side === "left"
+                    ? rightProductRef.current
+                    : leftProductRef.current
+            setColumnPageSide(
+                otherProduct.extraction &&
+                    (otherProduct.extraction.nutrition_columns?.length ?? 0) >
+                        1 &&
+                    !otherProduct.selectedColumnId
+                    ? otherSide
+                    : null,
+                true,
+            )
+        }
 
         const currentLeft = leftProductRef.current
         const currentRight = rightProductRef.current
@@ -1107,12 +1206,12 @@ export function PhotoComparisonPage({
                 getDefaultColumnId(rightExt)
 
             if ((leftExt.nutrition_columns?.length ?? 0) > 1 && !leftColId) {
-                setColumnModalSide("left")
+                setColumnPageSide("left")
                 setFlowPhase("review")
                 return
             }
             if ((rightExt.nutrition_columns?.length ?? 0) > 1 && !rightColId) {
-                setColumnModalSide("right")
+                setColumnPageSide("right")
                 setFlowPhase("review")
                 return
             }
@@ -1231,6 +1330,51 @@ export function PhotoComparisonPage({
         setFlowPhase(rightProduct.photos.length > 0 ? "review" : "capture")
     }
 
+    if (chooserAvailable) {
+        return (
+            <div lang={locale} className="min-h-full text-neutral-900">
+                {/* Column Selection Modal */}
+                <ColumnSelectionPage
+                    onBack={() => {
+                        void navigate(-1)
+                    }}
+                    product={
+                        columnPageSide === "left"
+                            ? leftProduct
+                            : columnPageSide === "right"
+                              ? rightProduct
+                              : null
+                    }
+                    otherProductTitle={
+                        columnPageSide === "left"
+                            ? rightProduct.title
+                            : leftProduct.title
+                    }
+                    onSelectColumn={(colId) => {
+                        if (columnPageSide) {
+                            handleSelectColumn(columnPageSide, colId)
+                        }
+                    }}
+                    stepIndicator={
+                        columnPageSide === "left" &&
+                        rightProduct.extraction &&
+                        (rightProduct.extraction.nutrition_columns?.length ??
+                            0) > 1 &&
+                        !rightProduct.selectedColumnId
+                            ? t("stepOf", { current: 1, total: 2 })
+                            : columnPageSide === "right" &&
+                                leftProduct.extraction &&
+                                (leftProduct.extraction.nutrition_columns
+                                    ?.length ?? 0) > 1 &&
+                                !leftProduct.selectedColumnId
+                              ? t("stepOf", { current: 2, total: 2 })
+                              : undefined
+                    }
+                />
+            </div>
+        )
+    }
+
     return (
         <div
             className="min-h-full pb-8 text-neutral-900"
@@ -1265,7 +1409,16 @@ export function PhotoComparisonPage({
                             <ArrowLeft size={17} weight="bold" />
                             <span>{t("editProducts")}</span>
                         </Button>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleBackToStart}
+                                className="gap-1.5 font-semibold text-neutral-700 hover:text-neutral-900"
+                            >
+                                <ArrowLeft size={17} weight="bold" />
+                                <span>{t("backToStart")}</span>
+                            </Button>
                             <Button
                                 type="button"
                                 variant="outline"
@@ -1758,11 +1911,7 @@ export function PhotoComparisonPage({
                                             <Button
                                                 type="button"
                                                 variant="ghost"
-                                                aria-label={
-                                                    comparison
-                                                        ? t("backToResults")
-                                                        : t("backToStart")
-                                                }
+                                                aria-label={t("backToStart")}
                                                 disabled={
                                                     processingStep !== "idle"
                                                 }
@@ -2015,44 +2164,6 @@ export function PhotoComparisonPage({
                     </section>
                 )}
             </main>
-
-            {/* Column Selection Modal */}
-            <ColumnSelectionModal
-                isOpen={columnModalSide !== null}
-                onClose={() => setColumnModalSide(null)}
-                product={
-                    columnModalSide === "left"
-                        ? leftProduct
-                        : columnModalSide === "right"
-                          ? rightProduct
-                          : null
-                }
-                otherProductTitle={
-                    columnModalSide === "left"
-                        ? rightProduct.title
-                        : leftProduct.title
-                }
-                onSelectColumn={(colId) => {
-                    if (columnModalSide) {
-                        handleSelectColumn(columnModalSide, colId)
-                    }
-                }}
-                stepIndicator={
-                    columnModalSide === "left" &&
-                    rightProduct.extraction &&
-                    (rightProduct.extraction.nutrition_columns?.length ?? 0) >
-                        1 &&
-                    !rightProduct.selectedColumnId
-                        ? t("stepOf", { current: 1, total: 2 })
-                        : columnModalSide === "right" &&
-                            leftProduct.extraction &&
-                            (leftProduct.extraction.nutrition_columns?.length ??
-                                0) > 1 &&
-                            !leftProduct.selectedColumnId
-                          ? t("stepOf", { current: 2, total: 2 })
-                          : undefined
-                }
-            />
 
             {/* Photo Inspection Modal */}
             <PhotoInspectionModal

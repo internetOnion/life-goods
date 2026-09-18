@@ -3,6 +3,7 @@ import { AlertCircle, ArrowLeft } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useLocation, useNavigate, useParams } from "react-router"
 
+import { appRoutes } from "@/app/routes"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -12,6 +13,7 @@ import { Header } from "@/components/layout/Header"
 import { saveScanItem } from "@/lib/history"
 import { validateIdentifier } from "@/lib/identifier"
 import { usePageMetadata } from "@/lib/metadata"
+import { useAppTranslation } from "@/i18n/translations"
 import { useLocale } from "@/i18n/locale"
 
 import { lookupProduct, type ProductLookup } from "./api"
@@ -56,6 +58,7 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
     const { barcode = "" } = useParams()
     const location = useLocation()
     const navigate = useNavigate()
+    const { t: tApp } = useAppTranslation()
     const { locale } = useLocale()
     const { t } = useProductTranslation()
 
@@ -281,13 +284,15 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                 }
             )?.error?.code === "product_not_found")
 
+    const navigateToScan = () => void navigate(appRoutes.home)
+
     return (
         <div className="min-h-svh bg-neutral-50">
             <Header
                 appearance="glass"
                 showBackButton={true}
-                onBack={() => void navigate("/search")}
-                backLabel={t("backToSearch")}
+                onBack={navigateToScan}
+                backLabel={tApp("backToScanner")}
             />
 
             <Container>
@@ -303,12 +308,7 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                     </div>
                 )}
 
-                {isNotFound && (
-                    <NotFoundCard
-                        identifier={barcode}
-                        onBack={() => void navigate("/search")}
-                    />
-                )}
+                {isNotFound && <NotFoundCard onBack={navigateToScan} />}
 
                 {productQuery.isError && !isNotFound && (
                     <div className="space-y-4 pt-4">
@@ -342,11 +342,11 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => void navigate("/search")}
+                                        onClick={navigateToScan}
                                         className="gap-1 text-neutral-600 hover:text-neutral-900"
                                     >
                                         <ArrowLeft className="h-4 w-4" />
-                                        <span>{t("backToSearch")}</span>
+                                        <span>{tApp("backToScanner")}</span>
                                     </Button>
                                 </div>
                             </CardContent>

@@ -22,12 +22,12 @@ describe("ConcernsPage", () => {
 
         expect(
             screen.getByRole("heading", {
-                name: "Allergy Concerns",
+                name: "Allergy",
             }),
         ).toBeInTheDocument()
         expect(
             screen
-                .getByRole("heading", { name: /Active Concerns/ })
+                .getByRole("heading", { name: /Selected allergens/ })
                 .closest("section"),
         ).toHaveAttribute("data-glass-surface", "")
 
@@ -38,6 +38,20 @@ describe("ConcernsPage", () => {
         expect(screen.getByLabelText("Milk")).toBeInTheDocument()
         expect(screen.getByLabelText("Peanuts")).toBeInTheDocument()
         expect(screen.getByLabelText("Gluten")).toBeInTheDocument()
+        expect(screen.getAllByRole("checkbox")).toHaveLength(13)
+        expect(
+            screen.getByRole("group", {
+                name: "Select allergens to highlight",
+            }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("heading", { name: "Available allergens" }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByText(
+                "No allergens selected yet. Choose from the list below.",
+            ),
+        ).toBeInTheDocument()
         expect(
             screen.getByLabelText("Milk").closest("label"),
         ).not.toHaveAttribute("data-glass")
@@ -57,29 +71,33 @@ describe("ConcernsPage", () => {
         )
 
         expect(
-            screen.getByRole("heading", { name: "កង្វល់អាលែហ្ស៊ី" }),
+            screen.getByRole("heading", { name: "អាលែហ្ស៊ី" }),
         ).toBeInTheDocument()
-        expect(document.title).toBe("កង្វល់អាលែហ្ស៊ី | Life Goods")
+        expect(document.title).toBe("អាលែហ្ស៊ី | Life Goods")
         expect(
             document.querySelector('meta[name="description"]'),
         ).toHaveAttribute(
             "content",
-            "ជ្រើសរើសកង្វល់អាហារ និងអាលែហ្ស៊ី ដើម្បីបន្លិចនៅពេលស្វែងរកផលិតផល។",
+            "ជ្រើសរើសសារធាតុបង្កអាលែហ្ស៊ី ដើម្បីបន្លិចនៅពេលស្វែងរកផលិតផល។",
         )
         expect(
-            screen.getByRole("heading", { name: "កង្វល់សកម្ម (0)" }),
-        ).toBeInTheDocument()
-        expect(
             screen.getByRole("heading", {
-                name: "អាលែហ្ស៊ី និងគ្រឿងផ្សំដែលមាន",
+                name: "សារធាតុបង្កអាលែហ្ស៊ីដែលបានជ្រើសរើស (0)",
             }),
         ).toBeInTheDocument()
         expect(
-            screen.getByText("ជ្រើសរើសកង្វល់អាលែហ្ស៊ី និងអាហារ"),
+            screen.getByRole("heading", {
+                name: "សារធាតុបង្កអាលែហ្ស៊ីដែលមាន",
+            }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("group", {
+                name: "ជ្រើសរើសសារធាតុបង្កអាលែហ្ស៊ីដើម្បីបន្លិច",
+            }),
         ).toBeInTheDocument()
         expect(
             screen.getByText(
-                "មិនទាន់បានជ្រើសរើសកង្វល់ទេ។ អ្នកអាចជ្រេីសរេីសពីខាងក្រោម។",
+                "មិនទាន់បានជ្រើសរើសសារធាតុបង្កអាលែហ្ស៊ីទេ។ ជ្រើសរើសពីបញ្ជីខាងក្រោម។",
             ),
         ).toBeInTheDocument()
 
@@ -106,7 +124,9 @@ describe("ConcernsPage", () => {
 
         expect(milkCheckbox).toBeChecked()
         expect(
-            screen.getByRole("heading", { name: "កង្វល់សកម្ម (1)" }),
+            screen.getByRole("heading", {
+                name: "សារធាតុបង្កអាលែហ្ស៊ីដែលបានជ្រើសរើស (1)",
+            }),
         ).toBeInTheDocument()
         expect(
             screen.getByRole("button", { name: "ដក ទឹកដោះគោ ចេញ" }),
@@ -117,7 +137,9 @@ describe("ConcernsPage", () => {
         })
         fireEvent.click(resetButton)
         expect(
-            screen.getByRole("heading", { name: "កង្វល់សកម្ម (0)" }),
+            screen.getByRole("heading", {
+                name: "សារធាតុបង្កអាលែហ្ស៊ីដែលបានជ្រើសរើស (0)",
+            }),
         ).toBeInTheDocument()
     })
 
@@ -154,11 +176,11 @@ describe("ConcernsPage", () => {
 
         const dairyCheckbox = screen.getByLabelText("Milk")
         expect(dairyCheckbox).not.toBeChecked()
-        expect(screen.getByText("Active Concerns (0)")).toBeInTheDocument()
+        expect(screen.getByText("Selected allergens (0)")).toBeInTheDocument()
 
         fireEvent.click(dairyCheckbox)
         expect(dairyCheckbox).toBeChecked()
-        expect(screen.getByText("Active Concerns (1)")).toBeInTheDocument()
+        expect(screen.getByText("Selected allergens (1)")).toBeInTheDocument()
         expect(
             screen.getByRole("button", { name: "Remove Milk" }),
         ).toBeInTheDocument()
@@ -178,7 +200,7 @@ describe("ConcernsPage", () => {
 
         fireEvent.click(screen.getByRole("button", { name: "Remove Milk" }))
         expect(dairyCheckbox).not.toBeChecked()
-        expect(screen.getByText("Active Concerns (0)")).toBeInTheDocument()
+        expect(screen.getByText("Selected allergens (0)")).toBeInTheDocument()
     })
 
     test("clears all selected concerns when clicking Reset all", () => {
@@ -186,13 +208,13 @@ describe("ConcernsPage", () => {
 
         fireEvent.click(screen.getByLabelText("Milk"))
         fireEvent.click(screen.getByLabelText("Eggs"))
-        expect(screen.getByText("Active Concerns (2)")).toBeInTheDocument()
+        expect(screen.getByText("Selected allergens (2)")).toBeInTheDocument()
 
         const resetButton = screen.getByRole("button", { name: "Reset all" })
         expect(resetButton).toHaveAttribute("data-glass", "neutral")
         expect(resetButton).toHaveClass("min-h-11")
         fireEvent.click(resetButton)
-        expect(screen.getByText("Active Concerns (0)")).toBeInTheDocument()
+        expect(screen.getByText("Selected allergens (0)")).toBeInTheDocument()
         expect(localStorage.getItem("lifegoods_selected_concerns")).toBe("[]")
     })
 
@@ -213,6 +235,19 @@ describe("ConcernsPage", () => {
         expect(localStorage.getItem("lifegoods_selected_concerns")).toBe(
             '["en:milk"]',
         )
+    })
+
+    test("restores saved allergen choices when the page mounts", () => {
+        localStorage.setItem(
+            "lifegoods_selected_concerns",
+            JSON.stringify(["en:milk", "en:peanuts"]),
+        )
+        render(<ConcernsPage />)
+        expect(screen.getByLabelText("Milk")).toBeChecked()
+        expect(screen.getByLabelText("Peanuts")).toBeChecked()
+        expect(
+            screen.getByRole("heading", { name: "Selected allergens (2)" }),
+        ).toBeInTheDocument()
     })
 
     test("refreshes choices after a browser storage event", async () => {
