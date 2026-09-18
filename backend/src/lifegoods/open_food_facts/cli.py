@@ -27,6 +27,7 @@ from lifegoods.open_food_facts.dataset import (
 )
 from lifegoods.open_food_facts.search_index import (
     build_search_index,
+    ensure_search_indexes,
     search_collection_name,
 )
 
@@ -808,6 +809,8 @@ def main(argv: list[str] | None = None) -> int:
     revalidate_parser.add_argument("--probe", action="append", dest="probes")
     reindex_parser = subparsers.add_parser("reindex-search")
     reindex_parser.add_argument("version_id")
+    ensure_parser = subparsers.add_parser("ensure-search-indexes")
+    ensure_parser.add_argument("version_id")
     activate_parser = subparsers.add_parser("activate")
     activate_parser.add_argument("version_id")
     delete_parser = subparsers.add_parser("delete")
@@ -884,6 +887,8 @@ def main(argv: list[str] | None = None) -> int:
             )
         elif args.command == "reindex-search":
             output = reindex_search(database, args.version_id)
+        elif args.command == "ensure-search-indexes":
+            output = ensure_search_indexes(database, args.version_id)
         elif args.command == "activate":
             output = activate_version(database, args.version_id)
         elif args.command == "delete":

@@ -392,3 +392,65 @@ def test_exhaustive_tier_pagination_on_real_mongodb(
     assert cursor is None
     assert actual == expected
     assert service.execute(parse_and_validate_query("absent z")).products == []
+
+
+@pytest.mark.parametrize("term", ["rice", "milk", "chocolate"])
+@pytest.mark.parametrize("same_name", [False, True])
+def test_common_term_uses_bounded_index_ordering(
+    writer_client, reader_client, settings, test_dataset, monkeypatch, term, same_name,
+) -> None:
+    from pymongo.collection import Collection
+
+    from lifegoods.open_food_facts.dataset import DatasetSnapshot
+
+    version, collection, _ = test_dataset
+    database = writer_client[settings.off_mongodb_database]
+    database[collection].insert_many([
+        {"code": _make_valid_code(i),
+         "product_name": f"{term} product" if same_name else f"{term} product {i:05d}",
+         "brands": "Other Brand"}
+        for i in range(10000)
+    ])
+    build_search_index(database, version_id=version)
+    source = OpenFoodFactsDatasetSource(reader_client[settings.off_mongodb_database])
+    snapshot = source.resolve_product_lookup_snapshot()
+    assert isinstance(snapshot, DatasetSnapshot)
+    calls = []
+    original = Collection.aggregate
+
+    def capture(self, pipeline, **options):
+        calls.append((pipeline, options))
+        return original(self, pipeline, **options)
+
+    monkeypatch.setattr(Collection, "aggregate", capture)
+    rows = source.search_text(snapshot, (term,), term)
+    assert len(rows) == 21
+    assert [row["code"] for row in rows] == [_make_valid_code(i) for i in range(21)]
+    manifest = database[VERSIONS_COLLECTION].find_one({"_id": version})
+    name = manifest["search_index"]["collection_name"]
+    from lifegoods.open_food_facts.search_index import SearchCursor
+
+    last = rows[19]
+    next_rows = source.search_text(
+        snapshot, (term,), term, SearchCursor(2, last["name_sort"], last["code"]),
+    )
+    assert [row["code"] for row in next_rows] == [_make_valid_code(i) for i in range(20, 41)]
+    for pipeline, options in calls:
+        result = database.command("explain", {
+            "aggregate": name, "pipeline": pipeline, "cursor": {},
+            "hint": options["hint"], "maxTimeMS": 2000,
+        }, verbosity="executionStats")
+
+        def stages(value):
+            if isinstance(value, dict):
+                yield value.get("stage")
+                for nested in value.values():
+                    yield from stages(nested)
+            elif isinstance(value, list):
+                for nested in value:
+                    yield from stages(nested)
+
+        assert "SORT" not in list(stages(result))
+        stats = result.get("executionStats") or result["stages"][0]["$cursor"]["executionStats"]
+        assert stats["totalDocsExamined"] <= 21
+        assert stats["totalKeysExamined"] <= 64

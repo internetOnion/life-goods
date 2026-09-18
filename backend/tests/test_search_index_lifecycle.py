@@ -155,3 +155,30 @@ def test_validate_search_index_readiness_failures() -> None:
     )
     with pytest.raises(SearchIndexUnavailableError, match="unavailable"):
         validate_search_index_readiness(database, version_id)
+
+
+def test_ensure_search_indexes_preserves_data_and_rejects_wrong_definition() -> None:
+    from lifegoods.open_food_facts.search_index import (
+        SORTED_SEARCH_INDEXES,
+        ensure_search_indexes,
+    )
+
+    database = mongomock.MongoClient().lifegoods_off
+    database[VERSIONS_COLLECTION].insert_one({"_id": "test", "collection_name": "source"})
+    database.source.insert_one({"code": "4006381333931", "product_name": "Milk"})
+    manifest = build_search_index(database, "test")
+    name = manifest["search_index"]["collection_name"]
+    before = list(database[name].find({}))
+    for index in SORTED_SEARCH_INDEXES:
+        database[name].drop_index(index)
+    with pytest.raises(SearchIndexUnavailableError):
+        validate_search_index_readiness(database, "test")
+    assert ensure_search_indexes(database, "test")["status"] == "READY"
+    assert ensure_search_indexes(database, "test")["status"] == "READY"
+    assert list(database[name].find({})) == before
+    assert database[VERSIONS_COLLECTION].find_one({"_id": "test"}) == manifest
+    index = next(iter(SORTED_SEARCH_INDEXES))
+    database[name].drop_index(index)
+    database[name].create_index("code", name=index)
+    with pytest.raises(SearchIndexUnavailableError):
+        validate_search_index_readiness(database, "test")

@@ -35,6 +35,36 @@ REQUIRED_SEARCH_INDEXES = frozenset(
     }
 )
 
+SORTED_SEARCH_INDEXES = {
+    f"ix_search_{field}_sort": [(field, ASCENDING), ("name_sort", ASCENDING), ("code", ASCENDING)]
+    for field in ("brand_values", "name_values", "name_tokens", "brand_tokens", "country_tokens")
+}
+REQUIRED_SEARCH_INDEXES = REQUIRED_SEARCH_INDEXES | frozenset(SORTED_SEARCH_INDEXES)
+
+
+def ensure_collection_search_indexes(collection: Any) -> None:
+    for name, keys in SORTED_SEARCH_INDEXES.items():
+        collection.create_index(keys, name=name)
+
+
+def ensure_search_indexes(database: Database[dict[str, Any]], version_id: str) -> dict[str, Any]:
+    """Add ordering indexes without rebuilding summaries or modifying the manifest."""
+    manifest = database[VERSIONS_COLLECTION].find_one({"_id": version_id})
+    meta = manifest.get("search_index") if manifest else None
+    if not isinstance(meta, dict) or meta.get("schema_version") != SEARCH_SCHEMA_VERSION:
+        raise SearchIndexIncompatibleError("Search index schema is incompatible")
+    name = meta.get("collection_name")
+    if meta.get("status") != "READY" or not isinstance(name, str):
+        raise SearchIndexUnavailableError("Search index is not ready")
+    if name not in database.list_collection_names():
+        raise SearchIndexUnavailableError("Search collection is unavailable")
+    ensure_collection_search_indexes(database[name])
+    validate_search_index_readiness(database, version_id)
+    return {
+        "version_id": version_id, "collection_name": name, "status": "READY",
+        "indexes": sorted(SORTED_SEARCH_INDEXES),
+    }
+
 
 class SearchIndexError(Exception):
     """Base exception for search index issues."""
@@ -221,6 +251,9 @@ def validate_search_index_readiness(
             f"Search collection is missing required indexes: {sorted(missing_indexes)}"
         )
 
+    for name, keys in SORTED_SEARCH_INDEXES.items():
+        if list(existing_indexes[name].get("key", [])) != keys:
+            raise SearchIndexUnavailableError(f"Search index definition is incompatible: {name}")
     return target_name
 
 
@@ -266,6 +299,7 @@ def build_search_index(
         target.create_index([("brand_tokens", ASCENDING)], name="ix_search_brand_tokens")
         target.create_index([("country_tokens", ASCENDING)], name="ix_search_country_tokens")
         target.create_index([("name_sort", ASCENDING), ("code", ASCENDING)], name="ix_search_sort")
+        ensure_collection_search_indexes(target)
         target.rename(target_name, dropTarget=True)
         renamed = True
         result = {

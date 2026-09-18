@@ -282,104 +282,94 @@ class OpenFoodFactsDatasetSource:
         results: list[dict[str, Any]] = []
         deadline = monotonic() + 2
         try:
-            # Rank complete matches together: separate tier queries would scan the
-            # same candidate set three times even when the first tiers are empty.
-            for prefix_only in (False, True):
-                if not prefix_only and cursor is not None and cursor.rank == 3:
+            def retrieve(
+                conditions: list[dict[str, Any]], count: int, hint: str,
+            ) -> list[dict[str, Any]]:
+                positions: list[list[dict[str, Any]]] = [[]]
+                if cursor is not None and rank == cursor.rank:
+                    positions = [
+                        [{"name_sort": cursor.name_sort, "code": {"$gt": cursor.code}}],
+                        [{"name_sort": {"$gt": cursor.name_sort}}],
+                    ]
+                rows: list[dict[str, Any]] = []
+                for position in positions:
+                    remaining_ms = int((deadline - monotonic()) * 1000)
+                    if remaining_ms <= 0:
+                        raise ExecutionTimeout("Search execution budget exhausted")
+                    rows.extend(self._database[search_col_name].aggregate(
+                        [{"$match": {"$and": conditions + position}},
+                         {"$sort": {"name_sort": 1, "code": 1}},
+                         {"$limit": count - len(rows)}],
+                        hint=hint, maxTimeMS=remaining_ms,
+                    ))
+                    if monotonic() >= deadline:
+                        raise ExecutionTimeout("Search execution budget exhausted")
+                    if len(rows) == count:
+                        break
+                return rows
+
+            for rank in range(4):
+                if cursor is not None and rank < cursor.rank:
                     continue
-                conditions = (
-                    match_conditions
-                    + [{"$nor": [exact_brand, exact_name, exact_country, complete_final]}]
-                    if prefix_only
-                    else complete_conditions
-                )
-                if prefix_only and cursor is not None and cursor.rank == 3:
-                    conditions = conditions + [
-                        {
-                            "$or": [
-                                {"name_sort": {"$gt": cursor.name_sort}},
-                                {"name_sort": cursor.name_sort, "code": {"$gt": cursor.code}},
-                            ]
-                        }
-                    ]
-                pipeline: list[dict[str, Any]] = [{"$match": {"$and": conditions}}]
-                if not prefix_only:
-                    pipeline.append(
-                        {
-                            "$set": {
-                                "rank": {
-                                    "$switch": {
-                                        "branches": [
-                                            {
-                                                "case": {
-                                                    "$in": [normalized_query, "$brand_values"]
-                                                },
-                                                "then": 0,
-                                            },
-                                            {
-                                                "case": {"$in": [normalized_query, "$name_values"]},
-                                                "then": 1,
-                                            },
-                                        ],
-                                        "default": 2,
-                                    }
-                                }
-                            }
-                        }
-                    )
-                    if cursor is not None:
-                        pipeline.append(
-                            {
-                                "$match": {
-                                    "$or": [
-                                        {"rank": {"$gt": cursor.rank}},
-                                        {
-                                            "rank": cursor.rank,
-                                            "name_sort": {"$gt": cursor.name_sort},
-                                        },
-                                        {
-                                            "rank": cursor.rank,
-                                            "name_sort": cursor.name_sort,
-                                            "code": {"$gt": cursor.code},
-                                        },
-                                    ]
-                                }
-                            }
-                        )
-                ordering = {"name_sort": 1, "code": 1}
-                if not prefix_only:
-                    ordering = {"rank": 1, **ordering}
-                pipeline.extend(
-                    [
-                        {"$sort": ordering},
-                        {"$limit": limit + 1 - len(results)},
-                    ]
-                )
-                remaining_ms = int((deadline - monotonic()) * 1000)
-                if remaining_ms <= 0:
-                    raise ExecutionTimeout("Search execution budget exhausted")
-                options: dict[str, Any] = {"maxTimeMS": remaining_ms}
-                if prefix_only and len(final_term) <= 2:
-                    # A bounded probe avoids a full sort-index scan for sparse prefixes.
-                    # Only sort the probe when it contains the entire candidate set.
-                    candidates = list(
-                        self._database[search_col_name].aggregate(
-                            [pipeline[0], {"$limit": 129}], **options
-                        )
-                    )
-                    if len(candidates) <= 128:
-                        rows = sorted(candidates, key=lambda row: (row["name_sort"], row["code"]))[
-                            : limit + 1 - len(results)
+                continuation = []
+                if cursor is not None and rank == cursor.rank:
+                    continuation = [{"name_sort": {"$gte": cursor.name_sort}}, {"$or": [
+                        {"name_sort": {"$gt": cursor.name_sort}},
+                        {"name_sort": cursor.name_sort, "code": {"$gt": cursor.code}},
+                    ]}]
+                count = limit + 1 - len(results)
+                if rank < 2:
+                    field = "brand_values" if rank == 0 else "name_values"
+                    conditions = complete_conditions + [{field: normalized_query}]
+                    if rank == 1:
+                        conditions.append({"$nor": [exact_brand]})
+                    rows = retrieve(conditions, count, f"ix_search_{field}_sort")
+                elif rank == 2:
+                    # Each equality stream has index-provided ordering. Merge only
+                    # its bounded page, deduplicating Products matching several fields.
+                    merged: dict[str, dict[str, Any]] = {}
+                    for field in ("name_tokens", "brand_tokens", "country_tokens"):
+                        conditions = complete_conditions + [
+                            {field: final_term}, {"$nor": [exact_brand, exact_name]},
                         ]
-                    else:
-                        options["maxTimeMS"] = int((deadline - monotonic()) * 1000)
-                        if options["maxTimeMS"] <= 0:
-                            raise ExecutionTimeout("Search execution budget exhausted")
-                        options["hint"] = "ix_search_sort"
-                        rows = list(self._database[search_col_name].aggregate(pipeline, **options))
+                        for row in retrieve(conditions, count, f"ix_search_{field}_sort"):
+                            merged[row["code"]] = row
+                    rows = sorted(
+                        merged.values(), key=lambda row: (row["name_sort"], row["code"]),
+                    )[:count]
                 else:
-                    rows = list(self._database[search_col_name].aggregate(pipeline, **options))
-                results.extend({**row, "rank": 3} if prefix_only else row for row in rows)
+                    conditions = match_conditions + [
+                        {"$nor": [exact_brand, exact_name, exact_country, complete_final]},
+                    ] + continuation
+                    pipeline = [{"$match": {"$and": conditions}},
+                                {"$sort": {"name_sort": 1, "code": 1}}, {"$limit": count}]
+                    remaining_ms = int((deadline - monotonic()) * 1000)
+                    if remaining_ms <= 0:
+                        raise ExecutionTimeout("Search execution budget exhausted")
+                    options: dict[str, Any] = {"maxTimeMS": remaining_ms}
+                    if len(final_term) <= 2:
+                        # A bounded probe avoids a full sort-index scan for sparse prefixes.
+                        # Only sort the probe when it contains the entire candidate set.
+                        candidates = list(
+                            self._database[search_col_name].aggregate(
+                                [pipeline[0], {"$limit": 129}], **options
+                            )
+                        )
+                        if len(candidates) <= 128:
+                            rows = sorted(
+                                candidates, key=lambda row: (row["name_sort"], row["code"]),
+                            )[:count]
+                        else:
+                            options["maxTimeMS"] = int((deadline - monotonic()) * 1000)
+                            if options["maxTimeMS"] <= 0:
+                                raise ExecutionTimeout("Search execution budget exhausted")
+                            options["hint"] = "ix_search_sort"
+                            rows = list(
+                                self._database[search_col_name].aggregate(pipeline, **options)
+                            )
+                    else:
+                        rows = list(self._database[search_col_name].aggregate(pipeline, **options))
+                results.extend({**row, "rank": rank} for row in rows)
                 if monotonic() >= deadline:
                     raise ExecutionTimeout("Search execution budget exhausted")
                 if len(results) == limit + 1:
