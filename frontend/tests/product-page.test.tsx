@@ -87,12 +87,32 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(screen.getByText("4006381333931")).toBeVisible()
         expect(screen.getByText("Barcode", { exact: true })).toBeVisible()
         expect(screen.getByText("Quantity", { exact: true })).toBeVisible()
+        const countriesSoldRow = screen.getByText("Countries Sold", {
+            exact: true,
+        }).parentElement
+        expect(countriesSoldRow).not.toBeNull()
+        expect(
+            within(countriesSoldRow as HTMLElement).getByText("cambodia", {
+                exact: true,
+            }),
+        ).toBeVisible()
+        const manufacturingPlacesRow = screen.getByText(
+            "Manufacturing Places",
+            { exact: true },
+        ).parentElement
+        expect(manufacturingPlacesRow).not.toBeNull()
+        expect(
+            within(manufacturingPlacesRow as HTMLElement).getByText(
+                "Cambodia",
+                { exact: true },
+            ),
+        ).toBeVisible()
         const allocationRegionRow = screen.getByText("Barcode country", {
             exact: true,
         }).parentElement
         expect(allocationRegionRow).not.toBeNull()
         expect(
-            within(allocationRegionRow as HTMLElement).getByText("Germany", {
+            within(allocationRegionRow as HTMLElement).getByText("germany", {
                 exact: true,
             }),
         ).toBeVisible()
@@ -398,6 +418,25 @@ describe("Product page (life-goods-viewer layout)", () => {
 
         expect(await screen.findByText("សូកូឡាខ្មៅ")).toBeVisible()
         expect(screen.getByText("Example Foods")).toBeVisible()
+        const countriesSoldRow = screen.getByText("ប្រទេសដែលលក់", {
+            exact: true,
+        }).parentElement
+        expect(countriesSoldRow).not.toBeNull()
+        expect(
+            within(countriesSoldRow as HTMLElement).getByText("កម្ពុជា", {
+                exact: true,
+            }),
+        ).toBeVisible()
+        const manufacturingPlacesRow = screen.getByText("ទីកន្លែងផលិត", {
+            exact: true,
+        }).parentElement
+        expect(manufacturingPlacesRow).not.toBeNull()
+        expect(
+            within(manufacturingPlacesRow as HTMLElement).getByText(
+                "Cambodia",
+                { exact: true },
+            ),
+        ).toBeVisible()
         expect(lookup).toHaveBeenCalledWith("4006381333931", "km")
         expect(
             screen.getByRole("heading", { name: "ព័ត៌មានលម្អិតផលិតផល" }),
@@ -1641,7 +1680,7 @@ describe("Product page (life-goods-viewer layout)", () => {
         }).parentElement
         expect(allocationRegionRow).not.toBeNull()
         expect(
-            within(allocationRegionRow as HTMLElement).getByText("Germany", {
+            within(allocationRegionRow as HTMLElement).getByText("germany", {
                 exact: true,
             }),
         ).toBeVisible()
@@ -1655,6 +1694,27 @@ describe("Product page (life-goods-viewer layout)", () => {
                 {
                     exact: true,
                 },
+            ),
+        ).toBeVisible()
+        const countriesSoldRow = screen.getByText("Countries Sold", {
+            exact: true,
+        }).parentElement
+        expect(countriesSoldRow).not.toBeNull()
+        expect(
+            within(countriesSoldRow as HTMLElement).getByText(
+                "Source Data Unavailable",
+                { exact: true },
+            ),
+        ).toBeVisible()
+        const manufacturingPlacesRow = screen.getByText(
+            "Manufacturing Places",
+            { exact: true },
+        ).parentElement
+        expect(manufacturingPlacesRow).not.toBeNull()
+        expect(
+            within(manufacturingPlacesRow as HTMLElement).getByText(
+                "Source Data Unavailable",
+                { exact: true },
             ),
         ).toBeVisible()
         expect(

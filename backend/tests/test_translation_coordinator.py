@@ -127,13 +127,15 @@ def test_coordinator_cache_hit_returns_without_calling_provider_or_store() -> No
     result1 = coordinator.get_or_generate_translation(product)
     assert result1.overall_status == TranslationOverallStatus.COMPLETE
     assert provider.call_count == 1
-    assert result1.fields["product_name"].khmer_translation == "តែបៃតង"
+    assert result1.fields["product_name"].status == TranslationFieldStatus.ORIGINAL_TEXT_PRESERVED
+    assert result1.fields["product_name"].khmer_translation is None
 
     # 2nd call: Hits Redis hot cache -> provider NOT called again
     result2 = coordinator.get_or_generate_translation(product)
     assert result2.overall_status == TranslationOverallStatus.COMPLETE
     assert provider.call_count == 1
-    assert result2.fields["product_name"].khmer_translation == "តែបៃតង"
+    assert result2.fields["product_name"].status == TranslationFieldStatus.ORIGINAL_TEXT_PRESERVED
+    assert result2.fields["product_name"].khmer_translation is None
 
 
 def test_coordinator_store_hit_populates_hot_cache_and_returns() -> None:
@@ -213,7 +215,11 @@ def test_coordinator_single_flight_cross_instance_coordination() -> None:
     # Worker 2 now runs get_or_generate_translation
     worker2_res = coordinator.get_or_generate_translation(product, deadline_seconds=1.0)
     assert worker2_res.overall_status == TranslationOverallStatus.COMPLETE
-    assert worker2_res.fields["product_name"].khmer_translation == "តែបៃតង"
+    assert (
+        worker2_res.fields["product_name"].status
+        == TranslationFieldStatus.ORIGINAL_TEXT_PRESERVED
+    )
+    assert worker2_res.fields["product_name"].khmer_translation is None
     # Provider was called only by Worker 1, not Worker 2
     assert provider.call_count == 1
 
@@ -544,12 +550,12 @@ def test_coordinator_generated_result_returned_even_if_write_fails() -> None:
         budget=budget,
     )
 
-    provider.canned_translations["product_name"] = "ផលិតផល __LG_TOK_0__"
     product1 = _make_product(name="Product 1")
     # 1st call: Translation succeeds, write fails. Result is still returned to the current request!
     res1 = coordinator.get_or_generate_translation(product1)
     assert res1.overall_status == TranslationOverallStatus.COMPLETE
-    assert res1.fields["product_name"].khmer_translation == "ផលិតផល 1"
+    assert res1.fields["product_name"].status == TranslationFieldStatus.ORIGINAL_TEXT_PRESERVED
+    assert res1.fields["product_name"].khmer_translation is None
     assert provider.call_count == 1
 
     # But store degradation is now active -> subsequent requests do not start new provider calls!

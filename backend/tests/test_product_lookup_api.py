@@ -1013,7 +1013,10 @@ def test_v1_product_lookup_with_language_kh_generates_translation() -> None:
     assert body["meta"]["translation"]["metadata"]["machine_generated"] is True
     assert body["meta"]["translation"]["metadata"]["provider"] == "test-fake"
     assert body["meta"]["translation"]["metadata"]["model"] == "canned-translations"
-    assert body["meta"]["translation"]["metadata"]["configuration_version"] == "v2"
+    assert (
+        body["meta"]["translation"]["metadata"]["configuration_version"]
+        == TRANSLATION_CONFIG_VERSION
+    )
     assert body["meta"]["translation"]["metadata"]["generated_at"] is not None
 
     # Source attribution remains unchanged
@@ -1028,8 +1031,8 @@ def test_v1_product_lookup_with_language_kh_generates_translation() -> None:
     )
 
     product = body["data"]["product"]
-    assert product["identity"]["name"]["translation_status"] == "generated"
-    assert product["identity"]["name"]["khmer_translation"] is not None
+    assert product["identity"]["name"]["translation_status"] == "original_text_preserved"
+    assert product["identity"]["name"]["khmer_translation"] is None
     assert product["identity"]["name"]["selected_original_text"]["value"] == "Dark Chocolate"
 
     assert product["identity"]["generic_name"]["translation_status"] == "generated"
@@ -1100,7 +1103,6 @@ def test_v1_product_lookup_translates_nutella_prose_fields_together() -> None:
 
     assert provider.last_request is not None
     assert set(provider.last_request.fields) == {
-        "product_name",
         "ingredients_text",
         "storage_instruction_0",
         "packaging_description_0",
@@ -1272,6 +1274,7 @@ def test_v1_product_lookup_cache_hit() -> None:
         {
             "code": "4006381333931",
             "product_name_en": "Dark Chocolate",
+            "generic_name_en": "Chocolate",
         }
     )
 
@@ -1303,6 +1306,7 @@ def test_v1_product_lookup_store_hit() -> None:
         {
             "code": "4006381333931",
             "product_name_en": "Dark Chocolate",
+            "generic_name_en": "Chocolate",
         }
     )
 
@@ -1347,6 +1351,7 @@ def test_v1_product_lookup_cooldown_returns_200_with_original_text_and_unavailab
         {
             "code": "4006381333931",
             "product_name_en": "Dark Chocolate",
+            "generic_name_en": "Chocolate",
         }
     )
 
@@ -1362,7 +1367,7 @@ def test_v1_product_lookup_cooldown_returns_200_with_original_text_and_unavailab
         assert body1["meta"]["translation"]["status"] == "unavailable"
         assert body1["meta"]["translation"]["metadata"] is None
         assert (
-            body1["data"]["product"]["identity"]["name"]["translation_status"]
+            body1["data"]["product"]["identity"]["generic_name"]["translation_status"]
             == "translation_unavailable"
         )
         assert (
@@ -1388,6 +1393,7 @@ def test_v1_product_lookup_store_degraded_returns_original_text(
         {
             "code": "4006381333931",
             "product_name_en": "Dark Chocolate",
+            "generic_name_en": "Chocolate",
         }
     )
 
@@ -1408,7 +1414,7 @@ def test_v1_product_lookup_store_degraded_returns_original_text(
     assert body["meta"]["translation"]["status"] == "unavailable"
     assert body["meta"]["translation"]["metadata"] is None
     assert (
-        body["data"]["product"]["identity"]["name"]["translation_status"]
+        body["data"]["product"]["identity"]["generic_name"]["translation_status"]
         == "translation_unavailable"
     )
     assert (
@@ -1429,6 +1435,7 @@ def test_v1_product_lookup_budget_exhausted_returns_original_text() -> None:
         {
             "code": "4006381333931",
             "product_name_en": "Dark Chocolate",
+            "generic_name_en": "Chocolate",
         }
     )
 
@@ -1453,7 +1460,7 @@ def test_v1_product_lookup_budget_exhausted_returns_original_text() -> None:
     assert body["meta"]["translation"]["status"] == "unavailable"
     assert body["meta"]["translation"]["metadata"] is None
     assert (
-        body["data"]["product"]["identity"]["name"]["translation_status"]
+        body["data"]["product"]["identity"]["generic_name"]["translation_status"]
         == "translation_unavailable"
     )
     assert (
@@ -1469,6 +1476,7 @@ def test_v1_product_lookup_competing_lease_timeout_returns_200_unavailable() -> 
         {
             "code": "4006381333931",
             "product_name_en": "Dark Chocolate",
+            "generic_name_en": "Chocolate",
         }
     )
 
@@ -1516,7 +1524,7 @@ def test_v1_product_lookup_competing_lease_timeout_returns_200_unavailable() -> 
     body = response.json()
     assert body["meta"]["translation"]["status"] == "unavailable"
     assert (
-        body["data"]["product"]["identity"]["name"]["translation_status"]
+        body["data"]["product"]["identity"]["generic_name"]["translation_status"]
         == "translation_unavailable"
     )
     assert (
@@ -1532,12 +1540,13 @@ def test_v1_product_lookup_partial_failure_returns_200_with_partial_status() -> 
         {
             "code": "4006381333931",
             "product_name_en": "Dark Chocolate",
+            "generic_name_en": "Chocolate",
             "ingredients_text_en": "Cocoa mass, sugar",
         }
     )
 
     provider = FakeTranslationProvider(
-        canned_translations={"product_name": "សូកូឡាខ្មៅ", "ingredients_text": ""}
+        canned_translations={"generic_name": "សូកូឡា", "ingredients_text": ""}
     )
     coord = _make_test_coordinator(provider=provider)
 
@@ -1551,8 +1560,9 @@ def test_v1_product_lookup_partial_failure_returns_200_with_partial_status() -> 
     assert body["meta"]["translation"]["metadata"]["machine_generated"] is True
 
     product = body["data"]["product"]
-    assert product["identity"]["name"]["translation_status"] == "generated"
-    assert product["identity"]["name"]["khmer_translation"] is not None
+    assert product["identity"]["name"]["translation_status"] == "original_text_preserved"
+    assert product["identity"]["name"]["khmer_translation"] is None
+    assert product["identity"]["generic_name"]["translation_status"] == "generated"
 
     assert product["ingredients_text"]["translation_status"] == "translation_unavailable"
     assert product["ingredients_text"]["khmer_translation"] is None
@@ -1595,6 +1605,7 @@ def test_v1_product_lookup_competing_lease_wait_success() -> None:
         {
             "code": "4006381333931",
             "product_name_en": "Dark Chocolate",
+            "generic_name_en": "Chocolate",
         }
     )
 
@@ -1606,7 +1617,14 @@ def test_v1_product_lookup_competing_lease_wait_success() -> None:
                     source_field="product_name_en",
                     language="en",
                 )
-            ]
+            ],
+            generic_names=[
+                OriginalText(
+                    value="Chocolate",
+                    source_field="generic_name_en",
+                    language="en",
+                )
+            ],
         ),
         nutrition=NutritionProjection(),
         assessments=SourceAssessmentsProjection(),
@@ -1664,7 +1682,11 @@ def test_v1_product_lookup_competing_lease_wait_success() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["meta"]["translation"]["status"] == "complete"
-    assert body["data"]["product"]["identity"]["name"]["translation_status"] == "generated"
+    assert (
+        body["data"]["product"]["identity"]["name"]["translation_status"]
+        == "original_text_preserved"
+    )
+    assert body["data"]["product"]["identity"]["generic_name"]["translation_status"] == "generated"
     assert provider.call_count == 0
 
 
@@ -1706,6 +1728,7 @@ def test_v1_product_lookup_coordinator_failure_marks_fields_unavailable() -> Non
         {
             "code": "4006381333931",
             "product_name_en": "Dark Chocolate",
+            "generic_name_en": "Chocolate",
         }
     )
 
@@ -1720,7 +1743,8 @@ def test_v1_product_lookup_coordinator_failure_marks_fields_unavailable() -> Non
     body = response.json()
     assert body["meta"]["translation"]["status"] == "unavailable"
     product = body["data"]["product"]
-    assert product["identity"]["name"]["translation_status"] == "translation_unavailable"
+    assert product["identity"]["name"]["translation_status"] == "original_text_preserved"
+    assert product["identity"]["generic_name"]["translation_status"] == "translation_unavailable"
     assert product["identity"]["name"]["selected_original_text"]["value"] == "Dark Chocolate"
 
 
@@ -1798,6 +1822,7 @@ def test_startup_without_credentials_does_not_generate(monkeypatch) -> None:
         {
             "code": "4006381333931",
             "product_name_en": "Dark Chocolate",
+            "generic_name_en": "Chocolate",
         }
     )
     generated_client = mongomock.MongoClient()
@@ -1863,12 +1888,13 @@ def test_invalid_field_output_retains_independent_translation(invalid) -> None:
             "code": "4006381333931",
             "product_name_en": "Dark Chocolate",
             "generic_name_en": "Chocolate",
+            "ingredients_text_en": "Cocoa mass",
         }
     )
     provider = FakeTranslationProvider(
         canned_translations={
-            "product_name": invalid,
-            "generic_name": "សូកូឡា",
+            "generic_name": invalid,
+            "ingredients_text": "កាកាវ",
         }
     )
     with _client(database, coordinator=_make_test_coordinator(provider)) as client:
@@ -1877,9 +1903,13 @@ def test_invalid_field_output_retains_independent_translation(invalid) -> None:
     assert body["meta"]["translation"]["status"] == "partial"
     assert (
         body["data"]["product"]["identity"]["name"]["translation_status"]
+        == "original_text_preserved"
+    )
+    assert (
+        body["data"]["product"]["identity"]["generic_name"]["translation_status"]
         == "translation_unavailable"
     )
-    assert body["data"]["product"]["identity"]["generic_name"]["khmer_translation"] == "សូកូឡា"
+    assert body["data"]["product"]["ingredients_text"]["khmer_translation"] == "កាកាវ"
 
 
 @pytest.mark.parametrize("language", ["km", "km-KH", "KM_km", "und"])
@@ -1928,7 +1958,11 @@ def test_startup_without_credentials_only_reuses_compatible_generated_artifacts(
     from lifegoods.translation.gemini import GeminiTranslationAdapter
 
     database = _dataset_database()
-    record = {"code": "4006381333931", "product_name_en": "Dark Chocolate"}
+    record = {
+        "code": "4006381333931",
+        "product_name_en": "Dark Chocolate",
+        "generic_name_en": "Chocolate",
+    }
     database[COLLECTION_NAME].insert_one(record)
     generated_client = mongomock.MongoClient()
     redis_client = fakeredis.FakeRedis(decode_responses=True)
@@ -1947,7 +1981,7 @@ def test_startup_without_credentials_only_reuses_compatible_generated_artifacts(
                                 {
                                     "text": json.dumps(
                                         {
-                                            "translations": {"product_name": "សូកូឡាខ្មៅ"},
+                                            "translations": {"generic_name": "សូកូឡា"},
                                         }
                                     )
                                 }
@@ -1963,7 +1997,7 @@ def test_startup_without_credentials_only_reuses_compatible_generated_artifacts(
         if artifact_kind == "fake":
             module = KhmerTranslationModule(
                 FakeTranslationProvider(
-                    canned_translations={"product_name": "សូកូឡាខ្មៅ"},
+                    canned_translations={"generic_name": "សូកូឡា"},
                 )
             )
         else:
@@ -2023,7 +2057,6 @@ def test_multilingual_translation_retains_original_text_and_protected_values(sou
     )
     provider = FakeTranslationProvider(
         canned_translations={
-            "product_name": "__LG_TOK_0__ តែបៃតង __LG_TOK_1__",
             "ingredients_text": "ស្ករ __LG_TOK_0__, __LG_TOK_1__, __LG_TOK_2__",
         }
     )
@@ -2036,11 +2069,14 @@ def test_multilingual_translation_retains_original_text_and_protected_values(sou
         "language": language,
         "source_field": "product_name",
     }
-    assert name["khmer_translation"] == "Oishi តែបៃតង 500ml"
+    assert name["translation_status"] == "original_text_preserved"
+    assert name["khmer_translation"] is None
     assert (
         body["data"]["product"]["ingredients_text"]["khmer_translation"] == "ស្ករ 5%, E322, INS 330"
     )
     assert provider.last_request is not None
+    assert "product_name" not in provider.last_request.fields
+    assert "Oishi" not in str(provider.last_request)
     assert "4006381333931" not in str(provider.last_request)
     assert VERSION_ID not in str(provider.last_request)
 
@@ -2065,14 +2101,17 @@ def test_altered_protected_values_do_not_discard_valid_product_name(output):
     )
     provider = FakeTranslationProvider(
         canned_translations={
-            "product_name": "តែ",
             "ingredients_text": output,
         }
     )
     with _client(database, coordinator=_make_test_coordinator(provider)) as client:
         body = client.get("/api/v1/products/4006381333931?language=km").json()
-    assert body["meta"]["translation"]["status"] == "partial"
-    assert body["data"]["product"]["identity"]["name"]["khmer_translation"] == "តែ"
+    assert body["meta"]["translation"]["status"] == "unavailable"
+    assert (
+        body["data"]["product"]["identity"]["name"]["translation_status"]
+        == "original_text_preserved"
+    )
+    assert body["data"]["product"]["identity"]["name"]["khmer_translation"] is None
     assert body["data"]["product"]["ingredients_text"]["khmer_translation"] is None
 
 
@@ -2094,14 +2133,17 @@ def test_protected_unit_boundaries_cannot_change_package_quantities(output):
     )
     provider = FakeTranslationProvider(
         canned_translations={
-            "product_name": "ទឹកដោះគោ",
             "ingredients_text": output,
         }
     )
     with _client(database, coordinator=_make_test_coordinator(provider)) as client:
         body = client.get("/api/v1/products/4006381333931?language=km").json()
-    assert body["meta"]["translation"]["status"] == "partial"
-    assert body["data"]["product"]["identity"]["name"]["khmer_translation"] == "ទឹកដោះគោ"
+    assert body["meta"]["translation"]["status"] == "unavailable"
+    assert (
+        body["data"]["product"]["identity"]["name"]["translation_status"]
+        == "original_text_preserved"
+    )
+    assert body["data"]["product"]["identity"]["name"]["khmer_translation"] is None
     assert body["data"]["product"]["ingredients_text"]["khmer_translation"] is None
 
 
@@ -2117,14 +2159,19 @@ def test_unchanged_protected_quantity_can_touch_khmer_text(output, expected):
     database[COLLECTION_NAME].insert_one(
         {
             "code": "4006381333931",
-            "product_name_en": "Bottle 5 g",
+            "product_name_en": "Bottle",
+            "generic_name_en": "Bottle 5 g",
         }
     )
-    provider = FakeTranslationProvider(canned_translations={"product_name": output})
+    provider = FakeTranslationProvider(canned_translations={"generic_name": output})
     with _client(database, coordinator=_make_test_coordinator(provider)) as client:
         body = client.get("/api/v1/products/4006381333931?language=km").json()
     assert body["meta"]["translation"]["status"] == "complete"
-    assert body["data"]["product"]["identity"]["name"]["khmer_translation"] == expected
+    assert body["data"]["product"]["identity"]["name"]["khmer_translation"] is None
+    assert (
+        body["data"]["product"]["identity"]["generic_name"]["khmer_translation"]
+        == expected
+    )
 
 
 def test_translation_deadline_discards_late_provider_output() -> None:
@@ -2146,7 +2193,7 @@ def test_translation_deadline_discards_late_provider_output() -> None:
                         "finishReason": "STOP",
                         "content": {
                             "parts": [
-                                {"text": json.dumps({"translations": {"product_name": "សូកូឡា"}})}
+                                {"text": json.dumps({"translations": {"generic_name": "សូកូឡា"}})}
                             ]
                         },
                     }
@@ -2155,7 +2202,13 @@ def test_translation_deadline_discards_late_provider_output() -> None:
         )
 
     database = _dataset_database()
-    database[COLLECTION_NAME].insert_one({"code": "3017620422003", "product_name": "Chocolate"})
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "3017620422003",
+            "product_name": "Dark Chocolate",
+            "generic_name": "Chocolate",
+        }
+    )
     with httpx.Client(transport=httpx.MockTransport(respond)) as transport:
         coordinator = TranslationCoordinator(
             KhmerTranslationModule(GeminiTranslationAdapter("offline", http_client=transport)),
@@ -2168,7 +2221,7 @@ def test_translation_deadline_discards_late_provider_output() -> None:
             body = client.get("/api/v1/products/3017620422003?language=km").json()
     assert body["meta"]["translation"] == {"status": "unavailable", "metadata": None}
     name = body["data"]["product"]["identity"]["name"]
-    assert name["selected_original_text"]["value"] == "Chocolate"
+    assert name["selected_original_text"]["value"] == "Dark Chocolate"
     assert name["khmer_translation"] is None
     assert len(attempts) == 1
 
@@ -2202,7 +2255,7 @@ def test_translation_stage_budget_and_fast_cache_reuse(budget, elapsed, expected
                         "finishReason": "STOP",
                         "content": {
                             "parts": [
-                                {"text": json.dumps({"translations": {"product_name": "សូកូឡា"}})}
+                                {"text": json.dumps({"translations": {"generic_name": "សូកូឡា"}})}
                             ]
                         },
                     }
@@ -2214,7 +2267,13 @@ def test_translation_stage_budget_and_fast_cache_reuse(budget, elapsed, expected
         clock[0] += seconds
 
     database = _dataset_database()
-    database[COLLECTION_NAME].insert_one({"code": "3017620422003", "product_name": "Chocolate"})
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "3017620422003",
+            "product_name": "Dark Chocolate",
+            "generic_name": "Chocolate",
+        }
+    )
     with httpx.Client(transport=httpx.MockTransport(respond)) as transport:
         coordinator = TranslationCoordinator(
             KhmerTranslationModule(GeminiTranslationAdapter("offline", http_client=transport)),
@@ -2236,7 +2295,7 @@ def test_translation_stage_budget_and_fast_cache_reuse(budget, elapsed, expected
                 assert body["meta"]["translation"]["status"] == expected
                 assert (
                     body["data"]["product"]["identity"]["name"]["selected_original_text"]["value"]
-                    == "Chocolate"
+                    == "Dark Chocolate"
                 )
     # Successful output is cached; expired output cannot become a successful cache hit.
     assert len(attempts) == 1
@@ -2245,7 +2304,7 @@ def test_translation_stage_budget_and_fast_cache_reuse(budget, elapsed, expected
 @pytest.mark.parametrize("slow_operation", ["cache", "store", "lease", "budget"])
 def test_translation_storage_waits_share_deadline(slow_operation) -> None:
     clock = [0.0]
-    provider = FakeTranslationProvider(canned_translations={"product_name": "សូកូឡា"})
+    provider = FakeTranslationProvider(canned_translations={"generic_name": "សូកូឡា"})
 
     class SlowCache(InMemoryTranslationHotCache):
         def get(self, content_hash, config_fingerprint):
@@ -2275,7 +2334,13 @@ def test_translation_storage_waits_share_deadline(slow_operation) -> None:
         clock[0] += seconds
 
     database = _dataset_database()
-    database[COLLECTION_NAME].insert_one({"code": "3017620422003", "product_name": "Chocolate"})
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "3017620422003",
+            "product_name": "Dark Chocolate",
+            "generic_name": "Chocolate",
+        }
+    )
     coordinator = TranslationCoordinator(
         KhmerTranslationModule(provider),
         SlowRepository(),
@@ -2298,7 +2363,7 @@ def test_translation_deadline_bounds_blocked_storage_without_late_generation() -
 
     release = Event()
     completed = Event()
-    provider = FakeTranslationProvider(canned_translations={"product_name": "សូកូឡា"})
+    provider = FakeTranslationProvider(canned_translations={"generic_name": "សូកូឡា"})
 
     class BlockedRepository(InMemoryGeneratedDataRepository):
         def is_quarantined(self, content_hash, config_fingerprint):
@@ -2309,7 +2374,13 @@ def test_translation_deadline_bounds_blocked_storage_without_late_generation() -
                 completed.set()
 
     database = _dataset_database()
-    database[COLLECTION_NAME].insert_one({"code": "3017620422003", "product_name": "Chocolate"})
+    database[COLLECTION_NAME].insert_one(
+        {
+            "code": "3017620422003",
+            "product_name": "Dark Chocolate",
+            "generic_name": "Chocolate",
+        }
+    )
     coordinator = TranslationCoordinator(
         KhmerTranslationModule(provider),
         BlockedRepository(),
@@ -2461,7 +2532,9 @@ def test_product_lookup_missing_storage_instructions() -> None:
 
     assert product["storage_instruction_items"] == []
     assert product["storage_instructions"] == []
-    assert body["meta"]["translation"]["status"] == "complete"
+    assert body["meta"]["translation"]["status"] == "not_needed"
+    assert product["identity"]["name"]["translation_status"] == "original_text_preserved"
+    assert provider.call_count == 0
 
 
 def test_product_lookup_storage_instructions_preserves_protected_values() -> None:

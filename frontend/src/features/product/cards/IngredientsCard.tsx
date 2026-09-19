@@ -360,7 +360,7 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                 )}
 
                 {/* Card Footer Meta */}
-                <div className="text-caption border-t border-neutral-100 pt-1 font-medium text-neutral-500">
+                <div className="text-caption pt-1 font-medium text-neutral-500">
                     <span>{t("sourcePackageLabel")}</span>
                 </div>
             </CardContent>
