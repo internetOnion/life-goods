@@ -432,10 +432,9 @@ describe("Product page (life-goods-viewer layout)", () => {
         }).parentElement
         expect(manufacturingPlacesRow).not.toBeNull()
         expect(
-            within(manufacturingPlacesRow as HTMLElement).getByText(
-                "Cambodia",
-                { exact: true },
-            ),
+            within(manufacturingPlacesRow as HTMLElement).getByText("កម្ពុជា", {
+                exact: true,
+            }),
         ).toBeVisible()
         expect(lookup).toHaveBeenCalledWith("4006381333931", "km")
         expect(
@@ -496,6 +495,61 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(
             screen.getByText("រក្សាទុកនៅកន្លែងត្រជាក់ និងស្ងួត"),
         ).toBeVisible()
+    })
+
+    test("keeps a long Khmer countries-sold list wrapped in the Summary", async () => {
+        const countries = [
+            "en:armenia",
+            "en:azerbaijan",
+            "en:belarus",
+            "en:belgium",
+            "en:cameroon",
+            "en:kazakhstan",
+            "en:reunion",
+            "en:russia",
+            "en:senegal",
+            "en:tunisia",
+            "en:ukraine",
+        ]
+        const response = productResponse({ countries_tags: countries })
+        renderProduct(
+            vi.fn<ProductLookup>().mockResolvedValue(response),
+            "4006381333931",
+            "km",
+        )
+
+        expect(await screen.findByText("Dark Chocolate")).toBeVisible()
+        const row = screen.getByText("ប្រទេសដែលលក់", {
+            exact: true,
+        }).parentElement
+        expect(row).not.toBeNull()
+        const value = row?.querySelector("span:last-child")
+        expect(value).not.toBeNull()
+        expect(value).toHaveClass("min-w-0", "wrap-anywhere")
+        expect(value?.textContent).toContain("អាមេនី")
+        expect(value?.textContent).toContain("បែលហ្ស៊ិក")
+        expect(value?.textContent).toContain("កាមេរូន")
+        expect(value?.textContent).toContain("រេអុយញ៉ុង")
+        expect(value?.textContent).toContain("រុស្ស៊ី")
+        expect(value?.textContent).toContain("សេណេហ្គាល់")
+        expect(value?.textContent).toContain("ទុយនីស៊ី")
+        expect(value?.textContent).toContain("អ៊ុយក្រែន")
+        expect(value?.textContent).not.toContain("en:")
+        expect(response.data.product.countries).toEqual(
+            countries.map((country) => country.replace("en:", "")),
+        )
+    })
+
+    test("localizes a combined GS1 allocation region without changing its meaning", async () => {
+        const response = productResponse({ code: "5449000054227" })
+        response.meta.lookup.barcode = "5449000054227"
+        renderProduct(
+            vi.fn<ProductLookup>().mockResolvedValue(response),
+            "5449000054227",
+            "km",
+        )
+
+        expect(await screen.findByText("បែលហ្ស៊ិក / លុចសំបួ")).toBeVisible()
     })
 
     test("falls back to Original Text when Khmer Translation is unavailable", async () => {

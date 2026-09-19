@@ -4,9 +4,13 @@ import { fileURLToPath } from "node:url"
 
 import { describe, expect, test } from "vitest"
 
+import { getGs1AllocationRegion } from "@/lib/barcode-country"
+import { RECOGNIZED_OFF_COUNTRY_NAMES } from "@/features/product/geographicNames.generated"
 import {
     getAdditiveReference,
     productTranslationKeys,
+    translateGeographicName,
+    translateManufacturingPlaces,
     translateProduct,
     translateLabelValue,
     translateTaxonomyValue,
@@ -39,6 +43,63 @@ describe("Product translation bundle", () => {
         expect(translateTaxonomyValue("km", "en:unknown-value")).toBe(
             "en:unknown-value",
         )
+    })
+
+    test("translates only recognized manufacturing countries in Khmer", () => {
+        expect(translateManufacturingPlaces("km", "france")).toBe("បារាំង")
+        expect(translateManufacturingPlaces("km", "en:france")).toBe("បារាំង")
+        expect(translateManufacturingPlaces("km", "Rouen, France")).toBe(
+            "Rouen, បារាំង",
+        )
+        expect(translateManufacturingPlaces("km", "Rice Land")).toBe(
+            "Rice Land",
+        )
+        expect(translateManufacturingPlaces("km", "en:front")).toBe("en:front")
+        expect(translateManufacturingPlaces("en", "Rouen, France")).toBe(
+            "Rouen, France",
+        )
+    })
+
+    test("covers pinned Open Food Facts geography and every GS1 allocation region", () => {
+        for (const sourceName of RECOGNIZED_OFF_COUNTRY_NAMES) {
+            expect(
+                translateGeographicName("km", sourceName),
+                sourceName,
+            ).toMatch(/[\u1780-\u17ff]/)
+        }
+
+        for (let prefix = 0; prefix <= 999; prefix += 1) {
+            const barcode = `${String(prefix).padStart(3, "0")}0000000000`
+            const region = getGs1AllocationRegion(barcode)
+            if (region) {
+                expect(translateGeographicName("km", region), region).toMatch(
+                    /[\u1780-\u17ff]/,
+                )
+            }
+        }
+    })
+
+    test("localizes source variants and combined regions without guessing free text", () => {
+        const expected: Record<string, string> = {
+            armenia: "អាមេនី",
+            belgium: "បែលហ្ស៊ិក",
+            cameroon: "កាមេរូន",
+            "en:Réunion": "រេអុយញ៉ុង",
+            Russia: "រុស្ស៊ី",
+            Senegal: "សេណេហ្គាល់",
+            Tunisia: "ទុយនីស៊ី",
+            Ukraine: "អ៊ុយក្រែន",
+            "Belgium / Luxembourg": "បែលហ្ស៊ិក / លុចសំបួ",
+            "Chinese Taipei": "ឆាយនីស តៃប៉ិ",
+        }
+        for (const [source, translated] of Object.entries(expected)) {
+            expect(translateGeographicName("km", source), source).toBe(
+                translated,
+            )
+        }
+        expect(translateGeographicName("km", "Rice Land")).toBe("Rice Land")
+        expect(translateGeographicName("en", "armenia")).toBe("armenia")
+        expect(translateGeographicName("km", "en:front")).toBe("en:front")
     })
 
     test("translates known label taxonomy values and preserves unknown values", () => {

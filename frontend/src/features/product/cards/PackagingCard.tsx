@@ -5,7 +5,12 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { PackageMatchEvidenceResponse } from "@/features/product/types"
 
-import { translateTaxonomyValue, useProductTranslation } from "../translations"
+import {
+    translateGeographicName,
+    translateManufacturingPlaces,
+    translateTaxonomyValue,
+    useProductTranslation,
+} from "../translations"
 
 interface PackagingCardProps {
     labelEvidence: PackageMatchEvidenceResponse[]
@@ -30,7 +35,7 @@ export const PackagingCard: React.FC<PackagingCardProps> = ({
 
     const countries = Array.isArray(countriesSoldItem?.value)
         ? (countriesSoldItem.value as string[]).map((c) =>
-              translateTaxonomyValue(locale, c),
+              translateGeographicName(locale, c),
           )
         : []
 
@@ -42,7 +47,10 @@ export const PackagingCard: React.FC<PackagingCardProps> = ({
 
     const manufacturing =
         typeof manufacturingPlacesItem?.value === "string"
-            ? manufacturingPlacesItem.value
+            ? translateManufacturingPlaces(
+                  locale,
+                  manufacturingPlacesItem.value,
+              )
             : null
     const storage =
         typeof storageInstructionsItem?.value === "string"

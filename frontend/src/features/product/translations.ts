@@ -2,6 +2,8 @@ import { useLocale, type AppLocale } from "@/i18n/locale"
 import labelsTaxonomyTranslations from "@shared/labels-taxonomy-km.json"
 import packagingTaxonomyTranslations from "@shared/packaging-taxonomy-km.json"
 
+import { GEOGRAPHIC_NAMES_KM } from "./geographicNames.generated"
+
 const englishProduct = {
     backToSearch: "Back to search",
     noPackageRecord: "No Package Record Found",
@@ -772,17 +774,7 @@ const ADDITIVE_REFERENCES_KM: Record<string, AdditiveReference> = {
     },
 }
 
-const TAXONOMY_TRANSLATIONS_KM: Record<string, string> = {
-    all: "ទាំងអស់",
-    front: "មុខ",
-    ingredients: "គ្រឿងផ្សំ",
-    nutrition: "អាហារូបត្ថម្ភ",
-    packaging: "វេចខ្ចប់",
-    vegetarian: "អាហារបួស",
-    "ponto verde": "សញ្ញា Ponto Verde",
-    "sans gluten": "គ្មានគ្លុយតែន",
-    "no gluten": "គ្មានគ្លុយតែន",
-    "no-gluten": "គ្មានគ្លុយតែន",
+const COUNTRY_TRANSLATIONS_KM: Record<string, string> = {
     france: "បារាំង",
     bulgaria: "ប៊ុលហ្គារី",
     slovenia: "ស្លូវេនី",
@@ -803,10 +795,8 @@ const TAXONOMY_TRANSLATIONS_KM: Record<string, string> = {
     norway: "ន័រវែស",
     israel: "អ៊ីស្រាអែល",
     sweden: "ស៊ុយអែត",
-    "central america": "អាមេរិកកណ្តាល",
     mexico: "ម៉ិកស៊ិក",
     canada: "កាណាដា",
-    "switzerland / liechtenstein": "ស្វីស / លិចតិនស្តាញ",
     colombia: "កូឡុំប៊ី",
     uruguay: "អ៊ុយរូហ្គាយ",
     peru: "ប៉េរូ",
@@ -839,6 +829,22 @@ const TAXONOMY_TRANSLATIONS_KM: Record<string, string> = {
     algeria: "អាល់ហ្សេរី",
     switzerland: "ស្វីស",
     "united states": "សហរដ្ឋអាមេរិក",
+}
+
+const TAXONOMY_TRANSLATIONS_KM: Record<string, string> = {
+    all: "ទាំងអស់",
+    front: "មុខ",
+    ingredients: "គ្រឿងផ្សំ",
+    nutrition: "អាហារូបត្ថម្ភ",
+    packaging: "វេចខ្ចប់",
+    vegetarian: "អាហារបួស",
+    "ponto verde": "សញ្ញា Ponto Verde",
+    "sans gluten": "គ្មានគ្លុយតែន",
+    "no gluten": "គ្មានគ្លុយតែន",
+    "no-gluten": "គ្មានគ្លុយតែន",
+    ...COUNTRY_TRANSLATIONS_KM,
+    "central america": "អាមេរិកកណ្តាល",
+    "switzerland / liechtenstein": "ស្វីស / លិចតិនស្តាញ",
     arabic: "ភាសាអារ៉ាប់",
     german: "ភាសាអាល្លឺម៉ង់",
     english: "ភាសាអង់គ្លេស",
@@ -883,6 +889,62 @@ export function translateTaxonomyValue(
         .trim()
         .toLowerCase()
     return TAXONOMY_TRANSLATIONS_KM[normalized] ?? value
+}
+
+function normalizeGeographicName(value: string): string {
+    return value
+        .replace(/^(?:[a-z]{2,3}:)+/i, "")
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[’‘]/g, "'")
+        .replace(/[-_]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase()
+}
+
+const COUNTRY_OVERRIDES_KM = Object.fromEntries(
+    Object.entries(COUNTRY_TRANSLATIONS_KM).map(([name, translation]) => [
+        normalizeGeographicName(name),
+        translation,
+    ]),
+)
+
+const GS1_REGION_OVERRIDES_KM: Record<string, string> = {
+    "chinese taipei": "ឆាយនីស តៃប៉ិ",
+}
+
+export function translateGeographicName(
+    locale: AppLocale,
+    value: string,
+): string {
+    if (locale !== "km") return value
+    const normalized = normalizeGeographicName(value)
+    const direct =
+        COUNTRY_OVERRIDES_KM[normalized] ??
+        GS1_REGION_OVERRIDES_KM[normalized] ??
+        GEOGRAPHIC_NAMES_KM[normalized]
+    if (direct) return direct
+
+    const parts = value.split(/\s*\/\s*/)
+    if (parts.length < 2) return value
+    const translated = parts.map((part) =>
+        translateGeographicName(locale, part),
+    )
+    return translated.every((part, index) => part !== parts[index])
+        ? translated.join(" / ")
+        : value
+}
+
+export function translateManufacturingPlaces(
+    locale: AppLocale,
+    value: string,
+): string {
+    if (locale !== "km") return value
+    return value
+        .split(",")
+        .map((place) => translateGeographicName(locale, place.trim()))
+        .join(", ")
 }
 
 function normalizeLabelValue(value: string): string {

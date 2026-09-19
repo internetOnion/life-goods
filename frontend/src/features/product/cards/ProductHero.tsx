@@ -17,7 +17,11 @@ import type { ConcernMatch } from "@/features/concerns/matching"
 
 import { TranslatedField } from "../TranslatedField"
 import { getTranslatedFieldText } from "../translation-utils"
-import { translateTaxonomyValue, useProductTranslation } from "../translations"
+import {
+    translateGeographicName,
+    translateManufacturingPlaces,
+    useProductTranslation,
+} from "../translations"
 
 interface ProductHeroProps {
     candidate: PackageMatchCandidateResponse
@@ -109,11 +113,11 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
         projection?.environment?.manufacturing_places ?? []
     const countriesSoldValue = countriesSold.length
         ? countriesSold
-              .map((country) => translateTaxonomyValue(locale, country))
+              .map((country) => translateGeographicName(locale, country))
               .join(", ")
         : t("sourceDataUnavailable")
     const manufacturingPlacesValue = manufacturingPlaces.length
-        ? manufacturingPlaces.join(", ")
+        ? translateManufacturingPlaces(locale, manufacturingPlaces.join(", "))
         : t("sourceDataUnavailable")
 
     // Deduplicate and prioritize images (Front, Ingredients, Nutrition)
@@ -413,7 +417,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                             </span>
                             <span className="min-w-0 text-right text-xs font-semibold wrap-anywhere text-neutral-900 sm:text-sm">
                                 {gs1AllocationRegion
-                                    ? translateTaxonomyValue(
+                                    ? translateGeographicName(
                                           locale,
                                           gs1AllocationRegion,
                                       ).toLowerCase()
