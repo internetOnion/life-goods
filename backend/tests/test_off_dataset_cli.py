@@ -23,6 +23,7 @@ from lifegoods.open_food_facts.cli import (
     import_url,
     list_versions,
     prune_versions,
+    reindex_search,
     revalidate_version,
     rollback_version,
 )
@@ -170,6 +171,66 @@ def test_lookup_only_import_keeps_barcode_index_without_search_indexes(tmp_path:
     pointer = database[CONTROL_COLLECTION].find_one({"_id": ACTIVE_POINTER_ID})
     assert pointer is not None
     assert pointer["active_version_id"] == manifest["_id"]
+
+
+def test_cli_reindex_search_reports_progress_to_stderr(monkeypatch, capsys) -> None:
+    from lifegoods.open_food_facts import cli
+
+    client = mongomock.MongoClient()
+    database = client.lifegoods_off
+    version_id = "snapshot"
+    collection_name = "off_products_snapshot"
+    database[VERSIONS_COLLECTION].insert_one(
+        {
+            "_id": version_id,
+            "collection_name": collection_name,
+            "document_count": 2,
+            "status": "ACTIVE",
+        }
+    )
+    database[collection_name].insert_many(
+        [product(PROBE_CODE), product(NUTELLA_CODE)]
+    )
+    monkeypatch.setattr(cli, "MongoClient", lambda *args, **kwargs: client)
+
+    assert (
+        cli.main(
+            [
+                "--mongo-uri",
+                "mongodb://localhost",
+                "--database",
+                "lifegoods_off",
+                "reindex-search",
+                version_id,
+                "--progress-seconds",
+                "0.001",
+            ]
+        )
+        == 0
+    )
+
+    captured = capsys.readouterr()
+    assert "Search reindex progress:" in captured.err
+    assert "Creating search index" in captured.err
+    assert "Activating completed search collection..." in captured.err
+    assert "Search reindex complete: 2/2 records (100.0%)" in captured.err
+    assert "Search reindex" not in captured.out
+    assert json.loads(captured.out)["search_enabled"] is True
+
+
+@pytest.mark.parametrize("interval", [0.0, float("nan"), float("inf")])
+def test_reindex_search_rejects_invalid_progress_intervals(interval: float) -> None:
+    database = mongomock.MongoClient().lifegoods_off
+    database[VERSIONS_COLLECTION].insert_one(
+        {"_id": "snapshot", "collection_name": "off_products_snapshot"}
+    )
+
+    with pytest.raises(ValueError, match="Progress interval"):
+        reindex_search(
+            database,
+            "snapshot",
+            progress_interval_seconds=interval,
+        )
 
 
 def test_import_rejects_and_records_duplicate_barcodes() -> None:
