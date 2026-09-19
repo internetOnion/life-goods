@@ -158,12 +158,16 @@ describe("search page", () => {
         const resultCard = await screen.findByRole("link", {
             name: "View Nutella",
         })
-        expect(resultCard).toHaveClass("h-16", "min-h-16", "px-2.5", "py-2")
+        expect(resultCard).toHaveClass("min-h-20", "px-2.5", "py-2")
         expect(
             within(resultCard).getByRole("heading", {
                 name: "Nutella",
             }),
         ).toBeVisible()
+        expect(resultCard.querySelector("img")).toHaveAttribute(
+            "src",
+            searchResult.thumbnail?.url,
+        )
         expect(within(resultCard).getByText("Product type")).toBeVisible()
         expect(within(resultCard).getByText("Hazelnut spread")).toBeVisible()
         expect(
@@ -278,6 +282,7 @@ describe("search page", () => {
                     manufacturing_places: [],
                     packaging: null,
                     labels: [],
+                    thumbnail: null,
                 },
             ],
             nextCursor: null,
@@ -807,7 +812,7 @@ describe("search page", () => {
             name: "មើល Nutella",
         })
         expect(screen.getByRole("heading", { name: "ផលិតផល" })).toBeVisible()
-        expect(screen.getByText("រកឃើញ 2")).toBeVisible()
+        expect(screen.getByText("បង្ហាញផលិតផល 2")).toBeVisible()
         expect(
             within(resultCard).getByRole("heading", {
                 name: "Nutella",

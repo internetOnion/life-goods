@@ -676,7 +676,7 @@ def test_search_text_keyset_pagination() -> None:
         page1 = client.get("/api/v1/products/search?q=chocolate")
         assert page1.status_code == 200
         data1 = page1.json()
-        assert len(data1["data"]["products"]) == 20
+        assert len(data1["data"]["products"]) == 10
         next_cursor = data1["meta"]["pagination"]["next_cursor"]
         assert next_cursor is not None
 
@@ -684,13 +684,21 @@ def test_search_text_keyset_pagination() -> None:
         page2 = client.get(f"/api/v1/products/search?q=chocolate&cursor={next_cursor}")
         assert page2.status_code == 200
         data2 = page2.json()
-        assert len(data2["data"]["products"]) == 5
-        assert data2["meta"]["pagination"]["next_cursor"] is None
+        assert len(data2["data"]["products"]) == 10
+        next_cursor = data2["meta"]["pagination"]["next_cursor"]
+        assert next_cursor is not None
+
+        page3 = client.get(f"/api/v1/products/search?q=chocolate&cursor={next_cursor}")
+        assert page3.status_code == 200
+        data3 = page3.json()
+        assert len(data3["data"]["products"]) == 5
+        assert data3["meta"]["pagination"]["next_cursor"] is None
 
         # Check all 25 barcodes received uniquely in order
         codes1 = [p["barcode"] for p in data1["data"]["products"]]
         codes2 = [p["barcode"] for p in data2["data"]["products"]]
-        all_codes = codes1 + codes2
+        codes3 = [p["barcode"] for p in data3["data"]["products"]]
+        all_codes = codes1 + codes2 + codes3
         assert len(all_codes) == 25
         assert len(set(all_codes)) == 25
         assert all_codes == [f"40063813339{i:02d}" for i in range(25)]
@@ -1053,7 +1061,7 @@ def test_search_http_prefix_pagination_continuation() -> None:
         page1 = client.get("/api/v1/products/search?q=choc")
         assert page1.status_code == 200
         p1_data = page1.json()
-        assert len(p1_data["data"]["products"]) == 20
+        assert len(p1_data["data"]["products"]) == 10
         cursor = p1_data["meta"]["pagination"]["next_cursor"]
         assert cursor is not None
 
@@ -1061,13 +1069,21 @@ def test_search_http_prefix_pagination_continuation() -> None:
         page2 = client.get(f"/api/v1/products/search?q=choc&cursor={cursor}")
         assert page2.status_code == 200
         p2_data = page2.json()
-        assert len(p2_data["data"]["products"]) == 5
-        assert p2_data["meta"]["pagination"]["next_cursor"] is None
+        assert len(p2_data["data"]["products"]) == 10
+        cursor = p2_data["meta"]["pagination"]["next_cursor"]
+        assert cursor is not None
+
+        page3 = client.get(f"/api/v1/products/search?q=choc&cursor={cursor}")
+        assert page3.status_code == 200
+        p3_data = page3.json()
+        assert len(p3_data["data"]["products"]) == 5
+        assert p3_data["meta"]["pagination"]["next_cursor"] is None
 
         # Ensure all 25 barcodes received without duplicates or omissions
         codes1 = [p["barcode"] for p in p1_data["data"]["products"]]
         codes2 = [p["barcode"] for p in p2_data["data"]["products"]]
-        all_codes = codes1 + codes2
+        codes3 = [p["barcode"] for p in p3_data["data"]["products"]]
+        all_codes = codes1 + codes2 + codes3
         assert len(all_codes) == 25
         assert len(set(all_codes)) == 25
 
@@ -1118,7 +1134,7 @@ def test_search_pages_cross_tiers_without_duplicates_or_omissions() -> None:
         actual = []
         cursor = None
         with _client(database) as client:
-            for _ in range(4):
+            for _ in range(6):
                 params = {"q": query}
                 if cursor:
                     params["cursor"] = cursor
@@ -1186,6 +1202,14 @@ def test_complete_stream_merge_deduplicates_all_fields_across_pages() -> None:
         second = client.get(
             "/api/v1/products/search", params={"q": "rice", "cursor": cursor},
         ).json()
-    actual = [p["barcode"] for p in first["data"]["products"] + second["data"]["products"]]
+        cursor = second["meta"]["pagination"]["next_cursor"]
+        third = client.get(
+            "/api/v1/products/search", params={"q": "rice", "cursor": cursor},
+        ).json()
+    actual = [
+        p["barcode"]
+        for page in (first, second, third)
+        for p in page["data"]["products"]
+    ]
     assert actual == sorted(codes)
-    assert second["meta"]["pagination"]["next_cursor"] is None
+    assert third["meta"]["pagination"]["next_cursor"] is None

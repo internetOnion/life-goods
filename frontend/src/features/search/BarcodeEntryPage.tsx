@@ -584,9 +584,9 @@ export function BarcodeEntryPage() {
                         {[0, 1, 2].map((item) => (
                             <div
                                 key={item}
-                                className="grid h-16 min-h-16 animate-pulse grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-neutral-200 bg-white px-2.5 py-2 sm:px-3"
+                                className="grid min-h-20 animate-pulse grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-neutral-200 bg-white px-2.5 py-2 sm:px-3"
                             >
-                                <div className="size-8 rounded-lg bg-neutral-100" />
+                                <div className="size-14 rounded-lg bg-neutral-100" />
                                 <div className="min-w-0 space-y-2">
                                     <div className="h-4 w-3/4 rounded bg-neutral-100" />
                                     <div className="h-3 w-5/6 rounded bg-neutral-100" />
@@ -621,6 +621,7 @@ export function BarcodeEntryPage() {
                                         name: result.name?.value,
                                         genericName: result.generic_name?.value,
                                         brand: brandName(result),
+                                        thumbnail: result.thumbnail,
                                     }}
                                     to={`/products/${result.barcode}`}
                                     state={{ fromBarcodeEntry: true }}

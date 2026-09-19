@@ -6,6 +6,8 @@ const OPEN_FOOD_FACTS_SEARCH_URL =
     "https://world.openfoodfacts.org/api/v2/search"
 const OPEN_FOOD_FACTS_SOURCE = "Open Food Facts"
 const OPEN_FOOD_FACTS_BASE_URL = "https://world.openfoodfacts.org"
+const SEARCH_PAGE_SIZE = 10
+
 const SEARCH_FIELDS =
     "code,product_name,product_name_en,generic_name,generic_name_en,brands,quantity,packaging,packaging_tags,labels,labels_tags,manufacturing_places,manufacturing_places_tags,image_url,lang"
 
@@ -228,7 +230,7 @@ export async function searchOpenFoodFactsBrand(
         "page",
         String(Number.isInteger(page) && page > 0 ? page : 1),
     )
-    url.searchParams.set("page_size", "20")
+    url.searchParams.set("page_size", String(SEARCH_PAGE_SIZE))
     url.searchParams.set("sort_by", "product_name")
     url.searchParams.set("fields", SEARCH_FIELDS)
 
@@ -262,7 +264,7 @@ export async function searchOpenFoodFactsBrand(
         nextCursor:
             isRecord(payload) &&
             typeof payload.count === "number" &&
-            page * 20 < payload.count
+            page * SEARCH_PAGE_SIZE < payload.count
                 ? `off-page:${page + 1}`
                 : null,
     }

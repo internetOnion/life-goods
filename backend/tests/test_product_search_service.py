@@ -252,18 +252,24 @@ def test_search_service_pagination_and_cursor_continuation() -> None:
 
     # Page 1
     page1 = service.execute(query)
-    assert len(page1.products) == 20
+    assert len(page1.products) == 10
     assert page1.next_cursor is not None
     page1_codes = [p.barcode for p in page1.products]
 
     # Page 2
     page2 = service.execute(query, cursor=page1.next_cursor)
-    assert len(page2.products) == 5
-    assert page2.next_cursor is None
+    assert len(page2.products) == 10
+    assert page2.next_cursor is not None
     page2_codes = [p.barcode for p in page2.products]
 
+    # Page 3
+    page3 = service.execute(query, cursor=page2.next_cursor)
+    assert len(page3.products) == 5
+    assert page3.next_cursor is None
+    page3_codes = [p.barcode for p in page3.products]
+
     # No duplicates, no omissions, strict coverage of all 25 items
-    all_codes = page1_codes + page2_codes
+    all_codes = page1_codes + page2_codes + page3_codes
     assert len(all_codes) == 25
     assert len(set(all_codes)) == 25
 
@@ -526,15 +532,20 @@ def test_search_service_prefix_pagination_continuation() -> None:
     query = parse_and_validate_query("choc")
 
     page1 = service.execute(query)
-    assert len(page1.products) == 20
+    assert len(page1.products) == 10
     assert page1.next_cursor is not None
     page1_codes = [p.barcode for p in page1.products]
 
     page2 = service.execute(query, cursor=page1.next_cursor)
-    assert len(page2.products) == 5
-    assert page2.next_cursor is None
+    assert len(page2.products) == 10
+    assert page2.next_cursor is not None
     page2_codes = [p.barcode for p in page2.products]
 
-    all_codes = page1_codes + page2_codes
+    page3 = service.execute(query, cursor=page2.next_cursor)
+    assert len(page3.products) == 5
+    assert page3.next_cursor is None
+    page3_codes = [p.barcode for p in page3.products]
+
+    all_codes = page1_codes + page2_codes + page3_codes
     assert len(all_codes) == 25
     assert len(set(all_codes)) == 25

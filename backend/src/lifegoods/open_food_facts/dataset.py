@@ -39,6 +39,7 @@ from lifegoods.product_lookup.models import (
     InvalidSourceRecordError,
     SourceRecord,
 )
+from lifegoods.product_search.contracts import PRODUCT_SEARCH_PAGE_SIZE
 
 CONTROL_COLLECTION = "off_dataset_control"
 VERSIONS_COLLECTION = "off_dataset_versions"
@@ -235,7 +236,7 @@ class OpenFoodFactsDatasetSource:
         terms: tuple[str, ...],
         normalized_query: str,
         cursor: SearchCursor | None = None,
-        limit: int = 20,
+        limit: int = PRODUCT_SEARCH_PAGE_SIZE,
     ) -> list[dict[str, Any]]:
         try:
             search_col_name = validate_search_index_readiness(self._database, snapshot.version)
