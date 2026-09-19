@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { MemoryRouter, useLocation } from "react-router"
+import { MemoryRouter, useLocation, useNavigate } from "react-router"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import { BarcodeEntryPage } from "../src/features/search/BarcodeEntryPage"
@@ -59,13 +59,27 @@ function CurrentLocation() {
     )
 }
 
-function renderPage(path = "/search", locale: AppLocale = "en") {
+function BackNavigation() {
+    const navigate = useNavigate()
+    return (
+        <button type="button" onClick={() => void navigate(-1)}>
+            Test back
+        </button>
+    )
+}
+
+function renderPage(
+    path = "/search",
+    locale: AppLocale = "en",
+    withBackNavigation = false,
+) {
     window.localStorage.setItem("lifegoods.locale.v1", locale)
     return render(
         <LocaleProvider>
             <MemoryRouter initialEntries={[path]}>
                 <BarcodeEntryPage />
                 <CurrentLocation />
+                {withBackNavigation ? <BackNavigation /> : null}
             </MemoryRouter>
         </LocaleProvider>,
     )
@@ -363,7 +377,7 @@ describe("search page", () => {
         )
     })
 
-    test("opens a valid Barcode directly after clicking Search", async () => {
+    test("shows a Barcode result before opening Product information", async () => {
         const user = userEvent.setup()
         renderPage()
         await user.type(
@@ -372,16 +386,23 @@ describe("search page", () => {
         )
         await user.click(screen.getByRole("button", { name: "Search" }))
 
+        expect(screen.getByTestId("location")).toHaveTextContent("/search")
+        expect(mockedSearchProducts).toHaveBeenCalledWith("4006381333931")
+        const result = await screen.findByRole("link", {
+            name: "View Nutella",
+        })
+        expect(within(result).getByText("Barcode")).toBeVisible()
+        expect(within(result).getByText("3017620422003")).toBeVisible()
+        await user.click(result)
         expect(screen.getByTestId("location")).toHaveTextContent(
-            "/products/4006381333931",
+            "/products/3017620422003",
         )
-        expect(mockedSearchProducts).not.toHaveBeenCalled()
         expect(localStorage.getItem("lifegoods.search-history.v1")).toContain(
             "4 006381 333931",
         )
     })
 
-    test("opens a valid Barcode directly after pressing Enter", async () => {
+    test("shows a Barcode result after pressing Enter", async () => {
         const user = userEvent.setup()
         renderPage()
 
@@ -391,13 +412,39 @@ describe("search page", () => {
         )
         await user.keyboard("{Enter}")
 
-        expect(screen.getByTestId("location")).toHaveTextContent(
-            "/products/3017620422003",
-        )
-        expect(mockedSearchProducts).not.toHaveBeenCalled()
+        expect(screen.getByTestId("location")).toHaveTextContent("/search")
+        expect(mockedSearchProducts).toHaveBeenCalledWith("3017620422003")
+        expect(
+            await screen.findByRole("link", { name: "View Nutella" }),
+        ).toBeVisible()
         expect(localStorage.getItem("lifegoods.search-history.v1")).toContain(
             "3017620422003",
         )
+    })
+
+    test("restores Barcode results when returning from Product information", async () => {
+        const user = userEvent.setup()
+        renderPage("/search", "en", true)
+
+        await user.type(
+            screen.getByRole("textbox", { name: "Search" }),
+            "3017620422003",
+        )
+        await user.keyboard("{Enter}")
+        await user.click(
+            await screen.findByRole("link", { name: "View Nutella" }),
+        )
+        expect(screen.getByTestId("location")).toHaveTextContent(
+            "/products/3017620422003",
+        )
+
+        await user.click(screen.getByRole("button", { name: "Test back" }))
+        expect(screen.getByTestId("location")).toHaveTextContent("/search")
+        expect(screen.getByRole("textbox", { name: "Search" })).toHaveValue(
+            "3017620422003",
+        )
+        expect(screen.getByRole("link", { name: "View Nutella" })).toBeVisible()
+        expect(mockedSearchProducts).toHaveBeenCalledTimes(1)
     })
 
     test("preserves an invalid scanned value for correction", () => {

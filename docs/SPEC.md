@@ -896,6 +896,11 @@ The Product Search endpoint `GET /api/v1/products/search` provides Barcode searc
     - Anonymous per-IP rate limiting operates independently under `LIFEGOODS_PRODUCT_SEARCH_REQUESTS_PER_MINUTE` (default 60), returning HTTP 429 `rate_limit_exceeded`.
     - Search queries, Barcodes, and client IP addresses are redacted from access logs and omitted from operational metrics.
 
+8. **Search page Barcode interaction**:
+    - On `/search`, a valid typed or pasted Barcode is submitted to Product Search and remains on the Search page while the matching Product summary loads. The Shopper selects the result to open Product information; a missing match or failed request remains visible inline for correction or retry.
+    - Barcode result rows show the available Product identity, image or image-unavailable placeholder, and Barcode. They do not calculate full Product details or invoke `Khmer Translation`.
+    - Successful camera scans and recent Product links retain their direct Product navigation. Returning to Search with browser Back restores the submitted query and completed Search results for the current navigation entry without a second request.
+
 ## 26. Full-dataset Product Search validation (Issue #107)
 
 The activation and acceptance-evidence work in #107 is complete. This does not

@@ -246,19 +246,12 @@ describe("Life Goods routes", () => {
         expect(lookup).toHaveBeenCalledWith("4006381333931")
     })
 
-    test("shows the Product not-found state after direct Barcode navigation", async () => {
-        const user = userEvent.setup()
+    test("shows the Product not-found state for a missing Product", async () => {
         const lookup = vi.fn<ProductLookup>().mockRejectedValue({
             status: 404,
             code: "product_not_found",
         })
-        renderRoute("/search", lookup)
-
-        await user.type(
-            screen.getByRole("textbox", { name: "Search" }),
-            "4 006381 333931",
-        )
-        await user.click(screen.getByRole("button", { name: "Search" }))
+        renderRoute("/products/4006381333931", lookup)
 
         expect(
             await screen.findByRole("heading", {
