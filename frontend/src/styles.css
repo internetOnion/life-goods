@@ -63,6 +63,10 @@
     color: white;
 }
 
+[data-product-hero] {
+    --glass-lift: 0 12px 30px -24px rgb(19 21 25 / 0.24);
+}
+
 [data-glass="primary"] {
     background-color: var(--glass-action-fill);
     border-color: rgb(255 255 255 / 0.25);

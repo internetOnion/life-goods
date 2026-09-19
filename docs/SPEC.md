@@ -236,7 +236,7 @@ The shared shell and Scan/Home experience support English and Khmer, with Khmer 
 - Fluent human review is required for interface vocabulary, navigation, explanations, disclaimers, and accessibility copy.
 - Individual Product translations are not presented as human-reviewed or verified.
 
-The current provider and model are fixed to Gemini `gemini-3.8-flash` under translation configuration `v1`; provider or model changes require an explicit product and specification decision.
+The current provider and model are fixed to Gemini `gemini-3.8-flash` under translation configuration `v3`; provider or model changes require an explicit product and specification decision.
 
 ## 9. Privacy and measurement
 
@@ -322,7 +322,7 @@ To establish empirical evidence for production model selection and quantitative 
 The translation domain is encapsulated behind the deep `KhmerTranslationModule` and provider adapters:
 
 1. **Eligible Fields & Selection**:
-    - Translations are generated strictly for `product_name`, `generic_name`, `ingredients_text`, and human-readable `categories`.
+    - Translations are generated strictly for `generic_name`, `ingredients_text`, and human-readable `categories`; Product names and brand names always retain their selected Original Text and are never sent to the translation provider.
     - Localized Original Text values are preserved with source field and language.
     - Deterministic preference order: Source-provided Khmer (`km` and recognized variants, retaining source metadata), declared record language, English (`en`), and deterministic localized fallback.
     - Conservative Khmer Unicode script recognition preserves `und` when language metadata is absent without claiming authoritative language tags.
@@ -383,7 +383,7 @@ The stable Product Lookup endpoint integrates optional on-demand Khmer Translati
     - The stable response also includes `data.allergen_analysis`, preserving the distinction between Open Food Facts tags, matcher-derived tags, qualifications, unmatched spans, and comparison sets.
 
 2. **Field-Level Co-Location**:
-    - Semantic fields eligible for translation (`identity.name`, `identity.generic_name`, `ingredients_text`, `categories_text`, individual category items, storage instructions, packaging descriptions, and recycling instructions) carry individual translation states: `not_requested`, `source_khmer_available`, `original_text_preserved`, `generated`, `source_data_unavailable`, or `translation_unavailable`.
+    - Semantic fields (`identity.name`, `identity.generic_name`, `ingredients_text`, `categories_text`, individual category items, storage instructions, packaging descriptions, and recycling instructions) carry individual translation states: `not_requested`, `source_khmer_available`, `original_text_preserved`, `generated`, `source_data_unavailable`, or `translation_unavailable`. `identity.name` and brand names always retain Original Text; the remaining listed fields are eligible for translation.
     - When translation is generated, `khmer_translation` holds the translated string alongside `original_texts` and `selected_original_text`.
     - Source-provided Khmer is treated as `OriginalText` (`source_khmer_available`) and never receives machine-generated metadata. Empty fields yield `source_data_unavailable` without invoking generation.
 
@@ -410,7 +410,7 @@ All eligible field envelopes share selection and classification across generatio
 | ------------------------- | ----------------------------------------------------------------------------------- |
 | `generated`               | `khmer_translation`                                                                 |
 | `source_khmer_available`  | Khmer `selected_original_text`                                                      |
-| `original_text_preserved` | Intentionally unchanged `selected_original_text`, such as a brand-only Product name |
+| `original_text_preserved` | Intentionally unchanged `selected_original_text`, including every Product name |
 | `translation_unavailable` | Available `selected_original_text`                                                  |
 | `not_requested`           | Available `selected_original_text`                                                  |
 | `source_data_unavailable` | No source text; the frontend supplies missing-state copy                            |
@@ -419,7 +419,7 @@ With a translation request, the overall status is `not_needed` when no field req
 
 Without Gemini credentials, startup disables generation and writes no new generated artifacts. Compatible existing Google/Gemini artifacts may still be read. Fake providers require explicit injection and canned translations; their `test-fake` / `canned-translations` identity cannot collide with production configuration.
 
-The production translation configuration is `v1`, which includes the expanded field selection, validation, token protection, deterministic taxonomy handling, and the ingredient chunk limit in its fingerprint. Incompatible and test-provider artifacts cannot satisfy production requests. Existing compatible artifacts remain durable and can be reused; no automatic deletion or backfill runs.
+The production translation configuration is `v3`, which preserves Product and brand names as Original Text and includes the expanded field selection, validation, token protection, deterministic taxonomy handling, and the ingredient chunk limit in its fingerprint. Incompatible and test-provider artifacts cannot satisfy production requests. Existing compatible artifacts remain durable and can be reused; no automatic deletion or backfill runs.
 
 Validation rejects wrong types, missing outputs, malformed envelopes, incomplete provider responses, broken placeholders, altered protected values, excessive output, and unchanged source prose with a Khmer prefix. Independently valid fields survive. Deterministic tests establish structural behavior, not semantic accuracy or human review. Barcode and Shopper information never enter provider input or artifact identity.
 
@@ -1006,8 +1006,11 @@ current photos survive a failure, and retrying processes only failed or changed
 work. Replacing or removing photos, changing selected columns, resetting, and
 leaving the feature prevent earlier responses from restoring stale results;
 requests are cancelled where possible, and responses belonging to superseded
-state are independently rejected. Reset starts a new pair without earlier photos
-or results.
+state are independently rejected. Restart clears the session and opens empty Product A capture without earlier photos
+or results. Back to start clears the session and returns to the comparison intro,
+restoring primary navigation. Product A’s Back always returns to that intro,
+including when editing after results. Product B’s Back returns to Product A while
+preserving the session.
 
 Extraction and comparison are registered by the ordinary Life Goods FastAPI
 application. FastAPI remains the frontend contract authority, and the OpenAPI
@@ -1039,7 +1042,12 @@ Unsupported formats receive a clear unsupported-format message instead of
 promised conversion. When a label contains a sole nutrition column it is
 selected automatically; when several columns exist, the Shopper chooses one with
 its plainly labeled basis and preparation state before continuing, and an
-ambiguous column is never selected silently.
+ambiguous column is never selected silently. The nutrition-column chooser opens
+as a full page on mobile and desktop at `/compare?column=left` or
+`/compare?column=right`, with Back returning to the preceding comparison screen.
+Browser Back preserves the in-memory photos, extraction, and selections; advancing
+to the other Product replaces the chooser history entry. Direct entry without
+the required in-memory extraction returns to `/compare`.
 
 Results lead with Product identities, the comparison basis, and the nutrition
 comparison. Factual differences use deterministic localized templates rather than
@@ -1052,7 +1060,7 @@ per-row source-photo evidence or derivation disclosures. Source-photo evidence
 remains available in the editable Product Photo Panel, and comparison responses
 retain the underlying evidence and derivation data. Results contain no overall
 score, winner, or good/bad health color. The page keeps the session in memory
-and provides Reset; it retains no saved history and no manual transcription
+and provides Restart and Back to start; it retains no saved history and no manual transcription
 editor.
 
 Image input is bounded at 10 MiB per photo, 32 MiB per multipart request, and

@@ -68,14 +68,14 @@ describe("Life Goods routes", () => {
             within(navigation)
                 .getAllByRole("link")
                 .map((link) => link.textContent),
-        ).toEqual(["Scan", "Compare", "Learn", "Concerns"])
+        ).toEqual(["Scan", "Compare", "Learn", "Allergy"])
         expect(screen.getByRole("link", { name: "Scan" })).toHaveAttribute(
             "aria-current",
             "page",
         )
         expect(screen.getByRole("link", { name: "Learn" })).toBeVisible()
         expect(screen.getByRole("link", { name: "Compare" })).toBeVisible()
-        expect(screen.getByRole("link", { name: "Concerns" })).toBeVisible()
+        expect(screen.getByRole("link", { name: "Allergy" })).toBeVisible()
         expect(
             within(navigation).queryByRole("link", { name: "Search" }),
         ).not.toBeInTheDocument()
@@ -144,24 +144,20 @@ describe("Life Goods routes", () => {
         unmountStandaloneArticle()
 
         const { unmount: unmountConcerns } = renderRoute("/concerns")
-        expect(
-            screen.getByRole("heading", { name: "Allergy Concerns" }),
-        ).toHaveFocus()
+        expect(screen.getByRole("heading", { name: "Allergy" })).toHaveFocus()
         const concernsNavigation = screen.getByRole("navigation", {
             name: "Primary navigation",
         })
         expect(concernsNavigation).toHaveAttribute("data-glass-surface", "")
         expect(
             within(concernsNavigation).getByRole("link", {
-                name: "Concerns",
+                name: "Allergy",
             }),
         ).toHaveAttribute("aria-current", "page")
         unmountConcerns()
 
         const { unmount: unmountAllergies } = renderRoute("/allergies")
-        expect(
-            screen.getByRole("heading", { name: "Allergy Concerns" }),
-        ).toHaveFocus()
+        expect(screen.getByRole("heading", { name: "Allergy" })).toHaveFocus()
         unmountAllergies()
 
         renderRoute("/data-and-licenses")
@@ -344,7 +340,7 @@ describe("Life Goods routes", () => {
             within(navigation)
                 .getAllByRole("link")
                 .map((link) => link.textContent),
-        ).toEqual(["ស្កេន", "ប្រៀបធៀប", "ស្វែងយល់", "កង្វល់"])
+        ).toEqual(["ស្កេន", "ប្រៀបធៀប", "ស្វែងយល់", "អាលែហ្ស៊ី"])
         expect(
             screen.getByRole("button", { name: "ភាសា៖ ខ្មែរ" }),
         ).toBeVisible()

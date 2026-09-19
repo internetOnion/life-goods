@@ -12,7 +12,6 @@ from lifegoods.translation.contracts import (
     TranslationFieldStatus,
     TranslationOverallStatus,
 )
-from lifegoods.translation.protection import PLACEHOLDER_REGEX, protect_tokens
 
 if TYPE_CHECKING:
     from lifegoods.product_lookup.contracts import ProductProjection, TranslatableField
@@ -131,9 +130,8 @@ def extract_eligible_fields(product: ProductProjection) -> dict[str, FieldSelect
     return result
 
 
-def is_original_text_preserved(field_name: str, raw_text: str, brands: list[str]) -> bool:
-    without_placeholders = PLACEHOLDER_REGEX.sub("", protect_tokens(raw_text, brands).masked_text)
-    return field_name == "product_name" and not re.search(r"\w", without_placeholders)
+def is_original_text_preserved(field_name: str) -> bool:
+    return field_name == "product_name"
 
 
 def assemble_legacy_categories_outcome(
@@ -227,7 +225,7 @@ def classify_fields(product: ProductProjection) -> dict[str, FieldTranslationOut
         elif selection.is_source_khmer:
             status = TranslationFieldStatus.SOURCE_KHMER_AVAILABLE
             khmer_translation = None
-        elif is_original_text_preserved(name, selected.value, product.identity.brands):
+        elif is_original_text_preserved(name):
             status = TranslationFieldStatus.ORIGINAL_TEXT_PRESERVED
             khmer_translation = None
         else:

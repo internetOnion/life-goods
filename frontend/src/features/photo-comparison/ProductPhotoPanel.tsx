@@ -1,6 +1,7 @@
 import {
     ArrowClockwise,
     ArrowCounterClockwise,
+    CaretDown,
     Camera,
     Info,
     Trash,
@@ -552,62 +553,77 @@ export function ProductPhotoPanel({
 
                 {/* Extraction Results */}
                 {extraction && (
-                    <div className="mt-4 border-t border-neutral-200/80 pt-4">
+                    <div className="mt-5 border-t border-neutral-200/80 pt-5">
                         {/* Detected details */}
-                        <details>
-                            <summary className="focus-visible:ring-primary-500 flex min-h-11 cursor-pointer items-center rounded-lg text-sm font-bold text-neutral-900 select-none hover:text-neutral-700 focus-visible:ring-2 focus-visible:outline-none">
-                                {t("detectedDetails")}
+                        <details className="group">
+                            <summary className="focus-visible:ring-primary-500 flex min-h-11 cursor-pointer items-center gap-3 rounded-lg text-sm font-bold text-neutral-900 select-none hover:text-neutral-700 focus-visible:ring-2 focus-visible:outline-none">
+                                <span className="min-w-0 flex-1">
+                                    {t("detectedDetails")}
+                                </span>
+                                <CaretDown
+                                    size={18}
+                                    weight="bold"
+                                    aria-hidden="true"
+                                    className="text-neutral-500 transition-transform duration-150 group-open:rotate-180"
+                                />
                             </summary>
 
-                            <dl className="mt-2 divide-y divide-neutral-100 border-t border-neutral-200/70 text-xs">
+                            <div className="mt-3 overflow-hidden rounded-xl border border-neutral-200/90 bg-white">
                                 {(extraction.identity?.name?.value_text ||
                                     extraction.identity?.brand?.value_text) && (
-                                    <div className="flex flex-col gap-1.5 p-3 sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:items-center sm:gap-3">
-                                        <dt className="font-bold text-neutral-500">
-                                            {t("detectedProduct")}
-                                        </dt>
-                                        <dd className="font-medium text-neutral-900">
-                                            <span className="font-bold wrap-anywhere">
-                                                {extraction.identity.brand
-                                                    ?.value_text ? (
-                                                    <span
-                                                        lang={
-                                                            extraction.identity
-                                                                .brand
-                                                                .language ||
-                                                            "und"
-                                                        }
-                                                    >
-                                                        {
-                                                            extraction.identity
-                                                                .brand
-                                                                .value_text
-                                                        }
-                                                    </span>
-                                                ) : null}
-                                                {extraction.identity.brand
-                                                    ?.value_text &&
-                                                extraction.identity.name
-                                                    ?.value_text
-                                                    ? " "
-                                                    : null}
-                                                {extraction.identity.name
-                                                    ?.value_text ? (
-                                                    <span
-                                                        lang={
-                                                            extraction.identity
-                                                                .name
-                                                                .language ||
-                                                            "und"
-                                                        }
-                                                    >
-                                                        {
-                                                            extraction.identity
-                                                                .name.value_text
-                                                        }
-                                                    </span>
-                                                ) : null}
-                                            </span>
+                                    <div className="border-b border-neutral-200/90 px-3.5 py-4 sm:px-4">
+                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                            <div className="min-w-0">
+                                                <p className="text-caption font-bold tracking-wider text-neutral-600 uppercase">
+                                                    {t("detectedProduct")}
+                                                </p>
+                                                <p className="mt-1.5 text-base leading-tight font-extrabold text-neutral-950 wrap-anywhere">
+                                                    {extraction.identity.brand
+                                                        ?.value_text ? (
+                                                        <span
+                                                            lang={
+                                                                extraction
+                                                                    .identity
+                                                                    .brand
+                                                                    .language ||
+                                                                "und"
+                                                            }
+                                                        >
+                                                            {
+                                                                extraction
+                                                                    .identity
+                                                                    .brand
+                                                                    .value_text
+                                                            }
+                                                        </span>
+                                                    ) : null}
+                                                    {extraction.identity.brand
+                                                        ?.value_text &&
+                                                    extraction.identity.name
+                                                        ?.value_text
+                                                        ? " "
+                                                        : null}
+                                                    {extraction.identity.name
+                                                        ?.value_text ? (
+                                                        <span
+                                                            lang={
+                                                                extraction
+                                                                    .identity
+                                                                    .name
+                                                                    .language ||
+                                                                "und"
+                                                            }
+                                                        >
+                                                            {
+                                                                extraction
+                                                                    .identity
+                                                                    .name
+                                                                    .value_text
+                                                            }
+                                                        </span>
+                                                    ) : null}
+                                                </p>
+                                            </div>
                                             {product.title !==
                                                 [
                                                     extraction.identity.brand
@@ -619,7 +635,7 @@ export function ProductPhotoPanel({
                                                     .join(" ") && (
                                                 <Button
                                                     type="button"
-                                                    variant="ghost"
+                                                    variant="outline"
                                                     size="sm"
                                                     onClick={() => {
                                                         const brand =
@@ -643,91 +659,100 @@ export function ProductPhotoPanel({
                                                             )
                                                         }
                                                     }}
-                                                    className="text-primary-700 hover:text-primary-900 ml-2 h-auto p-0 font-mono text-[11px] underline hover:bg-transparent"
+                                                    className="shrink-0 font-mono text-caption"
                                                 >
                                                     {t("useAsTitle")}
                                                 </Button>
                                             )}
-                                        </dd>
+                                        </div>
                                     </div>
                                 )}
-                                <div className="flex flex-col gap-1.5 p-3 sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:items-center sm:gap-3">
-                                    <dt className="font-bold text-neutral-500">
-                                        {t("packageWeight")}
-                                    </dt>
-                                    <dd className="font-medium text-neutral-900">
-                                        {packageQuantity &&
-                                        packageQuantity.state === "readable" ? (
-                                            <>
-                                                <span>
-                                                    {displayValue(
-                                                        packageQuantity.value_text,
-                                                        packageQuantity.unit_text ||
-                                                            "",
-                                                    )}
+                                <dl className="grid sm:grid-cols-2">
+                                    <div className="border-b border-neutral-200/90 px-3.5 py-3.5 sm:border-r sm:border-b-0 sm:px-4">
+                                        <dt className="text-caption font-bold tracking-wider text-neutral-600 uppercase">
+                                            {t("packageWeight")}
+                                        </dt>
+                                        <dd className="mt-1.5 text-sm font-semibold text-neutral-900 wrap-anywhere">
+                                            {packageQuantity &&
+                                            packageQuantity.state ===
+                                                "readable" ? (
+                                                <>
+                                                    <span>
+                                                        {displayValue(
+                                                            packageQuantity.value_text,
+                                                            packageQuantity.unit_text ||
+                                                                "",
+                                                        )}
+                                                    </span>
+                                                    {packageQuantity?.evidence
+                                                        ?.length ? (
+                                                        <EvidencePointers
+                                                            evidence={
+                                                                packageQuantity.evidence
+                                                            }
+                                                            product={product}
+                                                            onFocus={
+                                                                onFocusEvidence
+                                                            }
+                                                        />
+                                                    ) : null}
+                                                </>
+                                            ) : (
+                                                <span className="font-medium text-neutral-600 italic">
+                                                    {t("notFoundPhotos")}
                                                 </span>
-                                                {packageQuantity?.evidence
-                                                    ?.length ? (
-                                                    <EvidencePointers
-                                                        evidence={
-                                                            packageQuantity.evidence
-                                                        }
-                                                        product={product}
-                                                        onFocus={
-                                                            onFocusEvidence
-                                                        }
-                                                    />
-                                                ) : null}
-                                            </>
-                                        ) : (
-                                            <span className="text-neutral-500 italic">
-                                                {t("notFoundPhotos")}
-                                            </span>
-                                        )}
-                                    </dd>
-                                </div>
-                                <div className="flex flex-col gap-1.5 p-3 sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:items-center sm:gap-3">
-                                    <dt className="font-bold text-neutral-500">
-                                        {t("preparation")}
-                                    </dt>
-                                    <dd className="font-medium text-neutral-900">
-                                        {(extraction.nutrition_columns
-                                            ?.length ?? 0) > 0 ? (
-                                            (extraction.nutrition_columns ?? [])
-                                                .map((col) =>
-                                                    formatPreparationLabel(
-                                                        col.preparation_state,
-                                                        locale,
-                                                    ),
+                                            )}
+                                        </dd>
+                                    </div>
+                                    <div className="px-3.5 py-3.5 sm:px-4">
+                                        <dt className="text-caption font-bold tracking-wider text-neutral-600 uppercase">
+                                            {t("preparation")}
+                                        </dt>
+                                        <dd className="mt-1.5 text-sm font-semibold text-neutral-900 wrap-anywhere">
+                                            {(extraction.nutrition_columns
+                                                ?.length ?? 0) > 0 ? (
+                                                (
+                                                    extraction.nutrition_columns ??
+                                                    []
                                                 )
-                                                .join(" · ")
-                                        ) : (
-                                            <span className="text-neutral-500 italic">
-                                                {t("notSpecified")}
-                                            </span>
-                                        )}
-                                    </dd>
-                                </div>
-                                <div className="flex flex-col gap-1.5 p-3 sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:items-center sm:gap-3">
-                                    <dt className="font-bold text-neutral-500">
+                                                    .map((col) =>
+                                                        formatPreparationLabel(
+                                                            col.preparation_state,
+                                                            locale,
+                                                        ),
+                                                    )
+                                                    .join(" · ")
+                                            ) : (
+                                                <span className="font-medium text-neutral-600 italic">
+                                                    {t("notSpecified")}
+                                                </span>
+                                            )}
+                                        </dd>
+                                    </div>
+                                </dl>
+                                <div className="flex flex-col gap-2 border-t border-neutral-200/90 bg-neutral-50/70 px-3.5 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+                                    <p className="text-caption font-bold tracking-wider text-neutral-600 uppercase">
                                         {t("evidenceImages")}
-                                    </dt>
-                                    <dd className="flex flex-wrap gap-1.5">
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
                                         {extraction.images.map(
                                             (img, imgIndex) => (
                                                 <Button
                                                     key={img.image_id}
                                                     type="button"
-                                                    variant="subtle"
+                                                    variant="outline"
                                                     size="sm"
                                                     onClick={() =>
                                                         onFocusEvidence(
                                                             img.image_id,
                                                         )
                                                     }
-                                                    className="border-info-200/70 bg-info-50 text-info-700 hover:bg-info-100 hover:text-info-900 h-6 gap-1 rounded-full border px-2.5 font-mono text-[11px]"
+                                                    className="h-10 gap-1.5 font-mono text-caption"
                                                 >
-                                                    <Camera size={12} />
+                                                    <Camera
+                                                        size={14}
+                                                        weight="bold"
+                                                    />
                                                     <span>
                                                         {t("viewPhoto", {
                                                             number:
@@ -737,9 +762,9 @@ export function ProductPhotoPanel({
                                                 </Button>
                                             ),
                                         )}
-                                    </dd>
+                                    </div>
                                 </div>
-                            </dl>
+                            </div>
                         </details>
 
                         {/* Nutrition columns */}

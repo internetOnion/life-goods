@@ -137,7 +137,6 @@ def test_translate_fields_with_token_protection_and_restoration() -> None:
     # Provide canned response that includes the placeholders
     provider = FakeTranslationProvider(
         canned_translations={
-            "product_name": "__LG_TOK_0__ របារសូកូឡាទឹកដោះគោរលោង",
             "generic_name": ("សូកូឡាទឹកដោះគោជាមួយការ៉ាមែល (__LG_TOK_0__) និងអំបិលសមុទ្រ (__LG_TOK_1__)"),
             "ingredients_text": (
                 "ស្ករ ម្សៅទឹកដោះគោគ្មានជាតិខ្លាញ់ (__LG_TOK_0__) "
@@ -156,15 +155,15 @@ def test_translate_fields_with_token_protection_and_restoration() -> None:
     assert provider.call_count == 1
     assert provider.last_request is not None
 
-    # Verify provider received masked placeholders rather than raw brands/numbers
-    assert "__LG_TOK_0__" in provider.last_request.fields["product_name"]
-    assert "Galaxy" not in provider.last_request.fields["product_name"]
+    # Product and brand names remain Original Text and never enter the provider request.
+    assert "product_name" not in provider.last_request.fields
+    assert "Galaxy" not in str(provider.last_request.fields)
     assert "10%" not in provider.last_request.fields["generic_name"]
 
     # Verify returned result has tokens restored
     name_outcome = result.fields["product_name"]
-    assert name_outcome.status == TranslationFieldStatus.GENERATED
-    assert name_outcome.khmer_translation == "Galaxy របារសូកូឡាទឹកដោះគោរលោង"
+    assert name_outcome.status == TranslationFieldStatus.ORIGINAL_TEXT_PRESERVED
+    assert name_outcome.khmer_translation is None
 
     generic_outcome = result.fields["generic_name"]
     assert generic_outcome.status == TranslationFieldStatus.GENERATED
@@ -184,7 +183,7 @@ def test_translate_fields_with_token_protection_and_restoration() -> None:
     # Verify hashes and token maps
     assert len(result.content_hash) == 64
     assert len(result.config_fingerprint) == 64
-    assert "product_name" in result.token_maps
+    assert "product_name" not in result.token_maps
 
 
 def test_partial_translation_survives_when_one_field_fails_validation() -> None:
@@ -198,12 +197,15 @@ def test_partial_translation_survives_when_one_field_fails_validation() -> None:
     product.identity.generic_names = [
         OriginalText(value="Milk chocolate (10%)", language="en", source_field="generic_name_en"),
     ]
+    product.ingredients = [
+        OriginalText(value="Sugar", language="en", source_field="ingredients_text_en"),
+    ]
 
     # Canned response: product_name is valid, but generic_name drops placeholder __LG_TOK_0__
     provider = FakeTranslationProvider(
         canned_translations={
-            "product_name": "__LG_TOK_0__ សូកូឡា",
             "generic_name": "សូកូឡាទឹកដោះគោគ្មានភាគរយ",  # dropped __LG_TOK_0__ (10%)
+            "ingredients_text": "ស្ករ",
             "unexpected_injected_field": "HACKED",
         }
     )
@@ -213,9 +215,9 @@ def test_partial_translation_survives_when_one_field_fails_validation() -> None:
 
     assert result.overall_status == TranslationOverallStatus.PARTIAL
 
-    # Valid field survived
-    assert result.fields["product_name"].status == TranslationFieldStatus.GENERATED
-    assert result.fields["product_name"].khmer_translation == "Galaxy សូកូឡា"
+    assert result.fields["product_name"].status == TranslationFieldStatus.ORIGINAL_TEXT_PRESERVED
+    assert result.fields["product_name"].khmer_translation is None
+    assert result.fields["ingredients_text"].status == TranslationFieldStatus.GENERATED
 
     # Corrupted field failed gracefully
     assert result.fields["generic_name"].status == TranslationFieldStatus.TRANSLATION_UNAVAILABLE
@@ -230,14 +232,14 @@ def test_non_khmer_output_fails_validation() -> None:
     from lifegoods.product_lookup.contracts import OriginalText
 
     product = _empty_product()
-    product.identity.names = [
-        OriginalText(value="Chocolate Bar", language="en", source_field="product_name_en"),
+    product.identity.generic_names = [
+        OriginalText(value="Chocolate Bar", language="en", source_field="generic_name_en"),
     ]
 
     # Provider responded in English without Khmer script
     provider = FakeTranslationProvider(
         canned_translations={
-            "product_name": "Chocolate Bar English Only",
+            "generic_name": "Chocolate Bar English Only",
         }
     )
     module = KhmerTranslationModule(provider=provider)
@@ -245,8 +247,8 @@ def test_non_khmer_output_fails_validation() -> None:
     result = module.translate_product(product, target_language="km")
 
     assert result.overall_status == TranslationOverallStatus.UNAVAILABLE
-    assert result.fields["product_name"].status == TranslationFieldStatus.TRANSLATION_UNAVAILABLE
-    assert "Khmer script" in (result.fields["product_name"].failure_reason or "")
+    assert result.fields["generic_name"].status == TranslationFieldStatus.TRANSLATION_UNAVAILABLE
+    assert "Khmer script" in (result.fields["generic_name"].failure_reason or "")
 
 
 def test_brand_only_product_name_preserves_original_text_without_provider_call() -> None:
@@ -271,15 +273,15 @@ def test_oversized_output_fails_bounds_check() -> None:
     from lifegoods.product_lookup.contracts import OriginalText
 
     product = _empty_product()
-    product.identity.names = [
-        OriginalText(value="Snack", language="en", source_field="product_name_en"),
+    product.identity.generic_names = [
+        OriginalText(value="Snack", language="en", source_field="generic_name_en"),
     ]
 
     # Provider hallucinated a massive repeated string
     huge_text = "អាហារសម្រន់ " * 400
     provider = FakeTranslationProvider(
         canned_translations={
-            "product_name": huge_text,
+            "generic_name": huge_text,
         }
     )
     module = KhmerTranslationModule(provider=provider)
@@ -287,8 +289,8 @@ def test_oversized_output_fails_bounds_check() -> None:
     result = module.translate_product(product, target_language="km")
 
     assert result.overall_status == TranslationOverallStatus.UNAVAILABLE
-    assert result.fields["product_name"].status == TranslationFieldStatus.TRANSLATION_UNAVAILABLE
-    assert "bounds" in (result.fields["product_name"].failure_reason or "").lower()
+    assert result.fields["generic_name"].status == TranslationFieldStatus.TRANSLATION_UNAVAILABLE
+    assert "bounds" in (result.fields["generic_name"].failure_reason or "").lower()
 
 
 def test_khmer_translation_module_end_to_end_with_gemini_adapter() -> None:
@@ -333,7 +335,6 @@ def test_khmer_translation_module_end_to_end_with_gemini_adapter() -> None:
                                 "text": json.dumps(
                                     {
                                         "translations": {
-                                            "product_name": "__LG_TOK_0__ តែបៃតង __LG_TOK_1__",
                                             "ingredients_text": (
                                                 "តែបៃតង __LG_TOK_0__, ស្ករ __LG_TOK_1__, "
                                                 "វីតាមីនសេ __LG_TOK_2__។"
@@ -366,8 +367,8 @@ def test_khmer_translation_module_end_to_end_with_gemini_adapter() -> None:
     result = module.translate_product(product, target_language="km")
 
     assert result.overall_status == TranslationOverallStatus.COMPLETE
-    assert result.fields["product_name"].status == TranslationFieldStatus.GENERATED
-    assert result.fields["product_name"].khmer_translation == "Oishi តែបៃតង 500ml"
+    assert result.fields["product_name"].status == TranslationFieldStatus.ORIGINAL_TEXT_PRESERVED
+    assert result.fields["product_name"].khmer_translation is None
 
     assert result.fields["ingredients_text"].status == TranslationFieldStatus.GENERATED
     assert "85%" in (result.fields["ingredients_text"].khmer_translation or "")
@@ -425,10 +426,9 @@ def test_storage_instruction_items_translation_and_partial_survival() -> None:
         ),
     ]
 
-    # Provider translates product_name and storage_instruction_0, but drops storage_instruction_1
+    # Provider translates storage_instruction_0 but drops storage_instruction_1.
     provider = FakeTranslationProvider(
         canned_translations={
-            "product_name": "ទឹកដោះគោ",
             "storage_instruction_0": "រក្សាទុកក្នុងទូរទឹកកកនៅសីតុណ្ហភាព __LG_TOK_0__",
         }
     )
@@ -437,8 +437,8 @@ def test_storage_instruction_items_translation_and_partial_survival() -> None:
 
     assert result.overall_status == TranslationOverallStatus.PARTIAL
 
-    assert result.fields["product_name"].status == TranslationFieldStatus.GENERATED
-    assert result.fields["product_name"].khmer_translation == "ទឹកដោះគោ"
+    assert result.fields["product_name"].status == TranslationFieldStatus.ORIGINAL_TEXT_PRESERVED
+    assert result.fields["product_name"].khmer_translation is None
 
     assert result.fields["storage_instruction_0"].status == TranslationFieldStatus.GENERATED
     assert (

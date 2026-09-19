@@ -93,7 +93,7 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
                 </div>
             </CardHeader>
 
-            <CardContent className="space-y-3 p-4 pt-2 sm:p-5">
+            <CardContent className="space-y-0 p-4 pt-2 sm:p-5">
                 <div className="overflow-hidden rounded-xl border border-neutral-200/80 bg-neutral-50/50">
                     <ScrollContainer
                         fadeColor="neutral"
@@ -198,7 +198,7 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
                     </ScrollContainer>
                 </div>
 
-                <p className="border-t border-neutral-100 pt-1 text-xs font-medium text-neutral-500">
+                <p className="pt-1 text-xs font-medium text-neutral-500">
                     {t("nutritionSource")}
                 </p>
             </CardContent>

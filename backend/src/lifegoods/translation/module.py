@@ -35,7 +35,7 @@ from lifegoods.translation.selection import (
 )
 from lifegoods.translation.validator import validate_field_translation
 
-TRANSLATION_CONFIG_VERSION = "v2"
+TRANSLATION_CONFIG_VERSION = "v3"
 PRODUCTION_PROVIDER = "google"
 PRODUCTION_MODEL = "gemini-3.8-flash"
 DEFAULT_MAX_INGREDIENT_CHUNK_CHARS = 800
@@ -147,7 +147,7 @@ class KhmerTranslationModule:
             "config_version": self._config_version,
             "provider": self._provider_name,
             "model": self._model,
-            "selection_version": "v2",
+            "selection_version": "v3",
             "chunking_version": "v1",
             "max_ingredient_chunk_chars": self._max_ingredient_chunk_chars,
             "protection_version": "v1",

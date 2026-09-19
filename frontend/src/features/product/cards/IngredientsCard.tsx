@@ -7,7 +7,6 @@ import type { TranslatableField } from "@/api/generated"
 import type { PackageMatchEvidenceResponse } from "@/features/product/types"
 import { parseIngredients } from "@/lib/ingredientsParser"
 
-import { TranslatedField } from "../TranslatedField"
 import { getTranslatedFieldText } from "../translation-utils"
 import { translateTaxonomyValue, useProductTranslation } from "../translations"
 
@@ -202,15 +201,6 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                     role="region"
                     aria-label={`${t("ingredientsList")} and ${t("ingredientLanguage")}`}
                 >
-                    {isKhmerTranslationSelected && ingredientsField && (
-                        <div className="bg-info-50/60 border-b border-neutral-200 p-3">
-                            <TranslatedField
-                                field={ingredientsField}
-                                fallback={translatedIngredientText}
-                                textClassName="text-sm leading-relaxed text-neutral-800"
-                            />
-                        </div>
-                    )}
                     {selectableLanguages.length > 1 && (
                         <div className="flex items-center justify-between gap-3 border-b border-neutral-200 bg-neutral-50 px-3 py-1.5">
                             <div className="text-caption flex min-w-0 items-center gap-1.5 font-semibold text-neutral-600">
@@ -235,7 +225,7 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                                         locale,
                                     })
                                 }
-                                className="h-11 max-w-[8rem] rounded-lg bg-white pr-8 pl-2.5 text-xs font-bold"
+                                className="h-11 max-w-[7rem] rounded-lg bg-white pr-7 pl-2 text-xs font-bold"
                             >
                                 {selectableLanguages.map(({ code, name }) => (
                                     <option key={code} value={code}>
@@ -370,7 +360,7 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
                 )}
 
                 {/* Card Footer Meta */}
-                <div className="text-caption border-t border-neutral-100 pt-1 font-medium text-neutral-500">
+                <div className="text-caption pt-1 font-medium text-neutral-500">
                     <span>{t("sourcePackageLabel")}</span>
                 </div>
             </CardContent>

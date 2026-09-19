@@ -128,7 +128,7 @@ describe("Page metadata and favicons", () => {
         unmountLearn()
 
         const { unmount: unmountConcerns } = renderRoute("/concerns")
-        expect(document.title).toBe("Allergy Concerns | Life Goods")
+        expect(document.title).toBe("Allergy | Life Goods")
         unmountConcerns()
 
         const { unmount: unmountLicenses } = renderRoute("/data-and-licenses")

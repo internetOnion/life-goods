@@ -104,6 +104,18 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
               ? String(quantityItem.value)
               : null
 
+    const countriesSold = projection?.countries ?? []
+    const manufacturingPlaces =
+        projection?.environment?.manufacturing_places ?? []
+    const countriesSoldValue = countriesSold.length
+        ? countriesSold
+              .map((country) => translateTaxonomyValue(locale, country))
+              .join(", ")
+        : t("sourceDataUnavailable")
+    const manufacturingPlacesValue = manufacturingPlaces.length
+        ? manufacturingPlaces.join(", ")
+        : t("sourceDataUnavailable")
+
     // Deduplicate and prioritize images (Front, Ingredients, Nutrition)
     const sortedImages = [...images].sort((a, b) => {
         const roleOrder: Record<string, number> = {
@@ -165,6 +177,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
     return (
         <div
             data-glass-surface=""
+            data-product-hero=""
             className="glass-surface overflow-hidden rounded-2xl p-3 sm:p-6"
         >
             <div className="grid items-start gap-6">
@@ -337,7 +350,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
 
                     {/* Quick Factual Summary Divider Rows (Neutral) */}
                     <div className="divide-y divide-neutral-100 rounded-xl border border-neutral-200/80 bg-white p-2 text-xs">
-                        <div className="grid min-h-12 grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-2 py-1">
+                        <div className="grid min-h-12 grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-2 py-1 sm:grid-cols-[10rem_minmax(0,1fr)]">
                             <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                 {t("barcode")}
                             </span>
@@ -367,7 +380,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                             </Button>
                         </div>
 
-                        <div className="grid min-h-12 grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-2 py-1">
+                        <div className="grid min-h-12 grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-2 py-1 sm:grid-cols-[10rem_minmax(0,1fr)]">
                             <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                 {t("quantity")}
                             </span>
@@ -376,7 +389,25 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                             </span>
                         </div>
 
-                        <div className="grid min-h-12 grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-2 py-1">
+                        <div className="grid min-h-12 grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-2 py-1 sm:grid-cols-[10rem_minmax(0,1fr)]">
+                            <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
+                                {t("countriesSold")}
+                            </span>
+                            <span className="min-w-0 text-right text-xs font-semibold wrap-anywhere text-neutral-900 sm:text-sm">
+                                {countriesSoldValue}
+                            </span>
+                        </div>
+
+                        <div className="grid min-h-12 grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-2 py-1 sm:grid-cols-[10rem_minmax(0,1fr)]">
+                            <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
+                                {t("manufacturingPlaces")}
+                            </span>
+                            <span className="min-w-0 text-right text-xs font-semibold wrap-anywhere text-neutral-900 sm:text-sm">
+                                {manufacturingPlacesValue}
+                            </span>
+                        </div>
+
+                        <div className="grid min-h-12 grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-2 py-1 sm:grid-cols-[10rem_minmax(0,1fr)]">
                             <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
                                 {t("gs1AllocationRegion")}
                             </span>
@@ -385,7 +416,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                                     ? translateTaxonomyValue(
                                           locale,
                                           gs1AllocationRegion,
-                                      )
+                                      ).toLowerCase()
                                     : t("gs1AllocationRegionUnavailable")}
                             </span>
                         </div>

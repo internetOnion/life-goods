@@ -7,7 +7,7 @@ const commonTableHeadings = {
         km: "អ្វីដែលវាមិនបញ្ជាក់",
         en: "What it does not prove",
     },
-    sourceHeading: { km: "ប្រភព", en: "Source" },
+    sourceHeading: { km: "ឯកសារយោង", en: "Source" },
 }
 
 export const LEARN_GUIDES: LearnGuide[] = [

@@ -100,7 +100,7 @@ export function ComparisonProcessingSheet({
     return (
         <section
             aria-labelledby="comparison-processing-heading"
-            className="shadow-source-sheet animate-in fade-in slide-in-from-bottom-2 mt-5 bg-white p-5 duration-300 sm:mt-6 sm:p-6"
+            className="source-sheet animate-in fade-in slide-in-from-bottom-2 mt-5 p-5 duration-300 sm:mt-6 sm:p-6"
         >
             <div aria-live="polite" aria-atomic="true">
                 <div className="icon-heading-row">

@@ -40,9 +40,9 @@ def test_evaluate_candidate_output_detects_token_corruption_and_lingering_placeh
     corrupted_output = CandidateOutput(
         item_id=item.item_id,
         candidate_name="test-candidate",
-        translations={"product_name": "Broken __LG_TOK_0__ translation"},
-        masked_translations={"product_name": "Broken __LG_TOK_0__ translation"},
-        token_maps={"product_name": {"__LG_TOK_0__": "Galaxy"}},
+        translations={"generic_name": "Broken __LG_TOK_0__ translation"},
+        masked_translations={"generic_name": "Broken __LG_TOK_0__ translation"},
+        token_maps={"generic_name": {"__LG_TOK_0__": "10%"}},
         raw_response="{}",
         latency_ms=100.0,
         status="success",

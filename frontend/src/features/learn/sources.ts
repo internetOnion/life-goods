@@ -210,12 +210,12 @@ export const LEARN_SOURCES: LearnSource[] = [
     {
         id: "nutri-score-sante-publique-france",
         name: {
-            km: "Santé publique France — Nutri-Score (ប្រភពផ្លូវការ)",
+            km: "Santé publique France — Nutri-Score (ផ្លូវការ)",
             en: "Santé publique France — Nutri-Score (official source)",
         },
         publisher: { km: "Santé publique France", en: "Santé publique France" },
         jurisdiction: {
-            km: "ប្រភពសម្រាប់ការអប់រំ",
+            km: "ឯកសារអប់រំ",
             en: "Educational reference",
         },
         version: "Source named in the supplied Nutri-Score summary",
@@ -230,7 +230,7 @@ export const LEARN_SOURCES: LearnSource[] = [
         },
         publisher: { km: "EREN Nutri-Score Blog", en: "EREN Nutri-Score Blog" },
         jurisdiction: {
-            km: "ប្រភពសម្រាប់ការអប់រំ",
+            km: "ឯកសារអប់រំ",
             en: "Educational reference",
         },
         version: "Source named in the supplied Nutri-Score summary",
@@ -245,7 +245,7 @@ export const LEARN_SOURCES: LearnSource[] = [
         },
         publisher: { km: "World Nutrition", en: "World Nutrition" },
         jurisdiction: {
-            km: "ប្រភពសម្រាប់ការអប់រំ",
+            km: "ឯកសារអប់រំ",
             en: "Educational reference",
         },
         version: "7(1–3), 28–38",
@@ -263,7 +263,7 @@ export const LEARN_SOURCES: LearnSource[] = [
             en: "Public Health Nutrition",
         },
         jurisdiction: {
-            km: "ប្រភពសម្រាប់ការអប់រំ",
+            km: "ឯកសារអប់រំ",
             en: "Educational reference",
         },
         version: "21(S1), 5–17",
@@ -281,7 +281,7 @@ export const LEARN_SOURCES: LearnSource[] = [
             en: "Source named in the supplied NOVA summary",
         },
         jurisdiction: {
-            km: "ប្រភពសម្រាប់ការអប់រំ",
+            km: "ឯកសារអប់រំ",
             en: "Educational reference",
         },
         version: "Source named in the supplied NOVA summary",
@@ -296,7 +296,7 @@ export const LEARN_SOURCES: LearnSource[] = [
         },
         publisher: { km: "FAO", en: "FAO" },
         jurisdiction: {
-            km: "ប្រភពសម្រាប់ការអប់រំ",
+            km: "ឯកសារអប់រំ",
             en: "Educational reference",
         },
         version: "Source named in the supplied NOVA summary",
@@ -314,7 +314,7 @@ export const LEARN_SOURCES: LearnSource[] = [
             en: "NUPENS / University of São Paulo",
         },
         jurisdiction: {
-            km: "ប្រភពសម្រាប់ការអប់រំ",
+            km: "ឯកសារអប់រំ",
             en: "Educational reference",
         },
         version: "Source named in the supplied NOVA summary",
@@ -329,7 +329,7 @@ export const LEARN_SOURCES: LearnSource[] = [
         },
         publisher: { km: "Open Food Facts", en: "Open Food Facts" },
         jurisdiction: {
-            km: "ប្រភពសម្រាប់ការអប់រំ",
+            km: "ឯកសារអប់រំ",
             en: "Educational reference",
         },
         version: "Source named in the supplied NOVA summary",
@@ -344,7 +344,7 @@ export const LEARN_SOURCES: LearnSource[] = [
         },
         publisher: { km: "Open Food Facts", en: "Open Food Facts" },
         jurisdiction: {
-            km: "ប្រភពសម្រាប់ការអប់រំ",
+            km: "ឯកសារអប់រំ",
             en: "Educational reference",
         },
         version: "Source named in the supplied Green-Score summary",
@@ -359,7 +359,7 @@ export const LEARN_SOURCES: LearnSource[] = [
         },
         publisher: { km: "Open Food Facts", en: "Open Food Facts" },
         jurisdiction: {
-            km: "ប្រភពសម្រាប់ការអប់រំ",
+            km: "ឯកសារអប់រំ",
             en: "Educational reference",
         },
         version: "Source named in the supplied Green-Score summary",
@@ -371,7 +371,7 @@ export const LEARN_SOURCES: LearnSource[] = [
         name: { km: "AGRIBALYSE — ADEME", en: "AGRIBALYSE — ADEME" },
         publisher: { km: "ADEME", en: "ADEME" },
         jurisdiction: {
-            km: "ប្រភពសម្រាប់ការអប់រំ",
+            km: "ឯកសារអប់រំ",
             en: "Educational reference",
         },
         version: "Source named in the supplied Green-Score summary",
@@ -386,7 +386,7 @@ export const LEARN_SOURCES: LearnSource[] = [
         },
         publisher: { km: "ADEME", en: "ADEME" },
         jurisdiction: {
-            km: "ប្រភពសម្រាប់ការអប់រំ",
+            km: "ឯកសារអប់រំ",
             en: "Educational reference",
         },
         version: "Source named in the supplied Green-Score summary",
