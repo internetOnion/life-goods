@@ -3,15 +3,14 @@ import {
     ArrowLeft,
     ArrowRight,
     Scales,
-    WarningCircle,
 } from "@phosphor-icons/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { GlassButton as Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useLocale } from "@/i18n/locale"
 import { usePageMetadata } from "@/lib/metadata"
+import { cn } from "@/lib/utils"
 import { useAppShellNavigation } from "@/ui/AppShellNavigation"
 
 import {
@@ -75,10 +74,6 @@ function getDefaultColumnId(
         return null
     }
     return extraction.nutrition_columns[0]?.column_id ?? null
-}
-
-function hasUnusablePhoto(product: ProductSideState): boolean {
-    return product.photos.some((photo) => photo.previewError)
 }
 
 function isAbortError(err: unknown): boolean {
@@ -252,7 +247,7 @@ export function PhotoComparisonPage({
 
     const handleContinueFromSide = (side: CompareSide) => {
         const product = getProductForSide(side)
-        if (product.photos.length === 0 || hasUnusablePhoto(product)) return
+        if (product.photos.length === 0) return
 
         if (side === "left") {
             setActiveSide("right")
@@ -327,9 +322,7 @@ export function PhotoComparisonPage({
     const isReadyToCompare = useMemo(() => {
         if (
             leftProduct.photos.length === 0 ||
-            rightProduct.photos.length === 0 ||
-            hasUnusablePhoto(leftProduct) ||
-            hasUnusablePhoto(rightProduct)
+            rightProduct.photos.length === 0
         ) {
             return false
         }
@@ -393,9 +386,6 @@ export function PhotoComparisonPage({
             rightProduct.photos.length === 0
         ) {
             return t("addEachProduct")
-        }
-        if (hasUnusablePhoto(leftProduct) || hasUnusablePhoto(rightProduct)) {
-            return t("photoPreviewUnavailable")
         }
         if (
             leftProduct.extraction &&
@@ -498,31 +488,6 @@ export function PhotoComparisonPage({
                 titleSource,
             }))
         }
-    }
-
-    const handlePhotoPreviewError = (side: "left" | "right", index: number) => {
-        resetSideProcessing(side)
-
-        const setProduct = side === "left" ? setLeftProduct : setRightProduct
-        setProduct((prev) => {
-            const photo = prev.photos[index]
-            if (!photo || photo.previewError) return prev
-
-            return {
-                ...prev,
-                photos: prev.photos.map((item, itemIndex) =>
-                    itemIndex === index
-                        ? { ...item, previewError: true }
-                        : item,
-                ),
-                extraction: null,
-                selectedColumnId: null,
-                error: t("photoPreviewUnavailable"),
-                retry: false,
-                loading: false,
-                revision: prev.revision + 1,
-            }
-        })
     }
 
     const handleAddFiles = (side: "left" | "right", files: File[]) => {
@@ -847,8 +812,6 @@ export function PhotoComparisonPage({
         if (
             leftProduct.photos.length === 0 ||
             rightProduct.photos.length === 0 ||
-            hasUnusablePhoto(leftProduct) ||
-            hasUnusablePhoto(rightProduct) ||
             processingStep !== "idle"
         ) {
             return
@@ -1248,6 +1211,16 @@ export function PhotoComparisonPage({
                       ? `${t("statusPrefix")}: ${comparisonStatus}`
                       : ""}
             </div>
+            <div
+                className="sr-only"
+                role="alert"
+                aria-live="assertive"
+                aria-atomic="true"
+            >
+                {comparisonError || leftProduct.error || rightProduct.error
+                    ? `${t("alertPrefix")}: ${comparisonError || leftProduct.error || rightProduct.error}`
+                    : ""}
+            </div>
             {/* Main Content */}
             <main
                 aria-busy={processingStep !== "idle"}
@@ -1542,13 +1515,6 @@ export function PhotoComparisonPage({
                                     onOpenLibrary={() =>
                                         handleOpenLibrary(activeSide)
                                     }
-                                    onRetry={() => void handleCompare()}
-                                    onPhotoPreviewError={(index) =>
-                                        handlePhotoPreviewError(
-                                            activeSide,
-                                            index,
-                                        )
-                                    }
                                     onSelectColumn={(colId) =>
                                         handleSelectColumn(activeSide, colId)
                                     }
@@ -1573,59 +1539,23 @@ export function PhotoComparisonPage({
 
                                 {!comparison &&
                                     activeSide === "right" &&
-                                    comparisonError && (
-                                        <Alert
-                                            variant="destructive"
-                                            role="alert"
-                                            className="border-error-200 bg-error-50 text-error-900 mt-3"
-                                        >
-                                            <WarningCircle
-                                                size={20}
-                                                weight="bold"
-                                                className="text-error-700"
-                                                aria-hidden="true"
-                                            />
-                                            <AlertTitle className="text-sm font-extrabold">
-                                                {t("comparisonErrorTitle")}
-                                            </AlertTitle>
-                                            <AlertDescription className="text-error-900/90">
-                                                <p>{comparisonError}</p>
-                                                <p className="mt-1.5">
-                                                    {t(
-                                                        "comparisonErrorGuidance",
-                                                    )}
-                                                </p>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    onClick={() =>
-                                                        void handleCompare()
-                                                    }
-                                                    className="border-error-200 text-error-900 hover:bg-error-50 mt-3 h-10 gap-1.5 bg-white px-3 text-xs font-bold"
-                                                >
-                                                    <ArrowCounterClockwise
-                                                        size={15}
-                                                        weight="bold"
-                                                        aria-hidden="true"
-                                                    />
-                                                    <span>
-                                                        {t("retryComparison")}
-                                                    </span>
-                                                </Button>
-                                            </AlertDescription>
-                                        </Alert>
-                                    )}
-
-                                {!comparison &&
-                                    activeSide === "right" &&
-                                    !comparisonError &&
-                                    processingStep === "idle" &&
-                                    leftProduct.photos.length > 0 &&
-                                    rightProduct.photos.length > 0 &&
-                                    !isReadyToCompare && (
+                                    (comparisonError ||
+                                        (processingStep === "idle" &&
+                                            leftProduct.photos.length > 0 &&
+                                            rightProduct.photos.length > 0 &&
+                                            !isReadyToCompare)) && (
                                         <p
-                                            className="mt-3 text-sm leading-relaxed font-bold text-neutral-900"
-                                            role="status"
+                                            className={cn(
+                                                "mt-3 text-sm leading-relaxed font-bold",
+                                                comparisonError
+                                                    ? "text-error-700"
+                                                    : "text-neutral-900",
+                                            )}
+                                            role={
+                                                comparisonError
+                                                    ? "alert"
+                                                    : "status"
+                                            }
                                         >
                                             {comparisonStatus}
                                         </p>
@@ -1811,15 +1741,9 @@ export function PhotoComparisonPage({
                                             disabled={
                                                 activeSide === "left"
                                                     ? leftProduct.photos
-                                                          .length === 0 ||
-                                                      hasUnusablePhoto(
-                                                          leftProduct,
-                                                      )
+                                                          .length === 0
                                                     : rightProduct.photos
-                                                          .length === 0 ||
-                                                      hasUnusablePhoto(
-                                                          rightProduct,
-                                                      )
+                                                          .length === 0
                                             }
                                             onClick={() => {
                                                 handleContinueFromSide(

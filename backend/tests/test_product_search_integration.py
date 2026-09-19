@@ -204,29 +204,16 @@ def test_search_ranking_and_keyset_pagination_on_real_mongodb(
     # Test 2: Keyset pagination across 25 items for "chocolate"
     query_choc = parse_and_validate_query("chocolate")
     page1 = service.execute(query_choc)
-    assert len(page1.products) == 5
+    assert len(page1.products) == 20
     assert page1.next_cursor is not None
 
     page2 = service.execute(query_choc, cursor=page1.next_cursor)
     assert len(page2.products) == 5
-    assert page2.next_cursor is not None
-
-    page3 = service.execute(query_choc, cursor=page2.next_cursor)
-    assert len(page3.products) == 5
-    assert page3.next_cursor is not None
-    page4 = service.execute(query_choc, cursor=page3.next_cursor)
-    assert len(page4.products) == 5
-    assert page4.next_cursor is not None
-    page5 = service.execute(query_choc, cursor=page4.next_cursor)
-    assert len(page5.products) == 5
-    assert page5.next_cursor is None
+    assert page2.next_cursor is None
 
     barcodes_page1 = [p.barcode for p in page1.products]
     barcodes_page2 = [p.barcode for p in page2.products]
-    barcodes_page3 = [p.barcode for p in page3.products]
-    all_barcodes = barcodes_page1 + barcodes_page2 + barcodes_page3
-    all_barcodes += [p.barcode for p in page4.products]
-    all_barcodes += [p.barcode for p in page5.products]
+    all_barcodes = barcodes_page1 + barcodes_page2
     assert len(all_barcodes) == 25
     assert len(set(all_barcodes)) == 25
 
@@ -348,29 +335,16 @@ def test_search_prefix_retrieval_and_execution_plan_on_real_mongodb(
     # 3. Test pagination across 25 prefix matches for "vanilla col"
     query_paged = parse_and_validate_query("vanilla col")
     p1 = service.execute(query_paged)
-    assert len(p1.products) == 5
+    assert len(p1.products) == 20
     assert p1.next_cursor is not None
 
     p2 = service.execute(query_paged, cursor=p1.next_cursor)
     assert len(p2.products) == 5
-    assert p2.next_cursor is not None
-
-    p3 = service.execute(query_paged, cursor=p2.next_cursor)
-    assert len(p3.products) == 5
-    assert p3.next_cursor is not None
-    p4 = service.execute(query_paged, cursor=p3.next_cursor)
-    assert len(p4.products) == 5
-    assert p4.next_cursor is not None
-    p5 = service.execute(query_paged, cursor=p4.next_cursor)
-    assert len(p5.products) == 5
-    assert p5.next_cursor is None
+    assert p2.next_cursor is None
 
     p1_codes = [p.barcode for p in p1.products]
     p2_codes = [p.barcode for p in p2.products]
-    p3_codes = [p.barcode for p in p3.products]
-    combined_codes = p1_codes + p2_codes + p3_codes
-    combined_codes += [p.barcode for p in p4.products]
-    combined_codes += [p.barcode for p in p5.products]
+    combined_codes = p1_codes + p2_codes
     assert len(combined_codes) == 25
     assert len(set(combined_codes)) == 25
 
@@ -418,68 +392,3 @@ def test_exhaustive_tier_pagination_on_real_mongodb(
     assert cursor is None
     assert actual == expected
     assert service.execute(parse_and_validate_query("absent z")).products == []
-
-
-@pytest.mark.parametrize("term", ["rice", "milk", "chocolate"])
-@pytest.mark.parametrize("same_name", [False, True])
-def test_common_term_uses_bounded_index_ordering(
-    writer_client, reader_client, settings, test_dataset, monkeypatch, term, same_name,
-) -> None:
-    from pymongo.collection import Collection
-
-    from lifegoods.open_food_facts.dataset import DatasetSnapshot
-
-    version, collection, _ = test_dataset
-    database = writer_client[settings.off_mongodb_database]
-    database[collection].insert_many([
-        {"code": _make_valid_code(i),
-         "product_name": f"{term} product" if same_name else f"{term} product {i:05d}",
-         "brands": "Other Brand"}
-        for i in range(10000)
-    ])
-    build_search_index(database, version_id=version)
-    source = OpenFoodFactsDatasetSource(reader_client[settings.off_mongodb_database])
-    snapshot = source.resolve_product_lookup_snapshot()
-    assert isinstance(snapshot, DatasetSnapshot)
-    calls = []
-    original = Collection.aggregate
-
-    def capture(self, pipeline, **options):
-        calls.append((pipeline, options))
-        return original(self, pipeline, **options)
-
-    monkeypatch.setattr(Collection, "aggregate", capture)
-    rows = source.search_text(snapshot, (term,), term)
-    assert len(rows) == 11
-    assert [row["code"] for row in rows] == [_make_valid_code(i) for i in range(11)]
-    manifest = database[VERSIONS_COLLECTION].find_one({"_id": version})
-    name = manifest["search_index"]["collection_name"]
-    from lifegoods.open_food_facts.search_index import SearchCursor
-
-    last = rows[9]
-    next_rows = source.search_text(
-        snapshot,
-        (term,),
-        term,
-        SearchCursor(2, last["name_sort"], last["code"], last["information_score"]),
-    )
-    assert [row["code"] for row in next_rows] == [_make_valid_code(i) for i in range(10, 21)]
-    for pipeline, options in calls:
-        result = database.command("explain", {
-            "aggregate": name, "pipeline": pipeline, "cursor": {},
-            "hint": options["hint"], "maxTimeMS": 2000,
-        }, verbosity="executionStats")
-
-        def stages(value):
-            if isinstance(value, dict):
-                yield value.get("stage")
-                for nested in value.values():
-                    yield from stages(nested)
-            elif isinstance(value, list):
-                for nested in value:
-                    yield from stages(nested)
-
-        assert "SORT" not in list(stages(result))
-        stats = result.get("executionStats") or result["stages"][0]["$cursor"]["executionStats"]
-        assert stats["totalDocsExamined"] <= 21
-        assert stats["totalKeysExamined"] <= 64

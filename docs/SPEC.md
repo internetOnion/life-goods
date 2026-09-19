@@ -868,12 +868,11 @@ The Product Search endpoint `GET /api/v1/products/search` provides Barcode searc
     - Top-level `meta` provides `Source Attribution` for Open Food Facts (`https://world.openfoodfacts.org`), `Dataset Snapshot` metadata, and nullable `pagination.next_cursor` (`null` for Barcode queries).
 
 4. **Text Search Indexing & Readiness**:
-    - Search index lifecycle creates a schema version 4 compound index collection per active Dataset Snapshot. The indexed summaries carry the source-derived generic name, packaging, labels, and a bounded information score for useful Product details.
-    - Shopper-facing Product search results use a comparison-first list with an available Source Record thumbnail: Product name first, then Product type, Company plus quantity, or Barcode; compact Size, Pack, labels, Made in, and Barcode metadata remain visible without opening each Product. Products without a usable image show an image-unavailable placeholder, and a single result-level `Source Data Unavailable` notice summarizes missing Product names.
-    - Indexes include `ix_search_name_tokens` (`name_tokens: 1`), `ix_search_brand_tokens` (`brand_tokens: 1`), and `ix_search_sort` (`information_score: -1, name_sort: 1, code: 1`).
+    - Search index lifecycle creates a schema version 3 compound index collection per active Dataset Snapshot. The indexed summaries carry the source-derived generic name, packaging, and labels needed for comparison-first Product results.
+    - Shopper-facing Product search results use a comparison-first, image-free list: Product name first, then Product type, Company plus quantity, or Barcode; compact Size, Pack, labels, Made in, and Barcode metadata remain visible without opening each Product. A single result-level `Source Data Unavailable` notice summarizes missing Product names.
+    - Indexes include `ix_search_name_tokens` (`name_tokens: 1`), `ix_search_brand_tokens` (`brand_tokens: 1`), and `ix_search_sort` (`name_sort: 1, code: 1`).
     - Only records with valid Barcodes (`normalize_identifier`) are indexed; invalid `Source Records` increment `excluded_count`.
-    - Ordered retrieval additionally requires compound indexes on each of `brand_values`, `name_values`, `name_tokens`, `brand_tokens`, and `country_tokens`, followed by `information_score: -1, name_sort: 1, code: 1`, named `ix_search_<field>_sort`. Readiness verifies their key definitions. `ensure-search-indexes <version_id>` adds these indexes in place without changing summaries, Source Records, or manifest metadata.
-    - Manifest metadata (`search_index`) tracks `status: "READY"`, `schema_version: 4`, `document_count`, and `excluded_count`.
+    - Manifest metadata (`search_index`) tracks `status: "READY"`, `schema_version: 3`, `document_count`, and `excluded_count`.
     - If the search index is missing, incompatible, or not ready, text searches return HTTP 503 with error code `search_unavailable`, while Barcode searches continue to operate without degradation.
 
 5. **Text Ranking & Localized Name Selection**:
@@ -883,23 +882,19 @@ The Product Search endpoint `GET /api/v1/products/search` provides Barcode searc
         - Exact name match (`rank: 1`): the normalized query matches an entry in `name_values`.
         - Complete-word token match (`rank: 2`): all query terms are present as complete tokens across `name_tokens` and/or `brand_tokens`.
         - Remaining prefix match (`rank: 3`): earlier query terms match complete tokens, and the final query term matches as an anchored prefix (`^term`) on a token in `name_tokens` or `brand_tokens`.
-    - Within each relevance tier, Products are ordered by information score descending, then `name_sort` and Barcode ascending. The score has one point each for usable ingredient text, nutrition data, front image, brand, and quantity. Relevance tier remains the primary ordering.
+    - Compound ordering strictly follows `{"rank": 1, "name_sort": 1, "code": 1}`.
     - Localized name display selection (`select_matching_name`) prioritizes the source name candidate matching the highest count of query terms. When query-term match counts tie, complete-token matches are preferred over prefix matches. Subsequent ties are broken by `record_language` -> `"en"` -> first listed name. If zero name terms match (e.g. pure brand match), standard Product Lookup name preference applies.
 
 6. **Keyset Pagination & Timeout**:
-    - Page continuation uses keyset evaluation against the compound sort key across all ranking tiers (`rank: 0, 1, 2, 3`) without offset skipping. The cursor contains `rank`, `information_score`, bounded `name_sort`, Barcode, and a query fingerprint.
-    - Each page retrieves up to 5 Products. Keyset queries fetch 6 records to generate `next_cursor` without secondary count queries.
+    - Page continuation uses keyset evaluation against the compound sort key across all ranking tiers (`rank: 0, 1, 2, 3`) without offset skipping:
+      `{"$or": [{"rank": {"$gt": r0}}, {"rank": r0, "name_sort": {"$gt": n0}}, {"rank": r0, "name_sort": n0, "code": {"$gt": c0}}]}`.
+    - Each page retrieves up to 20 products. Keyset queries fetch 21 records to generate `next_cursor` without secondary count queries.
     - When no subsequent results remain, `pagination.next_cursor` is `null`.
-    - Text retrieval shares a two-second execution budget across ordered complete-match and remaining-prefix queries; each MongoDB command receives the remaining `maxTimeMS`. Exact brand and exact name matches use separate, disjoint equality queries with index-provided information-score/name/Barcode ordering. Remaining complete matches merge bounded, ordered equality streams for name, brand, and country tokens, deduplicating by Barcode; at most 6 candidates per stream are fetched. Cursor filters apply before retrieval. The disjoint remaining-prefix query runs only when needed. Queries stop once 6 results have been found. One- or two-character final prefixes use a bounded 129-candidate probe: at most 128 candidates can be sorted as a complete set in memory; larger sets use the existing information-score/name/Barcode sort index with early termination. Longer prefixes retain indexed candidate retrieval. Budget exhaustion returns HTTP 503 `search_timeout`, never partial success.
+    - Text retrieval shares a two-second execution budget across ordered complete-match and remaining-prefix queries; each MongoDB command receives the remaining `maxTimeMS`. Complete matches rank tiers 0–2 together to avoid repeated candidate scans; the disjoint remaining-prefix query runs only when needed. Queries stop once 21 results have been found. One- or two-character final prefixes use a bounded 129-candidate probe: at most 128 candidates can be sorted as a complete set in memory; larger sets use the existing name/Barcode sort index with early termination. Longer prefixes retain indexed candidate retrieval. Budget exhaustion returns HTTP 503 `search_timeout`, never partial success.
 
 7. **Rate Limiting & Privacy**:
     - Anonymous per-IP rate limiting operates independently under `LIFEGOODS_PRODUCT_SEARCH_REQUESTS_PER_MINUTE` (default 60), returning HTTP 429 `rate_limit_exceeded`.
     - Search queries, Barcodes, and client IP addresses are redacted from access logs and omitted from operational metrics.
-
-8. **Search page Barcode interaction**:
-    - On `/search`, a valid typed or pasted Barcode is submitted to Product Search and remains on the Search page while the matching Product summary loads. The Shopper selects the result to open Product information; a missing match or failed request remains visible inline for correction or retry.
-    - Barcode result rows show the available Product identity, image or image-unavailable placeholder, and Barcode. They do not calculate full Product details or invoke `Khmer Translation`.
-    - Successful camera scans and recent Product links retain their direct Product navigation. Returning to Search with browser Back restores the submitted query and completed Search results for the current navigation entry without a second request.
 
 ## 26. Full-dataset Product Search validation (Issue #107)
 
@@ -1050,13 +1045,10 @@ comparison. Factual differences use deterministic localized templates rather tha
 a second generative interpretation call. Equal values are shown clearly. Missing,
 unreadable, conflicting, qualified, or incompatible values are explained rather
 than shown as zero or as an absence, and usable partial results remain available
-when only some fields are readable. Results show the comparison values, visible
-label percentages, and deterministic state explanations without repeating
-per-row source-photo evidence or derivation disclosures. Source-photo evidence
-remains available in the editable Product Photo Panel, and comparison responses
-retain the underlying evidence and derivation data. Results contain no overall
-score, winner, or good/bad health color. The page keeps the session in memory
-and provides Reset; it retains no saved history and no manual transcription
+when only some fields are readable. Reported inputs, source-photo evidence, and
+derivation details remain behind accessible disclosure controls. Results contain
+no overall score, winner, or good/bad health color. The page keeps the session in
+memory and provides Reset; it retains no saved history and no manual transcription
 editor.
 
 Image input is bounded at 10 MiB per photo, 32 MiB per multipart request, and
@@ -1083,10 +1075,9 @@ Gemini extraction uses the existing API-key setting and the exact
 structured JSON, rejects malformed output or unknown image references, and
 normalizes only explicit numerals and units locally. Missing credentials,
 unsupported provider behavior, timeout, and provider failure return typed errors;
-the app never substitutes fake results or another model. The Product Photo Panel
-shows reported-value evidence and image links; the results view shows bases,
-partial or retake information, assumptions, visible values, percentages, and
-conditional/unavailable comparison rows.
+the app never substitutes fake results or another model. The results view shows
+reported values, original-script evidence, image links, bases, partial or retake
+information, assumptions, and conditional/unavailable comparison rows.
 
 Extraction configuration `photo-extraction-v3` requests compact visible evidence
 with low thinking and a 16,384-token output budget. The provider schema omits

@@ -18,10 +18,7 @@ from lifegoods.product_lookup.models import (
     RawProductLookupSource,
 )
 from lifegoods.product_lookup.projection import project_product_summary
-from lifegoods.product_search.contracts import (
-    PRODUCT_SEARCH_PAGE_SIZE,
-    ProductSummary,
-)
+from lifegoods.product_search.contracts import ProductSummary
 from lifegoods.product_search.query import (
     InvalidCursorError,
     ParsedSearchQuery,
@@ -134,7 +131,7 @@ class ProductSearchTextSource(Protocol):
         terms: tuple[str, ...],
         normalized_query: str,
         cursor: SearchCursor | None = None,
-        limit: int = PRODUCT_SEARCH_PAGE_SIZE,
+        limit: int = 20,
     ) -> list[dict[str, Any]]: ...
 
 
@@ -179,7 +176,7 @@ class SearchProducts:
                 query.terms,
                 normalized_query,
                 cursor=search_cursor,
-                limit=PRODUCT_SEARCH_PAGE_SIZE,
+                limit=20,
             )
         except (
             SearchUnavailableError,
@@ -196,8 +193,8 @@ class SearchProducts:
                 dataset=snapshot,
             ) from error
 
-        has_more = len(docs) > PRODUCT_SEARCH_PAGE_SIZE
-        page_docs = docs[:PRODUCT_SEARCH_PAGE_SIZE] if has_more else docs
+        has_more = len(docs) > 20
+        page_docs = docs[:20] if has_more else docs
 
         next_cursor: str | None = None
         if has_more:
@@ -205,7 +202,6 @@ class SearchProducts:
             next_cursor = encode_cursor(
                 terms=query.terms,
                 rank=last_doc["rank"],
-                information_score=last_doc.get("information_score", 0),
                 name_sort=last_doc.get("name_sort", ""),
                 code=last_doc["code"],
             )

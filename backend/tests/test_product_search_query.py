@@ -45,7 +45,6 @@ def test_cursor_round_trip() -> None:
         rank=1,
         name_sort="coca cola zero",
         code="5449000000996",
-        information_score=0,
     )
 
 
@@ -74,7 +73,6 @@ def test_cursor_round_trip_rank_3_prefix() -> None:
         rank=3,
         name_sort="coca cold",
         code="5449000000996",
-        information_score=0,
     )
 
 

@@ -11,7 +11,7 @@ import type {
 } from "@/features/product/types"
 import type { ProductProjection, TranslatableTextItem } from "@/api/generated"
 import { translateConcernLabel } from "@/features/concerns/translations"
-import { getGs1AllocationRegion } from "@/lib/barcode-country"
+import { getBarcodeCountry } from "@/lib/barcode-country"
 import { cn } from "@/lib/utils"
 import type { ConcernMatch } from "@/features/concerns/matching"
 
@@ -67,7 +67,7 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
               genericName,
           )
         : genericName
-    const gs1AllocationRegion = getGs1AllocationRegion(identifier)
+    const barcodeCountry = getBarcodeCountry(identifier)
 
     const getImageRoleLabel = (role?: string | null) => {
         switch (role) {
@@ -378,15 +378,15 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
 
                         <div className="grid min-h-12 grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-2 py-1">
                             <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
-                                {t("gs1AllocationRegion")}
+                                {t("barcodeCountry")}
                             </span>
                             <span className="min-w-0 text-right text-xs font-semibold wrap-anywhere text-neutral-900 sm:text-sm">
-                                {gs1AllocationRegion
+                                {barcodeCountry
                                     ? translateTaxonomyValue(
                                           locale,
-                                          gs1AllocationRegion,
+                                          barcodeCountry,
                                       )
-                                    : t("gs1AllocationRegionUnavailable")}
+                                    : t("sourceDataUnavailable")}
                             </span>
                         </div>
                     </div>

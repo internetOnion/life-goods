@@ -11,7 +11,6 @@ import type {
 import { formatNutritionAmount, parseNutritionMatrix } from "@/lib/nutrition"
 import { cn } from "@/lib/utils"
 
-import { hasNutrientLevelData } from "../../summaryData"
 import { useProductTranslation } from "../../translations"
 
 export interface NutrientLevelsCardProps {
@@ -347,7 +346,11 @@ export const NutrientLevelsCard: React.FC<NutrientLevelsCardProps> = ({
         Record<string, boolean>
     >({})
 
-    if (!hasNutrientLevelData(levels)) return null
+    const hasAnyLevel = Boolean(
+        levels.fat || levels.saturatedFat || levels.sugars || levels.salt,
+    )
+
+    if (!hasAnyLevel) return null
 
     const measuredAmounts = extractAmounts(labelEvidence)
 

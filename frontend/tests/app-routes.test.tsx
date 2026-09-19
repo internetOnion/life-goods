@@ -25,7 +25,7 @@ function renderRoute(
     })
     return render(
         <QueryClientProvider client={queryClient}>
-            <MemoryRouter initialEntries={[path]} useTransitions={false}>
+            <MemoryRouter initialEntries={[path]}>
                 <App lookup={lookup} />
             </MemoryRouter>
         </QueryClientProvider>,
@@ -246,12 +246,19 @@ describe("Life Goods routes", () => {
         expect(lookup).toHaveBeenCalledWith("4006381333931")
     })
 
-    test("shows the Product not-found state for a missing Product", async () => {
+    test("shows the Product not-found state after direct Barcode navigation", async () => {
+        const user = userEvent.setup()
         const lookup = vi.fn<ProductLookup>().mockRejectedValue({
             status: 404,
             code: "product_not_found",
         })
-        renderRoute("/products/4006381333931", lookup)
+        renderRoute("/search", lookup)
+
+        await user.type(
+            screen.getByRole("textbox", { name: "Search" }),
+            "4 006381 333931",
+        )
+        await user.click(screen.getByRole("button", { name: "Search" }))
 
         expect(
             await screen.findByRole("heading", {
@@ -268,45 +275,14 @@ describe("Life Goods routes", () => {
         ).toHaveFocus()
     })
 
-    test("clicking search bar from scanner activates text entry", async () => {
+    test("clicking search bar from scanner navigates without activating text entry", async () => {
         const user = userEvent.setup()
         renderRoute("/")
         const searchLink = screen.getByRole("link", { name: "Search" })
         await user.click(searchLink)
-        expect(screen.getByRole("textbox", { name: "Search" })).toHaveFocus()
-    })
-
-    test("focuses Search before the activation event finishes bubbling", () => {
-        renderRoute("/")
-        let focusedDuringActivation = false
-        const observeActivation = () => {
-            const input = document.getElementById("search")
-            focusedDuringActivation =
-                input instanceof HTMLInputElement &&
-                document.activeElement === input
-        }
-        document.addEventListener("click", observeActivation)
-        try {
-            fireEvent.click(screen.getByRole("link", { name: "Search" }))
-        } finally {
-            document.removeEventListener("click", observeActivation)
-        }
-        expect(focusedDuringActivation).toBe(true)
-    })
-
-    test("activates Search with Enter and focuses it again after returning to Scan", async () => {
-        const user = userEvent.setup()
-        renderRoute("/")
-        screen.getByRole("link", { name: "Search" }).focus()
-        await user.keyboard("{Enter}")
-        expect(screen.getByRole("textbox", { name: "Search" })).toHaveFocus()
-
-        await user.click(screen.getByRole("link", { name: "Back to scanner" }))
-        await user.click(screen.getByRole("link", { name: "Search" }))
-        const input = screen.getByRole("textbox", { name: "Search" })
-        expect(input).toHaveFocus()
-        await user.keyboard("milk")
-        expect(input).toHaveValue("milk")
+        expect(
+            screen.getByRole("textbox", { name: "Search" }),
+        ).not.toHaveFocus()
     })
 
     test("clicking Learn in the bottom navigation opens the guide grid", async () => {

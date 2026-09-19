@@ -26,8 +26,7 @@ def _success(*, empty: bool = False, continuation: bool = False) -> dict[str, An
             "dataset": {"version": "example-snapshot", "retrieved_at": "2026-08-27T08:00:00Z"},
             "pagination": {
                 "next_cursor": encode_cursor(
-                    terms=("chocolate",), rank=2, information_score=2,
-                    name_sort="dark chocolate", code="4006381333931"
+                    terms=("chocolate",), rank=2, name_sort="dark chocolate", code="4006381333931"
                 )
                 if continuation
                 else None

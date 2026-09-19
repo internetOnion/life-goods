@@ -42,7 +42,6 @@ export interface ProductPhoto {
     file: File
     url: string
     localId: string
-    previewError?: boolean
 }
 
 export interface ProductSideState {

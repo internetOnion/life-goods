@@ -6,10 +6,8 @@ const OPEN_FOOD_FACTS_SEARCH_URL =
     "https://world.openfoodfacts.org/api/v2/search"
 const OPEN_FOOD_FACTS_SOURCE = "Open Food Facts"
 const OPEN_FOOD_FACTS_BASE_URL = "https://world.openfoodfacts.org"
-const SEARCH_PAGE_SIZE = 5
-
 const SEARCH_FIELDS =
-    "code,product_name,product_name_en,generic_name,generic_name_en,brands,quantity,packaging,packaging_tags,labels,labels_tags,manufacturing_places,manufacturing_places_tags,image_url,ingredients_text,nutriments,lang"
+    "code,product_name,product_name_en,generic_name,generic_name_en,brands,quantity,packaging,packaging_tags,labels,labels_tags,manufacturing_places,manufacturing_places_tags,image_url,lang"
 
 type RemoteProduct = {
     code: string
@@ -26,8 +24,6 @@ type RemoteProduct = {
     manufacturing_places?: string
     manufacturing_places_tags?: string[]
     image_url?: string
-    ingredients_text?: string
-    nutriments?: Record<string, unknown>
     lang?: string
 }
 
@@ -85,8 +81,6 @@ function remoteProduct(value: unknown): RemoteProduct | null {
             ? manufacturingPlaces
             : undefined,
         image_url: textValue(value.image_url),
-        ingredients_text: textValue(value.ingredients_text),
-        nutriments: isRecord(value.nutriments) ? value.nutriments : undefined,
         lang: textValue(value.lang),
     }
 }
@@ -218,27 +212,6 @@ function toSummary(product: RemoteProduct): ProductSummary {
     }
 }
 
-function informationScore(product: RemoteProduct): number {
-    // Keep the fallback's bounded card score aligned with the local index. The
-    // fallback is an external, page-scoped result stream, so this is best effort.
-    const hasNutrition = Object.entries(product.nutriments ?? {}).some(
-        ([key, value]) =>
-            /^(energy|energy-kj|energy-kcal|fat|saturated-fat|carbohydrates|sugars|fiber|proteins|salt|sodium)(_|$)/.test(
-                key,
-            ) &&
-            value !== null &&
-            value !== "" &&
-            value !== undefined,
-    )
-    return [
-        Boolean(product.ingredients_text),
-        hasNutrition,
-        Boolean(product.image_url),
-        Boolean(product.brands),
-        Boolean(product.quantity),
-    ].filter(Boolean).length
-}
-
 export async function searchOpenFoodFactsBrand(
     query: string,
     cursor: string | null = null,
@@ -255,7 +228,7 @@ export async function searchOpenFoodFactsBrand(
         "page",
         String(Number.isInteger(page) && page > 0 ? page : 1),
     )
-    url.searchParams.set("page_size", String(SEARCH_PAGE_SIZE))
+    url.searchParams.set("page_size", "20")
     url.searchParams.set("sort_by", "product_name")
     url.searchParams.set("fields", SEARCH_FIELDS)
 
@@ -285,19 +258,11 @@ export async function searchOpenFoodFactsBrand(
     }
 
     return {
-        results: products
-            .map((product, index) => ({ product, index }))
-            .sort(
-                (left, right) =>
-                    informationScore(right.product) -
-                        informationScore(left.product) ||
-                    left.index - right.index,
-            )
-            .map(({ product }) => toSummary(product)),
+        results: products.map(toSummary),
         nextCursor:
             isRecord(payload) &&
             typeof payload.count === "number" &&
-            page * SEARCH_PAGE_SIZE < payload.count
+            page * 20 < payload.count
                 ? `off-page:${page + 1}`
                 : null,
     }

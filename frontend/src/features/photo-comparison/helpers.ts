@@ -185,23 +185,8 @@ export function formatActionableError(
     code?: import("@/api/generated").PhotoComparisonErrorCode,
     locale: AppLocale = "en",
 ): string {
-    switch (code) {
-        case "request_invalid":
-        case "unsupported_image_format":
-            return translateCompare(locale, "invalidPhotoRequest")
-        case "size_limit_exceeded":
-            return translateCompare(locale, "photoRequestTooLarge")
-        case "rate_limit_exceeded":
-        case "capacity_limit_exceeded":
-            return translateCompare(locale, "providerCapacity")
-        case "provider_output_invalid":
-            return translateCompare(locale, "providerOutputInvalid")
-        case "provider_timeout":
-            return translateCompare(locale, "providerTimeout")
-        case "provider_unavailable":
-            return translateCompare(locale, "providerUnavailable")
-        case "internal_error":
-            return translateCompare(locale, "requestFailed")
+    if (code === "provider_output_invalid") {
+        return translateCompare(locale, "providerOutputInvalid")
     }
 
     const lower = message.toLowerCase()
@@ -214,7 +199,9 @@ export function formatActionableError(
     if (lower.includes("rate limit") || lower.includes("capacity")) {
         return translateCompare(locale, "providerCapacity")
     }
-    return translateCompare(locale, "requestFailed")
+    return locale === "en" && message
+        ? message
+        : translateCompare(locale, "requestFailed")
 }
 
 export function formatStateLabel(

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { Link, MemoryRouter, Route, Routes, useLocation } from "react-router"
 import { StrictMode } from "react"
@@ -6,7 +6,6 @@ import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import { ScanPage } from "../src/features/scan/ScanPage"
 import type { BarcodeScannerOptions } from "../src/features/scan/barcodeScanner"
-import { BarcodeEntryPage } from "../src/features/search/BarcodeEntryPage"
 import { LocaleProvider } from "../src/i18n/LocaleProvider"
 import { AppShell } from "../src/ui/AppShell"
 
@@ -26,7 +25,7 @@ function CurrentLocation() {
 function renderPage() {
     return render(
         <LocaleProvider>
-            <MemoryRouter useTransitions={false}>
+            <MemoryRouter>
                 <ScanPage />
                 <CurrentLocation />
             </MemoryRouter>
@@ -38,7 +37,7 @@ function renderScannerJourney() {
     return render(
         <StrictMode>
             <LocaleProvider>
-                <MemoryRouter useTransitions={false}>
+                <MemoryRouter>
                     <AppShell>
                         <Routes>
                             <Route path="/" element={<ScanPage />} />
@@ -54,27 +53,6 @@ function renderScannerJourney() {
                                         <Link to="/">Back to Scan</Link>
                                     </>
                                 }
-                            />
-                        </Routes>
-                        <CurrentLocation />
-                    </AppShell>
-                </MemoryRouter>
-            </LocaleProvider>
-        </StrictMode>,
-    )
-}
-
-function renderScannerSearchJourney() {
-    return render(
-        <StrictMode>
-            <LocaleProvider>
-                <MemoryRouter useTransitions={false}>
-                    <AppShell>
-                        <Routes>
-                            <Route path="/" element={<ScanPage />} />
-                            <Route
-                                path="/search"
-                                element={<BarcodeEntryPage />}
                             />
                         </Routes>
                         <CurrentLocation />
@@ -121,7 +99,7 @@ describe("camera Barcode scanner", () => {
             screen
                 .getByRole("heading", { name: "Private camera scanning" })
                 .closest('[data-glass-surface="camera"]'),
-        ).toBeNull()
+        ).toBeInTheDocument()
         expect(
             screen.getByRole("button", { name: "Start camera" }),
         ).toHaveAttribute("data-glass", "primary")
@@ -129,29 +107,6 @@ describe("camera Barcode scanner", () => {
             "href",
             "/search",
         )
-    })
-
-    test("keeps the starting state on the dark camera surface", async () => {
-        const user = userEvent.setup()
-        let resolveStart: (session: { stop: () => void }) => void = () => {}
-        startMock.mockReturnValue(
-            new Promise<{ stop: () => void }>((resolve) => {
-                resolveStart = resolve
-            }),
-        )
-        renderPage()
-
-        await user.click(screen.getByRole("button", { name: "Start camera" }))
-
-        const startingMessage = screen.getByText("Starting camera...", {
-            selector: "p",
-        })
-        expect(startingMessage).toBeVisible()
-        expect(
-            startingMessage.closest('[data-glass-surface="camera"]'),
-        ).toBeNull()
-
-        resolveStart({ stop: vi.fn() })
     })
 
     test("renders the Khmer consent and typed Barcode affordance", () => {
@@ -345,7 +300,7 @@ describe("camera Barcode scanner", () => {
         )
     })
 
-    test("keeps the paused state on the dark camera surface", async () => {
+    test("shows a dark frosted recovery panel when the camera is paused", async () => {
         const user = userEvent.setup()
         sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
         startMock.mockResolvedValue({ stop: vi.fn() })
@@ -359,7 +314,7 @@ describe("camera Barcode scanner", () => {
         })
         expect(
             pausedHeading.closest('[data-glass-surface="camera"]'),
-        ).toBeNull()
+        ).toBeInTheDocument()
         expect(
             screen.getByRole("button", { name: "Resume camera" }),
         ).toHaveAttribute("data-glass", "primary")
@@ -571,68 +526,6 @@ describe("camera Barcode scanner", () => {
         expect(stopMock).toHaveBeenCalled()
         expect(screen.getByTestId("location")).toHaveTextContent("/search")
     })
-
-    test.each(["Search", "Enter a Barcode instead"])(
-        "focuses Search during the first touch on %s without using a view transition",
-        async (linkName) => {
-            const stopMock = vi.fn()
-            const startViewTransition = vi.fn()
-            sessionStorage.setItem("lifegoods.scan.camera-started.v1", "true")
-            if (linkName === "Enter a Barcode instead") {
-                startMock.mockRejectedValue(new Error("Camera unavailable"))
-            } else {
-                startMock.mockResolvedValue({ stop: stopMock })
-            }
-            Object.defineProperty(document, "startViewTransition", {
-                configurable: true,
-                value: startViewTransition,
-            })
-
-            try {
-                renderScannerSearchJourney()
-                await waitFor(() => expect(startMock).toHaveBeenCalledTimes(1))
-
-                const link = await screen.findByRole("link", { name: linkName })
-                let focusedDuringActivation = false
-                const observeActivation = () => {
-                    const input = document.getElementById("search")
-                    focusedDuringActivation =
-                        input instanceof HTMLInputElement &&
-                        document.activeElement === input
-                }
-                const touch = new Event("pointerdown", {
-                    bubbles: true,
-                    cancelable: true,
-                })
-                Object.defineProperty(touch, "pointerType", { value: "touch" })
-                document.addEventListener("pointerdown", observeActivation)
-                try {
-                    fireEvent(link, touch)
-                } finally {
-                    document.removeEventListener(
-                        "pointerdown",
-                        observeActivation,
-                    )
-                }
-                expect(focusedDuringActivation).toBe(true)
-                if (linkName === "Search") expect(stopMock).toHaveBeenCalled()
-
-                const input = await screen.findByRole("textbox", {
-                    name: "Search",
-                })
-                expect(screen.getByTestId("location")).toHaveTextContent(
-                    "/search",
-                )
-                expect(input).toHaveFocus()
-                expect(startViewTransition).not.toHaveBeenCalled()
-                expect(
-                    document.getElementById("mobile-keyboard-bridge"),
-                ).not.toBeInTheDocument()
-            } finally {
-                Reflect.deleteProperty(document, "startViewTransition")
-            }
-        },
-    )
 
     test("localizes the Khmer typed Barcode fallback link", async () => {
         const user = userEvent.setup()

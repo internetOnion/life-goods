@@ -1,6 +1,5 @@
 import {
     ArrowClockwise,
-    ArrowCounterClockwise,
     Camera,
     Info,
     Trash,
@@ -10,7 +9,6 @@ import {
 } from "@phosphor-icons/react"
 import { type RefObject, useRef, useState } from "react"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { GlassButton as Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -47,8 +45,6 @@ interface ProductPhotoPanelProps {
     onOpenCamera?: () => void
     onOpenLibrary?: () => void
     onExtract?: () => void
-    onRetry?: () => void
-    onPhotoPreviewError?: (index: number) => void
     onSelectColumn: (columnId: string | null) => void
     onFocusEvidence: (imageId: string) => void
     onInspectPhoto?: (index: number) => void
@@ -66,8 +62,6 @@ export function ProductPhotoPanel({
     onOpenCamera = () => undefined,
     onOpenLibrary = () => undefined,
     onExtract,
-    onRetry,
-    onPhotoPreviewError,
     onSelectColumn,
     onFocusEvidence,
     onInspectPhoto,
@@ -257,8 +251,6 @@ export function ProductPhotoPanel({
                                     "group relative aspect-square overflow-hidden rounded-xl bg-neutral-900 transition-all duration-300",
                                     highlightedPhotoId === photo.localId &&
                                         "ring-primary-400 scale-[1.03] ring-4 ring-offset-2",
-                                    photo.previewError &&
-                                        "bg-error-50 ring-error-200 ring-1 ring-inset",
                                 )}
                             >
                                 <Button
@@ -274,35 +266,12 @@ export function ProductPhotoPanel({
                                         product: product.title,
                                         number: index + 1,
                                     })}
-                                    disabled={photo.previewError}
                                 >
-                                    {photo.previewError ? (
-                                        <span
-                                            role="img"
-                                            aria-label={t(
-                                                "photoPreviewUnavailable",
-                                            )}
-                                            className="text-error-800 flex size-full flex-col items-center justify-center gap-2 p-3 text-center text-xs font-bold"
-                                        >
-                                            <WarningCircle
-                                                size={24}
-                                                weight="bold"
-                                                aria-hidden="true"
-                                            />
-                                            <span>
-                                                {t("photoPreviewUnavailable")}
-                                            </span>
-                                        </span>
-                                    ) : (
-                                        <img
-                                            src={photo.url}
-                                            alt={`${product.title} photo ${index + 1}`}
-                                            onError={() =>
-                                                onPhotoPreviewError?.(index)
-                                            }
-                                            className="size-full object-cover transition-transform duration-200 group-hover:scale-105"
-                                        />
-                                    )}
+                                    <img
+                                        src={photo.url}
+                                        alt={`${product.title} photo ${index + 1}`}
+                                        className="size-full object-cover transition-transform duration-200 group-hover:scale-105"
+                                    />
                                 </Button>
                                 <span className="pointer-events-none absolute bottom-1.5 left-1.5 rounded-md bg-neutral-950/80 px-2 py-0.5 font-mono text-[10px] font-bold text-white select-none">
                                     {t("photoNumber", { number: index + 1 })}
@@ -377,11 +346,7 @@ export function ProductPhotoPanel({
                             type="button"
                             variant="default"
                             disabled={
-                                product.photos.length === 0 ||
-                                product.loading ||
-                                product.photos.some(
-                                    (photo) => photo.previewError,
-                                )
+                                product.photos.length === 0 || product.loading
                             }
                             onClick={onExtract}
                             className="font-bold shadow-xs"
@@ -402,153 +367,103 @@ export function ProductPhotoPanel({
                 </div>
 
                 {/* Status indicator */}
-                {product.error && (
-                    <Alert
-                        variant="destructive"
-                        role="alert"
-                        className="border-error-200 bg-error-50 text-error-900 mt-3"
-                    >
-                        <WarningCircle
-                            size={20}
-                            weight="bold"
-                            className="text-error-700"
-                            aria-hidden="true"
-                        />
-                        <AlertTitle className="text-sm font-extrabold">
-                            {product.retry
-                                ? t("labelReadingErrorTitle")
-                                : t("photoErrorTitle")}
-                        </AlertTitle>
-                        <AlertDescription className="text-error-900/90">
-                            <p>{product.error}</p>
-                            {product.retry ? (
-                                <>
-                                    <p className="mt-1.5">
-                                        {t("retryPhotoGuidance")}
-                                    </p>
-                                    {onRetry ? (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={onRetry}
-                                            className="border-error-200 text-error-900 hover:bg-error-50 mt-3 h-10 gap-1.5 bg-white px-3 text-xs font-bold"
-                                        >
-                                            <ArrowCounterClockwise
-                                                size={15}
-                                                weight="bold"
-                                                aria-hidden="true"
-                                            />
-                                            <span>
-                                                {t("retryReadingProduct", {
-                                                    product: product.title,
-                                                })}
-                                            </span>
-                                        </Button>
-                                    ) : null}
-                                </>
-                            ) : null}
-                        </AlertDescription>
-                    </Alert>
-                )}
-                {!product.error && (
-                    <div
-                        className={cn(
-                            "mt-3 text-xs leading-relaxed",
-                            product.loading && "text-primary-700 font-medium",
-                            product.extraction &&
-                                !product.error &&
-                                (product.extraction.outcome ===
-                                "retake_required"
-                                    ? "border-warning-300 bg-warning-50 text-warning-900 rounded-xl border p-3"
-                                    : product.extraction.outcome === "partial"
-                                      ? "border-warning-200 bg-warning-50/70 text-warning-900 rounded-xl border p-3"
-                                      : "text-success-700 font-medium"),
-                            !product.extraction &&
-                                !product.loading &&
-                                !product.error &&
-                                (product.photos.length > 0
-                                    ? "font-medium text-neutral-700"
-                                    : "text-neutral-500"),
-                        )}
-                        role="status"
-                    >
-                        {product.loading ? (
-                            t("readingPhotos")
-                        ) : product.extraction ? (
-                            <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-1.5 font-bold">
-                                    {product.extraction.outcome ===
-                                    "complete" ? (
-                                        <span className="text-success-800">
-                                            {t("ready")}
+                <div
+                    className={cn(
+                        "mt-3 text-xs leading-relaxed",
+                        product.error &&
+                            "border-error-200 bg-error-50 text-error-800 rounded-xl border p-3 font-medium",
+                        product.loading && "text-primary-700 font-medium",
+                        product.extraction &&
+                            !product.error &&
+                            (product.extraction.outcome === "retake_required"
+                                ? "border-warning-300 bg-warning-50 text-warning-900 rounded-xl border p-3"
+                                : product.extraction.outcome === "partial"
+                                  ? "border-warning-200 bg-warning-50/70 text-warning-900 rounded-xl border p-3"
+                                  : "text-success-700 font-medium"),
+                        !product.extraction &&
+                            !product.loading &&
+                            !product.error &&
+                            (product.photos.length > 0
+                                ? "font-medium text-neutral-700"
+                                : "text-neutral-500"),
+                    )}
+                    role={product.error ? "alert" : "status"}
+                >
+                    {product.error ? (
+                        product.error
+                    ) : product.loading ? (
+                        t("readingPhotos")
+                    ) : product.extraction ? (
+                        <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1.5 font-bold">
+                                {product.extraction.outcome === "complete" ? (
+                                    <span className="text-success-800">
+                                        {t("ready")}
+                                    </span>
+                                ) : product.extraction.outcome === "partial" ? (
+                                    <>
+                                        <Info
+                                            size={15}
+                                            weight="bold"
+                                            className="text-warning-700 shrink-0"
+                                        />
+                                        <span className="text-warning-900">
+                                            {t("someUnreadable")}
                                         </span>
-                                    ) : product.extraction.outcome ===
-                                      "partial" ? (
-                                        <>
-                                            <Info
-                                                size={15}
-                                                weight="bold"
-                                                className="text-warning-700 shrink-0"
-                                            />
-                                            <span className="text-warning-900">
-                                                {t("someUnreadable")}
-                                            </span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <WarningCircle
-                                                size={15}
-                                                weight="bold"
-                                                className="text-warning-700 shrink-0"
-                                            />
-                                            <span className="text-warning-950">
-                                                {t("retakePhoto")}
-                                            </span>
-                                        </>
-                                    )}
-                                </div>
-                                {product.extraction.outcome ===
-                                    "retake_required" && (
-                                    <p className="text-warning-800 text-xs">
-                                        {t("retakeGuidance")}
-                                    </p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <WarningCircle
+                                            size={15}
+                                            weight="bold"
+                                            className="text-warning-700 shrink-0"
+                                        />
+                                        <span className="text-warning-950">
+                                            {t("retakePhoto")}
+                                        </span>
+                                    </>
                                 )}
-                                {product.extraction.outcome === "partial" && (
-                                    <p className="text-warning-800 text-xs">
-                                        {t("partialGuidance")}
-                                    </p>
-                                )}
-                                <details className="mt-1 cursor-pointer text-neutral-500">
-                                    <summary className="text-[11px] font-medium text-neutral-500 select-none hover:text-neutral-700">
-                                        {t("technicalMetadata")}
-                                    </summary>
-                                    <div className="mt-1 space-y-0.5 font-mono text-[11px] text-neutral-500">
-                                        <div>
-                                            {t("model")}:{" "}
-                                            {product.extraction.model ||
-                                                t("configuredModel")}
-                                        </div>
-                                        <div>
-                                            {t("provider")}:{" "}
-                                            {product.extraction.provider ||
-                                                "google"}
-                                        </div>
-                                        <div>
-                                            {t("configuration")}:{" "}
-                                            {product.extraction
-                                                .configuration_version ||
-                                                "1.0.0"}
-                                        </div>
-                                    </div>
-                                </details>
                             </div>
-                        ) : product.photos.length > 0 ? (
-                            t("photosReady")
-                        ) : (
-                            t("addPhotoToBegin")
-                        )}
-                    </div>
-                )}
+                            {product.extraction.outcome ===
+                                "retake_required" && (
+                                <p className="text-warning-800 text-xs">
+                                    {t("retakeGuidance")}
+                                </p>
+                            )}
+                            {product.extraction.outcome === "partial" && (
+                                <p className="text-warning-800 text-xs">
+                                    {t("partialGuidance")}
+                                </p>
+                            )}
+                            <details className="mt-1 cursor-pointer text-neutral-500">
+                                <summary className="text-[11px] font-medium text-neutral-500 select-none hover:text-neutral-700">
+                                    {t("technicalMetadata")}
+                                </summary>
+                                <div className="mt-1 space-y-0.5 font-mono text-[11px] text-neutral-500">
+                                    <div>
+                                        {t("model")}:{" "}
+                                        {product.extraction.model ||
+                                            t("configuredModel")}
+                                    </div>
+                                    <div>
+                                        {t("provider")}:{" "}
+                                        {product.extraction.provider ||
+                                            "google"}
+                                    </div>
+                                    <div>
+                                        {t("configuration")}:{" "}
+                                        {product.extraction
+                                            .configuration_version || "1.0.0"}
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+                    ) : product.photos.length > 0 ? (
+                        t("photosReady")
+                    ) : (
+                        t("addPhotoToBegin")
+                    )}
+                </div>
 
                 {/* Extraction Results */}
                 {extraction && (

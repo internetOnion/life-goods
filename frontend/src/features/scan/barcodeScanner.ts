@@ -310,37 +310,27 @@ function getStreamTracks(stream: MediaStream): MediaStreamTrack[] {
     return []
 }
 
-type TorchCapability = boolean | boolean[]
-
-function canEnableTorch(capability: TorchCapability | undefined) {
-    return (
-        capability === true ||
-        (Array.isArray(capability) && capability.includes(true))
-    )
-}
-
 function getTorchTrack(stream: MediaStream): MediaStreamTrack | null {
-    for (const track of getStreamTracks(stream)) {
-        if (
-            track.kind !== "video" ||
-            typeof track.applyConstraints !== "function" ||
-            typeof track.getCapabilities !== "function"
-        ) {
-            continue
-        }
+    const track = getStreamTracks(stream).find(
+        (candidate) => candidate.kind === "video",
+    )
 
-        try {
-            const capabilities =
-                track.getCapabilities() as MediaTrackCapabilities & {
-                    torch?: TorchCapability
-                }
-            if (canEnableTorch(capabilities.torch)) return track
-        } catch {
-            // Some browsers expose the camera track but not its capabilities.
-        }
+    if (
+        !track ||
+        typeof track.applyConstraints !== "function" ||
+        typeof track.getCapabilities !== "function"
+    )
+        return null
+
+    try {
+        const capabilities =
+            track.getCapabilities() as MediaTrackCapabilities & {
+                torch?: boolean
+            }
+        return capabilities.torch === true ? track : null
+    } catch {
+        return null
     }
-
-    return null
 }
 
 function stopStream(stream: MediaStream) {
@@ -447,6 +437,8 @@ export const barcodeScanner: BarcodeScanner = {
     async start(video, onResult, onError, options) {
         const facingMode = options?.facingMode ?? "environment"
         const stream = await acquireMediaStream(facingMode, options)
+        const torchTrack = getTorchTrack(stream)
+        const torchAvailable = torchTrack !== null
 
         // Start decoder initialization while the camera negotiates and the
         // preview becomes drawable. Neither capability detection nor loading
@@ -473,11 +465,6 @@ export const barcodeScanner: BarcodeScanner = {
             detachStream(video, stream)
             throw error
         }
-
-        // Camera capabilities may not be populated until the preview is
-        // actually streaming, especially in Android browsers.
-        const torchTrack = getTorchTrack(stream)
-        const torchAvailable = torchTrack !== null
 
         let stopped = false
         let decoderError: unknown = null

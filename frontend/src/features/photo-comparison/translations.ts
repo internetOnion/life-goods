@@ -12,7 +12,7 @@ const en = {
     productB: "Product B",
     editProducts: "Edit Products",
     resetSession: "Reset session",
-    compareTwo: "Compare Two Products",
+    compareTwo: "Compare two Products",
     intro: "Add a clear Nutrition Facts photo for each Product. You can take a photo or choose one from your library.",
     getStarted: "Get started",
     guidedCapture: "Guided Product capture",
@@ -59,19 +59,6 @@ const en = {
     fileTooLarge:
         "{{files}} exceeds the 10 MiB limit. Choose a smaller photo or retake it at standard resolution.",
     noValidImages: "No valid JPEG or PNG photos were selected.",
-    photoErrorTitle: "This photo could not be used",
-    labelReadingErrorTitle: "We couldn’t read this label",
-    comparisonErrorTitle: "The comparison could not be completed",
-    invalidPhotoRequest: "Choose a valid JPEG or PNG photo, then try again.",
-    photoRequestTooLarge:
-        "The submitted photos are too large. Choose smaller photos and try again.",
-    photoPreviewUnavailable:
-        "This photo could not be opened. Replace it or remove it before comparing.",
-    retryReadingProduct: "Retry reading {{product}}",
-    retryPhotoGuidance:
-        "Try a clearer, well-lit photo showing the complete Nutrition Facts panel.",
-    comparisonErrorGuidance:
-        "Your photos are still here. Check your connection and try the comparison again.",
     extractionFailed:
         "The label could not be read. Check your connection and try again.",
     comparisonFailed:
@@ -176,13 +163,23 @@ const en = {
     nutrient: "Nutrient",
     difference: "Difference",
     notes: "Notes",
-    labelPercentages: "Label percentages",
+    showPercentages: "Show label percentages",
     percentageNote:
         "Daily value percentages are label reference values and may use different serving bases.",
     dailyValue: "% Daily Value",
     couldNotRead: "Could not read this value",
     notFoundPhotos: "Not found in these photos",
     conflictingValues: "Conflicting values on label:",
+    evidenceAndCalculation: "Evidence & calculation",
+    evidence: "Evidence",
+    evidenceFor: "Evidence for {{nutrient}}",
+    evidenceCalculationFor: "Evidence and calculation for {{nutrient}}",
+    printedMatches: "Printed value matches the displayed amount.",
+    printed: "Printed:",
+    basis: "Basis:",
+    alternativeReadings: "Alternative readings:",
+    normalizedFrom: "Normalized from:",
+    noReportedInput: "No reported input.",
     identicalAmount: "Identical amount",
     equalAmount: "Equal amount",
     hasMore: "{{product}} has more",
@@ -211,7 +208,10 @@ const en = {
         "Preparation: {{leftProduct}} — {{left}}; {{rightProduct}} — {{right}}.",
     packageQuantities:
         "Package quantities: {{leftProduct}} — {{left}}; {{rightProduct}} — {{right}}.",
+    netWeight: "net weight {{value}}",
+    serving: "serving {{value}}",
     viewPhoto: "View photo {{number}}",
+    viewPhotoFor: "{{context}}: view photo {{number}}",
     photoInspection: "{{product}} photo inspection",
     photoOf: "Photo {{current}} of {{total}}",
     fitScreen: "Fit to screen",
@@ -330,19 +330,6 @@ const km: Record<keyof typeof en, string> = {
     fileTooLarge:
         "{{files}} លើសទំហំកំណត់ 10 MiB។ ជ្រើសរូបតូចជាងនេះ ឬថតម្ដងទៀត។",
     noValidImages: "មិនមានរូប JPEG ឬ PNG ត្រឹមត្រូវត្រូវបានជ្រើសទេ។",
-    photoErrorTitle: "មិនអាចប្រើរូបថតនេះបានទេ",
-    labelReadingErrorTitle: "មិនអាចអានស្លាកនេះបានទេ",
-    comparisonErrorTitle: "មិនអាចបញ្ចប់ការប្រៀបធៀបបានទេ",
-    invalidPhotoRequest: "ជ្រើសរូប JPEG ឬ PNG ត្រឹមត្រូវ ហើយសាកល្បងម្ដងទៀត។",
-    photoRequestTooLarge:
-        "រូបថតដែលបានផ្ញើមានទំហំធំពេក។ ជ្រើសរូបតូចជាងនេះ ហើយសាកល្បងម្ដងទៀត។",
-    photoPreviewUnavailable:
-        "មិនអាចបើករូបថតនេះបានទេ។ ប្ដូរ ឬលុបវាមុនពេលប្រៀបធៀប។",
-    retryReadingProduct: "សាកអាន {{product}} ម្ដងទៀត",
-    retryPhotoGuidance:
-        "សាកថតរូបថ្មីដែលច្បាស់ មានពន្លឺល្អ និងបង្ហាញផ្ទាំងព័ត៌មានអាហារូបត្ថម្ភទាំងមូល។",
-    comparisonErrorGuidance:
-        "រូបថតរបស់អ្នកនៅដដែល។ ពិនិត្យអ៊ីនធឺណិត ហើយសាកប្រៀបធៀបម្ដងទៀត។",
     extractionFailed:
         "មិនអាចអានស្លាកបានទេ។ ពិនិត្យអ៊ីនធឺណិត ហើយសាកល្បងម្ដងទៀត។",
     comparisonFailed:
@@ -447,13 +434,23 @@ const km: Record<keyof typeof en, string> = {
     nutrient: "សារធាតុចិញ្ចឹម",
     difference: "ភាពខុសគ្នា",
     notes: "ចំណាំ",
-    labelPercentages: "ភាគរយលើស្លាក",
+    showPercentages: "បង្ហាញភាគរយលើស្លាក",
     percentageNote:
         "ភាគរយតម្លៃប្រចាំថ្ងៃគឺសម្រាប់យោង ហើយអាចប្រើមូលដ្ឋានចំណែកបរិភោគខុសគ្នា។",
     dailyValue: "% តម្លៃប្រចាំថ្ងៃ",
     couldNotRead: "មិនអាចអានតម្លៃនេះបាន",
     notFoundPhotos: "រកមិនឃើញក្នុងរូបថតទាំងនេះ",
     conflictingValues: "តម្លៃលើស្លាកមិនត្រូវគ្នា៖",
+    evidenceAndCalculation: "ភស្តុតាង និងការគណនា",
+    evidence: "ភស្តុតាង",
+    evidenceFor: "ភស្តុតាងសម្រាប់ {{nutrient}}",
+    evidenceCalculationFor: "ភស្តុតាង និងការគណនាសម្រាប់ {{nutrient}}",
+    printedMatches: "តម្លៃលើស្លាកត្រូវនឹងតម្លៃដែលបានបង្ហាញ។",
+    printed: "លើស្លាក៖",
+    basis: "មូលដ្ឋាន៖",
+    alternativeReadings: "ការអានផ្សេងទៀត៖",
+    normalizedFrom: "បានបម្លែងពី៖",
+    noReportedInput: "មិនមានតម្លៃដែលបានអាន។",
     identicalAmount: "បរិមាណដូចគ្នា",
     equalAmount: "បរិមាណស្មើគ្នា",
     hasMore: "{{product}} មានច្រើនជាង",
@@ -482,7 +479,10 @@ const km: Record<keyof typeof en, string> = {
         "ការរៀបចំ៖ {{leftProduct}} — {{left}}; {{rightProduct}} — {{right}}។",
     packageQuantities:
         "បរិមាណកញ្ចប់៖ {{leftProduct}} — {{left}}; {{rightProduct}} — {{right}}។",
+    netWeight: "ទម្ងន់សុទ្ធ {{value}}",
+    serving: "ចំណែកបរិភោគ {{value}}",
     viewPhoto: "មើលរូបទី {{number}}",
+    viewPhotoFor: "{{context}}៖ មើលរូបទី {{number}}",
     photoInspection: "ពិនិត្យរូបថត {{product}}",
     photoOf: "រូបទី {{current}} ក្នុងចំណោម {{total}}",
     fitScreen: "បង្ហាញឱ្យសមអេក្រង់",

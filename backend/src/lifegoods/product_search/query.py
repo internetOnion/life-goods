@@ -79,7 +79,6 @@ def encode_cursor(
     rank: int,
     name_sort: str,
     code: str,
-    information_score: int = 0,
 ) -> str:
     """Encode pagination state into an opaque URL-safe cursor token."""
     fp = query_fingerprint(terms)
@@ -87,7 +86,6 @@ def encode_cursor(
     payload = {
         "f": fp,
         "r": rank,
-        "i": information_score,
         "n": bounded_name_sort,
         "c": code,
     }
@@ -123,13 +121,12 @@ def decode_and_validate_cursor(
     if not isinstance(data, dict):
         raise InvalidCursorError("Pagination cursor is invalid")
 
-    expected_keys = {"f", "r", "i", "n", "c"}
+    expected_keys = {"f", "r", "n", "c"}
     if set(data.keys()) != expected_keys:
         raise InvalidCursorError("Pagination cursor is invalid")
 
     fp = data.get("f")
     rank = data.get("r")
-    information_score = data.get("i")
     name_sort = data.get("n")
     code = data.get("c")
 
@@ -143,13 +140,6 @@ def decode_and_validate_cursor(
     if not isinstance(rank, int) or isinstance(rank, bool):
         raise InvalidCursorError("Pagination cursor is invalid")
     if rank not in (0, 1, 2, 3):
-        raise InvalidCursorError("Pagination cursor is invalid")
-    if (
-        not isinstance(information_score, int)
-        or isinstance(information_score, bool)
-        or information_score < 0
-        or information_score > 5
-    ):
         raise InvalidCursorError("Pagination cursor is invalid")
     try:
         name_sort.encode("utf-8")
@@ -168,7 +158,6 @@ def decode_and_validate_cursor(
         rank=rank,
         name_sort=name_sort,
         code=code,
-        information_score=information_score,
     )
 
 

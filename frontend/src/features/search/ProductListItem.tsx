@@ -1,8 +1,6 @@
-import { type MouseEventHandler, useState } from "react"
 import { ArrowRightIcon, PackageIcon } from "@phosphor-icons/react"
 import { Link } from "react-router"
 
-import { buildProxiedImageUrl } from "@/lib/image"
 import { useSearchTranslation } from "./translations"
 
 export type ProductListItemData = {
@@ -10,15 +8,12 @@ export type ProductListItemData = {
     name?: string | null
     genericName?: string | null
     brand?: string | null
-    thumbnail?: { url: string } | null
 }
 
 type ProductListItemProps = {
     product: ProductListItemData
     to: string
     state?: unknown
-    onBeforeNavigate?: MouseEventHandler<HTMLAnchorElement>
-    showBarcode?: boolean
 }
 
 function clean(value?: string | null) {
@@ -26,15 +21,8 @@ function clean(value?: string | null) {
     return trimmed && trimmed !== "Unlabeled Product" ? trimmed : null
 }
 
-export function ProductListItem({
-    product,
-    to,
-    state,
-    onBeforeNavigate,
-    showBarcode = false,
-}: ProductListItemProps) {
+export function ProductListItem({ product, to, state }: ProductListItemProps) {
     const { t } = useSearchTranslation()
-    const [imageFailed, setImageFailed] = useState(false)
     const name = clean(product.name)
     const genericName = clean(product.genericName)
     const brand = clean(product.brand)
@@ -58,32 +46,11 @@ export function ProductListItem({
         <Link
             to={to}
             state={state}
-            onClick={onBeforeNavigate}
-            className="group focus-visible:ring-primary-500 grid min-h-20 w-full min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-2.5 py-2 text-left no-underline transition-[background-color,box-shadow] duration-150 hover:bg-neutral-50 focus-visible:bg-neutral-50 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset active:bg-neutral-100 motion-reduce:transition-none sm:px-3"
+            className="group focus-visible:ring-primary-500 grid h-16 min-h-16 w-full min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-2.5 py-2 text-left no-underline transition-[background-color,box-shadow] duration-150 hover:bg-neutral-50 focus-visible:bg-neutral-50 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset active:bg-neutral-100 motion-reduce:transition-none sm:px-3"
             aria-label={ariaLabel}
         >
-            <span className="bg-primary-50 text-primary-700 ring-primary-200 flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg ring-1 ring-inset">
-                {product.thumbnail?.url && !imageFailed ? (
-                    <img
-                        src={buildProxiedImageUrl(product.thumbnail.url)}
-                        alt=""
-                        loading="lazy"
-                        className="size-full object-contain"
-                        onError={() => setImageFailed(true)}
-                    />
-                ) : (
-                    <span
-                        className="flex size-full items-center justify-center"
-                        aria-hidden="true"
-                        title={t("imageUnavailable")}
-                    >
-                        <PackageIcon
-                            size={24}
-                            weight="duotone"
-                            aria-hidden="true"
-                        />
-                    </span>
-                )}
+            <span className="bg-primary-50 text-primary-700 ring-primary-200 flex size-8 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset">
+                <PackageIcon size={17} weight="duotone" aria-hidden="true" />
             </span>
 
             <span className="min-w-0">
@@ -96,14 +63,6 @@ export function ProductListItem({
                             {t("productType")}
                         </span>{" "}
                         {genericName}
-                    </span>
-                ) : null}
-                {showBarcode ? (
-                    <span className="type-caption mt-0.5 block min-w-0 truncate text-neutral-600">
-                        <span className="font-semibold text-neutral-500">
-                            {t("barcode")}
-                        </span>{" "}
-                        {product.barcode}
                     </span>
                 ) : null}
             </span>
