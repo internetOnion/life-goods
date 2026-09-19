@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from math import isfinite
 from typing import Any
 
-from pymongo import ASCENDING
+from pymongo import ASCENDING, DESCENDING
 from pymongo.database import Database
 
 from lifegoods.identifiers import InvalidIdentifierError, normalize_identifier
@@ -26,7 +26,7 @@ from lifegoods.product_lookup.projection import (
 )
 
 SEARCH_COLLECTION_PREFIX = "off_product_search_"
-SEARCH_SCHEMA_VERSION = 3
+SEARCH_SCHEMA_VERSION = 4
 VERSIONS_COLLECTION = "off_dataset_versions"
 REQUIRED_SEARCH_INDEXES = frozenset(
     {
@@ -38,13 +38,29 @@ REQUIRED_SEARCH_INDEXES = frozenset(
 )
 
 SORTED_SEARCH_INDEXES = {
-    f"ix_search_{field}_sort": [(field, ASCENDING), ("name_sort", ASCENDING), ("code", ASCENDING)]
+    f"ix_search_{field}_sort": [
+        (field, ASCENDING),
+        ("information_score", DESCENDING),
+        ("name_sort", ASCENDING),
+        ("code", ASCENDING),
+    ]
     for field in ("brand_values", "name_values", "name_tokens", "brand_tokens", "country_tokens")
+}
+SEARCH_SORT_INDEX = [
+    ("information_score", DESCENDING),
+    ("name_sort", ASCENDING),
+    ("code", ASCENDING),
+]
+SEARCH_SORT_SPEC = {
+    "information_score": -1,
+    "name_sort": 1,
+    "code": 1,
 }
 REQUIRED_SEARCH_INDEXES = REQUIRED_SEARCH_INDEXES | frozenset(SORTED_SEARCH_INDEXES)
 
 
 def ensure_collection_search_indexes(collection: Any) -> None:
+    collection.create_index(SEARCH_SORT_INDEX, name="ix_search_sort")
     for name, keys in SORTED_SEARCH_INDEXES.items():
         collection.create_index(keys, name=name)
 
@@ -89,6 +105,16 @@ class SearchCursor:
     rank: int
     name_sort: str
     code: str
+    information_score: int
+
+
+def search_sort_key(row: dict[str, Any]) -> tuple[int, str, str]:
+    """Return the deterministic descending-information search order."""
+    return (
+        -row.get("information_score", 0),
+        row.get("name_sort", ""),
+        row.get("code", ""),
+    )
 
 
 def extract_terms(text: str) -> tuple[str, ...]:
@@ -186,6 +212,16 @@ def index_document(
         else None
     )
 
+    information_score = sum(
+        (
+            _has_ingredient_data(product),
+            _has_nutrition_data(product),
+            thumbnail_img is not None,
+            bool(brands_list),
+            quantity is not None,
+        )
+    )
+
     return {
         "_id": code,
         "code": code,
@@ -198,6 +234,7 @@ def index_document(
         "country_tokens": country_tokens,
         "names": names_data,
         "name_sort": name_sort,
+        "information_score": information_score,
         "generic_name": (
             {
                 "value": generic_name.value,
@@ -214,6 +251,51 @@ def index_document(
         "labels": labels,
         "thumbnail": thumbnail_data,
     }
+
+
+def _has_ingredient_data(product: dict[str, Any]) -> bool:
+    return any(
+        isinstance(product.get(field), str) and bool(product[field].strip())
+        for field, _language in (
+            ("ingredients_text", None),
+            ("ingredients_text_en", "en"),
+            ("ingredients_text_fr", "fr"),
+            ("ingredients_text_km", "km"),
+            ("ingredients_text_th", "th"),
+            ("ingredients_text_vi", "vi"),
+            ("ingredients_text_zh", "zh"),
+        )
+    )
+
+
+def _has_nutrition_data(product: dict[str, Any]) -> bool:
+    nutriments = product.get("nutriments")
+    if isinstance(nutriments, dict):
+        for field, value in nutriments.items():
+            if (
+                isinstance(field, str)
+                and any(
+                    field == declaration or field.startswith(f"{declaration}_")
+                    for declaration in (
+                        "energy",
+                        "energy-kj",
+                        "energy-kcal",
+                        "fat",
+                        "saturated-fat",
+                        "carbohydrates",
+                        "sugars",
+                        "fiber",
+                        "proteins",
+                        "salt",
+                        "sodium",
+                    )
+                )
+                and value not in (None, "", [], {})
+            ):
+                return True
+    return any(product.get(field) not in (None, "", [], {}) for field in (
+        "nutrition_data_per", "nutrition_data_prepared_per", "serving_size"
+    ))
 
 
 def search_collection_name(version_id: str) -> str:
@@ -256,6 +338,8 @@ def validate_search_index_readiness(
     for name, keys in SORTED_SEARCH_INDEXES.items():
         if list(existing_indexes[name].get("key", [])) != keys:
             raise SearchIndexUnavailableError(f"Search index definition is incompatible: {name}")
+    if list(existing_indexes["ix_search_sort"].get("key", [])) != SEARCH_SORT_INDEX:
+        raise SearchIndexUnavailableError("Search index definition is incompatible: ix_search_sort")
     return target_name
 
 
@@ -352,7 +436,7 @@ def build_search_index(
             ("ix_search_name_tokens", [("name_tokens", ASCENDING)]),
             ("ix_search_brand_tokens", [("brand_tokens", ASCENDING)]),
             ("ix_search_country_tokens", [("country_tokens", ASCENDING)]),
-            ("ix_search_sort", [("name_sort", ASCENDING), ("code", ASCENDING)]),
+            ("ix_search_sort", SEARCH_SORT_INDEX),
             *SORTED_SEARCH_INDEXES.items(),
         ]
         for index_number, (index_name, keys) in enumerate(index_definitions, start=1):

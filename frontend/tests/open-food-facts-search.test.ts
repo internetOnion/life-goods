@@ -48,7 +48,7 @@ describe("Open Food Facts brand search", () => {
         expect(new URL(requestUrl).searchParams.get("brands_tags")).toBe(
             "nutella",
         )
-        expect(new URL(requestUrl).searchParams.get("page_size")).toBe("10")
+        expect(new URL(requestUrl).searchParams.get("page_size")).toBe("5")
         expect(response.results).toMatchObject([
             {
                 barcode: "3017620422003",

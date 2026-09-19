@@ -11,7 +11,7 @@ from lifegoods.product_lookup.contracts import (
     SourceAttributionResponse,
 )
 
-PRODUCT_SEARCH_PAGE_SIZE = 10
+PRODUCT_SEARCH_PAGE_SIZE = 5
 
 
 class ProductSearchDataResponse(BaseModel):

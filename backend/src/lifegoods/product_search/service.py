@@ -205,6 +205,7 @@ class SearchProducts:
             next_cursor = encode_cursor(
                 terms=query.terms,
                 rank=last_doc["rank"],
+                information_score=last_doc.get("information_score", 0),
                 name_sort=last_doc.get("name_sort", ""),
                 code=last_doc["code"],
             )

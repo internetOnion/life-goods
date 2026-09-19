@@ -28,9 +28,11 @@ from lifegoods.open_food_facts.models import (
     SourcedValue,
 )
 from lifegoods.open_food_facts.search_index import (
+    SEARCH_SORT_SPEC,
     SearchCursor,
     SearchIndexError,
     SearchIndexTimeoutError,
+    search_sort_key,
     validate_search_index_readiness,
 )
 from lifegoods.product_lookup.models import (
@@ -289,8 +291,24 @@ class OpenFoodFactsDatasetSource:
                 positions: list[list[dict[str, Any]]] = [[]]
                 if cursor is not None and rank == cursor.rank:
                     positions = [
-                        [{"name_sort": cursor.name_sort, "code": {"$gt": cursor.code}}],
-                        [{"name_sort": {"$gt": cursor.name_sort}}],
+                        [{"information_score": {"$lt": cursor.information_score}}],
+                        [
+                            {
+                                "$or": [
+                                    {"information_score": cursor.information_score},
+                                    {"information_score": {"$exists": False}},
+                                ]
+                            },
+                            {
+                                "$or": [
+                                    {"name_sort": {"$gt": cursor.name_sort}},
+                                    {
+                                        "name_sort": cursor.name_sort,
+                                        "code": {"$gt": cursor.code},
+                                    },
+                                ]
+                            },
+                        ],
                     ]
                 rows: list[dict[str, Any]] = []
                 for position in positions:
@@ -299,7 +317,7 @@ class OpenFoodFactsDatasetSource:
                         raise ExecutionTimeout("Search execution budget exhausted")
                     rows.extend(self._database[search_col_name].aggregate(
                         [{"$match": {"$and": conditions + position}},
-                         {"$sort": {"name_sort": 1, "code": 1}},
+                         {"$sort": SEARCH_SORT_SPEC},
                          {"$limit": count - len(rows)}],
                         hint=hint, maxTimeMS=remaining_ms,
                     ))
@@ -312,12 +330,6 @@ class OpenFoodFactsDatasetSource:
             for rank in range(4):
                 if cursor is not None and rank < cursor.rank:
                     continue
-                continuation = []
-                if cursor is not None and rank == cursor.rank:
-                    continuation = [{"name_sort": {"$gte": cursor.name_sort}}, {"$or": [
-                        {"name_sort": {"$gt": cursor.name_sort}},
-                        {"name_sort": cursor.name_sort, "code": {"$gt": cursor.code}},
-                    ]}]
                 count = limit + 1 - len(results)
                 if rank < 2:
                     field = "brand_values" if rank == 0 else "name_values"
@@ -336,14 +348,42 @@ class OpenFoodFactsDatasetSource:
                         for row in retrieve(conditions, count, f"ix_search_{field}_sort"):
                             merged[row["code"]] = row
                     rows = sorted(
-                        merged.values(), key=lambda row: (row["name_sort"], row["code"]),
+                        merged.values(),
+                        key=search_sort_key,
                     )[:count]
                 else:
                     conditions = match_conditions + [
                         {"$nor": [exact_brand, exact_name, exact_country, complete_final]},
-                    ] + continuation
+                    ]
+                    if cursor is not None and rank == cursor.rank:
+                        conditions.append(
+                            {
+                                "$or": [
+                                    {"information_score": {"$lt": cursor.information_score}},
+                                    {
+                                        "$and": [
+                                            {
+                                                "$or": [
+                                                    {"information_score": cursor.information_score},
+                                                    {"information_score": {"$exists": False}},
+                                                ]
+                                            },
+                                            {
+                                                "$or": [
+                                                    {"name_sort": {"$gt": cursor.name_sort}},
+                                                    {
+                                                        "name_sort": cursor.name_sort,
+                                                        "code": {"$gt": cursor.code},
+                                                    },
+                                                ]
+                                            },
+                                        ]
+                                    },
+                                ]
+                            }
+                        )
                     pipeline = [{"$match": {"$and": conditions}},
-                                {"$sort": {"name_sort": 1, "code": 1}}, {"$limit": count}]
+                                {"$sort": SEARCH_SORT_SPEC}, {"$limit": count}]
                     remaining_ms = int((deadline - monotonic()) * 1000)
                     if remaining_ms <= 0:
                         raise ExecutionTimeout("Search execution budget exhausted")
@@ -358,7 +398,8 @@ class OpenFoodFactsDatasetSource:
                         )
                         if len(candidates) <= 128:
                             rows = sorted(
-                                candidates, key=lambda row: (row["name_sort"], row["code"]),
+                                candidates,
+                                key=search_sort_key,
                             )[:count]
                         else:
                             options["maxTimeMS"] = int((deadline - monotonic()) * 1000)
