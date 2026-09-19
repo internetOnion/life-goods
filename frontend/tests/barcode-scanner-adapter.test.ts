@@ -126,6 +126,114 @@ describe("barcode scanner adapter", () => {
         session.stop()
     })
 
+    test("supports Android-style torch capabilities after preview startup", async () => {
+        const lifecycle: string[] = []
+        const applyConstraintsMock = vi.fn().mockResolvedValue(undefined)
+        const track = {
+            addEventListener: vi.fn(),
+            applyConstraints: applyConstraintsMock,
+            getCapabilities: vi.fn(() => {
+                lifecycle.push("capabilities")
+                return { torch: [true, false] }
+            }),
+            kind: "video",
+            removeEventListener: vi.fn(),
+            stop: vi.fn(),
+        }
+        const stream = {
+            getTracks: () => [track],
+            getVideoTracks: () => [track],
+        }
+        getUserMediaMock.mockResolvedValue(stream)
+        const { play, video } = createVideoFrame()
+        play.mockImplementation(() => {
+            lifecycle.push("play")
+            return Promise.resolve()
+        })
+
+        const session = await barcodeScanner.start(video, vi.fn(), vi.fn())
+
+        expect(session.torchAvailable).toBe(true)
+        expect(lifecycle).toEqual(["play", "capabilities"])
+        await session.setTorch(true)
+        expect(applyConstraintsMock).toHaveBeenCalledWith({
+            advanced: [{ torch: true }],
+        })
+        session.stop()
+    })
+
+    test.each([
+        ["cannot turn on", { torch: [false] }],
+        ["throws while reading", undefined],
+        ["has no getCapabilities method", undefined],
+    ])(
+        "keeps torch unavailable when the camera %s",
+        async (scenario, torch) => {
+            const track = {
+                addEventListener: vi.fn(),
+                applyConstraints: vi.fn().mockResolvedValue(undefined),
+                ...(scenario === "has no getCapabilities method"
+                    ? {}
+                    : {
+                          getCapabilities:
+                              scenario === "throws while reading"
+                                  ? () => {
+                                        throw new Error(
+                                            "capabilities unavailable",
+                                        )
+                                    }
+                                  : () => ({ torch }),
+                      }),
+                kind: "video",
+                removeEventListener: vi.fn(),
+                stop: vi.fn(),
+            }
+            const stream = {
+                getTracks: () => [track],
+                getVideoTracks: () => [track],
+            }
+            getUserMediaMock.mockResolvedValue(stream)
+            const { video } = createVideoFrame()
+
+            const session = await barcodeScanner.start(video, vi.fn(), vi.fn())
+
+            expect(session.torchAvailable).toBe(false)
+            await expect(session.setTorch(true)).rejects.toMatchObject({
+                name: "NotSupportedError",
+            })
+            session.stop()
+        },
+    )
+
+    test("propagates torch constraint failures", async () => {
+        const applyConstraintsMock = vi
+            .fn()
+            .mockRejectedValue(
+                new DOMException("torch failed", "OverconstrainedError"),
+            )
+        const track = {
+            addEventListener: vi.fn(),
+            applyConstraints: applyConstraintsMock,
+            getCapabilities: () => ({ torch: [true, false] }),
+            kind: "video",
+            removeEventListener: vi.fn(),
+            stop: vi.fn(),
+        }
+        const stream = {
+            getTracks: () => [track],
+            getVideoTracks: () => [track],
+        }
+        getUserMediaMock.mockResolvedValue(stream)
+        const { video } = createVideoFrame()
+
+        const session = await barcodeScanner.start(video, vi.fn(), vi.fn())
+
+        await expect(session.setTorch(true)).rejects.toMatchObject({
+            name: "OverconstrainedError",
+        })
+        session.stop()
+    })
+
     test("falls back progressively when high resolution or ideal facing mode is rejected", async () => {
         const stream = createStream()
         getUserMediaMock

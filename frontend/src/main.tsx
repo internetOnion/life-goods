@@ -20,7 +20,8 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById("root")!).render(
     <StrictMode>
-        <BrowserRouter>
+        {/* Search must mount during the tap so Safari can open its keyboard. */}
+        <BrowserRouter useTransitions={false}>
             <QueryClientProvider client={queryClient}>
                 <App />
             </QueryClientProvider>

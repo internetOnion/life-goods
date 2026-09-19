@@ -111,34 +111,6 @@ function canUseCamera(video: HTMLVideoElement | null) {
     )
 }
 
-function prepareSearchBridge() {
-    if (typeof document === "undefined") return
-    let bridge = document.getElementById(
-        "mobile-keyboard-bridge",
-    ) as HTMLInputElement | null
-    if (!bridge) {
-        bridge = document.createElement("input")
-        bridge.id = "mobile-keyboard-bridge"
-        bridge.type = "text"
-        bridge.inputMode = "search"
-        bridge.autocomplete = "off"
-        bridge.setAttribute("aria-hidden", "true")
-        bridge.tabIndex = -1
-        bridge.className =
-            "fixed -top-96 left-0 opacity-0 pointer-events-none text-base"
-        document.body.appendChild(bridge)
-    }
-    try {
-        bridge.focus()
-    } catch {
-        // ignore
-    }
-}
-
-type SearchViewTransitionDocument = Document & {
-    startViewTransition?: (update: () => void | Promise<void>) => unknown
-}
-
 export function ScanPage({ onBarcodeChange }: ScanPageProps) {
     const navigate = useNavigate()
     const { locale } = useLocale()
@@ -181,53 +153,32 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
         if (videoRef.current) videoRef.current.srcObject = null
     }, [clearAcquisitionTimer])
 
+    const navigateToSearch = useCallback(() => {
+        releaseCamera()
+        flushSync(() => {
+            void navigate("/search", { state: { autoFocus: true } })
+        })
+        const searchInput = document.getElementById(
+            "search",
+        ) as HTMLInputElement | null
+        searchInput?.focus({ preventScroll: true })
+    }, [navigate, releaseCamera])
+
+    const handleSearchPointerDown = useCallback(
+        (e: React.PointerEvent<HTMLAnchorElement>) => {
+            if (e.pointerType === "mouse") return
+            e.preventDefault()
+            navigateToSearch()
+        },
+        [navigateToSearch],
+    )
+
     const handleSearchNavigation = useCallback(
         (e: React.MouseEvent<HTMLAnchorElement>) => {
             e.preventDefault()
-            releaseCamera()
-            prepareSearchBridge()
-
-            const updateSearchRoute = () => {
-                flushSync(() => {
-                    void navigate("/search", { state: { autoFocus: true } })
-                })
-            }
-            const transitionDocument = document as SearchViewTransitionDocument
-
-            if (transitionDocument.startViewTransition) {
-                try {
-                    transitionDocument.startViewTransition(updateSearchRoute)
-                } catch {
-                    // A second click can arrive while a view transition is active.
-                    // Keep navigation reliable even when the browser rejects it.
-                    updateSearchRoute()
-                }
-            } else {
-                updateSearchRoute()
-            }
-
-            const searchInput = document.getElementById(
-                "search",
-            ) as HTMLInputElement | null
-            if (searchInput) {
-                searchInput.focus()
-                const bridge = document.getElementById("mobile-keyboard-bridge")
-                bridge?.remove()
-            } else {
-                setTimeout(() => {
-                    if (typeof document === "undefined") return
-                    const target = document.getElementById(
-                        "search",
-                    ) as HTMLInputElement | null
-                    target?.focus()
-                    const bridge = document.getElementById(
-                        "mobile-keyboard-bridge",
-                    )
-                    bridge?.remove()
-                }, 50)
-            }
+            navigateToSearch()
         },
-        [navigate, releaseCamera],
+        [navigateToSearch],
     )
 
     const handleCameraResult = useCallback(
@@ -495,12 +446,9 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
 
                 {cameraState === "consent" ? (
                     <div className="relative z-20 grid min-h-[24rem] place-items-center px-6 py-10 text-center sm:min-h-[27rem] sm:px-10">
-                        <div
-                            data-glass-surface="camera"
-                            className="max-w-xs rounded-2xl p-5 sm:p-6"
-                        >
-                            <PrivacyScannerIllustration className="mx-auto mb-2 drop-shadow-md" />
-                            <h2 className="mt-5 text-xl font-bold tracking-tight text-white">
+                        <div className="max-w-[20rem]">
+                            <PrivacyScannerIllustration className="mx-auto drop-shadow-md" />
+                            <h2 className="mt-6 text-xl font-bold tracking-tight text-white">
                                 {text.privacyTitle}
                             </h2>
                             <p className="mt-2 text-sm leading-relaxed text-[#9FB1CB]">
@@ -509,7 +457,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                             <Button
                                 appearance="glass"
                                 glassTone="primary"
-                                className="mt-5 min-h-11 rounded-full px-6 text-sm font-bold"
+                                className="mt-6 min-h-11 rounded-full px-6 text-sm font-bold"
                                 type="button"
                                 onClick={beginFirstCameraSession}
                             >
@@ -526,10 +474,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
 
                 {cameraState === "starting" ? (
                     <div className="relative z-20 grid min-h-[24rem] place-items-center px-6 text-center sm:min-h-[27rem]">
-                        <div
-                            data-glass-surface="camera"
-                            className="flex flex-col items-center rounded-2xl px-6 py-5"
-                        >
+                        <div className="flex max-w-[20rem] flex-col items-center">
                             <ArrowClockwiseIcon
                                 className="text-[#E7B583] motion-safe:animate-spin"
                                 size={34}
@@ -545,10 +490,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
 
                 {cameraState === "paused" ? (
                     <div className="relative z-20 grid min-h-[24rem] place-items-center px-6 py-10 text-center sm:min-h-[27rem]">
-                        <div
-                            data-glass-surface="camera"
-                            className="max-w-sm rounded-2xl p-5 sm:p-6"
-                        >
+                        <div className="flex max-w-[20rem] flex-col items-center">
                             <div
                                 className="mx-auto grid size-16 place-items-center rounded-2xl bg-[#303843] text-[#C6CFDD]"
                                 aria-hidden="true"
@@ -623,6 +565,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                                 >
                                     <Link
                                         to="/search"
+                                        onPointerDown={handleSearchPointerDown}
                                         onClick={handleSearchNavigation}
                                     >
                                         <span>{text.enterBarcode}</span>
@@ -743,6 +686,7 @@ export function ScanPage({ onBarcodeChange }: ScanPageProps) {
                 >
                     <Link
                         to="/search"
+                        onPointerDown={handleSearchPointerDown}
                         onClick={handleSearchNavigation}
                         aria-label={text.searchLabel}
                     >

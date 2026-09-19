@@ -14,6 +14,7 @@ export function RecentProductCard({ item }: RecentProductCardProps) {
                 name: item.name,
                 genericName: item.genericName,
                 brand: item.brand,
+                thumbnail: item.imageUrl ? { url: item.imageUrl } : null,
             }}
             to={`/products/${item.identifier}`}
         />

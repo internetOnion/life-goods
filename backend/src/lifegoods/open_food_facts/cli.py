@@ -27,6 +27,7 @@ from lifegoods.open_food_facts.dataset import (
 )
 from lifegoods.open_food_facts.search_index import (
     build_search_index,
+    ensure_search_indexes,
     search_collection_name,
 )
 
@@ -502,10 +503,21 @@ def list_versions(database: Database[dict[str, Any]]) -> list[dict[str, Any]]:
     return list(database[VERSIONS_COLLECTION].find({}).sort("retrieval_started_at", -1))
 
 
-def reindex_search(database: Database[dict[str, Any]], version_id: str) -> dict[str, Any]:
+def reindex_search(
+    database: Database[dict[str, Any]],
+    version_id: str,
+    *,
+    progress: Callable[[dict[str, int | float | str]], None] | None = None,
+    progress_interval_seconds: float = DEFAULT_PROGRESS_INTERVAL_SECONDS,
+) -> dict[str, Any]:
     """Build the local search collection for an imported dataset version."""
     with lifecycle_lock(database):
-        result = build_search_index(database, version_id)
+        result = build_search_index(
+            database,
+            version_id,
+            progress=progress,
+            progress_interval_seconds=progress_interval_seconds,
+        )
         database[VERSIONS_COLLECTION].update_one(
             {"_id": version_id}, {"$set": {"search_enabled": True}}
         )
@@ -808,6 +820,17 @@ def main(argv: list[str] | None = None) -> int:
     revalidate_parser.add_argument("--probe", action="append", dest="probes")
     reindex_parser = subparsers.add_parser("reindex-search")
     reindex_parser.add_argument("version_id")
+    reindex_parser.add_argument(
+        "--progress-seconds",
+        type=float,
+        default=DEFAULT_PROGRESS_INTERVAL_SECONDS,
+        help=(
+            "Progress logging interval in seconds "
+            f"(default: {DEFAULT_PROGRESS_INTERVAL_SECONDS:g})"
+        ),
+    )
+    ensure_parser = subparsers.add_parser("ensure-search-indexes")
+    ensure_parser.add_argument("version_id")
     activate_parser = subparsers.add_parser("activate")
     activate_parser.add_argument("version_id")
     delete_parser = subparsers.add_parser("delete")
@@ -883,7 +906,64 @@ def main(argv: list[str] | None = None) -> int:
                 accept_source_issues=args.accept_source_issues,
             )
         elif args.command == "reindex-search":
-            output = reindex_search(database, args.version_id)
+            def report_reindex_progress(progress: dict[str, int | float | str]) -> None:
+                stage = progress.get("stage")
+                if stage in {"scanning", "complete"}:
+                    scanned = int(progress.get("scanned_count", 0))
+                    total = int(progress.get("total_count", 0))
+                    indexed = int(progress.get("indexed_count", 0))
+                    excluded = int(progress.get("excluded_count", 0))
+                    elapsed = float(progress.get("elapsed_seconds", 0.0))
+                    percentage = (scanned / total * 100) if total else 0.0
+                    label = (
+                        "Search reindex complete"
+                        if stage == "complete"
+                        else "Search reindex progress"
+                    )
+                    print(
+                        f"{label}: {scanned:,}/{total:,} records "
+                        f"({percentage:.1f}%), {indexed:,} indexed, "
+                        f"{excluded:,} excluded, {elapsed:.1f}s elapsed",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                elif stage == "creating_index":
+                    print(
+                        "Creating search index "
+                        f"{progress['index_name']} "
+                        f"({progress['index_number']}/{progress['index_total']})...",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                elif stage == "index_created":
+                    print(
+                        "Created search index "
+                        f"{progress['index_name']} "
+                        f"({progress['index_number']}/{progress['index_total']})",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                elif stage == "activating":
+                    print(
+                        "Activating completed search collection...",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                elif stage == "activated":
+                    print(
+                        "Search collection activated",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+
+            output = reindex_search(
+                database,
+                args.version_id,
+                progress=report_reindex_progress,
+                progress_interval_seconds=args.progress_seconds,
+            )
+        elif args.command == "ensure-search-indexes":
+            output = ensure_search_indexes(database, args.version_id)
         elif args.command == "activate":
             output = activate_version(database, args.version_id)
         elif args.command == "delete":
