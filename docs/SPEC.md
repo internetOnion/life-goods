@@ -1008,9 +1008,9 @@ leaving the feature prevent earlier responses from restoring stale results;
 requests are cancelled where possible, and responses belonging to superseded
 state are independently rejected. Restart clears the session and opens empty Product A capture without earlier photos
 or results. Back to start clears the session and returns to the comparison intro,
-restoring primary navigation. Results provide a separate Back to start action, and
-Product A’s Back always returns to that intro, including when editing after results.
-Product B’s Back returns to Product A while preserving the session.
+restoring primary navigation. Product A’s Back always returns to that intro,
+including when editing after results. Product B’s Back returns to Product A while
+preserving the session.
 
 Extraction and comparison are registered by the ordinary Life Goods FastAPI
 application. FastAPI remains the frontend contract authority, and the OpenAPI

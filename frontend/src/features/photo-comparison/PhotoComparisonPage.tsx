@@ -1413,15 +1413,6 @@ export function PhotoComparisonPage({
                             <Button
                                 type="button"
                                 variant="outline"
-                                onClick={handleBackToStart}
-                                className="gap-1.5 font-semibold text-neutral-700 hover:text-neutral-900"
-                            >
-                                <ArrowLeft size={17} weight="bold" />
-                                <span>{t("backToStart")}</span>
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
                                 size="icon"
                                 onClick={handleResetSession}
                                 aria-label={t("resetSession")}

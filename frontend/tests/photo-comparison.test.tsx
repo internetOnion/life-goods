@@ -777,12 +777,7 @@ describe("Compare Products frontend page (/compare)", () => {
         ).not.toBeInTheDocument()
     })
 
-    test.each([
-        "restart",
-        "results back",
-        "Product A back",
-        "mutation",
-    ] as const)(
+    test.each(["restart", "Product A back", "mutation"] as const)(
         "orchestrates comparison and clears the session via %s",
         async (exitAction) => {
             const user = userEvent.setup()
@@ -975,6 +970,9 @@ describe("Compare Products frontend page (/compare)", () => {
             expect(
                 screen.getByRole("region", { name: "Comparison results" }),
             ).toBeInTheDocument()
+            expect(
+                screen.queryByRole("button", { name: "Back to start" }),
+            ).not.toBeInTheDocument()
             expect(
                 screen.queryByRole("tab", { name: /Compare/i }),
             ).not.toBeInTheDocument()
@@ -1552,45 +1550,120 @@ describe("ComparisonSection Shopper-ready presentation", () => {
             screen.getByText("Package sizes may differ."),
         ).toBeInTheDocument()
         expect(
-            screen.getByText("Preparation not stated on either label."),
+            screen.getByText(
+                "Neither label says whether the Product is dry, as sold, or prepared.",
+            ),
         ).toBeInTheDocument()
-        expect(screen.getByLabelText("Comparison summary")).toHaveTextContent(
-            "1 comparable nutrient · 1 unavailable",
-        )
+        expect(
+            screen.getByText(
+                "Compare the nutrition values shown on both labels.",
+            ),
+        ).toBeInTheDocument()
         expect(screen.queryByText(/unconfirmed/i)).not.toBeInTheDocument()
 
-        const separatedAmountRows = screen
+        const comparisonTables = screen.getAllByRole("table")
+        expect(comparisonTables).toHaveLength(2)
+
+        const amountHeaderCells = within(comparisonTables[0]!).getAllByRole(
+            "columnheader",
+        )
+        expect(amountHeaderCells).toHaveLength(3)
+        expect(amountHeaderCells[0]).toHaveTextContent("Nutrient")
+        expect(amountHeaderCells[1]).toHaveTextContent("Mama Instant Noodles")
+        expect(amountHeaderCells[2]).toHaveTextContent("Product B")
+
+        const percentageHeaderCells = within(comparisonTables[1]!).getAllByRole(
+            "columnheader",
+        )
+        expect(percentageHeaderCells).toHaveLength(3)
+        expect(percentageHeaderCells[0]).toHaveTextContent("Nutrient")
+        expect(percentageHeaderCells[1]).toHaveTextContent(
+            "Mama Instant Noodles",
+        )
+        expect(percentageHeaderCells[2]).toHaveTextContent("Product B")
+
+        for (const table of comparisonTables) {
+            expect(table.parentElement).toHaveClass(
+                "rounded-2xl",
+                "border",
+                "border-neutral-200",
+                "bg-white",
+            )
+            expect(table.querySelector("thead > tr")).toHaveClass(
+                "border-b",
+                "border-neutral-200",
+            )
+            expect(table.querySelector("tbody")).toHaveClass(
+                "divide-y",
+                "divide-neutral-200",
+            )
+            expect(table.querySelector("tbody")).not.toHaveClass("gap-1.5")
+        }
+
+        const amountRows = within(comparisonTables[0]!)
             .getAllByRole("row")
-            .filter((row) => row.classList.contains("rounded-xl"))
-        expect(separatedAmountRows.length).toBeGreaterThan(0)
+            .filter((row) => row.querySelector("td"))
+        expect(amountRows.length).toBeGreaterThan(0)
+        expect(amountRows[0]).toHaveClass(
+            "grid-cols-[minmax(0,1.3fr)_minmax(0,0.85fr)_minmax(0,0.85fr)]",
+        )
+        expect(within(amountRows[0]!).getByRole("rowheader")).toHaveAttribute(
+            "scope",
+            "row",
+        )
+        expect(amountRows[0]?.querySelectorAll("td")).toHaveLength(2)
+        expect(amountRows[0]?.querySelectorAll("td.text-right")).toHaveLength(2)
+        expect(within(amountRows[0]!).getByText("Sodium")).toBeInTheDocument()
         expect(
-            within(separatedAmountRows[0]!).getByText("Sodium"),
-        ).toBeInTheDocument()
+            within(amountRows[0]!).queryByText("Mama Instant Noodles"),
+        ).not.toBeInTheDocument()
         expect(
-            within(separatedAmountRows[0]!).getAllByText("Mama Instant Noodles")
-                .length,
-        ).toBeGreaterThan(0)
+            within(amountRows[0]!).queryByText("Product B"),
+        ).not.toBeInTheDocument()
+
+        for (const table of comparisonTables) {
+            expect(within(table).getByText("Mama Instant Noodles")).toHaveClass(
+                "wrap-anywhere",
+            )
+            expect(within(table).getByText("Product B")).toHaveClass(
+                "wrap-anywhere",
+            )
+        }
+
+        const percentageRows = within(comparisonTables[1]!)
+            .getAllByRole("row")
+            .filter((row) => row.querySelector("td"))
+        expect(percentageRows.length).toBeGreaterThan(0)
+        for (const row of percentageRows) {
+            expect(row).toHaveClass(
+                "grid-cols-[minmax(0,1.3fr)_minmax(0,0.85fr)_minmax(0,0.85fr)]",
+            )
+            expect(within(row).getByRole("rowheader")).toHaveAttribute(
+                "scope",
+                "row",
+            )
+            expect(row.querySelectorAll("td.text-right")).toHaveLength(2)
+            expect(row.querySelectorAll("td")).toHaveLength(2)
+            expect(row).not.toHaveTextContent("Mama Instant Noodles")
+            expect(row).not.toHaveTextContent("Product B")
+            expect(row).not.toHaveClass("rounded-xl")
+        }
+        for (const row of amountRows) {
+            expect(row).not.toHaveClass("rounded-xl")
+        }
         expect(
-            within(separatedAmountRows[0]!).getAllByText("Product B").length,
-        ).toBeGreaterThan(0)
-        expect(
-            screen
-                .getAllByText("Mama Instant Noodles")
-                .some((element) => element.classList.contains("wrap-anywhere")),
-        ).toBe(true)
-        expect(
-            screen
-                .getAllByText("Product B")
-                .some((element) => element.classList.contains("wrap-anywhere")),
-        ).toBe(true)
-        expect(
-            screen.getByRole("heading", { name: "Label percentages" }),
+            screen.getByRole("heading", { name: "Label Percentages" }),
         ).toBeInTheDocument()
         expect(
             screen.getByText(
                 "Daily value percentages are label reference values and may use different serving bases.",
             ),
         ).toBeInTheDocument()
+        expect(
+            screen.queryByText(
+                "Label percentages are shown for reference and are not compared numerically.",
+            ),
+        ).not.toBeInTheDocument()
         expect(screen.getByText("60 %")).toBeInTheDocument()
         expect(screen.getByText("65 %")).toBeInTheDocument()
         expect(
@@ -1607,7 +1680,7 @@ describe("ComparisonSection Shopper-ready presentation", () => {
         ).not.toBeInTheDocument()
     })
 
-    test("displays equal-weight comparison notice when target basis is per_100g and provides directional differences", () => {
+    test("displays equal-weight comparison notice without a calculated difference section", () => {
         const per100gComparison: ComparisonResponse = {
             schema_version: 1,
             calculated_from_submitted_evidence: true,
@@ -1688,10 +1761,11 @@ describe("ComparisonSection Shopper-ready presentation", () => {
         expect(
             screen.getByText("Values use a common basis."),
         ).toBeInTheDocument()
-        expect(screen.getByText("+3 g")).toBeInTheDocument()
+        expect(screen.getAllByText("5 g").length).toBeGreaterThan(0)
+        expect(screen.getAllByText("2 g").length).toBeGreaterThan(0)
         expect(
-            screen.getByText(`${mockLeftProduct.title} has more`),
-        ).toBeInTheDocument()
+            screen.queryByRole("columnheader", { name: "Difference" }),
+        ).not.toBeInTheDocument()
     })
 
     test("displays conditional state reason and assumptions", () => {
@@ -1774,8 +1848,9 @@ describe("ComparisonSection Shopper-ready presentation", () => {
             ),
         ).not.toBeInTheDocument()
         expect(
-            screen.getAllByText("Preparation not stated on either label.")
-                .length,
+            screen.getAllByText(
+                "Neither label says whether the Product is dry, as sold, or prepared.",
+            ).length,
         ).toBeGreaterThan(0)
     })
 })
@@ -2203,7 +2278,7 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
                             unit_text: "g",
                             evidence: [{ image_id: "img_a1" }],
                         },
-                        basis: "per_100g",
+                        basis: "per_serving",
                         preparation_state: "as_sold",
                     },
                     right: {
@@ -2219,25 +2294,25 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
                             unit_text: "g",
                             evidence: [{ image_id: "img_b1" }],
                         },
-                        basis: "per_100g",
+                        basis: "per_serving",
                         preparation_state: "as_sold",
                     },
                     normalized_left: {
                         value: "12",
                         unit: "g",
-                        target_basis: "per_100g",
+                        target_basis: "per_serving",
                         inputs: [],
                     },
                     normalized_right: {
                         value: "8",
                         unit: "g",
-                        target_basis: "per_100g",
+                        target_basis: "per_serving",
                         inputs: [],
                     },
                     derived_difference: {
                         value: "4",
                         unit: "g",
-                        target_basis: "per_100g",
+                        target_basis: "per_serving",
                         inputs: [],
                     },
                 },
@@ -2320,10 +2395,13 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
             )?.signal,
         ).toBeInstanceOf(AbortSignal)
 
-        // Comparison results render with factual difference
+        // Comparison results render the Product values without a difference column
         expect(screen.getByText("Protein")).toBeInTheDocument()
-        expect(screen.getByText("+4 g")).toBeInTheDocument()
-        expect(screen.getByText("Product A has more")).toBeInTheDocument()
+        expect(screen.getByText("12 g")).toBeInTheDocument()
+        expect(screen.getByText("8 g")).toBeInTheDocument()
+        expect(
+            screen.queryByRole("columnheader", { name: "Difference" }),
+        ).not.toBeInTheDocument()
 
         const dryBasisButton = screen.getByRole("button", { name: "Dry mix" })
         const preparedBasisButton = screen.getByRole("button", {
@@ -2359,7 +2437,7 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
                             unit_text: "g",
                             evidence: [{ image_id: "img1" }],
                         },
-                        basis: "per_100g",
+                        basis: "per_serving",
                         preparation_state: "as_sold",
                     },
                     right: {
@@ -2375,25 +2453,25 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
                             unit_text: "g",
                             evidence: [{ image_id: "img2" }],
                         },
-                        basis: "per_100g",
+                        basis: "per_serving",
                         preparation_state: "as_sold",
                     },
                     normalized_left: {
                         value: "15",
                         unit: "g",
-                        target_basis: "per_100g",
+                        target_basis: "per_serving",
                         inputs: [],
                     },
                     normalized_right: {
                         value: "10",
                         unit: "g",
-                        target_basis: "per_100g",
+                        target_basis: "per_serving",
                         inputs: [],
                     },
                     derived_difference: {
                         value: "5",
                         unit: "g",
-                        target_basis: "per_100g",
+                        target_basis: "per_serving",
                         inputs: [],
                     },
                 },
@@ -2441,9 +2519,26 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
 
         // Shared basis and preparation state are stated once above the values.
         expect(
-            screen.getByText("Comparison basis: Per 100 g"),
+            screen.getByText("Comparison basis: Per serving"),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByText(
+                "Both Products use the per-serving values shown on their labels.",
+            ),
         ).toBeInTheDocument()
         expect(screen.getByText("Preparation: As sold.")).toBeInTheDocument()
+        const comparisonDetails = screen
+            .getByText("Comparison basis: Per serving")
+            .closest("details")
+        expect(comparisonDetails).not.toHaveAttribute("open")
+        expect(comparisonDetails?.parentElement).toHaveClass("flex-1")
+        expect(comparisonDetails?.querySelector("summary svg")).toHaveAttribute(
+            "aria-hidden",
+            "true",
+        )
+        expect(comparisonDetails?.querySelector("summary svg")).toHaveClass(
+            "ml-auto",
+        )
 
         // Leads with Product identities
         expect(
@@ -2618,16 +2713,24 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         // 3. Nutrition table leads with comparison
         expect(screen.getByText("Sodium")).toBeInTheDocument()
         expect(screen.getAllByText("1,380 mg").length).toBeGreaterThan(0)
-        expect(screen.getByText("+880 mg")).toBeInTheDocument()
-        expect(screen.getByText("Crisps A has more")).toBeInTheDocument()
-
-        // The comparison-basis explanation remains available, but row evidence
-        // and derivation disclosures are not repeated in the results.
+        expect(screen.getByText("500 mg")).toBeInTheDocument()
         expect(
-            screen
-                .getByText("How this comparison was calculated")
-                .closest("details"),
-        ).not.toHaveAttribute("open")
+            screen.queryByRole("columnheader", { name: "Difference" }),
+        ).not.toBeInTheDocument()
+
+        // Row evidence and secondary calculation disclosures are not repeated
+        // in the results.
+        expect(
+            screen.queryByText("How these values were compared"),
+        ).not.toBeInTheDocument()
+        const comparisonDetails = screen
+            .getByText("Comparison basis: Per 100 g")
+            .closest("details")
+        expect(comparisonDetails).not.toHaveAttribute("open")
+        expect(comparisonDetails?.querySelector("summary svg")).toHaveAttribute(
+            "aria-hidden",
+            "true",
+        )
         expect(
             screen.queryByText("Evidence & calculation"),
         ).not.toBeInTheDocument()
@@ -2799,7 +2902,7 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
 
         // 1. Explicit zero is shown as "0 g", NOT treated as missing
         expect(screen.getAllByText("0 g").length).toBeGreaterThan(0)
-        expect(screen.getByText("Product B has more")).toBeInTheDocument()
+        expect(screen.getByText("5 g")).toBeInTheDocument()
 
         // 2. Missing calcium on right product shows "Not found in these photos" and never zero
         expect(
@@ -2815,7 +2918,7 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         expect(
             screen.queryByText("One or both observations are not readable."),
         ).not.toBeInTheDocument()
-        expect(screen.getAllByText("Not comparable").length).toBeGreaterThan(0)
+        expect(screen.queryByText("Not comparable")).not.toBeInTheDocument()
         expect(
             screen.queryByText("Not found in photos for the other product."),
         ).not.toBeInTheDocument()
@@ -2985,24 +3088,23 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         expect(screen.getByText("500 mg")).toBeInTheDocument()
         expect(screen.getByText("vs 650 mg")).toBeInTheDocument()
 
-        // Conditional normalization does not produce a definitive Difference;
-        // the row explains why it is not comparable.
-        expect(screen.getAllByText("Not comparable").length).toBeGreaterThan(0)
+        // Conditional normalization details are not rendered in the results table.
+        expect(screen.queryByText("Not comparable")).not.toBeInTheDocument()
         expect(
             screen.queryByText(
                 "Preparation state is unknown, so the normalized values are conditional.",
             ),
-        ).toBeInTheDocument()
+        ).not.toBeInTheDocument()
         expect(
-            screen.getAllByText(
-                "Preparation state is unknown for at least one Product.",
-            ).length,
-        ).toBeGreaterThan(0)
+            screen.getByText(
+                "Preparation: Product A — Not specified; Product B — As sold.",
+            ),
+        ).toBeInTheDocument()
         expect(screen.queryByText("Equal amount")).not.toBeInTheDocument()
         expect(screen.queryByText("Identical amount")).not.toBeInTheDocument()
     })
 
-    test("clearly indicates equal nutrient amounts", () => {
+    test("clearly shows equal nutrient values without a calculated difference section", () => {
         const mockEqualComparison: ComparisonResponse = {
             schema_version: 1,
             calculated_from_submitted_evidence: true,
@@ -3106,10 +3208,9 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
             />,
         )
 
-        // Clear equal amount badge and message
-        expect(screen.getByText("Equal amount")).toBeInTheDocument()
-        expect(screen.getByText("Identical amount")).toBeInTheDocument()
-        expect(screen.getByText("0 g")).toBeInTheDocument()
+        expect(screen.getAllByText("3 g").length).toBeGreaterThan(0)
+        expect(screen.queryByText("Equal amount")).not.toBeInTheDocument()
+        expect(screen.queryByText("Identical amount")).not.toBeInTheDocument()
     })
 
     test("actionable error recovery and retry preserves unaffected work", async () => {

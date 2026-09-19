@@ -34,7 +34,8 @@ const en = {
     comparisonResults: "Comparison results",
     nutritionBasis: "Nutrition basis",
     comparisonBasisLabel: "Comparison basis: {{basis}}",
-    comparisonSummary: "Comparison summary",
+    nutritionComparisonDescription:
+        "Compare the nutrition values shown on both labels.",
     switchColumn: "Switch the column used for comparison.",
     nutritionColumn: "Nutrition column",
     selected: "Selected",
@@ -165,18 +166,15 @@ const en = {
     someDifferentBases:
         "Some nutrients use different bases. Exceptions are explained in the results.",
     commonBasis: "Values use a common basis.",
-    perServingContext: "Values are reported per serving.",
+    perServingContext:
+        "Both Products use the per-serving values shown on their labels.",
     packageSizesDiffer: "Package sizes may differ.",
     basisUnspecified: "The reported basis is not fully specified.",
-    howCalculated: "How this comparison was calculated",
-    normalizedExplanation:
-        "Values were normalized to a common basis using visible package quantities.",
-    reportedExplanation: "Values are shown using the selected label basis.",
-    nutritionComparison: "Nutrition comparison",
+    nutritionComparison: "Nutrition Comparison",
     nutrient: "Nutrient",
     difference: "Difference",
     notes: "Notes",
-    labelPercentages: "Label percentages",
+    labelPercentages: "Label Percentages",
     percentageNote:
         "Daily value percentages are label reference values and may use different serving bases.",
     dailyValue: "% Daily Value",
@@ -201,11 +199,8 @@ const en = {
         "The visible package or serving quantities are not enough for a common comparison.",
     conditionalPreparation:
         "Preparation state is unknown, so the normalized values are conditional.",
-    assumesPackageWeight:
-        "Assumes each per-package value covers the visible package quantity.",
-    unknownPreparationAssumption:
-        "Preparation state is unknown for at least one Product.",
-    preparationNeither: "Preparation not stated on either label.",
+    preparationNeither:
+        "Neither label says whether the Product is dry, as sold, or prepared.",
     preparationSame: "Preparation: {{value}}.",
     preparationDifferent:
         "Preparation: {{leftProduct}} — {{left}}; {{rightProduct}} — {{right}}.",
@@ -250,10 +245,6 @@ const en = {
     takingPhoto: "Taking photo…",
     retryCamera: "Try camera again",
     useDeviceCamera: "Use device camera",
-    comparisonCount: "{{count}} comparable nutrients",
-    comparisonCountOne: "1 comparable nutrient",
-    conditionalCount: "{{count}} need context",
-    unavailableCount: "{{count}} unavailable",
     perPackage: "Per package",
     perServing: "Per serving",
     per100g: "Per 100 g",
@@ -305,7 +296,8 @@ const km: Record<keyof typeof en, string> = {
     comparisonResults: "លទ្ធផលប្រៀបធៀប",
     nutritionBasis: "មូលដ្ឋានអាហារូបត្ថម្ភ",
     comparisonBasisLabel: "មូលដ្ឋានប្រៀបធៀប៖ {{basis}}",
-    comparisonSummary: "សេចក្ដីសង្ខេបការប្រៀបធៀប",
+    nutritionComparisonDescription:
+        "ប្រៀបធៀបតម្លៃអាហារូបត្ថម្ភដែលបង្ហាញលើស្លាកទាំងពីរ។",
     switchColumn: "ប្ដូរជួរឈរដែលប្រើសម្រាប់ប្រៀបធៀប។",
     nutritionColumn: "ជួរឈរអាហារូបត្ថម្ភ",
     selected: "បានជ្រើស",
@@ -436,13 +428,10 @@ const km: Record<keyof typeof en, string> = {
     someDifferentBases:
         "សារធាតុចិញ្ចឹមខ្លះប្រើមូលដ្ឋានខុសគ្នា។ ករណីលើកលែងត្រូវបានពន្យល់ក្នុងលទ្ធផល។",
     commonBasis: "តម្លៃប្រើមូលដ្ឋានរួម។",
-    perServingContext: "តម្លៃត្រូវបានបង្ហាញក្នុងមួយចំណែកបរិភោគ។",
+    perServingContext:
+        "ផលិតផលទាំងពីរប្រើតម្លៃក្នុងមួយចំណែកបរិភោគដែលបង្ហាញលើស្លាករបស់ពួកវា។",
     packageSizesDiffer: "ទំហំកញ្ចប់អាចខុសគ្នា។",
     basisUnspecified: "មូលដ្ឋានដែលបានបង្ហាញមិនទាន់ច្បាស់លាស់។",
-    howCalculated: "របៀបគណនាការប្រៀបធៀបនេះ",
-    normalizedExplanation:
-        "តម្លៃត្រូវបានបម្លែងទៅមូលដ្ឋានរួមដោយប្រើបរិមាណកញ្ចប់ដែលអាចមើលឃើញ។",
-    reportedExplanation: "តម្លៃត្រូវបានបង្ហាញតាមមូលដ្ឋានស្លាកដែលបានជ្រើស។",
     nutritionComparison: "ការប្រៀបធៀបអាហារូបត្ថម្ភ",
     nutrient: "សារធាតុចិញ្ចឹម",
     difference: "ភាពខុសគ្នា",
@@ -472,11 +461,8 @@ const km: Record<keyof typeof en, string> = {
         "បរិមាណកញ្ចប់ ឬចំណែកបរិភោគដែលមើលឃើញមិនគ្រប់គ្រាន់សម្រាប់មូលដ្ឋានរួម។",
     conditionalPreparation:
         "មិនមានព័ត៌មានអំពីការរៀបចំ ដូច្នេះតម្លៃដែលបានបម្លែងមានលក្ខខណ្ឌ។",
-    assumesPackageWeight:
-        "សន្មតថាតម្លៃក្នុងមួយកញ្ចប់គ្របដណ្ដប់លើបរិមាណកញ្ចប់ដែលមើលឃើញ។",
-    unknownPreparationAssumption:
-        "មិនមានព័ត៌មានអំពីការរៀបចំសម្រាប់ផលិតផលយ៉ាងហោចណាស់មួយ។",
-    preparationNeither: "ស្លាកទាំងពីរមិនបញ្ជាក់ការរៀបចំ។",
+    preparationNeither:
+        "ស្លាកទាំងពីរមិនបញ្ជាក់ថាផលិតផលនៅសភាពស្ងួត តាមដែលលក់ ឬបានរៀបចំរួចទេ។",
     preparationSame: "ការរៀបចំ៖ {{value}}។",
     preparationDifferent:
         "ការរៀបចំ៖ {{leftProduct}} — {{left}}; {{rightProduct}} — {{right}}។",
@@ -521,10 +507,6 @@ const km: Record<keyof typeof en, string> = {
     takingPhoto: "កំពុងថត…",
     retryCamera: "សាកល្បងកាមេរ៉ាម្ដងទៀត",
     useDeviceCamera: "ប្រើកាមេរ៉ាឧបករណ៍",
-    comparisonCount: "សារធាតុចិញ្ចឹមដែលអាចប្រៀបធៀបបាន {{count}}",
-    comparisonCountOne: "សារធាតុចិញ្ចឹមដែលអាចប្រៀបធៀបបាន 1",
-    conditionalCount: "ត្រូវការបរិបទ {{count}}",
-    unavailableCount: "មិនអាចប្រៀបធៀបបាន {{count}}",
     perPackage: "ក្នុងមួយកញ្ចប់",
     perServing: "ក្នុងមួយចំណែកបរិភោគ",
     per100g: "ក្នុង 100 ក្រាម",
