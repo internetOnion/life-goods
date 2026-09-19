@@ -3818,7 +3818,7 @@
                           "version": "example-snapshot"
                         },
                         "pagination": {
-                          "next_cursor": "eyJmIjoiNzQ5OWFjZWQ0Mzg2OWIyNyIsInIiOjIsIm4iOiJkYXJrIGNob2NvbGF0ZSIsImMiOiI0MDA2MzgxMzMzOTMxIn0"
+                          "next_cursor": "eyJmIjoiNzQ5OWFjZWQ0Mzg2OWIyNyIsInIiOjIsImkiOjIsIm4iOiJkYXJrIGNob2NvbGF0ZSIsImMiOiI0MDA2MzgxMzMzOTMxIn0"
                         },
                         "source": {
                           "name": "Open Food Facts",

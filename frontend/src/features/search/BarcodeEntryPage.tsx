@@ -38,6 +38,14 @@ import { useSearchTranslation, type SearchTranslationKey } from "./translations"
 type SearchLocationState = {
     autoFocus?: boolean
     invalidBarcode?: string
+    searchSnapshot?: SearchSnapshot
+}
+
+type SearchSnapshot = {
+    query: string
+    results: ProductSearchResult[]
+    nextCursor: string | null
+    barcodeSearch: boolean
 }
 
 type SearchStatus = "idle" | "loading" | "results" | "empty" | "error"
@@ -71,6 +79,19 @@ function initialSearchError(
 
 function isBarcodeInput(value: string) {
     return /^[\d\s-]+$/.test(value)
+}
+
+function isSearchSnapshot(value: unknown): value is SearchSnapshot {
+    if (!value || typeof value !== "object") return false
+
+    const candidate = value as Partial<SearchSnapshot>
+    return (
+        typeof candidate.query === "string" &&
+        Array.isArray(candidate.results) &&
+        (candidate.nextCursor === null ||
+            typeof candidate.nextCursor === "string") &&
+        typeof candidate.barcodeSearch === "boolean"
+    )
 }
 
 function brandName(result: ProductSearchResult) {
@@ -133,14 +154,30 @@ export function BarcodeEntryPage() {
     const navigate = useNavigate()
     const locationState = location.state as SearchLocationState | null
     const shouldFocusSearch = locationState?.autoFocus === true
-    const initialValue = searchParams.get("q") ?? ""
+    const restoredSnapshot = isSearchSnapshot(locationState?.searchSnapshot)
+        ? locationState.searchSnapshot
+        : undefined
+    const initialValue = restoredSnapshot?.query ?? searchParams.get("q") ?? ""
     const [query, setQuery] = useState(initialValue)
     const [error, setError] = useState<SearchError | null>(() =>
         initialSearchError(locationState?.invalidBarcode, initialValue),
     )
-    const [searchStatus, setSearchStatus] = useState<SearchStatus>("idle")
-    const [results, setResults] = useState<ProductSearchResult[]>([])
-    const [nextCursor, setNextCursor] = useState<string | null>(null)
+    const [searchStatus, setSearchStatus] = useState<SearchStatus>(
+        restoredSnapshot
+            ? restoredSnapshot.results.length
+                ? "results"
+                : "empty"
+            : "idle",
+    )
+    const [results, setResults] = useState<ProductSearchResult[]>(
+        restoredSnapshot?.results ?? [],
+    )
+    const [nextCursor, setNextCursor] = useState<string | null>(
+        restoredSnapshot?.nextCursor ?? null,
+    )
+    const [isBarcodeSearch, setIsBarcodeSearch] = useState(
+        restoredSnapshot?.barcodeSearch ?? false,
+    )
     const [isLoadingMore, setIsLoadingMore] = useState(false)
     const [recentProducts, setRecentProducts] =
         useState<ScanHistoryItem[]>(getRecentScans)
@@ -163,12 +200,17 @@ export function BarcodeEntryPage() {
         headingRef.current?.focus({ preventScroll: true })
     }, [shouldFocusSearch])
 
-    const runProductSearch = async (searchQuery: string) => {
+    const runProductSearch = async (
+        searchQuery: string,
+        historyQuery = searchQuery,
+        barcodeSearch = false,
+    ) => {
         const trimmed = searchQuery.trim()
-        setSearchHistory(saveRecentSearch(trimmed))
+        setSearchHistory(saveRecentSearch(historyQuery.trim()))
         setError(null)
         setResults([])
         setNextCursor(null)
+        setIsBarcodeSearch(barcodeSearch)
         setSearchStatus("loading")
         const requestId = ++searchRequestRef.current
 
@@ -183,6 +225,23 @@ export function BarcodeEntryPage() {
             setSearchStatus("error")
             setError({ key: "searchUnavailable" })
         }
+    }
+
+    const preserveSearchSnapshot = () => {
+        const snapshot: SearchSnapshot = {
+            query,
+            results,
+            nextCursor,
+            barcodeSearch: isBarcodeSearch,
+        }
+        const existingState =
+            locationState && typeof locationState === "object"
+                ? locationState
+                : {}
+        void navigate("/search", {
+            replace: true,
+            state: { ...existingState, searchSnapshot: snapshot },
+        })
     }
 
     const loadMore = async () => {
@@ -210,14 +269,14 @@ export function BarcodeEntryPage() {
             setError(null)
             setResults([])
             setNextCursor(null)
+            setIsBarcodeSearch(false)
             setSearchStatus("idle")
             return
         }
         const validation = validateIdentifier(trimmed)
         if (validation.valid) {
-            setSearchHistory(saveRecentSearch(trimmed))
             searchRequestRef.current += 1
-            void navigate(`/products/${validation.value}`)
+            await runProductSearch(validation.value, trimmed, true)
             return
         }
 
@@ -225,6 +284,7 @@ export function BarcodeEntryPage() {
             setError({ key: validationMessageKeys[validation.reason] })
             setResults([])
             setNextCursor(null)
+            setIsBarcodeSearch(false)
             setSearchStatus("error")
             return
         }
@@ -317,6 +377,8 @@ export function BarcodeEntryPage() {
                             searchRequestRef.current += 1
                             setQuery(event.target.value)
                             setResults([])
+                            setNextCursor(null)
+                            setIsBarcodeSearch(false)
                             setSearchStatus("idle")
                             if (error) setError(null)
                         }}
@@ -584,9 +646,9 @@ export function BarcodeEntryPage() {
                         {[0, 1, 2].map((item) => (
                             <div
                                 key={item}
-                                className="grid h-16 min-h-16 animate-pulse grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-neutral-200 bg-white px-2.5 py-2 sm:px-3"
+                                className="grid min-h-20 animate-pulse grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-neutral-200 bg-white px-2.5 py-2 sm:px-3"
                             >
-                                <div className="size-8 rounded-lg bg-neutral-100" />
+                                <div className="size-14 rounded-lg bg-neutral-100" />
                                 <div className="min-w-0 space-y-2">
                                     <div className="h-4 w-3/4 rounded bg-neutral-100" />
                                     <div className="h-3 w-5/6 rounded bg-neutral-100" />
@@ -621,9 +683,12 @@ export function BarcodeEntryPage() {
                                         name: result.name?.value,
                                         genericName: result.generic_name?.value,
                                         brand: brandName(result),
+                                        thumbnail: result.thumbnail,
                                     }}
                                     to={`/products/${result.barcode}`}
                                     state={{ fromBarcodeEntry: true }}
+                                    showBarcode={isBarcodeSearch}
+                                    onBeforeNavigate={preserveSearchSnapshot}
                                 />
                             )
                         })}
@@ -659,7 +724,9 @@ export function BarcodeEntryPage() {
                         {t("noProductsFound")}
                     </h2>
                     <p className="type-supporting mt-1.5 text-neutral-500">
-                        {t("noProductsHint")}
+                        {isBarcodeSearch
+                            ? t("noBarcodeMatchHint")
+                            : t("noProductsHint")}
                     </p>
                 </div>
             ) : null}
