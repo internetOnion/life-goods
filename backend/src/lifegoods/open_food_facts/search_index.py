@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import time
 import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass
+from math import isfinite
 from typing import Any
 
 from pymongo import ASCENDING
@@ -262,7 +264,12 @@ def build_search_index(
     version_id: str,
     *,
     indexer: Callable[[dict[str, Any]], dict[str, Any] | None] = index_document,
+    progress: Callable[[dict[str, int | float | str]], None] | None = None,
+    progress_interval_seconds: float = 5.0,
 ) -> dict[str, Any]:
+    if not isfinite(progress_interval_seconds) or progress_interval_seconds <= 0:
+        raise ValueError("Progress interval must be greater than zero")
+
     manifest = database[VERSIONS_COLLECTION].find_one({"_id": version_id})
     if manifest is None:
         raise ValueError(f"Dataset version {version_id} does not exist")
@@ -276,32 +283,100 @@ def build_search_index(
     temporary_name = f"{target_name}_building"
     database.drop_collection(temporary_name)
     renamed = False
+    started_monotonic = time.monotonic()
+    last_progress = started_monotonic
+
+    def report(event: dict[str, int | float | str]) -> None:
+        if progress is not None:
+            progress(event)
+
     try:
         target = database[temporary_name]
+        total_count = database[source_collection_name].count_documents({})
         indexed_count = 0
         excluded_count = 0
+        scanned_count = 0
         batch: list[dict[str, Any]] = []
+        report(
+            {
+                "stage": "scanning",
+                "scanned_count": scanned_count,
+                "total_count": total_count,
+                "indexed_count": indexed_count,
+                "excluded_count": excluded_count,
+                "elapsed_seconds": 0.0,
+            }
+        )
         for product in database[source_collection_name].find({}):
+            scanned_count += 1
             indexed = indexer(product)
             if indexed is None:
                 excluded_count += 1
-                continue
-            batch.append(indexed)
-            if len(batch) >= 1_000:
-                target.insert_many(batch)
-                indexed_count += len(batch)
-                batch.clear()
+            else:
+                batch.append(indexed)
+                if len(batch) >= 1_000:
+                    target.insert_many(batch)
+                    indexed_count += len(batch)
+                    batch.clear()
+
+            now_monotonic = time.monotonic()
+            if now_monotonic - last_progress >= progress_interval_seconds:
+                report(
+                    {
+                        "stage": "scanning",
+                        "scanned_count": scanned_count,
+                        "total_count": total_count,
+                        "indexed_count": indexed_count + len(batch),
+                        "excluded_count": excluded_count,
+                        "elapsed_seconds": now_monotonic - started_monotonic,
+                    }
+                )
+                last_progress = now_monotonic
         if batch:
             target.insert_many(batch)
             indexed_count += len(batch)
             batch.clear()
-        target.create_index([("name_tokens", ASCENDING)], name="ix_search_name_tokens")
-        target.create_index([("brand_tokens", ASCENDING)], name="ix_search_brand_tokens")
-        target.create_index([("country_tokens", ASCENDING)], name="ix_search_country_tokens")
-        target.create_index([("name_sort", ASCENDING), ("code", ASCENDING)], name="ix_search_sort")
-        ensure_collection_search_indexes(target)
+        elapsed = time.monotonic() - started_monotonic
+        report(
+            {
+                "stage": "scanning",
+                "scanned_count": scanned_count,
+                "total_count": total_count,
+                "indexed_count": indexed_count,
+                "excluded_count": excluded_count,
+                "elapsed_seconds": elapsed,
+            }
+        )
+
+        index_definitions = [
+            ("ix_search_name_tokens", [("name_tokens", ASCENDING)]),
+            ("ix_search_brand_tokens", [("brand_tokens", ASCENDING)]),
+            ("ix_search_country_tokens", [("country_tokens", ASCENDING)]),
+            ("ix_search_sort", [("name_sort", ASCENDING), ("code", ASCENDING)]),
+            *SORTED_SEARCH_INDEXES.items(),
+        ]
+        for index_number, (index_name, keys) in enumerate(index_definitions, start=1):
+            report(
+                {
+                    "stage": "creating_index",
+                    "index_name": index_name,
+                    "index_number": index_number,
+                    "index_total": len(index_definitions),
+                }
+            )
+            target.create_index(keys, name=index_name)
+            report(
+                {
+                    "stage": "index_created",
+                    "index_name": index_name,
+                    "index_number": index_number,
+                    "index_total": len(index_definitions),
+                }
+            )
+        report({"stage": "activating"})
         target.rename(target_name, dropTarget=True)
         renamed = True
+        report({"stage": "activated"})
         result = {
             "schema_version": SEARCH_SCHEMA_VERSION,
             "collection_name": target_name,
@@ -311,6 +386,16 @@ def build_search_index(
         }
         database[VERSIONS_COLLECTION].update_one(
             {"_id": version_id}, {"$set": {"search_index": result}}
+        )
+        report(
+            {
+                "stage": "complete",
+                "scanned_count": scanned_count,
+                "total_count": total_count,
+                "indexed_count": indexed_count,
+                "excluded_count": excluded_count,
+                "elapsed_seconds": time.monotonic() - started_monotonic,
+            }
         )
         return {**manifest, "search_index": result}
     finally:
