@@ -2,6 +2,7 @@ import { useState } from "react"
 import { ArrowRightIcon, PackageIcon } from "@phosphor-icons/react"
 import { Link } from "react-router"
 
+import { buildProxiedImageUrl } from "@/lib/image"
 import { useSearchTranslation } from "./translations"
 
 export type ProductListItemData = {
@@ -55,7 +56,7 @@ export function ProductListItem({ product, to, state }: ProductListItemProps) {
             <span className="bg-primary-50 text-primary-700 ring-primary-200 flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg ring-1 ring-inset">
                 {product.thumbnail?.url && !imageFailed ? (
                     <img
-                        src={product.thumbnail.url}
+                        src={buildProxiedImageUrl(product.thumbnail.url)}
                         alt=""
                         loading="lazy"
                         className="size-full object-contain"

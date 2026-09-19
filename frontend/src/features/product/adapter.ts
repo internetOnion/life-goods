@@ -1,4 +1,5 @@
 import { getIdentifierScheme, normalizeIdentifier } from "@/lib/identifier"
+import { buildProxiedImageUrl } from "@/lib/image"
 
 import type {
     ProductProjection,
@@ -42,16 +43,6 @@ export function formatBarcodeImagePath(barcode: string): string {
         }
     }
     return barcode
-}
-
-/**
- * Builds a proxied image URL through backend image router if applicable,
- * or returns original URL.
- */
-export function buildProxiedImageUrl(originalUrl: string): string {
-    if (!originalUrl) return ""
-    if (originalUrl.startsWith("/api/")) return originalUrl
-    return `/api/v1/open-food-facts-images?url=${encodeURIComponent(originalUrl)}`
 }
 
 /**
