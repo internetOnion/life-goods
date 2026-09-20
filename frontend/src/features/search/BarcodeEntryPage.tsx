@@ -98,42 +98,6 @@ function brandName(result: ProductSearchResult) {
     return result.brands?.join(", ") || null
 }
 
-type RecentActivityItem =
-    | {
-          kind: "query"
-          key: string
-          timestamp: number
-          item: SearchHistoryItem
-      }
-    | {
-          kind: "product"
-          key: string
-          timestamp: number
-          item: ScanHistoryItem
-      }
-
-function getRecentActivity(
-    searchHistory: SearchHistoryItem[],
-    recentProducts: ScanHistoryItem[],
-) {
-    return [
-        ...searchHistory.map<RecentActivityItem>((item) => ({
-            kind: "query",
-            key: `query-${item.query}-${item.searchedAt}`,
-            timestamp: item.searchedAt,
-            item,
-        })),
-        ...recentProducts.slice(0, 4).map<RecentActivityItem>((item) => ({
-            kind: "product",
-            key: `product-${item.identifier}`,
-            timestamp: item.timestamp,
-            item,
-        })),
-    ]
-        .sort((left, right) => right.timestamp - left.timestamp)
-        .slice(0, 8)
-}
-
 const recentActivityRowClass =
     "h-16 min-h-16 items-center gap-3 px-2.5 py-2 text-left transition-colors hover:bg-transparent focus-visible:bg-neutral-50 sm:px-3"
 const recentActivityIconClass =
@@ -321,14 +285,16 @@ export function BarcodeEntryPage() {
         )
     }
 
-    const clearRecentActivity = () => {
+    const clearSearchHistory = () => {
         clearRecentSearches()
-        clearRecentScans()
         setSearchHistory([])
+    }
+
+    const clearViewedProducts = () => {
+        clearRecentScans()
         setRecentProducts([])
     }
 
-    const recentActivity = getRecentActivity(searchHistory, recentProducts)
     return (
         <main className="page-rail page-rail-tight sm:px-6 sm:pt-4">
             <h1 ref={headingRef} tabIndex={-1} className="sr-only">
@@ -416,126 +382,143 @@ export function BarcodeEntryPage() {
             </form>
 
             {searchStatus === "idle" && !query && !error ? (
-                <section
-                    className="mx-auto mt-6 w-full max-w-lg text-left"
-                    aria-labelledby="recent-activity-heading"
-                >
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="min-w-0">
+                <div className="mx-auto mt-6 w-full max-w-lg space-y-8 text-left">
+                    <section aria-labelledby="recent-searches-heading">
+                        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
                             <h2
-                                id="recent-activity-heading"
+                                id="recent-searches-heading"
                                 className="type-section-title text-neutral-900"
                             >
-                                {t("recentActivity")}
+                                {t("recentSearches")}
                             </h2>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1">
-                            {recentProducts.length ? (
-                                <Link
-                                    to="/search/recent"
-                                    className="type-supporting text-primary-700 hover:bg-primary-50 hover:text-primary-800 focus-visible:ring-primary-500 rounded-xl px-2.5 py-2 font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-                                >
-                                    {t("seeAll")}
-                                </Link>
-                            ) : null}
-                            {recentActivity.length ? (
+                            {searchHistory.length ? (
                                 <Button
                                     type="button"
                                     variant="ghost"
                                     size="sm"
                                     className="px-2.5 text-neutral-600"
-                                    onClick={clearRecentActivity}
+                                    onClick={clearSearchHistory}
+                                    aria-label={t("clearRecentSearches")}
                                 >
                                     <TrashIcon size={16} aria-hidden="true" />
                                     {t("clearAll")}
                                 </Button>
                             ) : null}
                         </div>
-                    </div>
-                    {recentActivity.length ? (
-                        <ul className="mt-3 divide-y divide-neutral-200 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white">
-                            {recentActivity.map((activity) => {
-                                if (activity.kind === "query") {
-                                    return (
-                                        <li
-                                            className={recentActivityItemClass}
-                                            key={activity.key}
-                                        >
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                className={`${recentActivityRowClass} flex min-w-0 flex-1 justify-start rounded-none`}
-                                                onClick={() =>
-                                                    replaySearch(activity.item)
-                                                }
-                                                aria-label={t(
-                                                    "searchAgainFor",
-                                                    {
-                                                        query: activity.item
-                                                            .query,
-                                                    },
-                                                )}
-                                            >
-                                                <span
-                                                    className={
-                                                        recentActivityIconClass
-                                                    }
-                                                >
-                                                    <ClockCounterClockwiseIcon
-                                                        size={17}
-                                                        weight="duotone"
-                                                        aria-hidden="true"
-                                                    />
-                                                </span>
-                                                <span className="min-w-0">
-                                                    <span
-                                                        className={
-                                                            recentActivityPrimaryClass
-                                                        }
-                                                    >
-                                                        {activity.item.query}
-                                                    </span>
-                                                    <span
-                                                        className={
-                                                            recentActivitySecondaryClass
-                                                        }
-                                                    >
-                                                        {t("searchTerm")}
-                                                    </span>
-                                                </span>
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                className={
-                                                    recentActivityRemoveClass
-                                                }
-                                                onClick={() =>
-                                                    removeSearch(activity.item)
-                                                }
-                                                aria-label={t(
-                                                    "removeFromSearchHistory",
-                                                    {
-                                                        query: activity.item
-                                                            .query,
-                                                    },
-                                                )}
-                                            >
-                                                <XIcon
-                                                    size={16}
-                                                    weight="bold"
-                                                    aria-hidden="true"
-                                                />
-                                            </Button>
-                                        </li>
-                                    )
-                                }
-
-                                return (
+                        {searchHistory.length ? (
+                            <ul className="mt-3 divide-y divide-neutral-200 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white">
+                                {searchHistory.map((item) => (
                                     <li
                                         className={recentActivityItemClass}
-                                        key={activity.key}
+                                        key={item.query}
+                                    >
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            className={`${recentActivityRowClass} flex min-w-0 flex-1 justify-start rounded-none`}
+                                            onClick={() => replaySearch(item)}
+                                            aria-label={t("searchAgainFor", {
+                                                query: item.query,
+                                            })}
+                                        >
+                                            <span
+                                                className={
+                                                    recentActivityIconClass
+                                                }
+                                            >
+                                                <ClockCounterClockwiseIcon
+                                                    size={17}
+                                                    weight="duotone"
+                                                    aria-hidden="true"
+                                                />
+                                            </span>
+                                            <span className="min-w-0">
+                                                <span
+                                                    className={
+                                                        recentActivityPrimaryClass
+                                                    }
+                                                >
+                                                    {item.query}
+                                                </span>
+                                                <span
+                                                    className={
+                                                        recentActivitySecondaryClass
+                                                    }
+                                                >
+                                                    {t("searchTerm")}
+                                                </span>
+                                            </span>
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            className={
+                                                recentActivityRemoveClass
+                                            }
+                                            onClick={() => removeSearch(item)}
+                                            aria-label={t(
+                                                "removeFromSearchHistory",
+                                                {
+                                                    query: item.query,
+                                                },
+                                            )}
+                                        >
+                                            <XIcon
+                                                size={16}
+                                                weight="bold"
+                                                aria-hidden="true"
+                                            />
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="type-supporting mt-3 text-neutral-600">
+                                {t("noRecentSearches")}
+                            </p>
+                        )}
+                    </section>
+
+                    <section aria-labelledby="viewed-products-heading">
+                        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                            <h2
+                                id="viewed-products-heading"
+                                className="type-section-title text-neutral-900"
+                            >
+                                {t("productsYouViewed")}
+                            </h2>
+                            {recentProducts.length ? (
+                                <div className="flex flex-wrap items-center gap-1">
+                                    <Link
+                                        to="/search/recent"
+                                        className="type-supporting text-primary-700 hover:bg-primary-50 hover:text-primary-800 focus-visible:ring-primary-500 rounded-xl px-2.5 py-2 font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                                    >
+                                        {t("seeAll")}
+                                    </Link>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="px-2.5 text-neutral-600"
+                                        onClick={clearViewedProducts}
+                                        aria-label={t("clearViewedProducts")}
+                                    >
+                                        <TrashIcon
+                                            size={16}
+                                            aria-hidden="true"
+                                        />
+                                        {t("clearAll")}
+                                    </Button>
+                                </div>
+                            ) : null}
+                        </div>
+                        {recentProducts.length ? (
+                            <ul className="mt-3 divide-y divide-neutral-200 overflow-hidden rounded-2xl border border-neutral-200/90 bg-white">
+                                {recentProducts.slice(0, 4).map((item) => (
+                                    <li
+                                        className={recentActivityItemClass}
+                                        key={item.identifier}
                                     >
                                         <Button
                                             asChild
@@ -543,11 +526,9 @@ export function BarcodeEntryPage() {
                                             className={`${recentActivityRowClass} flex min-w-0 flex-1 justify-start rounded-none`}
                                         >
                                             <Link
-                                                to={`/products/${activity.item.identifier}`}
+                                                to={`/products/${item.identifier}`}
                                                 aria-label={t("viewProduct", {
-                                                    barcode:
-                                                        activity.item
-                                                            .identifier,
+                                                    barcode: item.identifier,
                                                 })}
                                             >
                                                 <span
@@ -567,10 +548,7 @@ export function BarcodeEntryPage() {
                                                             recentActivityPrimaryClass
                                                         }
                                                     >
-                                                        {
-                                                            activity.item
-                                                                .identifier
-                                                        }
+                                                        {item.identifier}
                                                     </span>
                                                     <span
                                                         className={
@@ -589,15 +567,11 @@ export function BarcodeEntryPage() {
                                             className={
                                                 recentActivityRemoveClass
                                             }
-                                            onClick={() =>
-                                                removeProduct(activity.item)
-                                            }
+                                            onClick={() => removeProduct(item)}
                                             aria-label={t(
-                                                "removeProductFromRecentActivity",
+                                                "removeProductFromViewedProducts",
                                                 {
-                                                    barcode:
-                                                        activity.item
-                                                            .identifier,
+                                                    barcode: item.identifier,
                                                 },
                                             )}
                                         >
@@ -608,15 +582,15 @@ export function BarcodeEntryPage() {
                                             />
                                         </Button>
                                     </li>
-                                )
-                            })}
-                        </ul>
-                    ) : (
-                        <p className="mt-3 py-1 text-center text-sm leading-relaxed text-neutral-600">
-                            {t("startSearchHistory")}
-                        </p>
-                    )}
-                </section>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="type-supporting mt-3 text-neutral-600">
+                                {t("noViewedProducts")}
+                            </p>
+                        )}
+                    </section>
+                </div>
             ) : null}
 
             {error ? (
