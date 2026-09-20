@@ -577,7 +577,7 @@ export function ProductPhotoPanel({
                                                 <p className="text-caption font-bold tracking-wider text-neutral-600 uppercase">
                                                     {t("detectedProduct")}
                                                 </p>
-                                                <p className="mt-1.5 text-base leading-tight font-extrabold text-neutral-950 wrap-anywhere">
+                                                <p className="mt-1.5 text-base leading-tight font-extrabold wrap-anywhere text-neutral-950">
                                                     {extraction.identity.brand
                                                         ?.value_text ? (
                                                         <span
@@ -659,7 +659,7 @@ export function ProductPhotoPanel({
                                                             )
                                                         }
                                                     }}
-                                                    className="shrink-0 font-mono text-caption"
+                                                    className="text-caption shrink-0 font-mono"
                                                 >
                                                     {t("useAsTitle")}
                                                 </Button>
@@ -672,7 +672,7 @@ export function ProductPhotoPanel({
                                         <dt className="text-caption font-bold tracking-wider text-neutral-600 uppercase">
                                             {t("packageWeight")}
                                         </dt>
-                                        <dd className="mt-1.5 text-sm font-semibold text-neutral-900 wrap-anywhere">
+                                        <dd className="mt-1.5 text-sm font-semibold wrap-anywhere text-neutral-900">
                                             {packageQuantity &&
                                             packageQuantity.state ===
                                                 "readable" ? (
@@ -708,7 +708,7 @@ export function ProductPhotoPanel({
                                         <dt className="text-caption font-bold tracking-wider text-neutral-600 uppercase">
                                             {t("preparation")}
                                         </dt>
-                                        <dd className="mt-1.5 text-sm font-semibold text-neutral-900 wrap-anywhere">
+                                        <dd className="mt-1.5 text-sm font-semibold wrap-anywhere text-neutral-900">
                                             {(extraction.nutrition_columns
                                                 ?.length ?? 0) > 0 ? (
                                                 (
@@ -747,7 +747,7 @@ export function ProductPhotoPanel({
                                                             img.image_id,
                                                         )
                                                     }
-                                                    className="h-10 gap-1.5 font-mono text-caption"
+                                                    className="text-caption h-10 gap-1.5 font-mono"
                                                 >
                                                     <Camera
                                                         size={14}
