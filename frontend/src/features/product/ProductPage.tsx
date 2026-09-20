@@ -437,6 +437,13 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                             >
                                 {hasSummaryData ? (
                                     <>
+                                        <IngredientSummaryCard
+                                            concernMatches={allConcernMatches}
+                                            labelEvidence={labelEvidence}
+                                            onViewEvidence={() =>
+                                                handleTabChange("ingredients")
+                                            }
+                                        />
                                         {hasSourceAssessments && (
                                             <SourceAssessmentsCard
                                                 showHeader={false}
@@ -464,14 +471,6 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                         <NutrientLevelsCard
                                             levels={offView.nutrientLevels}
                                             labelEvidence={labelEvidence}
-                                        />
-
-                                        <IngredientSummaryCard
-                                            concernMatches={allConcernMatches}
-                                            labelEvidence={labelEvidence}
-                                            onViewEvidence={() =>
-                                                handleTabChange("ingredients")
-                                            }
                                         />
                                     </>
                                 ) : (
