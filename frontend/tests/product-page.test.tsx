@@ -373,7 +373,9 @@ describe("Product page (life-goods-viewer layout)", () => {
                 language: "fr",
                 source_field: "ingredients_text_fr",
             },
-            khmer_translation: "ស្ករ ប្រេងដូង គ្រាប់ហាសែលណាត់ 13%",
+            // Bullet-delimited with a "Contains:" section, as the translator emits.
+            khmer_translation:
+                "ស្ករ • ប្រេងដូង • គ្រាប់ហាសែលណាត់ 13%។ មានផ្ទុក៖ គ្រាប់ហាសែលណាត់",
             translation_status: "generated",
         }
         product.packaging.description_items = [
@@ -452,10 +454,17 @@ describe("Product page (life-goods-viewer layout)", () => {
         })
         expect(originalButtons).toHaveLength(0)
         await user.click(screen.getByRole("tab", { name: "គ្រឿងផ្សំ" }))
+        const ingredientsTable = screen.getByRole("table")
+        expect(ingredientsTable).toBeVisible()
+        // One row per bullet item; the "Contains:" statement is a claim, not a row.
         expect(
-            screen.queryByText("ស្ករ ប្រេងដូង គ្រាប់ហាសែលណាត់ 13%"),
-        ).not.toBeInTheDocument()
-        expect(screen.getByRole("table")).toBeVisible()
+            within(ingredientsTable).getAllByRole("row").slice(1),
+        ).toHaveLength(3)
+        expect(within(ingredientsTable).getByText("ស្ករ")).toBeVisible()
+        expect(within(ingredientsTable).getByText("ប្រេងដូង")).toBeVisible()
+        expect(within(ingredientsTable).getByText("13%")).toBeVisible()
+        expect(screen.getByText("គ្រឿងផ្សំ 3 មុខ")).toBeVisible()
+        expect(screen.getByText("មានផ្ទុក៖ គ្រាប់ហាសែលណាត់")).toBeVisible()
         expect(
             screen.queryByText("Sucre, huile de palme, NOISETTES 13%"),
         ).not.toBeInTheDocument()
