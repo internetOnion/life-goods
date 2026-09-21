@@ -60,9 +60,11 @@ Rules:
 6. Return explicit preparation_state and nutrition basis only when the photo supports them;
    otherwise use unknown. Return package_quantity only when its value and unit are visible.
 7. Evidence pointers may reference only the image IDs listed in the image registry.
-8. Nutrition identity is a conservative hint only: use a short English identity when clear
-   (for example fat, protein, carbohydrate, sugars, fibre, sodium, potassium, calcium, iron,
-   energy, or salt), and leave it null when unclear.
+8. Nutrition identity is a conservative hint only: pick the matching identity from the
+   schema enum when the printed row clearly names that nutrient in any language or
+   script (for example a Malay/English/Chinese row "Asid Lemak Monotidaktepu /
+   Monounsaturated Fatty Acid" is monounsaturated_fat), and leave it null when unclear.
+   The identity is a classification, not a translation; label still holds the printed text.
 9. Extract nutrition, Product name/brand, and package quantity only. Do not transcribe
    ingredients, directions, or marketing copy. Keep each observation concise.
 10. Omit absent identity and quantity objects or return null. Never create empty
@@ -128,9 +130,14 @@ def _field_schema(*, nutrient: bool = True) -> dict[str, object]:
         properties["nutrient"] = {
             "type": "STRING", "nullable": True,
             "enum": [
-                "energy", "fat", "saturated_fat", "trans_fat", "carbohydrate",
-                "sugars", "added_sugars", "fiber", "protein", "sodium", "potassium",
-                "calcium", "iron", "salt", "cholesterol",
+                "energy", "calories_from_fat", "fat", "saturated_fat", "trans_fat",
+                "unsaturated_fat", "monounsaturated_fat", "polyunsaturated_fat",
+                "carbohydrate", "sugars", "added_sugars", "fiber", "starch", "protein",
+                "sodium", "potassium", "calcium", "iron", "salt", "cholesterol",
+                "vitamin_a", "vitamin_b1", "vitamin_b2", "vitamin_b5", "vitamin_b6",
+                "vitamin_b12", "vitamin_c", "vitamin_d", "vitamin_e", "vitamin_k",
+                "niacin", "folic_acid", "magnesium", "phosphorus", "zinc", "copper",
+                "manganese", "selenium", "iodine", "caffeine",
             ],
         }
     for name in ("label", "value_text", "unit_text", "original_script"):

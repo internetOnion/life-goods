@@ -14,7 +14,13 @@ import { App } from "../src/app/App"
 import { CameraCaptureSheet } from "../src/features/photo-comparison/CameraCaptureSheet"
 import { ComparisonSection } from "../src/features/photo-comparison/ComparisonSection"
 import { PhotoComparisonApiError } from "../src/features/photo-comparison/api"
-import { formatActionableError } from "../src/features/photo-comparison/helpers"
+import {
+    displayValue,
+    formatActionableError,
+    formatNutrientName,
+    pickDefaultColumnId,
+} from "../src/features/photo-comparison/helpers"
+import { LocaleContext } from "../src/i18n/locale"
 import { PhotoComparisonPage } from "../src/features/photo-comparison/PhotoComparisonPage"
 import { PhotoInspectionModal } from "../src/features/photo-comparison/PhotoInspectionModal"
 import { ProductPhotoPanel } from "../src/features/photo-comparison/ProductPhotoPanel"
@@ -1290,6 +1296,146 @@ describe("Compare Products frontend page (/compare)", () => {
     })
 })
 
+describe("Nutrient labels follow the selected locale", () => {
+    test("known canonical keys render in the chosen language", () => {
+        expect(formatNutrientName("monounsaturated_fat", null, "km")).toBe(
+            "ខ្លាញ់មិនឆ្អែតតែមួយ",
+        )
+        expect(formatNutrientName("monounsaturated_fat", null, "en")).toBe(
+            "Monounsaturated Fat",
+        )
+        expect(formatNutrientName("calories_from_fat", null, "km")).toBe(
+            "កាឡូរីពីខ្លាញ់",
+        )
+        expect(formatNutrientName("trans_fat", null, "km")).toBe(
+            "ខ្លាញ់ត្រង់ស៍",
+        )
+    })
+
+    test("unknown multilingual labels keep only the English segment", () => {
+        const label = "Asid Lemak Omega-3 / Omega-3 Fatty Acid / 欧米伽3脂肪酸"
+        expect(formatNutrientName(label, label, "km")).toBe(
+            "Omega-3 Fatty Acid",
+        )
+        expect(formatNutrientName(label, label, "en")).toBe(
+            "Omega-3 Fatty Acid",
+        )
+        expect(formatNutrientName("Lutein*", "Lutein*", "km")).toBe("Lutein")
+        expect(formatNutrientName("欧米伽3", "欧米伽3", "km")).toBe("欧米伽3")
+    })
+
+    test("pickDefaultColumnId prefers per 100 g and skips daily-value columns", () => {
+        const amount = {
+            field_id: "f",
+            label: "Sodium",
+            value_text: "1",
+            unit_text: "mg",
+            state: "readable" as const,
+            row_kind: "amount" as const,
+            evidence: [],
+        }
+        const percent = {
+            ...amount,
+            unit_text: "%",
+            row_kind: "percentage" as const,
+        }
+        expect(
+            pickDefaultColumnId([
+                { column_id: "serv", basis: "per_serving", fields: [amount] },
+                { column_id: "dv", basis: "other", fields: [percent] },
+                { column_id: "g100", basis: "per_100g", fields: [amount] },
+            ]),
+        ).toBe("g100")
+        expect(
+            pickDefaultColumnId([
+                { column_id: "pct", basis: "unknown", fields: [percent] },
+                { column_id: "serv", basis: "per_serving", fields: [amount] },
+            ]),
+        ).toBe("serv")
+        expect(
+            pickDefaultColumnId([
+                { column_id: "first", basis: "unknown", fields: [] },
+                { column_id: "second", basis: "unknown", fields: [] },
+            ]),
+        ).toBe("first")
+        expect(pickDefaultColumnId([])).toBeNull()
+        expect(pickDefaultColumnId(null)).toBeNull()
+    })
+
+    test("product panel shows the localized basis, never the printed header", () => {
+        const product: ProductSideState = {
+            id: "left",
+            title: "LEE CREAM CRACKERS",
+            number: "1",
+            photos: [],
+            extraction: {
+                schema_version: 1,
+                product_id: "left",
+                images: [],
+                package_quantity: null,
+                nutrition_columns: [
+                    {
+                        column_id: "dv",
+                        label: "% Daily Value / Valeur Quotidienne*",
+                        basis: "other",
+                        fields: [],
+                    },
+                    {
+                        column_id: "g100",
+                        label: "Setiap 100g/ Per 100g/ 每100克",
+                        basis: "per_100g",
+                        preparation_state: "as_sold",
+                        fields: [],
+                    },
+                ],
+                outcome: "complete",
+                provider: "google",
+                model: "gemini",
+                configuration_version: "1.0.0",
+            },
+            selectedColumnId: "g100",
+            loading: false,
+            error: "",
+            retry: false,
+            revision: 1,
+        }
+        const { container } = render(
+            <LocaleContext.Provider
+                value={{
+                    locale: "km",
+                    enabledLocales: ["km", "en"],
+                    setLocale: vi.fn(),
+                }}
+            >
+                <ProductPhotoPanel
+                    product={product}
+                    highlightedPhotoId={null}
+                    previewRefs={{ current: {} }}
+                    onTitleChange={vi.fn()}
+                    onAddFiles={vi.fn()}
+                    onRemovePhoto={vi.fn()}
+                    onReplacePhoto={vi.fn()}
+                    onClearPhotos={vi.fn()}
+                    onFocusEvidence={vi.fn()}
+                />
+            </LocaleContext.Provider>,
+        )
+        expect(screen.getAllByText(/ក្នុង 100 ក្រាម/).length).toBeGreaterThan(0)
+        expect(container.textContent).not.toMatch(
+            /Setiap|每100克|Quotidienne|Daily Value/,
+        )
+        expect(
+            screen.queryByRole("button", { name: /Select column/i }),
+        ).not.toBeInTheDocument()
+    })
+
+    test("printed units drop secondary-language segments", () => {
+        expect(displayValue("490", "kcal/千卡*")).toBe("490 kcal")
+        expect(displayValue("10", "g/克")).toBe("10 g")
+        expect(displayValue("10", "")).toBe("10")
+    })
+})
+
 describe("ComparisonSection Shopper-ready presentation", () => {
     const mockLeftProduct: ProductSideState = {
         id: "left",
@@ -1979,7 +2125,6 @@ describe("Photo inspection and UX features", () => {
                 onReplacePhoto={vi.fn()}
                 onClearPhotos={vi.fn()}
                 onExtract={vi.fn()}
-                onSelectColumn={vi.fn()}
                 onFocusEvidence={onFocusEvidence}
             />,
         )
@@ -2113,7 +2258,6 @@ describe("Photo inspection and UX features", () => {
                 onReplacePhoto={vi.fn()}
                 onClearPhotos={vi.fn()}
                 onPhotoPreviewError={onPhotoPreviewError}
-                onSelectColumn={vi.fn()}
                 onFocusEvidence={vi.fn()}
             />,
         )
@@ -2135,7 +2279,6 @@ describe("Photo inspection and UX features", () => {
                 onReplacePhoto={vi.fn()}
                 onClearPhotos={vi.fn()}
                 onPhotoPreviewError={onPhotoPreviewError}
-                onSelectColumn={vi.fn()}
                 onFocusEvidence={vi.fn()}
             />,
         )
@@ -2161,7 +2304,7 @@ describe("Photo inspection and UX features", () => {
 
 describe("Nutrition chooser direct entry", () => {
     test.each(["left", "right", "invalid"])(
-        "clears column=%s without session data",
+        "ignores a legacy column=%s parameter and renders the intro",
         async (side) => {
             render(
                 <MemoryRouter initialEntries={[`/compare?column=${side}`]}>
@@ -2169,21 +2312,21 @@ describe("Nutrition chooser direct entry", () => {
                     <PhotoComparisonPage />
                 </MemoryRouter>,
             )
-            await waitFor(() =>
-                expect(screen.getByTestId("comparison-url")).toHaveTextContent(
-                    /^\/compare$/,
-                ),
-            )
             expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
             expect(
-                screen.getByRole("button", { name: "Get started" }),
+                await screen.findByRole("button", { name: "Get started" }),
             ).toBeInTheDocument()
+            expect(
+                screen.queryByRole("heading", {
+                    name: /Select nutrition column/i,
+                }),
+            ).not.toBeInTheDocument()
         },
     )
 })
 
 describe("Compare Products uncertainty, partial results, and recovery (#124)", () => {
-    test("several columns pause for a plainly labeled selection with basis and prep state, then continue", async () => {
+    test("several columns auto-select the per-100g basis and continue without a chooser", async () => {
         const user = userEvent.setup()
         const extractPhotosMock = vi.fn().mockImplementation((id: string) =>
             Promise.resolve(
@@ -2358,30 +2501,17 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         // Extraction runs for both
         expect(extractPhotosMock).toHaveBeenCalledTimes(2)
 
-        // Pauses because Product A has 2 columns and none was selected!
+        // Product A has 2 columns; the per-100g one is picked automatically
+        // and the comparison starts without asking the Shopper to choose.
+        await waitFor(() => expect(compareMock).toHaveBeenCalledTimes(1))
         expect(
-            await screen.findByRole("heading", {
-                name: "Select nutrition column for Product A",
+            screen.queryByRole("heading", {
+                name: /Select nutrition column/i,
             }),
-        ).toBeInTheDocument()
-        expect(compareMock).not.toHaveBeenCalled()
-
-        // Plainly labeled basis and preparation states are visible
+        ).not.toBeInTheDocument()
         expect(
-            screen.getAllByText("Basis: Per 100 g (As sold)").length,
-        ).toBeGreaterThan(0)
-        expect(
-            screen.getByText("Basis: Per serving (As prepared)"),
-        ).toBeInTheDocument()
-
-        // Select the dry column for Product A -> should continue automatically
-        const selectDryColBtn = screen.getAllByRole("button", {
-            name: "Select column",
-        })[0]
-        await user.click(selectDryColBtn!)
-
-        // Comparison continues automatically
-        expect(compareMock).toHaveBeenCalledTimes(1)
+            screen.queryByRole("button", { name: "Select column" }),
+        ).not.toBeInTheDocument()
         expect(compareMock.mock.calls[0]?.[0]).toEqual(
             expect.objectContaining({
                 left_column_id: "col_dry",
@@ -2403,14 +2533,9 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
             screen.queryByRole("columnheader", { name: "Difference" }),
         ).not.toBeInTheDocument()
 
-        const dryBasisButton = screen.getByRole("button", { name: "Dry mix" })
-        const preparedBasisButton = screen.getByRole("button", {
-            name: "Prepared with milk",
-        })
-        expect(dryBasisButton).toHaveAttribute("data-glass", "selected")
-        expect(dryBasisButton).toHaveAttribute("aria-pressed", "true")
-        expect(preparedBasisButton).toHaveAttribute("data-glass", "neutral")
-        expect(preparedBasisButton).toHaveAttribute("aria-pressed", "false")
+        // Printed package headers are never shown as basis options
+        expect(screen.queryByText("Dry mix")).not.toBeInTheDocument()
+        expect(screen.queryByText("Prepared with milk")).not.toBeInTheDocument()
     })
 
     test("states shared basis and preparation context for each comparison", () => {
@@ -3395,7 +3520,6 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
                 onRemovePhoto={vi.fn()}
                 onReplacePhoto={vi.fn()}
                 onClearPhotos={vi.fn()}
-                onSelectColumn={vi.fn()}
                 onFocusEvidence={vi.fn()}
             />,
         )
@@ -3583,7 +3707,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         ).toBeEnabled()
     })
 
-    test("hides column controls during comparison and rejects a cancelled response", async () => {
+    test("auto-selects the basis, starts comparing, and rejects a cancelled response", async () => {
         const user = userEvent.setup()
 
         const deferredCompare1 = createDeferred<ComparisonResponse>()
@@ -3690,27 +3814,19 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         // Tap Compare Products
         await user.click(await openCompareReview(user))
 
-        // Both extractions succeed; pauses for column selection because Left has 2 columns
+        // Both extractions succeed; Left has 2 columns but the per-100g one is
+        // auto-selected so the comparison starts immediately.
+        await waitFor(() => expect(compareMock).toHaveBeenCalledTimes(1))
         expect(
-            await screen.findByRole("heading", {
-                name: "Select nutrition column for Product A",
+            screen.queryByRole("heading", {
+                name: /Select nutrition column/i,
             }),
-        ).toBeInTheDocument()
-
-        // Select the first column: "col_dry"
-        const selectDryCol = screen.getAllByRole("button", {
-            name: /Select column/i,
-        })[0]
-        await user.click(selectDryCol!)
-
-        // First comparison is now in flight
-        expect(compareMock).toHaveBeenCalledTimes(1)
+        ).not.toBeInTheDocument()
+        expect(compareMock.mock.calls[0]?.[0]).toEqual(
+            expect.objectContaining({ left_column_id: "col_dry" }),
+        )
         expect(capturedSignals[0]?.aborted).toBe(false)
 
-        // Editing is unavailable while the provider request is in flight.
-        expect(
-            screen.queryByRole("button", { name: /Select column/i }),
-        ).not.toBeInTheDocument()
         await user.click(
             screen.getByRole("button", { name: "Cancel comparison" }),
         )
@@ -4256,7 +4372,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
     })
 
     test.each([false, true])(
-        "nutrition chooser preserves navigation and continues with both Products needing choices: %s",
+        "auto-selects the per-100g basis without a chooser when Products have several columns: %s",
         async (bothNeedChoices) => {
             const user = userEvent.setup()
             const extractPhotosMock = vi.fn().mockImplementation((id: string) =>
@@ -4385,93 +4501,21 @@ describe("Compare Products obsolete-response safety (#125)", () => {
             // Tap Compare Products
             await user.click(await openCompareReview(user))
 
-            // ColumnSelectionPage is surfaced to clarify which column to use
+            // No chooser page: the app picks the per-100g column for each side.
+            await waitFor(() => expect(compareMock).toHaveBeenCalledTimes(1))
             expect(
-                await screen.findByRole("heading", {
-                    name: /Select nutrition column for Brand Alpha Cereal A/i,
+                screen.queryByRole("heading", {
+                    name: /Select nutrition column/i,
                 }),
-            ).toBeInTheDocument()
-            expect(
-                screen.getByText(
-                    /This package label has multiple nutrition columns/i,
-                ),
-            ).toBeInTheDocument()
-
+            ).not.toBeInTheDocument()
             expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
             expect(
-                screen.queryByRole("button", { name: "Compare Products" }),
+                screen.queryByRole("button", { name: /Select column/i }),
             ).not.toBeInTheDocument()
-            expect(screen.getByTestId("comparison-url")).toHaveTextContent(
-                "/compare?column=left",
-            )
-            await waitFor(() =>
-                expect(document.activeElement).toBe(
-                    screen.getByRole("heading", {
-                        name: /Select nutrition column for Brand Alpha Cereal A/i,
-                    }),
-                ),
-            )
-
-            // Both the visible Back control and browser history preserve the session.
-            for (const backName of ["Back", "Browser Back"]) {
-                await user.click(screen.getByRole("button", { name: backName }))
-                expect(screen.getByTestId("comparison-url")).toHaveTextContent(
-                    /^\/compare$/,
-                )
-                expect(
-                    document.getElementById("upload-photos-left"),
-                ).toBeInTheDocument()
-                expect(
-                    document.getElementById("upload-photos-right"),
-                ).toBeInTheDocument()
-                expect(extractPhotosMock).toHaveBeenCalledTimes(2)
-                expect(compareMock).not.toHaveBeenCalled()
-                await user.click(
-                    screen.getByRole("button", { name: "Browser Forward" }),
-                )
-                expect(screen.getByTestId("comparison-url")).toHaveTextContent(
-                    "/compare?column=left",
-                )
-            }
-
-            // Tap Choose this basis for the 100g column
-            const chooseBasisBtn = screen.getAllByRole("button", {
-                name: /Select column/i,
-            })[0]
-            expect(chooseBasisBtn).toBeDefined()
-            await user.click(chooseBasisBtn!)
-
-            if (bothNeedChoices) {
-                expect(
-                    await screen.findByRole("heading", {
-                        name: /Select nutrition column for Cereal B/i,
-                    }),
-                ).toBeInTheDocument()
-                expect(screen.getByTestId("comparison-url")).toHaveTextContent(
-                    "/compare?column=right",
-                )
-                expect(compareMock).not.toHaveBeenCalled()
-                await user.click(
-                    screen.getByRole("button", { name: "Browser Back" }),
-                )
-                expect(screen.getByTestId("comparison-url")).toHaveTextContent(
-                    /^\/compare$/,
-                )
-                await user.click(
-                    screen.getByRole("button", { name: "Browser Forward" }),
-                )
-                await user.click(
-                    screen.getAllByRole("button", {
-                        name: /Select column/i,
-                    })[0]!,
-                )
-            }
             expect(screen.getByTestId("comparison-url")).toHaveTextContent(
                 /^\/compare$/,
             )
             expect(extractPhotosMock).toHaveBeenCalledTimes(2)
-
-            // Modal automatically dismisses and comparison proceeds
             expect(compareMock).toHaveBeenCalledTimes(1)
             expect(compareMock).toHaveBeenCalledWith(
                 expect.objectContaining({

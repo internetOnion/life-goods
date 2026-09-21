@@ -1,7 +1,7 @@
 import type { AppLocale } from "@/i18n/locale"
 
 import { translateCompare } from "./translations"
-import type { FieldState } from "./types"
+import type { FieldState, NutritionColumn } from "./types"
 
 export const NUTRIENT_NAMES: Record<AppLocale, Record<string, string>> = {
     en: {
@@ -9,6 +9,10 @@ export const NUTRIENT_NAMES: Record<AppLocale, Record<string, string>> = {
         fat: "Total Fat",
         saturated_fat: "Saturated Fat",
         trans_fat: "Trans Fat",
+        unsaturated_fat: "Unsaturated Fat",
+        monounsaturated_fat: "Monounsaturated Fat",
+        polyunsaturated_fat: "Polyunsaturated Fat",
+        calories_from_fat: "Calories from Fat",
         cholesterol: "Cholesterol",
         carbohydrate: "Total Carbohydrates",
         sugars: "Sugars",
@@ -30,12 +34,27 @@ export const NUTRIENT_NAMES: Record<AppLocale, Record<string, string>> = {
         vitamin_d: "Vitamin D",
         niacin: "Niacin",
         folic_acid: "Folic Acid",
+        vitamin_e: "Vitamin E",
+        vitamin_k: "Vitamin K",
+        magnesium: "Magnesium",
+        phosphorus: "Phosphorus",
+        zinc: "Zinc",
+        copper: "Copper",
+        manganese: "Manganese",
+        selenium: "Selenium",
+        iodine: "Iodine",
+        starch: "Starch",
+        caffeine: "Caffeine",
     },
     km: {
         energy: "ថាមពល",
         fat: "ខ្លាញ់សរុប",
         saturated_fat: "ខ្លាញ់ឆ្អែត",
-        trans_fat: "ខ្លាញ់ Trans",
+        trans_fat: "ខ្លាញ់ត្រង់ស៍",
+        unsaturated_fat: "ខ្លាញ់មិនឆ្អែត",
+        monounsaturated_fat: "ខ្លាញ់មិនឆ្អែតតែមួយ",
+        polyunsaturated_fat: "ខ្លាញ់មិនឆ្អែតច្រើន",
+        calories_from_fat: "កាឡូរីពីខ្លាញ់",
         cholesterol: "កូឡេស្តេរ៉ុល",
         carbohydrate: "កាបូអ៊ីដ្រាតសរុប",
         sugars: "ស្ករ",
@@ -57,7 +76,55 @@ export const NUTRIENT_NAMES: Record<AppLocale, Record<string, string>> = {
         vitamin_d: "វីតាមីន D",
         niacin: "នីអាស៊ីន",
         folic_acid: "អាស៊ីតហ្វូលិក",
+        vitamin_e: "វីតាមីន E",
+        vitamin_k: "វីតាមីន K",
+        magnesium: "ម៉ាញ៉េស្យូម",
+        phosphorus: "ផូស្វ័រ",
+        zinc: "ស័ង្កសី",
+        copper: "ទង់ដែង",
+        manganese: "ម៉ង់ហ្គាណែស",
+        selenium: "សេលេញ៉ូម",
+        iodine: "អ៊ីយ៉ូត",
+        starch: "ម្សៅ",
+        caffeine: "កាហ្វេអ៊ីន",
     },
+}
+
+const NON_LATIN_SCRIPT =
+    /[\p{Script=Han}\p{Script=Thai}\p{Script=Khmer}\p{Script=Hangul}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Arabic}\p{Script=Lao}\p{Script=Myanmar}]/u
+const SEGMENT_SPLIT = /[/|／•·]/
+const DECORATION = /[*†‡]+|\([^)]*\)|（[^）]*）/g
+const ENGLISH_NUTRIENT_WORD =
+    /fat|acid|vitamin|sugar|carb|protein|sodium|energy|calor|fib|chol|salt|mineral|potassium|calcium|iron/i
+
+/**
+ * Multilingual package labels ("Asid Lemak Tepu / Saturated Fat / 饱和脂肪")
+ * are reduced to their English/Latin segment so the table never shows a
+ * language the user did not choose. Returns the input when no Latin segment exists.
+ */
+export function pickLatinSegment(label: string): string {
+    const segments = label
+        .replace(DECORATION, " ")
+        .split(SEGMENT_SPLIT)
+        .map((part) => part.replace(/\s+/g, " ").trim())
+        .filter(Boolean)
+    const latin = segments.filter((part) => !NON_LATIN_SCRIPT.test(part))
+    if (latin.length === 0) {
+        return (
+            label.replace(DECORATION, " ").replace(/\s+/g, " ").trim() || label
+        )
+    }
+    return (
+        latin.find((part) => ENGLISH_NUTRIENT_WORD.test(part)) ??
+        latin[latin.length - 1] ??
+        label
+    )
+}
+
+/** Strip decorations and secondary-language segments from a printed unit ("kcal/千卡*" → "kcal"). */
+export function cleanUnitText(unit?: string | null): string {
+    if (!unit) return ""
+    return pickLatinSegment(unit)
 }
 
 export function displayValue(
@@ -67,7 +134,8 @@ export function displayValue(
     if (value === null || value === undefined || value === "") {
         return "—"
     }
-    return `${String(value)}${unit ? ` ${unit}` : ""}`
+    const cleanUnit = cleanUnitText(unit)
+    return `${String(value)}${cleanUnit ? ` ${cleanUnit}` : ""}`
 }
 
 export function formatNormalizedValue(
@@ -114,11 +182,54 @@ export function formatNutrientName(
         return match
     }
 
-    if (fallbackLabel) return fallbackLabel
-    const fallback = nutrient.replace(/_/g, " ")
+    const fallback = pickLatinSegment(
+        fallbackLabel || nutrient.replace(/_/g, " "),
+    )
     return locale === "en"
         ? fallback.replace(/\b\w/g, (c) => c.toUpperCase())
         : fallback
+}
+
+const BASIS_RANK: Record<string, number> = {
+    per_100g: 0,
+    per_100ml: 1,
+    per_serving: 2,
+    per_package: 3,
+    unknown: 4,
+}
+
+function hasAmountRows(column: NutritionColumn): boolean {
+    return (column.fields ?? []).some(
+        (field) => field.row_kind !== "percentage",
+    )
+}
+
+/**
+ * Auto-select the nutrition column to compare on so the shopper never has to
+ * pick between printed package headers. Prefers per 100 g/ml, then per serving,
+ * then per package; skips "% Daily Value"-style columns (basis "other" or
+ * percentage-only) when any real amount column exists. Falls back to the first
+ * column so a choice is always made when columns exist.
+ */
+export function pickDefaultColumnId(
+    columns?: NutritionColumn[] | null,
+): string | null {
+    if (!columns || columns.length === 0) return null
+    const withAmounts = columns.filter(hasAmountRows)
+    const candidates = columns.filter(
+        (column) =>
+            column.basis !== "other" &&
+            (withAmounts.length === 0 || hasAmountRows(column)),
+    )
+    const pool = candidates.length > 0 ? candidates : columns
+    const ranked = pool
+        .map((column, index) => ({
+            column,
+            index,
+            rank: BASIS_RANK[column.basis ?? "unknown"] ?? BASIS_RANK.unknown!,
+        }))
+        .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    return ranked[0]?.column.column_id ?? null
 }
 
 export function getMissingCellText(

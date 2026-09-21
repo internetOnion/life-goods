@@ -50,7 +50,6 @@ interface ProductPhotoPanelProps {
     onExtract?: () => void
     onRetry?: () => void
     onPhotoPreviewError?: (index: number) => void
-    onSelectColumn: (columnId: string | null) => void
     onFocusEvidence: (imageId: string) => void
     onInspectPhoto?: (index: number) => void
 }
@@ -69,7 +68,6 @@ export function ProductPhotoPanel({
     onExtract,
     onRetry,
     onPhotoPreviewError,
-    onSelectColumn,
     onFocusEvidence,
     onInspectPhoto,
 }: ProductPhotoPanelProps) {
@@ -85,7 +83,12 @@ export function ProductPhotoPanel({
             : null)
     const packageQuantity = extraction?.package_quantity
     const nutritionColumns = extraction?.nutrition_columns ?? []
-    const hasMultipleNutritionColumns = nutritionColumns.length > 1
+    const selectedColumn =
+        nutritionColumns.find(
+            (column) => column.column_id === selectedColumnId,
+        ) ??
+        nutritionColumns[0] ??
+        null
 
     const extractButtonLabel = product.loading
         ? t("readingPhotos")
@@ -767,47 +770,29 @@ export function ProductPhotoPanel({
                             </div>
                         </details>
 
-                        {/* Nutrition columns */}
-                        {hasMultipleNutritionColumns ? (
+                        {/* Nutrition basis (auto-selected, never the printed header) */}
+                        {selectedColumn ? (
                             <section className="mt-4 border-t border-neutral-200/80 pt-4">
-                                <div className="flex items-baseline justify-between gap-3">
-                                    <h3 className="text-sm font-bold text-neutral-900">
-                                        {t("chooseNutritionColumn")}
-                                    </h3>
-                                    <span className="text-xs text-neutral-500">
-                                        {t("chooseOneProduct")}
-                                    </span>
-                                </div>
-
-                                <div className="mt-3 space-y-2.5">
-                                    {nutritionColumns.map((column) => (
-                                        <NutritionColumnCard
-                                            key={column.column_id}
-                                            column={column}
-                                            product={product}
-                                            isSelected={
-                                                selectedColumnId ===
-                                                column.column_id
-                                            }
-                                            onSelectColumn={onSelectColumn}
-                                            onFocusEvidence={onFocusEvidence}
-                                        />
-                                    ))}
+                                <p className="text-xs text-neutral-500">
+                                    {t("usingBasis", {
+                                        basis: displayBasisLabel(
+                                            selectedColumn.basis,
+                                            locale,
+                                        ),
+                                        preparation: formatPreparationLabel(
+                                            selectedColumn.preparation_state,
+                                            locale,
+                                        ),
+                                    })}
+                                </p>
+                                <div className="mt-3">
+                                    <NutritionColumnCard
+                                        column={selectedColumn}
+                                        product={product}
+                                        onFocusEvidence={onFocusEvidence}
+                                    />
                                 </div>
                             </section>
-                        ) : nutritionColumns.length === 1 ? (
-                            <p className="mt-3 text-xs text-neutral-500">
-                                {t("usingBasis", {
-                                    basis: displayBasisLabel(
-                                        nutritionColumns[0]?.basis,
-                                        locale,
-                                    ),
-                                    preparation: formatPreparationLabel(
-                                        nutritionColumns[0]?.preparation_state,
-                                        locale,
-                                    ),
-                                })}
-                            </p>
                         ) : null}
 
                         {/* Retake reasons */}
@@ -846,59 +831,29 @@ export function ProductPhotoPanel({
 interface NutritionColumnCardProps {
     column: NutritionColumn
     product: ProductSideState
-    isSelected: boolean
-    onSelectColumn: (columnId: string | null) => void
     onFocusEvidence: (imageId: string) => void
 }
 
 function NutritionColumnCard({
     column,
     product,
-    isSelected,
-    onSelectColumn,
     onFocusEvidence,
 }: NutritionColumnCardProps) {
     const { locale, t } = useCompareTranslation()
-    const columns = product.extraction?.nutrition_columns || []
     const basisLabel = displayBasisLabel(column.basis, locale)
     const prepLabel = formatPreparationLabel(column.preparation_state, locale)
 
     return (
-        <article
-            className={cn(
-                "rounded-lg border bg-white p-3 transition-all",
-                isSelected
-                    ? "border-primary-500 ring-primary-100 shadow-xs ring-2"
-                    : "border-neutral-200/80 hover:border-neutral-300",
-            )}
-        >
+        <article className="rounded-lg border border-neutral-200/80 bg-white p-3">
             <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                     <div className="font-bold text-neutral-900">
-                        {column.label || t("nutritionColumn")}
+                        {basisLabel}
                     </div>
                     <div className="mt-0.5 text-xs text-neutral-500">
-                        {basisLabel} · {prepLabel}
+                        {prepLabel}
                     </div>
                 </div>
-
-                {columns.length > 1 ? (
-                    <Button
-                        type="button"
-                        variant={isSelected ? "default" : "outline"}
-                        size="sm"
-                        onClick={() =>
-                            onSelectColumn(isSelected ? null : column.column_id)
-                        }
-                        className="h-8 self-start text-xs font-semibold sm:self-auto"
-                    >
-                        {isSelected ? t("selected") : t("selectColumn")}
-                    </Button>
-                ) : (
-                    <span className="self-start rounded-md bg-neutral-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-neutral-600 sm:self-auto">
-                        {t("soleColumn")}
-                    </span>
-                )}
             </div>
 
             <div className="scrollbar-subtle mt-3 max-h-48 divide-y divide-neutral-100 overflow-y-auto border-t border-neutral-100 pr-1 text-xs">
