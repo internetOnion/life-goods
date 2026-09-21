@@ -83,6 +83,24 @@ export function ProductPhotoPanel({
             : null)
     const packageQuantity = extraction?.package_quantity
     const nutritionColumns = extraction?.nutrition_columns ?? []
+    const detectedName = [
+        extraction?.identity?.brand?.value_text,
+        extraction?.identity?.name?.value_text,
+    ]
+        .filter(Boolean)
+        .join(" ")
+    const detectedSummary = [
+        detectedName || null,
+        packageQuantity && packageQuantity.state === "readable"
+            ? displayValue(
+                  packageQuantity.value_text,
+                  packageQuantity.unit_text || "",
+              )
+            : t("notFoundPhotos"),
+        `${extraction?.images.length ?? 0} ${t("photos").toLocaleLowerCase()}`,
+    ]
+        .filter(Boolean)
+        .join(" · ")
     const selectedColumn =
         nutritionColumns.find(
             (column) => column.column_id === selectedColumnId,
@@ -559,28 +577,41 @@ export function ProductPhotoPanel({
                     <div className="mt-5 border-t border-neutral-200/80 pt-5">
                         {/* Detected details */}
                         <details className="group">
-                            <summary className="focus-visible:ring-primary-500 flex min-h-11 cursor-pointer items-center gap-3 rounded-lg text-sm font-bold text-neutral-900 select-none hover:text-neutral-700 focus-visible:ring-2 focus-visible:outline-none">
-                                <span className="min-w-0 flex-1">
-                                    {t("detectedDetails")}
+                            <summary className="focus-visible:ring-primary-500 flex cursor-pointer list-none items-start justify-between gap-3 rounded-lg select-none focus-visible:ring-2 focus-visible:outline-none [&::-webkit-details-marker]:hidden [&::marker]:hidden">
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-bold text-neutral-900">
+                                        {t("detectedDetails")}
+                                    </p>
+                                    <p className="mt-0.5 text-xs leading-relaxed wrap-anywhere text-neutral-600">
+                                        {detectedSummary}
+                                    </p>
+                                </div>
+                                <span className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg border border-neutral-300 bg-white px-2.5 text-xs font-semibold text-neutral-800 group-hover:border-neutral-400">
+                                    <span className="group-open:hidden">
+                                        {t("showDetails")}
+                                    </span>
+                                    <span className="hidden group-open:inline">
+                                        {t("hideDetails")}
+                                    </span>
+                                    <CaretDown
+                                        size={14}
+                                        weight="bold"
+                                        aria-hidden="true"
+                                        className="transition-transform duration-150 group-open:rotate-180"
+                                    />
                                 </span>
-                                <CaretDown
-                                    size={18}
-                                    weight="bold"
-                                    aria-hidden="true"
-                                    className="text-neutral-500 transition-transform duration-150 group-open:rotate-180"
-                                />
                             </summary>
 
                             <div className="mt-3 overflow-hidden rounded-xl border border-neutral-200/90 bg-white">
                                 {(extraction.identity?.name?.value_text ||
                                     extraction.identity?.brand?.value_text) && (
-                                    <div className="border-b border-neutral-200/90 px-3.5 py-4 sm:px-4">
+                                    <div className="border-b border-neutral-200/90 px-4 py-3.5">
                                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                             <div className="min-w-0">
                                                 <p className="text-caption font-bold tracking-wider text-neutral-600 uppercase">
                                                     {t("detectedProduct")}
                                                 </p>
-                                                <p className="mt-1.5 text-base leading-tight font-extrabold wrap-anywhere text-neutral-950">
+                                                <p className="mt-1 text-base leading-tight font-extrabold wrap-anywhere text-neutral-950">
                                                     {extraction.identity.brand
                                                         ?.value_text ? (
                                                         <span
@@ -671,11 +702,11 @@ export function ProductPhotoPanel({
                                     </div>
                                 )}
                                 <dl className="grid sm:grid-cols-2">
-                                    <div className="border-b border-neutral-200/90 px-3.5 py-3.5 sm:border-r sm:border-b-0 sm:px-4">
+                                    <div className="border-b border-neutral-200/90 px-4 py-3.5 sm:border-r sm:border-b-0">
                                         <dt className="text-caption font-bold tracking-wider text-neutral-600 uppercase">
                                             {t("packageWeight")}
                                         </dt>
-                                        <dd className="mt-1.5 text-sm font-semibold wrap-anywhere text-neutral-900">
+                                        <dd className="mt-1 text-sm font-semibold wrap-anywhere text-neutral-900">
                                             {packageQuantity &&
                                             packageQuantity.state ===
                                                 "readable" ? (
@@ -707,24 +738,16 @@ export function ProductPhotoPanel({
                                             )}
                                         </dd>
                                     </div>
-                                    <div className="px-3.5 py-3.5 sm:px-4">
+                                    <div className="px-4 py-3.5">
                                         <dt className="text-caption font-bold tracking-wider text-neutral-600 uppercase">
                                             {t("preparation")}
                                         </dt>
-                                        <dd className="mt-1.5 text-sm font-semibold wrap-anywhere text-neutral-900">
-                                            {(extraction.nutrition_columns
-                                                ?.length ?? 0) > 0 ? (
-                                                (
-                                                    extraction.nutrition_columns ??
-                                                    []
+                                        <dd className="mt-1 text-sm font-semibold wrap-anywhere text-neutral-900">
+                                            {selectedColumn ? (
+                                                formatPreparationLabel(
+                                                    selectedColumn.preparation_state,
+                                                    locale,
                                                 )
-                                                    .map((col) =>
-                                                        formatPreparationLabel(
-                                                            col.preparation_state,
-                                                            locale,
-                                                        ),
-                                                    )
-                                                    .join(" · ")
                                             ) : (
                                                 <span className="font-medium text-neutral-600 italic">
                                                     {t("notSpecified")}
@@ -733,7 +756,7 @@ export function ProductPhotoPanel({
                                         </dd>
                                     </div>
                                 </dl>
-                                <div className="flex flex-col gap-2 border-t border-neutral-200/90 bg-neutral-50/70 px-3.5 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+                                <div className="flex flex-col gap-2 border-t border-neutral-200/90 bg-neutral-50/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                                     <p className="text-caption font-bold tracking-wider text-neutral-600 uppercase">
                                         {t("evidenceImages")}
                                     </p>

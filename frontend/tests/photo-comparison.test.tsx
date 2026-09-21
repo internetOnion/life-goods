@@ -1424,6 +1424,13 @@ describe("Nutrient labels follow the selected locale", () => {
         expect(container.textContent).not.toMatch(
             /Setiap|每100克|Quotidienne|Daily Value/,
         )
+        // Detected details: explicit Show/Hide affordance and a single
+        // preparation value for the selected column (not one per column).
+        expect(screen.getByText("បង្ហាញ")).toBeInTheDocument()
+        expect(screen.getByText("លាក់")).toBeInTheDocument()
+        const preparationCell = screen.getByText("ការរៀបចំ").nextElementSibling
+        expect(preparationCell?.textContent).toBe("តាមដែលបានលក់")
+        expect(preparationCell?.textContent).not.toContain("·")
         expect(
             screen.queryByRole("button", { name: /Select column/i }),
         ).not.toBeInTheDocument()
@@ -1638,6 +1645,67 @@ describe("ComparisonSection Shopper-ready presentation", () => {
         ],
     }
 
+    test("keeps a fixed-width table and localized placeholders in Khmer", () => {
+        const khmerComparison: ComparisonResponse = {
+            schema_version: 1,
+            calculated_from_submitted_evidence: true,
+            left_product_id: "left",
+            right_product_id: "right",
+            rows: [
+                {
+                    nutrient: "monounsaturated_fat",
+                    row_kind: "amount",
+                    state: "not_comparable",
+                    reason: "Not found in photos for the other product.",
+                    left: {
+                        column_id: "c1",
+                        basis: "per_100g",
+                        observation: {
+                            field_id: "f1",
+                            nutrient: "monounsaturated_fat",
+                            label: "Asid Lemak Monotidaktepu / Monounsaturated Fatty Acid",
+                            value_text: "9.3",
+                            unit_text: "g",
+                            state: "readable",
+                            row_kind: "amount",
+                            evidence: [],
+                        },
+                    },
+                    right: null,
+                },
+            ],
+        }
+        const { container } = render(
+            <LocaleContext.Provider
+                value={{
+                    locale: "km",
+                    enabledLocales: ["km", "en"],
+                    setLocale: vi.fn(),
+                }}
+            >
+                <ComparisonSection
+                    comparison={khmerComparison}
+                    comparisonStatus=""
+                    comparisonError={null}
+                    isComparing={false}
+                    isReadyToCompare={true}
+                    leftProduct={mockLeftProduct}
+                    rightProduct={mockRightProduct}
+                    onCompare={vi.fn()}
+                    onFocusEvidence={vi.fn()}
+                />
+            </LocaleContext.Provider>,
+        )
+        const table = container.querySelector("table")
+        expect(table).toHaveClass("sm:table-fixed")
+        expect(table?.querySelectorAll("col")).toHaveLength(3)
+        expect(screen.getByText("ខ្លាញ់មិនឆ្អែតតែមួយ")).toBeInTheDocument()
+        expect(container.textContent).not.toMatch(/Asid Lemak|Monounsaturated/)
+        // Missing cell: short symbol in the cell, full sentence in the legend + sr-only
+        expect(screen.getAllByText("—").length).toBe(2) // cell + legend
+        expect(screen.getAllByText("រកមិនឃើញក្នុងរូបថតទាំងនេះ").length).toBe(2)
+    })
+
     test("displays normalized amounts and visible label percentages", () => {
         render(
             <ComparisonSection
@@ -1695,11 +1763,12 @@ describe("ComparisonSection Shopper-ready presentation", () => {
         expect(
             screen.getByText("Package sizes may differ."),
         ).toBeInTheDocument()
+        // Unknown preparation on both sides adds no noise to the basis card.
         expect(
-            screen.getByText(
+            screen.queryByText(
                 "Neither label says whether the Product is dry, as sold, or prepared.",
             ),
-        ).toBeInTheDocument()
+        ).not.toBeInTheDocument()
         expect(
             screen.getByText(
                 "Compare the nutrition values shown on both labels.",
@@ -1817,10 +1886,11 @@ describe("ComparisonSection Shopper-ready presentation", () => {
         ).not.toBeInTheDocument()
         expect(screen.queryByText(/View photo 1/i)).not.toBeInTheDocument()
 
-        // 5. Check missing data uses "Not found in these photos" and NEVER "Source Data Unavailable"
+        // 5. Check missing data uses "Not found in these photos" (cell sr-only
+        //    text + legend) and NEVER "Source Data Unavailable"
         expect(
-            screen.getByText("Not found in these photos"),
-        ).toBeInTheDocument()
+            screen.getAllByText("Not found in these photos").length,
+        ).toBeGreaterThan(0)
         expect(
             screen.queryByText(/Source Data Unavailable/i),
         ).not.toBeInTheDocument()
@@ -1994,10 +2064,10 @@ describe("ComparisonSection Shopper-ready presentation", () => {
             ),
         ).not.toBeInTheDocument()
         expect(
-            screen.getAllByText(
+            screen.queryByText(
                 "Neither label says whether the Product is dry, as sold, or prepared.",
-            ).length,
-        ).toBeGreaterThan(0)
+            ),
+        ).not.toBeInTheDocument()
     })
 })
 
@@ -2651,19 +2721,12 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
                 "Both Products use the per-serving values shown on their labels.",
             ),
         ).toBeInTheDocument()
-        expect(screen.getByText("Preparation: As sold.")).toBeInTheDocument()
-        const comparisonDetails = screen
-            .getByText("Comparison basis: Per serving")
-            .closest("details")
-        expect(comparisonDetails).not.toHaveAttribute("open")
-        expect(comparisonDetails?.parentElement).toHaveClass("flex-1")
-        expect(comparisonDetails?.querySelector("summary svg")).toHaveAttribute(
-            "aria-hidden",
-            "true",
-        )
-        expect(comparisonDetails?.querySelector("summary svg")).toHaveClass(
-            "ml-auto",
-        )
+        expect(screen.getByText(/Preparation: As sold\./)).toBeInTheDocument()
+        // The basis card is always readable; nothing is hidden behind a toggle.
+        const basisNote = screen.getByRole("note", {
+            name: "Comparison basis: Per serving",
+        })
+        expect(basisNote.querySelector("details")).toBeNull()
 
         // Leads with Product identities
         expect(
@@ -2848,14 +2911,11 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         expect(
             screen.queryByText("How these values were compared"),
         ).not.toBeInTheDocument()
-        const comparisonDetails = screen
-            .getByText("Comparison basis: Per 100 g")
-            .closest("details")
-        expect(comparisonDetails).not.toHaveAttribute("open")
-        expect(comparisonDetails?.querySelector("summary svg")).toHaveAttribute(
-            "aria-hidden",
-            "true",
-        )
+        expect(
+            screen
+                .getByRole("note", { name: "Comparison basis: Per 100 g" })
+                .querySelector("details"),
+        ).toBeNull()
         expect(
             screen.queryByText("Evidence & calculation"),
         ).not.toBeInTheDocument()
@@ -3029,16 +3089,19 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
         expect(screen.getAllByText("0 g").length).toBeGreaterThan(0)
         expect(screen.getByText("5 g")).toBeInTheDocument()
 
-        // 2. Missing calcium on right product shows "Not found in these photos" and never zero
+        // 2. Missing calcium on right product shows a "—" placeholder (with
+        //    accessible text) plus a legend entry, and never zero
         expect(
-            screen.getByText("Not found in these photos"),
-        ).toBeInTheDocument()
+            screen.getAllByText("Not found in these photos").length,
+        ).toBeGreaterThanOrEqual(2)
+        expect(screen.getAllByText("—").length).toBeGreaterThan(0)
         expect(screen.getByText("200 mg")).toBeInTheDocument()
 
-        // 3. Unreadable iron shows "Could not read this value" and never zero
+        // 3. Unreadable iron shows a "?" placeholder and never zero
         expect(
-            screen.getByText("Could not read this value"),
-        ).toBeInTheDocument()
+            screen.getAllByText("Could not read this value").length,
+        ).toBeGreaterThanOrEqual(2)
+        expect(screen.getAllByText("?").length).toBeGreaterThan(0)
         expect(screen.getByText("4 mg")).toBeInTheDocument()
         expect(
             screen.queryByText("One or both observations are not readable."),
