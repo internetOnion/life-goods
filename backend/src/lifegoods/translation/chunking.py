@@ -2,6 +2,10 @@ import re
 
 CHUNK_SPLIT_DELIMITERS = re.compile(r"[,;]\s*")
 
+# Top-level item delimiters: ASCII list punctuation plus bullets and newlines,
+# which some labels use instead of commas.
+TOP_LEVEL_ITEM_DELIMITERS = frozenset({",", ";", "•", "●", "\n", "\r"})
+
 
 def _split_top_level_items(text: str) -> list[str]:
     items: list[str] = []
@@ -30,7 +34,12 @@ def _split_top_level_items(text: str) -> list[str]:
             brace_depth = max(0, brace_depth - 1)
 
         # Delimiter check at top level
-        if paren_depth == 0 and bracket_depth == 0 and brace_depth == 0 and ch in (",", ";"):
+        if (
+            paren_depth == 0
+            and bracket_depth == 0
+            and brace_depth == 0
+            and ch in TOP_LEVEL_ITEM_DELIMITERS
+        ):
             item_str = "".join(current).strip()
             if item_str:
                 items.append(item_str)

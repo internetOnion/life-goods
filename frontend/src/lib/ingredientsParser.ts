@@ -313,17 +313,119 @@ export function detectAllergensInText(
     return Array.from(detected)
 }
 
+// Characters that separate top-level list items on packaging: ASCII, bullets,
+// newlines, Khmer (។ ៕), CJK (、，；。) and Arabic (،) punctuation.
+const TOP_LEVEL_SEPARATORS = new Set([
+    ",",
+    ";",
+    "•",
+    "●",
+    "·",
+    "▪",
+    "■",
+    "‣",
+    "◦",
+    "|",
+    "\n",
+    "\r",
+    "។",
+    "៕",
+    "、",
+    "，",
+    "；",
+    "。",
+    "،",
+])
+
+// Clauses longer than this that still contain separators are assumed to be the
+// victim of an unclosed bracket and are re-split without depth tracking.
+const UNBALANCED_CLAUSE_LENGTH = 80
+
 /**
- * Splits ingredient text intelligently while respecting nested parentheses and brackets,
- * accommodating OCR quirks like [SOJA) or decimal commas in percentages (e.g., 7,4%).
+ * Section headers that appear inside packaging text. Order matters: longer
+ * phrases ("may contain", "អាចមានផ្ទុក") must precede their suffixes.
  */
-export function splitIngredientClauses(text: string): string[] {
+const SECTION_HEADER_REGEX =
+    /(?<!\p{L})(?:(?<mayContain>may\s+contain|peut\s+contenir|kann\s+spuren\s+enthalten|puede\s+contener|pu[oò]\s+contenere|traces?\s+(?:[eé]ventuelles?\s+)?(?:of|de)|អាចមានផ្ទុក|អាចមាន)\s*[:៖]?|(?<contains>contains|contient|enth[aä]lt|contiene|allerg[eè]nes?|allergens?|allergy\s+advice|មានផ្ទុក|មាន)\s*[:៖]|(?<ingredients>ingredients?|ingr[eé]dients?|zutaten|ingredientes|ingredienti|គ្រឿងផ្សំ)\s*[:៖])(?!\p{L})/giu
+
+export type IngredientSectionKind = "ingredients" | "contains" | "mayContain"
+
+export interface IngredientSection {
+    kind: IngredientSectionKind
+    /** Section body without its header. */
+    body: string
+    /** Header + body as written on the label, trimmed of trailing separators. */
+    text: string
+}
+
+function trimSeparators(text: string): string {
+    return text
+        .replace(/^[\s•●·▪■‣◦|,;:៖។៕、，；。،.-]+/u, "")
+        .replace(/[\s•●·▪■‣◦|,;:៖។៕、，；。،.]+$/u, "")
+}
+
+/**
+ * Splits packaging text into "ingredients", "contains" and "may contain" sections
+ * so allergen statements never leak into the ingredient rows.
+ */
+export function segmentIngredientSections(text: string): IngredientSection[] {
+    const sections: IngredientSection[] = []
+    const matches = Array.from(text.matchAll(SECTION_HEADER_REGEX))
+
+    const pushSection = (
+        kind: IngredientSectionKind,
+        start: number,
+        bodyStart: number,
+        end: number,
+    ) => {
+        const body = trimSeparators(text.slice(bodyStart, end))
+        const full = trimSeparators(text.slice(start, end))
+        if (!body) return
+        sections.push({ kind, body, text: full })
+    }
+
+    const firstStart = matches[0]?.index ?? text.length
+    pushSection("ingredients", 0, 0, firstStart)
+
+    matches.forEach((match, i) => {
+        const start = match.index ?? 0
+        const end = matches[i + 1]?.index ?? text.length
+        const groups = match.groups ?? {}
+        const kind: IngredientSectionKind = groups.mayContain
+            ? "mayContain"
+            : groups.contains
+              ? "contains"
+              : "ingredients"
+        pushSection(kind, start, start + match[0].length, end)
+    })
+
+    return sections
+}
+
+function isDecimalSeparator(text: string, i: number): boolean {
+    const prevChar = text[i - 1] || ""
+    const nextChar = text[i + 1] || ""
+    return /\d/.test(prevChar) && /\d/.test(nextChar)
+}
+
+function splitClauses(
+    text: string,
+    respectDepth: boolean,
+): { clauses: string[]; unbalanced: boolean } {
     const clauses: string[] = []
     let current = ""
     let depth = 0
 
+    const flush = () => {
+        if (current.trim()) {
+            clauses.push(current.trim())
+        }
+        current = ""
+    }
+
     for (let i = 0; i < text.length; i++) {
-        const char = text[i]
+        const char = text[i] as string
+        const atTopLevel = !respectDepth || depth === 0
 
         if (char === "(" || char === "[" || char === "{") {
             depth++
@@ -331,35 +433,38 @@ export function splitIngredientClauses(text: string): string[] {
         } else if (char === ")" || char === "]" || char === "}") {
             if (depth > 0) depth--
             current += char
-        } else if ((char === "," || char === ";") && depth === 0) {
+        } else if (TOP_LEVEL_SEPARATORS.has(char) && atTopLevel) {
             // Do not split if comma is decimal separator between digits (e.g. 7,4% or 6,6%)
-            const prevChar = text[i - 1] || ""
-            const nextChar = text[i + 1] || ""
-            if (char === "," && /\d/.test(prevChar) && /\d/.test(nextChar)) {
+            if (char === "," && isDecimalSeparator(text, i)) {
                 current += char
                 continue
             }
-
-            if (current.trim()) {
-                clauses.push(current.trim())
-            }
-            current = ""
-        } else if (char === "." && depth === 0) {
+            flush()
+        } else if (
+            char === "*" &&
+            atTopLevel &&
+            /^\s*$/.test(text[i - 1] || "") &&
+            /^\s*$/.test(text[i + 1] || "")
+        ) {
+            // "*" used as a bullet between items, not as a footnote marker
+            flush()
+        } else if (char === "." && atTopLevel) {
             // Do not split if period is decimal separator between digits (e.g. 7.4% or 6.6%)
-            const prevChar = text[i - 1] || ""
-            const nextChar = text[i + 1] || ""
-            if (/\d/.test(prevChar) && /\d/.test(nextChar)) {
+            if (isDecimalSeparator(text, i)) {
                 current += char
                 continue
             }
 
-            // Check if period separates sentences/claims (e.g. "...vanilline. Sans gluten.")
+            // A period followed by a capital or a non-cased script (Khmer, CJK)
+            // separates sentences/claims (e.g. "...vanilline. Sans gluten."),
+            // while "vit. C"-style abbreviations followed by lowercase do not.
             const remaining = text.slice(i + 1).trim()
-            if (remaining.length > 0 && /^[A-ZÀ-ÖØ-ß]/.test(remaining)) {
-                if (current.trim()) {
-                    clauses.push(current.trim())
-                }
-                current = ""
+            if (
+                remaining.length > 0 &&
+                /^\p{L}/u.test(remaining) &&
+                !/^\p{Ll}/u.test(remaining)
+            ) {
+                flush()
             } else {
                 current += char
             }
@@ -368,11 +473,40 @@ export function splitIngredientClauses(text: string): string[] {
         }
     }
 
-    if (current.trim()) {
-        clauses.push(current.trim())
-    }
+    flush()
+    return { clauses, unbalanced: depth > 0 }
+}
 
-    return clauses
+function hasTopLevelSeparator(text: string): boolean {
+    return Array.from(text).some((char) => TOP_LEVEL_SEPARATORS.has(char))
+}
+
+/**
+ * Splits ingredient text intelligently while respecting nested parentheses and brackets,
+ * accommodating OCR quirks like [SOJA) or decimal commas in percentages (e.g., 7,4%).
+ * Bullets, newlines and Khmer/CJK punctuation count as list separators too. When a
+ * bracket is never closed, long clauses swallowed by it are re-split ignoring depth.
+ */
+export function splitIngredientClauses(text: string): string[] {
+    const { clauses, unbalanced } = splitClauses(text, true)
+    if (!unbalanced) return clauses
+    return clauses.flatMap((clause) =>
+        clause.length > UNBALANCED_CLAUSE_LENGTH && hasTopLevelSeparator(clause)
+            ? splitClauses(clause, false).clauses
+            : [clause],
+    )
+}
+
+/**
+ * OCR/translation quirk: a clause opened with "(" but closed with "]" or "}",
+ * e.g. "sugar (glucose (sulphite)]". Swap the stray closer for ")" so the
+ * parenthesised sub-ingredient regex can still match.
+ */
+function repairTrailingBracket(clause: string): string {
+    if (!/[\]}]$/.test(clause)) return clause
+    const opens = (clause.match(/\(/g) ?? []).length
+    const closes = (clause.match(/\)/g) ?? []).length
+    return opens > closes ? `${clause.slice(0, -1)})` : clause
 }
 
 /**
@@ -381,8 +515,8 @@ export function splitIngredientClauses(text: string): string[] {
 export function formatIngredientName(name: string): string {
     let cleaned = name
         .trim()
-        .replace(/^[-*•\s]+/, "")
-        .replace(/[,.;]+$/, "")
+        .replace(/^[-*•●\s]+/, "")
+        .replace(/[,.;។]+$/, "")
     // Normalize mismatched brackets: [SOJA) -> (SOJA)
     cleaned = cleaned.replace(/\[([^\]]+)\)/g, "($1)")
     cleaned = cleaned.replace(/\(([^)]+)\]/g, "($1)")
@@ -407,16 +541,36 @@ export function parseIngredients(
         }
     }
 
-    const rawClauses = splitIngredientClauses(rawText)
+    const sections = segmentIngredientSections(rawText)
     const ingredients: ParsedIngredient[] = []
     const claims: string[] = []
+    const seenRows = new Set<string>()
+    const seenClaims = new Set<string>()
     const allDetectedAllergens = new Set<string>()
     let hasPercentages = false
+
+    const normalizeKey = (value: string) =>
+        value.toLowerCase().replace(/\s+/g, " ").trim()
+    const addClaim = (claim: string) => {
+        const key = normalizeKey(claim)
+        if (!key || seenClaims.has(key)) return
+        seenClaims.add(key)
+        claims.push(claim)
+    }
+
+    // "Contains:" / "May contain:" statements are declarations, not ingredients.
+    const rawClauses = sections.flatMap((section) => {
+        if (section.kind !== "ingredients") {
+            addClaim(section.text)
+            return []
+        }
+        return splitIngredientClauses(section.body)
+    })
 
     // Regex to detect QUID percentages (e.g. 13%, 7,4 %, 0.5%)
     const percentageRegex = /\b(\d+(?:[.,]\d+)?\s*%)/
 
-    rawClauses.forEach((clause, index) => {
+    rawClauses.forEach((clause) => {
         const rawClause = clause.trim()
         if (!rawClause) return
 
@@ -425,12 +579,19 @@ export function parseIngredients(
             pattern.test(rawClause),
         )
         if (isClaim) {
-            claims.push(rawClause)
+            addClaim(rawClause)
             return
         }
 
-        const trimmed = rawClause.replace(/^[:,\s]+/, "").replace(/[,.;]+$/, "")
+        const trimmed = repairTrailingBracket(
+            rawClause.replace(/^[:៖,\s]+/, "").replace(/[,.;។]+$/, ""),
+        )
         if (!trimmed) return
+
+        // Duplicated label text (a common OCR artefact) must not duplicate rows.
+        const rowKey = normalizeKey(trimmed)
+        if (seenRows.has(rowKey)) return
+        seenRows.add(rowKey)
 
         // 2. Extract percentage if present
         const percentMatch = trimmed.match(percentageRegex)
@@ -447,8 +608,8 @@ export function parseIngredients(
         let primaryName = trimmed
 
         // Case A: Colons (e.g. "émulsifiants: lécithines [SOJA)")
-        if (trimmed.includes(":") && !trimmed.startsWith("http")) {
-            const [mainPart, ...subParts] = trimmed.split(":")
+        if (/[:៖]/.test(trimmed) && !trimmed.startsWith("http")) {
+            const [mainPart, ...subParts] = trimmed.split(/[:៖]/)
             primaryName = (mainPart ?? trimmed).trim()
             const subStr = subParts.join(":").trim()
             if (subStr) {
@@ -463,7 +624,7 @@ export function parseIngredients(
             if (parenMatch && parenMatch[1] && parenMatch[2]) {
                 primaryName = parenMatch[1].trim()
                 const inner = parenMatch[2].trim()
-                if (inner.includes(",") || inner.includes(";")) {
+                if (hasTopLevelSeparator(inner)) {
                     subIngredients = splitIngredientClauses(inner).map((s) =>
                         formatIngredientName(s),
                     )
@@ -488,7 +649,7 @@ export function parseIngredients(
         cleanName = formatIngredientName(cleanName)
 
         ingredients.push({
-            id: `ing-${index + 1}`,
+            id: `ing-${ingredients.length + 1}`,
             raw: trimmed,
             name: cleanName || primaryName,
             percentage,

@@ -27,6 +27,20 @@ def test_chunk_ingredients_preserves_nested_brackets_and_delimiters() -> None:
     assert "vitamins (B1, B2, B6, B12)" in rejoined
 
 
+def test_chunk_ingredients_splits_bullet_delimited_lists() -> None:
+    items = [f"ingredient number {i} (with detail {i})" for i in range(12)]
+    text = " • ".join(items)
+
+    chunks = chunk_ingredients(text, max_chunk_chars=120)
+
+    assert len(chunks) > 1
+    for chunk in chunks:
+        assert len(chunk) <= 120
+        assert chunk.count("(") == chunk.count(")"), f"Paren split in chunk: {chunk}"
+    for item in items:
+        assert any(item in chunk for chunk in chunks)
+
+
 def test_module_chunks_long_ingredients_deterministically() -> None:
     from lifegoods.product_lookup.contracts import (
         EnvironmentProjection,
