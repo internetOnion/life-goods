@@ -63,6 +63,17 @@ pnpm generated-data:init -- --mongo-uri "mongodb://user:pass@host:27017/lifegood
 
 The command reports structured JSON to stdout and exits with `0` on success. On incompatible indexes or errors, it outputs a descriptive error to stderr and exits with `1`.
 
+### Production and staging initialization
+
+The full Compose stacks (prod and staging) create the separate generated-data identity only when generated storage is configured, and only on a fresh Mongo volume; an existing installation must provision that database identity explicitly before initializing the schema. After building the backend image and starting MongoDB/Redis, initialize and verify generated storage explicitly through the backend container (swap in the staging compose file and secrets path for staging):
+
+```bash
+docker compose --env-file infra/secrets/prod/.env -f infra/compose/docker-compose.prod.yml run --rm backend uv run --no-sync python -m lifegoods.generated_data.cli init
+docker compose --env-file infra/secrets/prod/.env -f infra/compose/docker-compose.prod.yml run --rm backend uv run --no-sync python -m lifegoods.generated_data.cli verify
+```
+
+An empty `LIFEGOODS_GEMINI_API_KEY` disables generation; Product Lookup still returns available Original Text. These commands do not activate generation or change the Dataset Snapshot.
+
 ## 4. Cross-Instance Single Flight and Hot Caching
 
 - **Hot Cache (`Redis`)**: Keyed strictly by `translation:artifact:v1:{content_hash}:{config_fingerprint}` without Barcode or Shopper data. Cache miss or Redis outage gracefully falls through to MongoDB.
