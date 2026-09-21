@@ -53,13 +53,15 @@ function evidenceTags(
     ]
 }
 
-function hasDetailedEvidence(match: ConcernMatch): boolean {
+/**
+ * Only allergens that are present ("contains") or possibly present ("may
+ * contain") are listed; negated or unclear wording and incomplete checks
+ * are noise for the shopper and are covered by the card-level notice.
+ */
+function isPresentOrPossible(match: ConcernMatch): boolean {
     return (
         match.ingredientTexts.length > 0 ||
-        match.precautionaryStatements.length > 0 ||
-        match.negatedWording.length > 0 ||
-        match.unclearWording.length > 0 ||
-        match.informationGap
+        match.precautionaryStatements.length > 0
     )
 }
 
@@ -96,7 +98,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
         analysis?.off.state === "missing" ||
         analysis?.off.state === "invalid" ||
         analysis?.ingredient_matching.state !== "completed"
-    const detailedMatches = concernMatches.filter(hasDetailedEvidence)
+    const presentMatches = concernMatches.filter(isPresentOrPossible)
 
     return (
         <Card className="border-neutral-200/90 bg-white shadow-xs">
@@ -156,7 +158,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                     </section>
                 )}
 
-                {detailedMatches.length > 0 && (
+                {presentMatches.length > 0 && (
                     <section
                         aria-labelledby="allergen-evidence-heading"
                         className="space-y-3 border-t border-neutral-100 pt-3"
@@ -168,7 +170,7 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                             {t("ingredientWordingEvidence")}
                         </h3>
                         <ul className="divide-y divide-neutral-100 rounded-xl border border-neutral-200/90">
-                            {detailedMatches.map((match) => (
+                            {presentMatches.map((match) => (
                                 <li
                                     key={match.concernId}
                                     className="space-y-1 px-3 py-2.5"
@@ -191,19 +193,6 @@ export const AllergenCard: React.FC<AllergenCardProps> = ({
                                                 match.precautionaryStatements
                                             }
                                         />
-                                        <EvidenceLine
-                                            label={t("negatedWording")}
-                                            values={match.negatedWording}
-                                        />
-                                        <EvidenceLine
-                                            label={t("unclearWording")}
-                                            values={match.unclearWording}
-                                        />
-                                        {match.informationGap && (
-                                            <div className="text-neutral-500">
-                                                {t("incompleteAllergenChecks")}
-                                            </div>
-                                        )}
                                     </dl>
                                 </li>
                             ))}

@@ -57,4 +57,57 @@ describe("AllergenCard", () => {
             screen.queryByRole("status", { name: "Selected concern matches" }),
         ).not.toBeInTheDocument()
     })
+
+    test("lists only allergens that are present or possibly present", () => {
+        render(
+            <AllergenCard
+                analysis={null}
+                labelEvidence={[]}
+                concernMatches={[
+                    {
+                        concernId: "peanuts",
+                        concernLabel: "Peanuts",
+                        hasCompactMatch: true,
+                        ingredientTexts: [],
+                        precautionaryStatements: ["May contain peanuts"],
+                        offDeclaration: false,
+                        offTrace: true,
+                        negatedWording: [],
+                        unclearWording: [],
+                        informationGap: false,
+                    },
+                    {
+                        concernId: "celery",
+                        concernLabel: "Celery",
+                        hasCompactMatch: false,
+                        ingredientTexts: [],
+                        precautionaryStatements: [],
+                        offDeclaration: false,
+                        offTrace: false,
+                        negatedWording: [],
+                        unclearWording: [],
+                        informationGap: true,
+                    },
+                    {
+                        concernId: "milk",
+                        concernLabel: "Milk",
+                        hasCompactMatch: false,
+                        ingredientTexts: [],
+                        precautionaryStatements: [],
+                        offDeclaration: false,
+                        offTrace: false,
+                        negatedWording: ["dairy-free"],
+                        unclearWording: [],
+                        informationGap: false,
+                    },
+                ]}
+            />,
+        )
+
+        expect(screen.getByText("Peanuts")).toBeInTheDocument()
+        expect(screen.getByText("May contain peanuts")).toBeInTheDocument()
+        expect(screen.queryByText("Celery")).not.toBeInTheDocument()
+        expect(screen.queryByText("Milk")).not.toBeInTheDocument()
+        expect(screen.queryByText(/dairy-free/)).not.toBeInTheDocument()
+    })
 })

@@ -1376,10 +1376,11 @@ describe("Product page (life-goods-viewer layout)", () => {
         ).not.toBeInTheDocument()
         expect(screen.getByText("Peanuts", { selector: "p" })).toBeVisible()
         expect(screen.getByText("May contain:")).toBeVisible()
-        expect(screen.getByText("Negated wording:")).toBeVisible()
-        expect(screen.getByText("Unclear wording:")).toBeVisible()
-        expect(screen.getByText(/peanut-free/)).toBeVisible()
-        expect(screen.getByText(/peanut flavor/)).toBeVisible()
+        // Negated / unclear wording is not evidence of presence, so it is not listed.
+        expect(screen.queryByText("Negated wording:")).not.toBeInTheDocument()
+        expect(screen.queryByText("Unclear wording:")).not.toBeInTheDocument()
+        expect(screen.queryByText(/peanut-free/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/peanut flavor/)).not.toBeInTheDocument()
     })
 
     test("keeps the notice hidden after a same-tab choice without evidence", async () => {
