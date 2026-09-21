@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { CaretDown, Info, Scales } from "@phosphor-icons/react"
+import { Info, Scales } from "@phosphor-icons/react"
 
 import { GlassButton as Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -16,6 +16,7 @@ import type {
     ComparisonResponse,
     ComparisonRow,
     DerivedValue,
+    FieldState,
     PreparationState,
     ProductSideState,
     ReportedValue,
@@ -190,20 +191,24 @@ export function ComparisonSection({
                     {/* Comparison basis */}
                     <div
                         className={cn(
-                            "rounded-xl border p-2.5 sm:p-3",
+                            "rounded-xl border px-3.5 py-3 sm:px-4",
                             basisTone === "info"
                                 ? "border-info-200 bg-info-50/70"
                                 : basisTone === "warning"
                                   ? "border-warning-200 bg-warning-50/70"
                                   : "border-neutral-200 bg-neutral-50/70",
                         )}
+                        role="note"
+                        aria-label={t("comparisonBasisLabel", {
+                            basis: comparisonBasis,
+                        })}
                     >
-                        <div className="flex items-start gap-2">
+                        <div className="flex items-start gap-2.5">
                             <Info
                                 size={20}
                                 weight="bold"
                                 className={cn(
-                                    "mt-1.5 shrink-0",
+                                    "mt-0.5 shrink-0",
                                     basisTone === "info"
                                         ? "text-info-700"
                                         : basisTone === "warning"
@@ -211,53 +216,40 @@ export function ComparisonSection({
                                           : "text-neutral-600",
                                 )}
                             />
-                            <div className="min-w-0 flex-1">
-                                <details className="group text-xs">
-                                    <summary
-                                        className={cn(
-                                            "focus-visible:ring-primary-500 flex min-h-8 w-full cursor-pointer items-center justify-between gap-2 rounded text-left text-sm leading-snug font-bold select-none focus-visible:ring-2 focus-visible:outline-none",
-                                            basisTone === "info"
-                                                ? "text-info-900 hover:text-info-950"
-                                                : basisTone === "warning"
-                                                  ? "text-warning-900 hover:text-warning-950"
-                                                  : "text-neutral-950 hover:text-neutral-700",
-                                            "list-none [&::-webkit-details-marker]:hidden [&::marker]:hidden",
-                                        )}
-                                    >
-                                        <span className="min-w-0 flex-1 wrap-anywhere">
-                                            {t("comparisonBasisLabel", {
-                                                basis: comparisonBasis,
-                                            })}
-                                        </span>
-                                        <CaretDown
-                                            size={14}
-                                            weight="bold"
-                                            aria-hidden="true"
-                                            className="ml-auto shrink-0 transition-transform duration-150 group-open:rotate-180"
-                                        />
-                                    </summary>
-                                    <div className="mt-2 space-y-1.5 text-xs leading-relaxed">
-                                        <p
-                                            className={cn(
-                                                basisTone === "info"
-                                                    ? "text-info-800/90"
-                                                    : basisTone === "warning"
-                                                      ? "text-warning-800/90"
-                                                      : "text-neutral-700",
-                                            )}
-                                        >
-                                            {basisContext}
-                                        </p>
-                                        <p className="text-neutral-700">
-                                            {preparationContext}
-                                        </p>
-                                        {packageContext && (
-                                            <p className="text-neutral-700">
-                                                {packageContext}
-                                            </p>
-                                        )}
-                                    </div>
-                                </details>
+                            <div className="min-w-0 flex-1 space-y-1">
+                                <p
+                                    className={cn(
+                                        "text-sm leading-snug font-bold wrap-anywhere",
+                                        basisTone === "info"
+                                            ? "text-info-900"
+                                            : basisTone === "warning"
+                                              ? "text-warning-900"
+                                              : "text-neutral-950",
+                                    )}
+                                >
+                                    {t("comparisonBasisLabel", {
+                                        basis: comparisonBasis,
+                                    })}
+                                </p>
+                                <p
+                                    className={cn(
+                                        "text-xs leading-relaxed wrap-anywhere",
+                                        basisTone === "info"
+                                            ? "text-info-800/90"
+                                            : basisTone === "warning"
+                                              ? "text-warning-800/90"
+                                              : "text-neutral-700",
+                                    )}
+                                >
+                                    {basisContext}
+                                </p>
+                                {(preparationContext || packageContext) && (
+                                    <p className="text-xs leading-relaxed wrap-anywhere text-neutral-600">
+                                        {[preparationContext, packageContext]
+                                            .filter(Boolean)
+                                            .join(" ")}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -273,8 +265,9 @@ export function ComparisonSection({
                             </p>
                         </div>
 
-                        <div className="scrollbar-subtle overflow-x-auto rounded-2xl border border-neutral-200 bg-white">
-                            <table className="block w-full border-collapse text-left text-xs sm:table sm:min-w-[560px]">
+                        <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+                            <table className="block w-full border-collapse text-left text-xs sm:table sm:table-fixed">
+                                <ComparisonTableColumns />
                                 <ComparisonTableHeader
                                     leftProductTitle={leftProduct.title}
                                     rightProductTitle={rightProduct.title}
@@ -289,6 +282,7 @@ export function ComparisonSection({
                                 </tbody>
                             </table>
                         </div>
+                        <CellLegend rows={amountRows} />
                     </div>
 
                     {/* Table 2: Label Percentages Section */}
@@ -307,8 +301,9 @@ export function ComparisonSection({
                                 {t("percentageNote")}
                             </p>
 
-                            <div className="scrollbar-subtle mt-2 overflow-x-auto rounded-2xl border border-neutral-200 bg-white">
-                                <table className="block w-full border-collapse text-left text-xs sm:table sm:min-w-[560px]">
+                            <div className="mt-2 overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+                                <table className="block w-full border-collapse text-left text-xs sm:table sm:table-fixed">
+                                    <ComparisonTableColumns />
                                     <ComparisonTableHeader
                                         leftProductTitle={leftProduct.title}
                                         rightProductTitle={rightProduct.title}
@@ -323,11 +318,94 @@ export function ComparisonSection({
                                     </tbody>
                                 </table>
                             </div>
+                            <CellLegend rows={percentageRows} />
                         </section>
                     )}
                 </div>
             )}
         </section>
+    )
+}
+
+function ComparisonTableColumns() {
+    return (
+        <colgroup className="hidden sm:table-column-group">
+            <col className="w-[44%]" />
+            <col className="w-[28%]" />
+            <col className="w-[28%]" />
+        </colgroup>
+    )
+}
+
+function cellStates(rows: ComparisonRow[]): {
+    missing: boolean
+    unreadable: boolean
+} {
+    let missing = false
+    let unreadable = false
+    for (const row of rows) {
+        for (const side of [row.left, row.right]) {
+            if (!side?.observation) {
+                missing = true
+            } else if (side.observation.state !== "readable") {
+                unreadable = true
+            }
+        }
+    }
+    return { missing, unreadable }
+}
+
+/** Explains the "—" and "?" placeholders used in the table cells. */
+function CellLegend({ rows }: { rows: ComparisonRow[] }) {
+    const { locale } = useCompareTranslation()
+    const { missing, unreadable } = cellStates(rows)
+    if (!missing && !unreadable) return null
+    return (
+        <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 px-1 text-xs text-neutral-600">
+            {missing && (
+                <span>
+                    <span className="font-mono font-bold text-neutral-500">
+                        {MISSING_SYMBOL}
+                    </span>{" "}
+                    {getMissingCellText(null, locale)}
+                </span>
+            )}
+            {unreadable && (
+                <span>
+                    <span className="text-warning-700 font-mono font-bold">
+                        {UNREADABLE_SYMBOL}
+                    </span>{" "}
+                    {getMissingCellText("unreadable", locale)}
+                </span>
+            )}
+        </p>
+    )
+}
+
+const MISSING_SYMBOL = "—"
+const UNREADABLE_SYMBOL = "?"
+
+function PlaceholderCell({ state }: { state?: FieldState | null }) {
+    const { locale } = useCompareTranslation()
+    const unreadable =
+        state === "unreadable" ||
+        state === "ambiguous" ||
+        state === "conflicting"
+    return (
+        <span
+            className={cn(
+                "font-mono text-sm font-bold",
+                unreadable ? "text-warning-700" : "text-neutral-400",
+            )}
+            title={getMissingCellText(state ?? null, locale)}
+        >
+            <span aria-hidden="true">
+                {unreadable ? UNREADABLE_SYMBOL : MISSING_SYMBOL}
+            </span>
+            <span className="sr-only">
+                {getMissingCellText(state ?? null, locale)}
+            </span>
+        </span>
     )
 }
 
@@ -380,13 +458,13 @@ function AmountTableRow({ row }: { row: ComparisonRow }) {
                 scope="row"
                 className="block min-w-0 px-2.5 py-3 text-left align-top sm:table-cell sm:px-4 sm:py-4"
             >
-                <div className="text-sm font-semibold text-neutral-950">
+                <div className="text-sm font-semibold wrap-anywhere text-neutral-950">
                     {nutrientName}
                 </div>
             </th>
 
             {/* Left product cell */}
-            <td className="block min-w-0 px-2.5 py-3 text-right sm:table-cell sm:px-4 sm:py-4 sm:align-top">
+            <td className="block min-w-0 px-2.5 py-3 text-right wrap-anywhere sm:table-cell sm:px-4 sm:py-4 sm:align-top">
                 <ProductAmountCell
                     reported={row.left}
                     derived={row.normalized_left}
@@ -394,7 +472,7 @@ function AmountTableRow({ row }: { row: ComparisonRow }) {
             </td>
 
             {/* Right product cell */}
-            <td className="block min-w-0 px-2.5 py-3 text-right sm:table-cell sm:px-4 sm:py-4 sm:align-top">
+            <td className="block min-w-0 px-2.5 py-3 text-right wrap-anywhere sm:table-cell sm:px-4 sm:py-4 sm:align-top">
                 <ProductAmountCell
                     reported={row.right}
                     derived={row.normalized_right}
@@ -413,22 +491,14 @@ function ProductAmountCell({
 }) {
     const { locale, t } = useCompareTranslation()
     if (!reported || !reported.observation) {
-        const missing = getMissingCellText(null, locale)
-        return (
-            <span className="text-xs font-medium text-neutral-500 italic">
-                {missing}
-            </span>
-        )
+        return <PlaceholderCell />
     }
 
     const obs = reported.observation
     if (obs.state !== "readable") {
-        const missing = getMissingCellText(obs.state, locale)
         return (
             <div>
-                <span className="text-warning-700 text-xs font-medium italic">
-                    {missing}
-                </span>
+                <PlaceholderCell state={obs.state} />
                 {obs.state === "conflicting" && (
                     <div className="text-warning-800 mt-1 text-xs">
                         <span>{t("conflictingValues")} </span>
@@ -478,7 +548,7 @@ function PercentageTableRow({ row }: { row: ComparisonRow }) {
                 scope="row"
                 className="block min-w-0 px-2.5 py-3 text-left align-top sm:table-cell sm:px-4 sm:py-4"
             >
-                <div className="text-sm font-semibold text-neutral-950">
+                <div className="text-sm font-semibold wrap-anywhere text-neutral-950">
                     {nutrientName}
                 </div>
                 <div className="text-xs font-medium text-neutral-500">
@@ -487,12 +557,12 @@ function PercentageTableRow({ row }: { row: ComparisonRow }) {
             </th>
 
             {/* Left percentage cell */}
-            <td className="block min-w-0 px-2.5 py-3 text-right sm:table-cell sm:px-4 sm:py-4 sm:align-top">
+            <td className="block min-w-0 px-2.5 py-3 text-right wrap-anywhere sm:table-cell sm:px-4 sm:py-4 sm:align-top">
                 <PercentageCell reported={row.left} />
             </td>
 
             {/* Right percentage cell */}
-            <td className="block min-w-0 px-2.5 py-3 text-right sm:table-cell sm:px-4 sm:py-4 sm:align-top">
+            <td className="block min-w-0 px-2.5 py-3 text-right wrap-anywhere sm:table-cell sm:px-4 sm:py-4 sm:align-top">
                 <PercentageCell reported={row.right} />
             </td>
         </tr>
@@ -500,18 +570,12 @@ function PercentageTableRow({ row }: { row: ComparisonRow }) {
 }
 
 function PercentageCell({ reported }: { reported?: ReportedValue | null }) {
-    const { locale } = useCompareTranslation()
     if (
         !reported ||
         !reported.observation ||
         reported.observation.state !== "readable"
     ) {
-        const missing = getMissingCellText(reported?.observation?.state, locale)
-        return (
-            <span className="text-xs font-medium text-neutral-500 italic">
-                {missing}
-            </span>
-        )
+        return <PlaceholderCell state={reported?.observation?.state} />
     }
 
     const obs = reported.observation
@@ -528,12 +592,12 @@ function getPreparationContext(
     rightTitle: string,
     locale: "en" | "km",
     t: CompareTranslate,
-): string {
+): string | null {
     const left = getSidePreparation(rows, "left", locale, t)
     const right = getSidePreparation(rows, "right", locale, t)
 
     if (left === null && right === null) {
-        return t("preparationNeither")
+        return null
     }
     if (left === right) {
         return t("preparationSame", { value: left || t("notSpecified") })

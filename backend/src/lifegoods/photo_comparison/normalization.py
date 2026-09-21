@@ -79,7 +79,30 @@ _UNIT_ALIASES: dict[str, MeasurementUnit] = {
     "percent": MeasurementUnit.PERCENT,
     "%": MeasurementUnit.PERCENT,
     "count": MeasurementUnit.COUNT,
+    "克": MeasurementUnit.G,
+    "公克": MeasurementUnit.G,
+    "毫克": MeasurementUnit.MG,
+    "微克": MeasurementUnit.UG,
+    "公斤": MeasurementUnit.KG,
+    "千克": MeasurementUnit.KG,
+    "毫升": MeasurementUnit.ML,
+    "升": MeasurementUnit.L,
+    "千卡": MeasurementUnit.KCAL,
+    "大卡": MeasurementUnit.KCAL,
+    "卡路里": MeasurementUnit.KCAL,
+    "kkal": MeasurementUnit.KCAL,
+    "千焦": MeasurementUnit.KJ,
 }
+
+_SEGMENT_SPLIT = re.compile(r"[/|／•·]")
+_DECORATION = re.compile(r"[*†‡]+|\([^)]*\)|（[^）]*）")
+
+
+def _segments(value: str) -> list[str]:
+    """Split multilingual text like ``kcal/千卡*`` into clean candidate segments."""
+    cleaned = _DECORATION.sub(" ", value)
+    return [" ".join(part.split()) for part in _SEGMENT_SPLIT.split(cleaned) if part.strip()]
+
 
 _SPECIAL_UNIT_DEFINITIONS: dict[str, tuple[MeasurementUnit, Decimal]] = {
     "oz": (MeasurementUnit.G, Decimal("28.3495")),
@@ -125,7 +148,50 @@ _NUTRIENT_ALIASES: dict[str, str] = {
     "ខ្លាញ់ឆ្អែត": "saturated_fat",
     "ជាតិខ្លាញ់ឆ្អែត": "saturated_fat",
     "trans fat": "trans_fat",
-    "ខ្លាញ់មិនឆ្អែត": "trans_fat",
+    "trans fatty acid": "trans_fat",
+    "trans fatty acids": "trans_fat",
+    "lemak trans": "trans_fat",
+    "asid lemak trans": "trans_fat",
+    "反式脂肪": "trans_fat",
+    "反式脂肪酸": "trans_fat",
+    "ខ្លាញ់ត្រង់ស៍": "trans_fat",
+    "ខ្លាញ់ trans": "trans_fat",
+    "unsaturated fat": "unsaturated_fat",
+    "unsaturated fatty acid": "unsaturated_fat",
+    "lemak tidak tepu": "unsaturated_fat",
+    "不饱和脂肪": "unsaturated_fat",
+    "ខ្លាញ់មិនឆ្អែត": "unsaturated_fat",
+    "monounsaturated fat": "monounsaturated_fat",
+    "monounsaturated fatty acid": "monounsaturated_fat",
+    "monounsaturated fatty acids": "monounsaturated_fat",
+    "monounsaturates": "monounsaturated_fat",
+    "mono-unsaturated fat": "monounsaturated_fat",
+    "mufa": "monounsaturated_fat",
+    "asid lemak monotidaktepu": "monounsaturated_fat",
+    "asid lemak mono tidak tepu": "monounsaturated_fat",
+    "lemak monotidaktepu": "monounsaturated_fat",
+    "单元不饱和脂肪酸": "monounsaturated_fat",
+    "单元不饱和脂肪": "monounsaturated_fat",
+    "單元不飽和脂肪酸": "monounsaturated_fat",
+    "polyunsaturated fat": "polyunsaturated_fat",
+    "polyunsaturated fatty acid": "polyunsaturated_fat",
+    "polyunsaturated fatty acids": "polyunsaturated_fat",
+    "polyunsaturates": "polyunsaturated_fat",
+    "poly-unsaturated fat": "polyunsaturated_fat",
+    "pufa": "polyunsaturated_fat",
+    "asid lemak politidaktepu": "polyunsaturated_fat",
+    "asid lemak poli tidak tepu": "polyunsaturated_fat",
+    "lemak politidaktepu": "polyunsaturated_fat",
+    "多元不饱和脂肪酸": "polyunsaturated_fat",
+    "多元不饱和脂肪": "polyunsaturated_fat",
+    "多元不飽和脂肪酸": "polyunsaturated_fat",
+    "calories from fat": "calories_from_fat",
+    "calorie from fat": "calories_from_fat",
+    "energy from fat": "calories_from_fat",
+    "kalori dari lemak": "calories_from_fat",
+    "kalori daripada lemak": "calories_from_fat",
+    "来自脂肪的卡路里": "calories_from_fat",
+    "脂肪热量": "calories_from_fat",
     "carbohydrate": "carbohydrate",
     "carbohydrates": "carbohydrate",
     "total carbohydrate": "carbohydrate",
@@ -191,6 +257,115 @@ _NUTRIENT_ALIASES: dict[str, str] = {
     "វីតាមីន b3": "niacin",
     "folic acid": "folic_acid",
     "folate": "folic_acid",
+    "asid folik": "folic_acid",
+    "叶酸": "folic_acid",
+    "vitamin b9": "folic_acid",
+    "វីតាមីន b9": "folic_acid",
+    "vitamin b3": "niacin",
+    "烟酸": "niacin",
+    "vitamin e": "vitamin_e",
+    "tocopherol": "vitamin_e",
+    "វីតាមីន e": "vitamin_e",
+    "维生素e": "vitamin_e",
+    "vitamin k": "vitamin_k",
+    "វីតាមីន k": "vitamin_k",
+    "维生素k": "vitamin_k",
+    "维生素a": "vitamin_a",
+    "维生素b1": "vitamin_b1",
+    "维生素b2": "vitamin_b2",
+    "维生素b6": "vitamin_b6",
+    "维生素b12": "vitamin_b12",
+    "维生素c": "vitamin_c",
+    "维生素d": "vitamin_d",
+    "magnesium": "magnesium",
+    "ម៉ាញ៉េស្យូម": "magnesium",
+    "镁": "magnesium",
+    "phosphorus": "phosphorus",
+    "fosforus": "phosphorus",
+    "ផូស្វ័រ": "phosphorus",
+    "磷": "phosphorus",
+    "zinc": "zinc",
+    "zink": "zinc",
+    "ស័ង្កសី": "zinc",
+    "锌": "zinc",
+    "copper": "copper",
+    "kuprum": "copper",
+    "ទង់ដែង": "copper",
+    "铜": "copper",
+    "manganese": "manganese",
+    "mangan": "manganese",
+    "锰": "manganese",
+    "selenium": "selenium",
+    "硒": "selenium",
+    "iodine": "iodine",
+    "iodin": "iodine",
+    "អ៊ីយ៉ូត": "iodine",
+    "碘": "iodine",
+    "starch": "starch",
+    "kanji": "starch",
+    "ម្សៅ": "starch",
+    "淀粉": "starch",
+    "caffeine": "caffeine",
+    "kafein": "caffeine",
+    "កាហ្វេអ៊ីន": "caffeine",
+    "咖啡因": "caffeine",
+    # Malay / Chinese / Thai aliases for the core nutrients.
+    "tenaga": "energy",
+    "kalori": "energy",
+    "能量": "energy",
+    "热量": "energy",
+    "熱量": "energy",
+    "卡路里": "energy",
+    "พลังงาน": "energy",
+    "lemak": "fat",
+    "jumlah lemak": "fat",
+    "脂肪": "fat",
+    "总脂肪": "fat",
+    "ไขมันทั้งหมด": "fat",
+    "lemak tepu": "saturated_fat",
+    "asid lemak tepu": "saturated_fat",
+    "饱和脂肪": "saturated_fat",
+    "饱和脂肪酸": "saturated_fat",
+    "飽和脂肪": "saturated_fat",
+    "ไขมันอิ่มตัว": "saturated_fat",
+    "ไขมันทรานส์": "trans_fat",
+    "karbohidrat": "carbohydrate",
+    "jumlah karbohidrat": "carbohydrate",
+    "碳水化合物": "carbohydrate",
+    "总碳水化合物": "carbohydrate",
+    "gula": "sugars",
+    "jumlah gula": "sugars",
+    "糖": "sugars",
+    "总糖": "sugars",
+    "น้ำตาล": "sugars",
+    "gula tambahan": "added_sugars",
+    "添加糖": "added_sugars",
+    "serat": "fiber",
+    "serat diet": "fiber",
+    "膳食纤维": "fiber",
+    "纤维": "fiber",
+    "ใยอาหาร": "fiber",
+    "蛋白质": "protein",
+    "蛋白質": "protein",
+    "natrium": "sodium",
+    "钠": "sodium",
+    "鈉": "sodium",
+    "kalium": "potassium",
+    "钾": "potassium",
+    "โพแทสเซียม": "potassium",
+    "kalsium": "calcium",
+    "钙": "calcium",
+    "แคลเซียม": "calcium",
+    "ferum": "iron",
+    "zat besi": "iron",
+    "铁": "iron",
+    "เหล็ก": "iron",
+    "garam": "salt",
+    "盐": "salt",
+    "kolesterol": "cholesterol",
+    "胆固醇": "cholesterol",
+    "膽固醇": "cholesterol",
+    "โคเลสเตอรอล": "cholesterol",
 }
 
 
@@ -201,8 +376,18 @@ class ProviderOutputError(ValueError):
 def canonical_nutrient(value: str | None) -> str | None:
     if not value:
         return None
-    cleaned = " ".join(value.casefold().replace("_", " ").split())
-    return _NUTRIENT_ALIASES.get(cleaned)
+    folded = unicodedata.normalize("NFKC", value).casefold().replace("_", " ")
+    cleaned = " ".join(folded.split())
+    match = _NUTRIENT_ALIASES.get(cleaned)
+    if match is not None:
+        return match
+    # Multilingual labels such as "Asid Lemak Tepu / Saturated Fat / 饱和脂肪":
+    # try each segment on its own.
+    for segment in _segments(folded):
+        match = _NUTRIENT_ALIASES.get(segment.replace("-", " ")) or _NUTRIENT_ALIASES.get(segment)
+        if match is not None:
+            return match
+    return None
 
 
 def _require_mapping(value: Any, description: str) -> Mapping[str, Any]:
@@ -258,14 +443,17 @@ def _parse_decimal(value_text: str | None) -> Decimal | None:
 def normalize_unit(unit_text: str | None) -> tuple[MeasurementUnit | None, Decimal | None]:
     if not unit_text:
         return None, None
-    cleaned = " ".join(unicodedata.normalize("NFKC", unit_text).casefold().split())
-    if cleaned in _SPECIAL_UNIT_DEFINITIONS:
-        return _SPECIAL_UNIT_DEFINITIONS[cleaned]
-    unit = _UNIT_ALIASES.get(cleaned)
-    if unit is None:
-        return None, None
-    base_unit, factor = _UNIT_FACTORS[unit]
-    return base_unit, factor
+    folded = unicodedata.normalize("NFKC", unit_text).casefold()
+    cleaned = " ".join(folded.split())
+    candidates = [cleaned, *_segments(folded)]
+    for candidate in candidates:
+        if candidate in _SPECIAL_UNIT_DEFINITIONS:
+            return _SPECIAL_UNIT_DEFINITIONS[candidate]
+        unit = _UNIT_ALIASES.get(candidate)
+        if unit is not None:
+            base_unit, factor = _UNIT_FACTORS[unit]
+            return base_unit, factor
+    return None, None
 
 
 def _normalize_value(
@@ -283,7 +471,7 @@ def _normalize_value(
     if (unit is None or factor is None) and unit_text is None:
         label_lower = (label or "").casefold()
         if (
-            nutrient == "energy"
+            nutrient in {"energy", "calories_from_fat"}
             or "calorie" in label_lower
             or "calories" in label_lower
             or label_lower in {"cal", "kcal"}
@@ -402,9 +590,7 @@ def _field(value: Any, description: str) -> FieldObservation:
         _optional_text(raw.get("nutrient"), "nutrient", 128)
     ) or canonical_nutrient(label)
     normalized_value, normalized_unit = (
-        _normalize_value(
-            value_text, unit_text, allow_zero=True, nutrient=nutrient, label=label
-        )
+        _normalize_value(value_text, unit_text, allow_zero=True, nutrient=nutrient, label=label)
         if state is FieldState.READABLE
         else (None, None)
     )
@@ -438,9 +624,7 @@ def _field(value: Any, description: str) -> FieldObservation:
         raise ProviderOutputError(f"{description} is not contract-valid") from error
 
 
-def _quantity(
-    value: Any, description: str, *, fallback_image_id: str | None = None
-) -> Quantity:
+def _quantity(value: Any, description: str, *, fallback_image_id: str | None = None) -> Quantity:
     raw = _require_mapping(value, description)
     _check_keys(
         raw,
@@ -500,9 +684,7 @@ def _quantity(
     )
     try:
         return Quantity(
-            field_id=_required_text(
-                raw.get("field_id") or uuid4().hex, f"{description} ID", 128
-            ),
+            field_id=_required_text(raw.get("field_id") or uuid4().hex, f"{description} ID", 128),
             label=quantity_label,
             value_text=value_text,
             unit_text=unit_text,
@@ -530,6 +712,60 @@ def _preparation(value: Any, description: str) -> PreparationState:
         return PreparationState(value or PreparationState.UNKNOWN)
     except ValueError as error:
         raise ProviderOutputError(f"{description} has an unsupported preparation state") from error
+
+
+_BASIS_PATTERNS: list[tuple[NutritionBasis, re.Pattern[str]]] = [
+    # Non-basis columns (percent daily value / reference intake) come first so a
+    # header like "% Daily Value per 100g" is never mistaken for a basis.
+    (
+        NutritionBasis.OTHER,
+        re.compile(
+            r"%\s*(daily value|dv|nrv|ri|rda|ai)\b|daily value|valeur quotidienne|"
+            r"reference intake|nilai harian|每日(营养素)?(参考|摄入)|%\s*ndv|ndv\b"
+        ),
+    ),
+    (
+        NutritionBasis.PER_100ML,
+        re.compile(
+            r"(per|setiap|pour|par|/|ក្នុង|ต่อ|每)\s*100\s*(ml|mL|millilit|毫升|មីលីលីត្រ|มล)|"
+            r"^100\s*(ml|毫升|មីលីលីត្រ|មល)"
+        ),
+    ),
+    (
+        NutritionBasis.PER_100G,
+        re.compile(
+            r"(per|setiap|pour|par|/|ក្នុង|ต่อ|每)\s*100\s*(g|gm|gram|克|公克|ក្រាម|กรัม)|"
+            r"^100\s*(g|gm|克|ក្រាម|กรัม)"
+        ),
+    ),
+    (
+        NutritionBasis.PER_SERVING,
+        re.compile(
+            r"per serv|per portion|par portion|per hidangan|setiap hidangan|per sajian|"
+            r"每食用分量|每份|每一份|ក្នុងមួយចំណែក|ต่อหนึ่งหน่วยบริโภค|ต่อหน่วยบริโภค|"
+            r"serving size|amount per serving"
+        ),
+    ),
+    (
+        NutritionBasis.PER_PACKAGE,
+        re.compile(
+            r"per (pack|package|packet|container|bottle|can)\b|setiap (bungkus|pek|bekas)|"
+            r"par (paquet|emballage)|每包|每盒|每罐|每瓶|ក្នុងមួយកញ្ចប់|ต่อซอง|ต่อขวด|ต่อกล่อง"
+        ),
+    ),
+]
+
+
+def infer_basis_from_label(label: str | None) -> NutritionBasis:
+    """Infer a column basis from its printed header, in any supported language."""
+    if not label:
+        return NutritionBasis.UNKNOWN
+    folded = unicodedata.normalize("NFKC", label).casefold()
+    candidates = [" ".join(folded.split()), *_segments(folded)]
+    for basis, pattern in _BASIS_PATTERNS:
+        if any(pattern.search(candidate) for candidate in candidates):
+            return basis
+    return NutritionBasis.UNKNOWN
 
 
 def _column(
@@ -565,21 +801,40 @@ def _column(
         else None
     )
     try:
-        serving_state = (
-            serving.state if serving is not None else FieldState.NOT_VISIBLE
-        )
+        serving_state = serving.state if serving is not None else FieldState.NOT_VISIBLE
+        label = _optional_text(raw.get("label"), f"{description} label", 256)
+        fields = [_field(item, f"{description} field") for item in fields_raw]
+        basis = _basis(raw.get("basis"), description)
+        basis_evidence = _evidence(raw.get("basis_evidence"), f"{description} basis evidence")
+        if basis is NutritionBasis.UNKNOWN:
+            # The provider only classifies bases it is sure about; recover the
+            # common multilingual headers locally so the app can auto-pick a column.
+            inferred = infer_basis_from_label(label)
+            if (
+                inferred is NutritionBasis.UNKNOWN
+                and fields
+                and all(field.row_kind is NutrientRowKind.PERCENTAGE for field in fields)
+            ):
+                inferred = NutritionBasis.OTHER
+            if inferred is not NutritionBasis.UNKNOWN:
+                if not basis_evidence:
+                    basis_evidence = next(
+                        (list(field.evidence) for field in fields if field.evidence), []
+                    )
+                if basis_evidence:
+                    basis = inferred
         return NutritionColumn(
             column_id=_required_text(raw.get("column_id") or uuid4().hex, f"{description} ID", 128),
-            label=_optional_text(raw.get("label"), f"{description} label", 256),
-            basis=_basis(raw.get("basis"), description),
+            label=label,
+            basis=basis,
             preparation_state=_preparation(raw.get("preparation_state"), description),
             serving_quantity=serving,
             serving_quantity_state=serving_state,
-            basis_evidence=_evidence(raw.get("basis_evidence"), f"{description} basis evidence"),
+            basis_evidence=basis_evidence,
             preparation_evidence=_evidence(
                 raw.get("preparation_evidence"), f"{description} preparation evidence"
             ),
-            fields=[_field(item, f"{description} field") for item in fields_raw],
+            fields=fields,
         )
     except ValueError as error:
         raise ProviderOutputError(f"{description} is not contract-valid") from error
@@ -590,6 +845,7 @@ def _identity(value: Any) -> ProductIdentity | None:
         return None
     raw = _require_mapping(value, "identity")
     _check_keys(raw, {"name", "brand"}, "identity")
+
     def observation(key: str) -> FieldObservation | None:
         if raw.get(key) is None:
             return None
@@ -620,8 +876,7 @@ def build_extraction(
     if not isinstance(columns_raw, list):
         raise ProviderOutputError("nutrition_columns must be a list")
     columns = [
-        _column(item, "nutrition column", fallback_image_id=first_image_id)
-        for item in columns_raw
+        _column(item, "nutrition column", fallback_image_id=first_image_id) for item in columns_raw
     ]
     package_raw = raw.get("package_quantity")
     package_quantity = (

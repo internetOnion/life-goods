@@ -159,7 +159,7 @@ export const IngredientsAnalysisCard: React.FC<
 
     return (
         <Card className="border-neutral-200/90 bg-white shadow-xs">
-            <CardHeader className="p-4 pb-2 sm:p-5">
+            <CardHeader className="p-4 pb-2 sm:p-5 sm:pb-2">
                 <div className="flex items-center gap-2">
                     <Sprout className="text-success-600 h-4 w-4" />
                     <CardTitle className="text-sm font-semibold text-neutral-900">
@@ -168,7 +168,7 @@ export const IngredientsAnalysisCard: React.FC<
                 </div>
             </CardHeader>
 
-            <CardContent className="p-4 pt-2 sm:p-5">
+            <CardContent className="p-4 pt-2 sm:p-5 sm:pt-2">
                 <div className={`grid grid-cols-1 gap-2 ${gridColumnsClass}`}>
                     {analysis.palmOil !== "unknown" && (
                         <div

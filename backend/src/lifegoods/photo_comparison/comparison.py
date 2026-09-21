@@ -328,12 +328,12 @@ def _display_nutrient(
     for reported in (left, right):
         if reported is not None and reported.observation is not None:
             obs = reported.observation
+            if obs.nutrient:
+                return obs.nutrient
             if obs.label:
                 return obs.label
             if obs.original_script:
                 return obs.original_script
-            if obs.nutrient:
-                return obs.nutrient
     return "nutrition"
 
 

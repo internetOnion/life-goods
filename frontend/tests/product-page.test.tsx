@@ -87,15 +87,10 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(screen.getByText("4006381333931")).toBeVisible()
         expect(screen.getByText("Barcode", { exact: true })).toBeVisible()
         expect(screen.getByText("Quantity", { exact: true })).toBeVisible()
-        const countriesSoldRow = screen.getByText("Countries Sold", {
-            exact: true,
-        }).parentElement
-        expect(countriesSoldRow).not.toBeNull()
+        // The countries-sold row is intentionally not part of the Summary.
         expect(
-            within(countriesSoldRow as HTMLElement).getByText("cambodia", {
-                exact: true,
-            }),
-        ).toBeVisible()
+            screen.queryByText("Countries Sold", { exact: true }),
+        ).not.toBeInTheDocument()
         const manufacturingPlacesRow = screen.getByText(
             "Manufacturing Places",
             { exact: true },
@@ -219,46 +214,24 @@ describe("Product page (life-goods-viewer layout)", () => {
                 name: "Ingredients List",
             }),
         ).toBeVisible()
-        const evidenceDisclosure = within(ingredientsPanel).getByText(
-            "Show source evidence",
-        )
-        const sourceEvidenceDetails = evidenceDisclosure.closest("details")
-        expect(sourceEvidenceDetails).not.toBeNull()
-        expect(sourceEvidenceDetails).not.toHaveAttribute("open")
+        // Evidence is a flat, always-visible list: no nested disclosures.
+        expect(
+            within(ingredientsPanel).queryByText("Show source evidence"),
+        ).not.toBeInTheDocument()
         expect(
             within(ingredientsPanel).queryByText(
                 "View wording and source context",
             ),
         ).not.toBeInTheDocument()
-        const sourceSummaries =
-            sourceEvidenceDetails?.querySelectorAll("summary") ?? []
-        expect(sourceSummaries.length).toBeGreaterThan(1)
-        const [parentSummary, ...childSummaries] = Array.from(sourceSummaries)
-        if (!parentSummary) throw new Error("Expected source evidence summary")
-        expect(parentSummary).toHaveClass(
-            "w-full",
-            "px-3",
-            "bg-info-50",
-            "text-sm",
-            "font-bold",
-            "rounded-xl",
+        const evidenceHeading = within(ingredientsPanel).queryByRole(
+            "heading",
+            { name: "Ingredient and wording evidence" },
         )
-        expect(parentSummary.nextElementSibling).not.toHaveClass("mt-1")
-        childSummaries.forEach((summary) => {
-            expect(summary).toHaveClass(
-                "w-full",
-                "pl-8",
-                "pr-3",
-                "hover:bg-info-50",
-                "hover:text-info-800",
-                "rounded-xl",
-                "transition-colors",
-            )
-            expect(summary).not.toHaveClass(
-                "hover:bg-neutral-50",
-                "rounded-none",
-            )
-        })
+        if (evidenceHeading) {
+            expect(
+                evidenceHeading.parentElement?.querySelector("details"),
+            ).toBeNull()
+        }
         expect(
             within(ingredientsPanel).queryByRole("heading", {
                 name: "Source Assessments",
@@ -420,15 +393,9 @@ describe("Product page (life-goods-viewer layout)", () => {
 
         expect(await screen.findByText("សូកូឡាខ្មៅ")).toBeVisible()
         expect(screen.getByText("Example Foods")).toBeVisible()
-        const countriesSoldRow = screen.getByText("ប្រទេសដែលលក់", {
-            exact: true,
-        }).parentElement
-        expect(countriesSoldRow).not.toBeNull()
         expect(
-            within(countriesSoldRow as HTMLElement).getByText("កម្ពុជា", {
-                exact: true,
-            }),
-        ).toBeVisible()
+            screen.queryByText("ប្រទេសដែលលក់", { exact: true }),
+        ).not.toBeInTheDocument()
         const manufacturingPlacesRow = screen.getByText("ទីកន្លែងផលិត", {
             exact: true,
         }).parentElement
@@ -506,7 +473,7 @@ describe("Product page (life-goods-viewer layout)", () => {
         ).toBeVisible()
     })
 
-    test("keeps a long Khmer countries-sold list wrapped in the Summary", async () => {
+    test("does not list countries sold in the Summary even when many are known", async () => {
         const countries = [
             "en:armenia",
             "en:azerbaijan",
@@ -528,22 +495,10 @@ describe("Product page (life-goods-viewer layout)", () => {
         )
 
         expect(await screen.findByText("Dark Chocolate")).toBeVisible()
-        const row = screen.getByText("ប្រទេសដែលលក់", {
-            exact: true,
-        }).parentElement
-        expect(row).not.toBeNull()
-        const value = row?.querySelector("span:last-child")
-        expect(value).not.toBeNull()
-        expect(value).toHaveClass("min-w-0", "wrap-anywhere")
-        expect(value?.textContent).toContain("អាមេនី")
-        expect(value?.textContent).toContain("បែលហ្ស៊ិក")
-        expect(value?.textContent).toContain("កាមេរូន")
-        expect(value?.textContent).toContain("រេអុយញ៉ុង")
-        expect(value?.textContent).toContain("រុស្ស៊ី")
-        expect(value?.textContent).toContain("សេណេហ្គាល់")
-        expect(value?.textContent).toContain("ទុយនីស៊ី")
-        expect(value?.textContent).toContain("អ៊ុយក្រែន")
-        expect(value?.textContent).not.toContain("en:")
+        expect(
+            screen.queryByText("ប្រទេសដែលលក់", { exact: true }),
+        ).not.toBeInTheDocument()
+        expect(screen.queryByText(/អាមេនី/)).not.toBeInTheDocument()
         expect(response.data.product.countries).toEqual(
             countries.map((country) => country.replace("en:", "")),
         )
@@ -1416,13 +1371,16 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(
             screen.getByText("Ingredient and wording evidence"),
         ).toBeVisible()
-        await user.click(screen.getByText("Show source evidence"))
-        await user.click(screen.getByText("Peanuts", { selector: "span" }))
-        expect(screen.getByText("May contain")).toBeVisible()
-        expect(screen.getByText("Negated wording")).toBeVisible()
-        expect(screen.getByText("Unclear wording")).toBeVisible()
-        expect(screen.getByText(/peanut-free/)).toBeVisible()
-        expect(screen.getByText(/peanut flavor/)).toBeVisible()
+        expect(
+            screen.queryByText("Show source evidence"),
+        ).not.toBeInTheDocument()
+        expect(screen.getByText("Peanuts", { selector: "p" })).toBeVisible()
+        expect(screen.getByText("May contain:")).toBeVisible()
+        // Negated / unclear wording is not evidence of presence, so it is not listed.
+        expect(screen.queryByText("Negated wording:")).not.toBeInTheDocument()
+        expect(screen.queryByText("Unclear wording:")).not.toBeInTheDocument()
+        expect(screen.queryByText(/peanut-free/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/peanut flavor/)).not.toBeInTheDocument()
     })
 
     test("keeps the notice hidden after a same-tab choice without evidence", async () => {
@@ -1759,16 +1717,9 @@ describe("Product page (life-goods-viewer layout)", () => {
                 },
             ),
         ).toBeVisible()
-        const countriesSoldRow = screen.getByText("Countries Sold", {
-            exact: true,
-        }).parentElement
-        expect(countriesSoldRow).not.toBeNull()
         expect(
-            within(countriesSoldRow as HTMLElement).getByText(
-                "Source Data Unavailable",
-                { exact: true },
-            ),
-        ).toBeVisible()
+            screen.queryByText("Countries Sold", { exact: true }),
+        ).not.toBeInTheDocument()
         const manufacturingPlacesRow = screen.getByText(
             "Manufacturing Places",
             { exact: true },

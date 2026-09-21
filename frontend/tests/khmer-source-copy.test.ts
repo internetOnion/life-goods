@@ -12,7 +12,6 @@ const productSourceCopyKeys = [
     "sourceAssessments",
     "openFoodFactsSourceAssessments",
     "sourcePackageLabel",
-    "showSourceEvidence",
     "hideSourceEvidence",
     "viewWordingAndSourceContext",
     "nutritionSource",
@@ -33,7 +32,6 @@ const productEnglishSourceCopy: Record<
     sourceAssessments: "Source Assessments",
     openFoodFactsSourceAssessments: "Open Food Facts Source Assessments",
     sourcePackageLabel: "Source: Package Label Declaration",
-    showSourceEvidence: "Show source evidence",
     hideSourceEvidence: "Hide source evidence",
     viewWordingAndSourceContext: "View wording and source context",
     nutritionSource:

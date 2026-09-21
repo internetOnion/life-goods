@@ -263,17 +263,24 @@ def test_compact_extraction_generates_ids_and_accepts_missing_serving_quantity()
     compact = json.loads(json.dumps(payload))
     compact.pop("outcome")
     compact["package_quantity"] = None
-    compact["identity"] = {"brand": {
-        "value_text": "MAMA", "language": "en", "state": "readable",
-        "evidence": [{"image_id": image.evidence.image_id}],
-    }}
+    compact["identity"] = {
+        "brand": {
+            "value_text": "MAMA",
+            "language": "en",
+            "state": "readable",
+            "evidence": [{"image_id": image.evidence.image_id}],
+        }
+    }
     column = compact["nutrition_columns"][0]
     column.pop("column_id")
     column.pop("serving_quantity_state")
     column["serving_quantity"] = None
     column["fields"][0].pop("field_id")
     result = build_extraction(
-        compact, product_id="left", images=[image.evidence], provider="google",
+        compact,
+        product_id="left",
+        images=[image.evidence],
+        provider="google",
         model="gemini-3.8-flash",
     )
     assert result.outcome is ExtractionOutcome.PARTIAL
@@ -435,14 +442,8 @@ def test_photo_provider_capacity_is_shared_between_app_instances() -> None:
 
 def test_http_extraction_rejects_count_and_unsupported_format() -> None:
     app = create_photo_comparison_app(provider=FakeProvider())
-    allowed_files = [
-        ("photos", (f"{index}.png", _png_bytes(), "image/png"))
-        for index in range(3)
-    ]
-    too_many_files = [
-        ("photos", (f"{index}.png", _png_bytes(), "image/png"))
-        for index in range(4)
-    ]
+    allowed_files = [("photos", (f"{index}.png", _png_bytes(), "image/png")) for index in range(3)]
+    too_many_files = [("photos", (f"{index}.png", _png_bytes(), "image/png")) for index in range(4)]
     with TestClient(app) as client:
         allowed = client.post(
             "/api/experimental/photo-comparison/extractions",
@@ -604,6 +605,7 @@ def test_package_quantity_normalization_handles_missing_label_and_merged_units()
 
 def test_percentage_rows_pair_across_products_and_retain_both_values() -> None:
     from lifegoods.photo_comparison.contracts import NutrientRowKind
+
     request = normal_pair()
     left_image_id = request.left.images[0].image_id
     right_image_id = request.right.images[0].image_id
@@ -654,6 +656,7 @@ def test_percentage_rows_pair_across_products_and_retain_both_values() -> None:
 
 def test_unmatched_rows_display_clean_nutrient_names() -> None:
     from lifegoods.photo_comparison.contracts import NutrientRowKind
+
     request = normal_pair()
     right_image_id = request.right.images[0].image_id
 
@@ -681,6 +684,7 @@ def test_unmatched_rows_display_clean_nutrient_names() -> None:
 
 def test_unitless_calories_normalized_and_comparable() -> None:
     from lifegoods.photo_comparison.contracts import MeasurementUnit
+
     raw_response = {
         "nutrition_columns": [
             {
@@ -783,6 +787,7 @@ def test_unitless_calories_normalized_and_comparable() -> None:
 
 def test_khmer_nutrient_aliases_canonicalized() -> None:
     from lifegoods.photo_comparison.normalization import canonical_nutrient
+
     assert canonical_nutrient("ថាមពល") == "energy"
     assert canonical_nutrient("កាឡូរី") == "energy"
     assert canonical_nutrient("ជាតិខ្លាញ់") == "fat"
@@ -799,9 +804,118 @@ def test_khmer_nutrient_aliases_canonicalized() -> None:
     assert canonical_nutrient("ប៉ូតាស្យូម") == "potassium"
 
 
+def test_multilingual_labels_canonicalized() -> None:
+    from lifegoods.photo_comparison.normalization import canonical_nutrient
+
+    assert (
+        canonical_nutrient(
+            "Asid Lemak Monotidaktepu / Monounsaturated Fatty Acid / 单元不饱和脂肪酸"
+        )
+        == "monounsaturated_fat"
+    )
+    assert canonical_nutrient("Asid Lemak Politidaktepu / Polyunsaturated Fatty Acid") == (
+        "polyunsaturated_fat"
+    )
+    assert canonical_nutrient("Calories from Fat") == "calories_from_fat"
+    assert canonical_nutrient("Tenaga / Energy / 能量") == "energy"
+    assert canonical_nutrient("Lemak Tepu / Saturated Fat*") == "saturated_fat"
+    assert canonical_nutrient("蛋白质") == "protein"
+    assert canonical_nutrient("ខ្លាញ់មិនឆ្អែត") == "unsaturated_fat"
+    assert canonical_nutrient("Trans Fat") == "trans_fat"
+    assert canonical_nutrient("Something Unknown / 未知") is None
+
+
+def test_basis_inferred_from_multilingual_headers() -> None:
+    from lifegoods.photo_comparison.contracts import NutritionBasis
+    from lifegoods.photo_comparison.normalization import infer_basis_from_label
+
+    assert infer_basis_from_label("Setiap 100g/ Per 100g/ 每100克") is NutritionBasis.PER_100G
+    assert infer_basis_from_label("Pour 100 g") is NutritionBasis.PER_100G
+    assert infer_basis_from_label("ក្នុង 100 ក្រាម") is NutritionBasis.PER_100G
+    assert infer_basis_from_label("Per 100ml") is NutritionBasis.PER_100ML
+    assert (
+        infer_basis_from_label("Amount per serving / Quantité par portion")
+        is NutritionBasis.PER_SERVING
+    )
+    assert (
+        infer_basis_from_label("Setiap Hidangan/ Per Serving/ 每食用分量")
+        is NutritionBasis.PER_SERVING
+    )
+    assert infer_basis_from_label("Per pack") is NutritionBasis.PER_PACKAGE
+    assert infer_basis_from_label("% Daily Value / Valeur Quotidienne*") is NutritionBasis.OTHER
+    assert infer_basis_from_label("%NRV") is NutritionBasis.OTHER
+    assert infer_basis_from_label("Nutrition facts") is NutritionBasis.UNKNOWN
+    assert infer_basis_from_label(None) is NutritionBasis.UNKNOWN
+
+
+def test_column_basis_recovered_from_header_and_percentage_rows() -> None:
+    from lifegoods.photo_comparison.contracts import NutritionBasis
+    from lifegoods.photo_comparison.normalization import build_extraction
+
+    image = prepare_image(_png_bytes())
+    evidence = [{"image_id": image.evidence.image_id}]
+
+    def field(field_id: str, row_kind: str) -> dict[str, object]:
+        return {
+            "field_id": field_id,
+            "nutrient": "sodium",
+            "label": "Sodium",
+            "value_text": "10",
+            "unit_text": "mg" if row_kind == "amount" else "%",
+            "original_script": "Sodium 10",
+            "language": "en",
+            "state": "readable",
+            "qualifier": "exact",
+            "row_kind": row_kind,
+            "evidence": evidence,
+        }
+
+    raw = {
+        "identity": None,
+        "package_quantity": None,
+        "nutrition_columns": [
+            {
+                "label": "Setiap 100g/ Per 100g/ 每100克",
+                "basis": "unknown",
+                "fields": [field("a", "amount")],
+            },
+            {"label": "% Daily Value / Valeur Quotidienne*", "fields": [field("b", "percentage")]},
+            {"label": "Column", "fields": [field("c", "percentage")]},
+            {"label": "Per 100g", "basis": "per_serving", "basis_evidence": evidence, "fields": []},
+            {"label": "Per 100g", "fields": []},
+        ],
+        "outcome": "complete",
+        "retake_reasons": [],
+    }
+    extraction = build_extraction(
+        raw, product_id="left", images=[image.evidence], provider="google", model="gemini"
+    )
+    bases = [column.basis for column in extraction.nutrition_columns]
+    assert bases == [
+        NutritionBasis.PER_100G,
+        NutritionBasis.OTHER,
+        NutritionBasis.OTHER,
+        NutritionBasis.PER_SERVING,  # explicit provider basis is never overridden
+        NutritionBasis.UNKNOWN,  # no evidence available -> stays unknown
+    ]
+    assert extraction.nutrition_columns[0].basis_evidence[0].image_id == image.evidence.image_id
+
+
+def test_multilingual_unit_text_normalized() -> None:
+    from lifegoods.photo_comparison.contracts import MeasurementUnit
+    from lifegoods.photo_comparison.normalization import normalize_unit
+
+    assert normalize_unit("kcal/千卡*") == (MeasurementUnit.KCAL, Decimal("1"))
+    assert normalize_unit("g/克") == (MeasurementUnit.G, Decimal("1"))
+    assert normalize_unit("毫克") == (MeasurementUnit.MG, Decimal("1"))
+    assert normalize_unit("kJ/千焦") == (MeasurementUnit.KJ, Decimal("1"))
+    assert normalize_unit("bogus/未知") == (None, None)
+
+
 def test_special_unit_normalization_and_quantities() -> None:
     from lifegoods.photo_comparison.contracts import MeasurementUnit
     from lifegoods.photo_comparison.normalization import normalize_unit
+
     unit, factor = normalize_unit("oz")
     assert unit is MeasurementUnit.G
     assert factor == Decimal("28.3495")

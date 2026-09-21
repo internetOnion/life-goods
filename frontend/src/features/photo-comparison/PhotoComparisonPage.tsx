@@ -6,7 +6,6 @@ import {
     WarningCircle,
 } from "@phosphor-icons/react"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { useLocation, useNavigate } from "react-router"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { GlassButton as Button } from "@/components/ui/button"
@@ -20,15 +19,10 @@ import {
     extractProductPhotos,
     PhotoComparisonApiError,
 } from "./api"
-import { ColumnSelectionPage } from "./ColumnSelectionPage"
 import { ComparisonProcessingSheet } from "./ComparisonProcessingSheet"
 import { ComparisonSection } from "./ComparisonSection"
 import { CompareStepper } from "./CompareStepper"
-import {
-    displayBasisLabel,
-    formatActionableError,
-    formatPreparationLabel,
-} from "./helpers"
+import { formatActionableError, pickDefaultColumnId } from "./helpers"
 import { PhotoInspectionModal } from "./PhotoInspectionModal"
 import { ProductPhotoPanel } from "./ProductPhotoPanel"
 import type {
@@ -64,18 +58,6 @@ function createInitialProduct(
         retry: false,
         revision: 0,
     }
-}
-
-function getDefaultColumnId(
-    extraction: ProductSideState["extraction"],
-): string | null {
-    if (
-        !extraction?.nutrition_columns ||
-        extraction.nutrition_columns.length !== 1
-    ) {
-        return null
-    }
-    return extraction.nutrition_columns[0]?.column_id ?? null
 }
 
 function hasUnusablePhoto(product: ProductSideState): boolean {
@@ -140,84 +122,6 @@ export function PhotoComparisonPage({
         null,
     )
 
-    const location = useLocation()
-    const navigate = useNavigate()
-    const locationRef = useRef(location)
-    locationRef.current = location
-    const columnParam = new URLSearchParams(location.search).get("column")
-    const columnPageSide =
-        columnParam === "left" || columnParam === "right" ? columnParam : null
-    const chooserReturnRef = useRef<{
-        focusId: string | null
-        scrollY: number
-    } | null>(null)
-    const previousColumnSideRef = useRef<CompareSide | null>(null)
-
-    function setColumnPageSide(side: CompareSide | null, replace = false) {
-        const currentLocation = locationRef.current
-        const params = new URLSearchParams(currentLocation.search)
-        if (side && !params.has("column")) {
-            chooserReturnRef.current = {
-                focusId:
-                    document.activeElement?.id || `panel-heading-${activeSide}`,
-                scrollY: window.scrollY,
-            }
-        }
-        if (side) params.set("column", side)
-        else params.delete("column")
-        void navigate(
-            { pathname: currentLocation.pathname, search: params.toString() },
-            { replace },
-        )
-    }
-
-    const chooserProduct =
-        columnPageSide === "left" ? leftProduct : rightProduct
-    const chooserAvailable =
-        columnPageSide !== null && !!chooserProduct.extraction
-
-    useEffect(() => {
-        if (columnParam !== null && !chooserAvailable) {
-            const params = new URLSearchParams(location.search)
-            params.delete("column")
-            void navigate(
-                { pathname: location.pathname, search: params.toString() },
-                { replace: true },
-            )
-        }
-    }, [
-        columnParam,
-        chooserAvailable,
-        location.pathname,
-        location.search,
-        navigate,
-    ])
-
-    useEffect(() => {
-        const previous = previousColumnSideRef.current
-        previousColumnSideRef.current = columnPageSide
-        const frame = window.requestAnimationFrame(() => {
-            if (chooserAvailable) {
-                document
-                    .getElementById("column-selection-heading")
-                    ?.focus({ preventScroll: true })
-                window.scrollTo(0, 0)
-            } else if (
-                previous &&
-                chooserReturnRef.current &&
-                flowPhase === "review"
-            ) {
-                const { focusId, scrollY } = chooserReturnRef.current
-                if (focusId)
-                    document
-                        .getElementById(focusId)
-                        ?.focus({ preventScroll: true })
-                window.scrollTo(0, scrollY)
-            }
-        })
-        return () => window.cancelAnimationFrame(frame)
-    }, [columnPageSide, chooserAvailable, flowPhase])
-
     const [highlightedPhotoId, setHighlightedPhotoId] = useState<string | null>(
         null,
     )
@@ -279,35 +183,22 @@ export function PhotoComparisonPage({
                   : flowPhase === "capture" || flowPhase === "review"
                     ? `panel-heading-${activeSide}`
                     : null
-        if (
-            chooserAvailable ||
-            !targetId ||
-            targetId === lastFocusTargetRef.current
-        )
-            return
+        if (!targetId || targetId === lastFocusTargetRef.current) return
         lastFocusTargetRef.current = targetId
         window.requestAnimationFrame(() => {
             document.getElementById(targetId)?.focus()
         })
-    }, [activeSide, flowPhase, chooserAvailable])
+    }, [activeSide, flowPhase])
 
     useEffect(() => {
         setPrimaryNavigationHidden(flowPhase !== "intro")
-        setBottomDockVisible(
-            !chooserAvailable &&
-                (flowPhase === "capture" || flowPhase === "review"),
-        )
+        setBottomDockVisible(flowPhase === "capture" || flowPhase === "review")
 
         return () => {
             setBottomDockVisible(false)
             setPrimaryNavigationHidden(false)
         }
-    }, [
-        flowPhase,
-        chooserAvailable,
-        setBottomDockVisible,
-        setPrimaryNavigationHidden,
-    ])
+    }, [flowPhase, setBottomDockVisible, setPrimaryNavigationHidden])
 
     useEffect(() => {
         if (
@@ -422,20 +313,6 @@ export function PhotoComparisonPage({
         ) {
             return false
         }
-        if (
-            leftProduct.extraction &&
-            (leftProduct.extraction.nutrition_columns?.length ?? 0) > 1 &&
-            !leftProduct.selectedColumnId
-        ) {
-            return false
-        }
-        if (
-            rightProduct.extraction &&
-            (rightProduct.extraction.nutrition_columns?.length ?? 0) > 1 &&
-            !rightProduct.selectedColumnId
-        ) {
-            return false
-        }
         return true
     }, [leftProduct, rightProduct])
 
@@ -485,24 +362,6 @@ export function PhotoComparisonPage({
         }
         if (hasUnusablePhoto(leftProduct) || hasUnusablePhoto(rightProduct)) {
             return t("photoPreviewUnavailable")
-        }
-        if (
-            leftProduct.extraction &&
-            (leftProduct.extraction.nutrition_columns?.length ?? 0) > 1 &&
-            !leftProduct.selectedColumnId
-        ) {
-            return t("selectColumnToContinue", {
-                product: leftProduct.title,
-            })
-        }
-        if (
-            rightProduct.extraction &&
-            (rightProduct.extraction.nutrition_columns?.length ?? 0) > 1 &&
-            !rightProduct.selectedColumnId
-        ) {
-            return t("selectColumnToContinue", {
-                product: rightProduct.title,
-            })
         }
         return t("readyToCompare")
     }, [
@@ -561,11 +420,8 @@ export function PhotoComparisonPage({
         setLeftProduct(createInitialProduct("left", t("productA"), "1"))
         setRightProduct(createInitialProduct("right", t("productB"), "2"))
         setInspectionState({ isOpen: false, side: "left", index: 0 })
-        setColumnPageSide(null, true)
         setHighlightedPhotoId(null)
         setActiveSide("left")
-        chooserReturnRef.current = null
-        previousColumnSideRef.current = null
         previewRefs.current = {}
         lastFocusTargetRef.current = null
         setFlowPhase(destination)
@@ -825,123 +681,6 @@ export function PhotoComparisonPage({
         }
     }
 
-    const handleSelectColumn = (
-        side: "left" | "right",
-        columnId: string | null,
-    ) => {
-        abortInFlightComparison()
-        invalidateComparison()
-
-        if (side === "left") {
-            leftProductRef.current = {
-                ...leftProductRef.current,
-                selectedColumnId: columnId,
-            }
-            setLeftProduct((prev) => ({ ...prev, selectedColumnId: columnId }))
-        } else {
-            rightProductRef.current = {
-                ...rightProductRef.current,
-                selectedColumnId: columnId,
-            }
-            setRightProduct((prev) => ({ ...prev, selectedColumnId: columnId }))
-        }
-
-        if (columnPageSide === side) {
-            const otherSide = side === "left" ? "right" : "left"
-            const otherProduct =
-                side === "left"
-                    ? rightProductRef.current
-                    : leftProductRef.current
-            setColumnPageSide(
-                otherProduct.extraction &&
-                    (otherProduct.extraction.nutrition_columns?.length ?? 0) >
-                        1 &&
-                    !otherProduct.selectedColumnId
-                    ? otherSide
-                    : null,
-                true,
-            )
-        }
-
-        const currentLeft = leftProductRef.current
-        const currentRight = rightProductRef.current
-
-        const leftExt = currentLeft.extraction
-        const rightExt = currentRight.extraction
-
-        const nextLeftColId =
-            side === "left"
-                ? columnId
-                : currentLeft.selectedColumnId || getDefaultColumnId(leftExt)
-
-        const nextRightColId =
-            side === "right"
-                ? columnId
-                : currentRight.selectedColumnId || getDefaultColumnId(rightExt)
-
-        if (leftExt && rightExt && nextLeftColId && nextRightColId) {
-            const reqId = ++comparisonRequestIdRef.current
-            const compareSessionId = sessionIdRef.current
-            const compController = new AbortController()
-            compareAbortControllerRef.current = compController
-
-            void (async () => {
-                setProcessingStep("comparing")
-                setFlowPhase("processing")
-                try {
-                    const result = await compare(
-                        {
-                            left: leftExt,
-                            right: rightExt,
-                            left_column_id: nextLeftColId,
-                            right_column_id: nextRightColId,
-                        },
-                        { signal: compController.signal },
-                    )
-                    if (
-                        !isMountedRef.current ||
-                        sessionIdRef.current !== compareSessionId ||
-                        comparisonRequestIdRef.current !== reqId ||
-                        compController.signal.aborted
-                    ) {
-                        return
-                    }
-                    setComparison(result)
-                    setFlowPhase("results")
-                } catch (err: unknown) {
-                    if (
-                        !isMountedRef.current ||
-                        sessionIdRef.current !== compareSessionId ||
-                        comparisonRequestIdRef.current !== reqId ||
-                        compController.signal.aborted ||
-                        isAbortError(err)
-                    ) {
-                        return
-                    }
-                    setComparisonError(
-                        actionableRequestError(
-                            err,
-                            t("comparisonFailed"),
-                            locale,
-                        ),
-                    )
-                    setFlowPhase("review")
-                } finally {
-                    if (compareAbortControllerRef.current === compController) {
-                        compareAbortControllerRef.current = null
-                    }
-                    if (
-                        isMountedRef.current &&
-                        sessionIdRef.current === compareSessionId &&
-                        comparisonRequestIdRef.current === reqId
-                    ) {
-                        setProcessingStep("idle")
-                    }
-                }
-            })()
-        }
-    }
-
     const handleCompare = async () => {
         if (
             leftProduct.photos.length === 0 ||
@@ -994,10 +733,9 @@ export function PhotoComparisonPage({
                     }
 
                     leftExt = ext
-                    const defaultColId =
-                        (ext.nutrition_columns?.length ?? 0) === 1
-                            ? (ext.nutrition_columns?.[0]?.column_id ?? null)
-                            : null
+                    const defaultColId = pickDefaultColumnId(
+                        ext.nutrition_columns,
+                    )
 
                     let updatedTitle = leftProductRef.current.title
                     let updatedTitleSource = leftProductRef.current.titleSource
@@ -1112,10 +850,9 @@ export function PhotoComparisonPage({
                     }
 
                     rightExt = ext
-                    const defaultColId =
-                        (ext.nutrition_columns?.length ?? 0) === 1
-                            ? (ext.nutrition_columns?.[0]?.column_id ?? null)
-                            : null
+                    const defaultColId = pickDefaultColumnId(
+                        ext.nutrition_columns,
+                    )
 
                     let updatedTitle = rightProductRef.current.title
                     let updatedTitleSource = rightProductRef.current.titleSource
@@ -1199,22 +936,11 @@ export function PhotoComparisonPage({
 
             const leftColId =
                 leftProductRef.current.selectedColumnId ||
-                getDefaultColumnId(leftExt)
+                pickDefaultColumnId(leftExt?.nutrition_columns)
 
             const rightColId =
                 rightProductRef.current.selectedColumnId ||
-                getDefaultColumnId(rightExt)
-
-            if ((leftExt.nutrition_columns?.length ?? 0) > 1 && !leftColId) {
-                setColumnPageSide("left")
-                setFlowPhase("review")
-                return
-            }
-            if ((rightExt.nutrition_columns?.length ?? 0) > 1 && !rightColId) {
-                setColumnPageSide("right")
-                setFlowPhase("review")
-                return
-            }
+                pickDefaultColumnId(rightExt?.nutrition_columns)
 
             setProcessingStep("comparing")
             abortInFlightComparison()
@@ -1328,51 +1054,6 @@ export function PhotoComparisonPage({
         }
         setActiveSide("right")
         setFlowPhase(rightProduct.photos.length > 0 ? "review" : "capture")
-    }
-
-    if (chooserAvailable) {
-        return (
-            <div lang={locale} className="min-h-full text-neutral-900">
-                {/* Column Selection Modal */}
-                <ColumnSelectionPage
-                    onBack={() => {
-                        void navigate(-1)
-                    }}
-                    product={
-                        columnPageSide === "left"
-                            ? leftProduct
-                            : columnPageSide === "right"
-                              ? rightProduct
-                              : null
-                    }
-                    otherProductTitle={
-                        columnPageSide === "left"
-                            ? rightProduct.title
-                            : leftProduct.title
-                    }
-                    onSelectColumn={(colId) => {
-                        if (columnPageSide) {
-                            handleSelectColumn(columnPageSide, colId)
-                        }
-                    }}
-                    stepIndicator={
-                        columnPageSide === "left" &&
-                        rightProduct.extraction &&
-                        (rightProduct.extraction.nutrition_columns?.length ??
-                            0) > 1 &&
-                        !rightProduct.selectedColumnId
-                            ? t("stepOf", { current: 1, total: 2 })
-                            : columnPageSide === "right" &&
-                                leftProduct.extraction &&
-                                (leftProduct.extraction.nutrition_columns
-                                    ?.length ?? 0) > 1 &&
-                                !leftProduct.selectedColumnId
-                              ? t("stepOf", { current: 2, total: 2 })
-                              : undefined
-                    }
-                />
-            </div>
-        )
     }
 
     return (
@@ -1693,9 +1374,6 @@ export function PhotoComparisonPage({
                                             index,
                                         )
                                     }
-                                    onSelectColumn={(colId) =>
-                                        handleSelectColumn(activeSide, colId)
-                                    }
                                     onFocusEvidence={handleFocusEvidence}
                                     onInspectPhoto={(index) =>
                                         setInspectionState({
@@ -1773,121 +1451,6 @@ export function PhotoComparisonPage({
                                         >
                                             {comparisonStatus}
                                         </p>
-                                    )}
-
-                                {!comparison &&
-                                    leftProduct.extraction &&
-                                    rightProduct.extraction &&
-                                    ((leftProduct.extraction.nutrition_columns
-                                        ?.length ?? 0) > 1 ||
-                                        (rightProduct.extraction
-                                            .nutrition_columns?.length ?? 0) >
-                                            1) && (
-                                        <section
-                                            className="mt-3 border-t border-neutral-200/80 py-3"
-                                            aria-labelledby="compare-basis-heading"
-                                        >
-                                            <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
-                                                <h3
-                                                    id="compare-basis-heading"
-                                                    className="text-sm font-extrabold text-neutral-900"
-                                                >
-                                                    Choose the nutrition basis
-                                                </h3>
-                                                <p className="text-xs text-neutral-500">
-                                                    You can change this while a
-                                                    comparison is in progress.
-                                                </p>
-                                            </div>
-                                            <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                                                {(
-                                                    ["left", "right"] as const
-                                                ).map((side) => {
-                                                    const product =
-                                                        getProductForSide(side)
-                                                    const columns =
-                                                        product.extraction
-                                                            ?.nutrition_columns ??
-                                                        []
-                                                    if (columns.length <= 1)
-                                                        return null
-
-                                                    return (
-                                                        <div
-                                                            key={side}
-                                                            className="rounded-lg border border-neutral-200/80 bg-neutral-50/60 p-3"
-                                                        >
-                                                            <p className="text-xs font-bold text-neutral-700">
-                                                                {product.title}
-                                                            </p>
-                                                            <div className="mt-2 flex flex-col gap-2">
-                                                                {columns.map(
-                                                                    (
-                                                                        column,
-                                                                    ) => {
-                                                                        const isSelected =
-                                                                            product.selectedColumnId ===
-                                                                            column.column_id
-                                                                        return (
-                                                                            <div
-                                                                                key={
-                                                                                    column.column_id
-                                                                                }
-                                                                                className="flex items-center justify-between gap-2 rounded-lg border border-neutral-200 bg-white px-2.5 py-2"
-                                                                            >
-                                                                                <div className="min-w-0">
-                                                                                    <p className="truncate text-xs font-semibold text-neutral-800">
-                                                                                        {column.label ||
-                                                                                            t(
-                                                                                                "nutritionColumn",
-                                                                                            )}
-                                                                                    </p>
-                                                                                    <p className="mt-0.5 text-xs text-neutral-500">
-                                                                                        {displayBasisLabel(
-                                                                                            column.basis,
-                                                                                            locale,
-                                                                                        )}{" "}
-                                                                                        ·{" "}
-                                                                                        {formatPreparationLabel(
-                                                                                            column.preparation_state,
-                                                                                            locale,
-                                                                                        )}
-                                                                                    </p>
-                                                                                </div>
-                                                                                <Button
-                                                                                    type="button"
-                                                                                    variant={
-                                                                                        isSelected
-                                                                                            ? "default"
-                                                                                            : "outline"
-                                                                                    }
-                                                                                    size="sm"
-                                                                                    onClick={() =>
-                                                                                        handleSelectColumn(
-                                                                                            side,
-                                                                                            column.column_id,
-                                                                                        )
-                                                                                    }
-                                                                                    className="h-8 shrink-0 text-xs font-semibold"
-                                                                                >
-                                                                                    {isSelected
-                                                                                        ? t(
-                                                                                              "selected",
-                                                                                          )
-                                                                                        : t(
-                                                                                              "selectColumn",
-                                                                                          )}
-                                                                                </Button>
-                                                                            </div>
-                                                                        )
-                                                                    },
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                })}
-                                            </div>
-                                        </section>
                                     )}
 
                                 {(flowPhase === "capture" ||
@@ -2010,133 +1573,6 @@ export function PhotoComparisonPage({
                         >
                             {t("comparisonResults")}
                         </h1>
-                        {/* Multi-column basis selector on the results page */}
-                        {((leftProduct.extraction?.nutrition_columns?.length ??
-                            0) > 1 ||
-                            (rightProduct.extraction?.nutrition_columns
-                                ?.length ?? 0) > 1) && (
-                            <section
-                                className="border-t border-neutral-200/80 py-3"
-                                aria-labelledby="results-basis-heading"
-                            >
-                                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                                    <h3
-                                        id="results-basis-heading"
-                                        className="text-sm font-bold text-neutral-900"
-                                    >
-                                        {t("nutritionBasis")}
-                                    </h3>
-                                    <p className="text-xs text-neutral-500">
-                                        {t("switchColumn")}
-                                    </p>
-                                </div>
-                                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
-                                    {(leftProduct.extraction?.nutrition_columns
-                                        ?.length ?? 0) > 1 && (
-                                        <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                            <span className="text-xs font-semibold text-neutral-700">
-                                                {leftProduct.title}:
-                                            </span>
-                                            <div
-                                                data-glass-surface=""
-                                                className="glass-surface flex max-w-full min-w-0 flex-wrap gap-1 rounded-xl p-1"
-                                                role="group"
-                                                aria-label={leftProduct.title}
-                                            >
-                                                {leftProduct.extraction?.nutrition_columns?.map(
-                                                    (col) => {
-                                                        const isSelected =
-                                                            leftProduct.selectedColumnId ===
-                                                            col.column_id
-                                                        return (
-                                                            <Button
-                                                                key={
-                                                                    col.column_id
-                                                                }
-                                                                type="button"
-                                                                variant="ghost"
-                                                                glassTone={
-                                                                    isSelected
-                                                                        ? "selected"
-                                                                        : "neutral"
-                                                                }
-                                                                aria-pressed={
-                                                                    isSelected
-                                                                }
-                                                                onClick={() =>
-                                                                    handleSelectColumn(
-                                                                        "left",
-                                                                        col.column_id,
-                                                                    )
-                                                                }
-                                                                className="min-h-11 px-3 text-xs font-semibold"
-                                                            >
-                                                                {col.label ||
-                                                                    t(
-                                                                        "nutritionColumn",
-                                                                    )}
-                                                            </Button>
-                                                        )
-                                                    },
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {(rightProduct.extraction?.nutrition_columns
-                                        ?.length ?? 0) > 1 && (
-                                        <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                            <span className="text-xs font-semibold text-neutral-700">
-                                                {rightProduct.title}:
-                                            </span>
-                                            <div
-                                                data-glass-surface=""
-                                                className="glass-surface flex max-w-full min-w-0 flex-wrap gap-1 rounded-xl p-1"
-                                                role="group"
-                                                aria-label={rightProduct.title}
-                                            >
-                                                {rightProduct.extraction?.nutrition_columns?.map(
-                                                    (col) => {
-                                                        const isSelected =
-                                                            rightProduct.selectedColumnId ===
-                                                            col.column_id
-                                                        return (
-                                                            <Button
-                                                                key={
-                                                                    col.column_id
-                                                                }
-                                                                type="button"
-                                                                variant="ghost"
-                                                                glassTone={
-                                                                    isSelected
-                                                                        ? "selected"
-                                                                        : "neutral"
-                                                                }
-                                                                aria-pressed={
-                                                                    isSelected
-                                                                }
-                                                                onClick={() =>
-                                                                    handleSelectColumn(
-                                                                        "right",
-                                                                        col.column_id,
-                                                                    )
-                                                                }
-                                                                className="min-h-11 px-3 text-xs font-semibold"
-                                                            >
-                                                                {col.label ||
-                                                                    t(
-                                                                        "nutritionColumn",
-                                                                    )}
-                                                            </Button>
-                                                        )
-                                                    },
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </section>
-                        )}
-
                         {/* Comparison Section */}
                         <ComparisonSection
                             comparison={comparison}

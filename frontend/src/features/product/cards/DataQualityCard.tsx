@@ -151,7 +151,7 @@ export const DataQualityCard: React.FC<DataQualityCardProps> = ({
 
     return (
         <Card className="border-neutral-200/90 bg-white shadow-xs">
-            <CardHeader className="p-4 pb-2 sm:p-5">
+            <CardHeader className="p-4 pb-2 sm:p-5 sm:pb-2">
                 <div className="flex items-center gap-2">
                     <Database className="h-4 w-4 text-neutral-500" />
                     <CardTitle className="text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
@@ -160,7 +160,7 @@ export const DataQualityCard: React.FC<DataQualityCardProps> = ({
                 </div>
             </CardHeader>
 
-            <CardContent className="space-y-4 p-4 pt-2 text-xs sm:p-5">
+            <CardContent className="space-y-4 p-4 pt-2 text-xs sm:p-5 sm:pt-2">
                 {/* Completeness Bar */}
                 {percent !== null && (
                     <div className="space-y-1.5">
