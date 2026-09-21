@@ -35,7 +35,7 @@ export const RawRecordCard: React.FC<RawRecordCardProps> = ({
 
     return (
         <Card className="border-neutral-200/90 bg-white shadow-xs">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2 sm:p-5">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2 sm:p-5 sm:pb-2">
                 <div className="flex items-center gap-2">
                     <Terminal className="h-4 w-4 text-neutral-500" />
                     <CardTitle className="text-sm font-bold tracking-[-0.015em] text-neutral-900 sm:text-base">
@@ -75,7 +75,7 @@ export const RawRecordCard: React.FC<RawRecordCardProps> = ({
                 </div>
             </CardHeader>
 
-            <CardContent className="space-y-3 p-4 pt-2 text-xs sm:p-5">
+            <CardContent className="space-y-3 p-4 pt-2 text-xs sm:p-5 sm:pt-2">
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-neutral-200/60 bg-neutral-50 p-2.5 font-mono text-xs text-neutral-700">
                     <span>{t("apiRoute")}</span>
                     <span className="text-neutral-500">

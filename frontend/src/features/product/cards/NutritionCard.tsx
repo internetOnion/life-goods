@@ -58,7 +58,7 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
     if (rows.length === 0) {
         return (
             <Card className="rounded-2xl border-neutral-200/90 bg-white shadow-xs">
-                <CardHeader className="p-4 pb-2 sm:p-5">
+                <CardHeader className="p-4 pb-2 sm:p-5 sm:pb-2">
                     <div className="flex items-center gap-2.5">
                         <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-neutral-100 text-neutral-700">
                             <NutritionTableIcon className="size-4" />
@@ -68,7 +68,7 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
                         </CardTitle>
                     </div>
                 </CardHeader>
-                <CardContent className="space-y-1 p-4 pt-1 sm:p-5">
+                <CardContent className="space-y-1 p-4 pt-1 sm:p-5 sm:pt-1">
                     <p className="text-xs font-semibold text-neutral-700">
                         {t("sourceDataUnavailable")}
                     </p>
@@ -82,7 +82,7 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
 
     return (
         <Card className="rounded-2xl border-neutral-200/90 bg-white shadow-xs">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2 sm:p-5">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2 sm:p-5 sm:pb-2">
                 <div className="flex items-center gap-2.5">
                     <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-neutral-100 text-neutral-700">
                         <NutritionTableIcon className="size-4" />
@@ -93,7 +93,7 @@ export const NutritionCard: React.FC<NutritionCardProps> = ({
                 </div>
             </CardHeader>
 
-            <CardContent className="space-y-0 p-4 pt-2 sm:p-5">
+            <CardContent className="space-y-0 p-4 pt-2 sm:p-5 sm:pt-2">
                 <div className="overflow-hidden rounded-xl border border-neutral-200/80 bg-neutral-50/50">
                     <ScrollContainer
                         fadeColor="neutral"

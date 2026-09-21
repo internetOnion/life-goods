@@ -34,7 +34,7 @@ export const ProductCharacteristicsCard: React.FC<
 
     return (
         <Card className="border-neutral-200/90 bg-white shadow-xs">
-            <CardHeader className="p-4 pb-2 sm:p-5">
+            <CardHeader className="p-4 pb-2 sm:p-5 sm:pb-2">
                 <div className="flex items-center gap-2.5">
                     <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-neutral-100 text-neutral-700">
                         <Tag className="h-4 w-4" />
@@ -45,7 +45,7 @@ export const ProductCharacteristicsCard: React.FC<
                 </div>
             </CardHeader>
 
-            <CardContent className="space-y-4 p-4 pt-2 text-xs sm:p-5">
+            <CardContent className="space-y-4 p-4 pt-2 text-xs sm:p-5 sm:pt-2">
                 {/* Generic Name / Description */}
                 {product.genericName && (
                     <div className="rounded-2xl border border-neutral-200/60 bg-neutral-50 p-3">

@@ -69,7 +69,7 @@ export const ProvenanceCard: React.FC<ProvenanceCardProps> = ({
 
     return (
         <Card className="border-info-200/90 bg-info-50/90 text-info-950 rounded-2xl border shadow-none">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-3 sm:p-5">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-3 sm:p-5 sm:pb-3">
                 <CardTitle className="text-info-950 text-sm font-bold tracking-[-0.015em] sm:text-base">
                     {t("dataSourceCitation")}
                 </CardTitle>
@@ -86,7 +86,7 @@ export const ProvenanceCard: React.FC<ProvenanceCardProps> = ({
                 </Badge>
             </CardHeader>
 
-            <CardContent className="space-y-3 p-4 pt-1 text-xs sm:p-5">
+            <CardContent className="space-y-3 p-4 pt-1 text-xs sm:p-5 sm:pt-1">
                 <div className="divide-info-200/70 border-info-200/70 divide-y border-t text-xs">
                     <div className="flex flex-col justify-between gap-1 py-2 sm:flex-row sm:items-center">
                         <span className="text-info-700 text-caption font-bold tracking-[0.06em] uppercase">

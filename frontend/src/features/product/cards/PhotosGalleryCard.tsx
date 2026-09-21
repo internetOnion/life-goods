@@ -28,7 +28,7 @@ export const PhotosGalleryCard: React.FC<PhotosGalleryCardProps> = ({
     if (photos.length === 0) {
         return (
             <Card className="rounded-2xl border-neutral-200/90 bg-white shadow-xs">
-                <CardHeader className="p-4 pb-2 sm:p-5">
+                <CardHeader className="p-4 pb-2 sm:p-5 sm:pb-2">
                     <div className="flex items-center gap-2">
                         <Images className="h-4 w-4 text-neutral-500" />
                         <CardTitle className="text-sm font-semibold text-neutral-900">
@@ -36,7 +36,7 @@ export const PhotosGalleryCard: React.FC<PhotosGalleryCardProps> = ({
                         </CardTitle>
                     </div>
                 </CardHeader>
-                <CardContent className="space-y-1 p-4 pt-1 sm:p-5">
+                <CardContent className="space-y-1 p-4 pt-1 sm:p-5 sm:pt-1">
                     <p className="text-xs font-semibold text-neutral-700">
                         {t("sourceDataUnavailable")}
                     </p>
@@ -61,7 +61,7 @@ export const PhotosGalleryCard: React.FC<PhotosGalleryCardProps> = ({
 
     return (
         <Card className="border-neutral-200/90 bg-white shadow-xs">
-            <CardHeader className="flex flex-col justify-between gap-3 p-4 pb-2 sm:flex-row sm:items-center sm:p-5">
+            <CardHeader className="flex flex-col justify-between gap-3 p-4 pb-2 sm:flex-row sm:items-center sm:p-5 sm:pb-2">
                 <div className="flex items-center gap-2">
                     <Images className="h-4 w-4 text-neutral-500" />
                     <CardTitle className="text-sm font-semibold text-neutral-900">
@@ -97,7 +97,7 @@ export const PhotosGalleryCard: React.FC<PhotosGalleryCardProps> = ({
                 )}
             </CardHeader>
 
-            <CardContent className="p-4 pt-2 sm:p-5">
+            <CardContent className="p-4 pt-2 sm:p-5 sm:pt-2">
                 <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4">
                     {filteredPhotos.map((photo) => (
                         <div

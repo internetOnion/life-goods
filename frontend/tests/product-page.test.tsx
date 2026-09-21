@@ -87,15 +87,10 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(screen.getByText("4006381333931")).toBeVisible()
         expect(screen.getByText("Barcode", { exact: true })).toBeVisible()
         expect(screen.getByText("Quantity", { exact: true })).toBeVisible()
-        const countriesSoldRow = screen.getByText("Countries Sold", {
-            exact: true,
-        }).parentElement
-        expect(countriesSoldRow).not.toBeNull()
+        // The countries-sold row is intentionally not part of the Summary.
         expect(
-            within(countriesSoldRow as HTMLElement).getByText("cambodia", {
-                exact: true,
-            }),
-        ).toBeVisible()
+            screen.queryByText("Countries Sold", { exact: true }),
+        ).not.toBeInTheDocument()
         const manufacturingPlacesRow = screen.getByText(
             "Manufacturing Places",
             { exact: true },
@@ -420,15 +415,9 @@ describe("Product page (life-goods-viewer layout)", () => {
 
         expect(await screen.findByText("សូកូឡាខ្មៅ")).toBeVisible()
         expect(screen.getByText("Example Foods")).toBeVisible()
-        const countriesSoldRow = screen.getByText("ប្រទេសដែលលក់", {
-            exact: true,
-        }).parentElement
-        expect(countriesSoldRow).not.toBeNull()
         expect(
-            within(countriesSoldRow as HTMLElement).getByText("កម្ពុជា", {
-                exact: true,
-            }),
-        ).toBeVisible()
+            screen.queryByText("ប្រទេសដែលលក់", { exact: true }),
+        ).not.toBeInTheDocument()
         const manufacturingPlacesRow = screen.getByText("ទីកន្លែងផលិត", {
             exact: true,
         }).parentElement
@@ -506,7 +495,7 @@ describe("Product page (life-goods-viewer layout)", () => {
         ).toBeVisible()
     })
 
-    test("keeps a long Khmer countries-sold list wrapped in the Summary", async () => {
+    test("does not list countries sold in the Summary even when many are known", async () => {
         const countries = [
             "en:armenia",
             "en:azerbaijan",
@@ -528,22 +517,10 @@ describe("Product page (life-goods-viewer layout)", () => {
         )
 
         expect(await screen.findByText("Dark Chocolate")).toBeVisible()
-        const row = screen.getByText("ប្រទេសដែលលក់", {
-            exact: true,
-        }).parentElement
-        expect(row).not.toBeNull()
-        const value = row?.querySelector("span:last-child")
-        expect(value).not.toBeNull()
-        expect(value).toHaveClass("min-w-0", "wrap-anywhere")
-        expect(value?.textContent).toContain("អាមេនី")
-        expect(value?.textContent).toContain("បែលហ្ស៊ិក")
-        expect(value?.textContent).toContain("កាមេរូន")
-        expect(value?.textContent).toContain("រេអុយញ៉ុង")
-        expect(value?.textContent).toContain("រុស្ស៊ី")
-        expect(value?.textContent).toContain("សេណេហ្គាល់")
-        expect(value?.textContent).toContain("ទុយនីស៊ី")
-        expect(value?.textContent).toContain("អ៊ុយក្រែន")
-        expect(value?.textContent).not.toContain("en:")
+        expect(
+            screen.queryByText("ប្រទេសដែលលក់", { exact: true }),
+        ).not.toBeInTheDocument()
+        expect(screen.queryByText(/អាមេនី/)).not.toBeInTheDocument()
         expect(response.data.product.countries).toEqual(
             countries.map((country) => country.replace("en:", "")),
         )
@@ -1759,16 +1736,9 @@ describe("Product page (life-goods-viewer layout)", () => {
                 },
             ),
         ).toBeVisible()
-        const countriesSoldRow = screen.getByText("Countries Sold", {
-            exact: true,
-        }).parentElement
-        expect(countriesSoldRow).not.toBeNull()
         expect(
-            within(countriesSoldRow as HTMLElement).getByText(
-                "Source Data Unavailable",
-                { exact: true },
-            ),
-        ).toBeVisible()
+            screen.queryByText("Countries Sold", { exact: true }),
+        ).not.toBeInTheDocument()
         const manufacturingPlacesRow = screen.getByText(
             "Manufacturing Places",
             { exact: true },

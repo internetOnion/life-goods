@@ -13,7 +13,7 @@ export function SymbolsCard({ labels }: SymbolsCardProps) {
     const { locale, t } = useProductTranslation()
     return (
         <Card className="border-neutral-200/90 bg-white shadow-xs">
-            <CardHeader className="p-4 pb-2 sm:p-5">
+            <CardHeader className="p-4 pb-2 sm:p-5 sm:pb-2">
                 <div className="flex items-center gap-2.5">
                     <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-neutral-100 text-neutral-700">
                         <BadgeCheck className="h-4 w-4" />
@@ -24,7 +24,7 @@ export function SymbolsCard({ labels }: SymbolsCardProps) {
                 </div>
             </CardHeader>
 
-            <CardContent className="p-4 pt-2 sm:p-5">
+            <CardContent className="p-4 pt-2 sm:p-5 sm:pt-2">
                 {labels.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">
                         {labels.map((label) => (

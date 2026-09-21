@@ -108,14 +108,8 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
               ? String(quantityItem.value)
               : null
 
-    const countriesSold = projection?.countries ?? []
     const manufacturingPlaces =
         projection?.environment?.manufacturing_places ?? []
-    const countriesSoldValue = countriesSold.length
-        ? countriesSold
-              .map((country) => translateGeographicName(locale, country))
-              .join(", ")
-        : t("sourceDataUnavailable")
     const manufacturingPlacesValue = manufacturingPlaces.length
         ? translateManufacturingPlaces(locale, manufacturingPlaces.join(", "))
         : t("sourceDataUnavailable")
@@ -390,15 +384,6 @@ export const ProductHero: React.FC<ProductHeroProps> = ({
                             </span>
                             <span className="min-w-0 text-right font-mono text-xs font-semibold text-neutral-900 tabular-nums sm:text-sm">
                                 {quantity || t("sourceDataUnavailable")}
-                            </span>
-                        </div>
-
-                        <div className="grid min-h-12 grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-2 py-1 sm:grid-cols-[10rem_minmax(0,1fr)]">
-                            <span className="text-caption min-w-0 font-bold tracking-[0.06em] text-neutral-500 uppercase">
-                                {t("countriesSold")}
-                            </span>
-                            <span className="min-w-0 text-right text-xs font-semibold wrap-anywhere text-neutral-900 sm:text-sm">
-                                {countriesSoldValue}
                             </span>
                         </div>
 

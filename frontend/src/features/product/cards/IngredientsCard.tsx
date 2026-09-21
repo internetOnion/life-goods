@@ -153,7 +153,7 @@ export const IngredientsCard: React.FC<IngredientsCardProps> = ({
     if (ingredientItems.length === 0 && !translatedIngredientText) {
         return (
             <Card className="rounded-2xl border-neutral-200/90 bg-white shadow-xs">
-                <CardHeader className="p-4 pb-2 sm:p-5">
+                <CardHeader className="p-4 pb-2 sm:p-5 sm:pb-2">
                     <div className="flex items-center gap-2.5">
                         <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-neutral-100 text-neutral-700">
                             <ScrollText className="size-4" />
