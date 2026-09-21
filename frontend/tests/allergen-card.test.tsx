@@ -48,7 +48,7 @@ describe("AllergenCard", () => {
 
         expect(
             screen.getByRole("heading", {
-                name: "Open Food Facts declarations",
+                name: "Contains",
             }),
         ).toBeInTheDocument()
         expect(screen.getByText("Peanuts")).toBeInTheDocument()

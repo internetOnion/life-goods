@@ -214,46 +214,24 @@ describe("Product page (life-goods-viewer layout)", () => {
                 name: "Ingredients List",
             }),
         ).toBeVisible()
-        const evidenceDisclosure = within(ingredientsPanel).getByText(
-            "Show source evidence",
-        )
-        const sourceEvidenceDetails = evidenceDisclosure.closest("details")
-        expect(sourceEvidenceDetails).not.toBeNull()
-        expect(sourceEvidenceDetails).not.toHaveAttribute("open")
+        // Evidence is a flat, always-visible list: no nested disclosures.
+        expect(
+            within(ingredientsPanel).queryByText("Show source evidence"),
+        ).not.toBeInTheDocument()
         expect(
             within(ingredientsPanel).queryByText(
                 "View wording and source context",
             ),
         ).not.toBeInTheDocument()
-        const sourceSummaries =
-            sourceEvidenceDetails?.querySelectorAll("summary") ?? []
-        expect(sourceSummaries.length).toBeGreaterThan(1)
-        const [parentSummary, ...childSummaries] = Array.from(sourceSummaries)
-        if (!parentSummary) throw new Error("Expected source evidence summary")
-        expect(parentSummary).toHaveClass(
-            "w-full",
-            "px-3",
-            "bg-info-50",
-            "text-sm",
-            "font-bold",
-            "rounded-xl",
+        const evidenceHeading = within(ingredientsPanel).queryByRole(
+            "heading",
+            { name: "Ingredient and wording evidence" },
         )
-        expect(parentSummary.nextElementSibling).not.toHaveClass("mt-1")
-        childSummaries.forEach((summary) => {
-            expect(summary).toHaveClass(
-                "w-full",
-                "pl-8",
-                "pr-3",
-                "hover:bg-info-50",
-                "hover:text-info-800",
-                "rounded-xl",
-                "transition-colors",
-            )
-            expect(summary).not.toHaveClass(
-                "hover:bg-neutral-50",
-                "rounded-none",
-            )
-        })
+        if (evidenceHeading) {
+            expect(
+                evidenceHeading.parentElement?.querySelector("details"),
+            ).toBeNull()
+        }
         expect(
             within(ingredientsPanel).queryByRole("heading", {
                 name: "Source Assessments",
@@ -1393,11 +1371,13 @@ describe("Product page (life-goods-viewer layout)", () => {
         expect(
             screen.getByText("Ingredient and wording evidence"),
         ).toBeVisible()
-        await user.click(screen.getByText("Show source evidence"))
-        await user.click(screen.getByText("Peanuts", { selector: "span" }))
-        expect(screen.getByText("May contain")).toBeVisible()
-        expect(screen.getByText("Negated wording")).toBeVisible()
-        expect(screen.getByText("Unclear wording")).toBeVisible()
+        expect(
+            screen.queryByText("Show source evidence"),
+        ).not.toBeInTheDocument()
+        expect(screen.getByText("Peanuts", { selector: "p" })).toBeVisible()
+        expect(screen.getByText("May contain:")).toBeVisible()
+        expect(screen.getByText("Negated wording:")).toBeVisible()
+        expect(screen.getByText("Unclear wording:")).toBeVisible()
         expect(screen.getByText(/peanut-free/)).toBeVisible()
         expect(screen.getByText(/peanut flavor/)).toBeVisible()
     })
