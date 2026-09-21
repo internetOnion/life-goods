@@ -176,8 +176,6 @@ const englishProduct = {
     items: "items",
     ingredientMatches: "Ingredient matches",
     mayContain: "May contain",
-    negatedWording: "Negated wording",
-    unclearWording: "Unclear wording",
     incompleteAllergenChecks: "Some allergen checks are missing or incomplete.",
     missingDoesNotMeanFree:
         "Missing information does not mean that the Product is free from an allergen.",
@@ -430,8 +428,6 @@ const khmerProduct: ProductTranslations = {
     items: "មុខ",
     ingredientMatches: "ការផ្គូផ្គងគ្រឿងផ្សំ",
     mayContain: "អាចមាន",
-    negatedWording: "ពាក្យបដិសេធ",
-    unclearWording: "ពាក្យមិនច្បាស់",
     incompleteAllergenChecks: "ការត្រួតពិនិត្យអាលែហ្ស៊ីខ្លះបាត់ ឬមិនពេញលេញ។",
     missingDoesNotMeanFree: "ការបាត់ព័ត៌មានមិនមានន័យថាផលិតផលគ្មានអាលែហ្ស៊ីទេ។",
     containsPalmOil: "មានប្រេងដូង",
