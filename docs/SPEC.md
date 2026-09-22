@@ -1046,11 +1046,13 @@ HEIC/HEIF (the iPhone camera-roll default) is transcoded to JPEG on the backend
 before any provider call; browsers that cannot render HEIC show a neutral
 "preview not available" tile while keeping the photo usable. Other unsupported
 formats receive a clear unsupported-format message instead of promised
-conversion. A picked photo whose bytes cannot be read from the device (an
-iCloud-optimized photo that is not downloaded, for example) is marked unusable
-before any upload, with a message distinct from the unsupported-format one so
-the Shopper is told to make the photo available rather than to change its
-format. When an extraction fails, the capture view switches to the Product
+conversion. Every picked photo is read in full in the browser before it is sent:
+one whose bytes are missing or incomplete (an iCloud-optimized photo that is not
+downloaded, for example) is marked unusable before any upload, with a message
+distinct from the unsupported-format one so the Shopper is told to make the
+photo available rather than to change its format, and every other photo is
+uploaded from the verified in-memory copy rather than re-read from device
+storage while the request streams. When an extraction fails, the capture view switches to the Product
 whose photos failed so its error is visible, and the other Product's panel shows
 a pointer back to it. When a label contains a sole nutrition column it is
 selected automatically; when several columns exist, the Shopper chooses one with

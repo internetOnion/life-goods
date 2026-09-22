@@ -392,20 +392,27 @@ export function isHeicFile(file: File): boolean {
 }
 
 /**
- * A picked `File` is only a handle to device storage, so reading it can still fail after
- * the picker succeeds — most often an iCloud-optimized photo that is not downloaded yet.
- * Touching the first byte surfaces that here rather than as an empty or truncated upload
- * the backend can only reject.
+ * A picked `File` is only a handle to device storage, so its bytes are re-read while the
+ * upload streams — and that read can come up short or fail outright, most often for an
+ * iCloud-optimized photo the device has not downloaded. Reading the file fully here does
+ * two things: it detects an empty, truncated or unreadable photo before anything is sent,
+ * and it returns an in-memory copy to upload instead, so the request body can no longer
+ * depend on a second read of device storage.
+ *
+ * Returns null when the photo cannot be read in full, and the file itself where the
+ * environment offers no way to check — the backend still validates the bytes.
  */
-export async function isReadablePhotoFile(file: File): Promise<boolean> {
-    if (file.size === 0) return false
-    const head = file.slice(0, 1)
-    // Never reject a photo just because the environment lacks Blob.arrayBuffer;
-    // the backend still validates the bytes.
-    if (typeof head.arrayBuffer !== "function") return true
+export async function verifiedPhotoFile(file: File): Promise<File | null> {
+    if (file.size === 0) return null
+    if (typeof file.arrayBuffer !== "function") return file
     try {
-        return (await head.arrayBuffer()).byteLength === 1
+        const bytes = await file.arrayBuffer()
+        if (bytes.byteLength !== file.size) return null
+        return new File([bytes], file.name, {
+            type: file.type,
+            lastModified: file.lastModified,
+        })
     } catch {
-        return false
+        return null
     }
 }
