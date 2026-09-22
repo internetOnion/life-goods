@@ -57,6 +57,8 @@ const en = {
     comparisonErrorTitle: "The comparison could not be completed",
     invalidPhotoRequest:
         "Choose a valid JPEG, PNG or HEIC photo, then try again.",
+    photoUnreadableOnDevice:
+        "This photo could not be read from your device. It may not be fully downloaded — open it in your photo app first, or choose another photo.",
     photoRequestTooLarge:
         "The submitted photos are too large. Choose smaller photos and try again.",
     photoPreviewUnavailable:
@@ -310,6 +312,8 @@ const km: Record<keyof typeof en, string> = {
     comparisonErrorTitle: "មិនអាចបញ្ចប់ការប្រៀបធៀបបានទេ",
     invalidPhotoRequest:
         "ជ្រើសរូប JPEG, PNG ឬ HEIC ត្រឹមត្រូវ ហើយសាកល្បងម្ដងទៀត។",
+    photoUnreadableOnDevice:
+        "មិនអាចអានរូបថតនេះពីឧបករណ៍របស់អ្នកបានទេ។ វាប្រហែលមិនទាន់ទាញយកពេញលេញ។ សាកបើកវាក្នុងកម្មវិធីរូបថតជាមុនសិន ឬជ្រើសរូបផ្សេង។",
     photoRequestTooLarge:
         "រូបថតដែលបានផ្ញើមានទំហំធំពេក។ ជ្រើសរូបតូចជាងនេះ ហើយសាកល្បងម្ដងទៀត។",
     photoPreviewUnavailable:

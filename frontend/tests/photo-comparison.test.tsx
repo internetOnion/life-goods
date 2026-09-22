@@ -18,6 +18,7 @@ import {
     displayValue,
     formatActionableError,
     formatNutrientName,
+    isReadablePhotoFile,
     pickDefaultColumnId,
 } from "../src/features/photo-comparison/helpers"
 import { LocaleContext } from "../src/i18n/locale"
@@ -1228,10 +1229,12 @@ describe("Compare Products frontend page (/compare)", () => {
     test("normalizes every stable API error code without exposing raw messages", () => {
         expect(
             formatActionableError(
-                "The request payload is not valid.",
+                "The submitted photo is empty.",
                 "request_invalid",
             ),
-        ).toBe("Choose a valid JPEG, PNG or HEIC photo, then try again.")
+        ).toBe(
+            "This photo could not be read from your device. It may not be fully downloaded — open it in your photo app first, or choose another photo.",
+        )
         expect(
             formatActionableError(
                 "Only JPEG and PNG photos are supported.",
@@ -2331,6 +2334,64 @@ describe("Photo inspection and UX features", () => {
             }),
         ).toBeInTheDocument()
         expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+    })
+
+    test("flags a picked photo whose bytes cannot be read from the device", async () => {
+        renderRoute("/compare")
+
+        const fileInput = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+
+        // An iCloud-optimized photo the device never finished downloading: the picker
+        // hands over a File, but reading it fails.
+        const undownloaded = new File(["heic"], "IMG_0003.HEIC", {
+            type: "image/heic",
+        })
+        Object.defineProperty(undownloaded, "slice", {
+            value: () => ({
+                arrayBuffer: () =>
+                    Promise.reject(new Error("The file is not available.")),
+            }),
+        })
+
+        fireEvent.change(fileInput, { target: { files: [undownloaded] } })
+
+        const alert = await screen.findByRole("alert")
+        expect(alert).toHaveTextContent(
+            "This photo could not be read from your device.",
+        )
+    })
+
+    test("treats readable photos and environments without Blob.arrayBuffer as usable", async () => {
+        const empty = new File([], "IMG_0004.HEIC", { type: "image/heic" })
+        expect(await isReadablePhotoFile(empty)).toBe(false)
+
+        const unreadable = new File(["heic"], "IMG_0005.HEIC", {
+            type: "image/heic",
+        })
+        Object.defineProperty(unreadable, "slice", {
+            value: () => ({
+                arrayBuffer: () => Promise.reject(new Error("unavailable")),
+            }),
+        })
+        expect(await isReadablePhotoFile(unreadable)).toBe(false)
+
+        const readable = new File(["heic"], "IMG_0006.HEIC", {
+            type: "image/heic",
+        })
+        Object.defineProperty(readable, "slice", {
+            value: () => ({
+                arrayBuffer: () => Promise.resolve(new ArrayBuffer(1)),
+            }),
+        })
+        expect(await isReadablePhotoFile(readable)).toBe(true)
+
+        // jsdom has no Blob.arrayBuffer; the photo must not be rejected for that.
+        const withoutArrayBuffer = new File(["heic"], "IMG_0007.HEIC", {
+            type: "image/heic",
+        })
+        expect(await isReadablePhotoFile(withoutArrayBuffer)).toBe(true)
     })
 
     test("shows the extraction error on the Product whose photos failed", async () => {

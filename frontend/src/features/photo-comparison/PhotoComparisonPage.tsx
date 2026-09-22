@@ -27,6 +27,7 @@ import {
     PHOTO_INPUT_ACCEPT,
     formatActionableError,
     isAcceptedPhotoFile,
+    isReadablePhotoFile,
     isHeicFile,
     isSupportedImageFile,
     pickDefaultColumnId,
@@ -506,11 +507,50 @@ export function PhotoComparisonPage({
         })
     }
 
+    /**
+     * Photo tiles appear as soon as they are picked, so a `File` that cannot actually be
+     * read — most often an iCloud-optimized photo the device has not downloaded — is
+     * flagged as unusable here instead of being uploaded as empty or truncated bytes.
+     */
+    const verifyPhotosReadable = async (
+        side: "left" | "right",
+        files: File[],
+    ) => {
+        const checks = await Promise.all(
+            files.map(async (file) =>
+                (await isReadablePhotoFile(file)) ? null : file,
+            ),
+        )
+        const unreadable = new Set(checks.filter((file) => file !== null))
+        if (unreadable.size === 0) return
+
+        const setProduct = side === "left" ? setLeftProduct : setRightProduct
+        setProduct((prev) => {
+            if (!prev.photos.some((photo) => unreadable.has(photo.file))) {
+                return prev
+            }
+            return {
+                ...prev,
+                photos: prev.photos.map((photo) =>
+                    unreadable.has(photo.file)
+                        ? { ...photo, previewError: true }
+                        : photo,
+                ),
+                extraction: null,
+                selectedColumnId: null,
+                error: t("photoUnreadableOnDevice"),
+                retry: false,
+                loading: false,
+                revision: prev.revision + 1,
+            }
+        })
+    }
+
     const handleAddFiles = (side: "left" | "right", files: File[]) => {
         resetSideProcessing(side)
 
-        const hasAcceptedFile = files.some(isAcceptedPhotoFile)
-        if (hasAcceptedFile) {
+        const acceptedFiles = files.filter(isAcceptedPhotoFile)
+        if (acceptedFiles.length > 0) {
             setActiveSide(side)
             setFlowPhase("review")
         }
@@ -547,9 +587,7 @@ export function PhotoComparisonPage({
                 )
             }
 
-            const validFiles = files
-                .filter(isAcceptedPhotoFile)
-                .slice(0, available)
+            const validFiles = acceptedFiles.slice(0, available)
 
             if (validFiles.length === 0) {
                 return {
@@ -579,6 +617,8 @@ export function PhotoComparisonPage({
                 loading: false,
             }
         })
+
+        void verifyPhotosReadable(side, acceptedFiles)
     }
 
     const handleRemovePhoto = (side: "left" | "right", index: number) => {
@@ -664,6 +704,8 @@ export function PhotoComparisonPage({
                 loading: false,
             }
         })
+
+        void verifyPhotosReadable(side, [file])
     }
 
     const handleClearPhotos = (side: "left" | "right") => {

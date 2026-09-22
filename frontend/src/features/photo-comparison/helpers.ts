@@ -297,9 +297,11 @@ export function formatActionableError(
     locale: AppLocale = "en",
 ): string {
     switch (code) {
-        case "request_invalid":
         case "unsupported_image_format":
             return translateCompare(locale, "invalidPhotoRequest")
+        // The bytes, not the format, were the problem: an empty or truncated upload.
+        case "request_invalid":
+            return translateCompare(locale, "photoUnreadableOnDevice")
         case "size_limit_exceeded":
             return translateCompare(locale, "photoRequestTooLarge")
         case "rate_limit_exceeded":
@@ -387,4 +389,23 @@ export function isHeicFile(file: File): boolean {
     if (type)
         return type.startsWith("image/heic") || type.startsWith("image/heif")
     return HEIC_EXTENSIONS.has(fileExtension(file))
+}
+
+/**
+ * A picked `File` is only a handle to device storage, so reading it can still fail after
+ * the picker succeeds — most often an iCloud-optimized photo that is not downloaded yet.
+ * Touching the first byte surfaces that here rather than as an empty or truncated upload
+ * the backend can only reject.
+ */
+export async function isReadablePhotoFile(file: File): Promise<boolean> {
+    if (file.size === 0) return false
+    const head = file.slice(0, 1)
+    // Never reject a photo just because the environment lacks Blob.arrayBuffer;
+    // the backend still validates the bytes.
+    if (typeof head.arrayBuffer !== "function") return true
+    try {
+        return (await head.arrayBuffer()).byteLength === 1
+    } catch {
+        return false
+    }
 }
