@@ -70,7 +70,7 @@ _ERROR_EXAMPLES = {
         "value": {
             "error": {
                 "code": "unsupported_image_format",
-                "message": "Only JPEG and PNG photos are supported.",
+                "message": "Only JPEG, PNG and HEIC photos are supported.",
             }
         },
     },
@@ -456,7 +456,7 @@ def build_router(
             list[UploadFile],
             File(
                 description=(
-                    f"One to {MAX_PHOTOS_PER_PRODUCT} JPEG or PNG photos, "
+                    f"One to {MAX_PHOTOS_PER_PRODUCT} JPEG, PNG or HEIC photos, "
                     "submitted in preview order."
                 )
             ),

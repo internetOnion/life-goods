@@ -199,7 +199,7 @@
       "Body_extractPhotoComparison": {
         "properties": {
           "photos": {
-            "description": "One to 3 JPEG or PNG photos, submitted in preview order.",
+            "description": "One to 3 JPEG, PNG or HEIC photos, submitted in preview order.",
             "items": {
               "format": "binary",
               "type": "string"
@@ -3552,7 +3552,7 @@
                     "value": {
                       "error": {
                         "code": "unsupported_image_format",
-                        "message": "Only JPEG and PNG photos are supported."
+                        "message": "Only JPEG, PNG and HEIC photos are supported."
                       }
                     }
                   }

@@ -335,3 +335,56 @@ export function formatStateLabel(
     if (!value) return translateCompare(locale, "stateUnknown")
     return value.replaceAll("_", " ")
 }
+
+export const MAX_PHOTO_FILE_SIZE_BYTES = 10 * 1024 * 1024 // 10 MiB
+
+const SUPPORTED_IMAGE_MIME_TYPES = new Set([
+    "image/jpeg",
+    "image/jpg",
+    "image/pjpeg",
+    "image/png",
+    "image/heic",
+    "image/heif",
+    "image/heic-sequence",
+    "image/heif-sequence",
+])
+const SUPPORTED_IMAGE_EXTENSIONS = new Set([
+    "jpg",
+    "jpeg",
+    "png",
+    "heic",
+    "heif",
+])
+const HEIC_EXTENSIONS = new Set(["heic", "heif"])
+
+/** Accept string shared by every photo file input in Compare Products. */
+export const PHOTO_INPUT_ACCEPT =
+    "image/jpeg,image/png,image/heic,image/heif,.heic,.heif"
+
+function fileExtension(file: File): string {
+    const dot = file.name.lastIndexOf(".")
+    return dot === -1 ? "" : file.name.slice(dot + 1).toLowerCase()
+}
+
+/**
+ * Some pickers (notably iOS share sheets and drag-and-drop) hand over a `File` with an
+ * empty `type`; fall back to the extension so those photos are not rejected client-side.
+ * The backend still validates the actual bytes.
+ */
+export function isSupportedImageFile(file: File): boolean {
+    const type = file.type.toLowerCase()
+    if (type) return SUPPORTED_IMAGE_MIME_TYPES.has(type)
+    return SUPPORTED_IMAGE_EXTENSIONS.has(fileExtension(file))
+}
+
+export function isAcceptedPhotoFile(file: File): boolean {
+    return isSupportedImageFile(file) && file.size <= MAX_PHOTO_FILE_SIZE_BYTES
+}
+
+/** HEIC/HEIF previews only render in Safari; other browsers fire `<img onError>`. */
+export function isHeicFile(file: File): boolean {
+    const type = file.type.toLowerCase()
+    if (type)
+        return type.startsWith("image/heic") || type.startsWith("image/heif")
+    return HEIC_EXTENSIONS.has(fileExtension(file))
+}

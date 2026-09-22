@@ -125,7 +125,7 @@ export type AllergenUnmatchedSpanResponse = {
 export type BodyExtractPhotoComparison = {
     /**
      * Photos
-     * One to 3 JPEG or PNG photos, submitted in preview order.
+     * One to 3 JPEG, PNG or HEIC photos, submitted in preview order.
      */
     photos: Array<Blob | File>;
     /**

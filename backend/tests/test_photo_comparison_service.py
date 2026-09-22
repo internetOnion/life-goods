@@ -46,6 +46,12 @@ def _png_bytes() -> bytes:
     return output.getvalue()
 
 
+def _heic_bytes(size: tuple[int, int] = (40, 30)) -> bytes:
+    output = io.BytesIO()
+    Image.new("RGB", size, (220, 180, 90)).save(output, format="HEIF")
+    return output.getvalue()
+
+
 def _provider_payload(
     request: PhotoProviderRequest, *, unknown_reference: bool = False
 ) -> dict[str, object]:
@@ -125,9 +131,32 @@ def test_photo_normalization_corrects_orientation_and_strips_metadata() -> None:
 def test_photo_limits_reject_oversized_and_unsupported_content() -> None:
     with pytest.raises(ImageValidationError, match="10 MiB"):
         prepare_image(b"x" * (10 * 1024 * 1024 + 1))
-    with pytest.raises(ImageValidationError, match="readable JPEG or PNG") as error:
+    with pytest.raises(ImageValidationError, match="readable JPEG, PNG or HEIC") as error:
         prepare_image(b"not an image", declared_content_type="image/heic")
     assert error.value.unsupported_format
+    with pytest.raises(ImageValidationError, match="Only JPEG, PNG and HEIC") as declared:
+        prepare_image(_png_bytes(), declared_content_type="application/pdf")
+    assert declared.value.unsupported_format
+
+
+def test_heic_photos_are_transcoded_to_jpeg() -> None:
+    for declared_content_type in ("image/heic", "image/heif", "", None, "application/octet-stream"):
+        prepared = prepare_image(_heic_bytes(), declared_content_type=declared_content_type)
+        assert prepared.mime_type == "image/jpeg"
+        assert prepared.evidence.width == 40
+        assert prepared.evidence.height == 30
+        with Image.open(io.BytesIO(prepared.content)) as image:
+            assert image.format == "JPEG"
+            assert image.getexif() == {}
+
+
+def test_oversized_pixel_photos_are_downscaled_instead_of_rejected() -> None:
+    output = io.BytesIO()
+    Image.new("RGB", (6000, 5000), (220, 180, 90)).save(output, format="JPEG")
+    prepared = prepare_image(output.getvalue(), declared_content_type="image/jpeg")
+    assert prepared.evidence.width * prepared.evidence.height <= 25_000_000
+    assert prepared.evidence.width < 6000
+    assert abs(prepared.evidence.width / prepared.evidence.height - 1.2) < 0.01
 
 
 def test_comparison_normalizes_mass_units_and_exposes_derivation() -> None:
@@ -460,6 +489,11 @@ def test_http_extraction_rejects_count_and_unsupported_format() -> None:
             data={"product_id": "left"},
             files=[("photos", ("panel.heic", b"not an image", "image/heic"))],
         )
+        heic = client.post(
+            "/api/experimental/photo-comparison/extractions",
+            data={"product_id": "left"},
+            files=[("photos", ("panel.heic", _heic_bytes(), "image/heic"))],
+        )
         empty = client.post(
             "/api/experimental/photo-comparison/extractions",
             data={"product_id": "left"},
@@ -473,6 +507,7 @@ def test_http_extraction_rejects_count_and_unsupported_format() -> None:
     )
     assert unsupported.status_code == 415
     assert unsupported.json()["error"]["code"] == "unsupported_image_format"
+    assert heic.status_code == 200
     assert empty.status_code == 422
     assert empty.json()["error"]["code"] == "request_invalid"
 

@@ -630,7 +630,10 @@ describe("Compare Products frontend page (/compare)", () => {
         expect(cameraLeftClick).toHaveBeenCalledTimes(1)
 
         expect(cameraLeft).toHaveAttribute("capture", "environment")
-        expect(cameraLeft).toHaveAttribute("accept", "image/jpeg,image/png")
+        expect(cameraLeft).toHaveAttribute(
+            "accept",
+            "image/jpeg,image/png,image/heic,image/heif,.heic,.heif",
+        )
 
         const dummyFileA = new File(["test-image-a"], "sample-a.jpg", {
             type: "image/jpeg",
@@ -1228,13 +1231,13 @@ describe("Compare Products frontend page (/compare)", () => {
                 "The request payload is not valid.",
                 "request_invalid",
             ),
-        ).toBe("Choose a valid JPEG or PNG photo, then try again.")
+        ).toBe("Choose a valid JPEG, PNG or HEIC photo, then try again.")
         expect(
             formatActionableError(
                 "Only JPEG and PNG photos are supported.",
                 "unsupported_image_format",
             ),
-        ).toBe("Choose a valid JPEG or PNG photo, then try again.")
+        ).toBe("Choose a valid JPEG, PNG or HEIC photo, then try again.")
         expect(
             formatActionableError(
                 "The upload request must be smaller.",
@@ -2240,7 +2243,7 @@ describe("Photo inspection and UX features", () => {
 
         expect(
             screen.getAllByText(
-                /Unsupported file format: only JPEG and PNG photos are supported/i,
+                /Unsupported file format: only JPEG, PNG and HEIC photos are supported/i,
             ).length,
         ).toBeGreaterThan(0)
 
@@ -2294,6 +2297,111 @@ describe("Photo inspection and UX features", () => {
         fireEvent.click(screen.getByRole("button", { name: /Remove photo 3/i }))
         expect(
             screen.getByRole("button", { name: /Add another photo/i }),
+        ).toBeInTheDocument()
+    })
+
+    test("accepts iPhone HEIC photos, including files with no MIME type", () => {
+        renderRoute("/compare")
+
+        const fileInput = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+        expect(fileInput).toHaveAttribute(
+            "accept",
+            "image/jpeg,image/png,image/heic,image/heif,.heic,.heif",
+        )
+
+        const heicPhoto = new File(["heic"], "IMG_0001.HEIC", {
+            type: "image/heic",
+        })
+        fireEvent.change(fileInput, { target: { files: [heicPhoto] } })
+        expect(screen.getByText("Photo 1")).toBeInTheDocument()
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+
+        const untypedHeic = new File(["heic"], "IMG_0002.heic", { type: "" })
+        fireEvent.change(fileInput, { target: { files: [untypedHeic] } })
+        expect(screen.getByText("Photo 2")).toBeInTheDocument()
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+
+        // A HEIC preview the browser cannot render keeps the photo usable.
+        fireEvent.error(screen.getByAltText("Product A photo 2"))
+        expect(
+            screen.getByRole("img", {
+                name: "Preview not available in this browser. The photo will still be read.",
+            }),
+        ).toBeInTheDocument()
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+    })
+
+    test("shows the extraction error on the Product whose photos failed", async () => {
+        const user = userEvent.setup()
+        const extractPhotosMock = vi
+            .fn()
+            .mockRejectedValue(
+                new PhotoComparisonApiError(
+                    "unsupported_image_format",
+                    "Only JPEG, PNG and HEIC photos are supported.",
+                ),
+            )
+        const compareMock = vi.fn()
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+        render(
+            <QueryClientProvider client={queryClient}>
+                <MemoryRouter initialEntries={["/compare"]}>
+                    <PhotoComparisonPage
+                        extractPhotos={extractPhotosMock}
+                        compare={compareMock}
+                    />
+                </MemoryRouter>
+            </QueryClientProvider>,
+        )
+
+        const inputLeft = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+        fireEvent.change(inputLeft, {
+            target: {
+                files: [new File(["a"], "a.jpg", { type: "image/jpeg" })],
+            },
+        })
+        const inputRight = document.getElementById(
+            "upload-photos-right",
+        ) as HTMLInputElement
+        fireEvent.change(inputRight, {
+            target: {
+                files: [new File(["b"], "b.jpg", { type: "image/jpeg" })],
+            },
+        })
+        expect(screen.getByAltText("Product B photo 1")).toBeInTheDocument()
+
+        await user.click(
+            screen.getByRole("button", { name: "Compare Products" }),
+        )
+
+        // Product A failed, so the view switches back to Product A and shows the alert.
+        const alert = await screen.findByRole("alert")
+        expect(alert).toHaveTextContent("We couldn’t read this label")
+        expect(alert).toHaveTextContent(
+            "Choose a valid JPEG, PNG or HEIC photo, then try again.",
+        )
+        expect(screen.getByAltText("Product A photo 1")).toBeInTheDocument()
+        expect(extractPhotosMock).toHaveBeenCalledTimes(1)
+        expect(compareMock).not.toHaveBeenCalled()
+
+        // Moving to Product B still points the Shopper back at the failing side.
+        const stepper = screen.getByRole("navigation", {
+            name: "Comparison steps",
+        })
+        await user.click(
+            within(stepper).getByRole("button", { name: /Product B/i }),
+        )
+        expect(screen.getByAltText("Product B photo 1")).toBeInTheDocument()
+        expect(
+            screen.getByText(
+                "Product A could not be read. Go back to Product A to fix its photos.",
+            ),
         ).toBeInTheDocument()
     })
 

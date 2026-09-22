@@ -43,6 +43,8 @@ export interface ProductPhoto {
     url: string
     localId: string
     previewError?: boolean
+    /** Browser cannot render this format (HEIC outside Safari); the photo is still usable. */
+    previewUnsupported?: boolean
 }
 
 export interface ProductSideState {

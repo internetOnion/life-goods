@@ -22,7 +22,15 @@ import {
 import { ComparisonProcessingSheet } from "./ComparisonProcessingSheet"
 import { ComparisonSection } from "./ComparisonSection"
 import { CompareStepper } from "./CompareStepper"
-import { formatActionableError, pickDefaultColumnId } from "./helpers"
+import {
+    MAX_PHOTO_FILE_SIZE_BYTES,
+    PHOTO_INPUT_ACCEPT,
+    formatActionableError,
+    isAcceptedPhotoFile,
+    isHeicFile,
+    isSupportedImageFile,
+    pickDefaultColumnId,
+} from "./helpers"
 import { PhotoInspectionModal } from "./PhotoInspectionModal"
 import { ProductPhotoPanel } from "./ProductPhotoPanel"
 import type {
@@ -34,8 +42,6 @@ import type {
 import { MAX_PHOTOS_PER_PRODUCT } from "./types"
 import { useCompareTranslation } from "./translations"
 
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 // 10 MiB
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png"]
 type CompareSide = "left" | "right"
 type CompareFlowPhase =
     "intro" | "capture" | "review" | "processing" | "results"
@@ -467,7 +473,21 @@ export function PhotoComparisonPage({
         const setProduct = side === "left" ? setLeftProduct : setRightProduct
         setProduct((prev) => {
             const photo = prev.photos[index]
-            if (!photo || photo.previewError) return prev
+            if (!photo || photo.previewError || photo.previewUnsupported) {
+                return prev
+            }
+
+            // This browser cannot render HEIC; the backend still reads the photo.
+            if (isHeicFile(photo.file)) {
+                return {
+                    ...prev,
+                    photos: prev.photos.map((item, itemIndex) =>
+                        itemIndex === index
+                            ? { ...item, previewUnsupported: true }
+                            : item,
+                    ),
+                }
+            }
 
             return {
                 ...prev,
@@ -489,11 +509,7 @@ export function PhotoComparisonPage({
     const handleAddFiles = (side: "left" | "right", files: File[]) => {
         resetSideProcessing(side)
 
-        const hasAcceptedFile = files.some(
-            (file) =>
-                ALLOWED_IMAGE_TYPES.includes(file.type) &&
-                file.size <= MAX_FILE_SIZE_BYTES,
-        )
+        const hasAcceptedFile = files.some(isAcceptedPhotoFile)
         if (hasAcceptedFile) {
             setActiveSide(side)
             setFlowPhase("review")
@@ -514,10 +530,10 @@ export function PhotoComparisonPage({
 
             const validationErrors: string[] = []
             const oversizedFiles = files.filter(
-                (f) => f.size > MAX_FILE_SIZE_BYTES,
+                (f) => f.size > MAX_PHOTO_FILE_SIZE_BYTES,
             )
             const invalidTypeFiles = files.filter(
-                (f) => !ALLOWED_IMAGE_TYPES.includes(f.type),
+                (f) => !isSupportedImageFile(f),
             )
 
             if (invalidTypeFiles.length > 0) {
@@ -532,11 +548,7 @@ export function PhotoComparisonPage({
             }
 
             const validFiles = files
-                .filter(
-                    (file) =>
-                        ALLOWED_IMAGE_TYPES.includes(file.type) &&
-                        file.size <= MAX_FILE_SIZE_BYTES,
-                )
+                .filter(isAcceptedPhotoFile)
                 .slice(0, available)
 
             if (validFiles.length === 0) {
@@ -607,7 +619,7 @@ export function PhotoComparisonPage({
 
         const setProduct = side === "left" ? setLeftProduct : setRightProduct
 
-        if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        if (!isSupportedImageFile(file)) {
             setProduct((prev) => ({
                 ...prev,
                 error: t("unsupportedFormat"),
@@ -615,7 +627,7 @@ export function PhotoComparisonPage({
             return
         }
 
-        if (file.size > MAX_FILE_SIZE_BYTES) {
+        if (file.size > MAX_PHOTO_FILE_SIZE_BYTES) {
             setProduct((prev) => ({
                 ...prev,
                 error: t("fileTooLarge", { files: file.name }),
@@ -796,6 +808,8 @@ export function PhotoComparisonPage({
                             retry: true,
                         }
                     })
+                    // Only the active side's panel is rendered; show the failure where it happened.
+                    setActiveSide("left")
                     setFlowPhase("review")
                     return
                 } finally {
@@ -912,6 +926,7 @@ export function PhotoComparisonPage({
                             retry: true,
                         }
                     })
+                    setActiveSide("right")
                     setFlowPhase("review")
                     return
                 } finally {
@@ -1034,6 +1049,11 @@ export function PhotoComparisonPage({
     const isResultsPage = Boolean(comparison) && flowPhase === "results"
 
     const currentCompareStep: 1 | 2 = activeSide === "left" ? 1 : 2
+    const inactiveSideProduct =
+        activeSide === "left" ? rightProduct : leftProduct
+    // A failed extraction on the other Product is otherwise invisible from this panel.
+    const inactiveSideError =
+        inactiveSideProduct.retry && inactiveSideProduct.error !== ""
 
     const handleStepChange = (step: 1 | 2) => {
         if (processingStep !== "idle") return
@@ -1147,7 +1167,7 @@ export function PhotoComparisonPage({
                     }}
                     id="upload-photos-left"
                     type="file"
-                    accept="image/jpeg,image/png"
+                    accept={PHOTO_INPUT_ACCEPT}
                     multiple
                     tabIndex={-1}
                     aria-label={t("choosePhotosA")}
@@ -1168,7 +1188,7 @@ export function PhotoComparisonPage({
                     }}
                     id="upload-photos-right"
                     type="file"
-                    accept="image/jpeg,image/png"
+                    accept={PHOTO_INPUT_ACCEPT}
                     multiple
                     tabIndex={-1}
                     aria-label={t("choosePhotosB")}
@@ -1189,7 +1209,7 @@ export function PhotoComparisonPage({
                     }}
                     id="camera-photos-left"
                     type="file"
-                    accept="image/jpeg,image/png"
+                    accept={PHOTO_INPUT_ACCEPT}
                     capture="environment"
                     tabIndex={-1}
                     aria-label={t("takePhotoA")}
@@ -1210,7 +1230,7 @@ export function PhotoComparisonPage({
                     }}
                     id="camera-photos-right"
                     type="file"
-                    accept="image/jpeg,image/png"
+                    accept={PHOTO_INPUT_ACCEPT}
                     capture="environment"
                     tabIndex={-1}
                     aria-label={t("takePhotoB")}
@@ -1234,7 +1254,7 @@ export function PhotoComparisonPage({
                                 key={`${side}-${photo.localId}`}
                                 id={`replace-file-${side}-${index}`}
                                 type="file"
-                                accept="image/jpeg,image/png"
+                                accept={PHOTO_INPUT_ACCEPT}
                                 tabIndex={-1}
                                 aria-label={t(
                                     side === "left"
@@ -1392,6 +1412,20 @@ export function PhotoComparisonPage({
                                         {comparisonNotice}
                                     </p>
                                 )}
+
+                                {!comparison &&
+                                    inactiveSideError &&
+                                    !inactiveSideProduct.loading && (
+                                        <p
+                                            className="border-error-200 bg-error-50 text-error-900 mt-3 rounded-xl border px-3 py-2.5 text-sm leading-relaxed font-bold"
+                                            role="status"
+                                        >
+                                            {t("otherSideNeedsAttention", {
+                                                product:
+                                                    inactiveSideProduct.title,
+                                            })}
+                                        </p>
+                                    )}
 
                                 {!comparison &&
                                     activeSide === "right" &&

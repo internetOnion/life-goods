@@ -48,18 +48,23 @@ const en = {
     comparisonCancelled: "Comparison cancelled. Your photos are still here.",
     maxPhotos: "Maximum of {{count}} photos per Product reached.",
     unsupportedFormat:
-        "Unsupported file format: only JPEG and PNG photos are supported. Choose another photo.",
+        "Unsupported file format: only JPEG, PNG and HEIC photos are supported. Choose another photo.",
     fileTooLarge:
         "{{files}} exceeds the 10 MiB limit. Choose a smaller photo or retake it at standard resolution.",
-    noValidImages: "No valid JPEG or PNG photos were selected.",
+    noValidImages: "No valid JPEG, PNG or HEIC photos were selected.",
     photoErrorTitle: "This photo could not be used",
     labelReadingErrorTitle: "We couldn’t read this label",
     comparisonErrorTitle: "The comparison could not be completed",
-    invalidPhotoRequest: "Choose a valid JPEG or PNG photo, then try again.",
+    invalidPhotoRequest:
+        "Choose a valid JPEG, PNG or HEIC photo, then try again.",
     photoRequestTooLarge:
         "The submitted photos are too large. Choose smaller photos and try again.",
     photoPreviewUnavailable:
         "This photo could not be opened. Replace it or remove it before comparing.",
+    photoPreviewUnsupported:
+        "Preview not available in this browser. The photo will still be read.",
+    otherSideNeedsAttention:
+        "{{product}} could not be read. Go back to {{product}} to fix its photos.",
     retryReadingProduct: "Retry reading {{product}}",
     retryPhotoGuidance:
         "Try a clearer, well-lit photo showing the complete Nutrition Facts panel.",
@@ -94,7 +99,7 @@ const en = {
     clearPhotoHint:
         "Start with one clear, well-lit photo of the complete panel.",
     takePhoto: "Take photo",
-    fileRequirements: "JPEG or PNG · up to {{count}} photos",
+    fileRequirements: "JPEG, PNG or HEIC · up to {{count}} photos",
     chooseLibrary: "Choose from library",
     optionalPhotos:
         "Optional photos can show the Product front, package quantity, or a wrapped or additional nutrition panel.",
@@ -296,18 +301,23 @@ const km: Record<keyof typeof en, string> = {
     comparisonCancelled: "បានបោះបង់ការប្រៀបធៀប។ រូបថតរបស់អ្នកនៅដដែល។",
     maxPhotos: "អាចបន្ថែមបានច្រើនបំផុត {{count}} រូបសម្រាប់ផលិតផលនីមួយៗ។",
     unsupportedFormat:
-        "ទម្រង់ឯកសារនេះមិនគាំទ្រទេ។ ជ្រើសរូប JPEG ឬ PNG ឬថតរូបថ្មី។",
+        "ទម្រង់ឯកសារនេះមិនគាំទ្រទេ។ ជ្រើសរូប JPEG, PNG ឬ HEIC ឬថតរូបថ្មី។",
     fileTooLarge:
         "{{files}} លើសទំហំកំណត់ 10 MiB។ ជ្រើសរូបតូចជាងនេះ ឬថតម្ដងទៀត។",
-    noValidImages: "មិនមានរូប JPEG ឬ PNG ត្រឹមត្រូវត្រូវបានជ្រើសទេ។",
+    noValidImages: "មិនមានរូប JPEG, PNG ឬ HEIC ត្រឹមត្រូវត្រូវបានជ្រើសទេ។",
     photoErrorTitle: "មិនអាចប្រើរូបថតនេះបានទេ",
     labelReadingErrorTitle: "មិនអាចអានស្លាកនេះបានទេ",
     comparisonErrorTitle: "មិនអាចបញ្ចប់ការប្រៀបធៀបបានទេ",
-    invalidPhotoRequest: "ជ្រើសរូប JPEG ឬ PNG ត្រឹមត្រូវ ហើយសាកល្បងម្ដងទៀត។",
+    invalidPhotoRequest:
+        "ជ្រើសរូប JPEG, PNG ឬ HEIC ត្រឹមត្រូវ ហើយសាកល្បងម្ដងទៀត។",
     photoRequestTooLarge:
         "រូបថតដែលបានផ្ញើមានទំហំធំពេក។ ជ្រើសរូបតូចជាងនេះ ហើយសាកល្បងម្ដងទៀត។",
     photoPreviewUnavailable:
         "មិនអាចបើករូបថតនេះបានទេ។ ប្ដូរ ឬលុបវាមុនពេលប្រៀបធៀប។",
+    photoPreviewUnsupported:
+        "កម្មវិធីរុករកនេះមិនអាចបង្ហាញរូបមើលជាមុនបានទេ។ រូបថតនៅតែនឹងត្រូវបានអាន។",
+    otherSideNeedsAttention:
+        "មិនអាចអាន {{product}} បានទេ។ ត្រឡប់ទៅ {{product}} ដើម្បីកែរូបថតរបស់វា។",
     retryReadingProduct: "សាកអាន {{product}} ម្ដងទៀត",
     retryPhotoGuidance:
         "សាកថតរូបថ្មីដែលច្បាស់ មានពន្លឺល្អ និងបង្ហាញផ្ទាំងព័ត៌មានអាហារូបត្ថម្ភទាំងមូល។",
@@ -342,7 +352,7 @@ const km: Record<keyof typeof en, string> = {
     clearPhotoHint:
         "ចាប់ផ្តើមដោយរូបថតច្បាស់ មានពន្លឺល្អ និងបង្ហាញផ្ទាំងទាំងមូល។",
     takePhoto: "ថតរូប",
-    fileRequirements: "JPEG ឬ PNG · រហូតដល់ {{count}} រូប",
+    fileRequirements: "JPEG, PNG ឬ HEIC · រហូតដល់ {{count}} រូប",
     chooseLibrary: "ជ្រើសពីឧបករណ៍",
     optionalPhotos:
         "រូបបន្ថែមអាចបង្ហាញផ្នែកខាងមុខ ទម្ងន់កញ្ចប់ ឬផ្ទាំងអាហារូបត្ថម្ភបន្ថែម។",

@@ -1036,14 +1036,19 @@ second implementation. The stable endpoints are:
 
 Compare Products is reachable at `/compare` as a destination in the primary
 navigation; previously published photo-comparison URLs redirect to `/compare`. The
-page accepts one to three JPEG/PNG photos per Product through camera capture or
+page accepts one to three JPEG, PNG or HEIC/HEIF photos per Product through camera capture or
 file selection, shows previews that can be enlarged, supports add/remove/replace,
 and presents distinct editable Product A and Product B identities. Capture uses a
 two-step Product A → Product B control, and comparison results render on their
 own page with a clear return to edit either Product. A wrapped
 label or separate package-weight panel can be included across multiple photos.
-Unsupported formats receive a clear unsupported-format message instead of
-promised conversion. When a label contains a sole nutrition column it is
+HEIC/HEIF (the iPhone camera-roll default) is transcoded to JPEG on the backend
+before any provider call; browsers that cannot render HEIC show a neutral
+"preview not available" tile while keeping the photo usable. Other unsupported
+formats receive a clear unsupported-format message instead of promised
+conversion. When an extraction fails, the capture view switches to the Product
+whose photos failed so its error is visible, and the other Product's panel shows
+a pointer back to it. When a label contains a sole nutrition column it is
 selected automatically; when several columns exist, the Shopper chooses one with
 its plainly labeled basis and preparation state before continuing, and an
 ambiguous column is never selected silently. The nutrition-column chooser opens
@@ -1067,9 +1072,10 @@ score, winner, or good/bad health color. The page keeps the session in memory
 and provides Restart and Back to start; it retains no saved history and no manual transcription
 editor.
 
-Image input is bounded at 10 MiB per photo, 32 MiB per multipart request, and
-25 megapixels per image. Pillow validates actual JPEG/PNG content, applies EXIF
-orientation, and re-encodes without metadata. Anonymous admission limits are
+Image input is bounded at 10 MiB per photo and 32 MiB per multipart request;
+photos above 25 megapixels are downscaled to fit rather than rejected. Pillow
+(with `pillow-heif`) validates actual JPEG/PNG/HEIF content, applies EXIF
+orientation, and re-encodes without metadata (HEIF output becomes JPEG). Anonymous admission limits are
 enforced through shared, deployment-aware infrastructure rather than a single
 process-local counter, with initial defaults of one active Gemini request, ten
 extraction requests per minute, a 60-second provider deadline, and a 1 MiB JSON
@@ -1138,7 +1144,7 @@ unsupported image format (`415`), rate or capacity limits (`429`), invalid
 provider output (`502`), provider unavailable (`503`), provider timeout (`504`),
 and unexpected internal failure (`500`).
 
-The capability enforces bounded upload and response sizes, JPEG/PNG-only input,
+The capability enforces bounded upload and response sizes, JPEG/PNG/HEIC-only input,
 finite request/image/pixel/concurrency limits, temporary resource cleanup, and
 sanitized failure responses before making provider calls. Photos, package
 text, prompts, provider payloads, and response bodies stay out of ordinary logs,
@@ -1153,8 +1159,9 @@ semantics rather than introducing a second comparison engine. The reviewed
 multilingual corpus and transcription tool from #111 were closed as not planned
 and are not treated as requirements for the current implementation.
 
-The integration defaults are one to three JPEG or PNG photos per Product, 10 MiB
-per photo, 32 MiB per request, 25 megapixels per decoded image, 1 MiB per
+The integration defaults are one to three JPEG, PNG or HEIC photos per Product,
+10 MiB per photo, 32 MiB per request, 25 megapixels per decoded image (larger
+photos are downscaled), 1 MiB per
 extraction or comparison response, and 1 MiB for the comparison request JSON,
 at most eight nutrition columns, 100 fields per column, and 4,096 characters
 per literal text field. Admission checks must run before unbounded buffering or

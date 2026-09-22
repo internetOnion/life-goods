@@ -3,17 +3,41 @@
 from __future__ import annotations
 
 import io
+import math
 import secrets
 from dataclasses import dataclass
 
 from PIL import Image, ImageOps, UnidentifiedImageError
+from pillow_heif.as_plugin import register_heif_opener
 
 from lifegoods.photo_comparison.contracts import ImageEvidence
+
+# iPhone camera-roll photos are HEIC/HEIF; teach Pillow to decode them so they can be
+# transcoded to JPEG before anything leaves this process.
+register_heif_opener()
 
 MAX_PHOTO_BYTES = 10 * 1024 * 1024
 MAX_UPLOAD_BYTES = 32 * 1024 * 1024
 MAX_IMAGE_PIXELS = 25_000_000
-SUPPORTED_IMAGE_FORMATS = {"JPEG": "image/jpeg", "PNG": "image/png"}
+# Pillow format name -> MIME type of the *prepared* output. HEIF input is re-encoded as JPEG.
+SUPPORTED_IMAGE_FORMATS = {"JPEG": "image/jpeg", "PNG": "image/png", "HEIF": "image/jpeg"}
+ACCEPTED_DECLARED_CONTENT_TYPES = frozenset(
+    {
+        "image/jpeg",
+        "image/jpg",
+        "image/pjpeg",
+        "image/png",
+        "image/heic",
+        "image/heif",
+        "image/heic-sequence",
+        "image/heif-sequence",
+    }
+)
+# Pickers/browsers that cannot identify a file declare one of these; rely on content sniffing.
+UNKNOWN_DECLARED_CONTENT_TYPES = frozenset({"", "application/octet-stream"})
+UNSUPPORTED_FORMAT_MESSAGE = (
+    "Only JPEG, PNG and HEIC photos are supported; other formats are not supported."
+)
 
 
 class ImageValidationError(ValueError):
@@ -42,63 +66,65 @@ def _opaque_id(prefix: str) -> str:
     return f"{prefix}-{secrets.token_urlsafe(18).replace('=', '')}"
 
 
+def _fit_within_pixel_bound(image: Image.Image) -> Image.Image:
+    """Downscale oversized photos (e.g. 48 MP phone captures) instead of rejecting them."""
+    width, height = image.size
+    if width <= 0 or height <= 0:
+        raise ImageValidationError("The submitted photo has no visible pixels.")
+    if width * height <= MAX_IMAGE_PIXELS:
+        return image
+    scale = math.sqrt(MAX_IMAGE_PIXELS / (width * height))
+    target = (max(1, int(width * scale)), max(1, int(height * scale)))
+    image.thumbnail(target, Image.Resampling.LANCZOS)
+    return image
+
+
 def prepare_image(data: bytes, *, declared_content_type: str | None = None) -> PreparedImage:
     if len(data) > MAX_PHOTO_BYTES:
         raise ImageValidationError("Each photo must be 10 MiB or smaller.", size_limit=True)
     if not data:
         raise ImageValidationError("The submitted photo is empty.")
 
+    declared = (declared_content_type or "").split(";", 1)[0].strip().lower()
+    if declared not in UNKNOWN_DECLARED_CONTENT_TYPES and declared not in (
+        ACCEPTED_DECLARED_CONTENT_TYPES
+    ):
+        raise ImageValidationError(UNSUPPORTED_FORMAT_MESSAGE, unsupported_format=True)
+
     try:
         with Image.open(io.BytesIO(data)) as opened:
             image_format = (opened.format or "").upper()
             mime_type = SUPPORTED_IMAGE_FORMATS.get(image_format)
             if mime_type is None:
-                raise ImageValidationError(
-                    "Only JPEG and PNG photos are supported; HEIC and other formats are not "
-                    "supported.",
-                    unsupported_format=True,
-                )
-            if (
-                declared_content_type
-                and declared_content_type not in SUPPORTED_IMAGE_FORMATS.values()
-            ):
-                raise ImageValidationError(
-                    "Only JPEG and PNG photos are supported; HEIC and other formats are not "
-                    "supported.",
-                    unsupported_format=True,
-                )
+                raise ImageValidationError(UNSUPPORTED_FORMAT_MESSAGE, unsupported_format=True)
             width, height = opened.size
-            if width <= 0 or height <= 0 or width * height > MAX_IMAGE_PIXELS:
-                raise ImageValidationError(
-                    "Each photo must be 25 megapixels or smaller.", size_limit=True
-                )
+            if width <= 0 or height <= 0:
+                raise ImageValidationError("The submitted photo has no visible pixels.")
             opened.verify()
 
         with Image.open(io.BytesIO(data)) as reopened:
             corrected = ImageOps.exif_transpose(reopened)
+            if corrected is None:
+                corrected = reopened.copy()
+            corrected = _fit_within_pixel_bound(corrected)
             width, height = corrected.size
-            if width <= 0 or height <= 0 or width * height > MAX_IMAGE_PIXELS:
-                raise ImageValidationError(
-                    "Each photo must be 25 megapixels or smaller.", size_limit=True
-                )
-            if image_format == "JPEG":
-                prepared = corrected.convert("RGB")
-                output = io.BytesIO()
-                prepared.save(output, format="JPEG", quality=92, optimize=True)
-            else:
+            output = io.BytesIO()
+            if image_format == "PNG":
                 prepared = (
                     corrected.convert("RGBA")
                     if "A" in corrected.getbands()
                     else corrected.convert("RGB")
                 )
-                output = io.BytesIO()
                 prepared.save(output, format="PNG", optimize=True)
+            else:
+                prepared = corrected.convert("RGB")
+                prepared.save(output, format="JPEG", quality=92, optimize=True)
             processed_bytes = output.getvalue()
     except ImageValidationError:
         raise
     except (UnidentifiedImageError, OSError, ValueError) as error:
         raise ImageValidationError(
-            "The submitted file is not a readable JPEG or PNG photo.",
+            "The submitted file is not a readable JPEG, PNG or HEIC photo.",
             unsupported_format=True,
         ) from error
 

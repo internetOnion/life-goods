@@ -3,6 +3,7 @@ import {
     ArrowCounterClockwise,
     CaretDown,
     Camera,
+    Image,
     Info,
     Trash,
     UploadSimple,
@@ -18,6 +19,7 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
 import {
+    PHOTO_INPUT_ACCEPT,
     displayBasisLabel,
     displayValue,
     formatNutrientName,
@@ -296,9 +298,29 @@ export function ProductPhotoPanel({
                                         product: product.title,
                                         number: index + 1,
                                     })}
-                                    disabled={photo.previewError}
+                                    disabled={
+                                        photo.previewError ||
+                                        photo.previewUnsupported
+                                    }
                                 >
-                                    {photo.previewError ? (
+                                    {photo.previewUnsupported ? (
+                                        <span
+                                            role="img"
+                                            aria-label={t(
+                                                "photoPreviewUnsupported",
+                                            )}
+                                            className="flex size-full flex-col items-center justify-center gap-2 p-3 text-center text-xs font-bold text-neutral-100"
+                                        >
+                                            <Image
+                                                size={24}
+                                                weight="bold"
+                                                aria-hidden="true"
+                                            />
+                                            <span>
+                                                {t("photoPreviewUnsupported")}
+                                            </span>
+                                        </span>
+                                    ) : photo.previewError ? (
                                         <span
                                             role="img"
                                             aria-label={t(
@@ -360,7 +382,7 @@ export function ProductPhotoPanel({
                                         }}
                                         id={`replace-file-${product.id}-${index}`}
                                         type="file"
-                                        accept="image/jpeg,image/png"
+                                        accept={PHOTO_INPUT_ACCEPT}
                                         tabIndex={-1}
                                         className="sr-only"
                                         onChange={(e) => {
