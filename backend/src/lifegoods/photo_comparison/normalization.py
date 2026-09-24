@@ -939,3 +939,15 @@ def build_extraction(
         )
     except ValueError as error:
         raise ProviderOutputError("provider output failed evidence validation") from error
+
+
+# Parsers shared with Read This Label (``lifegoods.label_reading``), which reads the
+# same identity, quantity, and nutrition shapes alongside its own Printed Text.
+check_keys = _check_keys
+optional_text = _optional_text
+parse_evidence = _evidence
+parse_identity = _identity
+parse_nutrition_column = _column
+parse_quantity = _quantity
+parse_state = _state
+require_mapping = _require_mapping
