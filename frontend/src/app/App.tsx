@@ -21,6 +21,7 @@ import { AppShell } from "@/ui/AppShell"
 import { LocaleProvider } from "@/i18n/LocaleProvider"
 
 import { appRoutes } from "./routes"
+import { TelegramBridge } from "./TelegramBridge"
 
 /** Fixture preview of the label results; compiled out of production builds. */
 const DevResultsPage = import.meta.env.DEV
@@ -35,6 +36,7 @@ type AppProps = {
 export function App({ lookup = lookupProduct, demoMode = false }: AppProps) {
     return (
         <LocaleProvider>
+            <TelegramBridge />
             <AppShell>
                 <Routes>
                     <Route path={appRoutes.home} element={<ScanPage />} />

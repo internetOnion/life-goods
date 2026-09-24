@@ -6,7 +6,7 @@
 
 ## Platform
 
-web
+web, also opened as a Telegram Mini App from the same build and URL (ADR 0006)
 
 ## Users
 
