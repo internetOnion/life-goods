@@ -88,7 +88,7 @@ describe("Page metadata and favicons", () => {
 
         expect(html).toContain("<title>Life Goods</title>")
         expect(html).toContain(
-            'content="Scan a Barcode to read attributed Open Food Facts Product information with Life Goods."',
+            'content="Scan a food Barcode to read its ingredients and nutrition in Khmer or English, or photograph a nutrition label to read it and compare Products."',
         )
         expect(html).toContain('name="theme-color" content="#F3F5F6"')
         expect(html).toContain('name="application-name" content="Life Goods"')
