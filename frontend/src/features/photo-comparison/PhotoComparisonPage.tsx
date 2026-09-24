@@ -30,7 +30,7 @@ import {
     PHOTO_INPUT_ACCEPT,
     formatActionableError,
     isAcceptedPhotoFile,
-    verifiedPhotoFile,
+    preparedPhotoFile,
     isHeicFile,
     isSupportedImageFile,
     pickDefaultColumnId,
@@ -512,7 +512,7 @@ export function PhotoComparisonPage({
         const checked = await Promise.all(
             files.map(async (file) => ({
                 file,
-                verified: await verifiedPhotoFile(file),
+                verified: await preparedPhotoFile(file),
             })),
         )
         const unreadable = new Set(

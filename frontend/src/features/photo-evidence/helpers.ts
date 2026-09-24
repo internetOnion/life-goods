@@ -416,3 +416,71 @@ export async function verifiedPhotoFile(file: File): Promise<File | null> {
         return null
     }
 }
+
+/** Long-edge cap for on-device transcoding; also keeps iOS Safari under its canvas limit. */
+const MAX_TRANSCODE_EDGE = 4096
+
+async function hasJpegOrPngSignature(file: File): Promise<boolean> {
+    const head = new Uint8Array(await file.slice(0, 8).arrayBuffer())
+    const isJpeg = head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff
+    const isPng =
+        head[0] === 0x89 &&
+        head[1] === 0x50 &&
+        head[2] === 0x4e &&
+        head[3] === 0x47
+    return isJpeg || isPng
+}
+
+/**
+ * A photo picked from the iPhone library can reach the upload as HEIC bytes or a
+ * picker-derived variant the backend does not read, whereas a camera shot is always a
+ * JPEG drawn on-device. When the browser can decode a photo that is not already a
+ * JPEG or PNG, re-encode it on-device as a JPEG — the same path a camera shot takes.
+ * A photo the browser cannot decode (HEIC outside Safari) is returned unchanged; the
+ * backend still transcodes it.
+ */
+export async function uploadReadyPhotoFile(file: File): Promise<File> {
+    if (
+        typeof createImageBitmap !== "function" ||
+        typeof file.slice !== "function"
+    ) {
+        return file
+    }
+    let bitmap: ImageBitmap | null = null
+    try {
+        if (await hasJpegOrPngSignature(file)) return file
+        bitmap = await createImageBitmap(file, {
+            imageOrientation: "from-image",
+        })
+        const scale = Math.min(
+            1,
+            MAX_TRANSCODE_EDGE / Math.max(bitmap.width, bitmap.height),
+        )
+        const canvas = document.createElement("canvas")
+        canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+        canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+        const context = canvas.getContext("2d")
+        if (!context) return file
+        context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+        const blob = await new Promise<Blob | null>((resolve) =>
+            canvas.toBlob(resolve, "image/jpeg", 0.92),
+        )
+        if (!blob || blob.size === 0) return file
+        const dot = file.name.lastIndexOf(".")
+        const base = dot > 0 ? file.name.slice(0, dot) : file.name || "photo"
+        return new File([blob], `${base}.jpg`, {
+            type: "image/jpeg",
+            lastModified: file.lastModified,
+        })
+    } catch {
+        return file
+    } finally {
+        bitmap?.close()
+    }
+}
+
+/** Read a picked photo in full, then make it upload-ready; null when unreadable. */
+export async function preparedPhotoFile(file: File): Promise<File | null> {
+    const verified = await verifiedPhotoFile(file)
+    return verified && uploadReadyPhotoFile(verified)
+}

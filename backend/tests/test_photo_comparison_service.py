@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 import io
 import json
+import logging
 from decimal import Decimal
 
 import fakeredis
@@ -138,6 +139,20 @@ def test_photo_limits_reject_oversized_and_unsupported_content() -> None:
     with pytest.raises(ImageValidationError, match="Only JPEG, PNG and HEIC") as declared:
         prepare_image(_png_bytes(), declared_content_type="application/pdf")
     assert declared.value.unsupported_format
+
+
+def test_rejected_photos_log_format_metadata_only(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING, logger="lifegoods.photo_comparison.images"):
+        with pytest.raises(ImageValidationError):
+            prepare_image(b"\x00\x00\x00\x18ftypavifsecret", declared_content_type="image/avif")
+        with pytest.raises(ImageValidationError):
+            prepare_image(b"\x00\x00\x00\x18ftypheicsecret", declared_content_type="image/heic")
+    messages = [record.getMessage() for record in caplog.records]
+    assert "reason=declared_type declared='image/avif'" in messages[0]
+    assert "brand='avif'" in messages[0]
+    assert "reason=decode_failed:" in messages[1]
+    assert "brand='heic'" in messages[1]
+    assert all("secret" not in message for message in messages)
 
 
 def test_heic_photos_are_transcoded_to_jpeg() -> None:
