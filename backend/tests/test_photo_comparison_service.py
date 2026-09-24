@@ -166,6 +166,21 @@ def test_heic_photos_are_transcoded_to_jpeg() -> None:
             assert image.getexif() == {}
 
 
+def test_mpo_photos_keep_only_the_primary_image_as_jpeg() -> None:
+    # iOS hands a library HEIC over as a JPEG with an appended gain-map image (MPO).
+    output = io.BytesIO()
+    primary = Image.new("RGB", (40, 30), (220, 180, 90))
+    primary.save(output, format="MPO", save_all=True, append_images=[Image.new("L", (20, 15))])
+    with Image.open(io.BytesIO(output.getvalue())) as detected:
+        assert detected.format == "MPO"
+    prepared = prepare_image(output.getvalue(), declared_content_type="image/jpeg")
+    assert prepared.mime_type == "image/jpeg"
+    assert (prepared.evidence.width, prepared.evidence.height) == (40, 30)
+    with Image.open(io.BytesIO(prepared.content)) as image:
+        assert image.format == "JPEG"
+        assert getattr(image, "n_frames", 1) == 1
+
+
 def test_oversized_pixel_photos_are_downscaled_instead_of_rejected() -> None:
     output = io.BytesIO()
     Image.new("RGB", (6000, 5000), (220, 180, 90)).save(output, format="JPEG")

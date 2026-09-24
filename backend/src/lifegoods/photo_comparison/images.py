@@ -23,7 +23,14 @@ MAX_PHOTO_BYTES = 10 * 1024 * 1024
 MAX_UPLOAD_BYTES = 32 * 1024 * 1024
 MAX_IMAGE_PIXELS = 25_000_000
 # Pillow format name -> MIME type of the *prepared* output. HEIF input is re-encoded as JPEG.
-SUPPORTED_IMAGE_FORMATS = {"JPEG": "image/jpeg", "PNG": "image/png", "HEIF": "image/jpeg"}
+# MPO is a JPEG with extra images appended (iOS adds an HDR gain map when it hands a library
+# HEIC over as JPEG); only its primary image is kept.
+SUPPORTED_IMAGE_FORMATS = {
+    "JPEG": "image/jpeg",
+    "MPO": "image/jpeg",
+    "PNG": "image/png",
+    "HEIF": "image/jpeg",
+}
 ACCEPTED_DECLARED_CONTENT_TYPES = frozenset(
     {
         "image/jpeg",
