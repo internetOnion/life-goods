@@ -18,7 +18,7 @@ Life Goods is a **read-only presentation layer** over a static, locally hosted O
 - No Product contributions, verification, package capture, camera uploads, accounts, server-side scan history, or personalization.
 - No safety, health, allergen-free, Halal, legal/compliance, authenticity, or purchase verdicts anywhere, including in `/learn` content.
 - Decode Barcode camera frames on-device; send only the normalized Barcode to the backend. Never upload/retain camera frames.
-- Compare Products (photo-based nutrition comparison) is the **one** bounded exception that sends user photos off-device — to the configured AI provider only, with no photos/extracted text/comparison history retained. It never declares an overall winner or verdict.
+- Compare Nutrition (photo-based nutrition comparison) is the **one** bounded exception that sends user photos off-device — to the configured AI provider only, with no photos/extracted text/comparison history retained. It never declares an overall winner or verdict.
 - Keep Barcode-level and Shopper-level data out of analytics and logs.
 
 ## Architecture
@@ -78,7 +78,7 @@ pnpm benchmark:live    # live-provider benchmark, explicit operator action, real
 
 - All scripts/commands/tools must work cross-platform (Windows/macOS/Linux) — no POSIX-only inline env assignment or hardcoded path separators.
 - Frontend formatting: root Prettier config + Tailwind plugin via `pnpm frontend:lint:format` (or `pnpm --dir frontend lint:format`).
-- Icons/illustrations aren't restricted to one vendor (Phosphor is common) — any library or custom SVG is fine as long as it's semantically accurate and visually cohesive with the brand (warm amber + cool slate palette, "Life Goods" spaced wordmark, Khmer-ready rather than Khmer-as-fallback).
+- Icons/illustrations aren't restricted to one vendor (Phosphor is common) — any library or custom SVG is fine as long as it's semantically accurate and visually cohesive with the brand (warm amber + cool slate palette, "LifeGoods" one-word logo wordmark (product name in prose stays "Life Goods"), Khmer-ready rather than Khmer-as-fallback).
 - Create documentation lazily and in the right place: `PRODUCT.md` = product intent, `CONTEXT.md` = glossary only, `docs/SPEC.md` = current behavioral contract, `docs/adr/` = only decisions that are hard to reverse or surprising, `docs/research/` = research artifacts, `docs/diagrams/` = Mermaid source + rendered output — only when the work actually needs them.
 - Commit messages use lowercase Conventional prefixes (`feat:`, `fix:`, `docs:`, `test:`, `chore:`) only when a commit is explicitly requested.
 - GitHub Issues (`internetOnion/life-goods`) use lowercase colon-namespaced labels: `area:frontend|backend|documentation`, `status:needs-triage|needs-info|ready-for-agent|ready-for-human|in-progress|blocked|wontfix|duplicate|invalid|post-mvp`, `type:bug|enhancement|question|epic`, `community:good-first-issue|help-wanted`. The old "Wave" taxonomy is obsolete.

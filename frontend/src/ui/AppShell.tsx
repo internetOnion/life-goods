@@ -1,7 +1,7 @@
 import {
     BookOpenTextIcon,
     ListChecksIcon,
-    ScalesIcon,
+    ReceiptIcon,
     ScanIcon,
 } from "@phosphor-icons/react"
 import { type ReactNode, useEffect, useState } from "react"
@@ -26,9 +26,9 @@ const navigation = [
         end: true,
     },
     {
-        to: appRoutes.compare,
-        labelKey: "compare",
-        icon: ScalesIcon,
+        to: appRoutes.labels,
+        labelKey: "labels",
+        icon: ReceiptIcon,
     },
     {
         to: appRoutes.learn,

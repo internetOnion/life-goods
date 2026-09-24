@@ -42,6 +42,12 @@ def test_photo_comparison_routes_are_registered_by_the_normal_contract(
     extraction_schema = client.get("/openapi.json").json()["components"]["schemas"][
         "Body_extractPhotoComparison"
     ]
+    # install_photo_comparison_openapi patches this schema by name; Read This Label
+    # reuses the same operation, so it must stay the only multipart body.
+    schema_names = client.get("/openapi.json").json()["components"]["schemas"]
+    assert [name for name in schema_names if name.startswith("Body_")] == [
+        "Body_extractPhotoComparison"
+    ]
     assert extraction_schema["required"] == ["product_id", "photos"]
     assert extraction_schema["properties"]["photos"]["minItems"] == 1
     assert extraction_schema["properties"]["photos"]["maxItems"] == 3

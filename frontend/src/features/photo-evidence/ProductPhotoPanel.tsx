@@ -18,20 +18,14 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
+import { EvidencePointers, NutritionColumnCard } from "./EvidenceViews"
 import {
     PHOTO_INPUT_ACCEPT,
     displayBasisLabel,
     displayValue,
-    formatNutrientName,
     formatPreparationLabel,
-    formatStateLabel,
 } from "./helpers"
-import type {
-    EvidencePointer,
-    FieldObservation,
-    NutritionColumn,
-    ProductSideState,
-} from "./types"
+import type { ProductSideState } from "./types"
 import { MAX_PHOTOS_PER_PRODUCT } from "./types"
 import { useCompareTranslation } from "./translations"
 
@@ -54,6 +48,13 @@ interface ProductPhotoPanelProps {
     onPhotoPreviewError?: (index: number) => void
     onFocusEvidence: (imageId: string) => void
     onInspectPhoto?: (index: number) => void
+    /** Title restored when the Shopper clears the title field. */
+    defaultTitle?: string
+    /** Label for the extract control when `onExtract` is provided. */
+    extractLabel?: string
+    showTitleInput?: boolean
+    /** Render extracted values inside the panel (Compare Nutrition does). */
+    showExtractionResults?: boolean
 }
 
 export function ProductPhotoPanel({
@@ -72,6 +73,10 @@ export function ProductPhotoPanel({
     onPhotoPreviewError,
     onFocusEvidence,
     onInspectPhoto,
+    defaultTitle,
+    extractLabel,
+    showTitleInput = true,
+    showExtractionResults = true,
 }: ProductPhotoPanelProps) {
     const { locale, t } = useCompareTranslation()
     const [isDragging, setIsDragging] = useState(false)
@@ -112,11 +117,12 @@ export function ProductPhotoPanel({
 
     const extractButtonLabel = product.loading
         ? t("readingPhotos")
-        : product.extraction
-          ? t("reextract")
-          : product.error
-            ? t("retryExtraction")
-            : t("extractVisibleFacts")
+        : (extractLabel ??
+          (product.extraction
+              ? t("reextract")
+              : product.error
+                ? t("retryExtraction")
+                : t("extractVisibleFacts")))
 
     return (
         <Card
@@ -125,34 +131,43 @@ export function ProductPhotoPanel({
         >
             <header className="flex flex-col gap-3 border-b border-neutral-200/80 p-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4">
                 <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                    <span className="bg-primary-100 text-primary-900 flex size-8 shrink-0 items-center justify-center rounded-lg font-mono text-xs font-bold select-none">
-                        {product.number}
-                    </span>
+                    {product.number ? (
+                        <span className="bg-primary-100 text-primary-900 flex size-8 shrink-0 items-center justify-center rounded-lg font-mono text-xs font-bold select-none">
+                            {product.number}
+                        </span>
+                    ) : null}
                     <div className="min-w-0 flex-1">
                         <h2
                             id={`panel-heading-${product.id}`}
-                            className="sr-only"
+                            className={
+                                showTitleInput
+                                    ? "sr-only"
+                                    : "text-sm font-bold text-neutral-900"
+                            }
                         >
                             {product.title}
                         </h2>
-                        <Input
-                            value={product.title}
-                            onChange={(e) => onTitleChange(e.target.value)}
-                            onBlur={() => {
-                                if (!product.title.trim()) {
-                                    onTitleChange(
-                                        product.number === "1"
-                                            ? t("productA")
-                                            : t("productB"),
-                                        "default",
-                                    )
-                                }
-                            }}
-                            aria-label={t("productDisplayName", {
-                                product: product.title,
-                            })}
-                            className="h-8 w-full max-w-[200px] rounded-lg text-sm font-bold text-neutral-900 sm:w-48"
-                        />
+                        {showTitleInput ? (
+                            <Input
+                                value={product.title}
+                                onChange={(e) => onTitleChange(e.target.value)}
+                                onBlur={() => {
+                                    if (!product.title.trim()) {
+                                        onTitleChange(
+                                            defaultTitle ??
+                                                (product.number === "1"
+                                                    ? t("productA")
+                                                    : t("productB")),
+                                            "default",
+                                        )
+                                    }
+                                }}
+                                aria-label={t("productDisplayName", {
+                                    product: product.title,
+                                })}
+                                className="h-9 w-full max-w-[200px] rounded-lg text-base font-bold text-neutral-900 sm:w-48"
+                            />
+                        ) : null}
                     </div>
                 </div>
                 <div className="flex items-center gap-2 border-t border-neutral-200/80 pt-2 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-4">
@@ -594,7 +609,7 @@ export function ProductPhotoPanel({
                 )}
 
                 {/* Extraction Results */}
-                {extraction && (
+                {extraction && showExtractionResults && (
                     <div className="mt-5 border-t border-neutral-200/80 pt-5">
                         {/* Detected details */}
                         <details className="group">
@@ -745,7 +760,9 @@ export function ProductPhotoPanel({
                                                             evidence={
                                                                 packageQuantity.evidence
                                                             }
-                                                            product={product}
+                                                            images={
+                                                                extraction.images
+                                                            }
                                                             onFocus={
                                                                 onFocusEvidence
                                                             }
@@ -832,7 +849,7 @@ export function ProductPhotoPanel({
                                 <div className="mt-3">
                                     <NutritionColumnCard
                                         column={selectedColumn}
-                                        product={product}
+                                        images={extraction.images}
                                         onFocusEvidence={onFocusEvidence}
                                     />
                                 </div>
@@ -869,172 +886,5 @@ export function ProductPhotoPanel({
                 )}
             </div>
         </Card>
-    )
-}
-
-interface NutritionColumnCardProps {
-    column: NutritionColumn
-    product: ProductSideState
-    onFocusEvidence: (imageId: string) => void
-}
-
-function NutritionColumnCard({
-    column,
-    product,
-    onFocusEvidence,
-}: NutritionColumnCardProps) {
-    const { locale, t } = useCompareTranslation()
-    const basisLabel = displayBasisLabel(column.basis, locale)
-    const prepLabel = formatPreparationLabel(column.preparation_state, locale)
-
-    return (
-        <article className="rounded-lg border border-neutral-200/80 bg-white p-3">
-            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                    <div className="font-bold text-neutral-900">
-                        {basisLabel}
-                    </div>
-                    <div className="mt-0.5 text-xs text-neutral-500">
-                        {prepLabel}
-                    </div>
-                </div>
-            </div>
-
-            <div className="scrollbar-subtle mt-3 max-h-48 divide-y divide-neutral-100 overflow-y-auto border-t border-neutral-100 pr-1 text-xs">
-                {(column.fields?.length ?? 0) > 0 ? (
-                    (column.fields ?? []).map((field) => (
-                        <ObservationRow
-                            key={field.field_id}
-                            field={field}
-                            product={product}
-                            onFocusEvidence={onFocusEvidence}
-                        />
-                    ))
-                ) : (
-                    <div className="py-2 text-neutral-600 italic">
-                        {t("noVisibleColumn")}
-                    </div>
-                )}
-            </div>
-        </article>
-    )
-}
-
-function ObservationRow({
-    field,
-    product,
-    onFocusEvidence,
-}: {
-    field: FieldObservation
-    product: ProductSideState
-    onFocusEvidence: (imageId: string) => void
-}) {
-    const { locale, t } = useCompareTranslation()
-    const nutrientName = formatNutrientName(
-        field.nutrient || "",
-        field.label,
-        locale,
-    )
-
-    return (
-        <div className="flex items-start justify-between gap-4 py-2.5">
-            <div className="min-w-0 flex-1">
-                <div className="font-semibold text-neutral-900">
-                    <span>{nutrientName}</span>
-                </div>
-                {field.original_script &&
-                    field.original_script !== nutrientName && (
-                        <div
-                            className="font-sans text-xs text-neutral-600"
-                            lang={field.language || "und"}
-                        >
-                            {field.original_script}
-                        </div>
-                    )}
-                {field.state === "conflicting" && (
-                    <div className="text-warning-700 mt-1 text-[11px] font-medium">
-                        <span>{t("conflictingValues")} </span>
-                        <span>
-                            {displayValue(
-                                field.value_text,
-                                field.unit_text || "",
-                            )}
-                        </span>
-                        {field.alternatives?.map((alt, i) => (
-                            <span key={i}>
-                                {" "}
-                                vs{" "}
-                                {displayValue(
-                                    alt.value_text,
-                                    alt.unit_text || "",
-                                )}
-                            </span>
-                        ))}
-                    </div>
-                )}
-                <details className="mt-0.5 text-[11px] text-neutral-600">
-                    <summary className="cursor-pointer select-none hover:text-neutral-600">
-                        {t("details")}
-                    </summary>
-                    <div className="mt-0.5 font-mono text-[10px] text-neutral-500">
-                        {formatStateLabel(field.state, locale)} ·{" "}
-                        {formatStateLabel(field.row_kind, locale)} ·{" "}
-                        {formatStateLabel(field.qualifier, locale)}
-                    </div>
-                </details>
-                {field.evidence && field.evidence.length > 0 && (
-                    <EvidencePointers
-                        evidence={field.evidence}
-                        product={product}
-                        onFocus={onFocusEvidence}
-                    />
-                )}
-            </div>
-
-            <div className="shrink-0 text-right font-mono text-xs font-bold text-neutral-900 tabular-nums">
-                {displayValue(field.value_text, field.unit_text || "")}
-            </div>
-        </div>
-    )
-}
-
-function EvidencePointers({
-    evidence,
-    product,
-    onFocus,
-}: {
-    evidence: EvidencePointer[]
-    product: ProductSideState
-    onFocus: (imageId: string) => void
-}) {
-    const { t } = useCompareTranslation()
-    return (
-        <div className="mt-1 flex flex-wrap gap-1">
-            {evidence.map((ptr) => {
-                const photoIndex = product.extraction?.images?.findIndex(
-                    (img) => img.image_id === ptr.image_id,
-                )
-                const photoNumber =
-                    photoIndex !== undefined && photoIndex >= 0
-                        ? photoIndex + 1
-                        : 1
-
-                return (
-                    <Button
-                        key={ptr.image_id}
-                        type="button"
-                        variant="subtle"
-                        size="sm"
-                        onClick={() => onFocus(ptr.image_id)}
-                        className="border-info-200/70 bg-info-50 text-info-700 hover:bg-info-100 hover:text-info-900 h-5 gap-1 rounded-full border px-2 font-mono text-[10px]"
-                        title={t("viewPhoto", { number: photoNumber })}
-                        aria-label={t("viewPhoto", { number: photoNumber })}
-                    >
-                        <Camera size={11} />
-                        <span>{t("viewPhoto", { number: photoNumber })}</span>
-                    </Button>
-                )
-            })}
-        </div>
     )
 }

@@ -5,16 +5,13 @@ import { useLocale, type AppLocale } from "@/i18n/locale"
 type TranslationValues = Record<string, string | number>
 
 const en = {
-    pageTitle: "Compare Products",
+    pageTitle: "Compare Nutrition",
     pageDescription: "Compare nutrition from label photos for two Products.",
     pageSubtitle: "Compare nutrition from two label photos.",
     productA: "Product A",
     productB: "Product B",
     editProducts: "Edit Products",
     resetSession: "Reset session",
-    compareTwo: "Compare Two Products",
-    intro: "Add a clear Nutrition Facts photo for each Product. You can take a photo or choose one from your library.",
-    getStarted: "Get started",
     guidedCapture: "Guided Product capture",
     choosePhotosA: "Choose photos for Product A",
     choosePhotosB: "Choose photos for Product B",
@@ -40,7 +37,7 @@ const en = {
     comparing: "Comparing…",
     comparingNutrition: "Comparing nutrition…",
     retryComparison: "Retry comparison",
-    compareProducts: "Compare Products",
+    compareProducts: "Compare Nutrition",
     compareAgain: "Compare again",
     basedOnEvidence: "Based on Photo Evidence.",
     addEachProduct: "Add a photo for each Product.",
@@ -257,19 +254,51 @@ const en = {
     providerCapacity:
         "Processing capacity has been reached. Wait a moment and retry.",
     requestFailed: "The request failed. Please retry.",
+    // Nutrition Labels section and Read This Label (SPEC §29)
+    labelsPageTitle: "Nutrition Labels",
+    labelsPageDescription:
+        "Read one Product's nutrition label or compare two, from your photos.",
+    labelsIntro:
+        "Photograph a nutrition label to read its printed values, or photograph two to compare them.",
+    readModeTitle: "Read This Label",
+    readModeDescription:
+        "Photograph one Product's nutrition panel and see every value printed on it.",
+    compareModeTitle: "Compare Nutrition",
+    compareModeDescription:
+        "Photograph two Products' nutrition panels and see how their values differ.",
+    readPageTitle: "Read This Label",
+    readPageDescription:
+        "Read the nutrition values printed on one Product's label from your photos.",
+    readSubjectTitle: "This Product",
+    readThisLabelAction: "Read this label",
+    readAgainAction: "Read again",
+    unmatchedBarcodeContext:
+        "Barcode {{barcode}} has no Source Record in the selected Dataset Snapshot, so its label is read from your photos instead.",
+    labelReadingTitle: "Label Reading",
+    photoEvidenceBadge: "Photo Evidence",
+    photoEvidenceNotice:
+        "Read from your photos by the configured AI provider. This is Photo Evidence, not an Open Food Facts Source Record. Life Goods has not verified these values and does not keep them.",
+    printedColumnsHeading: "Nutrition columns printed on the label",
+    noColumnsRead: "No nutrition columns could be read from these photos.",
+    notReadableInPhoto: "Not readable in your photo",
+    notPrintedOnPhoto: "Not printed on the part you photographed",
+    unclearInPhoto: "Unclear in your photo",
+    compareInsteadPrompt: "Comparing two Products?",
+    compareInsteadLink: "Compare Nutrition",
+    backToLabels: "Nutrition Labels",
+    resetReading: "Start over",
+    providerDisclosure:
+        "Your photos are sent to the configured AI provider for processing. Life Goods does not keep your photos, readings, or comparisons.",
 } as const
 
 const km: Record<keyof typeof en, string> = {
-    pageTitle: "ប្រៀបធៀបផលិតផល",
+    pageTitle: "ប្រៀបធៀបអាហារូបត្ថម្ភ",
     pageDescription: "ប្រៀបធៀបព័ត៌មានអាហារូបត្ថម្ភពីរូបថតស្លាករបស់ផលិតផលពីរ។",
     pageSubtitle: "ប្រៀបធៀបអាហារូបត្ថម្ភពីរូបថតស្លាកពីរ។",
     productA: "ផលិតផល ក",
     productB: "ផលិតផល ខ",
     editProducts: "កែសម្រួលផលិតផល",
     resetSession: "ចាប់ផ្តើមការប្រៀបធៀបថ្មី",
-    compareTwo: "ប្រៀបធៀបផលិតផលពីរ",
-    intro: "បន្ថែមរូបថតស្លាកព័ត៌មានអាហារូបត្ថម្ភដែលច្បាស់សម្រាប់ផលិតផលនីមួយៗ។ អ្នកអាចថតរូប ឬជ្រើសរូបពីឧបករណ៍។",
-    getStarted: "ចាប់ផ្តើម",
     guidedCapture: "ជំហានថតរូបផលិតផល",
     choosePhotosA: "ជ្រើសរូបថតសម្រាប់ផលិតផល ក",
     choosePhotosB: "ជ្រើសរូបថតសម្រាប់ផលិតផល ខ",
@@ -295,7 +324,7 @@ const km: Record<keyof typeof en, string> = {
     comparing: "កំពុងប្រៀបធៀប…",
     comparingNutrition: "កំពុងប្រៀបធៀបអាហារូបត្ថម្ភ…",
     retryComparison: "សាកល្បងប្រៀបធៀបម្ដងទៀត",
-    compareProducts: "ប្រៀបធៀបផលិតផល",
+    compareProducts: "ប្រៀបធៀបអាហារូបត្ថម្ភ",
     compareAgain: "ប្រៀបធៀបម្ដងទៀត",
     basedOnEvidence: "ផ្អែកលើ Photo Evidence។",
     addEachProduct: "បន្ថែមរូបថតសម្រាប់ផលិតផលនីមួយៗ។",
@@ -511,6 +540,40 @@ const km: Record<keyof typeof en, string> = {
         "មិនអាចប្រើសេវាអានរូបថតបានបណ្ដោះអាសន្ន។ ពិនិត្យអ៊ីនធឺណិត ហើយសាកល្បងម្ដងទៀត។",
     providerCapacity: "សេវាកំពុងមមាញឹក។ រង់ចាំបន្តិច ហើយសាកល្បងម្ដងទៀត។",
     requestFailed: "សំណើបានបរាជ័យ។ សូមសាកល្បងម្ដងទៀត។",
+    labelsPageTitle: "ស្លាកអាហារូបត្ថម្ភ",
+    labelsPageDescription:
+        "អានស្លាកអាហារូបត្ថម្ភរបស់ផលិតផលមួយ ឬប្រៀបធៀបពីរ ពីរូបថតរបស់អ្នក។",
+    labelsIntro:
+        "ថតរូបស្លាកអាហារូបត្ថម្ភ ដើម្បីអានតម្លៃដែលបានបោះពុម្ព ឬថតរូបស្លាកពីរ ដើម្បីប្រៀបធៀប។",
+    readModeTitle: "អានស្លាកនេះ",
+    readModeDescription:
+        "ថតរូបផ្ទាំងអាហារូបត្ថម្ភរបស់ផលិតផលមួយ ហើយមើលតម្លៃទាំងអស់ដែលបានបោះពុម្ព។",
+    compareModeTitle: "ប្រៀបធៀបអាហារូបត្ថម្ភ",
+    compareModeDescription:
+        "ថតរូបផ្ទាំងអាហារូបត្ថម្ភរបស់ផលិតផលពីរ ហើយមើលភាពខុសគ្នានៃតម្លៃ។",
+    readPageTitle: "អានស្លាកនេះ",
+    readPageDescription:
+        "អានតម្លៃអាហារូបត្ថម្ភដែលបានបោះពុម្ពលើស្លាករបស់ផលិតផលមួយ ពីរូបថតរបស់អ្នក។",
+    readSubjectTitle: "ផលិតផលនេះ",
+    readThisLabelAction: "អានស្លាកនេះ",
+    readAgainAction: "អានម្ដងទៀត",
+    unmatchedBarcodeContext:
+        "បាកូដ {{barcode}} មិនមានកំណត់ត្រាប្រភពក្នុង Dataset Snapshot ដែលបានជ្រើសរើសទេ ដូច្នេះស្លាករបស់វាត្រូវបានអានពីរូបថតរបស់អ្នកជំនួសវិញ។",
+    labelReadingTitle: "ការអានស្លាក",
+    photoEvidenceBadge: "ភស្តុតាងពីរូបថត",
+    photoEvidenceNotice:
+        "អានពីរូបថតរបស់អ្នកដោយអ្នកផ្ដល់សេវា AI ដែលបានកំណត់។ នេះជាភស្តុតាងពីរូបថត មិនមែនជាកំណត់ត្រាប្រភព Open Food Facts ទេ។ Life Goods មិនបានផ្ទៀងផ្ទាត់តម្លៃទាំងនេះ ហើយមិនរក្សាទុកវាទេ។",
+    printedColumnsHeading: "ជួរអាហារូបត្ថម្ភដែលបានបោះពុម្ពលើស្លាក",
+    noColumnsRead: "មិនអាចអានជួរអាហារូបត្ថម្ភពីរូបថតទាំងនេះបានទេ។",
+    notReadableInPhoto: "មិនអាចអានបានក្នុងរូបថតរបស់អ្នក",
+    notPrintedOnPhoto: "មិនមានបោះពុម្ពលើផ្នែកដែលអ្នកបានថត",
+    unclearInPhoto: "មិនច្បាស់ក្នុងរូបថតរបស់អ្នក",
+    compareInsteadPrompt: "កំពុងប្រៀបធៀបផលិតផលពីរ?",
+    compareInsteadLink: "ប្រៀបធៀបអាហារូបត្ថម្ភ",
+    backToLabels: "ស្លាកអាហារូបត្ថម្ភ",
+    resetReading: "ចាប់ផ្តើមឡើងវិញ",
+    providerDisclosure:
+        "រូបថតរបស់អ្នកត្រូវបានផ្ញើទៅអ្នកផ្ដល់សេវា AI ដែលបានកំណត់ ដើម្បីដំណើរការ។ Life Goods មិនរក្សាទុករូបថត ការអាន ឬការប្រៀបធៀបរបស់អ្នកទេ។",
 }
 
 export const compareTranslations = { en, km } as const

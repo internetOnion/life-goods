@@ -11,7 +11,7 @@ import {
     formatNutrientName,
     formatPreparationLabel,
     getMissingCellText,
-} from "./helpers"
+} from "@/features/photo-evidence/helpers"
 import type {
     ComparisonResponse,
     ComparisonRow,
@@ -20,11 +20,11 @@ import type {
     PreparationState,
     ProductSideState,
     ReportedValue,
-} from "./types"
+} from "@/features/photo-evidence/types"
 import {
     useCompareTranslation,
     type CompareTranslationKey,
-} from "./translations"
+} from "@/features/photo-evidence/translations"
 
 type CompareTranslate = (
     key: CompareTranslationKey,

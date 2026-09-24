@@ -7,6 +7,8 @@ import {
     LearnGuidePage,
     LearnPage,
 } from "@/features/learn/LearnPage"
+import { LabelReadingPage } from "@/features/label-reading/LabelReadingPage"
+import { LabelsHubPage } from "@/features/labels/LabelsHubPage"
 import { NotFoundPage } from "@/features/not-found/NotFoundPage"
 import { PhotoComparisonPage } from "@/features/photo-comparison/PhotoComparisonPage"
 import { ProductPage } from "@/features/product/ProductPage"
@@ -64,16 +66,34 @@ export function App({ lookup = lookupProduct, demoMode = false }: AppProps) {
                         element={<DataAndLicensesPage />}
                     />
                     <Route
-                        path={appRoutes.compare}
+                        path={appRoutes.labels}
+                        element={<LabelsHubPage />}
+                    />
+                    <Route
+                        path={appRoutes.labelsRead}
+                        element={<LabelReadingPage />}
+                    />
+                    <Route
+                        path={appRoutes.labelsCompare}
                         element={<PhotoComparisonPage />}
                     />
                     <Route
+                        path={appRoutes.legacyCompare}
+                        element={
+                            <Navigate to={appRoutes.labelsCompare} replace />
+                        }
+                    />
+                    <Route
                         path="/experimental/photo-comparison"
-                        element={<Navigate to={appRoutes.compare} replace />}
+                        element={
+                            <Navigate to={appRoutes.labelsCompare} replace />
+                        }
                     />
                     <Route
                         path="/photo-comparison"
-                        element={<Navigate to={appRoutes.compare} replace />}
+                        element={
+                            <Navigate to={appRoutes.labelsCompare} replace />
+                        }
                     />
                     <Route path="*" element={<NotFoundPage />} />
                 </Routes>

@@ -6,7 +6,13 @@ import { GEOGRAPHIC_NAMES_KM } from "./geographicNames.generated"
 
 const englishProduct = {
     backToSearch: "Back to search",
-    noPackageRecord: "No Package Record Found",
+    unmatchedBarcodeTitle: "This Barcode has no Source Record",
+    unmatchedBarcodeDetail:
+        "The selected Dataset Snapshot has no Open Food Facts record for this Barcode. That says nothing about the Product itself.",
+    readThisLabel: "Read This Label",
+    readThisLabelHint: "Photograph the nutrition label to read its values.",
+    productNotFound:
+        "This Barcode has no Source Record in the selected Dataset Snapshot.",
     scanAnotherBarcode: "Scan Another Barcode",
     unableToLoadProduct: "Unable to Load Product",
     unexpectedProductError:
@@ -260,7 +266,13 @@ type ProductTranslations = { [Key in keyof typeof englishProduct]: string }
 
 const khmerProduct: ProductTranslations = {
     backToSearch: "ត្រឡប់ទៅការស្វែងរក",
-    noPackageRecord: "រកមិនឃើញកំណត់ត្រាកញ្ចប់ទេ",
+    unmatchedBarcodeTitle: "បាកូដនេះមិនមានកំណត់ត្រាប្រភពទេ",
+    unmatchedBarcodeDetail:
+        "Dataset Snapshot ដែលបានជ្រើសរើសមិនមានកំណត់ត្រា Open Food Facts សម្រាប់បាកូដនេះទេ។ នេះមិនបានប្រាប់អ្វីអំពីផលិតផលនោះទេ។",
+    readThisLabel: "អានស្លាកនេះ",
+    readThisLabelHint: "ថតរូបស្លាកអាហារូបត្ថម្ភ ដើម្បីអានតម្លៃរបស់វា។",
+    productNotFound:
+        "បាកូដនេះមិនមានកំណត់ត្រាប្រភពក្នុង Dataset Snapshot ដែលបានជ្រើសរើសទេ។",
     scanAnotherBarcode: "ស្កេនបាកូដមួយទៀត",
     unableToLoadProduct: "មិនអាចផ្ទុកផលិតផលបាន",
     unexpectedProductError:
@@ -1069,6 +1081,9 @@ export function translateProductError(
               ? candidate.error.code
               : ""
 
+    if (code === "product_not_found" || candidate?.status === 404) {
+        return translateProduct(locale, "productNotFound")
+    }
     if (code === "dataset_unavailable" || candidate?.status === 503) {
         return translateProduct(locale, "datasetUnavailable")
     }

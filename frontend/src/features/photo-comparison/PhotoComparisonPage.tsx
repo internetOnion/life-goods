@@ -6,6 +6,9 @@ import {
     WarningCircle,
 } from "@phosphor-icons/react"
 import { useEffect, useMemo, useRef, useState } from "react"
+import { useNavigate } from "react-router"
+
+import { appRoutes } from "@/app/routes"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { GlassButton as Button } from "@/components/ui/button"
@@ -18,7 +21,7 @@ import {
     compareProducts,
     extractProductPhotos,
     PhotoComparisonApiError,
-} from "./api"
+} from "@/features/photo-evidence/api"
 import { ComparisonProcessingSheet } from "./ComparisonProcessingSheet"
 import { ComparisonSection } from "./ComparisonSection"
 import { CompareStepper } from "./CompareStepper"
@@ -31,21 +34,20 @@ import {
     isHeicFile,
     isSupportedImageFile,
     pickDefaultColumnId,
-} from "./helpers"
-import { PhotoInspectionModal } from "./PhotoInspectionModal"
-import { ProductPhotoPanel } from "./ProductPhotoPanel"
+} from "@/features/photo-evidence/helpers"
+import { PhotoInspectionModal } from "@/features/photo-evidence/PhotoInspectionModal"
+import { ProductPhotoPanel } from "@/features/photo-evidence/ProductPhotoPanel"
 import type {
     ComparisonRequest,
     ComparisonResponse,
     ProductPhoto,
     ProductSideState,
-} from "./types"
-import { MAX_PHOTOS_PER_PRODUCT } from "./types"
-import { useCompareTranslation } from "./translations"
+} from "@/features/photo-evidence/types"
+import { MAX_PHOTOS_PER_PRODUCT } from "@/features/photo-evidence/types"
+import { useCompareTranslation } from "@/features/photo-evidence/translations"
 
 type CompareSide = "left" | "right"
-type CompareFlowPhase =
-    "intro" | "capture" | "review" | "processing" | "results"
+type CompareFlowPhase = "capture" | "review" | "processing" | "results"
 
 function createInitialProduct(
     id: "left" | "right",
@@ -104,6 +106,7 @@ export function PhotoComparisonPage({
         useAppShellNavigation()
     const { locale } = useLocale()
     const { t } = useCompareTranslation()
+    const navigate = useNavigate()
 
     usePageMetadata({
         title: t("pageTitle"),
@@ -116,7 +119,7 @@ export function PhotoComparisonPage({
     const [rightProduct, setRightProduct] = useState<ProductSideState>(() =>
         createInitialProduct("right", t("productB"), "2"),
     )
-    const [flowPhase, setFlowPhase] = useState<CompareFlowPhase>("intro")
+    const [flowPhase, setFlowPhase] = useState<CompareFlowPhase>("capture")
     const [activeSide, setActiveSide] = useState<CompareSide>("left")
     const [comparison, setComparison] = useState<ComparisonResponse | null>(
         null,
@@ -183,13 +186,11 @@ export function PhotoComparisonPage({
 
     useEffect(() => {
         const targetId =
-            flowPhase === "intro"
-                ? "compare-intro-heading"
-                : flowPhase === "results"
-                  ? "compare-results-heading"
-                  : flowPhase === "capture" || flowPhase === "review"
-                    ? `panel-heading-${activeSide}`
-                    : null
+            flowPhase === "results"
+                ? "compare-results-heading"
+                : flowPhase === "capture" || flowPhase === "review"
+                  ? `panel-heading-${activeSide}`
+                  : null
         if (!targetId || targetId === lastFocusTargetRef.current) return
         lastFocusTargetRef.current = targetId
         window.requestAnimationFrame(() => {
@@ -198,7 +199,7 @@ export function PhotoComparisonPage({
     }, [activeSide, flowPhase])
 
     useEffect(() => {
-        setPrimaryNavigationHidden(flowPhase !== "intro")
+        setPrimaryNavigationHidden(true)
         setBottomDockVisible(flowPhase === "capture" || flowPhase === "review")
 
         return () => {
@@ -219,11 +220,6 @@ export function PhotoComparisonPage({
 
     const getProductForSide = (side: CompareSide) =>
         side === "left" ? leftProduct : rightProduct
-
-    const handleStartProductCapture = () => {
-        setActiveSide("left")
-        setFlowPhase("capture")
-    }
 
     const handleOpenLibrary = (side: CompareSide) => {
         setActiveSide(side)
@@ -412,7 +408,7 @@ export function PhotoComparisonPage({
         setRightProduct((prev) => ({ ...prev, loading: false }))
     }
 
-    const clearSession = (destination: "intro" | "capture") => {
+    const clearSession = () => {
         sessionIdRef.current += 1
         abortInFlightExtraction()
         abortInFlightComparison()
@@ -431,22 +427,20 @@ export function PhotoComparisonPage({
         setActiveSide("left")
         previewRefs.current = {}
         lastFocusTargetRef.current = null
-        setFlowPhase(destination)
+        setFlowPhase("capture")
         setProcessingStep("idle")
         invalidateComparison()
         window.requestAnimationFrame(() => {
-            document
-                .getElementById(
-                    destination === "intro"
-                        ? "compare-intro-heading"
-                        : "panel-heading-left",
-                )
-                ?.focus()
+            document.getElementById("panel-heading-left")?.focus()
         })
     }
 
-    const handleResetSession = () => clearSession("capture")
-    const handleBackToStart = () => clearSession("intro")
+    const handleResetSession = () => clearSession()
+    // The Nutrition Labels hub is the start of this flow.
+    const handleBackToStart = () => {
+        clearSession()
+        void navigate(appRoutes.labels)
+    }
 
     const handleTitleChange = (
         side: "left" | "right",
@@ -1201,23 +1195,22 @@ export function PhotoComparisonPage({
                                 </p>
                             </div>
                             <div className="flex shrink-0 items-center gap-2">
-                                {flowPhase !== "intro" &&
-                                    flowPhase !== "processing" && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={handleResetSession}
-                                            aria-label={t("resetSession")}
-                                            title={t("resetSession")}
-                                            className="size-11 shrink-0 rounded-xl text-neutral-700 hover:text-neutral-900"
-                                        >
-                                            <ArrowCounterClockwise
-                                                size={18}
-                                                weight="bold"
-                                            />
-                                        </Button>
-                                    )}
+                                {flowPhase !== "processing" && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={handleResetSession}
+                                        aria-label={t("resetSession")}
+                                        title={t("resetSession")}
+                                        className="size-11 shrink-0 rounded-xl text-neutral-700 hover:text-neutral-900"
+                                    >
+                                        <ArrowCounterClockwise
+                                            size={18}
+                                            weight="bold"
+                                        />
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -1336,28 +1329,20 @@ export function PhotoComparisonPage({
                         )),
                     )}
 
-                {!isResultsPage &&
-                    flowPhase !== "intro" &&
-                    flowPhase !== "processing" && (
-                        <div className="mt-3 mb-3 sm:mt-4 sm:mb-4">
-                            <CompareStepper
-                                currentStep={currentCompareStep}
-                                onStepChange={handleStepChange}
-                                productACount={leftProduct.photos.length}
-                                productBCount={rightProduct.photos.length}
-                                disabled={processingStep !== "idle"}
-                            />
-                        </div>
-                    )}
+                {!isResultsPage && flowPhase !== "processing" && (
+                    <div className="mt-3 mb-3 sm:mt-4 sm:mb-4">
+                        <CompareStepper
+                            currentStep={currentCompareStep}
+                            onStepChange={handleStepChange}
+                            productACount={leftProduct.photos.length}
+                            productBCount={rightProduct.photos.length}
+                            disabled={processingStep !== "idle"}
+                        />
+                    </div>
+                )}
 
                 {!isResultsPage && (
-                    <div
-                        className={
-                            flowPhase === "intro"
-                                ? "mt-5 rounded-2xl border border-neutral-200/90 bg-white p-4 shadow-xs sm:mt-6 sm:p-6"
-                                : ""
-                        }
-                    >
+                    <div>
                         {flowPhase === "processing" ? (
                             <ComparisonProcessingSheet
                                 processingStep={processingStep}
@@ -1365,48 +1350,6 @@ export function PhotoComparisonPage({
                                 rightProduct={rightProduct}
                                 onCancel={handleCancelProcessing}
                             />
-                        ) : flowPhase === "intro" ? (
-                            <section
-                                className=""
-                                aria-labelledby="compare-intro-heading"
-                            >
-                                <div className="icon-heading-row">
-                                    <span className="bg-primary-100 text-primary-800 flex size-10 shrink-0 items-center justify-center rounded-xl">
-                                        <Scales size={25} weight="bold" />
-                                    </span>
-                                    <h2
-                                        id="compare-intro-heading"
-                                        tabIndex={-1}
-                                        className="icon-heading-title text-xl font-extrabold tracking-tight text-neutral-950 sm:text-2xl"
-                                    >
-                                        {t("compareTwo")}
-                                    </h2>
-                                </div>
-                                <p className="icon-heading-supporting mt-2 text-sm leading-relaxed text-neutral-600 sm:text-base">
-                                    {t("intro")}
-                                </p>
-
-                                <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-                                    <Button
-                                        type="button"
-                                        onClick={handleStartProductCapture}
-                                        className="shadow-action-lift h-12 gap-2 rounded-xl px-5 font-extrabold"
-                                    >
-                                        <ArrowRight size={19} weight="bold" />
-                                        <span>{t("getStarted")}</span>
-                                    </Button>
-                                </div>
-
-                                {(leftProduct.error || rightProduct.error) && (
-                                    <p
-                                        className="border-error-200 bg-error-50 text-error-800 mt-4 rounded-xl border p-3 text-sm font-medium"
-                                        role="alert"
-                                    >
-                                        {leftProduct.error ||
-                                            rightProduct.error}
-                                    </p>
-                                )}
-                            </section>
                         ) : flowPhase !== "results" || !comparison ? (
                             <section
                                 aria-label={t("guidedCapture")}
@@ -1450,6 +1393,11 @@ export function PhotoComparisonPage({
                                         handleOpenLibrary(activeSide)
                                     }
                                     onRetry={() => void handleCompare()}
+                                    defaultTitle={
+                                        activeSide === "left"
+                                            ? t("productA")
+                                            : t("productB")
+                                    }
                                     onPhotoPreviewError={(index) =>
                                         handlePhotoPreviewError(
                                             activeSide,

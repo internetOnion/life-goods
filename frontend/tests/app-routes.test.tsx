@@ -68,19 +68,19 @@ describe("Life Goods routes", () => {
             within(navigation)
                 .getAllByRole("link")
                 .map((link) => link.textContent),
-        ).toEqual(["Scan", "Compare", "Learn", "Allergy"])
+        ).toEqual(["Scan", "Labels", "Learn", "Allergy"])
         expect(screen.getByRole("link", { name: "Scan" })).toHaveAttribute(
             "aria-current",
             "page",
         )
         expect(screen.getByRole("link", { name: "Learn" })).toBeVisible()
-        expect(screen.getByRole("link", { name: "Compare" })).toBeVisible()
+        expect(screen.getByRole("link", { name: "Labels" })).toBeVisible()
         expect(screen.getByRole("link", { name: "Allergy" })).toBeVisible()
         expect(
             within(navigation).queryByRole("link", { name: "Search" }),
         ).not.toBeInTheDocument()
         expect(screen.getByRole("link", { name: "Search" })).toBeVisible()
-        expect(screen.getAllByText("Life Goods").length).toBeGreaterThan(0)
+        expect(screen.getAllByText("LifeGoods").length).toBeGreaterThan(0)
         expect(
             screen.queryByText("Read-only Open Food Facts data"),
         ).not.toBeInTheDocument()
@@ -251,7 +251,7 @@ describe("Life Goods routes", () => {
 
         expect(
             await screen.findByRole("heading", {
-                name: "No Package Record Found",
+                name: "This Barcode has no Source Record",
             }),
         ).toBeVisible()
         expect(lookup).toHaveBeenCalledWith("4006381333931")
@@ -333,7 +333,7 @@ describe("Life Goods routes", () => {
             within(navigation)
                 .getAllByRole("link")
                 .map((link) => link.textContent),
-        ).toEqual(["ស្កេន", "ប្រៀបធៀប", "ស្វែងយល់", "អាលែហ្ស៊ី"])
+        ).toEqual(["ស្កេន", "ស្លាក", "ស្វែងយល់", "អាលែហ្ស៊ី"])
         expect(
             screen.getByRole("button", { name: "ភាសា៖ ខ្មែរ" }),
         ).toBeVisible()
@@ -358,15 +358,17 @@ describe("Life Goods routes", () => {
         ).toBeVisible()
     })
 
-    test("marks Compare as current in the bottom navigation on /compare", () => {
-        renderRoute("/compare")
+    test.each(["/labels"])(
+        "marks Labels as current in the bottom navigation on %s",
+        (path) => {
+            renderRoute(path)
 
-        expect(screen.getByRole("link", { name: "Compare" })).toHaveAttribute(
-            "aria-current",
-            "page",
-        )
-        expect(
-            screen.getByRole("navigation", { name: "Primary navigation" }),
-        ).toBeVisible()
-    })
+            expect(
+                screen.getByRole("link", { name: "Labels" }),
+            ).toHaveAttribute("aria-current", "page")
+            expect(
+                screen.getByRole("navigation", { name: "Primary navigation" }),
+            ).toBeVisible()
+        },
+    )
 })

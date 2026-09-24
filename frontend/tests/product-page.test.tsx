@@ -1554,7 +1554,12 @@ describe("Product page (life-goods-viewer layout)", () => {
 
         renderProduct(lookup, "3017620422003")
 
-        expect(await screen.findByText("No Package Record Found")).toBeVisible()
+        expect(
+            await screen.findByText("This Barcode has no Source Record"),
+        ).toBeVisible()
+        expect(
+            screen.getByRole("button", { name: "Read This Label" }),
+        ).toBeVisible()
         expect(screen.getByRole("banner")).toHaveAttribute(
             "data-glass-surface",
             "",
@@ -1597,7 +1602,7 @@ describe("Product page (life-goods-viewer layout)", () => {
         renderProduct(lookup, "3017620422003", "km")
 
         expect(
-            await screen.findByText("រកមិនឃើញកំណត់ត្រាកញ្ចប់ទេ"),
+            await screen.findByText("បាកូដនេះមិនមានកំណត់ត្រាប្រភពទេ"),
         ).toBeVisible()
         expect(
             screen.queryByText("3017620422003", { exact: true }),

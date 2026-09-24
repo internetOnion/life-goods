@@ -30,7 +30,7 @@ Read [PRODUCT.md](PRODUCT.md) for the product boundary, [CONTEXT.md](CONTEXT.md)
 - **Product pages with visible Source Attribution** — every field traces back to Open Food Facts, with explicit "Source Data Unavailable" states instead of guessed values.
 - **On-demand Khmer Translation** — machine-generated Khmer display text, generated per request and cached, while Original Text always remains available.
 - **Product Search** — Barcode and text search across product names and brands.
-- **Compare Products** — compare two products' nutrition facts from label photos when a Barcode or Source Record isn't available, with no retained photos or comparison history and no declared "winner."
+- **Compare Nutrition** — compare two products' nutrition facts from label photos when a Barcode or Source Record isn't available, with no retained photos or comparison history and no declared "winner."
 - **Source-based allergen evidence** — ingredient-text matches shown alongside Open Food Facts allergen tags, never as a safety or allergen-free claim.
 
 ## Tech stack

@@ -359,7 +359,7 @@ const SUPPORTED_IMAGE_EXTENSIONS = new Set([
 ])
 const HEIC_EXTENSIONS = new Set(["heic", "heif"])
 
-/** Accept string shared by every photo file input in Compare Products. */
+/** Accept string shared by every photo file input in Compare Nutrition. */
 export const PHOTO_INPUT_ACCEPT =
     "image/jpeg,image/png,image/heic,image/heif,.heic,.heif"
 

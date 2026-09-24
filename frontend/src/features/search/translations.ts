@@ -33,6 +33,7 @@ const englishSearch = {
     noProductsHint: "Try a different Product name, company, or country.",
     noBarcodeMatchHint:
         "No Product with this Barcode was found in the Dataset Snapshot.",
+    readThisLabel: "Read This Label",
     viewedProductsPageTitle: "Viewed Products",
     viewedProductsPageDescription:
         "Products viewed recently in this Life Goods session.",
@@ -93,6 +94,7 @@ const khmerSearch: SearchTranslations = {
     noProductsFound: "រកមិនឃើញផលិតផលទេ",
     noProductsHint: "សាកល្បងឈ្មោះផលិតផល ក្រុមហ៊ុន ឬប្រទេសផ្សេង។",
     noBarcodeMatchHint: "រកមិនឃើញផលិតផលដែលមានបាកូដនេះក្នុងសំណុំទិន្នន័យទេ។",
+    readThisLabel: "អានស្លាកនេះ",
     viewedProductsPageTitle: "ផលិតផលដែលបានមើល",
     viewedProductsPageDescription:
         "ផលិតផលដែលអ្នកបានមើលថ្មីៗក្នុងវគ្គប្រើប្រាស់ Life Goods នេះ។",

@@ -2,7 +2,7 @@ import { Check } from "@phosphor-icons/react"
 
 import { GlassButton as Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { useCompareTranslation } from "./translations"
+import { useCompareTranslation } from "@/features/photo-evidence/translations"
 
 export interface CompareStepperProps {
     currentStep: 1 | 2

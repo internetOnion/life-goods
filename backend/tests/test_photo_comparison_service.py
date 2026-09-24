@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import io
 import json
 from decimal import Decimal
@@ -962,3 +963,74 @@ def test_special_unit_normalization_and_quantities() -> None:
     unit_kj, factor_kj = normalize_unit("kJ")
     assert unit_kj is MeasurementUnit.KJ
     assert factor_kj == Decimal("1")
+
+
+class RecordingProvider(FakeProvider):
+    def __init__(self) -> None:
+        super().__init__()
+        self.requests: list[PhotoProviderRequest] = []
+
+    def extract(self, request: PhotoProviderRequest) -> dict[str, object]:
+        self.requests.append(request)
+        return super().extract(request)
+
+
+def test_read_this_label_reuses_extraction_with_a_single_product_label() -> None:
+    """Read This Label (SPEC §29) sends one Product under a non-side panel label."""
+    provider = RecordingProvider()
+    app = create_app(
+        settings=Settings(_env_file=None, gemini_api_key=None),  # pyright: ignore[reportCallIssue]
+        photo_provider=provider,
+        photo_rate_limiter=AllowAllPhotoRateLimiter(),
+        photo_capacity=ProviderCapacity(),
+    )
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/photo-comparison/extractions",
+            data={"product_id": "label"},
+            files=[("photos", ("label.heic", _heic_bytes(), "image/heic"))],
+        )
+
+    assert response.status_code == 200
+    assert response.json()["product_id"] == "label"
+    # The provider receives prepared images only: no panel label, so no Barcode
+    # can ever reach it through this operation.
+    assert [field.name for field in dataclasses.fields(PhotoProviderRequest)] == ["images"]
+    assert len(provider.requests) == 1
+    assert [image.mime_type for image in provider.requests[0].images] == ["image/jpeg"]
+
+
+def test_read_this_label_and_compare_products_share_one_admission_budget() -> None:
+    """Both Nutrition Labels modes spend one per-client window (ADR 0004)."""
+    redis_client = fakeredis.FakeRedis(decode_responses=True)
+    app = create_app(
+        settings=Settings(_env_file=None, gemini_api_key=None),  # pyright: ignore[reportCallIssue]
+        photo_provider=FakeProvider(),
+        photo_rate_limiter=RedisPhotoComparisonRateLimiter(redis_client, requests_per_minute=1),
+        photo_capacity=ProviderCapacity(),
+    )
+    with TestClient(app) as client:
+        reading = client.post(
+            "/api/v1/photo-comparison/extractions",
+            data={"product_id": "label"},
+            files=[("photos", ("label.png", _png_bytes(), "image/png"))],
+        )
+        comparison_side = client.post(
+            "/api/v1/photo-comparison/extractions",
+            data={"product_id": "left"},
+            files=[("photos", ("left.png", _png_bytes(), "image/png"))],
+        )
+
+    assert reading.status_code == 200
+    assert comparison_side.status_code == 429
+    assert comparison_side.json()["error"]["code"] == "rate_limit_exceeded"
+
+
+def test_read_this_label_and_compare_products_share_one_provider_lease() -> None:
+    redis_client = fakeredis.FakeRedis(decode_responses=True)
+    reading_instance = RedisProviderCapacity(redis_client)
+    compare_instance = RedisProviderCapacity(redis_client)
+
+    assert reading_instance.acquire()
+    assert not compare_instance.acquire()
+    reading_instance.release()

@@ -3,8 +3,8 @@ import { Check, Scales, X } from "@phosphor-icons/react"
 import { GlassButton as Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-import type { ProductSideState } from "./types"
-import { useCompareTranslation } from "./translations"
+import type { ProductSideState } from "@/features/photo-evidence/types"
+import { useCompareTranslation } from "@/features/photo-evidence/translations"
 
 type ProcessingStep =
     "idle" | "extracting_left" | "extracting_right" | "comparing"

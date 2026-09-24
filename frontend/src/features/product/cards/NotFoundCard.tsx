@@ -8,9 +8,13 @@ import { useProductTranslation } from "../translations"
 
 interface NotFoundCardProps {
     onBack: () => void
+    onReadLabel: () => void
 }
 
-export const NotFoundCard: React.FC<NotFoundCardProps> = ({ onBack }) => {
+export const NotFoundCard: React.FC<NotFoundCardProps> = ({
+    onBack,
+    onReadLabel,
+}) => {
     const { t } = useProductTranslation()
     return (
         <div className="space-y-4 pt-4">
@@ -20,17 +24,32 @@ export const NotFoundCard: React.FC<NotFoundCardProps> = ({ onBack }) => {
 
                     <div className="max-w-md space-y-1.5">
                         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-neutral-950 sm:text-2xl">
-                            {t("noPackageRecord")}
+                            {t("unmatchedBarcodeTitle")}
                         </h2>
+                        <p className="text-sm leading-relaxed text-neutral-600">
+                            {t("unmatchedBarcodeDetail")}
+                        </p>
                     </div>
 
-                    <Button
-                        variant="default"
-                        onClick={onBack}
-                        className="mt-2 w-full max-w-xs rounded-xl text-sm font-bold"
-                    >
-                        <span>{t("scanAnotherBarcode")}</span>
-                    </Button>
+                    <div className="flex w-full max-w-xs flex-col gap-2 pt-2">
+                        <Button
+                            variant="default"
+                            onClick={onReadLabel}
+                            className="w-full rounded-xl text-sm font-bold"
+                        >
+                            <span>{t("readThisLabel")}</span>
+                        </Button>
+                        <p className="text-xs text-neutral-500">
+                            {t("readThisLabelHint")}
+                        </p>
+                        <Button
+                            variant="ghost"
+                            onClick={onBack}
+                            className="w-full rounded-xl text-sm font-semibold"
+                        >
+                            <span>{t("scanAnotherBarcode")}</span>
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
         </div>
