@@ -42,6 +42,37 @@ const en = {
         "Barcode {{barcode}} in your photo has a Source Record in the Dataset Snapshot. Its Product page shows attributed Open Food Facts information instead of a reading of your photos.",
     openProductPage: "Open Product page",
     keepReadingLabel: "Keep reading the label",
+    ingredientsHeading: "Ingredients as printed",
+    noIngredientsRead: "No ingredients list was read from these photos.",
+    allergenHeading: "Allergen statement printed on the label",
+    statementContains: "Contains",
+    statementMayContain: "May contain",
+    statementOther: "Allergen wording",
+    noAllergenStatementRead:
+        "No allergen statement was read from these photos.",
+    concernMatchesHeading: "Your selected allergens found in the text we read",
+    concernMatchContains: "Mentioned: {{text}}",
+    concernMatchMayContain: "May contain: {{text}}",
+    onlyReadableChecked:
+        "Only text that could be read from your photos was checked. An allergen not listed here may still be in the Product.",
+    allergensNotCheckedEnglish:
+        "Your selected allergens could not be checked: allergen checking works on English text only.",
+    allergensNotChecked:
+        "Your selected allergens could not be checked against this text.",
+    chooseAllergensPrompt: "Choose allergens to highlight",
+    nutritionHeading: "Nutrition as printed",
+    nutrientColumn: "Nutrient",
+    nutritionTableLabel: "Nutrition values read from your photos",
+    factsHeading: "Other printed details",
+    factServingSize: "Serving size",
+    factServingsPerPackage: "Servings per package",
+    factStorageInstructions: "Storage",
+    factCountryOfOrigin: "Country of origin",
+    factManufacturer: "Manufacturer",
+    factImporter: "Importer or distributor",
+    showHowRead: "How this was read",
+    hideHowRead: "Hide how this was read",
+    readBy: "Read by {{provider}} {{model}} ({{configuration}})",
 }
 
 const km: Record<keyof typeof en, string> = {
@@ -81,6 +112,38 @@ const km: Record<keyof typeof en, string> = {
         "បាកូដ {{barcode}} ក្នុងរូបថតរបស់អ្នកមានកំណត់ត្រាប្រភពក្នុង Dataset Snapshot។ ទំព័រផលិតផលរបស់វាបង្ហាញព័ត៌មាន Open Food Facts ដែលមានការបញ្ជាក់ប្រភព ជំនួសឱ្យការអានរូបថតរបស់អ្នក។",
     openProductPage: "បើកទំព័រផលិតផល",
     keepReadingLabel: "បន្តអានស្លាក",
+    ingredientsHeading: "គ្រឿងផ្សំដូចដែលបានបោះពុម្ព",
+    noIngredientsRead: "មិនបានអានបញ្ជីគ្រឿងផ្សំពីរូបថតទាំងនេះទេ។",
+    allergenHeading: "សេចក្តីថ្លែងអំពីអាឡែហ្ស៊ីដែលបានបោះពុម្ពលើស្លាក",
+    statementContains: "មាន",
+    statementMayContain: "អាចមាន",
+    statementOther: "ពាក្យទាក់ទងនឹងអាឡែហ្ស៊ី",
+    noAllergenStatementRead:
+        "មិនបានអានសេចក្តីថ្លែងអំពីអាឡែហ្ស៊ីពីរូបថតទាំងនេះទេ។",
+    concernMatchesHeading:
+        "អាឡែហ្ស៊ីដែលអ្នកបានជ្រើសរើស ដែលរកឃើញក្នុងអត្ថបទដែលយើងបានអាន",
+    concernMatchContains: "បានលើកឡើង៖ {{text}}",
+    concernMatchMayContain: "អាចមាន៖ {{text}}",
+    onlyReadableChecked:
+        "យើងបានពិនិត្យតែអត្ថបទដែលអាចអានបានពីរូបថតរបស់អ្នកប៉ុណ្ណោះ។ អាឡែហ្ស៊ីដែលមិនមាននៅទីនេះ អាចនៅតែមានក្នុងផលិតផល។",
+    allergensNotCheckedEnglish:
+        "មិនអាចពិនិត្យអាឡែហ្ស៊ីដែលអ្នកបានជ្រើសរើសបានទេ៖ ការពិនិត្យអាឡែហ្ស៊ីដំណើរការតែលើអត្ថបទជាភាសាអង់គ្លេសប៉ុណ្ណោះ។",
+    allergensNotChecked:
+        "មិនអាចពិនិត្យអាឡែហ្ស៊ីដែលអ្នកបានជ្រើសរើសជាមួយអត្ថបទនេះបានទេ។",
+    chooseAllergensPrompt: "ជ្រើសរើសអាឡែហ្ស៊ីដើម្បីរំលេច",
+    nutritionHeading: "អាហារូបត្ថម្ភដូចដែលបានបោះពុម្ព",
+    nutrientColumn: "សារធាតុចិញ្ចឹម",
+    nutritionTableLabel: "តម្លៃអាហារូបត្ថម្ភដែលបានអានពីរូបថតរបស់អ្នក",
+    factsHeading: "ព័ត៌មានផ្សេងទៀតដែលបានបោះពុម្ព",
+    factServingSize: "ទំហំមួយចំណែក",
+    factServingsPerPackage: "ចំនួនចំណែកក្នុងមួយកញ្ចប់",
+    factStorageInstructions: "ការរក្សាទុក",
+    factCountryOfOrigin: "ប្រទេសដើម",
+    factManufacturer: "អ្នកផលិត",
+    factImporter: "អ្នកនាំចូល ឬអ្នកចែកចាយ",
+    showHowRead: "របៀបដែលវាត្រូវបានអាន",
+    hideHowRead: "លាក់របៀបដែលវាត្រូវបានអាន",
+    readBy: "អានដោយ {{provider}} {{model}} ({{configuration}})",
 }
 
 export const labelReadingTranslations = { en, km } as const

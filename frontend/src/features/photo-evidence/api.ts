@@ -18,7 +18,7 @@ export class PhotoComparisonApiError extends Error {
     }
 }
 
-function apiError(
+export function apiError(
     responseError: unknown,
     fallbackMessage: string,
 ): PhotoComparisonApiError {
