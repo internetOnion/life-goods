@@ -3,6 +3,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter, Route, Routes, useLocation } from "react-router"
 import { afterEach, describe, expect, test, vi } from "vitest"
+import { waitFor } from "@testing-library/react"
 
 import { App } from "../src/app/App"
 import { LocaleProvider } from "../src/i18n/LocaleProvider"
@@ -11,11 +12,13 @@ import {
     LabelReadingPage,
 } from "../src/features/label-reading/LabelReadingPage"
 import { PhotoComparisonApiError } from "../src/features/photo-evidence/api"
+import type { PhotoQuality } from "../src/features/photo-evidence/imageQuality"
 import type { Extraction } from "../src/features/photo-evidence/types"
 import { ProductPage } from "../src/features/product/ProductPage"
 import type { ProductLookup } from "../src/features/product/api"
 import { BarcodeEntryPage } from "../src/features/search/BarcodeEntryPage"
 import { searchProducts } from "../src/features/search/api"
+import { productResponse } from "./product-fixtures"
 
 vi.mock("../src/features/search/api", () => ({
     searchProducts: vi.fn(),
@@ -109,12 +112,25 @@ function LocationProbe() {
 }
 
 /** Product page, Search and Read This Label in one router, with fakes injected. */
+type DecodeBarcode = (
+    photo: Blob,
+    options?: { signal?: AbortSignal },
+) => Promise<string | null>
+type CheckQuality = (photo: Blob) => Promise<PhotoQuality | null>
+
 function renderJourney(
     path: string,
     {
         lookup = vi.fn<ProductLookup>(),
         extractPhotos = vi.fn<ExtractPhotos>(),
-    }: { lookup?: ProductLookup; extractPhotos?: ExtractPhotos } = {},
+        decodeBarcode = vi.fn<DecodeBarcode>().mockResolvedValue(null),
+        checkQuality = vi.fn<CheckQuality>().mockResolvedValue(null),
+    }: {
+        lookup?: ProductLookup
+        extractPhotos?: ExtractPhotos
+        decodeBarcode?: DecodeBarcode
+        checkQuality?: CheckQuality
+    } = {},
 ) {
     window.localStorage.setItem("lifegoods.locale.v1", "en")
     const queryClient = new QueryClient({
@@ -135,6 +151,9 @@ function renderJourney(
                             element={
                                 <LabelReadingPage
                                     extractPhotos={extractPhotos}
+                                    lookup={lookup}
+                                    decodeBarcode={decodeBarcode}
+                                    checkQuality={checkQuality}
                                 />
                             }
                         />
@@ -150,10 +169,23 @@ function renderJourney(
     )
 }
 
+function photoFile(name = "label.jpg") {
+    return new File(["x"], name, { type: "image/jpeg" })
+}
+
+/** Library pick without a chosen step: fills the first empty steps in order. */
 function addPhoto(name = "label.jpg") {
+    addPhotos([photoFile(name)])
+}
+
+function addPhotos(files: File[]) {
     fireEvent.change(document.getElementById("label-reading-upload")!, {
-        target: { files: [new File(["x"], name, { type: "image/jpeg" })] },
+        target: { files },
     })
+}
+
+function stepCard(step: "front" | "back" | "side") {
+    return screen.getByTestId(`capture-step-${step}`)
 }
 
 async function readLabel(user: ReturnType<typeof userEvent.setup>) {
@@ -226,7 +258,10 @@ describe("Read This Label from an Unmatched Barcode", () => {
         const [productId, photos] = extractPhotos.mock.calls[0]!
         expect(productId).toBe(LABEL_READING_PRODUCT_ID)
         expect(productId).not.toContain(UNMATCHED_BARCODE)
-        expect(photos.map((photo) => photo.name)).toEqual(["label.jpg"])
+        expect(photos.map((photo) => photo.name)).toEqual(["photo-1.jpg"])
+        expect(photos.map((photo) => photo.name).join()).not.toContain(
+            UNMATCHED_BARCODE,
+        )
     })
 
     test("a Search Barcode miss offers the same next step", async () => {
@@ -268,13 +303,10 @@ describe("Read This Label as a standalone mode", () => {
         )
     })
 
-    test("leaves the provider statement to the Nutrition Labels hub", () => {
+    test("states where photos go before any photo is taken, even without the hub", () => {
         renderJourney("/labels/read")
-        addPhoto()
 
-        expect(
-            screen.queryByTestId("provider-disclosure"),
-        ).not.toBeInTheDocument()
+        expect(screen.getByTestId("provider-disclosure")).toBeVisible()
     })
 
     test("renders every printed column as Photo Evidence with no chooser", async () => {
@@ -363,7 +395,9 @@ describe("Read This Label as a standalone mode", () => {
         await readLabel(user)
 
         expect(await screen.findByRole("alert")).toBeVisible()
-        expect(screen.getByText("Photo 1")).toBeVisible()
+        expect(
+            within(stepCard("front")).getByRole("button", { name: "Retake" }),
+        ).toBeVisible()
 
         await user.click(screen.getByRole("button", { name: /Retry reading/i }))
         expect(
@@ -408,13 +442,306 @@ describe("Read This Label as a standalone mode", () => {
         expect(
             screen.queryByRole("region", { name: "Label Reading" }),
         ).not.toBeInTheDocument()
-        expect(screen.queryByText("Photo 1")).not.toBeInTheDocument()
+        expect(
+            within(stepCard("front")).queryByRole("button", {
+                name: "Retake",
+            }),
+        ).not.toBeInTheDocument()
         expect(window.sessionStorage.length).toBe(0)
         expect(
             Object.keys(window.localStorage).filter(
                 (key) => key !== "lifegoods.locale.v1",
             ),
         ).toEqual([])
+    })
+})
+
+describe("Guided label capture (SPEC §29.1-29.2)", () => {
+    const MATCHED_BARCODE = "8850999320014"
+
+    test("offers front, back, and an optional side panel, in that order", () => {
+        renderJourney("/labels/read")
+
+        const steps = within(
+            screen.getByRole("list", { name: "Label photos" }),
+        ).getAllByRole("listitem")
+        expect(steps.map((step) => step.getAttribute("data-testid"))).toEqual([
+            "capture-step-front",
+            "capture-step-back",
+            "capture-step-side",
+        ])
+        expect(within(stepCard("side")).getByText("Optional")).toBeVisible()
+        expect(
+            within(stepCard("front")).queryByText("Optional"),
+        ).not.toBeInTheDocument()
+        expect(screen.getByText(/Add at least one photo/)).toBeVisible()
+    })
+
+    test("a multi-photo library pick fills the steps and reports what did not fit", () => {
+        renderJourney("/labels/read")
+
+        addPhotos([1, 2, 3, 4].map((n) => photoFile(`IMG_${n}.jpg`)))
+
+        for (const step of ["front", "back", "side"] as const) {
+            expect(
+                within(stepCard(step)).getByRole("button", { name: "Retake" }),
+            ).toBeVisible()
+        }
+        expect(screen.getByRole("alert")).toHaveTextContent(/3/)
+    })
+
+    test("submits photos in step order with neutral filenames", async () => {
+        const user = userEvent.setup()
+        const extractPhotos = vi
+            .fn<ExtractPhotos>()
+            .mockResolvedValue(readingExtraction())
+        renderJourney("/labels/read", { extractPhotos })
+
+        // Pick the back first, then the front: the upload still follows step order.
+        await user.click(
+            within(stepCard("back")).getByRole("button", {
+                name: "Choose from library",
+            }),
+        )
+        addPhotos([photoFile(`${MATCHED_BARCODE}-back.png`)])
+        await user.click(
+            within(stepCard("front")).getByRole("button", {
+                name: "Choose from library",
+            }),
+        )
+        addPhotos([photoFile("front-of-pack.jpg")])
+        await user.click(
+            screen.getByRole("button", { name: "Read this label" }),
+        )
+
+        const [, photos] = extractPhotos.mock.calls[0]!
+        expect(photos.map((photo) => photo.name)).toEqual([
+            "photo-1.jpg",
+            "photo-2.jpg",
+        ])
+    })
+
+    test("removing a step's photo frees that step", async () => {
+        const user = userEvent.setup()
+        renderJourney("/labels/read")
+        addPhoto()
+
+        await user.click(
+            screen.getByRole("button", {
+                name: "Remove Front of package photo",
+            }),
+        )
+
+        expect(
+            within(stepCard("front")).getByRole("button", {
+                name: "Take photo",
+            }),
+        ).toBeVisible()
+        expect(
+            screen.getByRole("button", { name: "Read this label" }),
+        ).toBeDisabled()
+    })
+
+    test("quality hints are advisory and never block reading", async () => {
+        renderJourney("/labels/read", {
+            checkQuality: vi.fn<CheckQuality>().mockResolvedValue({
+                metrics: { meanLuminance: 20, sharpness: 5, clippedShare: 0 },
+                issues: ["dark", "blurry"],
+            }),
+        })
+        addPhoto()
+
+        expect(
+            await within(stepCard("front")).findByText(/Looks dark/),
+        ).toBeVisible()
+        expect(
+            within(stepCard("front")).getByText(/Looks blurry/),
+        ).toBeVisible()
+        expect(
+            screen.getByRole("button", { name: "Read this label" }),
+        ).toBeEnabled()
+    })
+
+    test("a Barcode in a photo with a Source Record offers the Product page", async () => {
+        const user = userEvent.setup()
+        const lookup = vi
+            .fn<ProductLookup>()
+            .mockResolvedValue(productResponse())
+        const extractPhotos = vi.fn<ExtractPhotos>()
+        renderJourney("/labels/read", {
+            lookup,
+            extractPhotos,
+            decodeBarcode: vi
+                .fn<DecodeBarcode>()
+                .mockResolvedValue(MATCHED_BARCODE),
+        })
+        addPhoto()
+
+        const offer = await screen.findByTestId("product-page-offer")
+        expect(offer).toHaveTextContent(MATCHED_BARCODE)
+        // An English lookup only: a speculative Khmer lookup would spend translation.
+        expect(lookup).toHaveBeenCalledWith(MATCHED_BARCODE)
+        expect(extractPhotos).not.toHaveBeenCalled()
+
+        await user.click(
+            within(offer).getByRole("button", { name: "Open Product page" }),
+        )
+        expect(screen.getByTestId("location")).toHaveTextContent(
+            `/products/${MATCHED_BARCODE}`,
+        )
+    })
+
+    test("no offer when the decoded Barcode has no Source Record", async () => {
+        const lookup = vi
+            .fn<ProductLookup>()
+            .mockRejectedValue({ status: 404, code: "product_not_found" })
+        renderJourney("/labels/read", {
+            lookup,
+            decodeBarcode: vi
+                .fn<DecodeBarcode>()
+                .mockResolvedValue(MATCHED_BARCODE),
+        })
+        addPhoto()
+
+        await waitFor(() => expect(lookup).toHaveBeenCalledTimes(1))
+        expect(
+            screen.queryByTestId("product-page-offer"),
+        ).not.toBeInTheDocument()
+    })
+
+    test("the Barcode the Shopper arrived with is never looked up again", async () => {
+        const user = userEvent.setup()
+        const lookup = vi.fn<ProductLookup>().mockRejectedValue({
+            status: 404,
+            code: "product_not_found",
+        })
+        const decodeBarcode = vi
+            .fn<DecodeBarcode>()
+            .mockResolvedValue(UNMATCHED_BARCODE)
+        renderJourney(`/products/${UNMATCHED_BARCODE}`, {
+            lookup,
+            decodeBarcode,
+        })
+        await user.click(
+            await screen.findByRole("button", { name: "Read This Label" }),
+        )
+        addPhoto()
+
+        await waitFor(() => expect(decodeBarcode).toHaveBeenCalled())
+        expect(lookup).toHaveBeenCalledTimes(1)
+        expect(
+            screen.queryByTestId("product-page-offer"),
+        ).not.toBeInTheDocument()
+    })
+
+    test("keeping the reading dismisses the offer and still reads without the Barcode", async () => {
+        const user = userEvent.setup()
+        const extractPhotos = vi
+            .fn<ExtractPhotos>()
+            .mockResolvedValue(readingExtraction())
+        renderJourney("/labels/read", {
+            lookup: vi.fn<ProductLookup>().mockResolvedValue(productResponse()),
+            extractPhotos,
+            decodeBarcode: vi
+                .fn<DecodeBarcode>()
+                .mockResolvedValue(MATCHED_BARCODE),
+        })
+        addPhoto()
+
+        await user.click(
+            await screen.findByRole("button", {
+                name: "Keep reading the label",
+            }),
+        )
+        await user.click(
+            screen.getByRole("button", { name: "Read this label" }),
+        )
+
+        const [productId, photos] = extractPhotos.mock.calls[0]!
+        expect(productId).toBe(LABEL_READING_PRODUCT_ID)
+        expect(photos.map((photo) => photo.name).join()).not.toContain(
+            MATCHED_BARCODE,
+        )
+        expect(
+            screen.queryByTestId("product-page-offer"),
+        ).not.toBeInTheDocument()
+    })
+
+    test("the guided camera walks the steps with one stream and stops it on close", async () => {
+        const user = userEvent.setup()
+        const track = { stop: vi.fn() }
+        const stream = { getTracks: () => [track] } as unknown as MediaStream
+        const getUserMedia = vi.fn().mockResolvedValue(stream)
+        vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } })
+        Object.defineProperty(window, "isSecureContext", {
+            configurable: true,
+            value: true,
+        })
+        vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(
+            undefined,
+        )
+        vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+            drawImage: vi.fn(),
+        } as unknown as CanvasRenderingContext2D)
+        vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation(
+            (callback) => {
+                callback(new Blob(["photo"], { type: "image/jpeg" }))
+            },
+        )
+        renderJourney("/labels/read")
+
+        await user.click(
+            within(stepCard("front")).getByRole("button", {
+                name: "Take photo",
+            }),
+        )
+        const dialog = await screen.findByRole("dialog")
+        expect(within(dialog).getByText("Step 1 of 3")).toBeVisible()
+
+        const video = within(dialog).getByLabelText("Live camera preview")
+        await waitFor(() => expect(video).toHaveProperty("srcObject", stream))
+        Object.defineProperty(video, "videoWidth", {
+            configurable: true,
+            value: 1200,
+        })
+        Object.defineProperty(video, "videoHeight", {
+            configurable: true,
+            value: 900,
+        })
+        video.dispatchEvent(new Event("loadedmetadata"))
+        const shutter = within(dialog).getByRole("button", {
+            name: "Take photo",
+        })
+        await waitFor(() => expect(shutter).toBeEnabled())
+        await user.click(shutter)
+        await user.click(
+            await within(dialog).findByRole("button", {
+                name: "Use this photo",
+            }),
+        )
+
+        // Advanced to the back without renegotiating the camera.
+        expect(await within(dialog).findByText("Step 2 of 3")).toBeVisible()
+        expect(getUserMedia).toHaveBeenCalledTimes(1)
+        expect(track.stop).not.toHaveBeenCalled()
+
+        await user.click(within(dialog).getByRole("button", { name: "Skip" }))
+        expect(await within(dialog).findByText("Step 3 of 3")).toBeVisible()
+        await user.click(within(dialog).getByRole("button", { name: "Done" }))
+
+        await waitFor(() =>
+            expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+        )
+        expect(track.stop).toHaveBeenCalled()
+        expect(
+            within(stepCard("front")).getByRole("button", { name: "Retake" }),
+        ).toBeVisible()
+        expect(
+            within(stepCard("back")).getByRole("button", {
+                name: "Take photo",
+            }),
+        ).toBeVisible()
+        vi.unstubAllGlobals()
     })
 })
 
