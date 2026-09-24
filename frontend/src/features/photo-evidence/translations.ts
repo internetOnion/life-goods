@@ -272,6 +272,11 @@ const en = {
     phrasePerPackage: "per package",
     versus: "vs",
     editProduct: "Edit",
+    waitUsual: "This usually takes 20 to 40 seconds.",
+    waitSlow:
+        "This is taking longer than usual. It is still reading; you can wait or cancel.",
+    readingYourLabel: "Reading your label",
+    cancelReading: "Cancel",
 } as const
 
 const km: Record<keyof typeof en, string> = {
@@ -540,6 +545,10 @@ const km: Record<keyof typeof en, string> = {
     phrasePerPackage: "ក្នុងមួយកញ្ចប់",
     versus: "និង",
     editProduct: "កែ",
+    waitUsual: "ជាធម្មតាចំណាយពេលពី 20 ទៅ 40 វិនាទី។",
+    waitSlow: "ចំណាយពេលយូរជាងធម្មតា។ វានៅតែកំពុងអាន អ្នកអាចរង់ចាំ ឬបោះបង់។",
+    readingYourLabel: "កំពុងអានស្លាករបស់អ្នក",
+    cancelReading: "បោះបង់",
 }
 
 export const compareTranslations = { en, km } as const

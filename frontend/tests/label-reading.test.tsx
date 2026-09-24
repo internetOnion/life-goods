@@ -462,6 +462,41 @@ describe("Read This Label as a standalone mode", () => {
         ).not.toBeInTheDocument()
     })
 
+    test("waiting shows the photos being read and can be cancelled without losing them", async () => {
+        const user = userEvent.setup()
+        let signal: AbortSignal | undefined
+        const readLabel = vi.fn<ReadLabel>().mockImplementation(
+            (_photos, _roles, options) =>
+                new Promise((_resolve, reject) => {
+                    signal = options?.signal
+                    signal?.addEventListener("abort", () =>
+                        reject(new DOMException("Aborted", "AbortError")),
+                    )
+                }),
+        )
+        renderJourney("/labels/read", { readLabel })
+        await submitReading(user)
+
+        const panel = await screen.findByTestId("waiting-panel")
+        expect(
+            within(panel).getByRole("heading", { name: "Reading your label" }),
+        ).toBeVisible()
+        expect(within(panel).getByText("Front")).toBeVisible()
+        expect(
+            within(panel).getByText("This usually takes 20 to 40 seconds."),
+        ).toBeVisible()
+
+        await user.click(within(panel).getByRole("button", { name: "Cancel" }))
+        expect(signal?.aborted).toBe(true)
+        expect(screen.queryByTestId("waiting-panel")).not.toBeInTheDocument()
+        expect(
+            within(stepCard("front")).getByRole("button", { name: "Retake" }),
+        ).toBeVisible()
+        expect(
+            screen.getByRole("button", { name: "Read this label" }),
+        ).toBeEnabled()
+    })
+
     test("carries no Source Attribution, score, or verdict", async () => {
         const user = userEvent.setup()
         renderJourney("/labels/read", {
@@ -549,8 +584,9 @@ describe("Read This Label as a standalone mode", () => {
         expect(
             screen.queryByRole("region", { name: "Label Reading" }),
         ).not.toBeInTheDocument()
+        // The board is back to empty: no photo survived.
         expect(
-            screen.queryByTestId("capture-step-front"),
+            screen.queryByRole("button", { name: "Retake" }),
         ).not.toBeInTheDocument()
         expect(
             screen.getByRole("button", { name: "Start photos" }),
@@ -567,18 +603,29 @@ describe("Read This Label as a standalone mode", () => {
 describe("Guided label capture (SPEC §29.1-29.2)", () => {
     const MATCHED_BARCODE = "8850999320014"
 
-    test("the intro lays out the path before any camera opens", () => {
+    test("the empty board lays out every step with its own camera and library", () => {
         renderJourney("/labels/read")
 
-        const path = within(screen.getByRole("list", { name: "Photo path" }))
-        expect(
-            path.getAllByRole("listitem").map((step) => step.textContent),
-        ).toEqual([
+        const steps = within(
+            screen.getByRole("list", { name: "Label photos" }),
+        ).getAllByRole("listitem")
+        expect(steps.map((step) => step.textContent)).toEqual([
             expect.stringMatching(/^1Front of package/),
             expect.stringMatching(/^2Back of package/),
             expect.stringMatching(/^3Side panelOptional/),
-            expect.stringMatching(/^Read the label/),
         ])
+        for (const step of ["front", "back", "side"] as const) {
+            expect(
+                within(stepCard(step)).getByRole("button", {
+                    name: "Take photo",
+                }),
+            ).toBeVisible()
+            expect(
+                within(stepCard(step)).getByRole("button", {
+                    name: "Choose from library",
+                }),
+            ).toBeVisible()
+        }
         expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
         expect(
             screen.getByRole("button", { name: "Start photos" }),
@@ -588,63 +635,32 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
         ).not.toBeInTheDocument()
     })
 
-    test("after photos, the review shows the path with the side panel optional", () => {
-        renderJourney("/labels/read")
-        addPhoto()
-
-        const steps = within(
-            screen.getByRole("list", { name: "Label photos" }),
-        ).getAllByRole("listitem")
-        expect(steps.map((step) => step.getAttribute("data-testid"))).toEqual([
-            "capture-step-front",
-            "capture-step-back",
-            "capture-step-side",
-        ])
-        expect(within(stepCard("side")).getByText("Optional")).toBeVisible()
-        expect(within(stepCard("back")).getByText("Up next")).toBeVisible()
-        expect(
-            within(stepCard("side")).getByRole("button", {
-                name: "Add side panel",
-            }),
-        ).toBeVisible()
-    })
-
-    test("choosing photos from the intro fills the steps in order", async () => {
+    test("a step's library pick lands on that step, never the first empty one", async () => {
         const user = userEvent.setup()
         renderJourney("/labels/read")
         const input = document.getElementById(
             "label-reading-upload",
         ) as HTMLInputElement
-        const click = vi.spyOn(input, "click")
 
         await user.click(
-            screen.getByRole("button", { name: "Choose photos from library" }),
+            within(stepCard("back")).getByRole("button", {
+                name: "Choose from library",
+            }),
         )
-        expect(click).toHaveBeenCalled()
-        addPhotos([photoFile("a.jpg"), photoFile("b.jpg")])
+        expect(input.multiple).toBe(false)
+        fireEvent.change(input, {
+            target: { files: [photoFile("back.jpg"), photoFile("extra.jpg")] },
+        })
 
-        expect(
-            within(stepCard("front")).getByRole("button", { name: "Retake" }),
-        ).toBeVisible()
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
         expect(
             within(stepCard("back")).getByRole("button", { name: "Retake" }),
         ).toBeVisible()
         expect(
-            within(stepCard("side")).queryByRole("button", { name: "Retake" }),
+            within(stepCard("front")).queryByRole("button", { name: "Retake" }),
         ).not.toBeInTheDocument()
-    })
-
-    test("a multi-photo library pick fills the steps and reports what did not fit", () => {
-        renderJourney("/labels/read")
-
-        addPhotos([1, 2, 3, 4].map((n) => photoFile(`IMG_${n}.jpg`)))
-
-        for (const step of ["front", "back", "side"] as const) {
-            expect(
-                within(stepCard(step)).getByRole("button", { name: "Retake" }),
-            ).toBeVisible()
-        }
-        expect(screen.getByRole("alert")).toHaveTextContent(/3/)
+        expect(within(stepCard("side")).getByText("Optional")).toBeVisible()
+        expect(within(stepCard("front")).getByText("Up next")).toBeVisible()
     })
 
     test("submits photos in step order with neutral filenames", async () => {
@@ -682,7 +698,7 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
         expect(roles).toEqual(["package_front", "package_back"])
     })
 
-    test("removing a step's photo frees that step, and the last one returns to the intro", async () => {
+    test("removing a step's photo frees that step, and the last one empties the board", async () => {
         const user = userEvent.setup()
         renderJourney("/labels/read")
         addPhotos([photoFile("a.jpg"), photoFile("b.jpg")])
@@ -694,7 +710,7 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
         )
         expect(
             within(stepCard("front")).getByRole("button", {
-                name: "Continue with camera",
+                name: "Take photo",
             }),
         ).toBeVisible()
         expect(
@@ -710,7 +726,10 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
             screen.getByRole("button", { name: "Start photos" }),
         ).toBeVisible()
         expect(
-            screen.queryByTestId("capture-step-front"),
+            screen.getByRole("heading", { name: "Photograph the package" }),
+        ).toBeVisible()
+        expect(
+            screen.queryByRole("button", { name: "Retake" }),
         ).not.toBeInTheDocument()
     })
 
@@ -955,7 +974,7 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
 
         await user.click(
             within(stepCard("back")).getByRole("button", {
-                name: "Continue with camera",
+                name: "Take photo",
             }),
         )
         dialog = await screen.findByRole("dialog")

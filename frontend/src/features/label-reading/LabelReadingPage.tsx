@@ -40,7 +40,6 @@ import {
     renderKhmerText,
     type LabelReading,
 } from "./api"
-import { CaptureIntro } from "./CaptureIntro"
 import { CapturePathReview } from "./CapturePathReview"
 import {
     CAPTURE_STEPS,
@@ -53,6 +52,7 @@ import {
 } from "./captureSteps"
 import { GuidedCaptureSheet } from "./GuidedCaptureSheet"
 import { ProductPageOffer } from "./ProductPageOffer"
+import { WaitingPanel } from "@/features/photo-evidence/WaitingPanel"
 import {
     LabelReadingResult,
     type KhmerState,
@@ -148,6 +148,7 @@ export function LabelReadingPage({
     const cameraInputRef = useRef<HTMLInputElement | null>(null)
     const targetStepRef = useRef<CaptureStepId | null>(null)
     const resultsRef = useRef<HTMLElement | null>(null)
+    const waitingRef = useRef<HTMLElement | null>(null)
     // One request in flight at most: abort is best-effort, the request id is
     // the guarantee that a late response for stale photos is ignored.
     const abortRef = useRef<AbortController | null>(null)
@@ -449,6 +450,11 @@ export function LabelReadingPage({
         commitPhotos(next)
     }
 
+    const handleCancelRead = () => {
+        cancelRead()
+        setReading(IDLE_READING)
+    }
+
     const handleReset = () => {
         cancelRead()
         Object.values(photosRef.current).forEach((photo) => {
@@ -480,14 +486,22 @@ export function LabelReadingPage({
         stepId: CaptureStepId | null,
     ) => {
         targetStepRef.current = stepId
-        input?.click()
+        if (input) {
+            // A step's library pick takes exactly one photo, into that step.
+            input.multiple = stepId === null
+            input.click()
+        }
     }
 
     const handleFileInput = (files: FileList | null) => {
         if (!files?.length) return
-        const target = targetStepRef.current ?? undefined
+        const target = targetStepRef.current
         targetStepRef.current = null
-        handleAddFiles(Array.from(files), target)
+        const picked = Array.from(files)
+        handleAddFiles(
+            target ? picked.slice(0, 1) : picked,
+            target ?? undefined,
+        )
     }
 
     const sequence = orderedPhotos(photos)
@@ -555,6 +569,11 @@ export function LabelReadingPage({
         }
     }
 
+    // Move focus to the waiting panel so its title is announced once.
+    useEffect(() => {
+        if (reading.loading) waitingRef.current?.focus({ preventScroll: false })
+    }, [reading.loading])
+
     const handleFocusEvidence = (imageId: string) => {
         const index =
             reading.reading?.images.findIndex(
@@ -618,11 +637,34 @@ export function LabelReadingPage({
                     />
                 ) : null}
 
-                {isIntro ? (
-                    <CaptureIntro
-                        onChooseFromLibrary={() =>
-                            openFileInput(uploadInputRef.current, null)
-                        }
+                {reading.loading ? (
+                    <WaitingPanel
+                        ref={waitingRef}
+                        title={tc("readingYourLabel")}
+                        groups={[
+                            {
+                                key: "label",
+                                photos: CAPTURE_STEPS.flatMap((step) => {
+                                    const photo = photos[step.id]
+                                    return photo
+                                        ? [
+                                              {
+                                                  key: photo.localId,
+                                                  url:
+                                                      photo.previewError ||
+                                                      photo.previewUnsupported
+                                                          ? undefined
+                                                          : photo.url,
+                                                  caption: t(step.shortKey),
+                                              },
+                                          ]
+                                        : []
+                                }),
+                                state: "active",
+                            },
+                        ]}
+                        onCancel={handleCancelRead}
+                        cancelLabel={tc("cancelReading")}
                     />
                 ) : (
                     <CapturePathReview
@@ -691,18 +733,12 @@ export function LabelReadingPage({
                                 ) : null}
                             </AlertDescription>
                         </Alert>
-                    ) : (
-                        <p
-                            role="status"
-                            className="text-primary-700 text-xs font-medium empty:hidden"
-                        >
-                            {reading.loading ? t("readingProgress") : null}
-                        </p>
-                    )}
+                    ) : null}
                 </div>
 
                 <div
                     role="group"
+                    hidden={reading.loading}
                     aria-label={tc("captureNavigation")}
                     data-glass-surface=""
                     className="glass-surface fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-full p-1.5 backdrop-blur-xl"

@@ -3,7 +3,6 @@ import {
     Check,
     ImageSquare,
     MagnifyingGlassPlus,
-    Plus,
     Trash,
     WarningCircle,
 } from "@phosphor-icons/react"
@@ -20,7 +19,18 @@ import {
     type StepPhoto,
     type StepPhotos,
 } from "./captureSteps"
-import { useLabelReadingTranslation } from "./translations"
+import { CaptureIntroHeader } from "./CaptureIntro"
+import {
+    useLabelReadingTranslation,
+    type LabelReadingTranslationKey,
+} from "./translations"
+
+/** What each package face usually carries, so the Shopper knows what to shoot. */
+const STEP_CONTENT_KEYS: Record<CaptureStepId, LabelReadingTranslationKey> = {
+    front: "introStepFront",
+    back: "introStepBack",
+    side: "introStepSide",
+}
 
 export interface CapturePathReviewProps {
     photos: StepPhotos
@@ -33,8 +43,9 @@ export interface CapturePathReviewProps {
 }
 
 /**
- * The capture path after the camera closes: each step as a row on one line,
- * with its photo and hints, and the next required step marked as up next.
+ * The capture board: the three package faces as fixed steps, always visible.
+ * Every step takes a photo from the camera or the library straight into that
+ * step, and the next required step is marked as up next. Nothing is ever placed on a step the Shopper did not see.
  */
 export function CapturePathReview({
     photos,
@@ -53,16 +64,21 @@ export function CapturePathReview({
 
     return (
         <section aria-labelledby="capture-review-title" className="mt-6">
-            <h2
-                id="capture-review-title"
-                className="text-xl font-extrabold tracking-[-0.02em] text-neutral-950"
-            >
-                {t("reviewTitle")}
-            </h2>
-            <p className="mt-1 text-sm leading-relaxed text-neutral-600">
-                {t("reviewBody")}
-            </p>
-
+            {taken.size === 0 ? (
+                <CaptureIntroHeader />
+            ) : (
+                <>
+                    <h2
+                        id="capture-review-title"
+                        className="text-xl font-extrabold tracking-[-0.02em] text-neutral-950"
+                    >
+                        {t("reviewTitle")}
+                    </h2>
+                    <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+                        {t("reviewBody")}
+                    </p>
+                </>
+            )}
             <ol aria-label={t("captureStepsLabel")} className="mt-5">
                 {CAPTURE_STEPS.map((step, index) => (
                     <PathRow
@@ -189,10 +205,11 @@ function PathRow({
                                     })}
                                 >
                                     <img
+                                        key={photo.localId}
                                         src={photo.url}
                                         alt=""
                                         onError={onPreviewError}
-                                        className="size-full object-cover"
+                                        className="motion-safe:animate-photo-settle size-full object-cover"
                                     />
                                     <MagnifyingGlassPlus
                                         size={16}
@@ -261,21 +278,10 @@ function PathRow({
                             </div>
                         </div>
                     </div>
-                ) : step.optional && !isUpNext ? (
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        disabled={disabled}
-                        onClick={onOpenCamera}
-                        className="text-primary-800 hover:bg-primary-50 hover:text-primary-900 mt-1.5 -ml-2 h-10 gap-1.5 rounded-xl px-2 text-xs font-bold"
-                    >
-                        <Plus size={14} weight="bold" aria-hidden="true" />
-                        <span>{t("addSidePanel")}</span>
-                    </Button>
                 ) : (
                     <>
-                        <p className="mt-0.5 text-xs leading-relaxed text-neutral-600">
-                            {t(step.tipKey)}
+                        <p className="mt-0.5 text-sm leading-relaxed text-neutral-600">
+                            {t(STEP_CONTENT_KEYS[step.id])}
                         </p>
                         <div className="mt-2.5 flex flex-wrap gap-1.5">
                             <Button
@@ -294,18 +300,14 @@ function PathRow({
                                     weight="bold"
                                     aria-hidden="true"
                                 />
-                                <span>
-                                    {isUpNext
-                                        ? t("continuePath")
-                                        : t("takeStepPhoto")}
-                                </span>
+                                <span>{t("takeStepPhoto")}</span>
                             </Button>
                             <Button
                                 type="button"
-                                variant="ghost"
+                                variant="outline"
                                 disabled={disabled}
                                 onClick={onChooseFromLibrary}
-                                className="h-10 gap-1.5 rounded-xl px-3 text-xs font-bold text-neutral-700"
+                                className="h-10 gap-1.5 rounded-xl px-3 text-xs font-bold text-neutral-800"
                             >
                                 <ImageSquare size={15} aria-hidden="true" />
                                 <span>{t("chooseStepPhoto")}</span>

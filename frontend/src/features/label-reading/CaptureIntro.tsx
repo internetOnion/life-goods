@@ -1,19 +1,6 @@
-import { BookOpenText, ImageSquare } from "@phosphor-icons/react"
-
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-import { CAPTURE_STEPS, type CaptureStepId } from "./captureSteps"
-import {
-    useLabelReadingTranslation,
-    type LabelReadingTranslationKey,
-} from "./translations"
-
-const INTRO_KEYS: Record<CaptureStepId, LabelReadingTranslationKey> = {
-    front: "introStepFront",
-    back: "introStepBack",
-    side: "introStepSide",
-}
+import { useLabelReadingTranslation } from "./translations"
 
 /**
  * An unfolded carton: the side, front, and back panels as printed, each marked
@@ -115,92 +102,23 @@ function PackageNet() {
     )
 }
 
-export interface CaptureIntroProps {
-    onChooseFromLibrary: () => void
-}
-
-/** Before the camera opens: what the path asks for. */
-export function CaptureIntro({ onChooseFromLibrary }: CaptureIntroProps) {
+/** Shown above the empty capture board: what the three photos are for. */
+export function CaptureIntroHeader() {
     const { t } = useLabelReadingTranslation()
-
     return (
-        <section aria-labelledby="capture-intro-title" className="mt-6">
-            <div className="flex justify-center rounded-2xl bg-white px-4 py-6 ring-1 ring-neutral-200">
+        <div>
+            <div className="flex justify-center rounded-2xl bg-white px-4 py-5 ring-1 ring-neutral-200">
                 <PackageNet />
             </div>
-
             <h2
-                id="capture-intro-title"
-                className="mt-7 text-xl font-extrabold tracking-[-0.02em] text-neutral-950"
+                id="capture-review-title"
+                className="mt-6 text-xl font-extrabold tracking-[-0.02em] text-neutral-950"
             >
                 {t("captureIntroTitle")}
             </h2>
             <p className="mt-1 text-sm leading-relaxed text-neutral-600">
                 {t("captureIntroBody")}
             </p>
-
-            <ol aria-label={t("introPathLabel")} className="mt-5">
-                {CAPTURE_STEPS.map((step, index) => (
-                    <li key={step.id} className="flex gap-3.5">
-                        <div className="flex flex-col items-center">
-                            <span
-                                className={cn(
-                                    "grid size-8 shrink-0 place-items-center rounded-xl font-mono text-sm font-bold",
-                                    step.optional
-                                        ? "border-primary-300 text-primary-800 border border-dashed bg-white"
-                                        : "bg-primary-100 text-primary-900",
-                                )}
-                            >
-                                {index + 1}
-                            </span>
-                            <span
-                                aria-hidden="true"
-                                className="my-1 w-0.5 flex-1 rounded-full bg-neutral-200"
-                            />
-                        </div>
-                        <div className="min-w-0 pb-5">
-                            <p className="flex flex-wrap items-baseline gap-x-2 pt-1 text-sm font-extrabold text-neutral-950">
-                                <span>{t(step.titleKey)}</span>
-                                {step.optional ? (
-                                    <span className="text-xs font-semibold text-neutral-500">
-                                        {t("stepOptional")}
-                                    </span>
-                                ) : null}
-                            </p>
-                            <p className="mt-0.5 text-sm leading-relaxed text-neutral-600">
-                                {t(INTRO_KEYS[step.id])}
-                            </p>
-                        </div>
-                    </li>
-                ))}
-                <li className="flex gap-3.5">
-                    <span className="bg-primary-600 grid size-8 shrink-0 place-items-center rounded-xl text-white">
-                        <BookOpenText
-                            size={17}
-                            weight="bold"
-                            aria-hidden="true"
-                        />
-                    </span>
-                    <div className="min-w-0">
-                        <p className="pt-1 text-sm font-extrabold text-neutral-950">
-                            {t("introStepReadTitle")}
-                        </p>
-                        <p className="mt-0.5 text-sm leading-relaxed text-neutral-600">
-                            {t("introStepReadBody")}
-                        </p>
-                    </div>
-                </li>
-            </ol>
-
-            <Button
-                type="button"
-                variant="ghost"
-                onClick={onChooseFromLibrary}
-                className="mt-3 h-11 gap-2 rounded-xl px-3 text-sm font-bold text-neutral-700 hover:bg-neutral-100 hover:text-neutral-950"
-            >
-                <ImageSquare size={18} aria-hidden="true" />
-                <span>{t("choosePhotosFromLibrary")}</span>
-            </Button>
-        </section>
+        </div>
     )
 }

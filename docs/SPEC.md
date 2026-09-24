@@ -1220,12 +1220,16 @@ Barcode miss). It reads the whole printed label, not only nutrition values.
 
 ### 29.1 Guided capture
 
-- The flow opens with a short intro. The provider statement is not repeated here;
-  it is shown once, on the Nutrition Labels hub (section 27).
+- The flow opens on the capture board: the three steps below are always visible,
+  under a short intro (an unfolded carton marked 1, 2, and 3) while no photo is
+  placed. The provider statement is not repeated here; it is shown once, on the
+  Nutrition Labels hub (section 27).
 - Capture is camera-first: one Start action opens the in-app camera, which walks
   the Shopper through the steps in order behind a progress rail, each step with a
-  framing overlay and one tip. The Shopper may choose several library photos from
-  the intro instead; they fill the steps in order.
+  framing overlay and one tip. Every step on the board also offers its own camera
+  and library actions; a library pick takes one photo into exactly that step, so
+  a photo never lands on a step the Shopper did not choose. A photo on the wrong
+  step is removed and added again on the right one.
 
   | Step | Role | Required |
   |---|---|---|
@@ -1238,8 +1242,16 @@ Barcode miss). It reads the whole printed label, not only nutrition values.
   previewed with its quality hints before it joins the path, and the rail lets the
   Shopper return to any earlier step.
 - Closing the camera, or finishing the last step, leads to a review of the path:
-  each step's photo with retake and remove, the next required step marked as up
-  next, and the read action. Closing mid-path keeps the photos already taken.
+  each step's photo with retake and remove, the next required
+  step marked as up next, and the read action. Closing mid-path keeps the photos
+  already taken.
+- While the label is read, the board is replaced by a waiting panel shared with
+  Compare Nutrition: the Shopper's photos with a scan line over the ones being
+  read, elapsed time, "usually 20 to 40 seconds" copy that changes to a
+  still-working note after 45 seconds, and Cancel. Cancel aborts the request and
+  returns to the board with every photo kept. The panel shows only stages the app
+  can observe and never an estimated percentage. Compare Nutrition's panel adds
+  its read A, read B, and compare stages and repeats the provider statement.
 - One camera stream stays open across steps and is released on close, reset, and
   unmount.
 - Blur, darkness, and glare are checked on the device against a downscaled copy.

@@ -7,7 +7,11 @@ import { Link, useSearchParams } from "react-router"
 
 import { appRoutes } from "@/app/routes"
 import { Button } from "@/components/ui/button"
+import { useLabelReadingTranslation } from "@/features/label-reading/translations"
 import { LabelReadingResult } from "@/features/label-reading/result/LabelReadingResult"
+import { ComparisonProcessingSheet } from "@/features/photo-comparison/ComparisonProcessingSheet"
+import { useCompareTranslation } from "@/features/photo-evidence/translations"
+import { WaitingPanel } from "@/features/photo-evidence/WaitingPanel"
 import { ComparisonSection } from "@/features/photo-comparison/ComparisonSection"
 import { useLocale, type AppLocale } from "@/i18n/locale"
 import { cn } from "@/lib/utils"
@@ -17,7 +21,9 @@ import {
     completeReading,
     conditionalComparison,
     khmerBlocks,
+    previewPhotos,
     side,
+    sideWithPhotos,
     sparseReading,
 } from "./resultFixtures"
 
@@ -26,6 +32,12 @@ const SCENARIOS = {
     compare: {
         complete: completeComparison,
         conditional: conditionalComparison,
+    },
+    "reading-wait": { reading: null },
+    "compare-wait": {
+        extracting_left: null,
+        extracting_right: null,
+        comparing: null,
     },
 } as const
 
@@ -51,7 +63,7 @@ function Segmented<T extends string>({
             <span className="w-20 text-xs font-bold text-neutral-600">
                 {label}
             </span>
-            <div className="flex gap-1">
+            <div className="flex flex-wrap gap-1">
                 {options.map((option) => (
                     <Button
                         key={option}
@@ -77,7 +89,11 @@ function Segmented<T extends string>({
 export default function DevResultsPage() {
     const [params, setParams] = useSearchParams()
     const { locale, setLocale } = useLocale()
-    const view: View = params.get("view") === "compare" ? "compare" : "reading"
+    const { t: tc } = useCompareTranslation()
+    const { t: tl } = useLabelReadingTranslation()
+    const requested = params.get("view") as View | null
+    const view: View =
+        requested && requested in SCENARIOS ? requested : "reading"
     const scenarios = Object.keys(SCENARIOS[view])
     const scenario = scenarios.includes(params.get("scenario") ?? "")
         ? (params.get("scenario") as string)
@@ -94,15 +110,19 @@ export default function DevResultsPage() {
         <main className="page-rail pb-32 sm:pt-8">
             <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-4">
                 <p className="text-sm font-extrabold text-neutral-950">
-                    Dev preview: fixture data, no provider calls
+                    Dev preview: fixture results and waiting states, no provider
+                    calls
                 </p>
                 <div className="mt-3 space-y-2">
                     <Segmented
                         label="Result"
                         value={view}
-                        options={["reading", "compare"] as const}
+                        options={Object.keys(SCENARIOS) as View[]}
                         onChange={(next) =>
-                            update({ view: next, scenario: "complete" })
+                            update({
+                                view: next,
+                                scenario: Object.keys(SCENARIOS[next])[0]!,
+                            })
                         }
                     />
                     <Segmented
@@ -142,7 +162,7 @@ export default function DevResultsPage() {
                     onRequestKhmer={() => {}}
                     onFocusEvidence={() => {}}
                 />
-            ) : (
+            ) : view === "compare" ? (
                 <ComparisonSection
                     comparison={SCENARIOS.compare[scenario as "complete"]}
                     comparisonStatus=""
@@ -153,6 +173,46 @@ export default function DevResultsPage() {
                     rightProduct={side("right", "Yum Yum Chicken")}
                     onCompare={() => {}}
                     onFocusEvidence={() => {}}
+                />
+            ) : view === "reading-wait" ? (
+                <WaitingPanel
+                    key={locale}
+                    title={tc("readingYourLabel")}
+                    groups={[
+                        {
+                            key: "label",
+                            photos: [
+                                {
+                                    key: "f",
+                                    url: previewPhotos.front,
+                                    caption: tl("stepFrontShort"),
+                                },
+                                {
+                                    key: "b",
+                                    url: previewPhotos.back,
+                                    caption: tl("stepBackShort"),
+                                },
+                            ],
+                            state: "active",
+                        },
+                    ]}
+                    onCancel={() => {}}
+                    cancelLabel={tc("cancelReading")}
+                />
+            ) : (
+                <ComparisonProcessingSheet
+                    processingStep={
+                        scenario as
+                            "extracting_left" | "extracting_right" | "comparing"
+                    }
+                    leftProduct={sideWithPhotos("left", "Mama Tom Yum", [
+                        previewPhotos.a,
+                        previewPhotos.front,
+                    ])}
+                    rightProduct={sideWithPhotos("right", "Yum Yum Chicken", [
+                        previewPhotos.b,
+                    ])}
+                    onCancel={() => {}}
                 />
             )}
         </main>
