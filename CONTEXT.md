@@ -33,11 +33,11 @@ _Avoid_: Source Data Unavailable, unknown product, invalid Barcode, not a real p
 ## Nutrition Labels
 
 **Nutrition Labels**:
-The section where a Shopper reads one Product's nutrition label or compares two Products' nutrition labels, from their own photos.
+The section where a Shopper reads one Product's label or compares two Products' nutrition labels, from their own photos.
 _Avoid_: Label check, verification, scanner
 
 **Read This Label**:
-A reading of nutrition values from a Shopper's photos of one Product's label, separate from Product Lookup, Product Search, and Source Record data.
+A reading of the printed text and nutrition values from a Shopper's photos of one Product's package, separate from Product Lookup, Product Search, and Source Record data.
 _Avoid_: Product Lookup, verification, package match, Source Record
 
 **Label Reading**:
@@ -47,6 +47,18 @@ _Avoid_: Source Record, Product information, verified label, transcription
 **Compare Nutrition**:
 A comparison of the nutrition values printed on two Products' labels, read from photos, separate from Product Lookup, Product Search, and Source Record data. It compares nutrition labels only, not Products as a whole.
 _Avoid_: Compare Products, product comparison, photo verification, package match, overall winner, Life Goods score
+
+**Printed Text**:
+Text transcribed as printed from a Shopper's label photos, such as ingredients or storage instructions. It is Photo Evidence, not Original Text.
+_Avoid_: Original Text, source text, label data
+
+**Printed Allergen Statement**:
+Allergen wording printed on a label, such as "Contains" or "May contain", read verbatim as Photo Evidence. When a Label Reading has no statement, that is not evidence that the Product lacks an allergen.
+_Avoid_: allergen-free, allergen declaration, verified allergens
+
+**Khmer Rendering**:
+Machine-generated Khmer text derived from Printed Text, shown within a Label Reading. It is not Khmer Translation, is not stored, and is not verified label wording.
+_Avoid_: Khmer Translation, Original Text, reviewed translation
 
 **Photo Evidence**:
 Text and values extracted from a Shopper's label photos for Read This Label or Compare Nutrition. It is not a Source Record or Original Text.
