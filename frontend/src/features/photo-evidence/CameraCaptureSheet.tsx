@@ -13,10 +13,19 @@ import { CameraAperture } from "@/components/camera/CameraAperture"
 import { GlassButton as Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import { useCompareTranslation } from "./translations"
+import {
+    useCompareTranslation,
+    type CompareTranslationKey,
+} from "./translations"
+import {
+    captureVideoFrame,
+    hasVideoDimensions,
+    useCameraStream,
+    type CameraStreamProblem,
+} from "./useCameraStream"
 
 type CameraState = "starting" | "ready" | "captured" | "unavailable" | "error"
-const CAMERA_START_TIMEOUT_MS = 5000
+type CapturePhase = "captured" | "error" | null
 
 export interface CameraCaptureSheetProps {
     isOpen: boolean
@@ -28,71 +37,16 @@ export interface CameraCaptureSheetProps {
     onChooseFromLibrary: () => void
 }
 
-function stopStream(stream: MediaStream | null) {
-    stream?.getTracks().forEach((track) => track.stop())
-}
-
-function releaseStream(
-    video: HTMLVideoElement | null,
-    stream: MediaStream | null,
-) {
-    stopStream(stream)
-    if (!video) return
-    if (stream && video.srcObject !== stream) return
-    if (video.readyState > 0) {
-        try {
-            video.pause()
-        } catch {
-            // The video may already be detached during unmount.
-        }
-    }
-    video.srcObject = null
-}
-
 function revokePreview(url: string | null) {
     if (url) URL.revokeObjectURL(url)
 }
 
-function hasVideoDimensions(video: HTMLVideoElement) {
-    return video.videoWidth > 0 && video.videoHeight > 0
-}
-
-function waitForVideoReady(
-    video: HTMLVideoElement,
-    isCancelled: () => boolean,
-): Promise<boolean> {
-    return new Promise((resolve) => {
-        let settled = false
-
-        const cleanup = () => {
-            video.removeEventListener("loadedmetadata", check)
-            video.removeEventListener("canplay", check)
-            video.removeEventListener("playing", check)
-        }
-
-        const finish = (ready: boolean) => {
-            if (settled) return
-            settled = true
-            cleanup()
-            resolve(ready)
-        }
-
-        const check = () => {
-            if (isCancelled()) {
-                finish(false)
-            } else if (hasVideoDimensions(video)) {
-                finish(true)
-            }
-        }
-
-        check()
-        if (settled) return
-
-        video.addEventListener("loadedmetadata", check)
-        video.addEventListener("canplay", check)
-        video.addEventListener("playing", check)
-    })
-}
+const PROBLEM_MESSAGE_KEYS: Record<CameraStreamProblem, CompareTranslationKey> =
+    {
+        unavailable: "cameraUnavailable",
+        did_not_start: "cameraDidNotStart",
+        denied: "cameraDenied",
+    }
 
 export function CameraCaptureSheet({
     isOpen,
@@ -106,150 +60,47 @@ export function CameraCaptureSheet({
     const { t } = useCompareTranslation()
     const videoRef = useRef<HTMLVideoElement>(null)
     const closeButtonRef = useRef<HTMLButtonElement>(null)
-    const streamRef = useRef<MediaStream | null>(null)
-    const cameraRunRef = useRef(0)
     const captureRunRef = useRef(0)
     const previewUrlRef = useRef<string | null>(null)
-    const [cameraState, setCameraState] = useState<CameraState>("starting")
-    const [cameraError, setCameraError] = useState<string | null>(null)
+    const camera = useCameraStream(videoRef, { active: isOpen })
+    const [phase, setPhase] = useState<CapturePhase>(null)
+    const [captureError, setCaptureError] = useState<string | null>(null)
     const [previewBlob, setPreviewBlob] = useState<Blob | null>(null)
     const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-    const [cameraAttempt, setCameraAttempt] = useState(0)
-    const [isVideoReady, setIsVideoReady] = useState(false)
     const [isCapturing, setIsCapturing] = useState(false)
 
     useEffect(() => {
-        const video = videoRef.current
-
-        if (!isOpen) {
-            releaseStream(video, streamRef.current)
-            streamRef.current = null
-            captureRunRef.current += 1
-            setPreviewBlob(null)
-            revokePreview(previewUrlRef.current)
-            previewUrlRef.current = null
-            setPreviewUrl(null)
-            setIsVideoReady(false)
-            setIsCapturing(false)
-            setCameraState("starting")
-            setCameraError(null)
-            return
-        }
-
-        let cancelled = false
-        const cameraRun = ++cameraRunRef.current
-        setCameraState("starting")
-        setCameraError(null)
+        captureRunRef.current += 1
         setPreviewBlob(null)
         revokePreview(previewUrlRef.current)
         previewUrlRef.current = null
         setPreviewUrl(null)
-        setIsVideoReady(false)
         setIsCapturing(false)
+        setPhase(null)
+        setCaptureError(null)
+    }, [isOpen])
 
-        const isSecure =
-            typeof window.isSecureContext !== "boolean" ||
-            window.isSecureContext
-        const mediaDevices = navigator.mediaDevices
-
-        if (!isSecure || !mediaDevices?.getUserMedia || !video) {
-            setCameraState("unavailable")
-            setCameraError(t("cameraUnavailable"))
-            return () => {
-                cancelled = true
-                releaseStream(video, streamRef.current)
-                streamRef.current = null
-            }
-        }
-
-        const fallbackTimer = window.setTimeout(() => {
-            if (cancelled) return
-            cancelled = true
-            releaseStream(video, streamRef.current)
-            streamRef.current = null
-            setIsVideoReady(false)
-            setCameraState("unavailable")
-            setCameraError(t("cameraDidNotStart"))
-        }, CAMERA_START_TIMEOUT_MS)
-
-        void mediaDevices
-            .getUserMedia({
-                audio: false,
-                video: {
-                    facingMode: { ideal: "environment" },
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 },
-                },
-            })
-            .then(async (stream) => {
-                if (cancelled || cameraRun !== cameraRunRef.current) {
-                    stopStream(stream)
-                    return
-                }
-
-                streamRef.current = stream
-                video.srcObject = stream
-                try {
-                    void video.play().catch(() => undefined)
-                } catch {
-                    // Browsers may reject or synchronously throw when autoplay is unavailable.
-                }
-
-                const ready = await waitForVideoReady(
-                    video,
-                    () => cancelled || cameraRun !== cameraRunRef.current,
-                )
-                if (cancelled || cameraRun !== cameraRunRef.current) {
-                    releaseStream(video, stream)
-                    if (streamRef.current === stream) streamRef.current = null
-                    return
-                }
-
-                window.clearTimeout(fallbackTimer)
-                if (!ready) {
-                    releaseStream(video, stream)
-                    streamRef.current = null
-                    setCameraState("unavailable")
-                    setCameraError(t("cameraDidNotStart"))
-                    return
-                }
-
-                setIsVideoReady(true)
-                setCameraState("ready")
-            })
-            .catch(() => {
-                window.clearTimeout(fallbackTimer)
-                if (cancelled || cameraRun !== cameraRunRef.current) return
-                setCameraState("unavailable")
-                setCameraError(t("cameraDenied"))
-            })
-
-        return () => {
-            cancelled = true
-            window.clearTimeout(fallbackTimer)
-            releaseStream(video, streamRef.current)
-            streamRef.current = null
-        }
-    }, [cameraAttempt, isOpen, t])
+    const cameraState: CameraState = phase ?? camera.status
+    const isVideoReady = camera.isVideoReady
+    const cameraError =
+        phase === "error"
+            ? captureError
+            : camera.problem
+              ? t(PROBLEM_MESSAGE_KEYS[camera.problem])
+              : null
 
     const handleClose = () => {
-        cameraRunRef.current += 1
         captureRunRef.current += 1
-        releaseStream(videoRef.current, streamRef.current)
-        streamRef.current = null
+        camera.release()
         onClose()
     }
 
     const handleRestartCamera = () => {
-        cameraRunRef.current += 1
         captureRunRef.current += 1
-        releaseStream(videoRef.current, streamRef.current)
-        streamRef.current = null
-        setIsVideoReady(false)
         setIsCapturing(false)
-        setCameraState("starting")
-        setCameraError(null)
-        setCameraAttempt((attempt) => attempt + 1)
+        setPhase(null)
+        setCaptureError(null)
+        camera.restart()
     }
 
     const handleRetake = () => {
@@ -260,56 +111,43 @@ export function CameraCaptureSheet({
         handleRestartCamera()
     }
 
+    const failCapture = (key: CompareTranslationKey) => {
+        setPhase("error")
+        setCaptureError(t(key))
+    }
+
     const handleCapture = () => {
         const video = videoRef.current
         if (!video || !isVideoReady || !hasVideoDimensions(video)) {
-            setCameraState("error")
-            setCameraError(t("cameraStillStarting"))
-            return
-        }
-
-        const canvas = document.createElement("canvas")
-        canvas.width = video.videoWidth
-        canvas.height = video.videoHeight
-        const context = canvas.getContext("2d")
-        if (!context) {
-            setCameraState("error")
-            setCameraError(t("cameraCaptureFailed"))
+            failCapture("cameraStillStarting")
             return
         }
 
         const captureRun = ++captureRunRef.current
         setIsCapturing(true)
-        try {
-            context.drawImage(video, 0, 0, canvas.width, canvas.height)
-            canvas.toBlob(
-                (blob) => {
-                    if (captureRun !== captureRunRef.current) return
-                    setIsCapturing(false)
-                    if (!blob) {
-                        setCameraState("error")
-                        setCameraError(t("cameraCaptureFailed"))
-                        return
-                    }
+        captureVideoFrame(video).then(
+            (blob) => {
+                if (captureRun !== captureRunRef.current) return
+                setIsCapturing(false)
+                if (!blob) {
+                    failCapture("cameraCaptureFailed")
+                    return
+                }
 
-                    revokePreview(previewUrlRef.current)
-                    const nextPreviewUrl = URL.createObjectURL(blob)
-                    previewUrlRef.current = nextPreviewUrl
-                    setPreviewBlob(blob)
-                    setPreviewUrl(nextPreviewUrl)
-                    setCameraState("captured")
-                    releaseStream(video, streamRef.current)
-                    streamRef.current = null
-                },
-                "image/jpeg",
-                0.92,
-            )
-        } catch {
-            if (captureRun !== captureRunRef.current) return
-            setIsCapturing(false)
-            setCameraState("error")
-            setCameraError(t("cameraCaptureFailed"))
-        }
+                revokePreview(previewUrlRef.current)
+                const nextPreviewUrl = URL.createObjectURL(blob)
+                previewUrlRef.current = nextPreviewUrl
+                setPreviewBlob(blob)
+                setPreviewUrl(nextPreviewUrl)
+                setPhase("captured")
+                camera.release()
+            },
+            () => {
+                if (captureRun !== captureRunRef.current) return
+                setIsCapturing(false)
+                failCapture("cameraCaptureFailed")
+            },
+        )
     }
 
     const handleUsePhoto = () => {
@@ -337,7 +175,7 @@ export function CameraCaptureSheet({
                 onOpenAutoFocus={(event) => {
                     event.preventDefault()
                     closeButtonRef.current?.focus()
-                    setCameraAttempt((attempt) => attempt + 1)
+                    camera.restart()
                 }}
                 className="inset-0 flex h-full max-h-none w-full max-w-none translate-x-0 translate-y-0 grid-cols-1 flex-col gap-0 rounded-none border-0 bg-neutral-50/95 p-0 text-neutral-950 backdrop-blur-sm sm:p-5"
             >

@@ -1,5 +1,13 @@
 import type { BrowserMultiFormatOneDReader } from "@zxing/browser"
 
+import {
+    getNativeDetector,
+    loadZxingReader,
+    nativeDetectFrameTimeoutMs,
+    withTimeout,
+    type NativeDetector,
+} from "./barcodeDecoders"
+
 export type BarcodeScannerError = unknown
 
 export type BarcodeScannerSession = {
@@ -352,97 +360,6 @@ function detachStream(video: HTMLVideoElement, stream: MediaStream) {
     if (video.srcObject === stream) video.srcObject = null
 }
 
-const nativeDetectorTimeoutMs = 600
-const nativeDetectFrameTimeoutMs = 250
-
-function withTimeout<T>(
-    promise: Promise<T>,
-    timeoutMs: number,
-    errorMessage: string,
-): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-        let settled = false
-        const timer = setTimeout(() => {
-            if (settled) return
-            settled = true
-            reject(new Error(errorMessage))
-        }, timeoutMs)
-
-        promise.then(
-            (val) => {
-                if (settled) return
-                settled = true
-                clearTimeout(timer)
-                resolve(val)
-            },
-            (err: unknown) => {
-                if (settled) return
-                settled = true
-                clearTimeout(timer)
-                reject(err instanceof Error ? err : new Error(String(err)))
-            },
-        )
-    })
-}
-
-type NativeDetector = {
-    detect: (
-        source: ImageBitmapSource | HTMLVideoElement | HTMLCanvasElement,
-    ) => Promise<Array<{ rawValue: string }>>
-}
-
-async function getNativeDetector(): Promise<NativeDetector | null> {
-    if (typeof window === "undefined" || !("BarcodeDetector" in window)) {
-        return null
-    }
-    try {
-        const formatsPromise = (
-            window as unknown as {
-                BarcodeDetector: {
-                    getSupportedFormats: () => Promise<string[]>
-                }
-            }
-        ).BarcodeDetector.getSupportedFormats()
-
-        const formats = await withTimeout(
-            formatsPromise,
-            nativeDetectorTimeoutMs,
-            "BarcodeDetector format detection timed out",
-        )
-        if (
-            Array.isArray(formats) &&
-            (formats.includes("ean_13") ||
-                formats.includes("ean_8") ||
-                formats.includes("upc_a") ||
-                formats.includes("code_128"))
-        ) {
-            const DetectorClass = (
-                window as unknown as {
-                    BarcodeDetector: new (options?: {
-                        formats: string[]
-                    }) => NativeDetector
-                }
-            ).BarcodeDetector
-            return new DetectorClass({
-                formats: formats.filter((f) =>
-                    [
-                        "ean_13",
-                        "ean_8",
-                        "upc_a",
-                        "upc_e",
-                        "code_128",
-                        "code_39",
-                        "itf",
-                    ].includes(f),
-                ),
-            })
-        }
-    } catch {
-        return null
-    }
-    return null
-}
-
 export const barcodeScanner: BarcodeScanner = {
     async start(video, onResult, onError, options) {
         const facingMode = options?.facingMode ?? "environment"
@@ -452,10 +369,7 @@ export const barcodeScanner: BarcodeScanner = {
         // preview becomes drawable. Neither capability detection nor loading
         // the fallback decoder should keep the shopper on the startup state.
         const nativeDetectorPromise = getNativeDetector()
-        const zxingReaderPromise = import("@zxing/browser").then(
-            ({ BrowserMultiFormatOneDReader }) =>
-                new BrowserMultiFormatOneDReader(),
-        )
+        const zxingReaderPromise = loadZxingReader()
 
         video.muted = true
         video.playsInline = true
