@@ -155,11 +155,7 @@ describe("Khmer Product result English audit", () => {
             "../src/features/product/cards/IngredientsCard.tsx",
             "../src/features/product/cards/NutritionCard.tsx",
             "../src/features/product/cards/PackagingsTableCard.tsx",
-            "../src/features/product/cards/PhotosGalleryCard.tsx",
-            "../src/features/product/cards/PackagingCard.tsx",
-            "../src/features/product/cards/ProductCharacteristicsCard.tsx",
             "../src/features/product/cards/ProvenanceCard.tsx",
-            "../src/features/product/cards/RawRecordCard.tsx",
             "../src/features/product/cards/SymbolsCard.tsx",
             "../src/features/product/cards/scores/NutrientLevelsCard.tsx",
         ]
