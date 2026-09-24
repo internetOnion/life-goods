@@ -574,7 +574,7 @@ export type IngredientMatchErrorDetail = {
     /**
      * Code
      */
-    code: 'invalid_ingredient_text' | 'prototype_unavailable';
+    code: 'invalid_ingredient_text' | 'prototype_unavailable' | 'rate_limit_exceeded';
     /**
      * Message
      */
@@ -1756,6 +1756,10 @@ export type MatchExperimentalIngredientsErrors = {
      */
     422: IngredientMatchErrorResponse;
     /**
+     * Too Many Requests
+     */
+    429: IngredientMatchErrorResponse;
+    /**
      * Service Unavailable
      */
     503: IngredientMatchErrorResponse;
@@ -1944,6 +1948,10 @@ export type GetOpenFoodFactsImageErrors = {
      * Unprocessable Content
      */
     422: ErrorEnvelope;
+    /**
+     * Too Many Requests
+     */
+    429: ErrorEnvelope;
     /**
      * Bad Gateway
      */

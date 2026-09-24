@@ -71,7 +71,8 @@ def test_gemini_adapter_successful_translation() -> None:
     # Verify HTTP request details
     assert len(captured_requests) == 1
     sent_req = captured_requests[0]
-    assert "key=secret-api-key" in str(sent_req.url)
+    assert "secret-api-key" not in str(sent_req.url)
+    assert sent_req.headers["x-goog-api-key"] == "secret-api-key"
     assert "/v1beta/models/gemini-3.8-flash:generateContent" in str(sent_req.url)
 
     # Verify body schema

@@ -36,7 +36,12 @@ from lifegoods.photo_comparison.gemini import (
     PhotoProviderRequest,
     PhotoProviderUnavailable,
 )
-from lifegoods.photo_comparison.images import MAX_UPLOAD_BYTES, ImageValidationError, prepare_image
+from lifegoods.photo_comparison.images import (
+    MAX_PHOTO_BYTES,
+    MAX_UPLOAD_BYTES,
+    ImageValidationError,
+    prepare_image,
+)
 from lifegoods.photo_comparison.normalization import build_extraction
 from lifegoods.photo_comparison.rate_limit import RedisPhotoComparisonRateLimiter
 from lifegoods.photo_comparison.service import ProviderCapacity, RedisProviderCapacity
@@ -190,6 +195,61 @@ def test_oversized_pixel_photos_are_downscaled_instead_of_rejected() -> None:
     assert abs(prepared.evidence.width / prepared.evidence.height - 1.2) < 0.01
 
 
+def test_compressed_png_beyond_decode_ceiling_is_rejected_before_decoding() -> None:
+    output = io.BytesIO()
+    # Tiny on the wire, 72 megapixels once decoded.
+    Image.new("1", (9000, 8000)).save(output, format="PNG")
+    assert len(output.getvalue()) < MAX_PHOTO_BYTES
+
+    with pytest.raises(ImageValidationError) as rejected:
+        prepare_image(output.getvalue(), declared_content_type="image/png")
+
+    assert rejected.value.size_limit
+
+
+class _UnusedLabelProvider:
+    provider_name = "fake-provider"
+    model = "gemini-3.8-flash"
+
+    def read_label(self, request: object) -> dict[str, object]:
+        raise RuntimeError("only admission is under test")
+
+
+@pytest.mark.parametrize(
+    "path", ["/api/v1/photo-comparison/extractions", "/api/v1/label-readings"]
+)
+def test_rate_limited_photo_requests_never_decode_uploads(
+    monkeypatch: pytest.MonkeyPatch, path: str
+) -> None:
+    decoded: list[bytes] = []
+
+    def spy(data: bytes, *, declared_content_type: str | None = None) -> object:
+        decoded.append(data)
+        return prepare_image(data, declared_content_type=declared_content_type)
+
+    monkeypatch.setattr("lifegoods.photo_comparison.router.prepare_image", spy)
+    redis_client = fakeredis.FakeRedis(decode_responses=True)
+    app = create_app(
+        settings=Settings(_env_file=None, gemini_api_key=None),  # pyright: ignore[reportCallIssue]
+        photo_provider=FakeProvider(),
+        photo_rate_limiter=RedisPhotoComparisonRateLimiter(redis_client, requests_per_minute=1),
+        photo_capacity=ProviderCapacity(),
+        label_reading_provider=_UnusedLabelProvider(),
+    )
+    with TestClient(app) as client:
+        responses = [
+            client.post(
+                path,
+                data={"product_id": "left"},
+                files=[("photos", ("left.png", _png_bytes(), "image/png"))],
+            )
+            for _ in range(3)
+        ]
+
+    assert [response.status_code for response in responses][1:] == [429, 429]
+    assert len(decoded) == 1
+
+
 def test_comparison_normalizes_mass_units_and_exposes_derivation() -> None:
     response = compare(normal_pair())
     row = response.rows[0]
@@ -299,6 +359,8 @@ def test_gemini_photo_adapter_sends_all_images_and_exact_model() -> None:
     assert response["outcome"] == "retake_required"
     sent = json.loads(captured[0].content)
     assert "/models/gemini-3.8-flash:generateContent" in str(captured[0].url)
+    assert "key=" not in str(captured[0].url)
+    assert captured[0].headers["x-goog-api-key"]
     assert sent["generationConfig"]["responseMimeType"] == "application/json"
     assert sent["generationConfig"]["maxOutputTokens"] == 16384
     assert sent["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "low"}
@@ -1111,3 +1173,17 @@ def test_photo_upload_path_registry_covers_extraction_routes() -> None:
     assert is_photo_upload_path(EXTRACTION_PATH)
     assert is_photo_upload_path(f"{EXPERIMENTAL_PREFIX}/extractions")
     assert not is_photo_upload_path("/api/v1/photo-comparison/comparisons")
+
+
+def test_standalone_photo_app_refuses_deployed_environments() -> None:
+    settings = Settings(
+        _env_file=None,  # pyright: ignore[reportCallIssue]
+        environment="production",
+        off_mongodb_uri="mongodb://reader:secret@mongo/off",
+        generated_mongodb_uri="mongodb://generated:secret@mongo/generated",
+        redis_url="redis://:secret@redis:6379/0",
+        trusted_proxy_cidrs=("172.20.0.0/16",),
+        allowed_origins=("https://lifegoods.example.workers.dev",),
+    )
+    with pytest.raises(RuntimeError, match="local development only"):
+        create_photo_comparison_app(settings=settings)

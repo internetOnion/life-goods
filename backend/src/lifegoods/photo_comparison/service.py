@@ -173,6 +173,14 @@ class RedisProviderCapacity:
                 return
 
 
+class AdmissionTicket:
+    """Proof that one photo request already holds the shared admission."""
+
+    def __init__(self, admission: PhotoProviderAdmission) -> None:
+        self.admission = admission
+        self.active = True
+
+
 class PhotoProviderAdmission:
     """One anonymous admission budget and provider lease for every photo operation.
 
@@ -190,7 +198,14 @@ class PhotoProviderAdmission:
         self.capacity = capacity or ProviderCapacity()
 
     @contextmanager
-    def admit(self, rate_limit_key: str) -> Iterator[None]:
+    def admit(
+        self, rate_limit_key: str, *, held: AdmissionTicket | None = None
+    ) -> Iterator[AdmissionTicket]:
+        # Routers admit before decoding uploads so rejected clients cannot force image
+        # decoding, then pass the held ticket so the provider call is not charged twice.
+        if held is not None and held.admission is self and held.active:
+            yield held
+            return
         allowed, retry_after = self.rate_limiter.try_acquire(rate_limit_key)
         if not allowed:
             raise ExtractionRateLimitError(
@@ -201,9 +216,11 @@ class PhotoProviderAdmission:
             raise ExtractionCapacityError(
                 "Another extraction is already in progress. Retry when it finishes."
             )
+        ticket = AdmissionTicket(self)
         try:
-            yield
+            yield ticket
         finally:
+            ticket.active = False
             self.capacity.release()
 
 
@@ -221,20 +238,25 @@ class PhotoExtractionService:
             rate_limiter=rate_limiter, capacity=capacity
         )
 
+    def ensure_available(self) -> PhotoExtractionProvider:
+        if self.provider is None:
+            raise MissingCredentialsError(
+                "Photo extraction is unavailable because Gemini credentials are missing."
+            )
+        return self.provider
+
     def extract(
         self,
         product_id: str,
         images: Sequence[PreparedImage],
         *,
         rate_limit_key: str = "unknown",
+        admission: AdmissionTicket | None = None,
     ) -> Extraction:
-        if self.provider is None:
-            raise MissingCredentialsError(
-                "Photo extraction is unavailable because Gemini credentials are missing."
-            )
-        with self.admission.admit(rate_limit_key):
+        provider = self.ensure_available()
+        with self.admission.admit(rate_limit_key, held=admission):
             try:
-                payload = self.provider.extract(PhotoProviderRequest(images=list(images)))
+                payload = provider.extract(PhotoProviderRequest(images=list(images)))
             except (PhotoProviderTimeout, PhotoProviderUnavailable, PhotoProviderOutputInvalid):
                 raise
             except Exception as error:
@@ -243,8 +265,8 @@ class PhotoExtractionService:
                 payload,
                 product_id=product_id,
                 images=[image.evidence for image in images],
-                provider=self.provider.provider_name,
-                model=self.provider.model,
+                provider=provider.provider_name,
+                model=provider.model,
             )
 
 
@@ -255,6 +277,7 @@ class PhotoComparisonService:
 
 
 __all__ = [
+    "AdmissionTicket",
     "CONFIGURATION_VERSION",
     "EXTRACTION_REQUESTS_PER_MINUTE",
     "ExtractionRateLimiter",

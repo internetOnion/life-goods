@@ -87,14 +87,10 @@ class OpenFoodFactsImageSource:
             if cached is not None:
                 return cached
             if not self._request_budget.try_acquire():
-                logger.warning(
-                    "OFF image request budget exhausted; refusing %s", url
-                )
+                logger.warning("OFF image request budget exhausted; refusing request")
                 raise ExternalImageUnavailableError("OFF image request budget is exhausted")
             if not self._request_slots.acquire(blocking=False):
-                logger.warning(
-                    "OFF image request concurrency exhausted; refusing %s", url
-                )
+                logger.warning("OFF image request concurrency exhausted; refusing request")
                 raise ExternalImageUnavailableError(
                     "OFF image request concurrency is exhausted"
                 )
@@ -115,7 +111,7 @@ class OpenFoodFactsImageSource:
                 follow_redirects=False,
             ) as response:
                 if response.status_code in {404, 410}:
-                    logger.info("OFF image no longer exists: %s", url)
+                    logger.info("OFF image no longer exists")
                     raise ExternalImageNotFoundError("OFF image no longer exists")
                 if response.status_code != 200:
                     self._log_unavailable(
@@ -174,8 +170,8 @@ class OpenFoodFactsImageSource:
         except httpx.HTTPError as error:
             self._log_unavailable(
                 url,
-                "OFF image request failed: "
-                f"{type(error).__name__}: {error} "
+                # Error text can embed the URL, whose path contains the Barcode.
+                f"OFF image request failed: {type(error).__name__} "
                 f"(connect={self._connect_timeout_seconds}s, "
                 f"read={self._read_timeout_seconds}s)",
             )
@@ -193,7 +189,9 @@ class OpenFoodFactsImageSource:
 
     @staticmethod
     def _log_unavailable(url: str, reason: str) -> None:
-        logger.warning("OFF image unavailable for %s: %s", url, reason)
+        # Never log the URL: Open Food Facts image paths contain the Barcode.
+        del url
+        logger.warning("OFF image unavailable: %s", reason)
 
     def _cached(self, url: str) -> ExternalImage | None:
         with self._cache_lock:

@@ -1,3 +1,4 @@
+# DEPRECATED: not used by staging or production (see README "Deployment").
 # LifeGoods PRODUCTION stack — hardened single-VPS topology (Netcup).
 #
 # Security model:

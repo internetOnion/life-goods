@@ -152,6 +152,7 @@ def test_production_settings_need_no_relational_database() -> None:
         generated_mongodb_uri="mongodb://generated:secret@mongo/generated",
         redis_url="redis://:secret@redis:6379/0",
         trusted_proxy_cidrs=("172.20.0.0/16",),
+        allowed_origins=("https://lifegoods.example.workers.dev",),
     )
     assert not hasattr(settings, "database_url")
 
@@ -162,6 +163,11 @@ def test_production_settings_need_no_relational_database() -> None:
         ("off_mongodb_uri", "mongodb://lifegoods_reader:lifegoods_reader@mongo/off"),
         ("generated_mongodb_uri", "mongodb://lifegoods_generated:lifegoods_generated@mongo/generated"),
         ("redis_url", "redis://localhost:6380/0"),
+        ("redis_url", "redis://redis:6379/0"),
+        ("redis_url", "redis://:@redis:6379/0"),
+        ("allowed_origins", ("*",)),
+        ("allowed_origins", ("http://localhost:5173",)),
+        ("allowed_origins", ("https://lifegoods.example.workers.dev", "http://127.0.0.1:5173")),
     ],
 )
 def test_production_rejects_development_datastore_settings(field, value) -> None:
@@ -170,6 +176,8 @@ def test_production_rejects_development_datastore_settings(field, value) -> None
         "off_mongodb_uri": "mongodb://reader:secret@mongo/off",
         "generated_mongodb_uri": "mongodb://generated:secret@mongo/generated",
         "redis_url": "redis://:secret@redis:6379/0",
+        "trusted_proxy_cidrs": ("172.20.0.0/16",),
+        "allowed_origins": ("https://lifegoods.example.workers.dev",),
         field: value,
     }
     with pytest.raises(ValueError):

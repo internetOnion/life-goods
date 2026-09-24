@@ -15,7 +15,11 @@ from lifegoods.photo_comparison.gemini import (
     PhotoProviderUnavailable,
 )
 from lifegoods.photo_comparison.images import PreparedImage
-from lifegoods.photo_comparison.service import MissingCredentialsError, PhotoProviderAdmission
+from lifegoods.photo_comparison.service import (
+    AdmissionTicket,
+    MissingCredentialsError,
+    PhotoProviderAdmission,
+)
 from lifegoods.product_lookup.allergen_analysis import IngredientMatcherProtocol
 
 
@@ -43,17 +47,22 @@ class LabelReadingService:
         self.admission = admission
         self.ingredient_matcher = ingredient_matcher
 
+    def ensure_available(self) -> LabelReadingProvider:
+        if self.provider is None:
+            raise MissingCredentialsError(
+                "Read This Label is unavailable because Gemini credentials are missing."
+            )
+        return self.provider
+
     def read(
         self,
         images: Sequence[PreparedImage],
         roles: Sequence[PhotoRole],
         *,
         rate_limit_key: str = "unknown",
+        admission: AdmissionTicket | None = None,
     ) -> LabelReading:
-        if self.provider is None:
-            raise MissingCredentialsError(
-                "Read This Label is unavailable because Gemini credentials are missing."
-            )
+        provider = self.ensure_available()
         if len(roles) != len(images):
             raise ValueError("each photo requires one capture role")
         tagged = [
@@ -64,9 +73,9 @@ class LabelReadingService:
             )
             for image, role in zip(images, roles, strict=True)
         ]
-        with self.admission.admit(rate_limit_key):
+        with self.admission.admit(rate_limit_key, held=admission):
             try:
-                payload = self.provider.read_label(
+                payload = provider.read_label(
                     LabelReadingProviderRequest(images=tagged, roles=list(roles))
                 )
             except (PhotoProviderTimeout, PhotoProviderUnavailable, PhotoProviderOutputInvalid):
@@ -76,8 +85,8 @@ class LabelReadingService:
             reading = build_label_reading(
                 payload,
                 images=[image.evidence for image in tagged],
-                provider=self.provider.provider_name,
-                model=self.provider.model,
+                provider=provider.provider_name,
+                model=provider.model,
             )
         # Deterministic and provider-free, so it runs after the provider lease is released.
         reading.allergen_mentions = analyze_label_allergens(reading, self.ingredient_matcher)

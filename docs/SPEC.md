@@ -174,6 +174,9 @@ missing, blank, whitespace-only, or oversized requests use the same `422` envelo
 }
 ```
 
+The route has its own anonymous per-client limit (`LIFEGOODS_INGREDIENT_MATCHING_REQUESTS_PER_MINUTE`,
+default 60). Excess requests return `429` with `rate_limit_exceeded` and `Retry-After`.
+
 ## 4. Dataset Snapshot
 
 The MVP uses one static, explicitly selected Open Food Facts Dataset Snapshot already hosted in MongoDB. Dataset updating, automatic synchronization, and periodic activation are deferred. The design keeps a version identifier so a different snapshot can be selected later without changing source semantics.
@@ -192,6 +195,16 @@ Redis remains disposable infrastructure for Product Lookup caching and anonymous
 - Use an in-memory substitute where appropriate for isolated tests or single-process development.
 
 The Product Lookup endpoint is public and requires no authentication. Apply a practical per-IP rate limit that allows ordinary shopping sessions while discouraging automated extraction.
+
+The Open Food Facts image proxy keeps its shared upstream budget and also applies a per-client
+limit (`LIFEGOODS_OPEN_FOOD_FACTS_IMAGE_CLIENT_REQUESTS_PER_MINUTE`, default 120), returning `429`
+`RATE_LIMIT_EXCEEDED` with `Retry-After`, so one client cannot exhaust the shared budget. Neither
+image URLs nor error text containing them are logged, because image paths contain the Barcode.
+
+In staging and production (`LIFEGOODS_ENVIRONMENT`), the backend serves no `/docs`, `/redoc`,
+`/scalar` or `/openapi.json`, independently of edge blocking; the schema is still exported from
+`app.openapi()` for client generation. Startup fails if allowed origins include `*` or a
+loopback host, or if the Redis URL carries no password.
 
 ## 6. Product-page exploration
 
@@ -1192,11 +1205,13 @@ and are not treated as requirements for the current implementation.
 
 The integration defaults are one to three JPEG, PNG or HEIC photos per Product,
 10 MiB per photo, 32 MiB per request, 25 megapixels per decoded image (larger
-photos are downscaled), 1 MiB per
+photos are downscaled; JPEGs are decoded at a reduced scale, and other formats above
+64 megapixels are rejected from their header before decoding), 1 MiB per
 extraction or comparison response, and 1 MiB for the comparison request JSON,
 at most eight nutrition columns, 100 fields per column, and 4,096 characters
 per literal text field. Admission checks must run before unbounded buffering or
-provider calls. The typed failure mapping is documented above. Partial and
+provider calls, and the shared photo admission (rate limit and provider lease) is taken
+before any upload is decoded, so rejected clients cannot force image decoding. The typed failure mapping is documented above. Partial and
 retake-required extractions remain successful domain responses with explicit
 outcomes and reasons.
 

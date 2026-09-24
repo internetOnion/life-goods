@@ -275,3 +275,27 @@ def test_product_search_response_examples_validate(client: TestClient) -> None:
     decode_and_validate_cursor(
         example["value"]["meta"]["pagination"]["next_cursor"], expected_terms=("chocolate",)
     )
+
+
+@pytest.mark.parametrize("environment", ["staging", "production"])
+def test_deployed_environments_expose_no_api_docs(environment: str) -> None:
+    from lifegoods.core.settings import Settings
+
+    settings = Settings(
+        _env_file=None,  # pyright: ignore[reportCallIssue]
+        environment=environment,
+        off_mongodb_uri="mongodb://reader:secret@mongo/off",
+        generated_mongodb_uri="mongodb://generated:secret@mongo/generated",
+        redis_url="redis://:secret@redis:6379/0",
+        trusted_proxy_cidrs=("172.20.0.0/16",),
+        allowed_origins=("https://lifegoods.example.workers.dev",),
+    )
+    app = create_app(settings=settings)
+    with TestClient(app) as client:
+        statuses = [
+            client.get(path).status_code
+            for path in ("/docs", "/redoc", "/scalar", "/openapi.json")
+        ]
+
+    assert statuses == [404, 404, 404, 404]
+    assert app.openapi()["paths"]

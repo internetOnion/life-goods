@@ -23,6 +23,7 @@ from lifegoods.product_search import (
     SearchProducts,
     parse_and_validate_query,
 )
+from lifegoods.product_search.contracts import PRODUCT_SEARCH_PAGE_SIZE
 
 pytestmark = pytest.mark.integration
 
@@ -409,7 +410,7 @@ def test_exhaustive_tier_pagination_on_real_mongodb(
     )
     actual = []
     cursor = None
-    for _ in range(10):
+    for _ in range(len(records) // PRODUCT_SEARCH_PAGE_SIZE + 1):
         page = service.execute(parse_and_validate_query(query), cursor=cursor)
         actual.extend(product.barcode for product in page.products)
         cursor = page.next_cursor
@@ -450,20 +451,23 @@ def test_common_term_uses_bounded_index_ordering(
 
     monkeypatch.setattr(Collection, "aggregate", capture)
     rows = source.search_text(snapshot, (term,), term)
-    assert len(rows) == 11
-    assert [row["code"] for row in rows] == [_make_valid_code(i) for i in range(11)]
+    size = PRODUCT_SEARCH_PAGE_SIZE
+    assert len(rows) == size + 1
+    assert [row["code"] for row in rows] == [_make_valid_code(i) for i in range(size + 1)]
     manifest = database[VERSIONS_COLLECTION].find_one({"_id": version})
     name = manifest["search_index"]["collection_name"]
     from lifegoods.open_food_facts.search_index import SearchCursor
 
-    last = rows[9]
+    last = rows[size - 1]
     next_rows = source.search_text(
         snapshot,
         (term,),
         term,
         SearchCursor(2, last["name_sort"], last["code"], last["information_score"]),
     )
-    assert [row["code"] for row in next_rows] == [_make_valid_code(i) for i in range(10, 21)]
+    assert [row["code"] for row in next_rows] == [
+        _make_valid_code(i) for i in range(size, 2 * size + 1)
+    ]
     for pipeline, options in calls:
         result = database.command("explain", {
             "aggregate": name, "pipeline": pipeline, "cursor": {},

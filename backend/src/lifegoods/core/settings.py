@@ -11,6 +11,7 @@ DEFAULT_OPEN_FOOD_FACTS_USER_AGENT = (
     "LifeGoods/0.1.0 (https://github.com/internetOnion/life-goods)"
 )
 DEFAULT_OPEN_FOOD_FACTS_IMAGE_REQUESTS_PER_MINUTE = 60
+DEFAULT_OPEN_FOOD_FACTS_IMAGE_CLIENT_REQUESTS_PER_MINUTE = 120
 DEFAULT_OFF_MONGODB_URI = (
     "mongodb://lifegoods_reader:lifegoods_reader@localhost:27018/lifegoods_off"
 )
@@ -27,6 +28,7 @@ DEFAULT_PRODUCT_LOOKUP_CACHE_ENABLED = True
 DEFAULT_PRODUCT_LOOKUP_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60
 DEFAULT_PRODUCT_LOOKUP_REQUESTS_PER_MINUTE = 60
 DEFAULT_INGREDIENT_MATCHING_PROTOTYPE_ENABLED = True
+DEFAULT_INGREDIENT_MATCHING_REQUESTS_PER_MINUTE = 60
 DEFAULT_PRODUCT_SEARCH_REQUESTS_PER_MINUTE = 60
 DEFAULT_GENERATED_TRANSLATION_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60
 DEFAULT_GENERATED_TRANSLATION_LEASE_TTL_SECONDS = 5.0
@@ -59,6 +61,9 @@ class Settings(BaseSettings):
     open_food_facts_image_requests_per_minute: int = (
         DEFAULT_OPEN_FOOD_FACTS_IMAGE_REQUESTS_PER_MINUTE
     )
+    open_food_facts_image_client_requests_per_minute: int = (
+        DEFAULT_OPEN_FOOD_FACTS_IMAGE_CLIENT_REQUESTS_PER_MINUTE
+    )
     off_mongodb_uri: str = DEFAULT_OFF_MONGODB_URI
     off_mongodb_database: str = DEFAULT_OFF_MONGODB_DATABASE
     off_mongodb_timeout_ms: int = DEFAULT_OFF_MONGODB_TIMEOUT_MS
@@ -72,6 +77,9 @@ class Settings(BaseSettings):
     product_lookup_requests_per_minute: int = DEFAULT_PRODUCT_LOOKUP_REQUESTS_PER_MINUTE
     ingredient_matching_prototype_enabled: bool = (
         DEFAULT_INGREDIENT_MATCHING_PROTOTYPE_ENABLED
+    )
+    ingredient_matching_requests_per_minute: int = (
+        DEFAULT_INGREDIENT_MATCHING_REQUESTS_PER_MINUTE
     )
     product_search_requests_per_minute: int = DEFAULT_PRODUCT_SEARCH_REQUESTS_PER_MINUTE
     generated_translation_cache_ttl_seconds: int = (
@@ -119,11 +127,22 @@ class Settings(BaseSettings):
     def _validate_trusted_proxy_cidrs(cls, value: tuple[str, ...]) -> tuple[str, ...]:
         return normalize_trusted_proxy_cidrs(value)
 
+    @property
+    def is_deployed(self) -> bool:
+        """Staging and production: public traffic, so fail fast and expose no API docs."""
+        return self.environment.strip().lower() in {"production", "prod", "staging"}
+
     @model_validator(mode="after")
     def _fail_fast_on_known_defaults_in_production(self) -> "Settings":
-        env = self.environment.strip().lower()
-        if env not in {"production", "prod", "staging"}:
+        if not self.is_deployed:
             return self
+        for origin in self.allowed_origins:
+            host = origin.split("://", 1)[-1].split(":", 1)[0].split("/", 1)[0]
+            if origin == "*" or host in {"localhost", "127.0.0.1", "[::1]"}:
+                raise ValueError(
+                    "LIFEGOODS_ALLOWED_ORIGINS must list only the deployed frontend "
+                    "origin in the production or staging environment."
+                )
         if not self.trusted_proxy_cidrs:
             raise ValueError(
                 "LIFEGOODS_TRUSTED_PROXY_CIDRS must identify the reverse-proxy "
@@ -139,7 +158,10 @@ class Settings(BaseSettings):
                 "LIFEGOODS_GENERATED_MONGODB_URI must not use development credentials "
                 "in the production environment."
             )
-        if "redis://localhost:6380/0" in self.redis_url:
+        redis_credentials = self.redis_url.split("://", 1)[-1].split("@", 1)
+        if "redis://localhost:6380/0" in self.redis_url or len(redis_credentials) < 2 or (
+            not redis_credentials[0].rsplit(":", 1)[-1]
+        ):
             raise ValueError(
                 "LIFEGOODS_REDIS_URL must point at an authenticated Redis instance "
                 "in the production environment."

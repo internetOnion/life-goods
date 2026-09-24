@@ -64,6 +64,12 @@ def create_photo_comparison_app(
     khmer_rendering_provider: Any | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings()
+    if resolved_settings.is_deployed:
+        # This local prototype has no shared rate limit, CORS policy or proxy handling.
+        raise RuntimeError(
+            "The standalone photo comparison app is for local development only; "
+            "deployed environments serve these routes from lifegoods.main."
+        )
     owned_clients: list[httpx.Client] = []
     resolved_provider = provider
     if resolved_provider is None and resolved_settings.gemini_api_key:

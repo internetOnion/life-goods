@@ -228,7 +228,8 @@ def test_concurrent_single_flight_on_real_services(
     for res in results:
         assert res is not None
         assert res.overall_status == TranslationOverallStatus.COMPLETE
-        assert "ទឹកដូង" in res.fields["product_name"].khmer_translation
+        # Product names always retain Original Text (SPEC); check a translated field.
+        assert res.fields["generic_name"].khmer_translation == "ទឹកដូង"
 
 
 def test_privacy_no_barcode_or_shopper_id_stored(

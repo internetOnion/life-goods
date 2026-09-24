@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
 
@@ -13,6 +13,7 @@ from lifegoods.ingredient_matching.models import (
     IngredientMatchingUnavailableError,
     IngredientQualification,
 )
+from lifegoods.ingredient_matching.rate_limit import IngredientMatchingRateLimiter
 
 router = APIRouter(prefix="/api/experimental", tags=["Ingredient Matching"])
 
@@ -60,7 +61,7 @@ class IngredientMatchResponse(BaseModel):
 
 
 class IngredientMatchErrorDetail(BaseModel):
-    code: Literal["invalid_ingredient_text", "prototype_unavailable"]
+    code: Literal["invalid_ingredient_text", "prototype_unavailable", "rate_limit_exceeded"]
     message: str
 
 
@@ -70,6 +71,10 @@ class IngredientMatchErrorResponse(BaseModel):
 
 def get_ingredient_matcher() -> IngredientMatcher:
     raise RuntimeError("Ingredient matching dependency is not configured")
+
+
+def get_ingredient_matching_rate_limiter() -> IngredientMatchingRateLimiter:
+    raise RuntimeError("Ingredient matching rate limiter dependency is not configured")
 
 
 @router.post(
@@ -83,13 +88,31 @@ def get_ingredient_matcher() -> IngredientMatcher:
     response_model=IngredientMatchResponse,
     responses={
         422: {"model": IngredientMatchErrorResponse},
+        429: {"model": IngredientMatchErrorResponse},
         503: {"model": IngredientMatchErrorResponse},
     },
 )
 def match_experimental_ingredients(
+    http_request: Request,
     request: Annotated[IngredientMatchRequest, Body()],
     matcher: Annotated[IngredientMatcher, Depends(get_ingredient_matcher)],
+    limiter: Annotated[
+        IngredientMatchingRateLimiter, Depends(get_ingredient_matching_rate_limiter)
+    ],
 ) -> IngredientMatchResponse | JSONResponse:
+    client = http_request.client.host if http_request.client is not None else "unknown"
+    allowed, retry_after = limiter.try_acquire(client)
+    if not allowed:
+        return JSONResponse(
+            status_code=429,
+            content={
+                "error": {
+                    "code": "rate_limit_exceeded",
+                    "message": "Too many requests. Please try again later.",
+                }
+            },
+            headers={"Retry-After": str(retry_after)},
+        )
     try:
         result = matcher.match(request.ingredient_text)
     except ValueError:
