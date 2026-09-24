@@ -30,10 +30,7 @@ const STATE_KEYS: Record<string, CompareTranslationKey> = {
 }
 
 /** A cell states the printed value, or in words why the photo gave none. */
-export function nutritionCellText(
-    field: FieldObservation,
-    locale: AppLocale,
-): string {
+function nutritionCellText(field: FieldObservation, locale: AppLocale): string {
     if (field.state === "readable" || field.state === undefined) {
         const prefix = QUALIFIER_PREFIX[field.qualifier ?? "exact"] ?? ""
         return `${prefix}${displayValue(field.value_text, field.unit_text ?? "")}`
@@ -46,7 +43,7 @@ function rowKey(field: FieldObservation): string {
     return `${identity}:${field.row_kind === "percentage" ? "percent" : "amount"}`
 }
 
-export function buildNutritionRows(
+function buildNutritionRows(
     columns: NutritionColumn[],
     locale: AppLocale,
 ): NutritionTableRow[] {

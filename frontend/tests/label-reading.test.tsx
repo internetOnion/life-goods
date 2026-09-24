@@ -7,9 +7,15 @@ import { waitFor } from "@testing-library/react"
 
 import { App } from "../src/app/App"
 import { LocaleProvider } from "../src/i18n/LocaleProvider"
-import type { LabelReading, PhotoRole } from "../src/api/generated"
+import type {
+    KhmerRenderedBlock,
+    KhmerRenderingBlockInput,
+    LabelReading,
+    PhotoRole,
+} from "../src/api/generated"
 import { LabelReadingPage } from "../src/features/label-reading/LabelReadingPage"
 import { PhotoComparisonApiError } from "../src/features/photo-evidence/api"
+import { translateCompare } from "../src/features/photo-evidence/translations"
 import type { PhotoQuality } from "../src/features/photo-evidence/imageQuality"
 import { ProductPage } from "../src/features/product/ProductPage"
 import type { ProductLookup } from "../src/features/product/api"
@@ -169,6 +175,10 @@ type DecodeBarcode = (
     options?: { signal?: AbortSignal },
 ) => Promise<string | null>
 type CheckQuality = (photo: Blob) => Promise<PhotoQuality | null>
+type RenderKhmer = (
+    blocks: KhmerRenderingBlockInput[],
+    options?: { signal?: AbortSignal },
+) => Promise<KhmerRenderedBlock[]>
 
 function renderJourney(
     path: string,
@@ -177,14 +187,18 @@ function renderJourney(
         readLabel = vi.fn<ReadLabel>(),
         decodeBarcode = vi.fn<DecodeBarcode>().mockResolvedValue(null),
         checkQuality = vi.fn<CheckQuality>().mockResolvedValue(null),
+        renderKhmer = vi.fn<RenderKhmer>().mockResolvedValue([]),
+        locale = "en",
     }: {
         lookup?: ProductLookup
         readLabel?: ReadLabel
         decodeBarcode?: DecodeBarcode
         checkQuality?: CheckQuality
+        renderKhmer?: RenderKhmer
+        locale?: "en" | "km"
     } = {},
 ) {
-    window.localStorage.setItem("lifegoods.locale.v1", "en")
+    window.localStorage.setItem("lifegoods.locale.v1", locale)
     const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false } },
     })
@@ -206,6 +220,7 @@ function renderJourney(
                                     lookup={lookup}
                                     decodeBarcode={decodeBarcode}
                                     checkQuality={checkQuality}
+                                    renderKhmer={renderKhmer}
                                 />
                             }
                         />
@@ -940,6 +955,169 @@ describe("Label Reading result (SPEC §29.5)", () => {
         expect(region).not.toHaveTextContent(
             /Source Data Unavailable|Original Text|Khmer Translation/,
         )
+    })
+})
+
+describe("Khmer Rendering in a Label Reading (SPEC §29.4)", () => {
+    const RENDERED: KhmerRenderedBlock[] = [
+        {
+            block_id: "ing_en",
+            state: "rendered",
+            khmer_text:
+                "គ្រឿងផ្សំ៖ ម្សៅស្រូវសាលី ស្ករ ម្សៅទឹកដោះគោ (5%) អំបិល។",
+        },
+        { block_id: "stmt_1", state: "unavailable", khmer_text: null },
+        { block_id: "fact_origin", state: "not_needed", khmer_text: null },
+    ]
+
+    test("in English, Khmer is written only on request and sent without identifiers", async () => {
+        const user = userEvent.setup()
+        const renderKhmer = vi.fn<RenderKhmer>().mockResolvedValue(RENDERED)
+        renderJourney("/labels/read", {
+            readLabel: vi
+                .fn<ReadLabel>()
+                .mockResolvedValue(labelReadingFixture()),
+            renderKhmer,
+        })
+        await submitReading(user)
+        const region = await screen.findByRole("region", {
+            name: "Label Reading",
+        })
+        expect(renderKhmer).not.toHaveBeenCalled()
+
+        await user.click(
+            within(region).getByRole("button", { name: "Show in Khmer" }),
+        )
+
+        expect(renderKhmer).toHaveBeenCalledTimes(1)
+        const [blocks] = renderKhmer.mock.calls[0]!
+        expect(blocks.map((block) => Object.keys(block).sort())).toEqual([
+            ["block_id", "language", "text"],
+            ["block_id", "language", "text"],
+            ["block_id", "language", "text"],
+        ])
+        expect(blocks.map((block) => block.block_id)).toEqual([
+            "ing_en",
+            "stmt_1",
+            "fact_origin",
+        ])
+
+        const rendering = await within(region).findByTestId("khmer-rendering")
+        expect(rendering).toHaveTextContent("Khmer by AI, from your photo")
+        expect(within(rendering).getByText(/ម្សៅស្រូវសាលី/)).toHaveAttribute(
+            "lang",
+            "km",
+        )
+        // The printed text stays; the Khmer is beneath it, never instead of it.
+        expect(
+            within(region).getByText(/^Ingredients: wheat flour/),
+        ).toBeVisible()
+        expect(
+            within(region).getByText(
+                "A Khmer version is not available for this text.",
+            ),
+        ).toBeVisible()
+        expect(within(region).getAllByTestId("khmer-rendering")).toHaveLength(1)
+        expect(
+            within(region).queryByRole("button", { name: "Show in Khmer" }),
+        ).not.toBeInTheDocument()
+    })
+
+    test("in Khmer, it is written automatically once per reading", async () => {
+        const user = userEvent.setup()
+        const renderKhmer = vi.fn<RenderKhmer>().mockResolvedValue(RENDERED)
+        renderJourney("/labels/read", {
+            locale: "km",
+            readLabel: vi
+                .fn<ReadLabel>()
+                .mockResolvedValue(labelReadingFixture()),
+            renderKhmer,
+        })
+        addPhoto()
+        await user.click(
+            screen.getByRole("button", {
+                name: translateCompare("km", "readThisLabelAction"),
+            }),
+        )
+
+        expect(await screen.findByTestId("khmer-rendering")).toBeVisible()
+        expect(renderKhmer).toHaveBeenCalledTimes(1)
+    })
+
+    test("a failure keeps the printed text and retries only when asked", async () => {
+        const user = userEvent.setup()
+        const renderKhmer = vi
+            .fn<RenderKhmer>()
+            .mockRejectedValueOnce(
+                new PhotoComparisonApiError(
+                    "capacity_limit_exceeded",
+                    "Another extraction is already in progress.",
+                ),
+            )
+            .mockResolvedValueOnce(RENDERED)
+        renderJourney("/labels/read", {
+            readLabel: vi
+                .fn<ReadLabel>()
+                .mockResolvedValue(labelReadingFixture()),
+            renderKhmer,
+        })
+        await submitReading(user)
+        const region = await screen.findByRole("region", {
+            name: "Label Reading",
+        })
+        await user.click(
+            within(region).getByRole("button", { name: "Show in Khmer" }),
+        )
+
+        const alert = await within(region).findByRole("alert")
+        expect(alert).toHaveTextContent(
+            "The Khmer version could not be written.",
+        )
+        expect(
+            within(region).getByText(/^Ingredients: wheat flour/),
+        ).toBeVisible()
+        expect(renderKhmer).toHaveBeenCalledTimes(1)
+
+        await user.click(
+            within(alert).getByRole("button", { name: "Try Khmer again" }),
+        )
+        expect(
+            await within(region).findByTestId("khmer-rendering"),
+        ).toBeVisible()
+        expect(renderKhmer).toHaveBeenCalledTimes(2)
+    })
+
+    test("a late Khmer response for an earlier reading is discarded", async () => {
+        const user = userEvent.setup()
+        let resolveFirst: (value: KhmerRenderedBlock[]) => void = () =>
+            undefined
+        const renderKhmer = vi.fn<RenderKhmer>().mockImplementationOnce(
+            () =>
+                new Promise<KhmerRenderedBlock[]>((resolve) => {
+                    resolveFirst = resolve
+                }),
+        )
+        renderJourney("/labels/read", {
+            readLabel: vi
+                .fn<ReadLabel>()
+                .mockResolvedValueOnce(labelReadingFixture())
+                .mockResolvedValueOnce(labelReadingFixture()),
+            renderKhmer,
+        })
+        await submitReading(user)
+        await user.click(
+            await screen.findByRole("button", { name: "Show in Khmer" }),
+        )
+        await user.click(screen.getByRole("button", { name: "Read again" }))
+        await screen.findByRole("button", { name: "Show in Khmer" })
+
+        resolveFirst(RENDERED)
+        await Promise.resolve()
+
+        expect(screen.queryByTestId("khmer-rendering")).not.toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: "Show in Khmer" }),
+        ).toBeVisible()
     })
 })
 
