@@ -2,7 +2,7 @@ import { useEffect } from "react"
 
 export const SITE_NAME = "Life Goods"
 export const DEFAULT_DESCRIPTION =
-    "Scan a Barcode to read attributed Open Food Facts Product information with Life Goods."
+    "Scan a food Barcode to read its ingredients and nutrition in Khmer or English, or photograph a nutrition label to read it and compare Products."
 
 type PageMetadataOptions = {
     title?: string
