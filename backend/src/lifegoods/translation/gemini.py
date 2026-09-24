@@ -145,8 +145,9 @@ class GeminiTranslationAdapter:
         self, request: ProviderTranslationRequest, deadline: TranslationDeadline
     ) -> ProviderTranslationResponse:
         deadline.remaining()
-        url = f"{self._base_url}/models/{self._model}:generateContent?key={self._api_key}"
-        headers = {"Content-Type": "application/json"}
+        # Header, not query string: request URLs surface in client errors and proxy logs.
+        url = f"{self._base_url}/models/{self._model}:generateContent"
+        headers = {"Content-Type": "application/json", "x-goog-api-key": self._api_key}
 
         properties_schema = {field: {"type": "STRING"} for field in request.fields}
         payload = {

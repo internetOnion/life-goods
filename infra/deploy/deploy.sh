@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# DEPRECATED: not used by staging or production (see README "Deployment").
 # LifeGoods — hardened deploy to a Netcup VPS (single box, Docker Compose).
 #
 # Design (Netcup-only):

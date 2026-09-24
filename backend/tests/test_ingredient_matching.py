@@ -1,5 +1,6 @@
 from typing import Any
 
+import fakeredis
 import mongomock
 import mongomock.collection
 import pytest
@@ -12,7 +13,18 @@ from lifegoods.ingredient_matching.models import (
     IngredientMatchingUnavailableError,
     IngredientUnmatchedSpan,
 )
-from lifegoods.ingredient_matching.router import get_ingredient_matcher, router
+from lifegoods.ingredient_matching.rate_limit import RedisIngredientMatchingRateLimiter
+from lifegoods.ingredient_matching.router import (
+    get_ingredient_matcher,
+    get_ingredient_matching_rate_limiter,
+    router,
+)
+
+
+class _AllowAll:
+    def try_acquire(self, key: str) -> tuple[bool, int]:
+        del key
+        return True, 0
 
 
 def _matcher() -> IngredientMatcher:
@@ -187,6 +199,7 @@ def test_matching_route_returns_source_attribution_and_stable_errors() -> None:
     app = FastAPI()
     app.include_router(router)
     app.dependency_overrides[get_ingredient_matcher] = _matcher
+    app.dependency_overrides[get_ingredient_matching_rate_limiter] = _AllowAll
 
     with TestClient(app) as client:
         response = client.post(
@@ -205,6 +218,29 @@ def test_matching_route_returns_source_attribution_and_stable_errors() -> None:
     )
     assert response.json()["source"]["name"] == "Open Food Facts"
     assert blank.status_code == 422
+
+
+def test_matching_route_is_rate_limited_per_client() -> None:
+    limiter = RedisIngredientMatchingRateLimiter(
+        fakeredis.FakeRedis(decode_responses=True), requests_per_minute=1
+    )
+    app = FastAPI()
+    app.include_router(router)
+    app.dependency_overrides[get_ingredient_matcher] = _matcher
+    app.dependency_overrides[get_ingredient_matching_rate_limiter] = lambda: limiter
+
+    with TestClient(app) as client:
+        first = client.post(
+            "/api/experimental/ingredient-matches", json={"ingredient_text": "milk"}
+        )
+        second = client.post(
+            "/api/experimental/ingredient-matches", json={"ingredient_text": "milk"}
+        )
+
+    assert first.status_code == 200
+    assert second.status_code == 429
+    assert second.json()["error"]["code"] == "rate_limit_exceeded"
+    assert int(second.headers["Retry-After"]) >= 1
 
 
 def test_disabled_or_missing_prototype_is_unavailable() -> None:

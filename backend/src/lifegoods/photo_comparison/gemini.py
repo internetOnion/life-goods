@@ -292,13 +292,14 @@ def generate_structured(
         },
     }
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    url = f"{base_url}/models/{model}:generateContent?key={api_key}"
+    # Header, not query string: request URLs surface in client errors and proxy logs.
+    url = f"{base_url}/models/{model}:generateContent"
     try:
         response = TranslationDeadline(timeout_seconds).run(
             partial(
                 client.post,
                 url,
-                headers={"Content-Type": "application/json"},
+                headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
                 content=body,
                 timeout=timeout_seconds,
             )

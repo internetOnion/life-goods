@@ -1,0 +1,57 @@
+name: CI
+on:
+    pull_request:
+    push:
+        branches: [main]
+permissions:
+    contents: read
+concurrency:
+    group: ci-${{ github.ref }}
+    cancel-in-progress: true
+jobs:
+    verify:
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        steps:
+            - uses: actions/checkout@v4
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 11.1.2
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+                  cache: pnpm
+            - uses: astral-sh/setup-uv@v6
+              with:
+                  version: 0.8.22
+                  python-version: "3.13"
+            - run: pnpm install --frozen-lockfile
+            - run: pnpm backend:install
+            - run: pnpm typecheck
+            - run: pnpm lint
+            - run: pnpm test
+            - run: pnpm build
+            - run: pnpm api:check
+            - run: pnpm staging:proxy:test
+
+    integration:
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        steps:
+            - uses: actions/checkout@v4
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 11.1.2
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+            - uses: astral-sh/setup-uv@v6
+              with:
+                  version: 0.8.22
+                  python-version: "3.13"
+            - run: pnpm backend:install
+            # Disposable MongoDB and Redis on fixed local ports; never deployed services.
+            - run: docker compose --project-name lifegoods-ci -f infra/compose/docker-compose.test.yml up -d --wait
+            - run: pnpm staging:integration:test
+            - if: always()
+              run: docker compose --project-name lifegoods-ci -f infra/compose/docker-compose.test.yml down -v

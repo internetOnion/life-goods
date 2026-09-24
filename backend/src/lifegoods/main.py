@@ -21,7 +21,10 @@ from lifegoods.generated_data.repository import MongoGeneratedDataRepository
 from lifegoods.identifiers import InvalidIdentifierError
 from lifegoods.ingredient_matching import (
     IngredientMatcher,
+    IngredientMatchingRateLimiter,
+    RedisIngredientMatchingRateLimiter,
     get_ingredient_matcher,
+    get_ingredient_matching_rate_limiter,
 )
 from lifegoods.ingredient_matching import router as ingredient_matching_router
 from lifegoods.label_reading.gemini import create_label_reading_provider
@@ -41,6 +44,11 @@ from lifegoods.open_food_facts import (
     OpenFoodFactsImageSource,
     get_image_source,
     open_food_facts_image_router,
+)
+from lifegoods.open_food_facts.image_router import (
+    ImageProxyRateLimiter,
+    RedisImageProxyRateLimiter,
+    get_image_rate_limiter,
 )
 from lifegoods.photo_comparison.contracts import (
     PhotoComparisonErrorCode,
@@ -122,12 +130,14 @@ def create_app(
     *,
     settings: Settings | None = None,
     image_source: ExternalImageSource | None = None,
+    image_rate_limiter: ImageProxyRateLimiter | None = None,
     product_lookup_source: RawProductLookupSource | None = None,
     product_lookup_cache: ProductLookupCache | None = None,
     product_lookup_limiter: ProductLookupRateLimiter | None = None,
     product_lookup_metrics: ProductLookupMetrics | None = None,
     ingredient_matching_database: Any | None = None,
     ingredient_matcher: IngredientMatcher | None = None,
+    ingredient_matching_limiter: IngredientMatchingRateLimiter | None = None,
     translation_coordinator: TranslationCoordinator | None = None,
     product_search_service: SearchProducts | None = None,
     product_search_limiter: ProductSearchRateLimiter | None = None,
@@ -151,6 +161,8 @@ def create_app(
         or (resolved_settings.product_lookup_cache_enabled and product_lookup_cache is None)
         or translation_coordinator is None
         or product_search_limiter is None
+        or ingredient_matching_limiter is None
+        or image_rate_limiter is None
         or photo_rate_limiter is None
         or photo_capacity is None
     )
@@ -215,6 +227,24 @@ def create_app(
         resolved_product_search_limiter = RedisProductSearchRateLimiter(
             shared_redis_client,
             resolved_settings.product_search_requests_per_minute,
+        )
+
+    if image_rate_limiter is not None:
+        resolved_image_rate_limiter = image_rate_limiter
+    else:
+        assert shared_redis_client is not None
+        resolved_image_rate_limiter = RedisImageProxyRateLimiter(
+            shared_redis_client,
+            resolved_settings.open_food_facts_image_client_requests_per_minute,
+        )
+
+    if ingredient_matching_limiter is not None:
+        resolved_ingredient_matching_limiter = ingredient_matching_limiter
+    else:
+        assert shared_redis_client is not None
+        resolved_ingredient_matching_limiter = RedisIngredientMatchingRateLimiter(
+            shared_redis_client,
+            resolved_settings.ingredient_matching_requests_per_minute,
         )
 
     resolved_product_search_metrics = (
@@ -298,7 +328,16 @@ def create_app(
         ingredient_matcher=resolved_ingredient_matcher,
     )
 
-    app = FastAPI(title="Life Goods API", version="0.1.0")
+    deployed = resolved_settings.is_deployed
+    # Deployed environments expose no interactive docs or schema; the edge also blocks
+    # them, but the backend must not rely on that. `app.openapi()` still works for export.
+    app = FastAPI(
+        title="Life Goods API",
+        version="0.1.0",
+        docs_url=None if deployed else "/docs",
+        redoc_url=None if deployed else "/redoc",
+        openapi_url=None if deployed else "/openapi.json",
+    )
     readiness_probe = ReadinessProbe(resolved_settings)
     app.include_router(build_health_router(readiness_probe))
     app.router.add_event_handler("shutdown", readiness_probe.close)
@@ -332,12 +371,14 @@ def create_app(
     install_photo_comparison_openapi(app)
     install_label_reading_openapi(app)
 
-    @app.get("/scalar", include_in_schema=False)
-    async def scalar_html() -> HTMLResponse:
-        return get_scalar_api_reference(
-            openapi_url=app.openapi_url or "/openapi.json",
-            title=f"{app.title} - Scalar Reference",
-        )
+    if not deployed:
+
+        @app.get("/scalar", include_in_schema=False)
+        async def scalar_html() -> HTMLResponse:
+            return get_scalar_api_reference(
+                openapi_url=app.openapi_url or "/openapi.json",
+                title=f"{app.title} - Scalar Reference",
+            )
 
     if translation_coordinator is not None:
         resolved_translation_coordinator = translation_coordinator
@@ -386,6 +427,7 @@ def create_app(
         )
 
     app.dependency_overrides[get_image_source] = lambda: resolved_image_source
+    app.dependency_overrides[get_image_rate_limiter] = lambda: resolved_image_rate_limiter
     app.dependency_overrides[get_translation_coordinator] = lambda: resolved_translation_coordinator
     app.dependency_overrides[get_product_lookup] = lambda: LookupProduct(
         resolved_product_lookup_source,
@@ -409,6 +451,9 @@ def create_app(
         resolved_product_search_metrics
     )
     app.dependency_overrides[get_ingredient_matcher] = lambda: resolved_ingredient_matcher
+    app.dependency_overrides[get_ingredient_matching_rate_limiter] = lambda: (
+        resolved_ingredient_matching_limiter
+    )
 
     @app.exception_handler(RequestValidationError)
     async def request_validation_handler(

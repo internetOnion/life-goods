@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from typing import Any
 
+import fakeredis
 import httpx2 as httpx
 import pytest
 from fastapi import FastAPI
@@ -17,6 +18,16 @@ from lifegoods.open_food_facts import (
 from lifegoods.open_food_facts import (
     open_food_facts_image_router as router,
 )
+from lifegoods.open_food_facts.image_router import (
+    RedisImageProxyRateLimiter,
+    get_image_rate_limiter,
+)
+
+
+class _AllowAll:
+    def try_acquire(self, key: str) -> tuple[bool, int]:
+        del key
+        return True, 0
 
 IMAGE_URL = "https://images.openfoodfacts.org/images/products/400/front_en.jpg"
 JPEG_BYTES = b"\xff\xd8\xffjpeg"
@@ -142,6 +153,21 @@ def test_maps_transport_failures_to_unavailable() -> None:
         image_source(httpx.MockTransport(fail)).fetch(IMAGE_URL)
 
 
+def test_failure_logs_never_contain_the_barcode_bearing_url(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    barcode_url = "https://images.openfoodfacts.org/images/products/400/638/133/3931/front_en.jpg"
+
+    def fail(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectTimeout(f"timed out fetching {request.url}", request=request)
+
+    with caplog.at_level("INFO"), pytest.raises(ExternalImageUnavailableError):
+        image_source(httpx.MockTransport(fail)).fetch(barcode_url)
+
+    assert caplog.records
+    assert all("3931" not in record.getMessage() for record in caplog.records)
+
+
 def test_rejects_a_chunked_image_that_exceeds_the_byte_limit() -> None:
     source = image_source(
         httpx.MockTransport(
@@ -230,11 +256,26 @@ class StubImageSource:
         return self.result
 
 
-def client_for(result: ExternalImage | Exception) -> TestClient:
+def client_for(result: ExternalImage | Exception, limiter: Any = None) -> TestClient:
     app = FastAPI()
     app.include_router(router)
     app.dependency_overrides[get_image_source] = lambda: StubImageSource(result)
+    app.dependency_overrides[get_image_rate_limiter] = lambda: limiter or _AllowAll()
     return TestClient(app)
+
+
+def test_proxy_limits_each_client_separately() -> None:
+    limiter = RedisImageProxyRateLimiter(
+        fakeredis.FakeRedis(decode_responses=True), requests_per_minute=1
+    )
+    image = ExternalImage(content=b"jpeg", media_type="image/jpeg")
+    with client_for(image, limiter) as client:
+        first = client.get("/api/v1/open-food-facts-images", params={"url": IMAGE_URL})
+        second = client.get("/api/v1/open-food-facts-images", params={"url": IMAGE_URL})
+
+    assert first.status_code == 200
+    assert second.status_code == 429
+    assert second.json()["error"]["code"] == "RATE_LIMIT_EXCEEDED"
 
 
 def test_proxy_returns_same_origin_cacheable_image_bytes() -> None:

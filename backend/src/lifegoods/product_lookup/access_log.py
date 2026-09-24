@@ -4,6 +4,12 @@ PRODUCT_LOOKUP_PATH_PREFIX = "/api/v1/products/"
 
 
 class ProductLookupAccessLogFilter(logging.Filter):
+    """Keep Barcodes and Shopper addresses out of access logs.
+
+    Every client address and query string is dropped (image proxy queries carry
+    Barcode-bearing URLs); Product Lookup paths are redacted entirely.
+    """
+
     def filter(self, record: logging.LogRecord) -> bool:
         arguments = record.args
         if not isinstance(arguments, tuple) or len(arguments) < 3:
@@ -11,17 +17,12 @@ class ProductLookupAccessLogFilter(logging.Filter):
         path = arguments[2]
         if not isinstance(path, str):
             return True
-        if path.startswith("/api/v1/products/search"):
-            sanitized = list(arguments)
-            sanitized[0] = "[redacted]"
-            sanitized[2] = "/api/v1/products/search"
-            record.args = tuple(sanitized)
-            return True
-        if not path.startswith(PRODUCT_LOOKUP_PATH_PREFIX):
-            return True
+        path = path.split("?", 1)[0]
+        if path.startswith(PRODUCT_LOOKUP_PATH_PREFIX) and path != "/api/v1/products/search":
+            path = f"{PRODUCT_LOOKUP_PATH_PREFIX}[redacted]"
         sanitized = list(arguments)
         sanitized[0] = "[redacted]"
-        sanitized[2] = f"{PRODUCT_LOOKUP_PATH_PREFIX}[redacted]"
+        sanitized[2] = path
         record.args = tuple(sanitized)
         return True
 

@@ -297,7 +297,8 @@ of an application rollback. Record image and Worker version IDs for every releas
 
 Public production requires automated off-VPS backups and a restore drill, aggregate
 health alerts, provider spending controls, review of measured capacity, and a
-separate production deployment. Staging availability is not production acceptance.
+separate production deployment ([production-deployment.md](production-deployment.md)).
+Staging availability is not production acceptance.
 
 
 ## Common-term Product Search rollout

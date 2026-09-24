@@ -22,6 +22,10 @@ logger = logging.getLogger(__name__)
 MAX_PHOTO_BYTES = 10 * 1024 * 1024
 MAX_UPLOAD_BYTES = 32 * 1024 * 1024
 MAX_IMAGE_PIXELS = 25_000_000
+# Header-checked ceiling on pixels decoded at full resolution. A small compressed PNG or HEIC
+# can expand to gigabytes; JPEGs above the bound are instead decoded at a reduced scale.
+MAX_DECODE_PIXELS = 64_000_000
+_DRAFT_FORMATS = frozenset({"JPEG", "MPO"})
 # Pillow format name -> MIME type of the *prepared* output. HEIF input is re-encoded as JPEG.
 # MPO is a JPEG with extra images appended (iOS adds an HDR gain map when it hands a library
 # HEIC over as JPEG); only its primary image is kept.
@@ -131,9 +135,18 @@ def prepare_image(data: bytes, *, declared_content_type: str | None = None) -> P
             width, height = opened.size
             if width <= 0 or height <= 0:
                 raise ImageValidationError("The submitted photo has no visible pixels.")
+            if width * height > MAX_DECODE_PIXELS and image_format not in _DRAFT_FORMATS:
+                _log_rejection(data, declared, image_format, "pixel_limit")
+                raise ImageValidationError(
+                    "The submitted photo has too many pixels.", size_limit=True
+                )
             opened.verify()
 
         with Image.open(io.BytesIO(data)) as reopened:
+            if width * height > MAX_IMAGE_PIXELS and image_format in _DRAFT_FORMATS:
+                # Let libjpeg decode at 1/2, 1/4 or 1/8 scale instead of full resolution.
+                scale = math.sqrt(MAX_IMAGE_PIXELS / (width * height))
+                reopened.draft("RGB", (max(1, int(width * scale)), max(1, int(height * scale))))
             corrected = ImageOps.exif_transpose(reopened)
             if corrected is None:
                 corrected = reopened.copy()
@@ -153,6 +166,11 @@ def prepare_image(data: bytes, *, declared_content_type: str | None = None) -> P
             processed_bytes = output.getvalue()
     except ImageValidationError:
         raise
+    except Image.DecompressionBombError as error:
+        _log_rejection(data, declared, "", "pixel_limit")
+        raise ImageValidationError(
+            "The submitted photo has too many pixels.", size_limit=True
+        ) from error
     except (UnidentifiedImageError, OSError, ValueError) as error:
         _log_rejection(data, declared, "", f"decode_failed:{type(error).__name__}")
         raise ImageValidationError(

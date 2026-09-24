@@ -93,11 +93,17 @@ def build_label_reading_router(
                     "Submit one capture role for each photo.",
                     422,
                 )
-            outcome = prepare_uploads(request, uploads)
-            if isinstance(outcome, JSONResponse):
-                return outcome
-            prepared = outcome
-            reading = service.read(prepared, roles, rate_limit_key=client_address(request))
+            rate_limit_key = client_address(request)
+            service.ensure_available()
+            # Admit before decoding so rate-limited clients cannot force image work.
+            with service.admission.admit(rate_limit_key) as admission:
+                outcome = prepare_uploads(request, uploads)
+                if isinstance(outcome, JSONResponse):
+                    return outcome
+                prepared = outcome
+                reading = service.read(
+                    prepared, roles, rate_limit_key=rate_limit_key, admission=admission
+                )
             return success_response(reading)
         except Exception as error:
             return photo_error_response(error)

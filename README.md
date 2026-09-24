@@ -44,7 +44,9 @@ Read [PRODUCT.md](PRODUCT.md) for the product boundary, [CONTEXT.md](CONTEXT.md)
 - **Frontend** is deployed to **Cloudflare** (Workers Static Assets).
 - **Backend, MongoDB, and Redis** are deployed together on a **VPS**, reached from Cloudflare through a Workers VPC service and Cloudflare Tunnel. MongoDB and Redis are never exposed on the VPS public address.
 
-See [docs/staging-deployment.md](docs/staging-deployment.md) for the deployment procedure.
+See [docs/staging-deployment.md](docs/staging-deployment.md) for staging and [docs/production-deployment.md](docs/production-deployment.md) for production. Staging and production are separate Compose projects (`app-staging`, `app-prod`), Workers and Tunnels beside one shared read-only Dataset Snapshot.
+
+The nginx-based `infra/compose/docker-compose.{prod,staging}.yml`, `infra/nginx/` and `infra/deploy/deploy.sh` are **deprecated**: they own different MongoDB volumes and are not used by either environment.
 
 ## Documentation
 
@@ -54,6 +56,7 @@ See [docs/staging-deployment.md](docs/staging-deployment.md) for the deployment 
 - [AGENTS.md](AGENTS.md) — contributor/agent guide (structure, conventions, issue tracking)
 - [docs/generated-data-persistence.md](docs/generated-data-persistence.md) — isolated translation storage architecture and operations
 - [docs/staging-deployment.md](docs/staging-deployment.md) — Cloudflare + VPS deployment procedure
+- [docs/production-deployment.md](docs/production-deployment.md) — production deployment, backups and alerts
 - [docs/dataset-deployment.md](docs/dataset-deployment.md) — dataset-only VPS deployment (Open Food Facts snapshot hosting)
 
 ## Data & attribution

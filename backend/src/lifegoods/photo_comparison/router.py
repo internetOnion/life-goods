@@ -555,15 +555,20 @@ def build_router(
             )
         prepared: list[PreparedImage] = []
         try:
-            outcome = prepare_uploads(request, uploads)
-            if isinstance(outcome, JSONResponse):
-                return outcome
-            prepared = outcome
-            extraction = extraction_service.extract(
-                product_id,
-                prepared,
-                rate_limit_key=client_address(request),
-            )
+            rate_limit_key = client_address(request)
+            extraction_service.ensure_available()
+            # Admit before decoding so rate-limited clients cannot force image work.
+            with extraction_service.admission.admit(rate_limit_key) as admission:
+                outcome = prepare_uploads(request, uploads)
+                if isinstance(outcome, JSONResponse):
+                    return outcome
+                prepared = outcome
+                extraction = extraction_service.extract(
+                    product_id,
+                    prepared,
+                    rate_limit_key=rate_limit_key,
+                    admission=admission,
+                )
             return success_response(extraction)
         except Exception as error:
             return photo_error_response(error)

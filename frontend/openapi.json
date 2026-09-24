@@ -1184,7 +1184,8 @@
           "code": {
             "enum": [
               "invalid_ingredient_text",
-              "prototype_unavailable"
+              "prototype_unavailable",
+              "rate_limit_exceeded"
             ],
             "title": "Code",
             "type": "string"
@@ -3768,6 +3769,16 @@
             },
             "description": "Unprocessable Content"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngredientMatchErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -4135,6 +4146,16 @@
               }
             },
             "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
           },
           "502": {
             "content": {

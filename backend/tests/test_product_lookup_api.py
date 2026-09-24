@@ -891,6 +891,25 @@ def test_uvicorn_access_log_redacts_product_lookup_path_and_client_address(
     assert "/api/v1/products/[redacted]" in message_km
     assert "language=km" not in message_km
 
+    with (
+        caplog.at_level("INFO", logger=access_logger.name),
+        _client(database),
+    ):
+        access_logger.info(
+            '%s - "%s %s HTTP/%s" %d',
+            "203.0.113.42:50000",
+            "GET",
+            "/api/v1/open-food-facts-images?url=https%3A%2F%2Fimages.openfoodfacts.org"
+            "%2Fimages%2Fproducts%2F400%2F638%2F133%2F3931%2Ffront_en.1.400.jpg",
+            "1.1",
+            200,
+        )
+
+    message_image = caplog.records[-1].getMessage()
+    assert "3931" not in message_image
+    assert "203.0.113.42" not in message_image
+    assert "/api/v1/open-food-facts-images" in message_image
+
 
 def test_v1_product_lookup_returns_stable_product_projection_with_provenance() -> None:
     database = _dataset_database()
