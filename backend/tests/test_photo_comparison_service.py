@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 import io
 import json
+import logging
 from decimal import Decimal
 
 import fakeredis
@@ -140,6 +141,20 @@ def test_photo_limits_reject_oversized_and_unsupported_content() -> None:
     assert declared.value.unsupported_format
 
 
+def test_rejected_photos_log_format_metadata_only(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING, logger="lifegoods.photo_comparison.images"):
+        with pytest.raises(ImageValidationError):
+            prepare_image(b"\x00\x00\x00\x18ftypavifsecret", declared_content_type="image/avif")
+        with pytest.raises(ImageValidationError):
+            prepare_image(b"\x00\x00\x00\x18ftypheicsecret", declared_content_type="image/heic")
+    messages = [record.getMessage() for record in caplog.records]
+    assert "reason=declared_type declared='image/avif'" in messages[0]
+    assert "brand='avif'" in messages[0]
+    assert "reason=decode_failed:" in messages[1]
+    assert "brand='heic'" in messages[1]
+    assert all("secret" not in message for message in messages)
+
+
 def test_heic_photos_are_transcoded_to_jpeg() -> None:
     for declared_content_type in ("image/heic", "image/heif", "", None, "application/octet-stream"):
         prepared = prepare_image(_heic_bytes(), declared_content_type=declared_content_type)
@@ -149,6 +164,21 @@ def test_heic_photos_are_transcoded_to_jpeg() -> None:
         with Image.open(io.BytesIO(prepared.content)) as image:
             assert image.format == "JPEG"
             assert image.getexif() == {}
+
+
+def test_mpo_photos_keep_only_the_primary_image_as_jpeg() -> None:
+    # iOS hands a library HEIC over as a JPEG with an appended gain-map image (MPO).
+    output = io.BytesIO()
+    primary = Image.new("RGB", (40, 30), (220, 180, 90))
+    primary.save(output, format="MPO", save_all=True, append_images=[Image.new("L", (20, 15))])
+    with Image.open(io.BytesIO(output.getvalue())) as detected:
+        assert detected.format == "MPO"
+    prepared = prepare_image(output.getvalue(), declared_content_type="image/jpeg")
+    assert prepared.mime_type == "image/jpeg"
+    assert (prepared.evidence.width, prepared.evidence.height) == (40, 30)
+    with Image.open(io.BytesIO(prepared.content)) as image:
+        assert image.format == "JPEG"
+        assert getattr(image, "n_frames", 1) == 1
 
 
 def test_oversized_pixel_photos_are_downscaled_instead_of_rejected() -> None:

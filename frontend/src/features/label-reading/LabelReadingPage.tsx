@@ -21,7 +21,7 @@ import {
     isAcceptedPhotoFile,
     isHeicFile,
     isSupportedImageFile,
-    verifiedPhotoFile,
+    preparedPhotoFile,
 } from "@/features/photo-evidence/helpers"
 import {
     checkPhotoQuality,
@@ -328,7 +328,7 @@ export function LabelReadingPage({
     const inspectPhoto = async (photo: StepPhoto, assessed: boolean) => {
         const controller = new AbortController()
         photoTasksRef.current.set(photo.localId, controller)
-        const verified = await verifiedPhotoFile(photo.file)
+        const verified = await preparedPhotoFile(photo.file)
         if (!isMountedRef.current || controller.signal.aborted) return
         if (verified === null) {
             updatePhoto(photo.localId, (p) => ({ ...p, previewError: true }))

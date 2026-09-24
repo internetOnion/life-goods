@@ -20,6 +20,7 @@ import {
     formatNutrientName,
     verifiedPhotoFile,
     pickDefaultColumnId,
+    uploadReadyPhotoFile,
 } from "../src/features/photo-evidence/helpers"
 import { LocaleContext } from "../src/i18n/locale"
 import { PhotoComparisonPage } from "../src/features/photo-comparison/PhotoComparisonPage"
@@ -2378,6 +2379,75 @@ describe("Photo inspection and UX features", () => {
             type: "image/heic",
         })
         expect(await verifiedPhotoFile(uncheckable)).toBe(uncheckable)
+    })
+
+    test("re-encodes a decodable non-JPEG photo as a JPEG on-device", async () => {
+        const withHead = (file: File, head: number[]) => {
+            Object.defineProperty(file, "slice", {
+                value: () => ({
+                    arrayBuffer: () =>
+                        Promise.resolve(new Uint8Array(head).buffer),
+                }),
+            })
+            return file
+        }
+        const close = vi.fn()
+        const bitmapMock = vi.fn().mockResolvedValue({
+            width: 8000,
+            height: 6000,
+            close,
+        })
+        vi.stubGlobal("createImageBitmap", bitmapMock)
+        const drawImage = vi.fn()
+        const getContext = vi
+            .spyOn(HTMLCanvasElement.prototype, "getContext")
+            .mockReturnValue({
+                drawImage,
+            } as unknown as CanvasRenderingContext2D)
+        const toBlob = vi
+            .spyOn(HTMLCanvasElement.prototype, "toBlob")
+            .mockImplementation((callback) =>
+                callback(new Blob(["jpeg"], { type: "image/jpeg" })),
+            )
+        try {
+            const heic = withHead(
+                new File(["heic"], "IMG_7518.HEIC", { type: "image/heic" }),
+                [0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70],
+            )
+            const prepared = await uploadReadyPhotoFile(heic)
+            expect(prepared.name).toBe("IMG_7518.jpg")
+            expect(prepared.type).toBe("image/jpeg")
+            // The long edge is capped so iOS Safari can hold the canvas.
+            expect(drawImage).toHaveBeenCalledWith(
+                expect.anything(),
+                0,
+                0,
+                4096,
+                3072,
+            )
+            expect(close).toHaveBeenCalled()
+
+            // A real JPEG, such as a camera shot, is not re-encoded.
+            bitmapMock.mockClear()
+            const jpeg = withHead(
+                new File(["jpeg"], "shot.jpg", { type: "image/jpeg" }),
+                [0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0],
+            )
+            expect(await uploadReadyPhotoFile(jpeg)).toBe(jpeg)
+            expect(bitmapMock).not.toHaveBeenCalled()
+
+            // A photo the browser cannot decode is left for the backend.
+            bitmapMock.mockRejectedValueOnce(new Error("undecodable"))
+            const other = withHead(
+                new File(["heic"], "IMG_0009.HEIC", { type: "image/heic" }),
+                [0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70],
+            )
+            expect(await uploadReadyPhotoFile(other)).toBe(other)
+        } finally {
+            getContext.mockRestore()
+            toBlob.mockRestore()
+            vi.unstubAllGlobals()
+        }
     })
 
     test("shows the extraction error on the Product whose photos failed", async () => {

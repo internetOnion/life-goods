@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import logging
 import math
 import secrets
 from dataclasses import dataclass
@@ -16,11 +17,20 @@ from lifegoods.photo_comparison.contracts import ImageEvidence
 # transcoded to JPEG before anything leaves this process.
 register_heif_opener()
 
+logger = logging.getLogger(__name__)
+
 MAX_PHOTO_BYTES = 10 * 1024 * 1024
 MAX_UPLOAD_BYTES = 32 * 1024 * 1024
 MAX_IMAGE_PIXELS = 25_000_000
 # Pillow format name -> MIME type of the *prepared* output. HEIF input is re-encoded as JPEG.
-SUPPORTED_IMAGE_FORMATS = {"JPEG": "image/jpeg", "PNG": "image/png", "HEIF": "image/jpeg"}
+# MPO is a JPEG with extra images appended (iOS adds an HDR gain map when it hands a library
+# HEIC over as JPEG); only its primary image is kept.
+SUPPORTED_IMAGE_FORMATS = {
+    "JPEG": "image/jpeg",
+    "MPO": "image/jpeg",
+    "PNG": "image/png",
+    "HEIF": "image/jpeg",
+}
 ACCEPTED_DECLARED_CONTENT_TYPES = frozenset(
     {
         "image/jpeg",
@@ -79,6 +89,25 @@ def _fit_within_pixel_bound(image: Image.Image) -> Image.Image:
     return image
 
 
+def _container_brand(data: bytes) -> str:
+    """ISO-BMFF major brand (e.g. ``heic``, ``mif1``) when present; format metadata only."""
+    if len(data) >= 12 and data[4:8] == b"ftyp":
+        return data[8:12].decode("ascii", errors="replace")
+    return data[:4].hex()
+
+
+def _log_rejection(data: bytes, declared: str, detected: str, reason: str) -> None:
+    # Format metadata only: never image content, Barcodes, or Shopper identifiers.
+    logger.warning(
+        "photo rejected: reason=%s declared=%r detected=%r brand=%r bytes=%d",
+        reason,
+        declared,
+        detected,
+        _container_brand(data),
+        len(data),
+    )
+
+
 def prepare_image(data: bytes, *, declared_content_type: str | None = None) -> PreparedImage:
     if len(data) > MAX_PHOTO_BYTES:
         raise ImageValidationError("Each photo must be 10 MiB or smaller.", size_limit=True)
@@ -89,6 +118,7 @@ def prepare_image(data: bytes, *, declared_content_type: str | None = None) -> P
     if declared not in UNKNOWN_DECLARED_CONTENT_TYPES and declared not in (
         ACCEPTED_DECLARED_CONTENT_TYPES
     ):
+        _log_rejection(data, declared, "", "declared_type")
         raise ImageValidationError(UNSUPPORTED_FORMAT_MESSAGE, unsupported_format=True)
 
     try:
@@ -96,6 +126,7 @@ def prepare_image(data: bytes, *, declared_content_type: str | None = None) -> P
             image_format = (opened.format or "").upper()
             mime_type = SUPPORTED_IMAGE_FORMATS.get(image_format)
             if mime_type is None:
+                _log_rejection(data, declared, image_format, "detected_format")
                 raise ImageValidationError(UNSUPPORTED_FORMAT_MESSAGE, unsupported_format=True)
             width, height = opened.size
             if width <= 0 or height <= 0:
@@ -123,6 +154,7 @@ def prepare_image(data: bytes, *, declared_content_type: str | None = None) -> P
     except ImageValidationError:
         raise
     except (UnidentifiedImageError, OSError, ValueError) as error:
+        _log_rejection(data, declared, "", f"decode_failed:{type(error).__name__}")
         raise ImageValidationError(
             "The submitted file is not a readable JPEG, PNG or HEIC photo.",
             unsupported_format=True,
