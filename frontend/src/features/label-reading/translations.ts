@@ -8,18 +8,35 @@ type TranslationValues = Record<string, string | number>
 const en = {
     captureIntroTitle: "Photograph the package",
     captureIntroBody:
-        "Take up to three photos. The front shows the Product name; the back usually has the ingredients, allergen statement, nutrition table, and Barcode. Skip any step that does not apply.",
+        "Three photos, about a minute. The camera walks you through each side of the package.",
+    introPathLabel: "Photo path",
+    introStepFront: "The Product name and brand.",
+    introStepBack:
+        "Usually the ingredients, allergen statement, nutrition table, and Barcode.",
+    introStepSide: "Only if more ingredients or nutrition are printed there.",
+    introStepReadTitle: "Read the label",
+    introStepReadBody: "Check your photos, then read them together.",
+    startPhotos: "Start photos",
+    choosePhotosFromLibrary: "Choose photos from library",
+    reviewTitle: "Your label photos",
+    reviewBody:
+        "Check that the text in each photo is sharp, then read the label.",
     captureStepsLabel: "Label photos",
     stepFrontTitle: "Front of package",
+    stepFrontShort: "Front",
     stepFrontTip: "Fit the Product name and brand inside the frame.",
     stepBackTitle: "Back of package",
+    stepBackShort: "Back",
     stepBackTip:
         "Include the ingredients and nutrition table. Tilt the package away from glare.",
     stepSideTitle: "Side panel",
+    stepSideShort: "Side",
     stepSideTip:
         "Only if more ingredients or nutrition are printed on the side.",
     stepOptional: "Optional",
-    stepNotTaken: "Not photographed",
+    upNext: "Up next",
+    continuePath: "Continue with camera",
+    addSidePanel: "Add side panel",
     stepPhotoAlt: "{{step}} photo",
     stepPhotoUnsupportedPreview: "Preview not available in this browser",
     takeStepPhoto: "Take photo",
@@ -29,6 +46,7 @@ const en = {
     guidedStepProgress: "Step {{current}} of {{total}}",
     guidedCaptureTitle: "{{step}}",
     skipStep: "Skip",
+    libraryShort: "Library",
     doneCapturing: "Done",
     qualityDark:
         "Looks dark. Retake in brighter light, or use it if the text is readable.",
@@ -36,7 +54,6 @@ const en = {
         "Looks blurry. Hold steady and retake, or use it if the text is readable.",
     qualityGlare:
         "Glare may hide some text. Tilt the package and retake, or use it if the text is readable.",
-    photosNeeded: "Add at least one photo to read the label.",
     offerTitle: "This Barcode has a Product page",
     offerBody:
         "Barcode {{barcode}} in your photo has a Source Record in the Dataset Snapshot. Its Product page shows attributed Open Food Facts information instead of a reading of your photos.",
@@ -85,18 +102,35 @@ const en = {
 const km: Record<keyof typeof en, string> = {
     captureIntroTitle: "ថតកញ្ចប់",
     captureIntroBody:
-        "ថតរូបបានរហូតដល់បីសន្លឹក។ ផ្នែកខាងមុខបង្ហាញឈ្មោះផលិតផល ហើយផ្នែកខាងក្រោយជាធម្មតាមានគ្រឿងផ្សំ សេចក្តីថ្លែងអំពីអាឡែហ្ស៊ី តារាងអាហារូបត្ថម្ភ និងបាកូដ។ រំលងជំហានណាដែលមិនពាក់ព័ន្ធ។",
+        "រូបថតបីសន្លឹក ប្រហែលមួយនាទី។ កាមេរ៉ានឹងណែនាំអ្នកម្ដងមួយជំហាន សម្រាប់ផ្នែកនីមួយៗនៃកញ្ចប់។",
+    introPathLabel: "ជំហានថតរូប",
+    introStepFront: "ឈ្មោះផលិតផល និងម៉ាក។",
+    introStepBack:
+        "ជាធម្មតាមានគ្រឿងផ្សំ សេចក្តីថ្លែងអំពីអាឡែហ្ស៊ី តារាងអាហារូបត្ថម្ភ និងបាកូដ។",
+    introStepSide:
+        "ថតតែនៅពេលមានគ្រឿងផ្សំ ឬអាហារូបត្ថម្ភបន្ថែមបោះពុម្ពនៅទីនោះប៉ុណ្ណោះ។",
+    introStepReadTitle: "អានស្លាក",
+    introStepReadBody: "ពិនិត្យរូបថតរបស់អ្នក រួចអានវាទាំងអស់ជាមួយគ្នា។",
+    startPhotos: "ចាប់ផ្ដើមថតរូប",
+    choosePhotosFromLibrary: "ជ្រើសរូបថតពីឧបករណ៍",
+    reviewTitle: "រូបថតស្លាករបស់អ្នក",
+    reviewBody: "ពិនិត្យថាអក្សរក្នុងរូបថតនីមួយៗច្បាស់ រួចអានស្លាក។",
     captureStepsLabel: "រូបថតស្លាក",
     stepFrontTitle: "ផ្នែកខាងមុខកញ្ចប់",
+    stepFrontShort: "ខាងមុខ",
     stepFrontTip: "ដាក់ឈ្មោះផលិតផល និងម៉ាកឱ្យនៅក្នុងស៊ុម។",
     stepBackTitle: "ផ្នែកខាងក្រោយកញ្ចប់",
+    stepBackShort: "ខាងក្រោយ",
     stepBackTip:
         "ថតឱ្យឃើញគ្រឿងផ្សំ និងតារាងអាហារូបត្ថម្ភ។ ផ្អៀងកញ្ចប់ដើម្បីជៀសវាងពន្លឺចាំង។",
     stepSideTitle: "ផ្នែកចំហៀង",
+    stepSideShort: "ចំហៀង",
     stepSideTip:
         "ថតតែនៅពេលមានគ្រឿងផ្សំ ឬអាហារូបត្ថម្ភបន្ថែមបោះពុម្ពនៅផ្នែកចំហៀងប៉ុណ្ណោះ។",
     stepOptional: "ស្រេចចិត្ត",
-    stepNotTaken: "មិនទាន់ថត",
+    upNext: "បន្ទាប់",
+    continuePath: "បន្តថតជាមួយកាមេរ៉ា",
+    addSidePanel: "បន្ថែមផ្នែកចំហៀង",
     stepPhotoAlt: "រូបថត{{step}}",
     stepPhotoUnsupportedPreview: "កម្មវិធីរុករកនេះមិនអាចបង្ហាញរូបមើលជាមុនបានទេ",
     takeStepPhoto: "ថតរូប",
@@ -106,6 +140,7 @@ const km: Record<keyof typeof en, string> = {
     guidedStepProgress: "ជំហាន {{current}} នៃ {{total}}",
     guidedCaptureTitle: "{{step}}",
     skipStep: "រំលង",
+    libraryShort: "រូបភាព",
     doneCapturing: "រួចរាល់",
     qualityDark:
         "មើលទៅងងឹត។ ថតម្ដងទៀតនៅកន្លែងភ្លឺជាងនេះ ឬប្រើវាប្រសិនបើអាចអានអក្សរបាន។",
@@ -113,7 +148,6 @@ const km: Record<keyof typeof en, string> = {
         "មើលទៅព្រិល។ កាន់ឱ្យនឹង ហើយថតម្ដងទៀត ឬប្រើវាប្រសិនបើអាចអានអក្សរបាន។",
     qualityGlare:
         "ពន្លឺចាំងអាចបិទបាំងអក្សរខ្លះ។ ផ្អៀងកញ្ចប់ ហើយថតម្ដងទៀត ឬប្រើវាប្រសិនបើអាចអានអក្សរបាន។",
-    photosNeeded: "បន្ថែមរូបថតយ៉ាងហោចណាស់មួយ ដើម្បីអានស្លាក។",
     offerTitle: "បាកូដនេះមានទំព័រផលិតផល",
     offerBody:
         "បាកូដ {{barcode}} ក្នុងរូបថតរបស់អ្នកមានកំណត់ត្រាប្រភពក្នុង Dataset Snapshot។ ទំព័រផលិតផលរបស់វាបង្ហាញព័ត៌មាន Open Food Facts ដែលមានការបញ្ជាក់ប្រភព ជំនួសឱ្យការអានរូបថតរបស់អ្នក។",

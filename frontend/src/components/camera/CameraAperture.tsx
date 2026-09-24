@@ -13,6 +13,8 @@ export interface CameraApertureProps {
     frameClassName?: string
     /** The sweeping barcode laser; off for non-barcode framing such as label photos. */
     showScanLine?: boolean
+    /** Drawn inside the frame, e.g. a faint guide to what the frame should hold. */
+    frameContent?: ReactNode
 }
 
 export function CameraAperture({
@@ -23,6 +25,7 @@ export function CameraAperture({
     className,
     frameClassName,
     showScanLine = true,
+    frameContent,
 }: CameraApertureProps) {
     return (
         <div
@@ -65,6 +68,7 @@ export function CameraAperture({
                     frameClassName,
                 )}
             >
+                {frameContent}
                 <CameraCorner
                     className="top-0 left-0"
                     isAcquired={isAcquired}

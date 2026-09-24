@@ -1,13 +1,26 @@
+import type { PhotoQualityIssue } from "@/features/photo-evidence/imageQuality"
+import type { ProductPhoto } from "@/features/photo-evidence/types"
+
 import type { LabelReadingTranslationKey } from "./translations"
 
 /** Capture roles match the backend `photo_roles` values (SPEC section 29.3). */
 export type CaptureStepId = "front" | "back" | "side"
 export type CapturePhotoRole = "package_front" | "package_back" | "package_side"
 
+/** A photo placed on one step of the capture path. */
+export interface StepPhoto extends ProductPhoto {
+    stepId: CaptureStepId
+    qualityIssues: PhotoQualityIssue[]
+}
+
+export type StepPhotos = Partial<Record<CaptureStepId, StepPhoto>>
+
 export interface CaptureStep {
     id: CaptureStepId
     role: CapturePhotoRole
     titleKey: LabelReadingTranslationKey
+    /** Short name on the path rail, where space is tight. */
+    shortKey: LabelReadingTranslationKey
     tipKey: LabelReadingTranslationKey
     optional: boolean
     /** Frame shape inside the camera aperture. */
@@ -19,6 +32,7 @@ export const CAPTURE_STEPS: readonly CaptureStep[] = [
         id: "front",
         role: "package_front",
         titleKey: "stepFrontTitle",
+        shortKey: "stepFrontShort",
         tipKey: "stepFrontTip",
         optional: false,
         frameClassName: "aspect-[3/4] max-w-[15rem]",
@@ -27,6 +41,7 @@ export const CAPTURE_STEPS: readonly CaptureStep[] = [
         id: "back",
         role: "package_back",
         titleKey: "stepBackTitle",
+        shortKey: "stepBackShort",
         tipKey: "stepBackTip",
         optional: false,
         frameClassName: "aspect-[3/4] max-w-[15rem]",
@@ -35,6 +50,7 @@ export const CAPTURE_STEPS: readonly CaptureStep[] = [
         id: "side",
         role: "package_side",
         titleKey: "stepSideTitle",
+        shortKey: "stepSideShort",
         tipKey: "stepSideTip",
         optional: true,
         frameClassName: "aspect-[9/16] max-w-[11rem]",
@@ -45,6 +61,16 @@ export function captureStep(id: CaptureStepId): CaptureStep {
     const step = CAPTURE_STEPS.find((candidate) => candidate.id === id)
     if (!step) throw new RangeError(`Unknown capture step: ${id}`)
     return step
+}
+
+/** The first required step without a photo, or null when every one is taken. */
+export function nextRequiredStep(
+    taken: ReadonlySet<CaptureStepId>,
+): CaptureStepId | null {
+    return (
+        CAPTURE_STEPS.find((step) => !step.optional && !taken.has(step.id))
+            ?.id ?? null
+    )
 }
 
 /**
@@ -83,4 +109,14 @@ export function neutralPhotoFile(file: File, index: number): File {
         type: file.type,
         lastModified: 0,
     })
+}
+
+/** Advisory copy for each on-device photo quality hint (never a block). */
+export const QUALITY_KEYS: Record<
+    PhotoQualityIssue,
+    LabelReadingTranslationKey
+> = {
+    dark: "qualityDark",
+    blurry: "qualityBlurry",
+    glare: "qualityGlare",
 }
