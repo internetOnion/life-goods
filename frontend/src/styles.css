@@ -318,6 +318,9 @@
     --radius-source-sheet: 1rem;
     --radius-control: 0.75rem;
     --animate-scan-laser: scan-laser 2.2s ease-in-out infinite;
+    --animate-step-enter: step-enter 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    --animate-photo-settle: photo-settle 420ms cubic-bezier(0.16, 1, 0.3, 1)
+        both;
     --animate-splash-mark-entrance: splash-mark-entrance 2.2s
         cubic-bezier(0.16, 1, 0.3, 1) both;
     --animate-splash-wordmark-entrance: splash-wordmark-entrance 2.2s
@@ -367,6 +370,22 @@
     font-size: var(--text-caption);
     font-weight: 600;
     line-height: 1.5;
+}
+
+/* Label capture path: a new step's guidance eases in; a taken photo settles
+   into its place on the rail. Both start visible and are motion-safe only. */
+@keyframes step-enter {
+    from {
+        opacity: 0.35;
+        transform: translateY(6px);
+    }
+}
+
+@keyframes photo-settle {
+    from {
+        opacity: 0.5;
+        transform: translateY(18px) scale(1.5);
+    }
 }
 
 @keyframes splash-mark-entrance {

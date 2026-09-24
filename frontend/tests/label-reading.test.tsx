@@ -531,10 +531,11 @@ describe("Read This Label as a standalone mode", () => {
             screen.queryByRole("region", { name: "Label Reading" }),
         ).not.toBeInTheDocument()
         expect(
-            within(stepCard("front")).queryByRole("button", {
-                name: "Retake",
-            }),
+            screen.queryByTestId("capture-step-front"),
         ).not.toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: "Start photos" }),
+        ).toBeVisible()
         expect(window.sessionStorage.length).toBe(0)
         expect(
             Object.keys(window.localStorage).filter(
@@ -547,8 +548,31 @@ describe("Read This Label as a standalone mode", () => {
 describe("Guided label capture (SPEC §29.1-29.2)", () => {
     const MATCHED_BARCODE = "8850999320014"
 
-    test("offers front, back, and an optional side panel, in that order", () => {
+    test("the intro lays out the path before any camera opens", () => {
         renderJourney("/labels/read")
+
+        const path = within(screen.getByRole("list", { name: "Photo path" }))
+        expect(
+            path.getAllByRole("listitem").map((step) => step.textContent),
+        ).toEqual([
+            expect.stringMatching(/^1Front of package/),
+            expect.stringMatching(/^2Back of package/),
+            expect.stringMatching(/^3Side panelOptional/),
+            expect.stringMatching(/^Read the label/),
+        ])
+        expect(screen.getByTestId("provider-disclosure")).toBeVisible()
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: "Start photos" }),
+        ).toBeEnabled()
+        expect(
+            screen.queryByRole("button", { name: "Read this label" }),
+        ).not.toBeInTheDocument()
+    })
+
+    test("after photos, the review shows the path with the side panel optional", () => {
+        renderJourney("/labels/read")
+        addPhoto()
 
         const steps = within(
             screen.getByRole("list", { name: "Label photos" }),
@@ -559,10 +583,38 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
             "capture-step-side",
         ])
         expect(within(stepCard("side")).getByText("Optional")).toBeVisible()
+        expect(within(stepCard("back")).getByText("Up next")).toBeVisible()
         expect(
-            within(stepCard("front")).queryByText("Optional"),
+            within(stepCard("side")).getByRole("button", {
+                name: "Add side panel",
+            }),
+        ).toBeVisible()
+        expect(screen.getByTestId("provider-disclosure")).toBeVisible()
+    })
+
+    test("choosing photos from the intro fills the steps in order", async () => {
+        const user = userEvent.setup()
+        renderJourney("/labels/read")
+        const input = document.getElementById(
+            "label-reading-upload",
+        ) as HTMLInputElement
+        const click = vi.spyOn(input, "click")
+
+        await user.click(
+            screen.getByRole("button", { name: "Choose photos from library" }),
+        )
+        expect(click).toHaveBeenCalled()
+        addPhotos([photoFile("a.jpg"), photoFile("b.jpg")])
+
+        expect(
+            within(stepCard("front")).getByRole("button", { name: "Retake" }),
+        ).toBeVisible()
+        expect(
+            within(stepCard("back")).getByRole("button", { name: "Retake" }),
+        ).toBeVisible()
+        expect(
+            within(stepCard("side")).queryByRole("button", { name: "Retake" }),
         ).not.toBeInTheDocument()
-        expect(screen.getByText(/Add at least one photo/)).toBeVisible()
     })
 
     test("a multi-photo library pick fills the steps and reports what did not fit", () => {
@@ -585,13 +637,16 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
             .mockResolvedValue(labelReadingFixture())
         renderJourney("/labels/read", { readLabel })
 
-        // Pick the back first, then the front: the upload still follows step order.
+        // Fill both, then replace the front last: the upload still follows step order.
+        addPhotos([
+            photoFile("first.jpg"),
+            photoFile(`${MATCHED_BARCODE}-back.png`),
+        ])
         await user.click(
-            within(stepCard("back")).getByRole("button", {
-                name: "Choose from library",
+            screen.getByRole("button", {
+                name: "Remove Front of package photo",
             }),
         )
-        addPhotos([photoFile(`${MATCHED_BARCODE}-back.png`)])
         await user.click(
             within(stepCard("front")).getByRole("button", {
                 name: "Choose from library",
@@ -610,25 +665,36 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
         expect(roles).toEqual(["package_front", "package_back"])
     })
 
-    test("removing a step's photo frees that step", async () => {
+    test("removing a step's photo frees that step, and the last one returns to the intro", async () => {
         const user = userEvent.setup()
         renderJourney("/labels/read")
-        addPhoto()
+        addPhotos([photoFile("a.jpg"), photoFile("b.jpg")])
 
         await user.click(
             screen.getByRole("button", {
                 name: "Remove Front of package photo",
             }),
         )
-
         expect(
             within(stepCard("front")).getByRole("button", {
-                name: "Take photo",
+                name: "Continue with camera",
             }),
         ).toBeVisible()
         expect(
             screen.getByRole("button", { name: "Read this label" }),
-        ).toBeDisabled()
+        ).toBeEnabled()
+
+        await user.click(
+            screen.getByRole("button", {
+                name: "Remove Back of package photo",
+            }),
+        )
+        expect(
+            screen.getByRole("button", { name: "Start photos" }),
+        ).toBeVisible()
+        expect(
+            screen.queryByTestId("capture-step-front"),
+        ).not.toBeInTheDocument()
     })
 
     test("quality hints are advisory and never block reading", async () => {
@@ -756,8 +822,7 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
         ).not.toBeInTheDocument()
     })
 
-    test("the guided camera walks the steps with one stream and stops it on close", async () => {
-        const user = userEvent.setup()
+    function stubCamera() {
         const track = { stop: vi.fn() }
         const stream = { getTracks: () => [track] } as unknown as MediaStream
         const getUserMedia = vi.fn().mockResolvedValue(stream)
@@ -777,16 +842,11 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
                 callback(new Blob(["photo"], { type: "image/jpeg" }))
             },
         )
-        renderJourney("/labels/read")
+        return { track, stream, getUserMedia }
+    }
 
-        await user.click(
-            within(stepCard("front")).getByRole("button", {
-                name: "Take photo",
-            }),
-        )
-        const dialog = await screen.findByRole("dialog")
-        expect(within(dialog).getByText("Step 1 of 3")).toBeVisible()
-
+    /** Waits for the live stream, gives it dimensions, and returns the shutter. */
+    async function readyShutter(dialog: HTMLElement, stream: MediaStream) {
         const video = within(dialog).getByLabelText("Live camera preview")
         await waitFor(() => expect(video).toHaveProperty("srcObject", stream))
         Object.defineProperty(video, "videoWidth", {
@@ -802,7 +862,32 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
             name: "Take photo",
         })
         await waitFor(() => expect(shutter).toBeEnabled())
-        await user.click(shutter)
+        return shutter
+    }
+
+    function currentRailStep(dialog: HTMLElement) {
+        return within(
+            within(dialog).getByRole("list", { name: "Label photos" }),
+        )
+            .getAllByRole("button")
+            .find((button) => button.getAttribute("aria-current") === "step")
+            ?.textContent
+    }
+
+    test("Start walks the camera path with one stream and lands on the review", async () => {
+        const user = userEvent.setup()
+        const { track, stream, getUserMedia } = stubCamera()
+        renderJourney("/labels/read")
+
+        await user.click(screen.getByRole("button", { name: "Start photos" }))
+        const dialog = await screen.findByRole("dialog")
+        expect(within(dialog).getByText("Step 1 of 3")).toBeVisible()
+        expect(
+            within(dialog).getByRole("heading", { name: "Front of package" }),
+        ).toBeVisible()
+        expect(currentRailStep(dialog)).toBe("1Front")
+
+        await user.click(await readyShutter(dialog, stream))
         await user.click(
             await within(dialog).findByRole("button", {
                 name: "Use this photo",
@@ -811,6 +896,7 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
 
         // Advanced to the back without renegotiating the camera.
         expect(await within(dialog).findByText("Step 2 of 3")).toBeVisible()
+        expect(currentRailStep(dialog)).toBe("2Back")
         expect(getUserMedia).toHaveBeenCalledTimes(1)
         expect(track.stop).not.toHaveBeenCalled()
 
@@ -825,10 +911,101 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
         expect(
             within(stepCard("front")).getByRole("button", { name: "Retake" }),
         ).toBeVisible()
-        expect(
-            within(stepCard("back")).getByRole("button", {
-                name: "Take photo",
+        expect(within(stepCard("back")).getByText("Up next")).toBeVisible()
+        vi.unstubAllGlobals()
+    })
+
+    test("closing mid-path keeps the photos, and Continue resumes at the next step", async () => {
+        const user = userEvent.setup()
+        const { stream } = stubCamera()
+        renderJourney("/labels/read")
+
+        await user.click(screen.getByRole("button", { name: "Start photos" }))
+        let dialog = await screen.findByRole("dialog")
+        await user.click(await readyShutter(dialog, stream))
+        await user.click(
+            await within(dialog).findByRole("button", {
+                name: "Use this photo",
             }),
+        )
+        await within(dialog).findByText("Step 2 of 3")
+        await user.click(
+            within(dialog).getByRole("button", { name: "Close camera" }),
+        )
+        await waitFor(() =>
+            expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+        )
+
+        await user.click(
+            within(stepCard("back")).getByRole("button", {
+                name: "Continue with camera",
+            }),
+        )
+        dialog = await screen.findByRole("dialog")
+        expect(within(dialog).getByText("Step 2 of 3")).toBeVisible()
+
+        // A finished step on the rail can be revisited to retake it.
+        await user.click(
+            within(
+                within(dialog).getByRole("list", { name: "Label photos" }),
+            ).getByRole("button", { name: /Front/ }),
+        )
+        expect(within(dialog).getByText("Step 1 of 3")).toBeVisible()
+        vi.unstubAllGlobals()
+    })
+
+    test("quality hints show on the preview before the photo is used, checked once", async () => {
+        const user = userEvent.setup()
+        const { stream } = stubCamera()
+        const checkQuality = vi.fn<CheckQuality>().mockResolvedValue({
+            metrics: { meanLuminance: 20, sharpness: 40, clippedShare: 0 },
+            issues: ["dark"],
+        })
+        renderJourney("/labels/read", { checkQuality })
+
+        await user.click(screen.getByRole("button", { name: "Start photos" }))
+        const dialog = await screen.findByRole("dialog")
+        await user.click(await readyShutter(dialog, stream))
+
+        expect(await within(dialog).findByText(/Looks dark/)).toBeVisible()
+        const use = within(dialog).getByRole("button", {
+            name: "Use this photo",
+        })
+        expect(use).toBeEnabled()
+        await user.click(use)
+        await user.click(
+            within(dialog).getByRole("button", { name: "Close camera" }),
+        )
+
+        expect(
+            await within(stepCard("front")).findByText(/Looks dark/),
+        ).toBeVisible()
+        expect(checkQuality).toHaveBeenCalledTimes(1)
+        vi.unstubAllGlobals()
+    })
+
+    test("without a camera, the current step still offers the library", async () => {
+        const user = userEvent.setup()
+        vi.stubGlobal("navigator", {})
+        renderJourney("/labels/read")
+
+        await user.click(screen.getByRole("button", { name: "Start photos" }))
+        const dialog = await screen.findByRole("dialog")
+        expect(
+            within(dialog).getByRole("heading", { name: "Front of package" }),
+        ).toBeVisible()
+        expect(
+            within(dialog).getByRole("button", { name: "Use device camera" }),
+        ).toBeVisible()
+        await user.click(
+            await within(dialog).findByRole("button", {
+                name: "Choose from library",
+            }),
+        )
+        addPhotos([photoFile("front.jpg")])
+
+        expect(
+            within(stepCard("front")).getByRole("button", { name: "Retake" }),
         ).toBeVisible()
         vi.unstubAllGlobals()
     })
@@ -1163,10 +1340,13 @@ describe("Nutrition Labels section", () => {
         const dock = screen.getByRole("group", {
             name: "Photo capture navigation",
         })
+        // Before any photo, the dock starts the camera path; Start over waits.
         expect(
-            within(dock).getByRole("button", { name: "Read this label" }),
-        ).toBeDisabled()
-        expect(screen.getByRole("button", { name: "Start over" })).toBeVisible()
+            within(dock).getByRole("button", { name: "Start photos" }),
+        ).toBeEnabled()
+        expect(
+            screen.queryByRole("button", { name: "Start over" }),
+        ).not.toBeInTheDocument()
 
         await user.click(
             within(dock).getByRole("button", { name: "Nutrition Labels" }),

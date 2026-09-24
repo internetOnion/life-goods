@@ -1212,7 +1212,10 @@ Barcode miss). It reads the whole printed label, not only nutrition values.
 
 - The flow opens with a short intro that always shows the provider statement,
   including when the Shopper arrives from an Unmatched Barcode rather than the hub.
-- Capture proceeds in guided steps, each with a framing overlay and one tip:
+- Capture is camera-first: one Start action opens the in-app camera, which walks
+  the Shopper through the steps in order behind a progress rail, each step with a
+  framing overlay and one tip. The Shopper may choose several library photos from
+  the intro instead; they fill the steps in order.
 
   | Step | Role | Required |
   |---|---|---|
@@ -1221,7 +1224,12 @@ Barcode miss). It reads the whole printed label, not only nutrition values.
   | Side panel | `package_side` | optional |
 
   At least one photo is required and at most three are sent. Each step offers the
-  in-app camera, the photo library, the device camera, and Skip.
+  in-app camera, the photo library, the device camera, and Skip. Each shot is
+  previewed with its quality hints before it joins the path, and the rail lets the
+  Shopper return to any earlier step.
+- Closing the camera, or finishing the last step, leads to a review of the path:
+  each step's photo with retake and remove, the next required step marked as up
+  next, and the read action. Closing mid-path keeps the photos already taken.
 - One camera stream stays open across steps and is released on close, reset, and
   unmount.
 - Blur, darkness, and glare are checked on the device against a downscaled copy.

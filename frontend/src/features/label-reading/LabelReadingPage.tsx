@@ -1,7 +1,8 @@
 import {
     ArrowCounterClockwise,
     ArrowLeft,
-    Receipt,
+    BookOpenText,
+    Camera,
     WarningCircle,
 } from "@phosphor-icons/react"
 import { useQueryClient } from "@tanstack/react-query"
@@ -22,7 +23,10 @@ import {
     isSupportedImageFile,
     verifiedPhotoFile,
 } from "@/features/photo-evidence/helpers"
-import { checkPhotoQuality } from "@/features/photo-evidence/imageQuality"
+import {
+    checkPhotoQuality,
+    type PhotoQualityIssue,
+} from "@/features/photo-evidence/imageQuality"
 import { PhotoInspectionModal } from "@/features/photo-evidence/PhotoInspectionModal"
 import { ProviderDisclosure } from "@/features/photo-evidence/ProviderDisclosure"
 import { useCompareTranslation } from "@/features/photo-evidence/translations"
@@ -37,13 +41,16 @@ import {
     renderKhmerText,
     type LabelReading,
 } from "./api"
-import { CaptureStepCard, type StepPhoto } from "./CaptureStepCard"
+import { CaptureIntro } from "./CaptureIntro"
+import { CapturePathReview } from "./CapturePathReview"
 import {
     CAPTURE_STEPS,
     captureStep,
     nextEmptyStep,
     neutralPhotoFile,
     type CaptureStepId,
+    type StepPhoto,
+    type StepPhotos,
 } from "./captureSteps"
 import { GuidedCaptureSheet } from "./GuidedCaptureSheet"
 import { ProductPageOffer } from "./ProductPageOffer"
@@ -52,8 +59,6 @@ import {
     type KhmerState,
 } from "./result/LabelReadingResult"
 import { useLabelReadingTranslation } from "./translations"
-
-type StepPhotos = Partial<Record<CaptureStepId, StepPhoto>>
 
 interface ReadingState {
     reading: LabelReading | null
@@ -317,8 +322,11 @@ export function LabelReadingPage({
         setOffer((current) => current ?? { barcode, photoId })
     }
 
-    /** Verify, assess, and decode one newly placed photo, all on the device. */
-    const inspectPhoto = async (photo: StepPhoto) => {
+    /**
+     * Verify, assess, and decode one newly placed photo, all on the device.
+     * A camera shot already assessed in the capture sheet is not assessed again.
+     */
+    const inspectPhoto = async (photo: StepPhoto, assessed: boolean) => {
         const controller = new AbortController()
         photoTasksRef.current.set(photo.localId, controller)
         const verified = await verifiedPhotoFile(photo.file)
@@ -336,13 +344,15 @@ export function LabelReadingPage({
             updatePhoto(photo.localId, (p) => ({ ...p, file: verified }))
         }
 
-        const quality = await checkQuality(verified)
-        if (controller.signal.aborted) return
-        if (quality?.issues.length) {
-            updatePhoto(photo.localId, (p) => ({
-                ...p,
-                qualityIssues: quality.issues,
-            }))
+        if (!assessed) {
+            const quality = await checkQuality(verified)
+            if (controller.signal.aborted) return
+            if (quality?.issues.length) {
+                updatePhoto(photo.localId, (p) => ({
+                    ...p,
+                    qualityIssues: quality.issues,
+                }))
+            }
         }
 
         const barcode = await decodeBarcode(verified, {
@@ -353,7 +363,11 @@ export function LabelReadingPage({
         }
     }
 
-    const createPhoto = (file: File, stepId: CaptureStepId): StepPhoto => {
+    const createPhoto = (
+        file: File,
+        stepId: CaptureStepId,
+        qualityIssues: PhotoQualityIssue[] = [],
+    ): StepPhoto => {
         const url = URL.createObjectURL(file)
         activeUrlsRef.current.add(url)
         return {
@@ -361,15 +375,20 @@ export function LabelReadingPage({
             url,
             localId: crypto.randomUUID(),
             stepId,
-            qualityIssues: [],
+            qualityIssues,
         }
     }
 
     /**
      * Place photos starting at `startStep` (replacing it), then into the next
      * empty steps. Files that do not fit are reported, never silently dropped.
+     * `assessedIssues` carries the capture sheet's quality check for one shot.
      */
-    const handleAddFiles = (files: File[], startStep?: CaptureStepId) => {
+    const handleAddFiles = (
+        files: File[],
+        startStep?: CaptureStepId,
+        assessedIssues: PhotoQualityIssue[] | null = null,
+    ) => {
         cancelRead()
         const errors: string[] = []
         if (files.some((file) => !isSupportedImageFile(file))) {
@@ -401,7 +420,7 @@ export function LabelReadingPage({
             }
             const previous = next[target]
             if (previous) releasePhoto(previous)
-            const photo = createPhoto(file, target)
+            const photo = createPhoto(file, target, assessedIssues ?? [])
             next[target] = photo
             placed.push(photo)
             taken.add(target)
@@ -416,7 +435,9 @@ export function LabelReadingPage({
             return
         }
         commitPhotos(next, errors.join(" "))
-        for (const photo of placed) void inspectPhoto(photo)
+        for (const photo of placed) {
+            void inspectPhoto(photo, assessedIssues !== null)
+        }
     }
 
     const handleRemovePhoto = (stepId: CaptureStepId) => {
@@ -457,7 +478,7 @@ export function LabelReadingPage({
 
     const openFileInput = (
         input: HTMLInputElement | null,
-        stepId: CaptureStepId,
+        stepId: CaptureStepId | null,
     ) => {
         targetStepRef.current = stepId
         input?.click()
@@ -474,6 +495,13 @@ export function LabelReadingPage({
     const takenSteps = new Set(
         CAPTURE_STEPS.filter((step) => photos[step.id]).map((step) => step.id),
     )
+    const isIntro = sequence.length === 0 && !reading.reading
+
+    const openCamera = (stepId?: CaptureStepId) => {
+        setCaptureStepId(stepId ?? nextEmptyStep(takenSteps) ?? "front")
+        setIsCaptureOpen(true)
+    }
+
     const canRead =
         sequence.length > 0 &&
         !reading.loading &&
@@ -554,18 +582,20 @@ export function LabelReadingPage({
                             {tc("readModeDescription")}
                         </p>
                     </div>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={handleReset}
-                        disabled={reading.loading}
-                        aria-label={tc("resetReading")}
-                        title={tc("resetReading")}
-                        className="size-11 shrink-0 rounded-xl text-neutral-700 hover:text-neutral-900"
-                    >
-                        <ArrowCounterClockwise size={18} weight="bold" />
-                    </Button>
+                    {isIntro ? null : (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={handleReset}
+                            disabled={reading.loading}
+                            aria-label={tc("resetReading")}
+                            title={tc("resetReading")}
+                            className="size-11 shrink-0 rounded-xl text-neutral-700 hover:text-neutral-900"
+                        >
+                            <ArrowCounterClockwise size={18} weight="bold" />
+                        </Button>
+                    )}
                 </div>
 
                 {barcodeContext ? (
@@ -589,60 +619,41 @@ export function LabelReadingPage({
                     />
                 ) : null}
 
-                <section aria-labelledby="capture-intro-title" className="mt-5">
-                    <h2
-                        id="capture-intro-title"
-                        className="text-base font-extrabold text-neutral-950"
-                    >
-                        {t("captureIntroTitle")}
-                    </h2>
-                    <p className="mt-1 text-sm leading-relaxed text-neutral-600">
-                        {t("captureIntroBody")}
-                    </p>
-                    <ProviderDisclosure className="mt-3" />
+                {isIntro ? (
+                    <CaptureIntro
+                        onChooseFromLibrary={() =>
+                            openFileInput(uploadInputRef.current, null)
+                        }
+                    />
+                ) : (
+                    <>
+                        <CapturePathReview
+                            photos={photos}
+                            disabled={reading.loading}
+                            onOpenCamera={openCamera}
+                            onChooseFromLibrary={(stepId) =>
+                                openFileInput(uploadInputRef.current, stepId)
+                            }
+                            onRemove={handleRemovePhoto}
+                            onInspect={(stepId) =>
+                                setInspectionIndex(
+                                    sequence.findIndex(
+                                        (photo) => photo === photos[stepId],
+                                    ),
+                                )
+                            }
+                            onPreviewError={handlePreviewError}
+                        />
+                        <ProviderDisclosure className="mt-2" />
+                    </>
+                )}
 
-                    <ol
-                        aria-label={t("captureStepsLabel")}
-                        className="mt-4 space-y-2.5"
-                    >
-                        {CAPTURE_STEPS.map((step, index) => (
-                            <CaptureStepCard
-                                key={step.id}
-                                step={step}
-                                index={index}
-                                photo={photos[step.id]}
-                                disabled={reading.loading}
-                                onTakePhoto={() => {
-                                    setCaptureStepId(step.id)
-                                    setIsCaptureOpen(true)
-                                }}
-                                onChooseFromLibrary={() =>
-                                    openFileInput(
-                                        uploadInputRef.current,
-                                        step.id,
-                                    )
-                                }
-                                onRemove={() => handleRemovePhoto(step.id)}
-                                onInspect={() =>
-                                    setInspectionIndex(
-                                        sequence.findIndex(
-                                            (photo) =>
-                                                photo === photos[step.id],
-                                        ),
-                                    )
-                                }
-                                onPreviewError={() =>
-                                    handlePreviewError(step.id)
-                                }
-                            />
-                        ))}
-                    </ol>
-
+                <div className="mt-3">
                     {reading.error ? (
                         <Alert
                             variant="destructive"
                             role="alert"
-                            className="border-error-200 bg-error-50 text-error-900 mt-3"
+                            className="border-error-200 bg-error-50 text-error-900"
                         >
                             <WarningCircle
                                 size={20}
@@ -687,20 +698,12 @@ export function LabelReadingPage({
                     ) : (
                         <p
                             role="status"
-                            className={
-                                reading.loading
-                                    ? "text-primary-700 mt-3 text-xs font-medium"
-                                    : "mt-3 text-xs text-neutral-500"
-                            }
+                            className="text-primary-700 text-xs font-medium empty:hidden"
                         >
-                            {reading.loading
-                                ? t("readingProgress")
-                                : sequence.length === 0
-                                  ? t("photosNeeded")
-                                  : null}
+                            {reading.loading ? t("readingProgress") : null}
                         </p>
                     )}
-                </section>
+                </div>
 
                 <div
                     role="group"
@@ -719,22 +722,34 @@ export function LabelReadingPage({
                         <ArrowLeft size={17} weight="bold" />
                         <span>{tc("back")}</span>
                     </Button>
-                    <Button
-                        type="button"
-                        variant="default"
-                        disabled={!canRead}
-                        onClick={() => void handleRead()}
-                        className="shadow-action-lift bg-primary-600 hover:bg-primary-700 h-11 gap-1.5 rounded-full px-4 text-sm font-extrabold"
-                    >
-                        <span>
-                            {reading.loading
-                                ? tc("readingPhotos")
-                                : reading.reading
-                                  ? tc("readAgainAction")
-                                  : tc("readThisLabelAction")}
-                        </span>
-                        <Receipt size={17} weight="bold" />
-                    </Button>
+                    {isIntro ? (
+                        <Button
+                            type="button"
+                            variant="default"
+                            onClick={() => openCamera()}
+                            className="shadow-action-lift bg-primary-600 hover:bg-primary-700 h-11 gap-1.5 rounded-full px-5 text-sm font-extrabold"
+                        >
+                            <span>{t("startPhotos")}</span>
+                            <Camera size={17} weight="bold" />
+                        </Button>
+                    ) : (
+                        <Button
+                            type="button"
+                            variant="default"
+                            disabled={!canRead}
+                            onClick={() => void handleRead()}
+                            className="shadow-action-lift bg-primary-600 hover:bg-primary-700 h-11 gap-1.5 rounded-full px-4 text-sm font-extrabold"
+                        >
+                            <span>
+                                {reading.loading
+                                    ? tc("readingPhotos")
+                                    : reading.reading
+                                      ? tc("readAgainAction")
+                                      : tc("readThisLabelAction")}
+                            </span>
+                            <BookOpenText size={17} weight="bold" />
+                        </Button>
+                    )}
                 </div>
 
                 {reading.reading && !reading.loading ? (
@@ -792,9 +807,12 @@ export function LabelReadingPage({
             <GuidedCaptureSheet
                 isOpen={isCaptureOpen}
                 stepId={captureStepId}
-                takenSteps={takenSteps}
+                photos={photos}
                 onStepChange={setCaptureStepId}
-                onCapture={(stepId, file) => handleAddFiles([file], stepId)}
+                onCapture={(stepId, file, issues) =>
+                    handleAddFiles([file], stepId, issues)
+                }
+                assessPhoto={checkQuality}
                 onClose={() => setIsCaptureOpen(false)}
                 onUseDeviceCamera={(stepId) => {
                     setIsCaptureOpen(false)
