@@ -9,6 +9,10 @@ export interface CameraApertureProps {
     isAcquired?: boolean
     children?: ReactNode
     className?: string
+    /** Overrides the frame's shape, e.g. a portrait frame for a package label. */
+    frameClassName?: string
+    /** The sweeping barcode laser; off for non-barcode framing such as label photos. */
+    showScanLine?: boolean
 }
 
 export function CameraAperture({
@@ -17,6 +21,8 @@ export function CameraAperture({
     isAcquired = false,
     children,
     className,
+    frameClassName,
+    showScanLine = true,
 }: CameraApertureProps) {
     return (
         <div
@@ -56,6 +62,7 @@ export function CameraAperture({
                     isAcquired
                         ? "scale-[1.02] shadow-[0_0_0_9999px_rgba(0,0,0,0.55)] ring-[#82B96E]"
                         : "shadow-[0_0_0_9999px_rgba(0,0,0,0.48)] ring-white/30",
+                    frameClassName,
                 )}
             >
                 <CameraCorner
@@ -76,9 +83,9 @@ export function CameraAperture({
                 />
                 {isAcquired ? (
                     <div className="absolute inset-x-3 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-[#82B96E] shadow-[0_0_12px_rgba(130,185,110,0.9)] transition-all duration-150" />
-                ) : (
+                ) : showScanLine ? (
                     <div className="motion-safe:animate-scan-laser absolute inset-x-3 top-[10%] h-0.5 rounded-full bg-[#E19447] shadow-[0_0_10px_rgba(225,148,71,0.9)]" />
-                )}
+                ) : null}
                 <span
                     className={cn(
                         "absolute inset-x-4 bottom-3 text-center text-xs font-semibold drop-shadow-sm",
