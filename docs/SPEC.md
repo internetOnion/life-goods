@@ -1210,8 +1210,8 @@ Barcode miss). It reads the whole printed label, not only nutrition values.
 
 ### 29.1 Guided capture
 
-- The flow opens with a short intro that always shows the provider statement,
-  including when the Shopper arrives from an Unmatched Barcode rather than the hub.
+- The flow opens with a short intro. The provider statement is not repeated here;
+  it is shown once, on the Nutrition Labels hub (section 27).
 - Capture is camera-first: one Start action opens the in-app camera, which walks
   the Shopper through the steps in order behind a progress rail, each step with a
   framing overlay and one tip. The Shopper may choose several library photos from

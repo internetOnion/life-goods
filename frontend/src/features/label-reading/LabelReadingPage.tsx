@@ -28,7 +28,6 @@ import {
     type PhotoQualityIssue,
 } from "@/features/photo-evidence/imageQuality"
 import { PhotoInspectionModal } from "@/features/photo-evidence/PhotoInspectionModal"
-import { ProviderDisclosure } from "@/features/photo-evidence/ProviderDisclosure"
 import { useCompareTranslation } from "@/features/photo-evidence/translations"
 import { lookupProduct, type ProductLookup } from "@/features/product/api"
 import { decodeBarcodeFromImage } from "@/features/scan/stillImageBarcode"
@@ -626,26 +625,23 @@ export function LabelReadingPage({
                         }
                     />
                 ) : (
-                    <>
-                        <CapturePathReview
-                            photos={photos}
-                            disabled={reading.loading}
-                            onOpenCamera={openCamera}
-                            onChooseFromLibrary={(stepId) =>
-                                openFileInput(uploadInputRef.current, stepId)
-                            }
-                            onRemove={handleRemovePhoto}
-                            onInspect={(stepId) =>
-                                setInspectionIndex(
-                                    sequence.findIndex(
-                                        (photo) => photo === photos[stepId],
-                                    ),
-                                )
-                            }
-                            onPreviewError={handlePreviewError}
-                        />
-                        <ProviderDisclosure className="mt-2" />
-                    </>
+                    <CapturePathReview
+                        photos={photos}
+                        disabled={reading.loading}
+                        onOpenCamera={openCamera}
+                        onChooseFromLibrary={(stepId) =>
+                            openFileInput(uploadInputRef.current, stepId)
+                        }
+                        onRemove={handleRemovePhoto}
+                        onInspect={(stepId) =>
+                            setInspectionIndex(
+                                sequence.findIndex(
+                                    (photo) => photo === photos[stepId],
+                                ),
+                            )
+                        }
+                        onPreviewError={handlePreviewError}
+                    />
                 )}
 
                 <div className="mt-3">

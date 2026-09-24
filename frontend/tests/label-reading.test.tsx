@@ -370,10 +370,15 @@ describe("Read This Label as a standalone mode", () => {
         )
     })
 
-    test("states where photos go before any photo is taken, even without the hub", () => {
+    test("the provider statement is shown once, on the hub, not on Read This Label", () => {
         renderJourney("/labels/read")
-
-        expect(screen.getByTestId("provider-disclosure")).toBeVisible()
+        expect(
+            screen.queryByTestId("provider-disclosure"),
+        ).not.toBeInTheDocument()
+        addPhoto()
+        expect(
+            screen.queryByTestId("provider-disclosure"),
+        ).not.toBeInTheDocument()
     })
 
     test("renders every printed column as Photo Evidence with no chooser", async () => {
@@ -560,7 +565,6 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
             expect.stringMatching(/^3Side panelOptional/),
             expect.stringMatching(/^Read the label/),
         ])
-        expect(screen.getByTestId("provider-disclosure")).toBeVisible()
         expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
         expect(
             screen.getByRole("button", { name: "Start photos" }),
@@ -589,7 +593,6 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
                 name: "Add side panel",
             }),
         ).toBeVisible()
-        expect(screen.getByTestId("provider-disclosure")).toBeVisible()
     })
 
     test("choosing photos from the intro fills the steps in order", async () => {

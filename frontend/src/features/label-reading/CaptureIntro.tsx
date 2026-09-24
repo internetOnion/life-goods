@@ -1,7 +1,6 @@
 import { BookOpenText, ImageSquare } from "@phosphor-icons/react"
 
 import { Button } from "@/components/ui/button"
-import { ProviderDisclosure } from "@/features/photo-evidence/ProviderDisclosure"
 import { cn } from "@/lib/utils"
 
 import { CAPTURE_STEPS, type CaptureStepId } from "./captureSteps"
@@ -30,9 +29,9 @@ function PackageNet() {
     } as const
     return (
         <svg
-            viewBox="0 0 272 132"
+            viewBox="40 2 222 128"
             aria-hidden="true"
-            className="h-auto w-full max-w-[21rem] text-neutral-400"
+            className="h-auto w-full max-w-[19rem] text-neutral-400"
         >
             {/* Top and bottom flaps of the front and back panels. */}
             <path d="M58 20l6-12h68l6 12M58 112l6 12h68l6-12" {...line} />
@@ -120,13 +119,13 @@ export interface CaptureIntroProps {
     onChooseFromLibrary: () => void
 }
 
-/** Before the camera opens: what the path asks for, and where photos go. */
+/** Before the camera opens: what the path asks for. */
 export function CaptureIntro({ onChooseFromLibrary }: CaptureIntroProps) {
     const { t } = useLabelReadingTranslation()
 
     return (
         <section aria-labelledby="capture-intro-title" className="mt-6">
-            <div className="flex justify-center rounded-2xl bg-white px-4 pt-6 pb-5 ring-1 ring-neutral-200">
+            <div className="flex justify-center rounded-2xl bg-white px-4 py-6 ring-1 ring-neutral-200">
                 <PackageNet />
             </div>
 
@@ -192,8 +191,6 @@ export function CaptureIntro({ onChooseFromLibrary }: CaptureIntroProps) {
                     </div>
                 </li>
             </ol>
-
-            <ProviderDisclosure className="mt-6" />
 
             <Button
                 type="button"
