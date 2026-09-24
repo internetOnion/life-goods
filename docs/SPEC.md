@@ -1283,10 +1283,18 @@ Barcode miss). It reads the whole printed label, not only nutrition values.
 - The prompt transcribes ingredients and allergen statements verbatim and never
   corrects, infers, or translates them. It does not extract free-from claims,
   certification or Halal marks, health or nutrition claims, or marketing copy.
-- Allergen mentions come from the existing deterministic ingredient-text matcher
-  run on English ingredient blocks and on all allergen-statement blocks. Text is
-  truncated at the matcher's input limit, and a limitation is recorded. No
-  eligible block gives `not_checked`; an unavailable matcher gives `unavailable`.
+- Allergen mentions come from the same deterministic ingredient-text matcher as
+  Product Lookup, run after the provider lease is released on readable English
+  ingredient and allergen-statement blocks. Each mention names its block, the
+  matched text, its allergen tags, and its qualification (`positive_mention`,
+  `precautionary_statement`, `negated_mention`, `unresolved_context`); ambiguous
+  matches are excluded.
+  - Non-English blocks are not checked and a limitation is recorded.
+  - A block longer than the matcher's input limit is skipped, not truncated, and
+    a limitation is recorded.
+  - No eligible block gives `not_checked` (`no_english_printed_text` or
+    `no_readable_printed_text`). A missing or failing matcher gives
+    `unavailable`, never an empty `completed`.
 
 ### 29.4 `POST /api/v1/label-readings/khmer-renderings`
 

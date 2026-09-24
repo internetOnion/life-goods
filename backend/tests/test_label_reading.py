@@ -522,3 +522,163 @@ def test_evidence_pointer_regions_survive_normalization() -> None:
     assert reading.ingredients[0].evidence[0] == EvidencePointer.model_validate(
         {"image_id": "img-1", "region": {"x": 0.1, "y": 0.2, "width": 0.5, "height": 0.3}}
     )
+
+
+# --- allergen mentions ---------------------------------------------------------------
+
+
+def _real_matcher() -> Any:
+    import mongomock
+
+    from lifegoods.ingredient_matching.importer import import_ingredient_taxonomy
+    from lifegoods.ingredient_matching.models import IngredientMatcher
+
+    database = mongomock.MongoClient().lifegoods_off
+    import_ingredient_taxonomy(database)
+    return IngredientMatcher(database, enabled=True)
+
+
+def _reading(**overrides: Any) -> LabelReading:
+    return build_label_reading(
+        _payload("img-1", **overrides),
+        images=[_image()],
+        provider="fake",
+        model="gemini-3.8-flash",
+    )
+
+
+def test_allergen_mentions_come_from_the_matcher_with_qualifications() -> None:
+    from lifegoods.label_reading.allergen_mentions import analyze_label_allergens
+
+    reading = _reading()
+    mentions = analyze_label_allergens(reading, _real_matcher())
+
+    assert mentions.state.value == "completed"
+    found = {
+        (mention.matched_text, tuple(mention.allergen_tags), mention.qualification)
+        for mention in mentions.mentions
+    }
+    assert ("wheat flour", ("en:gluten",), "positive_mention") in found
+    assert ("milk powder", ("en:milk",), "positive_mention") in found
+    assert ("peanuts", ("en:peanuts",), "precautionary_statement") in found
+    ingredient_block = reading.ingredients[0].block_id
+    statement_block = reading.allergen_statements[0].block_id
+    assert {mention.block_id for mention in mentions.mentions} == {
+        ingredient_block,
+        statement_block,
+    }
+
+
+def test_non_english_printed_text_is_not_checked() -> None:
+    from lifegoods.label_reading.allergen_mentions import analyze_label_allergens
+
+    reading = _reading(
+        ingredients=[
+            {
+                "original_script": "ส่วนประกอบ: แป้งสาลี, น้ำตาล, นมผง",
+                "language": "th",
+                "state": "readable",
+                "evidence": [_pointer("img-1")],
+            }
+        ],
+        allergen_statements=[],
+    )
+    mentions = analyze_label_allergens(reading, _real_matcher())
+
+    assert mentions.state.value == "not_checked"
+    assert mentions.reason == "no_english_printed_text"
+    assert mentions.mentions == []
+    assert "non_english_text_not_checked" in mentions.limitations
+
+
+def test_mixed_language_labels_check_only_english_blocks() -> None:
+    from lifegoods.label_reading.allergen_mentions import analyze_label_allergens
+
+    reading = _reading(
+        ingredients=[
+            {
+                "original_script": "ส่วนประกอบ: นมผง",
+                "language": "th",
+                "state": "readable",
+                "evidence": [_pointer("img-1")],
+            },
+            {
+                "original_script": "Ingredients: milk powder.",
+                "language": "en-GB",
+                "state": "readable",
+                "evidence": [_pointer("img-1")],
+            },
+        ],
+        allergen_statements=[],
+    )
+    mentions = analyze_label_allergens(reading, _real_matcher())
+
+    assert mentions.state.value == "completed"
+    assert {mention.block_id for mention in mentions.mentions} == {
+        reading.ingredients[1].block_id
+    }
+    assert "non_english_text_not_checked" in mentions.limitations
+
+
+def test_missing_or_failing_matcher_is_unavailable_never_empty_completed() -> None:
+    from lifegoods.ingredient_matching.models import IngredientMatchingUnavailableError
+    from lifegoods.label_reading.allergen_mentions import analyze_label_allergens
+
+    class DownMatcher:
+        def match(self, ingredient_text: str) -> Any:
+            del ingredient_text
+            raise IngredientMatchingUnavailableError("down")
+
+    reading = _reading()
+    missing = analyze_label_allergens(reading, None)
+    failing = analyze_label_allergens(reading, DownMatcher())
+
+    assert missing.state.value == "unavailable"
+    assert failing.state.value == "unavailable"
+    assert failing.mentions == []
+
+
+def test_nothing_readable_is_not_checked() -> None:
+    from lifegoods.label_reading.allergen_mentions import analyze_label_allergens
+
+    reading = _reading(ingredients=[], allergen_statements=[])
+    mentions = analyze_label_allergens(reading, _real_matcher())
+
+    assert mentions.state.value == "not_checked"
+    assert mentions.reason == "no_readable_printed_text"
+
+
+def test_text_over_the_matcher_limit_is_skipped_not_truncated() -> None:
+    from lifegoods.label_reading.allergen_mentions import analyze_label_allergens
+
+    long_text = "milk, " * 400
+    reading = _reading(
+        ingredients=[
+            {
+                "original_script": long_text[:4000],
+                "language": "en",
+                "state": "readable",
+                "evidence": [_pointer("img-1")],
+            }
+        ],
+        allergen_statements=[],
+    )
+    mentions = analyze_label_allergens(reading, _real_matcher())
+
+    assert mentions.state.value == "not_checked"
+    assert "text_exceeds_matcher_limit" in mentions.limitations
+
+
+def test_http_label_reading_returns_allergen_mentions_from_the_app_matcher() -> None:
+    provider = FakeLabelProvider()
+    with TestClient(_app(provider, ingredient_matcher=_real_matcher())) as client:
+        response = client.post(
+            "/api/v1/label-readings",
+            files=[("photos", ("photo-1.png", _png_bytes(), "image/png"))],
+        )
+
+    assert response.status_code == 200, response.text
+    mentions = response.json()["allergen_mentions"]
+    assert mentions["state"] == "completed"
+    tags = {tag for mention in mentions["mentions"] for tag in mention["allergen_tags"]}
+    assert {"en:milk", "en:gluten", "en:peanuts"} <= tags

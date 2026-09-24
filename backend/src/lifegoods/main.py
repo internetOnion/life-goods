@@ -274,6 +274,7 @@ def create_app(
     label_reading_service = LabelReadingService(
         resolved_label_reading_provider,
         admission=photo_admission,
+        ingredient_matcher=resolved_ingredient_matcher,
     )
 
     app = FastAPI(title="Life Goods API", version="0.1.0")
