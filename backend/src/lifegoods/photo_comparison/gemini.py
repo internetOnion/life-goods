@@ -21,6 +21,7 @@ PHOTO_PROVIDER_NAME = "google"
 PHOTO_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 PHOTO_TIMEOUT_SECONDS = 60.0
 MAX_EXTRACTION_RESPONSE_BYTES = 1 * 1024 * 1024
+MAX_OUTPUT_TOKENS = 16384
 
 
 class PhotoProviderError(RuntimeError):
@@ -76,7 +77,7 @@ Rules:
 """
 
 
-def _pointer_schema() -> dict[str, object]:
+def pointer_schema() -> dict[str, object]:
     return {
         "type": "OBJECT",
         "properties": {
@@ -86,7 +87,7 @@ def _pointer_schema() -> dict[str, object]:
     }
 
 
-def _alternative_schema() -> dict[str, object]:
+def alternative_schema() -> dict[str, object]:
     return {
         "type": "OBJECT",
         "properties": {
@@ -98,13 +99,13 @@ def _alternative_schema() -> dict[str, object]:
                 "type": "STRING",
                 "enum": ["readable", "unreadable", "ambiguous", "conflicting", "not_visible"],
             },
-            "evidence": {"type": "ARRAY", "items": _pointer_schema()},
+            "evidence": {"type": "ARRAY", "items": pointer_schema()},
         },
         "required": ["language", "state", "evidence"],
     }
 
 
-def _field_schema(*, nutrient: bool = True) -> dict[str, object]:
+def field_schema(*, nutrient: bool = True) -> dict[str, object]:
     properties: dict[str, object] = {
         "label": {"type": "STRING"},
         "value_text": {"type": "STRING"},
@@ -123,8 +124,8 @@ def _field_schema(*, nutrient: bool = True) -> dict[str, object]:
             "type": "STRING",
             "enum": ["amount", "percentage", "combined", "other"],
         },
-        "alternatives": {"type": "ARRAY", "items": _alternative_schema()},
-        "evidence": {"type": "ARRAY", "items": _pointer_schema()},
+        "alternatives": {"type": "ARRAY", "items": alternative_schema()},
+        "evidence": {"type": "ARRAY", "items": pointer_schema()},
     }
     if nutrient:
         properties["nutrient"] = {
@@ -168,7 +169,7 @@ def _field_schema(*, nutrient: bool = True) -> dict[str, object]:
     }
 
 
-def _quantity_schema() -> dict[str, object]:
+def quantity_schema() -> dict[str, object]:
     return {
         "type": "OBJECT",
         "nullable": True,
@@ -185,8 +186,8 @@ def _quantity_schema() -> dict[str, object]:
                 "type": "STRING",
                 "enum": ["exact", "less_than", "greater_than", "approximate"],
             },
-            "alternatives": {"type": "ARRAY", "items": _alternative_schema()},
-            "evidence": {"type": "ARRAY", "items": _pointer_schema()},
+            "alternatives": {"type": "ARRAY", "items": alternative_schema()},
+            "evidence": {"type": "ARRAY", "items": pointer_schema()},
         },
         "required": [
             "label",
@@ -200,8 +201,8 @@ def _quantity_schema() -> dict[str, object]:
     }
 
 
-def _extraction_schema() -> dict[str, object]:
-    column = {
+def nutrition_column_schema() -> dict[str, object]:
+    return {
         "type": "OBJECT",
         "properties": {
             "label": {"type": "STRING"},
@@ -213,10 +214,10 @@ def _extraction_schema() -> dict[str, object]:
                 "type": "STRING",
                 "enum": ["as_sold", "as_prepared", "unknown"],
             },
-            "serving_quantity": _quantity_schema(),
-            "basis_evidence": {"type": "ARRAY", "items": _pointer_schema()},
-            "preparation_evidence": {"type": "ARRAY", "items": _pointer_schema()},
-            "fields": {"type": "ARRAY", "items": _field_schema()},
+            "serving_quantity": quantity_schema(),
+            "basis_evidence": {"type": "ARRAY", "items": pointer_schema()},
+            "preparation_evidence": {"type": "ARRAY", "items": pointer_schema()},
+            "fields": {"type": "ARRAY", "items": field_schema()},
         },
         "required": [
             "label",
@@ -227,23 +228,142 @@ def _extraction_schema() -> dict[str, object]:
             "fields",
         ],
     }
+
+
+def identity_schema() -> dict[str, object]:
+    return {
+        "type": "OBJECT",
+        "nullable": True,
+        "properties": {
+            "name": field_schema(nutrient=False),
+            "brand": field_schema(nutrient=False),
+        },
+    }
+
+
+def _extraction_schema() -> dict[str, object]:
     return {
         "type": "OBJECT",
         "properties": {
-            "identity": {
-                "type": "OBJECT",
-                "nullable": True,
-                "properties": {
-                    "name": _field_schema(nutrient=False),
-                    "brand": _field_schema(nutrient=False),
-                },
-            },
-            "package_quantity": _quantity_schema(),
-            "nutrition_columns": {"type": "ARRAY", "items": column},
+            "identity": identity_schema(),
+            "package_quantity": quantity_schema(),
+            "nutrition_columns": {"type": "ARRAY", "items": nutrition_column_schema()},
             "retake_reasons": {"type": "ARRAY", "items": {"type": "STRING"}},
         },
         "required": ["nutrition_columns", "retake_reasons"],
     }
+
+
+def inline_image_part(image: PreparedImage) -> dict[str, object]:
+    return {
+        "inlineData": {
+            "mimeType": image.mime_type,
+            "data": base64.b64encode(image.content).decode("ascii"),
+        }
+    }
+
+
+def generate_structured(
+    client: httpx.Client,
+    *,
+    base_url: str,
+    model: str,
+    api_key: str,
+    timeout_seconds: float,
+    parts: list[dict[str, object]],
+    system_instruction: str,
+    response_schema: dict[str, object],
+    max_output_tokens: int = MAX_OUTPUT_TOKENS,
+) -> dict[str, object]:
+    """Run one structured-JSON Gemini call and return the parsed object.
+
+    Failures are raised as sanitized ``PhotoProviderError`` subclasses; no
+    request content, prompt, or provider text is included in their messages.
+    """
+    payload = {
+        "contents": [{"parts": parts}],
+        "systemInstruction": {"parts": [{"text": system_instruction}]},
+        "generationConfig": {
+            "temperature": 0.0,
+            "maxOutputTokens": max_output_tokens,
+            "thinkingConfig": {"thinkingLevel": "low"},
+            "responseMimeType": "application/json",
+            "responseSchema": response_schema,
+        },
+    }
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    url = f"{base_url}/models/{model}:generateContent?key={api_key}"
+    try:
+        response = TranslationDeadline(timeout_seconds).run(
+            partial(
+                client.post,
+                url,
+                headers={"Content-Type": "application/json"},
+                content=body,
+                timeout=timeout_seconds,
+            )
+        )
+    except TranslationDeadlineExceeded as error:
+        raise PhotoProviderTimeout("The extraction provider timed out.") from error
+    except TranslationIOBusy as error:
+        raise PhotoProviderUnavailable("The extraction provider is at capacity.") from error
+    except httpx.TimeoutException as error:
+        raise PhotoProviderTimeout("The extraction provider timed out.") from error
+    except (httpx.NetworkError, OSError) as error:
+        raise PhotoProviderUnavailable(
+            "The extraction provider could not be reached."
+        ) from error
+
+    if response.status_code == 408:
+        raise PhotoProviderTimeout("The extraction provider timed out.")
+    if response.status_code != 200:
+        raise PhotoProviderUnavailable(
+            "Gemini rejected the photo-extraction request; verify the model and API key."
+        )
+    try:
+        if len(response.content) > MAX_EXTRACTION_RESPONSE_BYTES:
+            raise PhotoProviderOutputInvalid("Gemini returned an extraction larger than 1 MiB.")
+        response_json = response.json()
+        if not isinstance(response_json, dict):
+            raise PhotoProviderOutputInvalid("Gemini returned malformed extraction JSON.")
+        candidates = response_json.get("candidates", [])
+        if not isinstance(candidates, list) or not candidates:
+            raise PhotoProviderOutputInvalid("Gemini returned no extraction candidate.")
+        candidate = candidates[0]
+        if isinstance(candidate, dict) and candidate.get("finishReason") == "MAX_TOKENS":
+            raise PhotoProviderOutputInvalid(
+                "Gemini reached its output limit before completing the extraction. "
+                "No incomplete values were accepted. Retry extraction."
+            )
+        if not isinstance(candidate, dict) or candidate.get("finishReason") != "STOP":
+            raise PhotoProviderOutputInvalid("Gemini did not finish a valid extraction.")
+        candidate_parts = candidate.get("content", {}).get("parts", [])
+        text = (
+            candidate_parts[0].get("text")
+            if candidate_parts and isinstance(candidate_parts[0], dict)
+            else None
+        )
+        if not isinstance(text, str) or not text:
+            raise PhotoProviderOutputInvalid("Gemini returned an empty extraction.")
+        if len(text.encode("utf-8")) > MAX_EXTRACTION_RESPONSE_BYTES:
+            raise PhotoProviderOutputInvalid("Gemini returned an extraction larger than 1 MiB.")
+        parsed = json.loads(text)
+        if not isinstance(parsed, dict):
+            raise PhotoProviderOutputInvalid("Gemini returned a non-object extraction.")
+        return parsed
+    except PhotoProviderOutputInvalid:
+        raise
+    except (
+        AttributeError,
+        ValueError,
+        TypeError,
+        KeyError,
+        IndexError,
+        json.JSONDecodeError,
+    ) as error:
+        raise PhotoProviderOutputInvalid(
+            "Gemini returned malformed extraction JSON."
+        ) from error
 
 
 class GeminiPhotoExtractionAdapter:
@@ -295,98 +415,20 @@ class GeminiPhotoExtractionAdapter:
         parts: list[dict[str, object]] = [
             {"text": json.dumps({"image_registry": registry}, ensure_ascii=False)},
         ]
-        for item in request.images:
-            parts.append(
-                {
-                    "inlineData": {
-                        "mimeType": item.mime_type,
-                        "data": base64.b64encode(item.content).decode("ascii"),
-                    }
-                }
-            )
+        parts.extend(inline_image_part(item) for item in request.images)
         parts.append(
             {"text": "Extract the visible package nutrition evidence from this complete image set."}
         )
-        payload = {
-            "contents": [{"parts": parts}],
-            "systemInstruction": {"parts": [{"text": PHOTO_SYSTEM_INSTRUCTION}]},
-            "generationConfig": {
-                "temperature": 0.0,
-                "maxOutputTokens": 16384,
-                "thinkingConfig": {"thinkingLevel": "low"},
-                "responseMimeType": "application/json",
-                "responseSchema": _extraction_schema(),
-            },
-        }
-        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-        url = f"{self._base_url}/models/{self._model}:generateContent?key={self._api_key}"
-        try:
-            response = TranslationDeadline(self._timeout_seconds).run(
-                partial(
-                    self._client.post,
-                    url,
-                    headers={"Content-Type": "application/json"},
-                    content=body,
-                    timeout=self._timeout_seconds,
-                )
-            )
-        except TranslationDeadlineExceeded as error:
-            raise PhotoProviderTimeout("The extraction provider timed out.") from error
-        except TranslationIOBusy as error:
-            raise PhotoProviderUnavailable("The extraction provider is at capacity.") from error
-        except httpx.TimeoutException as error:
-            raise PhotoProviderTimeout("The extraction provider timed out.") from error
-        except (httpx.NetworkError, OSError) as error:
-            raise PhotoProviderUnavailable(
-                "The extraction provider could not be reached."
-            ) from error
-
-        if response.status_code == 408:
-            raise PhotoProviderTimeout("The extraction provider timed out.")
-        if response.status_code != 200:
-            raise PhotoProviderUnavailable(
-                "Gemini rejected the photo-extraction request; verify the model and API key."
-            )
-        try:
-            if len(response.content) > MAX_EXTRACTION_RESPONSE_BYTES:
-                raise PhotoProviderOutputInvalid("Gemini returned an extraction larger than 1 MiB.")
-            response_json = response.json()
-            if not isinstance(response_json, dict):
-                raise PhotoProviderOutputInvalid("Gemini returned malformed extraction JSON.")
-            candidates = response_json.get("candidates", [])
-            if not isinstance(candidates, list) or not candidates:
-                raise PhotoProviderOutputInvalid("Gemini returned no extraction candidate.")
-            candidate = candidates[0]
-            if isinstance(candidate, dict) and candidate.get("finishReason") == "MAX_TOKENS":
-                raise PhotoProviderOutputInvalid(
-                    "Gemini reached its output limit before completing the extraction. "
-                    "No incomplete values were accepted. Retry extraction."
-                )
-            if not isinstance(candidate, dict) or candidate.get("finishReason") != "STOP":
-                raise PhotoProviderOutputInvalid("Gemini did not finish a valid extraction.")
-            parts = candidate.get("content", {}).get("parts", [])
-            text = parts[0].get("text") if parts and isinstance(parts[0], dict) else None
-            if not isinstance(text, str) or not text:
-                raise PhotoProviderOutputInvalid("Gemini returned an empty extraction.")
-            if len(text.encode("utf-8")) > MAX_EXTRACTION_RESPONSE_BYTES:
-                raise PhotoProviderOutputInvalid("Gemini returned an extraction larger than 1 MiB.")
-            parsed = json.loads(text)
-            if not isinstance(parsed, dict):
-                raise PhotoProviderOutputInvalid("Gemini returned a non-object extraction.")
-            return parsed
-        except PhotoProviderOutputInvalid:
-            raise
-        except (
-            AttributeError,
-            ValueError,
-            TypeError,
-            KeyError,
-            IndexError,
-            json.JSONDecodeError,
-        ) as error:
-            raise PhotoProviderOutputInvalid(
-                "Gemini returned malformed extraction JSON."
-            ) from error
+        return generate_structured(
+            self._client,
+            base_url=self._base_url,
+            model=self._model,
+            api_key=self._api_key,
+            timeout_seconds=self._timeout_seconds,
+            parts=parts,
+            system_instruction=PHOTO_SYSTEM_INSTRUCTION,
+            response_schema=_extraction_schema(),
+        )
 
 
 def create_photo_extraction_provider(

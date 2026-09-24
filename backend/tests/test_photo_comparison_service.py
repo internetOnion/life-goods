@@ -1034,3 +1034,48 @@ def test_read_this_label_and_compare_products_share_one_provider_lease() -> None
     assert reading_instance.acquire()
     assert not compare_instance.acquire()
     reading_instance.release()
+
+
+def test_compare_nutrition_prompt_and_schema_are_pinned() -> None:
+    """Read This Label has its own prompt; the v3 extraction contract must not drift."""
+    import hashlib
+
+    from lifegoods.photo_comparison.gemini import PHOTO_SYSTEM_INSTRUCTION, _extraction_schema
+
+    schema_digest = hashlib.sha256(
+        json.dumps(_extraction_schema(), sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    prompt_digest = hashlib.sha256(PHOTO_SYSTEM_INSTRUCTION.encode("utf-8")).hexdigest()
+
+    assert schema_digest == "e5c633cf56128393beeaa242ef2f7165b911bc894aa6e3faa02d5cfc1bc30604"
+    assert prompt_digest == "e2ff2a07c96ed7729527e167c1eaab5a0152e705cec88fabe06b9efc5ee5146f"
+
+
+def test_photo_provider_admission_releases_the_lease_on_failure() -> None:
+    from lifegoods.photo_comparison.service import (
+        ExtractionCapacityError,
+        PhotoProviderAdmission,
+    )
+
+    admission = PhotoProviderAdmission(capacity=ProviderCapacity())
+
+    with pytest.raises(RuntimeError), admission.admit("client"):
+        raise RuntimeError("provider failed")
+    with (
+        admission.admit("client"),
+        pytest.raises(ExtractionCapacityError),
+        admission.admit("client"),
+    ):
+        pass
+
+
+def test_photo_upload_path_registry_covers_extraction_routes() -> None:
+    from lifegoods.photo_comparison.router import (
+        EXPERIMENTAL_PREFIX,
+        EXTRACTION_PATH,
+        is_photo_upload_path,
+    )
+
+    assert is_photo_upload_path(EXTRACTION_PATH)
+    assert is_photo_upload_path(f"{EXPERIMENTAL_PREFIX}/extractions")
+    assert not is_photo_upload_path("/api/v1/photo-comparison/comparisons")

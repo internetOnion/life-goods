@@ -5,7 +5,8 @@ from __future__ import annotations
 import math
 import time
 from collections import deque
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
+from contextlib import contextmanager
 from threading import BoundedSemaphore, Lock
 from typing import Protocol
 from uuid import uuid4
@@ -24,7 +25,6 @@ from lifegoods.photo_comparison.gemini import (
 from lifegoods.photo_comparison.images import PreparedImage
 from lifegoods.photo_comparison.normalization import (
     CONFIGURATION_VERSION,
-    ProviderOutputError,
     build_extraction,
 )
 from lifegoods.photo_comparison.rate_limit import PhotoComparisonRateLimiter
@@ -173,6 +173,40 @@ class RedisProviderCapacity:
                 return
 
 
+class PhotoProviderAdmission:
+    """One anonymous admission budget and provider lease for every photo operation.
+
+    Compare Nutrition extraction, Read This Label, and Khmer Rendering share one
+    instance, so no photo-derived provider call has a second budget.
+    """
+
+    def __init__(
+        self,
+        *,
+        rate_limiter: PhotoComparisonRateLimiter | None = None,
+        capacity: ProviderCapacityProtocol | None = None,
+    ) -> None:
+        self.rate_limiter = rate_limiter or ExtractionRateLimiter()
+        self.capacity = capacity or ProviderCapacity()
+
+    @contextmanager
+    def admit(self, rate_limit_key: str) -> Iterator[None]:
+        allowed, retry_after = self.rate_limiter.try_acquire(rate_limit_key)
+        if not allowed:
+            raise ExtractionRateLimitError(
+                "The photo-extraction limit is 10 requests per minute.",
+                retry_after=retry_after,
+            )
+        if not self.capacity.acquire():
+            raise ExtractionCapacityError(
+                "Another extraction is already in progress. Retry when it finishes."
+            )
+        try:
+            yield
+        finally:
+            self.capacity.release()
+
+
 class PhotoExtractionService:
     def __init__(
         self,
@@ -180,10 +214,12 @@ class PhotoExtractionService:
         *,
         rate_limiter: PhotoComparisonRateLimiter | None = None,
         capacity: ProviderCapacityProtocol | None = None,
+        admission: PhotoProviderAdmission | None = None,
     ) -> None:
         self.provider = provider
-        self.rate_limiter = rate_limiter or ExtractionRateLimiter()
-        self.capacity = capacity or ProviderCapacity()
+        self.admission = admission or PhotoProviderAdmission(
+            rate_limiter=rate_limiter, capacity=capacity
+        )
 
     def extract(
         self,
@@ -196,39 +232,20 @@ class PhotoExtractionService:
             raise MissingCredentialsError(
                 "Photo extraction is unavailable because Gemini credentials are missing."
             )
-        allowed, retry_after = self.rate_limiter.try_acquire(rate_limit_key)
-        if not allowed:
-            raise ExtractionRateLimitError(
-                "The photo-extraction limit is 10 requests per minute.",
-                retry_after=retry_after,
-            )
-        if not self.capacity.acquire():
-            raise ExtractionCapacityError(
-                "Another extraction is already in progress. Retry when it finishes."
-            )
-        try:
+        with self.admission.admit(rate_limit_key):
             try:
                 payload = self.provider.extract(PhotoProviderRequest(images=list(images)))
-            except PhotoProviderTimeout:
-                raise
-            except PhotoProviderUnavailable:
-                raise
-            except PhotoProviderOutputInvalid:
+            except (PhotoProviderTimeout, PhotoProviderUnavailable, PhotoProviderOutputInvalid):
                 raise
             except Exception as error:
                 raise PhotoProviderUnavailable("The extraction provider failed.") from error
-            try:
-                return build_extraction(
-                    payload,
-                    product_id=product_id,
-                    images=[image.evidence for image in images],
-                    provider=self.provider.provider_name,
-                    model=self.provider.model,
-                )
-            except ProviderOutputError:
-                raise
-        finally:
-            self.capacity.release()
+            return build_extraction(
+                payload,
+                product_id=product_id,
+                images=[image.evidence for image in images],
+                provider=self.provider.provider_name,
+                model=self.provider.model,
+            )
 
 
 class PhotoComparisonService:
@@ -247,6 +264,7 @@ __all__ = [
     "MissingCredentialsError",
     "PhotoComparisonService",
     "PhotoExtractionService",
+    "PhotoProviderAdmission",
     "ProviderCapacity",
     "ProviderCapacityProtocol",
     "RedisProviderCapacity",

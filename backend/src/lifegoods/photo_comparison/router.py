@@ -44,7 +44,15 @@ from lifegoods.photo_comparison.service import (
 EXTRACTION_PATH = "/api/v1/photo-comparison/extractions"
 COMPARISON_PATH = "/api/v1/photo-comparison/comparisons"
 EXPERIMENTAL_PREFIX = "/api/experimental/photo-comparison"
-_EXTRACTION_PATHS = {EXTRACTION_PATH, f"{EXPERIMENTAL_PREFIX}/extractions"}
+# Multipart photo-upload routes. Each one gets the pre-parse body cap and the
+# typed photo error envelope; new upload routes must be added here.
+PHOTO_UPLOAD_PATHS: frozenset[str] = frozenset(
+    {EXTRACTION_PATH, f"{EXPERIMENTAL_PREFIX}/extractions"}
+)
+
+
+def is_photo_upload_path(path: str) -> bool:
+    return path in PHOTO_UPLOAD_PATHS
 
 _ERROR_EXAMPLES = {
     "validation": {
@@ -197,7 +205,7 @@ class PhotoComparisonUploadLimitMiddleware:
         if (
             scope.get("type") != "http"
             or scope.get("method") != "POST"
-            or scope.get("path") not in _EXTRACTION_PATHS
+            or not is_photo_upload_path(str(scope.get("path", "")))
         ):
             await self.app(scope, receive, send)
             return
@@ -282,7 +290,7 @@ async def _send_error_response(scope: Scope, receive: Receive, send: Send) -> No
 def photo_comparison_http_exception_response(
     path: str, status_code: int
 ) -> JSONResponse | None:
-    if path not in _EXTRACTION_PATHS:
+    if not is_photo_upload_path(path):
         return None
     if status_code == 413:
         return _error(
@@ -630,8 +638,10 @@ __all__ = [
     "COMPARISON_PATH",
     "EXPERIMENTAL_PREFIX",
     "EXTRACTION_PATH",
+    "PHOTO_UPLOAD_PATHS",
     "PhotoComparisonUploadLimitMiddleware",
     "build_router",
     "install_photo_comparison_openapi",
+    "is_photo_upload_path",
     "photo_comparison_http_exception_response",
 ]

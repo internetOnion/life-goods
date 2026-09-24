@@ -45,9 +45,9 @@ from lifegoods.photo_comparison.rate_limit import (
     RedisPhotoComparisonRateLimiter,
 )
 from lifegoods.photo_comparison.router import (
-    EXTRACTION_PATH,
     PhotoComparisonUploadLimitMiddleware,
     install_photo_comparison_openapi,
+    is_photo_upload_path,
     photo_comparison_http_exception_response,
 )
 from lifegoods.photo_comparison.router import build_router as build_photo_comparison_router
@@ -55,6 +55,7 @@ from lifegoods.photo_comparison.service import (
     PhotoComparisonService,
     PhotoExtractionProvider,
     PhotoExtractionService,
+    PhotoProviderAdmission,
     ProviderCapacityProtocol,
     RedisProviderCapacity,
 )
@@ -247,10 +248,14 @@ def create_app(
         assert shared_redis_client is not None
         resolved_photo_capacity = RedisProviderCapacity(shared_redis_client)
 
-    photo_extraction_service = PhotoExtractionService(
-        resolved_photo_provider,
+    # One admission budget and provider lease shared by every photo operation.
+    photo_admission = PhotoProviderAdmission(
         rate_limiter=resolved_photo_rate_limiter,
         capacity=resolved_photo_capacity,
+    )
+    photo_extraction_service = PhotoExtractionService(
+        resolved_photo_provider,
+        admission=photo_admission,
     )
     photo_comparison_service = PhotoComparisonService()
 
@@ -374,7 +379,7 @@ def create_app(
                     }
                 },
             )
-        if request.url.path == EXTRACTION_PATH:
+        if is_photo_upload_path(request.url.path):
             envelope = PhotoComparisonErrorResponse(
                 error=PhotoComparisonErrorDetail(
                     code=PhotoComparisonErrorCode.REQUEST_INVALID,

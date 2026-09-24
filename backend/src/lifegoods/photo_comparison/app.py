@@ -32,6 +32,7 @@ from lifegoods.photo_comparison.router import (
 from lifegoods.photo_comparison.service import (
     PhotoComparisonService,
     PhotoExtractionService,
+    PhotoProviderAdmission,
 )
 from lifegoods.photo_comparison.web import photo_comparison_page
 
@@ -59,7 +60,8 @@ def create_photo_comparison_app(
             http_client=client,
         )
 
-    extraction_service = PhotoExtractionService(resolved_provider)
+    photo_admission = PhotoProviderAdmission()
+    extraction_service = PhotoExtractionService(resolved_provider, admission=photo_admission)
     comparison_service = PhotoComparisonService()
     app = FastAPI(
         title="Life Goods Photo Comparison Lab",
