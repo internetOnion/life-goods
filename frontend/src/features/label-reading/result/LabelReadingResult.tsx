@@ -1,8 +1,15 @@
-import { CaretDown, Camera, WarningCircle } from "@phosphor-icons/react"
+import {
+    ArrowCounterClockwise,
+    CaretDown,
+    Camera,
+    Translate,
+    WarningCircle,
+} from "@phosphor-icons/react"
 import { useState, type Ref } from "react"
 import { Link } from "react-router"
 
 import type {
+    KhmerRenderedBlock,
     LabelReading,
     PrintedAllergenStatement,
     PrintedFact,
@@ -22,7 +29,25 @@ import {
     type LabelReadingTranslationKey,
 } from "../translations"
 import { LabelNutritionTable } from "./LabelNutritionTable"
-import { PrintedTextField } from "./PrintedTextField"
+import { PrintedTextField, type KhmerDisplay } from "./PrintedTextField"
+
+/** Khmer Rendering for one Label Reading (SPEC §29.4), owned by the page. */
+export type KhmerState =
+    | { status: "idle" }
+    | { status: "loading"; blockIds: string[] }
+    | { status: "done"; blocks: Record<string, KhmerRenderedBlock> }
+    | { status: "error"; message: string }
+
+function khmerFor(
+    khmer: KhmerState,
+    blockId: string,
+): KhmerDisplay | undefined {
+    if (khmer.status === "loading") {
+        return khmer.blockIds.includes(blockId) ? "loading" : undefined
+    }
+    if (khmer.status === "done") return khmer.blocks[blockId]
+    return undefined
+}
 
 const STATEMENT_KEYS: Record<string, LabelReadingTranslationKey> = {
     contains: "statementContains",
@@ -50,6 +75,10 @@ function SectionHeading({ id, children }: { id: string; children: string }) {
 export interface LabelReadingResultProps {
     reading: LabelReading
     frontPhotoUrl?: string
+    khmer: KhmerState
+    /** Whether any Printed Text can be rendered into Khmer. */
+    canRenderKhmer: boolean
+    onRequestKhmer: () => void
     onFocusEvidence: (imageId: string) => void
     ref?: Ref<HTMLElement>
 }
@@ -62,6 +91,9 @@ export interface LabelReadingResultProps {
 export function LabelReadingResult({
     reading,
     frontPhotoUrl,
+    khmer,
+    canRenderKhmer,
+    onRequestKhmer,
     onFocusEvidence,
     ref,
 }: LabelReadingResultProps) {
@@ -105,6 +137,38 @@ export function LabelReadingResult({
                 <p className="border-warning-200 bg-warning-50/70 text-warning-950 mt-3 rounded-xl border p-3 text-sm leading-relaxed">
                     {tc("photoEvidenceNotice")}
                 </p>
+                {canRenderKhmer && khmer.status === "idle" ? (
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={onRequestKhmer}
+                        className="mt-3 h-10 gap-1.5 rounded-xl px-3 text-sm font-bold"
+                    >
+                        <Translate size={16} weight="bold" aria-hidden="true" />
+                        <span>{t("showInKhmer")}</span>
+                    </Button>
+                ) : null}
+                {khmer.status === "error" ? (
+                    <div
+                        role="alert"
+                        className="mt-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700"
+                    >
+                        <p>{t("khmerFailed", { reason: khmer.message })}</p>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={onRequestKhmer}
+                            className="mt-2 h-10 gap-1.5 rounded-xl bg-white px-3 text-xs font-bold"
+                        >
+                            <ArrowCounterClockwise
+                                size={15}
+                                weight="bold"
+                                aria-hidden="true"
+                            />
+                            <span>{t("retryKhmer")}</span>
+                        </Button>
+                    </div>
+                ) : null}
             </div>
 
             <div className="flex items-start gap-3" data-testid="reading-hero">
@@ -163,6 +227,7 @@ export function LabelReadingResult({
                                 language={block.language}
                                 state={block.state}
                                 locale={locale}
+                                khmer={khmerFor(khmer, block.block_id)}
                                 className="rounded-xl border border-neutral-200 bg-white p-3"
                             />
                         ))}
@@ -192,6 +257,7 @@ export function LabelReadingResult({
                                         "statementOther",
                                 )}
                                 locale={locale}
+                                khmer={khmerFor(khmer, statement.block_id)}
                             />
                         ))}
                     </ul>
@@ -304,6 +370,8 @@ export function LabelReadingResult({
                                 label={t(
                                     FACT_KEYS[fact.kind] ?? "factsHeading",
                                 )}
+                                locale={locale}
+                                khmer={khmerFor(khmer, fact.block_id)}
                             />
                         ))}
                     </dl>
@@ -394,10 +462,12 @@ function AllergenStatementItem({
     statement,
     label,
     locale,
+    khmer,
 }: {
     statement: PrintedAllergenStatement
     label: string
     locale: "en" | "km"
+    khmer: KhmerDisplay | undefined
 }) {
     return (
         <li className="rounded-xl border border-neutral-200 bg-white p-3">
@@ -409,27 +479,37 @@ function AllergenStatementItem({
                 language={statement.language}
                 state={statement.state}
                 locale={locale}
+                khmer={khmer}
                 className="mt-1"
             />
         </li>
     )
 }
 
-function PrintedFactRow({ fact, label }: { fact: PrintedFact; label: string }) {
+function PrintedFactRow({
+    fact,
+    label,
+    locale,
+    khmer,
+}: {
+    fact: PrintedFact
+    label: string
+    locale: "en" | "km"
+    khmer: KhmerDisplay | undefined
+}) {
     return (
         <div className="flex flex-col gap-0.5 px-3 py-2.5 sm:flex-row sm:gap-3">
             <dt className="text-xs font-bold text-neutral-600 sm:w-40 sm:shrink-0">
                 {label}
             </dt>
-            <dd
-                lang={
-                    fact.language && fact.language !== "und"
-                        ? fact.language
-                        : undefined
-                }
-                className="text-sm text-neutral-900"
-            >
-                {fact.original_script}
+            <dd className="min-w-0">
+                <PrintedTextField
+                    text={fact.original_script}
+                    language={fact.language}
+                    state={fact.state}
+                    locale={locale}
+                    khmer={khmer}
+                />
             </dd>
         </div>
     )

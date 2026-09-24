@@ -73,6 +73,13 @@ const en = {
     showHowRead: "How this was read",
     hideHowRead: "Hide how this was read",
     readBy: "Read by {{provider}} {{model}} ({{configuration}})",
+    readingProgress: "Reading the label. This usually takes 20 to 40 seconds.",
+    showInKhmer: "Show in Khmer",
+    writingKhmer: "Writing Khmer…",
+    khmerByAi: "Khmer by AI, from your photo",
+    khmerUnavailableForText: "A Khmer version is not available for this text.",
+    khmerFailed: "The Khmer version could not be written. {{reason}}",
+    retryKhmer: "Try Khmer again",
 }
 
 const km: Record<keyof typeof en, string> = {
@@ -144,6 +151,13 @@ const km: Record<keyof typeof en, string> = {
     showHowRead: "របៀបដែលវាត្រូវបានអាន",
     hideHowRead: "លាក់របៀបដែលវាត្រូវបានអាន",
     readBy: "អានដោយ {{provider}} {{model}} ({{configuration}})",
+    readingProgress: "កំពុងអានស្លាក។ ជាធម្មតាចំណាយពេលពី 20 ទៅ 40 វិនាទី។",
+    showInKhmer: "បង្ហាញជាភាសាខ្មែរ",
+    writingKhmer: "កំពុងសរសេរជាភាសាខ្មែរ…",
+    khmerByAi: "ភាសាខ្មែរដោយ AI ពីរូបថតរបស់អ្នក",
+    khmerUnavailableForText: "មិនមានកំណែភាសាខ្មែរសម្រាប់អត្ថបទនេះទេ។",
+    khmerFailed: "មិនអាចសរសេរកំណែភាសាខ្មែរបានទេ។ {{reason}}",
+    retryKhmer: "សាកភាសាខ្មែរម្ដងទៀត",
 }
 
 export const labelReadingTranslations = { en, km } as const

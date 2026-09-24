@@ -31,7 +31,12 @@ import { decodeBarcodeFromImage } from "@/features/scan/stillImageBarcode"
 import { usePageMetadata } from "@/lib/metadata"
 import { useAppShellNavigation } from "@/ui/AppShellNavigation"
 
-import { readLabelPhotos, type LabelReading } from "./api"
+import {
+    khmerRenderingBlocks,
+    readLabelPhotos,
+    renderKhmerText,
+    type LabelReading,
+} from "./api"
 import { CaptureStepCard, type StepPhoto } from "./CaptureStepCard"
 import {
     CAPTURE_STEPS,
@@ -42,7 +47,10 @@ import {
 } from "./captureSteps"
 import { GuidedCaptureSheet } from "./GuidedCaptureSheet"
 import { ProductPageOffer } from "./ProductPageOffer"
-import { LabelReadingResult } from "./result/LabelReadingResult"
+import {
+    LabelReadingResult,
+    type KhmerState,
+} from "./result/LabelReadingResult"
 import { useLabelReadingTranslation } from "./translations"
 
 type StepPhotos = Partial<Record<CaptureStepId, StepPhoto>>
@@ -90,6 +98,7 @@ function orderedPhotos(photos: StepPhotos): StepPhoto[] {
 
 export type LabelReadingPageProps = {
     readLabel?: typeof readLabelPhotos
+    renderKhmer?: typeof renderKhmerText
     lookup?: ProductLookup
     decodeBarcode?: typeof decodeBarcodeFromImage
     checkQuality?: typeof checkPhotoQuality
@@ -97,6 +106,7 @@ export type LabelReadingPageProps = {
 
 export function LabelReadingPage({
     readLabel = readLabelPhotos,
+    renderKhmer = renderKhmerText,
     lookup = lookupProduct,
     decodeBarcode = decodeBarcodeFromImage,
     checkQuality = checkPhotoQuality,
@@ -117,6 +127,7 @@ export function LabelReadingPage({
 
     const [photos, setPhotos] = useState<StepPhotos>({})
     const [reading, setReading] = useState<ReadingState>(IDLE_READING)
+    const [khmer, setKhmer] = useState<KhmerState>({ status: "idle" })
     const [captureStepId, setCaptureStepId] = useState<CaptureStepId>("front")
     const [isCaptureOpen, setIsCaptureOpen] = useState(false)
     const [inspectionIndex, setInspectionIndex] = useState<number | null>(null)
@@ -141,6 +152,11 @@ export function LabelReadingPage({
     const activeUrlsRef = useRef(new Set<string>())
     const photoTasksRef = useRef(new Map<string, AbortController>())
     const lookedUpBarcodesRef = useRef(new Set<string>())
+    // Khmer Rendering belongs to one Label Reading; a response for any other
+    // reading (after a re-read, reset, or photo change) is discarded.
+    const khmerRequestRef = useRef(0)
+    const khmerAbortRef = useRef<AbortController | null>(null)
+    const khmerForRef = useRef<LabelReading | null>(null)
 
     useEffect(() => {
         isMountedRef.current = true
@@ -149,6 +165,7 @@ export function LabelReadingPage({
         return () => {
             isMountedRef.current = false
             abortRef.current?.abort()
+            khmerAbortRef.current?.abort()
             for (const controller of photoTasks.values()) controller.abort()
             photoTasks.clear()
             for (const url of activeUrls) URL.revokeObjectURL(url)
@@ -165,6 +182,75 @@ export function LabelReadingPage({
             setPrimaryNavigationHidden(false)
         }
     }, [setBottomDockVisible, setPrimaryNavigationHidden])
+
+    const requestKhmer = async (target: LabelReading) => {
+        khmerRequestRef.current += 1
+        const requestId = khmerRequestRef.current
+        khmerAbortRef.current?.abort()
+        const blocks = khmerRenderingBlocks(target)
+        if (blocks.length === 0) {
+            setKhmer({ status: "done", blocks: {} })
+            return
+        }
+        const controller = new AbortController()
+        khmerAbortRef.current = controller
+        setKhmer({
+            status: "loading",
+            blockIds: blocks.map((block) => block.block_id),
+        })
+        const isCurrent = () =>
+            isMountedRef.current &&
+            khmerRequestRef.current === requestId &&
+            khmerForRef.current === target
+        try {
+            const rendered = await renderKhmer(blocks, {
+                signal: controller.signal,
+            })
+            if (!isCurrent()) return
+            setKhmer({
+                status: "done",
+                blocks: Object.fromEntries(
+                    rendered.map((block) => [block.block_id, block]),
+                ),
+            })
+        } catch (err) {
+            if (!isCurrent() || isAbortError(err)) return
+            const message =
+                err instanceof Error ? err.message : tc("requestFailed")
+            const code =
+                err instanceof PhotoComparisonApiError ? err.code : undefined
+            // No automatic retry: a paid call is only repeated when the Shopper asks.
+            setKhmer({
+                status: "error",
+                message: formatActionableError(message, code, locale),
+            })
+        } finally {
+            if (khmerAbortRef.current === controller) {
+                khmerAbortRef.current = null
+            }
+        }
+    }
+
+    // A new reading resets its Khmer Rendering. In Khmer, it is requested
+    // automatically once per reading; in English, only on "Show in Khmer".
+    useEffect(() => {
+        const current = reading.reading
+        if (khmerForRef.current !== current) {
+            khmerForRef.current = current
+            khmerRequestRef.current += 1
+            khmerAbortRef.current?.abort()
+            khmerAbortRef.current = null
+            setKhmer({ status: "idle" })
+            if (current && locale === "km") void requestKhmer(current)
+            return
+        }
+        if (current && locale === "km" && khmer.status === "idle") {
+            void requestKhmer(current)
+        }
+        // requestKhmer reads refs and the latest props; rerunning on its identity
+        // would re-request on every render.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [reading.reading, locale, khmer.status])
 
     /** Invalidates any in-flight read because the photos changed. */
     const cancelRead = () => {
@@ -608,7 +694,7 @@ export function LabelReadingPage({
                             }
                         >
                             {reading.loading
-                                ? tc("readingPhotos")
+                                ? t("readingProgress")
                                 : sequence.length === 0
                                   ? t("photosNeeded")
                                   : null}
@@ -655,6 +741,15 @@ export function LabelReadingPage({
                     <LabelReadingResult
                         ref={resultsRef}
                         reading={reading.reading}
+                        khmer={khmer}
+                        canRenderKhmer={
+                            khmerRenderingBlocks(reading.reading).length > 0
+                        }
+                        onRequestKhmer={() => {
+                            if (reading.reading) {
+                                void requestKhmer(reading.reading)
+                            }
+                        }}
                         frontPhotoUrl={
                             photos.front && !photos.front.previewError
                                 ? photos.front.url
