@@ -20,6 +20,7 @@ import {
     isAcceptedPhotoFile,
     isHeicFile,
     isSupportedImageFile,
+    verifiedPhotoFile,
 } from "@/features/photo-evidence/helpers"
 import { PhotoInspectionModal } from "@/features/photo-evidence/PhotoInspectionModal"
 import { ProductPhotoPanel } from "@/features/photo-evidence/ProductPhotoPanel"
@@ -178,6 +179,49 @@ export function LabelReadingPage({
         return { file, url, localId: crypto.randomUUID() }
     }
 
+    /**
+     * Same check as Compare Nutrition: read each picked photo in full so an
+     * empty or truncated photo (an iCloud-optimized photo not yet downloaded)
+     * is flagged before upload, and upload the verified in-memory copy.
+     */
+    const verifyPhotos = async (files: File[]) => {
+        const checked = await Promise.all(
+            files.map(async (file) => ({
+                file,
+                verified: await verifiedPhotoFile(file),
+            })),
+        )
+        const unreadable = new Set(
+            checked.filter((item) => item.verified === null).map((i) => i.file),
+        )
+        const verified = new Map(
+            checked
+                .filter((item) => item.verified && item.verified !== item.file)
+                .map((item) => [item.file, item.verified as File]),
+        )
+        if (!isMountedRef.current) return
+        if (unreadable.size === 0 && verified.size === 0) return
+
+        setSubject((prev) => {
+            const affected = prev.photos.filter(
+                (photo) =>
+                    unreadable.has(photo.file) || verified.has(photo.file),
+            )
+            if (affected.length === 0) return prev
+            const photos = prev.photos.map((photo) => {
+                if (unreadable.has(photo.file)) {
+                    return { ...photo, previewError: true }
+                }
+                const replacement = verified.get(photo.file)
+                return replacement ? { ...photo, file: replacement } : photo
+            })
+            if (!affected.some((photo) => unreadable.has(photo.file))) {
+                return { ...prev, photos }
+            }
+            return photosChanged(prev, photos, t("photoUnreadableOnDevice"))
+        })
+    }
+
     const handleAddFiles = (files: File[]) => {
         cancelRead()
         setSubject((prev) => {
@@ -220,6 +264,7 @@ export function LabelReadingPage({
                 validationErrors.join(" "),
             )
         })
+        void verifyPhotos(files.filter(isAcceptedPhotoFile))
     }
 
     const handleRemovePhoto = (index: number) => {
@@ -254,6 +299,7 @@ export function LabelReadingPage({
             photos[index] = createPhoto(file)
             return photosChanged(prev, photos)
         })
+        void verifyPhotos([file])
     }
 
     const handleClearPhotos = () => {
