@@ -173,6 +173,24 @@
         "title": "AllergenInputResponse",
         "type": "object"
       },
+      "AllergenMentionsState": {
+        "enum": [
+          "completed",
+          "not_checked",
+          "unavailable"
+        ],
+        "title": "AllergenMentionsState",
+        "type": "string"
+      },
+      "AllergenStatementKind": {
+        "enum": [
+          "contains",
+          "may_contain",
+          "other"
+        ],
+        "title": "AllergenStatementKind",
+        "type": "string"
+      },
       "AllergenUnmatchedSpanResponse": {
         "properties": {
           "end": {
@@ -194,6 +212,41 @@
           "end"
         ],
         "title": "AllergenUnmatchedSpanResponse",
+        "type": "object"
+      },
+      "Body_createLabelReading": {
+        "properties": {
+          "photo_roles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PhotoRole"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Capture role of each photo, in the same order as photos.",
+            "title": "Photo Roles"
+          },
+          "photos": {
+            "description": "One to 3 JPEG, PNG or HEIC photos of one Product's package, in capture order.",
+            "items": {
+              "format": "binary",
+              "type": "string"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Photos",
+            "type": "array"
+          }
+        },
+        "required": [
+          "photos"
+        ],
+        "title": "Body_createLabelReading",
         "type": "object"
       },
       "Body_extractPhotoComparison": {
@@ -1334,6 +1387,375 @@
         "title": "IngredientMatchingAllergenResponse",
         "type": "object"
       },
+      "KhmerRenderedBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,128}$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "khmer_text": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Khmer Text"
+          },
+          "state": {
+            "$ref": "#/components/schemas/KhmerRenderingState"
+          }
+        },
+        "required": [
+          "block_id",
+          "state"
+        ],
+        "title": "KhmerRenderedBlock",
+        "type": "object"
+      },
+      "KhmerRenderingBlockInput": {
+        "additionalProperties": false,
+        "description": "Printed Text sent for Khmer Rendering. It carries no Product or Barcode identifier.",
+        "properties": {
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,128}$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "language": {
+            "default": "und",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Language",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_id",
+          "text"
+        ],
+        "title": "KhmerRenderingBlockInput",
+        "type": "object"
+      },
+      "KhmerRenderingRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/KhmerRenderingBlockInput"
+            },
+            "maxItems": 24,
+            "minItems": 1,
+            "title": "Blocks",
+            "type": "array"
+          },
+          "schema_version": {
+            "default": 1,
+            "maximum": 1,
+            "minimum": 1,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "blocks"
+        ],
+        "title": "KhmerRenderingRequest",
+        "type": "object"
+      },
+      "KhmerRenderingResponse": {
+        "additionalProperties": false,
+        "description": "Machine-generated Khmer Rendering of Printed Text. Not Khmer Translation; not stored.",
+        "properties": {
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/KhmerRenderedBlock"
+            },
+            "maxItems": 24,
+            "title": "Blocks",
+            "type": "array"
+          },
+          "configuration_version": {
+            "default": "label-khmer-rendering-v1",
+            "title": "Configuration Version",
+            "type": "string"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "schema_version": {
+            "default": 1,
+            "maximum": 1.0,
+            "minimum": 1.0,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "blocks"
+        ],
+        "title": "KhmerRenderingResponse",
+        "type": "object"
+      },
+      "KhmerRenderingState": {
+        "enum": [
+          "rendered",
+          "not_needed",
+          "unavailable"
+        ],
+        "title": "KhmerRenderingState",
+        "type": "string"
+      },
+      "LabelAllergenMention": {
+        "additionalProperties": false,
+        "description": "One allergen-group mention found by the deterministic ingredient matcher.",
+        "properties": {
+          "allergen_tags": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "minItems": 1,
+            "title": "Allergen Tags",
+            "type": "array"
+          },
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,128}$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "matched_text": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Matched Text",
+            "type": "string"
+          },
+          "qualification": {
+            "enum": [
+              "positive_mention",
+              "precautionary_statement",
+              "negated_mention",
+              "unresolved_context"
+            ],
+            "title": "Qualification",
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_id",
+          "matched_text",
+          "allergen_tags",
+          "qualification"
+        ],
+        "title": "LabelAllergenMention",
+        "type": "object"
+      },
+      "LabelAllergenMentions": {
+        "additionalProperties": false,
+        "properties": {
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "mentions": {
+            "items": {
+              "$ref": "#/components/schemas/LabelAllergenMention"
+            },
+            "maxItems": 128,
+            "title": "Mentions",
+            "type": "array"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "state": {
+            "$ref": "#/components/schemas/AllergenMentionsState",
+            "default": "not_checked"
+          }
+        },
+        "title": "LabelAllergenMentions",
+        "type": "object"
+      },
+      "LabelReading": {
+        "additionalProperties": false,
+        "properties": {
+          "allergen_mentions": {
+            "$ref": "#/components/schemas/LabelAllergenMentions"
+          },
+          "allergen_statements": {
+            "items": {
+              "$ref": "#/components/schemas/PrintedAllergenStatement"
+            },
+            "maxItems": 8,
+            "title": "Allergen Statements",
+            "type": "array"
+          },
+          "configuration_version": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Configuration Version"
+          },
+          "identity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductIdentity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/ImageEvidence"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Images",
+            "type": "array"
+          },
+          "ingredients": {
+            "items": {
+              "$ref": "#/components/schemas/PrintedTextBlock"
+            },
+            "maxItems": 8,
+            "title": "Ingredients",
+            "type": "array"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "nutrition_columns": {
+            "items": {
+              "$ref": "#/components/schemas/NutritionColumn"
+            },
+            "maxItems": 8,
+            "title": "Nutrition Columns",
+            "type": "array"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/ExtractionOutcome"
+          },
+          "package_quantity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Quantity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "printed_facts": {
+            "items": {
+              "$ref": "#/components/schemas/PrintedFact"
+            },
+            "maxItems": 16,
+            "title": "Printed Facts",
+            "type": "array"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "retake_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Retake Reasons",
+            "type": "array"
+          },
+          "schema_version": {
+            "default": 1,
+            "maximum": 1.0,
+            "minimum": 1.0,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "images",
+          "outcome"
+        ],
+        "title": "LabelReading",
+        "type": "object"
+      },
       "MeasurementUnit": {
         "enum": [
           "g",
@@ -1901,6 +2323,16 @@
         "title": "PhotoComparisonErrorResponse",
         "type": "object"
       },
+      "PhotoRole": {
+        "enum": [
+          "package_front",
+          "package_back",
+          "package_side",
+          "unspecified"
+        ],
+        "title": "PhotoRole",
+        "type": "string"
+      },
       "PreparationState": {
         "enum": [
           "as_sold",
@@ -1909,6 +2341,183 @@
         ],
         "title": "PreparationState",
         "type": "string"
+      },
+      "PrintedAllergenStatement": {
+        "additionalProperties": false,
+        "properties": {
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,128}$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidencePointer"
+            },
+            "maxItems": 16,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/AllergenStatementKind",
+            "default": "other"
+          },
+          "language": {
+            "default": "und",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Language",
+            "type": "string"
+          },
+          "original_script": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Script"
+          },
+          "state": {
+            "$ref": "#/components/schemas/FieldState",
+            "default": "readable"
+          }
+        },
+        "required": [
+          "block_id"
+        ],
+        "title": "PrintedAllergenStatement",
+        "type": "object"
+      },
+      "PrintedFact": {
+        "additionalProperties": false,
+        "properties": {
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,128}$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidencePointer"
+            },
+            "maxItems": 16,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/PrintedFactKind"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "language": {
+            "default": "und",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Language",
+            "type": "string"
+          },
+          "original_script": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Script"
+          },
+          "state": {
+            "$ref": "#/components/schemas/FieldState",
+            "default": "readable"
+          }
+        },
+        "required": [
+          "block_id",
+          "kind"
+        ],
+        "title": "PrintedFact",
+        "type": "object"
+      },
+      "PrintedFactKind": {
+        "enum": [
+          "serving_size",
+          "servings_per_package",
+          "storage_instructions",
+          "country_of_origin",
+          "manufacturer",
+          "importer"
+        ],
+        "title": "PrintedFactKind",
+        "type": "string"
+      },
+      "PrintedTextBlock": {
+        "additionalProperties": false,
+        "description": "Printed Text transcribed verbatim from the photos, in one printed language.",
+        "properties": {
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,128}$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidencePointer"
+            },
+            "maxItems": 16,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "language": {
+            "default": "und",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Language",
+            "type": "string"
+          },
+          "original_script": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Script"
+          },
+          "state": {
+            "$ref": "#/components/schemas/FieldState",
+            "default": "readable"
+          }
+        },
+        "required": [
+          "block_id"
+        ],
+        "title": "PrintedTextBlock",
+        "type": "object"
       },
       "ProductIdentity": {
         "additionalProperties": false,
@@ -3225,6 +3834,230 @@
         "summary": "Ready",
         "tags": [
           "Operations"
+        ]
+      }
+    },
+    "/api/v1/label-readings": {
+      "post": {
+        "description": "Returns a Label Reading: Photo Evidence transcribed from the Shopper's photos by the configured AI provider. It is not an Open Food Facts Source Record, is not verified, and is not retained. The request carries no Product or Barcode identifier.",
+        "operationId": "createLabelReading",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_createLabelReading"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabelReading"
+                }
+              }
+            },
+            "description": "Label Reading: complete, partial, or retake-required."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Unsupported Media Type"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "summary": "Read one Product's printed label from package photos",
+        "tags": [
+          "Read This Label"
+        ]
+      }
+    },
+    "/api/v1/label-readings/khmer-renderings": {
+      "post": {
+        "description": "Returns a machine-generated Khmer Rendering of Printed Text read from the Shopper's photos. It is not Khmer Translation and not verified label wording, and nothing is stored. Text already in Khmer script is not_needed; a block that fails validation is unavailable.",
+        "operationId": "renderLabelReadingKhmer",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KhmerRenderingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KhmerRenderingResponse"
+                }
+              }
+            },
+            "description": "Per-block Khmer Rendering states."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Unsupported Media Type"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "summary": "Render a Label Reading's Printed Text into Khmer",
+        "tags": [
+          "Read This Label"
         ]
       }
     },

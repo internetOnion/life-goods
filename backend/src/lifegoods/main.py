@@ -24,6 +24,17 @@ from lifegoods.ingredient_matching import (
     get_ingredient_matcher,
 )
 from lifegoods.ingredient_matching import router as ingredient_matching_router
+from lifegoods.label_reading.gemini import create_label_reading_provider
+from lifegoods.label_reading.khmer_rendering import (
+    KHMER_RENDERING_DEADLINE_SECONDS,
+    KhmerRenderingService,
+    create_khmer_rendering_provider,
+)
+from lifegoods.label_reading.router import (
+    build_label_reading_router,
+    install_label_reading_openapi,
+)
+from lifegoods.label_reading.service import LabelReadingProvider, LabelReadingService
 from lifegoods.open_food_facts import (
     ExternalImageSource,
     OpenFoodFactsDatasetSource,
@@ -45,6 +56,7 @@ from lifegoods.photo_comparison.rate_limit import (
     RedisPhotoComparisonRateLimiter,
 )
 from lifegoods.photo_comparison.router import (
+    LABEL_READING_PATH,
     PhotoComparisonUploadLimitMiddleware,
     install_photo_comparison_openapi,
     is_photo_upload_path,
@@ -123,6 +135,8 @@ def create_app(
     photo_provider: PhotoExtractionProvider | None = None,
     photo_rate_limiter: PhotoComparisonRateLimiter | None = None,
     photo_capacity: ProviderCapacityProtocol | None = None,
+    label_reading_provider: LabelReadingProvider | None = None,
+    khmer_rendering_provider: TranslationProvider | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings()
     install_product_lookup_access_log_filter()
@@ -258,6 +272,31 @@ def create_app(
         admission=photo_admission,
     )
     photo_comparison_service = PhotoComparisonService()
+    resolved_label_reading_provider = label_reading_provider
+    if resolved_label_reading_provider is None and resolved_settings.gemini_api_key:
+        label_reading_client = httpx.Client(timeout=PHOTO_TIMEOUT_SECONDS)
+        owned_http_clients.append(label_reading_client)
+        resolved_label_reading_provider = create_label_reading_provider(
+            resolved_settings.gemini_api_key,
+            http_client=label_reading_client,
+        )
+    resolved_khmer_rendering_provider = khmer_rendering_provider
+    if resolved_khmer_rendering_provider is None and resolved_settings.gemini_api_key:
+        khmer_rendering_client = httpx.Client(timeout=KHMER_RENDERING_DEADLINE_SECONDS)
+        owned_http_clients.append(khmer_rendering_client)
+        resolved_khmer_rendering_provider = create_khmer_rendering_provider(
+            resolved_settings.gemini_api_key,
+            http_client=khmer_rendering_client,
+        )
+    khmer_rendering_service = KhmerRenderingService(
+        resolved_khmer_rendering_provider,
+        admission=photo_admission,
+    )
+    label_reading_service = LabelReadingService(
+        resolved_label_reading_provider,
+        admission=photo_admission,
+        ingredient_matcher=resolved_ingredient_matcher,
+    )
 
     app = FastAPI(title="Life Goods API", version="0.1.0")
     readiness_probe = ReadinessProbe(resolved_settings)
@@ -285,7 +324,13 @@ def create_app(
             photo_comparison_service,
         )
     )
+    app.include_router(
+        build_label_reading_router(
+            label_reading_service, khmer_rendering_service, path=LABEL_READING_PATH
+        )
+    )
     install_photo_comparison_openapi(app)
+    install_label_reading_openapi(app)
 
     @app.get("/scalar", include_in_schema=False)
     async def scalar_html() -> HTMLResponse:

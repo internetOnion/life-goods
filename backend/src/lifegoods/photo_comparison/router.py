@@ -7,7 +7,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from lifegoods.photo_comparison.contracts import (
@@ -30,6 +30,7 @@ from lifegoods.photo_comparison.images import (
     MAX_PHOTO_BYTES,
     MAX_UPLOAD_BYTES,
     ImageValidationError,
+    PreparedImage,
     prepare_image,
 )
 from lifegoods.photo_comparison.normalization import ProviderOutputError
@@ -44,10 +45,17 @@ from lifegoods.photo_comparison.service import (
 EXTRACTION_PATH = "/api/v1/photo-comparison/extractions"
 COMPARISON_PATH = "/api/v1/photo-comparison/comparisons"
 EXPERIMENTAL_PREFIX = "/api/experimental/photo-comparison"
+LABEL_READING_PATH = "/api/v1/label-readings"
+EXPERIMENTAL_LABEL_READING_PATH = "/api/experimental/label-readings"
 # Multipart photo-upload routes. Each one gets the pre-parse body cap and the
 # typed photo error envelope; new upload routes must be added here.
 PHOTO_UPLOAD_PATHS: frozenset[str] = frozenset(
-    {EXTRACTION_PATH, f"{EXPERIMENTAL_PREFIX}/extractions"}
+    {
+        EXTRACTION_PATH,
+        f"{EXPERIMENTAL_PREFIX}/extractions",
+        LABEL_READING_PATH,
+        EXPERIMENTAL_LABEL_READING_PATH,
+    }
 )
 
 
@@ -174,7 +182,7 @@ _COMPARISON_REQUEST_SCHEMA = ComparisonRequest.model_json_schema(
 )
 _COMPARISON_REQUEST_SCHEMA.pop("$defs", None)
 
-def _error(
+def error_response(
     code: PhotoComparisonErrorCode,
     message: str,
     status_code: int,
@@ -253,19 +261,16 @@ def install_photo_comparison_openapi(app: FastAPI) -> None:
 
     def openapi() -> dict[str, Any]:
         schema = original_openapi()
-        body_schema = (
-            schema.get("components", {})
-            .get("schemas", {})
-            .get("Body_extractPhotoComparison", {})
-        )
-        photos = body_schema.get("properties", {}).get("photos", {})
-        items = photos.get("items")
-        if isinstance(items, dict):
-            items.pop("contentMediaType", None)
-            items["format"] = "binary"
-        if isinstance(photos, dict):
-            photos["minItems"] = 1
-            photos["maxItems"] = MAX_PHOTOS_PER_PRODUCT
+        schemas = schema.get("components", {}).get("schemas", {})
+        for body_name in ("Body_extractPhotoComparison", "Body_createLabelReading"):
+            photos = schemas.get(body_name, {}).get("properties", {}).get("photos", {})
+            items = photos.get("items")
+            if isinstance(items, dict):
+                items.pop("contentMediaType", None)
+                items["format"] = "binary"
+            if isinstance(photos, dict) and photos:
+                photos["minItems"] = 1
+                photos["maxItems"] = MAX_PHOTOS_PER_PRODUCT
         return schema
 
     app.openapi = openapi
@@ -279,7 +284,7 @@ def _header_value(scope: Scope, name: bytes) -> str | None:
 
 
 async def _send_error_response(scope: Scope, receive: Receive, send: Send) -> None:
-    response = _error(
+    response = error_response(
         PhotoComparisonErrorCode.SIZE_LIMIT_EXCEEDED,
         "The upload request must be 32 MiB or smaller.",
         413,
@@ -293,22 +298,22 @@ def photo_comparison_http_exception_response(
     if not is_photo_upload_path(path):
         return None
     if status_code == 413:
-        return _error(
+        return error_response(
             PhotoComparisonErrorCode.SIZE_LIMIT_EXCEEDED,
             "The upload request must be 32 MiB or smaller.",
             413,
         )
-    return _error(
+    return error_response(
         PhotoComparisonErrorCode.REQUEST_INVALID,
         "The photo-comparison request is invalid.",
         422,
     )
 
 
-def _success(model: Extraction | ComparisonResponse) -> JSONResponse:
+def success_response(model: BaseModel) -> JSONResponse:
     body = model.model_dump_json().encode("utf-8")
     if len(body) > MAX_EXTRACTION_RESPONSE_BYTES:
-        return _error(
+        return error_response(
             PhotoComparisonErrorCode.INTERNAL_ERROR,
             "The photo-comparison response exceeded the local response limit.",
             500,
@@ -353,6 +358,75 @@ def _read_upload(upload: UploadFile, remaining: int) -> bytes:
             "The upload request must be 32 MiB or smaller.", size_limit=True
         )
     return b"".join(chunks)
+
+
+def prepare_uploads(
+    request: Request, uploads: list[UploadFile]
+) -> list[PreparedImage] | JSONResponse:
+    """Enforce photo count and size limits, then prepare each image for a provider.
+
+    Image validation errors propagate to ``photo_error_response``.
+    """
+    content_length = _content_length(request)
+    if content_length is not None and content_length > MAX_UPLOAD_BYTES:
+        return error_response(
+            PhotoComparisonErrorCode.SIZE_LIMIT_EXCEEDED,
+            "The upload request must be 32 MiB or smaller.",
+            413,
+        )
+    if not 1 <= len(uploads) <= MAX_PHOTOS_PER_PRODUCT:
+        return error_response(
+            PhotoComparisonErrorCode.REQUEST_INVALID,
+            f"Submit between one and {MAX_PHOTOS_PER_PRODUCT} photos for one Product.",
+            422,
+        )
+    prepared: list[PreparedImage] = []
+    total_bytes = 0
+    for upload in uploads:
+        data = _read_upload(upload, MAX_UPLOAD_BYTES - total_bytes)
+        total_bytes += len(data)
+        if total_bytes > MAX_UPLOAD_BYTES:
+            return error_response(
+                PhotoComparisonErrorCode.SIZE_LIMIT_EXCEEDED,
+                "The upload request must be 32 MiB or smaller.",
+                413,
+            )
+        prepared.append(prepare_image(data, declared_content_type=upload.content_type))
+    return prepared
+
+
+def photo_error_response(error: Exception) -> JSONResponse:
+    """Map a photo-operation failure to the typed, sanitized error envelope."""
+    if isinstance(error, ImageValidationError):
+        if error.unsupported_format:
+            return error_response(
+                PhotoComparisonErrorCode.UNSUPPORTED_IMAGE_FORMAT, str(error), 415
+            )
+        if error.size_limit:
+            return error_response(PhotoComparisonErrorCode.SIZE_LIMIT_EXCEEDED, str(error), 413)
+        return error_response(PhotoComparisonErrorCode.REQUEST_INVALID, str(error), 422)
+    if isinstance(error, MissingCredentialsError):
+        return error_response(PhotoComparisonErrorCode.PROVIDER_UNAVAILABLE, str(error), 503)
+    if isinstance(error, ExtractionRateLimitError):
+        return error_response(
+            PhotoComparisonErrorCode.RATE_LIMIT_EXCEEDED,
+            str(error),
+            429,
+            headers={"Retry-After": str(error.retry_after)},
+        )
+    if isinstance(error, ExtractionCapacityError):
+        return error_response(PhotoComparisonErrorCode.CAPACITY_LIMIT_EXCEEDED, str(error), 429)
+    if isinstance(error, PhotoProviderTimeout):
+        return error_response(PhotoComparisonErrorCode.PROVIDER_TIMEOUT, str(error), 504)
+    if isinstance(error, (PhotoProviderUnavailable, OSError)):
+        return error_response(PhotoComparisonErrorCode.PROVIDER_UNAVAILABLE, str(error), 503)
+    if isinstance(error, (PhotoProviderOutputInvalid, ProviderOutputError, ValidationError)):
+        return error_response(PhotoComparisonErrorCode.PROVIDER_OUTPUT_INVALID, str(error), 502)
+    return error_response(
+        PhotoComparisonErrorCode.INTERNAL_ERROR,
+        "The photo-comparison request could not be completed.",
+        500,
+    )
 
 
 def build_router(
@@ -471,86 +545,28 @@ def build_router(
         ],
     ) -> JSONResponse:
         uploads = photos
-        content_length = _content_length(request)
-        if content_length is not None and content_length > MAX_UPLOAD_BYTES:
-            return _error(
-                PhotoComparisonErrorCode.SIZE_LIMIT_EXCEEDED,
-                "The upload request must be 32 MiB or smaller.",
-                413,
-            )
         if not product_id or len(product_id) > 128:
-            return _error(
+            for upload in uploads:
+                upload.file.close()
+            return error_response(
                 PhotoComparisonErrorCode.REQUEST_INVALID,
                 "A Product panel identifier is required.",
                 422,
             )
-        if not 1 <= len(uploads) <= MAX_PHOTOS_PER_PRODUCT:
-            return _error(
-                PhotoComparisonErrorCode.REQUEST_INVALID,
-                f"Submit between one and {MAX_PHOTOS_PER_PRODUCT} photos for one Product.",
-                422,
-            )
-
-        prepared = []
-        total_bytes = 0
+        prepared: list[PreparedImage] = []
         try:
-            for upload in uploads:
-                data = _read_upload(upload, MAX_UPLOAD_BYTES - total_bytes)
-                total_bytes += len(data)
-                if total_bytes > MAX_UPLOAD_BYTES:
-                    return _error(
-                        PhotoComparisonErrorCode.SIZE_LIMIT_EXCEEDED,
-                        "The upload request must be 32 MiB or smaller.",
-                        413,
-                    )
-                prepared.append(prepare_image(data, declared_content_type=upload.content_type))
+            outcome = prepare_uploads(request, uploads)
+            if isinstance(outcome, JSONResponse):
+                return outcome
+            prepared = outcome
             extraction = extraction_service.extract(
                 product_id,
                 prepared,
-                rate_limit_key=_client_address(request),
+                rate_limit_key=client_address(request),
             )
-            return _success(extraction)
-        except ImageValidationError as error:
-            code = (
-                PhotoComparisonErrorCode.UNSUPPORTED_IMAGE_FORMAT
-                if error.unsupported_format
-                else (
-                    PhotoComparisonErrorCode.SIZE_LIMIT_EXCEEDED
-                    if error.size_limit
-                    else PhotoComparisonErrorCode.REQUEST_INVALID
-                )
-            )
-            status = (
-                415
-                if code is PhotoComparisonErrorCode.UNSUPPORTED_IMAGE_FORMAT
-                else 413
-                if code is PhotoComparisonErrorCode.SIZE_LIMIT_EXCEEDED
-                else 422
-            )
-            return _error(code, str(error), status)
-        except MissingCredentialsError as error:
-            return _error(PhotoComparisonErrorCode.PROVIDER_UNAVAILABLE, str(error), 503)
-        except ExtractionRateLimitError as error:
-            return _error(
-                PhotoComparisonErrorCode.RATE_LIMIT_EXCEEDED,
-                str(error),
-                429,
-                headers={"Retry-After": str(error.retry_after)},
-            )
-        except ExtractionCapacityError as error:
-            return _error(PhotoComparisonErrorCode.CAPACITY_LIMIT_EXCEEDED, str(error), 429)
-        except PhotoProviderTimeout as error:
-            return _error(PhotoComparisonErrorCode.PROVIDER_TIMEOUT, str(error), 504)
-        except (PhotoProviderUnavailable, OSError) as error:
-            return _error(PhotoComparisonErrorCode.PROVIDER_UNAVAILABLE, str(error), 503)
-        except (PhotoProviderOutputInvalid, ProviderOutputError, ValidationError) as error:
-            return _error(PhotoComparisonErrorCode.PROVIDER_OUTPUT_INVALID, str(error), 502)
-        except Exception:
-            return _error(
-                PhotoComparisonErrorCode.INTERNAL_ERROR,
-                "The photo-comparison request could not be completed.",
-                500,
-            )
+            return success_response(extraction)
+        except Exception as error:
+            return photo_error_response(error)
         finally:
             for upload in uploads:
                 upload.file.close()
@@ -596,7 +612,7 @@ def build_router(
     async def compare_extractions(request: Request) -> JSONResponse:
         content_length = _content_length(request)
         if content_length is not None and content_length > MAX_COMPARISON_REQUEST_BYTES:
-            return _error(
+            return error_response(
                 PhotoComparisonErrorCode.SIZE_LIMIT_EXCEEDED,
                 "The comparison request must be 1 MiB or smaller.",
                 413,
@@ -606,22 +622,22 @@ def build_router(
             async for chunk in request.stream():
                 body.extend(chunk)
                 if len(body) > MAX_COMPARISON_REQUEST_BYTES:
-                    return _error(
+                    return error_response(
                         PhotoComparisonErrorCode.SIZE_LIMIT_EXCEEDED,
                         "The comparison request must be 1 MiB or smaller.",
                         413,
                     )
             parsed = ComparisonRequest.model_validate_json(bytes(body))
         except (ValidationError, ValueError, UnicodeDecodeError):
-            return _error(
+            return error_response(
                 PhotoComparisonErrorCode.REQUEST_INVALID,
                 "The comparison request is invalid.",
                 422,
             )
         try:
-            return _success(comparison_service.compare(parsed))
+            return success_response(comparison_service.compare(parsed))
         except Exception:
-            return _error(
+            return error_response(
                 PhotoComparisonErrorCode.INTERNAL_ERROR,
                 "The comparison request could not be completed.",
                 500,
@@ -630,17 +646,24 @@ def build_router(
     return router
 
 
-def _client_address(request: Request) -> str:
+def client_address(request: Request) -> str:
     return request.client.host if request.client is not None else "unknown"
 
 
 __all__ = [
     "COMPARISON_PATH",
     "EXPERIMENTAL_PREFIX",
+    "EXPERIMENTAL_LABEL_READING_PATH",
     "EXTRACTION_PATH",
+    "LABEL_READING_PATH",
     "PHOTO_UPLOAD_PATHS",
     "PhotoComparisonUploadLimitMiddleware",
     "build_router",
+    "error_response",
+    "client_address",
+    "photo_error_response",
+    "prepare_uploads",
+    "success_response",
     "install_photo_comparison_openapi",
     "is_photo_upload_path",
     "photo_comparison_http_exception_response",
