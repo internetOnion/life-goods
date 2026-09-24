@@ -26,7 +26,12 @@ from lifegoods.photo_comparison.contracts import (
 )
 
 LABEL_READING_CONFIGURATION_VERSION = "label-reading-v1"
+KHMER_RENDERING_CONFIGURATION_VERSION = "label-khmer-rendering-v1"
 MAX_PRINTED_TEXT_LENGTH = 4096
+MAX_RENDERING_BLOCKS = 24
+MAX_RENDERING_BLOCK_LENGTH = 2000
+MAX_RENDERING_TOTAL_LENGTH = 8000
+MAX_RENDERING_REQUEST_BYTES = 64 * 1024
 
 
 class PhotoRole(StrEnum):
@@ -181,8 +186,65 @@ class LabelReading(PhotoComparisonModel):
         return self
 
 
+class KhmerRenderingState(StrEnum):
+    RENDERED = "rendered"
+    NOT_NEEDED = "not_needed"
+    UNAVAILABLE = "unavailable"
+
+
+class KhmerRenderingBlockInput(PhotoComparisonModel):
+    """Printed Text sent for Khmer Rendering. It carries no Product or Barcode identifier."""
+
+    block_id: OpaqueIdentifier
+    text: str = Field(min_length=1, max_length=MAX_RENDERING_BLOCK_LENGTH)
+    language: str = Field(default="und", min_length=1, max_length=32)
+
+
+class KhmerRenderingRequest(PhotoComparisonModel):
+    schema_version: int = Field(default=1, ge=1, le=1)
+    blocks: list[KhmerRenderingBlockInput] = Field(
+        min_length=1, max_length=MAX_RENDERING_BLOCKS
+    )
+
+    @model_validator(mode="after")
+    def _validate_blocks(self) -> KhmerRenderingRequest:
+        if len({block.block_id for block in self.blocks}) != len(self.blocks):
+            raise ValueError("block IDs must be unique within a Khmer Rendering request")
+        if sum(len(block.text) for block in self.blocks) > MAX_RENDERING_TOTAL_LENGTH:
+            raise ValueError("Khmer Rendering text is too long")
+        return self
+
+
+class KhmerRenderedBlock(PhotoComparisonModel):
+    block_id: OpaqueIdentifier
+    state: KhmerRenderingState
+    khmer_text: str | None = Field(default=None, max_length=MAX_PRINTED_TEXT_LENGTH)
+
+    @model_validator(mode="after")
+    def _text_only_when_rendered(self) -> KhmerRenderedBlock:
+        if (self.state is KhmerRenderingState.RENDERED) != bool(self.khmer_text):
+            raise ValueError("only rendered blocks carry Khmer text")
+        return self
+
+
+class KhmerRenderingResponse(PhotoComparisonModel):
+    """Machine-generated Khmer Rendering of Printed Text. Not Khmer Translation; not stored."""
+
+    schema_version: int = Field(default=1, ge=1, le=1)
+    blocks: list[KhmerRenderedBlock] = Field(max_length=MAX_RENDERING_BLOCKS)
+    provider: str | None = Field(default=None, max_length=128)
+    model: str | None = Field(default=None, max_length=128)
+    configuration_version: str = KHMER_RENDERING_CONFIGURATION_VERSION
+
+
 __all__ = [
+    "KHMER_RENDERING_CONFIGURATION_VERSION",
     "LABEL_READING_CONFIGURATION_VERSION",
+    "KhmerRenderedBlock",
+    "KhmerRenderingBlockInput",
+    "KhmerRenderingRequest",
+    "KhmerRenderingResponse",
+    "KhmerRenderingState",
     "AllergenMentionsState",
     "AllergenStatementKind",
     "LabelAllergenMention",

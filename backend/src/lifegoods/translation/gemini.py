@@ -73,6 +73,7 @@ class GeminiTranslationAdapter:
         http_client: httpx.Client | None = None,
         backoff_seconds: float = 0.1,
         sleep_func: Callable[[float], None] = time.sleep,
+        max_attempts: int = 2,
     ) -> None:
         lower_model = model.lower()
         if "gemini-2.0-flash" in lower_model:
@@ -82,7 +83,10 @@ class GeminiTranslationAdapter:
                 f"Moving alias '{model}' is rejected. Standardize on an exact stable model."
             )
 
+        if max_attempts not in {1, 2}:
+            raise ValueError("Gemini translation makes one or two provider attempts.")
         TranslationDeadline(timeout_seconds)
+        self._max_attempts = max_attempts
         self._sleep_func = sleep_func
         self._api_key = api_key
         self._model = model
@@ -171,7 +175,7 @@ class GeminiTranslationAdapter:
         start_time = time.perf_counter()
         last_error: str | None = None
 
-        for attempt in range(2):
+        for attempt in range(self._max_attempts):
             try:
                 remaining_timeout = min(self._timeout_seconds, deadline.remaining())
                 resp = deadline.run(
@@ -331,7 +335,10 @@ class GeminiTranslationAdapter:
                     )
 
                 # Non-200 response
-                if resp.status_code in RETRYABLE_STATUS_CODES and attempt == 0:
+                if (
+                    resp.status_code in RETRYABLE_STATUS_CODES
+                    and attempt + 1 < self._max_attempts
+                ):
                     jitter = random.uniform(0.8, 1.2)
                     deadline.sleep(self._backoff_seconds * jitter, self._sleep_func)
                     continue
@@ -378,7 +385,7 @@ class GeminiTranslationAdapter:
                     if isinstance(error, httpx.TimeoutException)
                     else "Provider network error"
                 )
-                if attempt == 0:
+                if attempt + 1 < self._max_attempts:
                     jitter = random.uniform(0.8, 1.2)
                     deadline.sleep(self._backoff_seconds * jitter, self._sleep_func)
                     continue
@@ -403,14 +410,14 @@ class GeminiTranslationAdapter:
         self._log_failure(
             request,
             "timeout" if last_error == "Provider timed out" else "network_error",
-            attempts=2,
+            attempts=self._max_attempts,
             input_bytes=len(body_bytes),
             latency_ms=elapsed_ms,
         )
         return ProviderTranslationResponse(
             translations={},
             latency_ms=elapsed_ms,
-            attempts=2,
+            attempts=self._max_attempts,
             status="error",
             error_message=last_error or "Translation request failed after retries",
             timed_out=last_error == "Provider timed out",

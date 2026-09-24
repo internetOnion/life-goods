@@ -1387,6 +1387,161 @@
         "title": "IngredientMatchingAllergenResponse",
         "type": "object"
       },
+      "KhmerRenderedBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,128}$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "khmer_text": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Khmer Text"
+          },
+          "state": {
+            "$ref": "#/components/schemas/KhmerRenderingState"
+          }
+        },
+        "required": [
+          "block_id",
+          "state"
+        ],
+        "title": "KhmerRenderedBlock",
+        "type": "object"
+      },
+      "KhmerRenderingBlockInput": {
+        "additionalProperties": false,
+        "description": "Printed Text sent for Khmer Rendering. It carries no Product or Barcode identifier.",
+        "properties": {
+          "block_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,128}$",
+            "title": "Block Id",
+            "type": "string"
+          },
+          "language": {
+            "default": "und",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Language",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_id",
+          "text"
+        ],
+        "title": "KhmerRenderingBlockInput",
+        "type": "object"
+      },
+      "KhmerRenderingRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/KhmerRenderingBlockInput"
+            },
+            "maxItems": 24,
+            "minItems": 1,
+            "title": "Blocks",
+            "type": "array"
+          },
+          "schema_version": {
+            "default": 1,
+            "maximum": 1,
+            "minimum": 1,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "blocks"
+        ],
+        "title": "KhmerRenderingRequest",
+        "type": "object"
+      },
+      "KhmerRenderingResponse": {
+        "additionalProperties": false,
+        "description": "Machine-generated Khmer Rendering of Printed Text. Not Khmer Translation; not stored.",
+        "properties": {
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/KhmerRenderedBlock"
+            },
+            "maxItems": 24,
+            "title": "Blocks",
+            "type": "array"
+          },
+          "configuration_version": {
+            "default": "label-khmer-rendering-v1",
+            "title": "Configuration Version",
+            "type": "string"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "schema_version": {
+            "default": 1,
+            "maximum": 1.0,
+            "minimum": 1.0,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "blocks"
+        ],
+        "title": "KhmerRenderingResponse",
+        "type": "object"
+      },
+      "KhmerRenderingState": {
+        "enum": [
+          "rendered",
+          "not_needed",
+          "unavailable"
+        ],
+        "title": "KhmerRenderingState",
+        "type": "string"
+      },
       "LabelAllergenMention": {
         "additionalProperties": false,
         "description": "One allergen-group mention found by the deterministic ingredient matcher.",
@@ -3789,6 +3944,118 @@
           }
         },
         "summary": "Read one Product's printed label from package photos",
+        "tags": [
+          "Read This Label"
+        ]
+      }
+    },
+    "/api/v1/label-readings/khmer-renderings": {
+      "post": {
+        "description": "Returns a machine-generated Khmer Rendering of Printed Text read from the Shopper's photos. It is not Khmer Translation and not verified label wording, and nothing is stored. Text already in Khmer script is not_needed; a block that fails validation is unavailable.",
+        "operationId": "renderLabelReadingKhmer",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KhmerRenderingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KhmerRenderingResponse"
+                }
+              }
+            },
+            "description": "Per-block Khmer Rendering states."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Unsupported Media Type"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoComparisonErrorResponse"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "summary": "Render a Label Reading's Printed Text into Khmer",
         "tags": [
           "Read This Label"
         ]

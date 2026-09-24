@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { ComparePhotoComparisonData, ComparePhotoComparisonErrors, ComparePhotoComparisonResponses, CreateLabelReadingData, CreateLabelReadingErrors, CreateLabelReadingResponses, ExtractPhotoComparisonData, ExtractPhotoComparisonErrors, ExtractPhotoComparisonResponses, GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetProductData, GetProductErrors, GetProductResponses, LiveApiHealthLiveGetData, LiveApiHealthLiveGetResponses, MatchExperimentalIngredientsData, MatchExperimentalIngredientsErrors, MatchExperimentalIngredientsResponses, ReadyApiHealthReadyGetData, ReadyApiHealthReadyGetErrors, ReadyApiHealthReadyGetResponses, SearchProductsData, SearchProductsErrors, SearchProductsResponses } from './types.gen';
+import type { ComparePhotoComparisonData, ComparePhotoComparisonErrors, ComparePhotoComparisonResponses, CreateLabelReadingData, CreateLabelReadingErrors, CreateLabelReadingResponses, ExtractPhotoComparisonData, ExtractPhotoComparisonErrors, ExtractPhotoComparisonResponses, GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetProductData, GetProductErrors, GetProductResponses, LiveApiHealthLiveGetData, LiveApiHealthLiveGetResponses, MatchExperimentalIngredientsData, MatchExperimentalIngredientsErrors, MatchExperimentalIngredientsResponses, ReadyApiHealthReadyGetData, ReadyApiHealthReadyGetErrors, ReadyApiHealthReadyGetResponses, RenderLabelReadingKhmerData, RenderLabelReadingKhmerErrors, RenderLabelReadingKhmerResponses, SearchProductsData, SearchProductsErrors, SearchProductsResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -64,6 +64,21 @@ export const createLabelReading = <ThrowOnError extends boolean = false>(options
         ...options,
         headers: {
             'Content-Type': null,
+            ...options.headers
+        }
+    });
+};
+
+/**
+ * Render a Label Reading's Printed Text into Khmer
+ * Returns a machine-generated Khmer Rendering of Printed Text read from the Shopper's photos. It is not Khmer Translation and not verified label wording, and nothing is stored. Text already in Khmer script is not_needed; a block that fails validation is unavailable.
+ */
+export const renderLabelReadingKhmer = <ThrowOnError extends boolean = false>(options: Options<RenderLabelReadingKhmerData, ThrowOnError>) => {
+    return (options.client ?? client).post<RenderLabelReadingKhmerResponses, RenderLabelReadingKhmerErrors, ThrowOnError>({
+        url: '/api/v1/label-readings/khmer-renderings',
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
             ...options.headers
         }
     });

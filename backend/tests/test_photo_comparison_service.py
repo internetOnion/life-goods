@@ -527,6 +527,7 @@ def test_standalone_app_serves_only_local_photo_routes_and_browser_page() -> Non
     assert scalar.status_code == 200
     assert paths == [
         "/api/experimental/label-readings",
+        "/api/experimental/label-readings/khmer-renderings",
         "/api/experimental/photo-comparison/comparisons",
         "/api/experimental/photo-comparison/extractions",
     ]
