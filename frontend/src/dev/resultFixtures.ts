@@ -320,3 +320,30 @@ export const side = (
     retry: false,
     revision: 1,
 })
+
+/** Placeholder package photos for the waiting previews (inline SVG, no network). */
+const swatch = (fill: string, label: string) =>
+    `data:image/svg+xml;utf8,${encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="${fill}"/><text x="32" y="38" font-family="sans-serif" font-size="12" text-anchor="middle" fill="white">${label}</text></svg>`,
+    )}`
+
+export const previewPhotos = {
+    front: swatch("#b86a1a", "front"),
+    back: swatch("#315072", "back"),
+    side: swatch("#404c5b", "side"),
+    a: swatch("#7b440d", "A"),
+    b: swatch("#526073", "B"),
+}
+
+export const sideWithPhotos = (
+    id: "left" | "right",
+    title: string,
+    urls: string[],
+): ProductSideState => ({
+    ...side(id, title),
+    photos: urls.map((url, index) => ({
+        file: new File([], `photo-${index + 1}.jpg`),
+        url,
+        localId: `${id}-${index}`,
+    })),
+})
