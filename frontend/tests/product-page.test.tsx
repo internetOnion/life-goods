@@ -141,9 +141,11 @@ describe("Product page (life-goods-viewer layout)", () => {
                 "Open Food Facts calculations; not Life Goods judgments or purchase recommendations.",
             ),
         ).toBeVisible()
-        // Source Attribution is outside the tabs, so it is visible on every tab.
+        // Source Attribution lives on the Summary tab only.
         expect(
-            screen.getByRole("heading", { name: "Data Source & Citation" }),
+            within(summaryPanel).getByRole("heading", {
+                name: "Data Source & Citation",
+            }),
         ).toBeVisible()
         expect(
             within(summaryPanel).getByRole("link", {
@@ -289,10 +291,10 @@ describe("Product page (life-goods-viewer layout)", () => {
             }),
         ).toBeVisible()
         expect(
-            screen.getByRole("heading", {
+            screen.queryByRole("heading", {
                 name: "Data Source & Citation",
             }),
-        ).toBeVisible()
+        ).not.toBeInTheDocument()
         expect(
             within(labelsPanel).queryByText(
                 "https://world.openfoodfacts.org/product/4006381333931",
@@ -735,10 +737,10 @@ describe("Product page (life-goods-viewer layout)", () => {
         )
         const labels = screen.getByRole("tabpanel")
         expect(
-            screen.getByRole("heading", {
+            screen.queryByRole("heading", {
                 name: "Data Source & Citation",
             }),
-        ).toBeVisible()
+        ).not.toBeInTheDocument()
         expect(
             within(labels).queryByRole("heading", {
                 name: "Nutrition Facts Table",

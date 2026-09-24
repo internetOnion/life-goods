@@ -496,6 +496,7 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                         </CardContent>
                                     </Card>
                                 )}
+                                <ProvenanceCard candidate={candidate} />
                             </TabsContent>
 
                             {/* Tab 2: Ingredients */}
@@ -562,10 +563,6 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                 />
                             </TabsContent>
                         </Tabs>
-                        {/* Source Attribution stays visible whichever tab is open. */}
-                        <div className="mt-4">
-                            <ProvenanceCard candidate={candidate} />
-                        </div>
                     </div>
                 )}
             </Container>
