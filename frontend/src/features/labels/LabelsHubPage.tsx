@@ -1,4 +1,4 @@
-import { ArrowRight, Receipt, Scales } from "@phosphor-icons/react"
+import { ArrowRight, BookOpenText, Scales } from "@phosphor-icons/react"
 import type { Icon } from "@phosphor-icons/react"
 import { Link } from "react-router"
 
@@ -18,7 +18,7 @@ const modes: ReadonlyArray<{
 }> = [
     {
         to: appRoutes.labelsRead,
-        icon: Receipt,
+        icon: BookOpenText,
         titleKey: "readModeTitle",
         descriptionKey: "readModeDescription",
     },
