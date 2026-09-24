@@ -1,14 +1,16 @@
-# Adds applications beside the existing dataset deployment. Never owns MongoDB.
+# Production applications beside the shared dataset deployment. Never owns MongoDB.
+# Runs next to lifegoods-app-staging on the same VPS with its own subnet, Redis,
+# Tunnel, generated-data database and credentials (docs/production-deployment.md).
 services:
     backend:
         image: ${LIFEGOODS_BACKEND_IMAGE:?Set the commit-tagged backend image}
         restart: unless-stopped
-        env_file: ../secrets/app-staging/.env
+        env_file: ../secrets/app-prod/.env
         environment:
-            LIFEGOODS_ENVIRONMENT: staging
-            LIFEGOODS_TRUSTED_PROXY_CIDRS: '["172.30.85.3/32"]'
-            LIFEGOODS_GENERATED_TRANSLATION_BUDGET_PER_MINUTE: "5"
-            LIFEGOODS_PHOTO_COMPARISON_REQUESTS_PER_MINUTE: "2"
+            LIFEGOODS_ENVIRONMENT: production
+            LIFEGOODS_TRUSTED_PROXY_CIDRS: '["172.30.86.3/32"]'
+            LIFEGOODS_GENERATED_TRANSLATION_BUDGET_PER_MINUTE: ${LIFEGOODS_GENERATED_TRANSLATION_BUDGET_PER_MINUTE:-10}
+            LIFEGOODS_PHOTO_COMPARISON_REQUESTS_PER_MINUTE: ${LIFEGOODS_PHOTO_COMPARISON_REQUESTS_PER_MINUTE:-3}
         command:
             [
                 "uv",
@@ -28,7 +30,7 @@ services:
             ]
         networks:
             api:
-                ipv4_address: 172.30.85.2
+                ipv4_address: 172.30.86.2
             dataset: {}
             cache: {}
         healthcheck:
@@ -46,7 +48,6 @@ services:
         depends_on:
             redis:
                 condition: service_healthy
-        # Shares the 4 GiB VPS with production; keep staging stopped outside QA windows.
         mem_limit: 768m
         pids_limit: 256
         logging:
@@ -94,10 +95,10 @@ services:
                 "/run/secrets/tunnel-token",
             ]
         volumes:
-            - ../secrets/app-staging/tunnel-token:/run/secrets/tunnel-token:ro
+            - ../secrets/app-prod/tunnel-token:/run/secrets/tunnel-token:ro
         networks:
             api:
-                ipv4_address: 172.30.85.3
+                ipv4_address: 172.30.86.3
         mem_limit: 192m
         pids_limit: 128
         logging:
@@ -107,7 +108,7 @@ services:
 networks:
     api:
         ipam:
-            config: [{ subnet: "172.30.85.0/29" }]
+            config: [{ subnet: "172.30.86.0/29" }]
     cache:
         internal: true
     dataset:
