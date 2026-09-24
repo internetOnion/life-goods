@@ -13,6 +13,9 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from lifegoods.core.security import SecurityHeadersMiddleware, TrustedProxyClientMiddleware
 from lifegoods.core.settings import Settings
+from lifegoods.label_reading.gemini import create_label_reading_provider
+from lifegoods.label_reading.router import build_label_reading_router
+from lifegoods.label_reading.service import LabelReadingService
 from lifegoods.photo_comparison.contracts import (
     PhotoComparisonErrorCode,
     PhotoComparisonErrorDetail,
@@ -23,6 +26,7 @@ from lifegoods.photo_comparison.gemini import (
     create_photo_extraction_provider,
 )
 from lifegoods.photo_comparison.router import (
+    EXPERIMENTAL_LABEL_READING_PATH,
     EXPERIMENTAL_PREFIX,
     PhotoComparisonUploadLimitMiddleware,
     build_router,
@@ -48,6 +52,7 @@ def create_photo_comparison_app(
     *,
     settings: Settings | None = None,
     provider: Any | None = None,
+    label_reading_provider: Any | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings()
     owned_clients: list[httpx.Client] = []
@@ -62,6 +67,17 @@ def create_photo_comparison_app(
 
     photo_admission = PhotoProviderAdmission()
     extraction_service = PhotoExtractionService(resolved_provider, admission=photo_admission)
+    resolved_label_provider = label_reading_provider
+    if resolved_label_provider is None and resolved_settings.gemini_api_key:
+        label_client = httpx.Client(timeout=PHOTO_TIMEOUT_SECONDS)
+        owned_clients.append(label_client)
+        resolved_label_provider = create_label_reading_provider(
+            resolved_settings.gemini_api_key,
+            http_client=label_client,
+        )
+    label_reading_service = LabelReadingService(
+        resolved_label_provider, admission=photo_admission
+    )
     comparison_service = PhotoComparisonService()
     app = FastAPI(
         title="Life Goods Photo Comparison Lab",
@@ -82,6 +98,11 @@ def create_photo_comparison_app(
             extraction_service,
             comparison_service,
             prefix=EXPERIMENTAL_PREFIX,
+        )
+    )
+    app.include_router(
+        build_label_reading_router(
+            label_reading_service, path=EXPERIMENTAL_LABEL_READING_PATH
         )
     )
     install_photo_comparison_openapi(app)

@@ -102,6 +102,16 @@ export type AllergenInputResponse = {
 };
 
 /**
+ * AllergenMentionsState
+ */
+export type AllergenMentionsState = 'completed' | 'not_checked' | 'unavailable';
+
+/**
+ * AllergenStatementKind
+ */
+export type AllergenStatementKind = 'contains' | 'may_contain' | 'other';
+
+/**
  * AllergenUnmatchedSpanResponse
  */
 export type AllergenUnmatchedSpanResponse = {
@@ -117,6 +127,22 @@ export type AllergenUnmatchedSpanResponse = {
      * Text
      */
     text: string;
+};
+
+/**
+ * Body_createLabelReading
+ */
+export type BodyCreateLabelReading = {
+    /**
+     * Photo Roles
+     * Capture role of each photo, in the same order as photos.
+     */
+    photo_roles?: Array<PhotoRole> | null;
+    /**
+     * Photos
+     * One to 3 JPEG, PNG or HEIC photos of one Product's package, in capture order.
+     */
+    photos: Array<Blob | File>;
 };
 
 /**
@@ -647,6 +673,98 @@ export type IngredientMatchingAllergenResponse = {
 };
 
 /**
+ * LabelAllergenMention
+ * One allergen-group mention found by the deterministic ingredient matcher.
+ */
+export type LabelAllergenMention = {
+    /**
+     * Allergen Tags
+     */
+    allergen_tags: Array<string>;
+    /**
+     * Block Id
+     */
+    block_id: string;
+    /**
+     * Matched Text
+     */
+    matched_text: string;
+    /**
+     * Qualification
+     */
+    qualification: 'positive_mention' | 'precautionary_statement' | 'negated_mention' | 'unresolved_context';
+};
+
+/**
+ * LabelAllergenMentions
+ */
+export type LabelAllergenMentions = {
+    /**
+     * Limitations
+     */
+    limitations?: Array<string>;
+    /**
+     * Mentions
+     */
+    mentions?: Array<LabelAllergenMention>;
+    /**
+     * Reason
+     */
+    reason?: string | null;
+    state?: AllergenMentionsState;
+};
+
+/**
+ * LabelReading
+ */
+export type LabelReading = {
+    allergen_mentions?: LabelAllergenMentions;
+    /**
+     * Allergen Statements
+     */
+    allergen_statements?: Array<PrintedAllergenStatement>;
+    /**
+     * Configuration Version
+     */
+    configuration_version?: string | null;
+    identity?: ProductIdentity | null;
+    /**
+     * Images
+     */
+    images: Array<ImageEvidence>;
+    /**
+     * Ingredients
+     */
+    ingredients?: Array<PrintedTextBlock>;
+    /**
+     * Model
+     */
+    model?: string | null;
+    /**
+     * Nutrition Columns
+     */
+    nutrition_columns?: Array<NutritionColumn>;
+    outcome: ExtractionOutcome;
+    package_quantity?: Quantity | null;
+    /**
+     * Printed Facts
+     */
+    printed_facts?: Array<PrintedFact>;
+    /**
+     * Provider
+     */
+    provider?: string | null;
+    /**
+     * Retake Reasons
+     */
+    retake_reasons?: Array<string>;
+    /**
+     * Schema Version
+     */
+    schema_version?: number;
+};
+
+/**
  * MeasurementUnit
  */
 export type MeasurementUnit = 'g' | 'mg' | 'µg' | 'kg' | 'ml' | 'l' | 'kcal' | 'kJ' | '%' | 'count' | 'unknown';
@@ -892,9 +1010,95 @@ export type PhotoComparisonErrorResponse = {
 };
 
 /**
+ * PhotoRole
+ */
+export type PhotoRole = 'package_front' | 'package_back' | 'package_side' | 'unspecified';
+
+/**
  * PreparationState
  */
 export type PreparationState = 'as_sold' | 'as_prepared' | 'unknown';
+
+/**
+ * PrintedAllergenStatement
+ */
+export type PrintedAllergenStatement = {
+    /**
+     * Block Id
+     */
+    block_id: string;
+    /**
+     * Evidence
+     */
+    evidence?: Array<EvidencePointer>;
+    kind?: AllergenStatementKind;
+    /**
+     * Language
+     */
+    language?: string;
+    /**
+     * Original Script
+     */
+    original_script?: string | null;
+    state?: FieldState;
+};
+
+/**
+ * PrintedFact
+ */
+export type PrintedFact = {
+    /**
+     * Block Id
+     */
+    block_id: string;
+    /**
+     * Evidence
+     */
+    evidence?: Array<EvidencePointer>;
+    kind: PrintedFactKind;
+    /**
+     * Label
+     */
+    label?: string | null;
+    /**
+     * Language
+     */
+    language?: string;
+    /**
+     * Original Script
+     */
+    original_script?: string | null;
+    state?: FieldState;
+};
+
+/**
+ * PrintedFactKind
+ */
+export type PrintedFactKind = 'serving_size' | 'servings_per_package' | 'storage_instructions' | 'country_of_origin' | 'manufacturer' | 'importer';
+
+/**
+ * PrintedTextBlock
+ * Printed Text transcribed verbatim from the photos, in one printed language.
+ */
+export type PrintedTextBlock = {
+    /**
+     * Block Id
+     */
+    block_id: string;
+    /**
+     * Evidence
+     */
+    evidence?: Array<EvidencePointer>;
+    /**
+     * Language
+     */
+    language?: string;
+    /**
+     * Original Script
+     */
+    original_script?: string | null;
+    state?: FieldState;
+};
 
 /**
  * ProductIdentity
@@ -1528,6 +1732,59 @@ export type ReadyApiHealthReadyGetResponses = {
 };
 
 export type ReadyApiHealthReadyGetResponse = ReadyApiHealthReadyGetResponses[keyof ReadyApiHealthReadyGetResponses];
+
+export type CreateLabelReadingData = {
+    body: BodyCreateLabelReading;
+    path?: never;
+    query?: never;
+    url: '/api/v1/label-readings';
+};
+
+export type CreateLabelReadingErrors = {
+    /**
+     * Content Too Large
+     */
+    413: PhotoComparisonErrorResponse;
+    /**
+     * Unsupported Media Type
+     */
+    415: PhotoComparisonErrorResponse;
+    /**
+     * Unprocessable Content
+     */
+    422: PhotoComparisonErrorResponse;
+    /**
+     * Too Many Requests
+     */
+    429: PhotoComparisonErrorResponse;
+    /**
+     * Internal Server Error
+     */
+    500: PhotoComparisonErrorResponse;
+    /**
+     * Bad Gateway
+     */
+    502: PhotoComparisonErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: PhotoComparisonErrorResponse;
+    /**
+     * Gateway Timeout
+     */
+    504: PhotoComparisonErrorResponse;
+};
+
+export type CreateLabelReadingError = CreateLabelReadingErrors[keyof CreateLabelReadingErrors];
+
+export type CreateLabelReadingResponses = {
+    /**
+     * Label Reading: complete, partial, or retake-required.
+     */
+    200: LabelReading;
+};
+
+export type CreateLabelReadingResponse = CreateLabelReadingResponses[keyof CreateLabelReadingResponses];
 
 export type GetOpenFoodFactsImageData = {
     body?: never;

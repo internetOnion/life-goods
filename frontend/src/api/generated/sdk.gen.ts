@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { ComparePhotoComparisonData, ComparePhotoComparisonErrors, ComparePhotoComparisonResponses, ExtractPhotoComparisonData, ExtractPhotoComparisonErrors, ExtractPhotoComparisonResponses, GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetProductData, GetProductErrors, GetProductResponses, LiveApiHealthLiveGetData, LiveApiHealthLiveGetResponses, MatchExperimentalIngredientsData, MatchExperimentalIngredientsErrors, MatchExperimentalIngredientsResponses, ReadyApiHealthReadyGetData, ReadyApiHealthReadyGetErrors, ReadyApiHealthReadyGetResponses, SearchProductsData, SearchProductsErrors, SearchProductsResponses } from './types.gen';
+import type { ComparePhotoComparisonData, ComparePhotoComparisonErrors, ComparePhotoComparisonResponses, CreateLabelReadingData, CreateLabelReadingErrors, CreateLabelReadingResponses, ExtractPhotoComparisonData, ExtractPhotoComparisonErrors, ExtractPhotoComparisonResponses, GetOpenFoodFactsImageData, GetOpenFoodFactsImageErrors, GetOpenFoodFactsImageResponses, GetProductData, GetProductErrors, GetProductResponses, LiveApiHealthLiveGetData, LiveApiHealthLiveGetResponses, MatchExperimentalIngredientsData, MatchExperimentalIngredientsErrors, MatchExperimentalIngredientsResponses, ReadyApiHealthReadyGetData, ReadyApiHealthReadyGetErrors, ReadyApiHealthReadyGetResponses, SearchProductsData, SearchProductsErrors, SearchProductsResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -50,6 +50,22 @@ export const readyApiHealthReadyGet = <ThrowOnError extends boolean = false>(opt
     return (options?.client ?? client).get<ReadyApiHealthReadyGetResponses, ReadyApiHealthReadyGetErrors, ThrowOnError>({
         url: '/api/health/ready',
         ...options
+    });
+};
+
+/**
+ * Read one Product's printed label from package photos
+ * Returns a Label Reading: Photo Evidence transcribed from the Shopper's photos by the configured AI provider. It is not an Open Food Facts Source Record, is not verified, and is not retained. The request carries no Product or Barcode identifier.
+ */
+export const createLabelReading = <ThrowOnError extends boolean = false>(options: Options<CreateLabelReadingData, ThrowOnError>) => {
+    return (options.client ?? client).post<CreateLabelReadingResponses, CreateLabelReadingErrors, ThrowOnError>({
+        ...formDataBodySerializer,
+        url: '/api/v1/label-readings',
+        ...options,
+        headers: {
+            'Content-Type': null,
+            ...options.headers
+        }
     });
 };
 
