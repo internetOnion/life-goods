@@ -285,6 +285,10 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
             )?.error?.code === "product_not_found")
 
     const navigateToScan = () => void navigate(appRoutes.home)
+    // The Barcode travels in in-memory navigation state, never the URL, and is
+    // shown for context only; it is never sent to the AI provider (SPEC §29).
+    const navigateToReadLabel = () =>
+        void navigate(appRoutes.labelsRead, { state: { barcode } })
 
     return (
         <div className="min-h-svh bg-neutral-50">
@@ -308,7 +312,12 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                     </div>
                 )}
 
-                {isNotFound && <NotFoundCard onBack={navigateToScan} />}
+                {isNotFound && (
+                    <NotFoundCard
+                        onBack={navigateToScan}
+                        onReadLabel={navigateToReadLabel}
+                    />
+                )}
 
                 {productQuery.isError && !isNotFound && (
                     <div className="space-y-4 pt-4">

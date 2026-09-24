@@ -13,7 +13,7 @@ export function SplashScreen() {
                     variant="primary"
                 />
                 <span className="animate-splash-wordmark-entrance motion-reduce:animate-splash-wordmark-reduced text-display-splash relative z-[1] leading-none font-extrabold tracking-[-0.04em] whitespace-nowrap text-neutral-950">
-                    Life Goods
+                    LifeGoods
                 </span>
             </div>
         </div>

@@ -26,14 +26,30 @@ _Avoid_: Package Match, verification, identification proof
 A request to find possible Products matching a Barcode, name, or brand in the selected Dataset Snapshot.
 _Avoid_: Live search, external query, catalog search
 
-## Comparison
+**Unmatched Barcode**:
+A Barcode that has no Source Record in the selected Dataset Snapshot. It says nothing about whether the Product exists, and it is not a field-level Source Data Unavailable state.
+_Avoid_: Source Data Unavailable, unknown product, invalid Barcode, not a real product
 
-**Compare Products**:
-A comparison of nutrition values read from photos of two Products, separate from Product Lookup, Product Search, and Source Record data.
-_Avoid_: Photo verification, package match, overall winner, Life Goods score
+## Nutrition Labels
+
+**Nutrition Labels**:
+The section where a Shopper reads one Product's nutrition label or compares two Products' nutrition labels, from their own photos.
+_Avoid_: Label check, verification, scanner
+
+**Read This Label**:
+A reading of nutrition values from a Shopper's photos of one Product's label, separate from Product Lookup, Product Search, and Source Record data.
+_Avoid_: Product Lookup, verification, package match, Source Record
+
+**Label Reading**:
+The result of Read This Label for one Product. It is Photo Evidence, not a Source Record or Original Text.
+_Avoid_: Source Record, Product information, verified label, transcription
+
+**Compare Nutrition**:
+A comparison of the nutrition values printed on two Products' labels, read from photos, separate from Product Lookup, Product Search, and Source Record data. It compares nutrition labels only, not Products as a whole.
+_Avoid_: Compare Products, product comparison, photo verification, package match, overall winner, Life Goods score
 
 **Photo Evidence**:
-Text and values extracted from a Shopper's label photos for Compare Products. It is not a Source Record or Original Text.
+Text and values extracted from a Shopper's label photos for Read This Label or Compare Nutrition. It is not a Source Record or Original Text.
 _Avoid_: Source Record, Original Text, verified label
 
 ## Source data
@@ -56,7 +72,7 @@ _Avoid_: Life Goods score, verified assessment, purchase verdict
 
 **Source Data Unavailable**:
 The state in which a field is absent from the Source Record. It says nothing about whether the Product has or lacks the corresponding property.
-_Avoid_: None, absent, safe, does not contain
+_Avoid_: None, absent, safe, does not contain, Unmatched Barcode
 
 ## Language
 

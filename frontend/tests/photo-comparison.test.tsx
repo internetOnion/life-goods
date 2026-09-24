@@ -11,25 +11,25 @@ import { MemoryRouter, useLocation, useNavigate } from "react-router"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 
 import { App } from "../src/app/App"
-import { CameraCaptureSheet } from "../src/features/photo-comparison/CameraCaptureSheet"
+import { CameraCaptureSheet } from "../src/features/photo-evidence/CameraCaptureSheet"
 import { ComparisonSection } from "../src/features/photo-comparison/ComparisonSection"
-import { PhotoComparisonApiError } from "../src/features/photo-comparison/api"
+import { PhotoComparisonApiError } from "../src/features/photo-evidence/api"
 import {
     displayValue,
     formatActionableError,
     formatNutrientName,
     pickDefaultColumnId,
-} from "../src/features/photo-comparison/helpers"
+} from "../src/features/photo-evidence/helpers"
 import { LocaleContext } from "../src/i18n/locale"
 import { PhotoComparisonPage } from "../src/features/photo-comparison/PhotoComparisonPage"
-import { PhotoInspectionModal } from "../src/features/photo-comparison/PhotoInspectionModal"
-import { ProductPhotoPanel } from "../src/features/photo-comparison/ProductPhotoPanel"
+import { PhotoInspectionModal } from "../src/features/photo-evidence/PhotoInspectionModal"
+import { ProductPhotoPanel } from "../src/features/photo-evidence/ProductPhotoPanel"
 import type {
     ComparisonRequest,
     ComparisonResponse,
     Extraction,
     ProductSideState,
-} from "../src/features/photo-comparison/types"
+} from "../src/features/photo-evidence/types"
 import type { ProductLookup } from "../src/features/product/api"
 
 function renderRoute(path: string, lookup = vi.fn<ProductLookup>()) {
@@ -77,7 +77,7 @@ function ComparisonNavigationProbe() {
 function openCompareReview(user: ReturnType<typeof userEvent.setup>) {
     void user
     return Promise.resolve(
-        screen.getByRole("button", { name: "Compare Products" }),
+        screen.getByRole("button", { name: "Compare Nutrition" }),
     )
 }
 
@@ -499,60 +499,40 @@ describe("CameraCaptureSheet", () => {
     })
 })
 
-describe("Compare Products frontend page (/compare)", () => {
-    test("renders a concise camera-first intro with AI disclosure and one clear first action", () => {
+describe("Compare Nutrition frontend page (/compare)", () => {
+    test("opens directly on Product A capture", () => {
         renderRoute("/compare")
 
-        // Heading & Action buttons
         expect(
             screen.getByRole("heading", {
                 level: 1,
-                name: "Compare Products",
+                name: "Compare Nutrition",
             }),
         ).toBeInTheDocument()
+        // The Nutrition Labels hub is the intro; there is no second start step.
         expect(
-            screen.queryByRole("link", { name: /Return to scan/i }),
+            screen.queryByRole("button", { name: "Get started" }),
         ).not.toBeInTheDocument()
+        expect(screen.getByDisplayValue("Product A")).toBeInTheDocument()
         expect(
-            screen.queryByRole("button", { name: /Reset session/i }),
-        ).not.toBeInTheDocument()
-        expect(
-            screen.getByRole("navigation", { name: "Primary navigation" }),
+            screen.getByRole("button", { name: /Take photo/i }),
         ).toBeVisible()
-
-        expect(
-            screen.getByRole("heading", {
-                level: 2,
-                name: "Compare Two Products",
-            }),
-        ).toBeInTheDocument()
-        const introHeading = screen.getByRole("heading", {
-            level: 2,
-            name: "Compare Two Products",
-        })
-        expect(introHeading).toHaveClass("icon-heading-title")
-        expect(introHeading.parentElement).toHaveClass("icon-heading-row")
-        expect(
-            screen.getByRole("button", { name: "Get started" }),
-        ).toBeInTheDocument()
         expect(
             screen.queryByRole("button", { name: /Language:/i }),
         ).not.toBeInTheDocument()
+        // The provider statement is shown once, on the Nutrition Labels hub.
         expect(
-            screen.queryByRole("button", { name: /Choose from library/i }),
+            screen.queryByTestId("provider-disclosure"),
         ).not.toBeInTheDocument()
+    })
 
-        // The starting card stays focused on the comparison task.
-        expect(
-            screen.queryByText(
-                /Photos are processed by the configured AI provider/i,
-            ),
-        ).not.toBeInTheDocument()
+    test("keeps the Product name field at 16px so mobile Safari does not zoom", () => {
+        renderRoute("/compare")
 
-        // The intro has one clear path and no duplicate disabled Compare action.
-        expect(
-            screen.queryByRole("button", { name: "Compare Products" }),
-        ).not.toBeInTheDocument()
+        const nameInput = screen.getByDisplayValue("Product A")
+        expect(nameInput).toHaveClass("text-base")
+        expect(nameInput).not.toHaveClass("text-sm")
+        expect(nameInput).not.toHaveClass("text-xs")
     })
 
     test("uses the shared Scan locale without a Compare language control", async () => {
@@ -565,10 +545,13 @@ describe("Compare Products frontend page (/compare)", () => {
         await user.click(
             screen.getByRole("menuitemradio", { name: "Khmer (ខ្មែរ)" }),
         )
-        await user.click(screen.getByRole("link", { name: "ប្រៀបធៀប" }))
+        await user.click(screen.getByRole("link", { name: "ស្លាក" }))
+        await user.click(
+            screen.getByRole("link", { name: /ប្រៀបធៀបអាហារូបត្ថម្ភ/ }),
+        )
 
         expect(
-            screen.getByRole("heading", { name: "ប្រៀបធៀបផលិតផល" }),
+            screen.getByRole("heading", { name: "ប្រៀបធៀបអាហារូបត្ថម្ភ" }),
         ).toBeInTheDocument()
         expect(document.documentElement).toHaveAttribute("lang", "km")
         expect(window.localStorage.getItem("lifegoods.locale.v1")).toBe("km")
@@ -620,7 +603,6 @@ describe("Compare Products frontend page (/compare)", () => {
         ) as HTMLInputElement
         const cameraLeftClick = vi.spyOn(cameraLeft, "click")
 
-        await user.click(screen.getByRole("button", { name: "Get started" }))
         expect(
             screen.getByRole("button", { name: /Reset session/i }),
         ).toBeInTheDocument()
@@ -678,7 +660,7 @@ describe("Compare Products frontend page (/compare)", () => {
         })
         fireEvent.change(uploadRight, { target: { files: [dummyFileB] } })
         expect(
-            screen.getByRole("button", { name: "Compare Products" }),
+            screen.getByRole("button", { name: "Compare Nutrition" }),
         ).toBeEnabled()
         expect(
             screen.queryByRole("button", { name: /Review both Products/i }),
@@ -699,11 +681,12 @@ describe("Compare Products frontend page (/compare)", () => {
             screen.queryByRole("button", { name: "Get started" }),
         ).not.toBeInTheDocument()
         expect(
-            screen.queryByRole("button", { name: "Compare Products" }),
+            screen.queryByRole("button", { name: "Compare Nutrition" }),
         ).not.toBeInTheDocument()
+        // Back from Product A returns to the Nutrition Labels hub.
         await user.click(screen.getByRole("button", { name: "Back to start" }))
         expect(
-            screen.getByRole("button", { name: "Get started" }),
+            screen.getByRole("heading", { level: 1, name: "Nutrition Labels" }),
         ).toBeInTheDocument()
         expect(
             screen.getByRole("navigation", { name: "Primary navigation" }),
@@ -715,7 +698,7 @@ describe("Compare Products frontend page (/compare)", () => {
         expect(
             screen.getByRole("heading", {
                 level: 1,
-                name: "Compare Products",
+                name: "Compare Nutrition",
             }),
         ).toBeInTheDocument()
         unmount()
@@ -724,7 +707,7 @@ describe("Compare Products frontend page (/compare)", () => {
         expect(
             screen.getByRole("heading", {
                 level: 1,
-                name: "Compare Products",
+                name: "Compare Nutrition",
             }),
         ).toBeInTheDocument()
     })
@@ -734,24 +717,28 @@ describe("Compare Products frontend page (/compare)", () => {
         renderRoute("/")
 
         expect(
-            screen.queryByRole("link", { name: /Compare Products/i }),
+            screen.queryByRole("link", { name: /Compare Nutrition/i }),
         ).not.toBeInTheDocument()
 
-        const compareLink = screen.getByRole("link", { name: "Compare" })
-        expect(compareLink).toHaveAttribute("href", "/compare")
+        const labelsLink = screen.getByRole("link", { name: "Labels" })
+        expect(labelsLink).toHaveAttribute("href", "/labels")
 
-        await user.click(compareLink)
+        await user.click(labelsLink)
+        await user.click(
+            screen.getByRole("link", { name: /Compare Nutrition/i }),
+        )
 
         expect(
             screen.getByRole("heading", {
                 level: 1,
-                name: "Compare Products",
+                name: "Compare Nutrition",
             }),
         ).toBeInTheDocument()
-        expect(screen.getByRole("link", { name: "Compare" })).toHaveAttribute(
-            "aria-current",
-            "page",
-        )
+        // Capture starts immediately, so the photo dock replaces the primary
+        // navigation.
+        expect(
+            screen.queryByRole("navigation", { name: "Primary navigation" }),
+        ).not.toBeInTheDocument()
     })
 
     test("allows editing product titles and resetting the session", async () => {
@@ -944,7 +931,7 @@ describe("Compare Products frontend page (/compare)", () => {
             fireEvent.change(inputRight, { target: { files: [fileRight] } })
 
             const compareButton = screen.getByRole("button", {
-                name: "Compare Products",
+                name: "Compare Nutrition",
             })
             expect(compareButton).toBeEnabled()
 
@@ -1060,18 +1047,6 @@ describe("Compare Products frontend page (/compare)", () => {
                 ).not.toBeInTheDocument()
                 expect(screen.queryByText("Photo 1")).not.toBeInTheDocument()
                 expect(revokePhotoUrl).toHaveBeenCalledTimes(2)
-                if (exitAction !== "restart") {
-                    expect(
-                        screen.getByRole("button", { name: "Get started" }),
-                    ).toBeInTheDocument()
-                    await user.click(
-                        screen.getByRole("button", { name: "Get started" }),
-                    )
-                } else {
-                    expect(
-                        screen.queryByRole("button", { name: "Get started" }),
-                    ).not.toBeInTheDocument()
-                }
                 expect(
                     screen.getByDisplayValue("Product A"),
                 ).toBeInTheDocument()
@@ -1117,7 +1092,7 @@ describe("Compare Products frontend page (/compare)", () => {
                 }),
             ).not.toBeInTheDocument()
             expect(
-                screen.getByRole("button", { name: "Compare Products" }),
+                screen.getByRole("button", { name: "Compare Nutrition" }),
             ).toBeInTheDocument()
             expect(compareMock).toHaveBeenCalledTimes(1)
         },
@@ -1202,7 +1177,7 @@ describe("Compare Products frontend page (/compare)", () => {
         )
 
         await user.click(
-            screen.getByRole("button", { name: "Compare Products" }),
+            screen.getByRole("button", { name: "Compare Nutrition" }),
         )
 
         const alert = await screen.findByRole("alert")
@@ -2377,7 +2352,7 @@ describe("Photo inspection and UX features", () => {
         expect(screen.getByAltText("Product B photo 1")).toBeInTheDocument()
 
         await user.click(
-            screen.getByRole("button", { name: "Compare Products" }),
+            screen.getByRole("button", { name: "Compare Nutrition" }),
         )
 
         // Product A failed, so the view switches back to Product A and shows the alert.
@@ -2482,7 +2457,7 @@ describe("Photo inspection and UX features", () => {
 
 describe("Nutrition chooser direct entry", () => {
     test.each(["left", "right", "invalid"])(
-        "ignores a legacy column=%s parameter and renders the intro",
+        "ignores a legacy column=%s parameter and opens Product A capture",
         async (side) => {
             render(
                 <MemoryRouter initialEntries={[`/compare?column=${side}`]}>
@@ -2492,7 +2467,7 @@ describe("Nutrition chooser direct entry", () => {
             )
             expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
             expect(
-                await screen.findByRole("button", { name: "Get started" }),
+                await screen.findByDisplayValue("Product A"),
             ).toBeInTheDocument()
             expect(
                 screen.queryByRole("heading", {
@@ -2503,7 +2478,7 @@ describe("Nutrition chooser direct entry", () => {
     )
 })
 
-describe("Compare Products uncertainty, partial results, and recovery (#124)", () => {
+describe("Compare Nutrition uncertainty, partial results, and recovery (#124)", () => {
     test("several columns auto-select the per-100g basis and continue without a chooser", async () => {
         const user = userEvent.setup()
         const extractPhotosMock = vi.fn().mockImplementation((id: string) =>
@@ -2672,7 +2647,7 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
             },
         })
 
-        // Tap Compare Products
+        // Tap Compare Nutrition
         const compareBtn = await openCompareReview(user)
         await user.click(compareBtn)
 
@@ -3713,7 +3688,7 @@ describe("Compare Products uncertainty, partial results, and recovery (#124)", (
     })
 })
 
-describe("Compare Products obsolete-response safety (#125)", () => {
+describe("Compare Nutrition obsolete-response safety (#125)", () => {
     function createDeferred<T>() {
         let resolve!: (val: T) => void
         let reject!: (err: unknown) => void
@@ -3807,7 +3782,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
             },
         })
 
-        // Tap Compare Products
+        // Tap Compare Nutrition
         const compareBtn = await openCompareReview(user)
         await user.click(compareBtn)
 
@@ -3872,9 +3847,9 @@ describe("Compare Products obsolete-response safety (#125)", () => {
         ).not.toBeInTheDocument()
         // Stale comparison must NOT have been called!
         expect(compareMock).not.toHaveBeenCalled()
-        // Button should be "Compare Products", not stuck in loading
+        // Button should be "Compare Nutrition", not stuck in loading
         expect(
-            screen.getByRole("button", { name: "Compare Products" }),
+            screen.getByRole("button", { name: "Compare Nutrition" }),
         ).toBeEnabled()
     })
 
@@ -3982,7 +3957,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
             },
         })
 
-        // Tap Compare Products
+        // Tap Compare Nutrition
         await user.click(await openCompareReview(user))
 
         // Both extractions succeed; Left has 2 columns but the per-100g one is
@@ -4101,7 +4076,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
             },
         })
 
-        // Tap Compare Products
+        // Tap Compare Nutrition
         await user.click(await openCompareReview(user))
 
         expect(capturedSignal?.aborted).toBe(false)
@@ -4221,7 +4196,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
             },
         })
 
-        // Tap Compare Products
+        // Tap Compare Nutrition
         await user.click(await openCompareReview(user))
 
         // Comparison is in flight
@@ -4311,7 +4286,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
             },
         })
 
-        // Tap Compare Products
+        // Tap Compare Nutrition
         fireEvent.click(await openCompareReview(user))
 
         expect(extractionSignal?.aborted).toBe(false)
@@ -4409,7 +4384,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
             },
         })
 
-        // Tap Compare Products
+        // Tap Compare Nutrition
         fireEvent.click(await openCompareReview(user))
 
         expect(
@@ -4504,7 +4479,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
             },
         })
 
-        // Tap Compare Products
+        // Tap Compare Nutrition
         fireEvent.click(await openCompareReview(user))
 
         expect(leftSignal?.aborted).toBe(false)
@@ -4669,7 +4644,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
                 },
             })
 
-            // Tap Compare Products
+            // Tap Compare Nutrition
             await user.click(await openCompareReview(user))
 
             // No chooser page: the app picks the per-100g column for each side.
@@ -4759,7 +4734,7 @@ describe("Compare Products obsolete-response safety (#125)", () => {
     })
 })
 
-describe("Compare Products processing experience", () => {
+describe("Compare Nutrition processing experience", () => {
     test("replaces editing with truthful staged progress and preserves photos on cancel", async () => {
         const user = userEvent.setup()
         let capturedSignal: AbortSignal | undefined
@@ -4810,7 +4785,7 @@ describe("Compare Products processing experience", () => {
         })
 
         await user.click(
-            screen.getByRole("button", { name: "Compare Products" }),
+            screen.getByRole("button", { name: "Compare Nutrition" }),
         )
 
         expect(

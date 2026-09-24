@@ -78,7 +78,7 @@ export function BrandLockup({ compact = false, className }: BrandLockupProps) {
                 "inline-flex items-center gap-2.5 select-none",
                 className,
             )}
-            aria-label="Life Goods"
+            aria-label="LifeGoods"
         >
             <BrandMark size={compact ? 28 : 36} />
             <span
@@ -87,7 +87,7 @@ export function BrandLockup({ compact = false, className }: BrandLockupProps) {
                     compact ? "text-base sm:text-lg" : "text-xl sm:text-2xl",
                 )}
             >
-                Life Goods
+                LifeGoods
             </span>
         </span>
     )

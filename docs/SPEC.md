@@ -19,11 +19,11 @@ The MVP:
 - supports optional on-demand Khmer Translation while preserving Original Text; and
 - remains anonymous and read-only.
 
-The MVP does not own a Product catalog, accept contributions, or verify source data. Barcode camera frames stay on the device. Compare Products is the one bounded exception that sends package photos for provider processing, retaining no photos or comparison history. The MVP does not produce health, safety, allergen-free, Halal, authenticity, legal, compliance, or purchase verdicts.
+The MVP does not own a Product catalog, accept contributions, or verify source data. Barcode camera frames stay on the device. Compare Nutrition is the one bounded exception that sends package photos for provider processing, retaining no photos or comparison history. The MVP does not produce health, safety, allergen-free, Halal, authenticity, legal, compliance, or purchase verdicts.
 
 ## 2. Current repository capability
 
-The current checkout includes the stable cached Product Lookup endpoint, paginated Product Search, source-based allergen analysis, optional on-demand Khmer Translation with isolated generated-data persistence, and the bounded Compare Products API. The main frontend uses the stable Product Lookup and Product Search routes by default; its checked-in Dataset Snapshot remains an explicit offline/demo adapter. The shared shell and Scan/Home experience support Khmer and English, with Khmer as the first-time default; remaining main-app pages are localized incrementally. Compare Products retains its independent English and Khmer UI scope.
+The current checkout includes the stable cached Product Lookup endpoint, paginated Product Search, source-based allergen analysis, optional on-demand Khmer Translation with isolated generated-data persistence, and the bounded Compare Nutrition API. The main frontend uses the stable Product Lookup and Product Search routes by default; its checked-in Dataset Snapshot remains an explicit offline/demo adapter. The shared shell and Scan/Home experience support Khmer and English, with Khmer as the first-time default; remaining main-app pages are localized incrementally. Compare Nutrition retains its independent English and Khmer UI scope.
 
 The foundational Product Lookup acceptance criteria in section 11 and the issue-specific sections that follow remain as implementation history and contract detail. They are not a statement that the repository is still at the first backend milestone.
 
@@ -153,6 +153,14 @@ Required behavior:
 
 The service never falls back silently to the live Open Food Facts API.
 
+A `404` `product_not_found` is a specified outcome, not a failure: the Barcode is an
+Unmatched Barcode, and `meta.dataset` remains populated. The Shopper interface states that
+the Barcode has no Source Record in the selected Dataset Snapshot without asserting anything
+about the Product itself, offers Read This Label (section 29) as the primary next step, and
+offers scanning another Barcode as the secondary one. A Product Search Barcode miss
+(`200` with an empty list, section 25) offers the same next step despite its different wire
+shape.
+
 The experimental `POST /api/experimental/ingredient-matches` route accepts JSON from configured
 frontend origins. Its browser preflight permits `POST` only for those configured origins. Invalid,
 missing, blank, whitespace-only, or oversized requests use the same `422` envelope:
@@ -224,7 +232,7 @@ Source Assessments remain visibly attributed Open Food Facts calculations. Life 
 
 ## 8. Khmer localization
 
-The shared shell and Scan/Home experience support English and Khmer, with Khmer as the first-time default and a persisted English or Khmer preference. Remaining main-app pages are localized incrementally. Compare Products retains its independent English and Khmer UI scope; the stable Product Lookup API supports opt-in Khmer Translation for clients that request `language=km`.
+The shared shell and Scan/Home experience support English and Khmer, with Khmer as the first-time default and a persisted English or Khmer preference. Remaining main-app pages are localized incrementally. The Nutrition Labels section (Read This Label and Compare Nutrition) retains its independent English and Khmer dictionary; the stable Product Lookup API supports opt-in Khmer Translation for clients that request `language=km`.
 
 - Khmer is the intended primary display language for the public product experience.
 - Original Text remains retained in the Source Record; the Khmer Product page does not render per-field Show Original Text controls.
@@ -242,7 +250,7 @@ The current provider and model are fixed to Gemini `gemini-3.8-flash` under tran
 
 - Decode Barcode camera frames on the device and send only the normalized Barcode for lookup.
 - Do not upload or retain Barcode camera frames.
-- For Compare Products, send only the submitted label photos to the configured provider for processing, and retain no photos, extracted label text, comparison history, or persistent Shopper identifiers.
+- For Compare Nutrition, send only the submitted label photos to the configured provider for processing, and retain no photos, extracted label text, comparison history, or persistent Shopper identifiers.
 - Do not create accounts, server-side scan history, saved Products, or personalization in the MVP.
 - Do not retain Barcode-level analytics, persistent IP identifiers, or per-Shopper histories.
 - Permit aggregate counts for lookup volume, found/not-found rate, latency, cache performance, and error rate.
@@ -948,14 +956,14 @@ original issue #107 artifacts and the historical failure record above are retain
 
 Earlier fix iterations recorded timeouts, including a run overlapping a full Source Record count. Those failed runs remain in the PR evidence; the final run used grouped complete-tier retrieval with no concurrent database workload. This is not a guarantee of cold-cache or contended-load performance.
 
-## 28. Compare Products from nutrition-label photos (Issues #110, #117)
+## 28. Compare Nutrition from nutrition-label photos (Issues #110, #117)
 
-Compare Products, presented as “Compare nutrition labels using photos,” is an
+Compare Nutrition, presented as “Compare nutrition labels using photos,” is an
 intended Life Goods capability with a direct entry point alongside Barcode
 scanning. A Shopper photographs Product A and Product B, taps Compare, and
 receives readable nutrition differences with a clearly stated comparison basis.
 It works without a Barcode or Source Record, so missing or incomplete source data
-does not prevent comparison. Compare Products helps a Shopper interpret label
+does not prevent comparison. Compare Nutrition helps a Shopper interpret label
 differences without declaring an overall winner or producing health, safety, or
 purchase verdicts.
 
@@ -1001,8 +1009,10 @@ extraction and calculation as separate operations. Extraction is sequenced withi
 provider concurrency limits, an unchanged Product's in-memory extraction is
 reused, and duplicate submissions are prevented. Photos are not uploaded
 automatically on every edit, and paid provider calls are not retried invisibly.
-Before submission, the interface explains that photos are sent to the configured
-AI provider for processing.
+The Nutrition Labels hub (`/labels`) states once, before either mode is chosen,
+that photos are sent to the configured AI provider for processing and are not
+retained by Life Goods. The statement is not repeated on each capture screen;
+Compare Nutrition repeats it while processing.
 
 The visible states are ready for photos, reading labels, needs clarification or
 retake, comparing, results, and recoverable failure. Successful extraction and
@@ -1011,8 +1021,10 @@ work. Replacing or removing photos, changing selected columns, resetting, and
 leaving the feature prevent earlier responses from restoring stale results;
 requests are cancelled where possible, and responses belonging to superseded
 state are independently rejected. Restart clears the session and opens empty Product A capture without earlier photos
-or results. Back to start clears the session and returns to the comparison intro,
-restoring primary navigation. Product A’s Back always returns to that intro,
+or results. Compare Nutrition has no separate intro step: entering it opens
+Product A capture directly, because the Nutrition Labels hub serves as the
+introduction. Back to start clears the session and returns to the `/labels` hub,
+restoring primary navigation. Product A’s Back always returns to the hub,
 including when editing after results. Product B’s Back returns to Product A while
 preserving the session.
 
@@ -1034,8 +1046,10 @@ second implementation. The stable endpoints are:
   automatically. Client-submitted extraction objects are revalidated at this
   boundary because they cannot be certified as provider-produced.
 
-Compare Products is reachable at `/compare` as a destination in the primary
-navigation; previously published photo-comparison URLs redirect to `/compare`. The
+Compare Nutrition is reachable at `/labels/compare` within the Nutrition Labels
+section, whose hub `/labels` is a destination in the primary navigation;
+`/compare` and previously published photo-comparison URLs redirect to
+`/labels/compare`. The
 page accepts one to three JPEG, PNG or HEIC/HEIF photos per Product through camera capture or
 file selection, shows previews that can be enlarged, supports add/remove/replace,
 and presents distinct editable Product A and Product B identities. Capture uses a
@@ -1052,11 +1066,11 @@ a pointer back to it. When a label contains a sole nutrition column it is
 selected automatically; when several columns exist, the Shopper chooses one with
 its plainly labeled basis and preparation state before continuing, and an
 ambiguous column is never selected silently. The nutrition-column chooser opens
-as a full page on mobile and desktop at `/compare?column=left` or
-`/compare?column=right`, with Back returning to the preceding comparison screen.
+as a full page on mobile and desktop at `/labels/compare?column=left` or
+`/labels/compare?column=right`, with Back returning to the preceding comparison screen.
 Browser Back preserves the in-memory photos, extraction, and selections; advancing
 to the other Product replaces the chooser history entry. Direct entry without
-the required in-memory extraction returns to `/compare`.
+the required in-memory extraction returns to `/labels/compare`.
 
 Results lead with Product identities, the comparison basis, and the nutrition
 comparison. Factual differences use deterministic localized templates rather than
@@ -1154,7 +1168,7 @@ executable examples for a normal pair, missing weight, multiple columns,
 conflicting photos, and unknown preparation states; it does not claim that
 owner-checked seed transcriptions are reproducible image evidence.
 
-Compare Products preserves the existing deterministic comparison engine and
+Compare Nutrition preserves the existing deterministic comparison engine and
 semantics rather than introducing a second comparison engine. The reviewed
 multilingual corpus and transcription tool from #111 were closed as not planned
 and are not treated as requirements for the current implementation.
@@ -1174,6 +1188,44 @@ rejection, exception, cancellation, reset, and unmount, and no photos, extracted
 label text, or comparison history are retained. Application cleanup does not make
 a zero-retention promise for the provider; provider-side retention is documented
 separately.
+
+`POST /api/v1/photo-comparison/extractions` is a single-Product, side-agnostic
+operation shared with Read This Label (section 29). Its path and operation id
+(`extractPhotoComparison`) are retained for contract stability rather than renamed.
+
+## 29. Read This Label from one Product's nutrition-label photos (ADR 0004)
+
+Read This Label is the single-Product mode of the Nutrition Labels section. It is
+reachable at `/labels/read` from the `/labels` hub, directly, and as the primary
+next step for an Unmatched Barcode (a Product Lookup `404` or a Product Search
+Barcode miss).
+
+- It reuses `POST /api/v1/photo-comparison/extractions` unchanged: the same
+  `Extraction` contract, outcomes, error codes, upload limits (one to three JPEG,
+  PNG or HEIC/HEIF photos), provider, model, and prompt configuration. There is no
+  separate endpoint.
+- It shares one anonymous admission budget with Compare Nutrition: the same
+  per-client sliding window (`LIFEGOODS_PHOTO_COMPARISON_REQUESTS_PER_MINUTE`) and
+  the same global single-active-provider lease.
+- `product_id` is a local panel label and is never the Barcode. No request, log,
+  metric, or cache key associates a Barcode with a photo submission or provider call.
+  When the Shopper arrives from an Unmatched Barcode, the Barcode is shown for context
+  and arrives through in-memory navigation state, never through the URL.
+- Visible states are ready for photos, reading the label, needs clarification or
+  retake, results, and recoverable failure. The provider statement is shown once on
+  the Nutrition Labels hub (section 28). Read This Label uses the same header and
+  floating photo dock as Compare Nutrition, with Back returning to the hub.
+- Results are titled Label Reading and present every printed nutrition column with
+  its printed basis and preparation state. There is no column chooser, because no
+  comparison is derived.
+- A Label Reading is labeled Photo Evidence. It carries no Source Attribution, no
+  Source Assessment, no score, and no verdict. Field states use reading vocabulary
+  about the photo (not readable, not printed on the photographed part, unclear,
+  or conflicting readings); the phrase `Source Data Unavailable` never appears in a
+  Label Reading.
+- A Label Reading lives only in browser memory for the current page. Leaving the
+  route discards it. It is never stored, exported, offered as a contribution, or
+  carried into Compare Nutrition.
 
 ## Deployment health probes
 

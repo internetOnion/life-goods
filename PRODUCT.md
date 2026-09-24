@@ -14,7 +14,7 @@ The first audience is Khmer-speaking Shoppers using a mobile phone while shoppin
 
 ## Product Purpose
 
-Life Goods makes Open Food Facts data easier to access and understand without creating a separate food catalog or verification system. A Shopper scans a packaged-food Barcode and receives a readable presentation of the available Source Record. Typed Barcode entry is the fallback when scanning is unavailable or unsuccessful. When a Barcode or Source Record cannot help, a Shopper can instead compare two Products from photos of their nutrition labels.
+Life Goods makes Open Food Facts data easier to access and understand without creating a separate food catalog or verification system. A Shopper scans a packaged-food Barcode and receives a readable presentation of the available Source Record. Typed Barcode entry is the fallback when scanning is unavailable or unsuccessful. When a Barcode has no Source Record, a Shopper can read that Product's nutrition label from photos. Independently of any Barcode, a Shopper can read one Product's label or compare two Products from photos of their nutrition labels.
 
 The English prototype explores a mobile information architecture against complete, sparse, multilingual, irregular, and data-rich Source Records. The public MVP follows with Khmer localization and on-demand Khmer Translation while retaining Original Text in the Source Record.
 
@@ -33,7 +33,7 @@ The primary workflow happens one-handed on a mobile phone in a shop. The Shopper
 - Mobile-first progressive web application with anonymous, read-only use
 - On-device Barcode decoding; Barcode camera frames are not uploaded or retained
 - Product Lookup against one static, locally hosted Open Food Facts Dataset Snapshot
-- Compare Products from nutrition-label photos, including when a Barcode or Source Record is unavailable, with transient provider processing and no retained comparison history
+- Nutrition Labels: Read This Label for one Product and Compare Nutrition for two, from nutrition-label photos, including when a Barcode has no Source Record, with transient provider processing and no retained reading or comparison history
 - Independent ingredient-text allergen evidence compared with Open Food Facts allergen tags
 - English information-architecture prototype before the Khmer public MVP
 - On-demand Khmer Translation in the public MVP while retaining Original Text in the Source Record
@@ -51,21 +51,34 @@ When available, ingredient-text allergen evidence is shown separately from Open 
 allergen tags. The comparison describes agreement and differences between two source-based
 signals; it does not verify either source or make an allergen-free or safety claim.
 
-## Compare Products
+## Nutrition Labels
 
-Compare Products, described as “Compare nutrition labels using photos,” is an
-intended Life Goods capability with a direct entry point alongside Barcode
-scanning. A Shopper photographs Product A and Product B, taps Compare, and
+Nutrition Labels is a primary Life Goods section, alongside Barcode scanning,
+with two modes that share one photo pipeline: Read This Label and Compare
+Products.
+
+Read This Label reads one Product's nutrition label from the Shopper's photos
+and presents a Label Reading: every printed nutrition column with its printed
+basis, clearly marked as Photo Evidence. It is available directly from the
+Nutrition Labels section and is the primary next step offered for an Unmatched
+Barcode. A Label Reading is not a Source Record, carries no Source Attribution
+or Source Assessment, and never uses the phrase Source Data Unavailable, which
+describes Source Records only. The Barcode, when present, is shown for context
+and never sent to the AI provider.
+
+Compare Nutrition, described as “Compare nutrition labels using photos,”
+photographs Product A and Product B, taps Compare, and
 receives readable nutrition differences with a clearly stated comparison basis.
 It works without a Barcode or Source Record, so missing or incomplete source data
-does not prevent comparison. Compare Products helps a Shopper interpret label
+does not prevent comparison. Compare Nutrition helps a Shopper interpret label
 differences; it does not declare an overall winner or a health, safety, or
 purchase verdict.
 
-Photo comparison is the one bounded exception to the read-only, no-upload MVP
-boundary. Photos submitted for comparison are sent to the configured AI provider
-for processing and are never retained by Life Goods as Product data, Source
-Records, comparison history, or Khmer Translation input. Extracted values remain
+Nutrition Labels photo processing is the one bounded exception to the
+read-only, no-upload MVP boundary (ADR 0004). Photos submitted in either mode are
+sent to the configured AI provider for processing and are never retained by Life
+Goods as Product data, Source Records, reading or comparison history, or Khmer
+Translation input. Extracted values remain
 submitted Photo Evidence: they are kept separate from Open Food Facts data, are
 not a Source Record, and are not glossary-defined Original Text. The exception
 does not create Product contributions, corrections, or verification, and it does
@@ -85,7 +98,7 @@ Source Assessments such as Nutri-Score, NOVA, Green-Score, and nutrient-level cl
 
 ## Brand Commitments
 
-The product name and wordmark use the spaced form “Life Goods.” The supplied warm amber brand, cool slate surface palette, and close visual relationship to the `life-goods-viewer` reference are binding inputs. The public identity must remain Khmer-ready rather than treating Khmer as a fallback adaptation. Visual communication, including iconography and illustrations, must prioritize semantic clarity for the Shopper and maintain a crafted, vibe-coded character over rigid adherence to any single icon vendor.
+The product name is written “Life Goods”; the logo wordmark is set as one word, “LifeGoods.” The supplied warm amber brand, cool slate surface palette, and close visual relationship to the `life-goods-viewer` reference are binding inputs. The public identity must remain Khmer-ready rather than treating Khmer as a fallback adaptation. Visual communication, including iconography and illustrations, must prioritize semantic clarity for the Shopper and maintain a crafted, vibe-coded character over rigid adherence to any single icon vendor.
 
 ## Evidence on Hand
 

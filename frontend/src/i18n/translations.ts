@@ -3,7 +3,7 @@ import { useLocale } from "@/i18n/locale"
 const englishTranslations = {
     primaryNavigation: "Primary navigation",
     scan: "Scan",
-    compare: "Compare",
+    labels: "Labels",
     learn: "Learn",
     concerns: "Allergy",
     languageTrigger: "Language: English",
@@ -23,7 +23,7 @@ const englishTranslations = {
 const khmerTranslations: Record<keyof typeof englishTranslations, string> = {
     primaryNavigation: "ការរុករកចម្បង",
     scan: "ស្កេន",
-    compare: "ប្រៀបធៀប",
+    labels: "ស្លាក",
     learn: "ស្វែងយល់",
     concerns: "អាលែហ្ស៊ី",
     languageTrigger: "ភាសា៖ ខ្មែរ",

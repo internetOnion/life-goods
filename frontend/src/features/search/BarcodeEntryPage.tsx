@@ -11,6 +11,7 @@ import {
 import { type FormEvent, useEffect, useRef, useState } from "react"
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router"
 
+import { appRoutes } from "@/app/routes"
 import { Button } from "@/components/ui/button"
 import { BrandMark } from "@/components/brand/BrandMark"
 import { Input } from "@/components/ui/input"
@@ -702,6 +703,20 @@ export function BarcodeEntryPage() {
                             ? t("noBarcodeMatchHint")
                             : t("noProductsHint")}
                     </p>
+                    {isBarcodeSearch ? (
+                        <Button
+                            type="button"
+                            className="mt-4 w-full rounded-xl font-bold"
+                            onClick={() =>
+                                // In-memory state only; never the URL (SPEC §29).
+                                void navigate(appRoutes.labelsRead, {
+                                    state: { barcode: query.trim() },
+                                })
+                            }
+                        >
+                            {t("readThisLabel")}
+                        </Button>
+                    ) : null}
                 </div>
             ) : null}
         </main>

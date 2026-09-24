@@ -47,11 +47,15 @@ export interface ProductPhoto {
     previewUnsupported?: boolean
 }
 
-export interface ProductSideState {
-    id: "left" | "right"
+/**
+ * One photographed Product: a Compare Nutrition side or the single Product of
+ * Read This Label. `number` is the visible badge; null hides it.
+ */
+export interface PhotoSubjectState {
+    id: string
     title: string
     titleSource?: "default" | "shopper" | "photo_evidence"
-    number: "1" | "2"
+    number: string | null
     photos: ProductPhoto[]
     extraction: import("@/api/generated").Extraction | null
     selectedColumnId: string | null
@@ -60,3 +64,5 @@ export interface ProductSideState {
     retry: boolean
     revision: number
 }
+
+export type ProductSideState = PhotoSubjectState
