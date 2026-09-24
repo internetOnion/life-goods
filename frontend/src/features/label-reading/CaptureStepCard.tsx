@@ -11,13 +11,14 @@ import type { PhotoQualityIssue } from "@/features/photo-evidence/imageQuality"
 import type { ProductPhoto } from "@/features/photo-evidence/types"
 import { cn } from "@/lib/utils"
 
-import type { CaptureStep } from "./captureSteps"
+import type { CaptureStep, CaptureStepId } from "./captureSteps"
 import {
     useLabelReadingTranslation,
     type LabelReadingTranslationKey,
 } from "./translations"
 
 export interface StepPhoto extends ProductPhoto {
+    stepId: CaptureStepId
     qualityIssues: PhotoQualityIssue[]
 }
 

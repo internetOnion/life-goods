@@ -7,17 +7,15 @@ import { waitFor } from "@testing-library/react"
 
 import { App } from "../src/app/App"
 import { LocaleProvider } from "../src/i18n/LocaleProvider"
-import {
-    LABEL_READING_PRODUCT_ID,
-    LabelReadingPage,
-} from "../src/features/label-reading/LabelReadingPage"
+import type { LabelReading, PhotoRole } from "../src/api/generated"
+import { LabelReadingPage } from "../src/features/label-reading/LabelReadingPage"
 import { PhotoComparisonApiError } from "../src/features/photo-evidence/api"
 import type { PhotoQuality } from "../src/features/photo-evidence/imageQuality"
-import type { Extraction } from "../src/features/photo-evidence/types"
 import { ProductPage } from "../src/features/product/ProductPage"
 import type { ProductLookup } from "../src/features/product/api"
 import { BarcodeEntryPage } from "../src/features/search/BarcodeEntryPage"
 import { searchProducts } from "../src/features/search/api"
+import { saveSelectedConcernIds } from "../src/features/concerns/storage"
 import { productResponse } from "./product-fixtures"
 
 vi.mock("../src/features/search/api", () => ({
@@ -26,11 +24,11 @@ vi.mock("../src/features/search/api", () => ({
 
 const UNMATCHED_BARCODE = "4006381333931"
 
-type ExtractPhotos = (
-    productId: string,
+type ReadLabel = (
     photos: File[],
+    roles: PhotoRole[],
     options?: { signal?: AbortSignal },
-) => Promise<Extraction>
+) => Promise<LabelReading>
 
 function field(
     id: string,
@@ -56,10 +54,9 @@ function field(
     }
 }
 
-function readingExtraction(overrides: Record<string, unknown> = {}) {
+function labelReadingFixture(overrides: Record<string, unknown> = {}) {
     return {
         schema_version: 1,
-        product_id: LABEL_READING_PRODUCT_ID,
         identity: null,
         images: [
             {
@@ -96,9 +93,64 @@ function readingExtraction(overrides: Record<string, unknown> = {}) {
         retake_reasons: ["The sugar row is blurred."],
         provider: "google",
         model: "gemini-3.8-flash",
-        configuration_version: "photo-extraction-v3",
+        ingredients: [
+            {
+                block_id: "ing_en",
+                original_script:
+                    "Ingredients: wheat flour, sugar, milk powder (5%), salt.",
+                language: "en",
+                state: "readable",
+                evidence: [{ image_id: "img_1", region: null }],
+            },
+        ],
+        allergen_statements: [
+            {
+                block_id: "stmt_1",
+                kind: "may_contain",
+                original_script: "May contain traces of peanuts.",
+                language: "en",
+                state: "readable",
+                evidence: [{ image_id: "img_1", region: null }],
+            },
+        ],
+        printed_facts: [
+            {
+                block_id: "fact_origin",
+                kind: "country_of_origin",
+                label: "Made in",
+                original_script: "Thailand",
+                language: "en",
+                state: "readable",
+                evidence: [{ image_id: "img_1", region: null }],
+            },
+        ],
+        allergen_mentions: {
+            state: "completed",
+            mentions: [
+                {
+                    block_id: "ing_en",
+                    matched_text: "wheat flour",
+                    allergen_tags: ["en:gluten"],
+                    qualification: "positive_mention",
+                },
+                {
+                    block_id: "ing_en",
+                    matched_text: "milk powder",
+                    allergen_tags: ["en:milk"],
+                    qualification: "positive_mention",
+                },
+                {
+                    block_id: "stmt_1",
+                    matched_text: "peanuts",
+                    allergen_tags: ["en:peanuts"],
+                    qualification: "precautionary_statement",
+                },
+            ],
+            limitations: [],
+        },
+        configuration_version: "label-reading-v1",
         ...overrides,
-    } as unknown as Extraction
+    } as unknown as LabelReading
 }
 
 function LocationProbe() {
@@ -122,12 +174,12 @@ function renderJourney(
     path: string,
     {
         lookup = vi.fn<ProductLookup>(),
-        extractPhotos = vi.fn<ExtractPhotos>(),
+        readLabel = vi.fn<ReadLabel>(),
         decodeBarcode = vi.fn<DecodeBarcode>().mockResolvedValue(null),
         checkQuality = vi.fn<CheckQuality>().mockResolvedValue(null),
     }: {
         lookup?: ProductLookup
-        extractPhotos?: ExtractPhotos
+        readLabel?: ReadLabel
         decodeBarcode?: DecodeBarcode
         checkQuality?: CheckQuality
     } = {},
@@ -150,7 +202,7 @@ function renderJourney(
                             path="/labels/read"
                             element={
                                 <LabelReadingPage
-                                    extractPhotos={extractPhotos}
+                                    readLabel={readLabel}
                                     lookup={lookup}
                                     decodeBarcode={decodeBarcode}
                                     checkQuality={checkQuality}
@@ -188,7 +240,7 @@ function stepCard(step: "front" | "back" | "side") {
     return screen.getByTestId(`capture-step-${step}`)
 }
 
-async function readLabel(user: ReturnType<typeof userEvent.setup>) {
+async function submitReading(user: ReturnType<typeof userEvent.setup>) {
     addPhoto()
     await user.click(screen.getByRole("button", { name: "Read this label" }))
 }
@@ -241,23 +293,23 @@ describe("Read This Label from an Unmatched Barcode", () => {
             status: 404,
             code: "product_not_found",
         })
-        const extractPhotos = vi
-            .fn<ExtractPhotos>()
-            .mockResolvedValue(readingExtraction())
+        const readLabel = vi
+            .fn<ReadLabel>()
+            .mockResolvedValue(labelReadingFixture())
         renderJourney(`/products/${UNMATCHED_BARCODE}`, {
             lookup,
-            extractPhotos,
+            readLabel,
         })
 
         await user.click(
             await screen.findByRole("button", { name: "Read This Label" }),
         )
-        await readLabel(user)
+        await submitReading(user)
 
-        expect(extractPhotos).toHaveBeenCalledTimes(1)
-        const [productId, photos] = extractPhotos.mock.calls[0]!
-        expect(productId).toBe(LABEL_READING_PRODUCT_ID)
-        expect(productId).not.toContain(UNMATCHED_BARCODE)
+        expect(readLabel).toHaveBeenCalledTimes(1)
+        const [photos, roles] = readLabel.mock.calls[0]!
+        expect(roles).toEqual(["package_front"])
+        expect(JSON.stringify(roles)).not.toContain(UNMATCHED_BARCODE)
         expect(photos.map((photo) => photo.name)).toEqual(["photo-1.jpg"])
         expect(photos.map((photo) => photo.name).join()).not.toContain(
             UNMATCHED_BARCODE,
@@ -311,12 +363,12 @@ describe("Read This Label as a standalone mode", () => {
 
     test("renders every printed column as Photo Evidence with no chooser", async () => {
         const user = userEvent.setup()
-        const extractPhotos = vi
-            .fn<ExtractPhotos>()
-            .mockResolvedValue(readingExtraction())
-        renderJourney("/labels/read", { extractPhotos })
+        const readLabel = vi
+            .fn<ReadLabel>()
+            .mockResolvedValue(labelReadingFixture())
+        renderJourney("/labels/read", { readLabel })
 
-        await readLabel(user)
+        await submitReading(user)
 
         const reading = await screen.findByRole("region", {
             name: "Label Reading",
@@ -325,9 +377,23 @@ describe("Read This Label as a standalone mode", () => {
         expect(
             within(reading).getByText(/not an Open Food Facts Source Record/),
         ).toBeVisible()
+        // One table: a column per printed column, labelled with basis and state.
+        const table = within(reading).getByRole("table")
+        expect(
+            within(table).getByRole("columnheader", {
+                name: "Per 100 g · As sold",
+            }),
+        ).toBeVisible()
+        expect(
+            within(table).getByRole("columnheader", {
+                name: "Per serving · As sold",
+            }),
+        ).toBeVisible()
+        expect(within(reading).queryAllByRole("article")).toHaveLength(0)
+        await user.click(
+            within(reading).getByRole("button", { name: "How this was read" }),
+        )
         expect(within(reading).getAllByRole("article")).toHaveLength(2)
-        expect(within(reading).getByText("Per 100 g")).toBeVisible()
-        expect(within(reading).getByText("Per serving")).toBeVisible()
         expect(screen.queryByRole("radio")).not.toBeInTheDocument()
         expect(screen.getByRole("button", { name: "Read again" })).toBeVisible()
     })
@@ -335,20 +401,27 @@ describe("Read This Label as a standalone mode", () => {
     test("describes field states about the photo, never as Source Data Unavailable", async () => {
         const user = userEvent.setup()
         renderJourney("/labels/read", {
-            extractPhotos: vi
-                .fn<ExtractPhotos>()
-                .mockResolvedValue(readingExtraction()),
+            readLabel: vi
+                .fn<ReadLabel>()
+                .mockResolvedValue(labelReadingFixture()),
         })
 
-        await readLabel(user)
+        await submitReading(user)
         await screen.findByRole("region", { name: "Label Reading" })
 
-        expect(screen.getByText("Not readable in your photo")).toBeVisible()
+        const table = screen.getByRole("table")
         expect(
-            screen.getAllByText("Not printed on the part you photographed")
-                .length,
-        ).toBeGreaterThan(0)
-        expect(screen.getByText("Unclear in your photo")).toBeVisible()
+            within(table).getByText("Not readable in your photo"),
+        ).toBeVisible()
+        expect(
+            within(table).getByText("Not printed on the part you photographed"),
+        ).toBeVisible()
+        expect(
+            within(table).getAllByText("Unclear in your photo"),
+        ).toHaveLength(2)
+        await user.click(
+            screen.getByRole("button", { name: "How this was read" }),
+        )
         expect(screen.getByText(/Conflicting values on label/)).toBeVisible()
         expect(
             screen.queryByText(/Source Data Unavailable/i),
@@ -358,12 +431,12 @@ describe("Read This Label as a standalone mode", () => {
     test("carries no Source Attribution, score, or verdict", async () => {
         const user = userEvent.setup()
         renderJourney("/labels/read", {
-            extractPhotos: vi
-                .fn<ExtractPhotos>()
-                .mockResolvedValue(readingExtraction()),
+            readLabel: vi
+                .fn<ReadLabel>()
+                .mockResolvedValue(labelReadingFixture()),
         })
 
-        await readLabel(user)
+        await submitReading(user)
         await screen.findByRole("region", { name: "Label Reading" })
 
         expect(
@@ -381,18 +454,18 @@ describe("Read This Label as a standalone mode", () => {
 
     test("a rate-limited read keeps the photos and can be retried", async () => {
         const user = userEvent.setup()
-        const extractPhotos = vi
-            .fn<ExtractPhotos>()
+        const readLabel = vi
+            .fn<ReadLabel>()
             .mockRejectedValueOnce(
                 new PhotoComparisonApiError(
                     "rate_limit_exceeded",
                     "The photo-extraction limit is 10 requests per minute.",
                 ),
             )
-            .mockResolvedValueOnce(readingExtraction())
-        renderJourney("/labels/read", { extractPhotos })
+            .mockResolvedValueOnce(labelReadingFixture())
+        renderJourney("/labels/read", { readLabel })
 
-        await readLabel(user)
+        await submitReading(user)
 
         expect(await screen.findByRole("alert")).toBeVisible()
         expect(
@@ -403,23 +476,23 @@ describe("Read This Label as a standalone mode", () => {
         expect(
             await screen.findByRole("region", { name: "Label Reading" }),
         ).toBeVisible()
-        expect(extractPhotos).toHaveBeenCalledTimes(2)
+        expect(readLabel).toHaveBeenCalledTimes(2)
     })
 
     test("changing photos discards a late response for the old photos", async () => {
         const user = userEvent.setup()
-        let resolveFirst: (value: Extraction) => void = () => undefined
-        const extractPhotos = vi.fn<ExtractPhotos>().mockImplementationOnce(
+        let resolveFirst: (value: LabelReading) => void = () => undefined
+        const readLabel = vi.fn<ReadLabel>().mockImplementationOnce(
             () =>
-                new Promise<Extraction>((resolve) => {
+                new Promise<LabelReading>((resolve) => {
                     resolveFirst = resolve
                 }),
         )
-        renderJourney("/labels/read", { extractPhotos })
+        renderJourney("/labels/read", { readLabel })
 
-        await readLabel(user)
+        await submitReading(user)
         addPhoto("second.jpg")
-        resolveFirst(readingExtraction())
+        resolveFirst(labelReadingFixture())
 
         await Promise.resolve()
         expect(
@@ -430,11 +503,11 @@ describe("Read This Label as a standalone mode", () => {
     test("nothing survives leaving the page", async () => {
         const user = userEvent.setup()
         const first = renderJourney("/labels/read", {
-            extractPhotos: vi
-                .fn<ExtractPhotos>()
-                .mockResolvedValue(readingExtraction()),
+            readLabel: vi
+                .fn<ReadLabel>()
+                .mockResolvedValue(labelReadingFixture()),
         })
-        await readLabel(user)
+        await submitReading(user)
         await screen.findByRole("region", { name: "Label Reading" })
         first.unmount()
 
@@ -492,10 +565,10 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
 
     test("submits photos in step order with neutral filenames", async () => {
         const user = userEvent.setup()
-        const extractPhotos = vi
-            .fn<ExtractPhotos>()
-            .mockResolvedValue(readingExtraction())
-        renderJourney("/labels/read", { extractPhotos })
+        const readLabel = vi
+            .fn<ReadLabel>()
+            .mockResolvedValue(labelReadingFixture())
+        renderJourney("/labels/read", { readLabel })
 
         // Pick the back first, then the front: the upload still follows step order.
         await user.click(
@@ -514,11 +587,12 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
             screen.getByRole("button", { name: "Read this label" }),
         )
 
-        const [, photos] = extractPhotos.mock.calls[0]!
+        const [photos, roles] = readLabel.mock.calls[0]!
         expect(photos.map((photo) => photo.name)).toEqual([
             "photo-1.jpg",
             "photo-2.jpg",
         ])
+        expect(roles).toEqual(["package_front", "package_back"])
     })
 
     test("removing a step's photo frees that step", async () => {
@@ -567,10 +641,10 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
         const lookup = vi
             .fn<ProductLookup>()
             .mockResolvedValue(productResponse())
-        const extractPhotos = vi.fn<ExtractPhotos>()
+        const readLabel = vi.fn<ReadLabel>()
         renderJourney("/labels/read", {
             lookup,
-            extractPhotos,
+            readLabel,
             decodeBarcode: vi
                 .fn<DecodeBarcode>()
                 .mockResolvedValue(MATCHED_BARCODE),
@@ -581,7 +655,7 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
         expect(offer).toHaveTextContent(MATCHED_BARCODE)
         // An English lookup only: a speculative Khmer lookup would spend translation.
         expect(lookup).toHaveBeenCalledWith(MATCHED_BARCODE)
-        expect(extractPhotos).not.toHaveBeenCalled()
+        expect(readLabel).not.toHaveBeenCalled()
 
         await user.click(
             within(offer).getByRole("button", { name: "Open Product page" }),
@@ -636,12 +710,12 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
 
     test("keeping the reading dismisses the offer and still reads without the Barcode", async () => {
         const user = userEvent.setup()
-        const extractPhotos = vi
-            .fn<ExtractPhotos>()
-            .mockResolvedValue(readingExtraction())
+        const readLabel = vi
+            .fn<ReadLabel>()
+            .mockResolvedValue(labelReadingFixture())
         renderJourney("/labels/read", {
             lookup: vi.fn<ProductLookup>().mockResolvedValue(productResponse()),
-            extractPhotos,
+            readLabel,
             decodeBarcode: vi
                 .fn<DecodeBarcode>()
                 .mockResolvedValue(MATCHED_BARCODE),
@@ -657,8 +731,8 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
             screen.getByRole("button", { name: "Read this label" }),
         )
 
-        const [productId, photos] = extractPhotos.mock.calls[0]!
-        expect(productId).toBe(LABEL_READING_PRODUCT_ID)
+        const [photos, roles] = readLabel.mock.calls[0]!
+        expect(roles).toEqual(["package_front"])
         expect(photos.map((photo) => photo.name).join()).not.toContain(
             MATCHED_BARCODE,
         )
@@ -742,6 +816,130 @@ describe("Guided label capture (SPEC §29.1-29.2)", () => {
             }),
         ).toBeVisible()
         vi.unstubAllGlobals()
+    })
+})
+
+describe("Label Reading result (SPEC §29.5)", () => {
+    async function showReading(reading = labelReadingFixture()) {
+        const user = userEvent.setup()
+        renderJourney("/labels/read", {
+            readLabel: vi.fn<ReadLabel>().mockResolvedValue(reading),
+        })
+        await submitReading(user)
+        return {
+            user,
+            region: await screen.findByRole("region", {
+                name: "Label Reading",
+            }),
+        }
+    }
+
+    test("leads with printed ingredients, allergen wording, nutrition, and facts", async () => {
+        const { region } = await showReading(
+            labelReadingFixture({
+                identity: {
+                    brand: {
+                        field_id: "brand",
+                        value_text: "Wafer Co",
+                        language: "en",
+                        state: "readable",
+                    },
+                    name: {
+                        field_id: "name",
+                        value_text: "Crispy Wafer",
+                        language: "en",
+                        state: "readable",
+                    },
+                },
+            }),
+        )
+
+        expect(within(region).getByText("Crispy Wafer")).toBeVisible()
+        expect(within(region).getByText("Wafer Co")).toBeVisible()
+        const ingredients = within(region).getByText(
+            /^Ingredients: wheat flour, sugar/,
+        )
+        expect(ingredients).toHaveAttribute("lang", "en")
+        const allergens = within(region).getByTestId("reading-allergens")
+        expect(within(allergens).getByText("May contain")).toBeVisible()
+        expect(
+            within(allergens).getByText("May contain traces of peanuts."),
+        ).toBeVisible()
+        expect(within(region).getByText("Country of origin")).toBeVisible()
+        expect(within(region).getByText("Thailand")).toBeVisible()
+        expect(within(region).getByRole("table")).toBeVisible()
+    })
+
+    test("highlights selected allergens found in the text, never claiming absence", async () => {
+        saveSelectedConcernIds(["milk", "peanuts", "celery"])
+        const { region } = await showReading()
+
+        const matches = within(region).getByTestId("reading-concern-matches")
+        expect(matches).toHaveTextContent("Milk · Mentioned: milk powder")
+        expect(matches).toHaveTextContent("Peanuts · May contain: peanuts")
+        expect(matches).not.toHaveTextContent("Celery")
+        expect(
+            within(region).getByText(/Only text that could be read/),
+        ).toBeVisible()
+        expect(region).not.toHaveTextContent(
+            /free of|free from|not found|none found|no allergens|safe/i,
+        )
+    })
+
+    test("with no matches it states only what was checked", async () => {
+        saveSelectedConcernIds(["celery"])
+        const { region } = await showReading()
+
+        expect(
+            within(region).queryByTestId("reading-concern-matches"),
+        ).not.toBeInTheDocument()
+        expect(
+            within(region).getByText(/Only text that could be read/),
+        ).toBeVisible()
+        expect(region).not.toHaveTextContent(/free of|not found|none found/i)
+    })
+
+    test("non-English text is reported as not checked, not as clear", async () => {
+        saveSelectedConcernIds(["milk"])
+        const { region } = await showReading(
+            labelReadingFixture({
+                allergen_mentions: {
+                    state: "not_checked",
+                    reason: "no_english_printed_text",
+                    mentions: [],
+                    limitations: ["non_english_text_not_checked"],
+                },
+            }),
+        )
+
+        expect(
+            within(region).getByText(/works on English text only/),
+        ).toBeVisible()
+        expect(
+            within(region).queryByText(/Only text that could be read/),
+        ).not.toBeInTheDocument()
+    })
+
+    test("without selected allergens it links to choosing them", async () => {
+        const { region } = await showReading()
+
+        expect(
+            within(region).getByRole("link", {
+                name: "Choose allergens to highlight",
+            }),
+        ).toHaveAttribute("href", "/concerns")
+    })
+
+    test("uses Photo Evidence vocabulary only", async () => {
+        const { region, user } = await showReading()
+        await user.click(
+            within(region).getByRole("button", { name: "How this was read" }),
+        )
+
+        expect(region).toHaveTextContent("label-reading-v1")
+        expect(region).not.toHaveTextContent(
+            /Source Data Unavailable|Original Text|Khmer Translation/,
+        )
     })
 })
 

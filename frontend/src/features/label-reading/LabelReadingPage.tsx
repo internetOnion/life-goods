@@ -12,10 +12,7 @@ import { appRoutes } from "@/app/routes"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { GlassButton as Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-    PhotoComparisonApiError,
-    extractProductPhotos,
-} from "@/features/photo-evidence/api"
+import { PhotoComparisonApiError } from "@/features/photo-evidence/api"
 import {
     MAX_PHOTO_FILE_SIZE_BYTES,
     PHOTO_INPUT_ACCEPT,
@@ -29,41 +26,36 @@ import { checkPhotoQuality } from "@/features/photo-evidence/imageQuality"
 import { PhotoInspectionModal } from "@/features/photo-evidence/PhotoInspectionModal"
 import { ProviderDisclosure } from "@/features/photo-evidence/ProviderDisclosure"
 import { useCompareTranslation } from "@/features/photo-evidence/translations"
-import type { Extraction } from "@/features/photo-evidence/types"
 import { lookupProduct, type ProductLookup } from "@/features/product/api"
 import { decodeBarcodeFromImage } from "@/features/scan/stillImageBarcode"
 import { usePageMetadata } from "@/lib/metadata"
 import { useAppShellNavigation } from "@/ui/AppShellNavigation"
 
+import { readLabelPhotos, type LabelReading } from "./api"
 import { CaptureStepCard, type StepPhoto } from "./CaptureStepCard"
 import {
     CAPTURE_STEPS,
+    captureStep,
     nextEmptyStep,
     neutralPhotoFile,
     type CaptureStepId,
 } from "./captureSteps"
 import { GuidedCaptureSheet } from "./GuidedCaptureSheet"
-import { LabelReadingView } from "./LabelReadingView"
 import { ProductPageOffer } from "./ProductPageOffer"
+import { LabelReadingResult } from "./result/LabelReadingResult"
 import { useLabelReadingTranslation } from "./translations"
-
-/**
- * The provider only ever receives this constant panel identifier and the photo
- * bytes. It is never derived from the Barcode (SPEC §29).
- */
-export const LABEL_READING_PRODUCT_ID = "label"
 
 type StepPhotos = Partial<Record<CaptureStepId, StepPhoto>>
 
 interface ReadingState {
-    extraction: Extraction | null
+    reading: LabelReading | null
     loading: boolean
     error: string
     retry: boolean
 }
 
 const IDLE_READING: ReadingState = {
-    extraction: null,
+    reading: null,
     loading: false,
     error: "",
     retry: false,
@@ -97,14 +89,14 @@ function orderedPhotos(photos: StepPhotos): StepPhoto[] {
 }
 
 export type LabelReadingPageProps = {
-    extractPhotos?: typeof extractProductPhotos
+    readLabel?: typeof readLabelPhotos
     lookup?: ProductLookup
     decodeBarcode?: typeof decodeBarcodeFromImage
     checkQuality?: typeof checkPhotoQuality
 }
 
 export function LabelReadingPage({
-    extractPhotos = extractProductPhotos,
+    readLabel = readLabelPhotos,
     lookup = lookupProduct,
     decodeBarcode = decodeBarcodeFromImage,
     checkQuality = checkPhotoQuality,
@@ -275,10 +267,16 @@ export function LabelReadingPage({
         }
     }
 
-    const createPhoto = (file: File): StepPhoto => {
+    const createPhoto = (file: File, stepId: CaptureStepId): StepPhoto => {
         const url = URL.createObjectURL(file)
         activeUrlsRef.current.add(url)
-        return { file, url, localId: crypto.randomUUID(), qualityIssues: [] }
+        return {
+            file,
+            url,
+            localId: crypto.randomUUID(),
+            stepId,
+            qualityIssues: [],
+        }
     }
 
     /**
@@ -317,7 +315,7 @@ export function LabelReadingPage({
             }
             const previous = next[target]
             if (previous) releasePhoto(previous)
-            const photo = createPhoto(file)
+            const photo = createPhoto(file, target)
             next[target] = photo
             placed.push(photo)
             taken.add(target)
@@ -415,15 +413,16 @@ export function LabelReadingPage({
             isMountedRef.current && requestIdRef.current === requestId
 
         try {
-            const extraction = await extractPhotos(
-                LABEL_READING_PRODUCT_ID,
+            // Only the photos and their capture roles leave the device (SPEC §29.3).
+            const result = await readLabel(
                 submitted.map((photo, index) =>
                     neutralPhotoFile(photo.file, index),
                 ),
+                submitted.map((photo) => captureStep(photo.stepId).role),
                 { signal: controller.signal },
             )
             if (!isCurrent()) return
-            setReading({ ...IDLE_READING, extraction })
+            setReading({ ...IDLE_READING, reading: result })
             requestAnimationFrame(() =>
                 resultsRef.current?.focus({ preventScroll: false }),
             )
@@ -445,7 +444,7 @@ export function LabelReadingPage({
 
     const handleFocusEvidence = (imageId: string) => {
         const index =
-            reading.extraction?.images.findIndex(
+            reading.reading?.images.findIndex(
                 (image) => image.image_id === imageId,
             ) ?? -1
         if (index >= 0 && sequence[index]) setInspectionIndex(index)
@@ -644,7 +643,7 @@ export function LabelReadingPage({
                         <span>
                             {reading.loading
                                 ? tc("readingPhotos")
-                                : reading.extraction
+                                : reading.reading
                                   ? tc("readAgainAction")
                                   : tc("readThisLabelAction")}
                         </span>
@@ -652,10 +651,15 @@ export function LabelReadingPage({
                     </Button>
                 </div>
 
-                {reading.extraction && !reading.loading ? (
-                    <LabelReadingView
+                {reading.reading && !reading.loading ? (
+                    <LabelReadingResult
                         ref={resultsRef}
-                        extraction={reading.extraction}
+                        reading={reading.reading}
+                        frontPhotoUrl={
+                            photos.front && !photos.front.previewError
+                                ? photos.front.url
+                                : undefined
+                        }
                         onFocusEvidence={handleFocusEvidence}
                     />
                 ) : null}
