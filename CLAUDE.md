@@ -18,7 +18,7 @@ Life Goods is a **read-only presentation layer** over a static, locally hosted O
 - No Product contributions, verification, package capture, camera uploads, accounts, server-side scan history, or personalization.
 - No safety, health, allergen-free, Halal, legal/compliance, authenticity, or purchase verdicts anywhere, including in `/learn` content.
 - Decode Barcode camera frames on-device; send only the normalized Barcode to the backend. Never upload/retain camera frames.
-- Compare Nutrition (photo-based nutrition comparison) is the **one** bounded exception that sends user photos off-device — to the configured AI provider only, with no photos/extracted text/comparison history retained. It never declares an overall winner or verdict.
+- Nutrition Labels (Read This Label and Compare Nutrition) is the **one** bounded exception that sends user photos, and text read from them, off-device — to the configured AI provider only, with no photos/extracted text/readings/comparison history retained (ADR 0004, ADR 0005). It never declares an overall winner or verdict, and a Label Reading never states that an allergen is absent.
 - Keep Barcode-level and Shopper-level data out of analytics and logs.
 
 ## Architecture

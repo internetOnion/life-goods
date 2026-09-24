@@ -1,5 +1,6 @@
 ---
 status: accepted
+amended-by: 0005
 ---
 
 # Single-Product label reading within the bounded photo exception

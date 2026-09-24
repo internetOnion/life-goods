@@ -19,7 +19,7 @@ The MVP:
 - supports optional on-demand Khmer Translation while preserving Original Text; and
 - remains anonymous and read-only.
 
-The MVP does not own a Product catalog, accept contributions, or verify source data. Barcode camera frames stay on the device. Compare Nutrition is the one bounded exception that sends package photos for provider processing, retaining no photos or comparison history. The MVP does not produce health, safety, allergen-free, Halal, authenticity, legal, compliance, or purchase verdicts.
+The MVP does not own a Product catalog, accept contributions, or verify source data. Barcode camera frames stay on the device. Nutrition Labels (Read This Label and Compare Nutrition) is the one bounded exception that sends package photos, and text read from them, for provider processing, retaining no photos, readings, or comparison history. The MVP does not produce health, safety, allergen-free, Halal, authenticity, legal, compliance, or purchase verdicts.
 
 ## 2. Current repository capability
 
@@ -250,7 +250,8 @@ The current provider and model are fixed to Gemini `gemini-3.8-flash` under tran
 
 - Decode Barcode camera frames on the device and send only the normalized Barcode for lookup.
 - Do not upload or retain Barcode camera frames.
-- For Compare Nutrition, send only the submitted label photos to the configured provider for processing, and retain no photos, extracted label text, comparison history, or persistent Shopper identifiers.
+- For Nutrition Labels, send only the submitted label photos, and for Khmer Rendering only text read from them, to the configured provider for processing, and retain no photos, extracted label text, readings, comparison history, or persistent Shopper identifiers.
+- A Barcode decoded on the device from a label photo may be used for an ordinary Product Lookup, but never travels with, or is associated with, a photo submission or Khmer Rendering request (section 29.2).
 - Do not create accounts, server-side scan history, saved Products, or personalization in the MVP.
 - Do not retain Barcode-level analytics, persistent IP identifiers, or per-Shopper histories.
 - Permit aggregate counts for lookup volume, found/not-found rate, latency, cache performance, and error rate.
@@ -1196,42 +1197,142 @@ a zero-retention promise for the provider; provider-side retention is documented
 separately.
 
 `POST /api/v1/photo-comparison/extractions` is a single-Product, side-agnostic
-operation shared with Read This Label (section 29). Its path and operation id
-(`extractPhotoComparison`) are retained for contract stability rather than renamed.
+operation used by Compare Nutrition. Read This Label has its own operations
+(section 29, ADR 0005), and the two modes share only the admission budget, the
+provider lease, and the image and upload limits.
 
-## 29. Read This Label from one Product's nutrition-label photos (ADR 0004)
+## 29. Read This Label from one Product's label photos (ADR 0004, ADR 0005)
 
 Read This Label is the single-Product mode of the Nutrition Labels section. It is
 reachable at `/labels/read` from the `/labels` hub, directly, and as the primary
 next step for an Unmatched Barcode (a Product Lookup `404` or a Product Search
-Barcode miss).
+Barcode miss). It reads the whole printed label, not only nutrition values.
 
-- It reuses `POST /api/v1/photo-comparison/extractions` unchanged: the same
-  `Extraction` contract, outcomes, error codes, upload limits (one to three JPEG,
-  PNG or HEIC/HEIF photos), provider, model, and prompt configuration. There is no
-  separate endpoint.
-- It shares one anonymous admission budget with Compare Nutrition: the same
-  per-client sliding window (`LIFEGOODS_PHOTO_COMPARISON_REQUESTS_PER_MINUTE`) and
-  the same global single-active-provider lease.
-- `product_id` is a local panel label and is never the Barcode. No request, log,
-  metric, or cache key associates a Barcode with a photo submission or provider call.
-  When the Shopper arrives from an Unmatched Barcode, the Barcode is shown for context
-  and arrives through in-memory navigation state, never through the URL.
-- Visible states are ready for photos, reading the label, needs clarification or
-  retake, results, and recoverable failure. The provider statement is shown once on
-  the Nutrition Labels hub (section 28). Read This Label uses the same header and
-  floating photo dock as Compare Nutrition, with Back returning to the hub.
-- Results are titled Label Reading and present every printed nutrition column with
-  its printed basis and preparation state. There is no column chooser, because no
-  comparison is derived.
-- A Label Reading is labeled Photo Evidence. It carries no Source Attribution, no
-  Source Assessment, no score, and no verdict. Field states use reading vocabulary
-  about the photo (not readable, not printed on the photographed part, unclear,
-  or conflicting readings); the phrase `Source Data Unavailable` never appears in a
-  Label Reading.
-- A Label Reading lives only in browser memory for the current page. Leaving the
-  route discards it. It is never stored, exported, offered as a contribution, or
-  carried into Compare Nutrition.
+### 29.1 Guided capture
+
+- The flow opens with a short intro that always shows the provider statement,
+  including when the Shopper arrives from an Unmatched Barcode rather than the hub.
+- Capture proceeds in guided steps, each with a framing overlay and one tip:
+
+  | Step | Role | Required |
+  |---|---|---|
+  | Front of package | `package_front` | skippable |
+  | Back of package | `package_back` | skippable |
+  | Side panel | `package_side` | optional |
+
+  At least one photo is required and at most three are sent. Each step offers the
+  in-app camera, the photo library, the device camera, and Skip.
+- One camera stream stays open across steps and is released on close, reset, and
+  unmount.
+- Blur, darkness, and glare are checked on the device against a downscaled copy.
+  The result is an advisory hint ("retake or use anyway") and never blocks
+  submission. When the browser cannot decode a photo (for example HEIC outside
+  Safari), no check runs.
+- Existing photo verification, format, and size rules are unchanged.
+
+### 29.2 Barcode from captured photos
+
+- After each capture or pick, the photo may be decoded for a Barcode on the device
+  (native `BarcodeDetector` first, then the bundled decoder). Only values that pass
+  GTIN check-digit validation are accepted. A Barcode equal to the one the Shopper
+  arrived with is ignored, because it is already known to be unmatched.
+- A decoded Barcode triggers an ordinary Product Lookup. On `200` the Shopper is
+  offered "Open Product page" or "Keep reading the label". On `404` or an error,
+  nothing is shown.
+- The decoded Barcode lives only in component state. It never appears in the
+  label-reading request, the Khmer Rendering request, uploaded filenames, logs,
+  metrics, or cache keys. Uploaded files are renamed to `photo-{n}.{ext}` before
+  submission.
+- When the Shopper arrives from an Unmatched Barcode, that Barcode is shown for
+  context and arrives through in-memory navigation state, never through the URL.
+
+### 29.3 `POST /api/v1/label-readings`
+
+- Multipart request: repeated `photos` (one to three JPEG, PNG, or HEIC/HEIF files)
+  and an optional repeated `photo_roles` of the same count
+  (`package_front`, `package_back`, `package_side`, `unspecified`). There is no
+  `product_id` or other free-form identifier field.
+- It uses the same image preparation, upload, response, and error rules as
+  section 28, and the same error envelope and codes.
+- It shares one anonymous admission budget with Compare Nutrition and Khmer
+  Rendering: the same per-client sliding window
+  (`LIFEGOODS_PHOTO_COMPARISON_REQUESTS_PER_MINUTE`) and the same global
+  single-active-provider lease.
+- The provider and model are unchanged. The configuration version is
+  `label-reading-v1`, with its own prompt and response schema.
+- The `LabelReading` response (schema version 1) contains:
+  - `images`, `identity`, `package_quantity`, and `nutrition_columns` (possibly
+    empty), with the same shapes as the section 28 `Extraction`;
+  - `ingredients`: Printed Text blocks, one per printed language, each with a
+    `block_id`, `original_script`, `language`, `state`, and evidence;
+  - `allergen_statements`: Printed Allergen Statements with `kind`
+    (`contains`, `may_contain`, `other`), verbatim text, `language`, `state`, and
+    evidence;
+  - `printed_facts`: facts from a closed list (serving size, servings per package,
+    storage instructions, country of origin, manufacturer, importer or
+    distributor), each with its printed label and text;
+  - `allergen_mentions`: `state` (`completed`, `not_checked`, `unavailable`) and
+    the matched allergen-group evidence;
+  - `outcome`, `retake_reasons`, `provider`, `model`, and `configuration_version`.
+- Outcome rules:
+  - `retake_required` only when no readable identity, nutrition field, Printed
+    Text block, allergen statement, or printed fact exists;
+  - `partial` when something is readable but part of the label could not be read;
+  - `complete` otherwise.
+  There is no requirement for a readable nutrition column.
+- The prompt transcribes ingredients and allergen statements verbatim and never
+  corrects, infers, or translates them. It does not extract free-from claims,
+  certification or Halal marks, health or nutrition claims, or marketing copy.
+- Allergen mentions come from the existing deterministic ingredient-text matcher
+  run on English ingredient blocks and on all allergen-statement blocks. Text is
+  truncated at the matcher's input limit, and a limitation is recorded. No
+  eligible block gives `not_checked`; an unavailable matcher gives `unavailable`.
+
+### 29.4 `POST /api/v1/label-readings/khmer-renderings`
+
+- JSON request: `schema_version` and `blocks` of `{block_id, text, language}`,
+  with at most 24 blocks, 2,000 characters per block, and 8,000 characters total.
+- Response: one entry per block with `state` (`rendered`, `not_needed`,
+  `unavailable`) and `khmer_text`, plus `configuration_version`
+  (`label-khmer-rendering-v1`). Text already in Khmer script is `not_needed`.
+- It makes one provider attempt under a shared deadline and the shared admission
+  budget. Protected tokens (numbers, units, E-numbers) must survive; a block that
+  fails validation is `unavailable`, never a partial string.
+- It uses no generated-data storage, translation cache, or translation quota, and
+  is not Khmer Translation.
+- The frontend requests rendering automatically when the locale is Khmer, and on
+  a "Show in Khmer" action otherwise. A response for a superseded reading is
+  ignored. A capacity limit shows a retry action; there is no automatic retry.
+
+### 29.5 Result
+
+- Results are titled Label Reading and labelled Photo Evidence, with a single
+  notice that the values were read from the Shopper's photos by the configured AI
+  provider, are not an Open Food Facts Source Record, and are not verified or kept.
+- Sections, in order, each shown only when it has content:
+  1. a hero with the front photo, brand, name, and package quantity;
+  2. ingredients: Printed Text with its `lang` attribute, and the Khmer Rendering
+     beneath it, labelled as Khmer by AI from the Shopper's photo;
+  3. "Allergen statement printed on the label": the verbatim statements, then the
+     Shopper's selected allergens found in the text read. A permanent line states
+     that only readable text was checked. There is never a "none found", "not
+     found", or "free of" statement;
+  4. one nutrition table with a column per printed column (basis and preparation
+     state), nutrient names localized from the canonical nutrient key, and
+     qualifiers and unclear readings stated in words;
+  5. printed facts.
+- Field-level evidence (photo pointers, states, retake reasons, model and
+  configuration version) is behind a "How this was read" action.
+- Progress is staged: reading the label, then writing Khmer. Printed Text appears
+  as soon as the reading returns.
+- A Label Reading carries no Source Attribution, no Source Assessment, no score,
+  and no verdict. Field states use reading vocabulary about the photo (not
+  readable, not printed on the photographed part, unclear, or conflicting
+  readings); the phrases `Source Data Unavailable`, Original Text, and Khmer
+  Translation never appear in a Label Reading.
+- A Label Reading and its Khmer Rendering live only in browser memory for the
+  current page. Leaving the route discards them. They are never stored, exported,
+  offered as a contribution, or carried into Compare Nutrition.
 
 ## Deployment health probes
 

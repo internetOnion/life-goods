@@ -33,7 +33,7 @@ The primary workflow happens one-handed on a mobile phone in a shop. The Shopper
 - Mobile-first progressive web application with anonymous, read-only use
 - On-device Barcode decoding; Barcode camera frames are not uploaded or retained
 - Product Lookup against one static, locally hosted Open Food Facts Dataset Snapshot
-- Nutrition Labels: Read This Label for one Product and Compare Nutrition for two, from nutrition-label photos, including when a Barcode has no Source Record, with transient provider processing and no retained reading or comparison history
+- Nutrition Labels: Read This Label for one Product's package label and Compare Nutrition for two Products' nutrition labels, from the Shopper's photos, including when a Barcode has no Source Record, with transient provider processing and no retained reading or comparison history
 - Independent ingredient-text allergen evidence compared with Open Food Facts allergen tags
 - English information-architecture prototype before the Khmer public MVP
 - On-demand Khmer Translation in the public MVP while retaining Original Text in the Source Record
@@ -54,17 +54,22 @@ signals; it does not verify either source or make an allergen-free or safety cla
 ## Nutrition Labels
 
 Nutrition Labels is a primary Life Goods section, alongside Barcode scanning,
-with two modes that share one photo pipeline: Read This Label and Compare
-Products.
+with two modes that share one photo budget: Read This Label and Compare
+Nutrition.
 
-Read This Label reads one Product's nutrition label from the Shopper's photos
-and presents a Label Reading: every printed nutrition column with its printed
-basis, clearly marked as Photo Evidence. It is available directly from the
-Nutrition Labels section and is the primary next step offered for an Unmatched
-Barcode. A Label Reading is not a Source Record, carries no Source Attribution
-or Source Assessment, and never uses the phrase Source Data Unavailable, which
-describes Source Records only. The Barcode, when present, is shown for context
-and never sent to the AI provider.
+Read This Label guides the Shopper to photograph one Product's package (front,
+back, and an optional side panel) and presents a Label Reading: the ingredients
+and Printed Allergen Statements as printed, a Khmer Rendering of that text,
+every printed nutrition column with its printed basis, and a short list of other
+printed facts, all clearly marked as Photo Evidence. When a photo shows a Barcode
+that has a Source Record, the Shopper is offered the Product page instead. Read
+This Label is available directly from the Nutrition Labels section and is the
+primary next step offered for an Unmatched Barcode. A Label Reading is not a
+Source Record, carries no Source Attribution or Source Assessment, and never uses
+the phrase Source Data Unavailable, which describes Source Records only. It
+reports the Shopper's selected allergens only where they appear in the text that
+was read, and never says a Product is free of anything. The Barcode, when present,
+is shown for context and never sent to the AI provider or with the photos.
 
 Compare Nutrition, described as “Compare nutrition labels using photos,”
 photographs Product A and Product B, taps Compare, and
@@ -75,10 +80,11 @@ differences; it does not declare an overall winner or a health, safety, or
 purchase verdict.
 
 Nutrition Labels photo processing is the one bounded exception to the
-read-only, no-upload MVP boundary (ADR 0004). Photos submitted in either mode are
+read-only, no-upload MVP boundary (ADR 0004, ADR 0005). Photos submitted in either mode are
 sent to the configured AI provider for processing and are never retained by Life
 Goods as Product data, Source Records, reading or comparison history, or Khmer
-Translation input. Extracted values remain
+Translation input. Khmer Rendering of text read from photos is transient and is
+not Khmer Translation. Extracted values remain
 submitted Photo Evidence: they are kept separate from Open Food Facts data, are
 not a Source Record, and are not glossary-defined Original Text. The exception
 does not create Product contributions, corrections, or verification, and it does
