@@ -14,7 +14,15 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from lifegoods.core.security import SecurityHeadersMiddleware, TrustedProxyClientMiddleware
 from lifegoods.core.settings import Settings
 from lifegoods.label_reading.gemini import create_label_reading_provider
-from lifegoods.label_reading.router import build_label_reading_router
+from lifegoods.label_reading.khmer_rendering import (
+    KHMER_RENDERING_DEADLINE_SECONDS,
+    KhmerRenderingService,
+    create_khmer_rendering_provider,
+)
+from lifegoods.label_reading.router import (
+    build_label_reading_router,
+    install_label_reading_openapi,
+)
 from lifegoods.label_reading.service import LabelReadingService
 from lifegoods.photo_comparison.contracts import (
     PhotoComparisonErrorCode,
@@ -53,6 +61,7 @@ def create_photo_comparison_app(
     settings: Settings | None = None,
     provider: Any | None = None,
     label_reading_provider: Any | None = None,
+    khmer_rendering_provider: Any | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings()
     owned_clients: list[httpx.Client] = []
@@ -75,6 +84,17 @@ def create_photo_comparison_app(
             resolved_settings.gemini_api_key,
             http_client=label_client,
         )
+    resolved_rendering_provider = khmer_rendering_provider
+    if resolved_rendering_provider is None and resolved_settings.gemini_api_key:
+        rendering_client = httpx.Client(timeout=KHMER_RENDERING_DEADLINE_SECONDS)
+        owned_clients.append(rendering_client)
+        resolved_rendering_provider = create_khmer_rendering_provider(
+            resolved_settings.gemini_api_key,
+            http_client=rendering_client,
+        )
+    khmer_rendering_service = KhmerRenderingService(
+        resolved_rendering_provider, admission=photo_admission
+    )
     label_reading_service = LabelReadingService(
         resolved_label_provider, admission=photo_admission
     )
@@ -102,10 +122,13 @@ def create_photo_comparison_app(
     )
     app.include_router(
         build_label_reading_router(
-            label_reading_service, path=EXPERIMENTAL_LABEL_READING_PATH
+            label_reading_service,
+            khmer_rendering_service,
+            path=EXPERIMENTAL_LABEL_READING_PATH,
         )
     )
     install_photo_comparison_openapi(app)
+    install_label_reading_openapi(app)
 
     @app.get("/", response_class=HTMLResponse, include_in_schema=False)
     async def index() -> HTMLResponse:

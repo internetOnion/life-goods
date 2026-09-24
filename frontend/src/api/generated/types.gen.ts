@@ -673,6 +673,86 @@ export type IngredientMatchingAllergenResponse = {
 };
 
 /**
+ * KhmerRenderedBlock
+ */
+export type KhmerRenderedBlock = {
+    /**
+     * Block Id
+     */
+    block_id: string;
+    /**
+     * Khmer Text
+     */
+    khmer_text?: string | null;
+    state: KhmerRenderingState;
+};
+
+/**
+ * KhmerRenderingBlockInput
+ * Printed Text sent for Khmer Rendering. It carries no Product or Barcode identifier.
+ */
+export type KhmerRenderingBlockInput = {
+    /**
+     * Block Id
+     */
+    block_id: string;
+    /**
+     * Language
+     */
+    language?: string;
+    /**
+     * Text
+     */
+    text: string;
+};
+
+/**
+ * KhmerRenderingRequest
+ */
+export type KhmerRenderingRequest = {
+    /**
+     * Blocks
+     */
+    blocks: Array<KhmerRenderingBlockInput>;
+    /**
+     * Schema Version
+     */
+    schema_version?: number;
+};
+
+/**
+ * KhmerRenderingResponse
+ * Machine-generated Khmer Rendering of Printed Text. Not Khmer Translation; not stored.
+ */
+export type KhmerRenderingResponse = {
+    /**
+     * Blocks
+     */
+    blocks: Array<KhmerRenderedBlock>;
+    /**
+     * Configuration Version
+     */
+    configuration_version?: string;
+    /**
+     * Model
+     */
+    model?: string | null;
+    /**
+     * Provider
+     */
+    provider?: string | null;
+    /**
+     * Schema Version
+     */
+    schema_version?: number;
+};
+
+/**
+ * KhmerRenderingState
+ */
+export type KhmerRenderingState = 'rendered' | 'not_needed' | 'unavailable';
+
+/**
  * LabelAllergenMention
  * One allergen-group mention found by the deterministic ingredient matcher.
  */
@@ -1785,6 +1865,59 @@ export type CreateLabelReadingResponses = {
 };
 
 export type CreateLabelReadingResponse = CreateLabelReadingResponses[keyof CreateLabelReadingResponses];
+
+export type RenderLabelReadingKhmerData = {
+    body: KhmerRenderingRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/label-readings/khmer-renderings';
+};
+
+export type RenderLabelReadingKhmerErrors = {
+    /**
+     * Content Too Large
+     */
+    413: PhotoComparisonErrorResponse;
+    /**
+     * Unsupported Media Type
+     */
+    415: PhotoComparisonErrorResponse;
+    /**
+     * Unprocessable Content
+     */
+    422: PhotoComparisonErrorResponse;
+    /**
+     * Too Many Requests
+     */
+    429: PhotoComparisonErrorResponse;
+    /**
+     * Internal Server Error
+     */
+    500: PhotoComparisonErrorResponse;
+    /**
+     * Bad Gateway
+     */
+    502: PhotoComparisonErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: PhotoComparisonErrorResponse;
+    /**
+     * Gateway Timeout
+     */
+    504: PhotoComparisonErrorResponse;
+};
+
+export type RenderLabelReadingKhmerError = RenderLabelReadingKhmerErrors[keyof RenderLabelReadingKhmerErrors];
+
+export type RenderLabelReadingKhmerResponses = {
+    /**
+     * Per-block Khmer Rendering states.
+     */
+    200: KhmerRenderingResponse;
+};
+
+export type RenderLabelReadingKhmerResponse = RenderLabelReadingKhmerResponses[keyof RenderLabelReadingKhmerResponses];
 
 export type GetOpenFoodFactsImageData = {
     body?: never;

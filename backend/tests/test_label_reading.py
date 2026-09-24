@@ -682,3 +682,216 @@ def test_http_label_reading_returns_allergen_mentions_from_the_app_matcher() -> 
     assert mentions["state"] == "completed"
     tags = {tag for mention in mentions["mentions"] for tag in mention["allergen_tags"]}
     assert {"en:milk", "en:gluten", "en:peanuts"} <= tags
+
+
+# --- Khmer Rendering -----------------------------------------------------------------
+
+KHMER_FLOUR = "ម្សៅស្រូវសាលី __LG_TOK_0__, ស្ករ"
+
+
+def _rendering_app(provider: Any, **kwargs: Any) -> Any:
+    return _app(FakeLabelProvider(), khmer_rendering_provider=provider, **kwargs)
+
+
+def _render(client: TestClient, blocks: list[dict[str, Any]]) -> Any:
+    return client.post(
+        "/api/v1/label-readings/khmer-renderings",
+        json={"schema_version": 1, "blocks": blocks},
+    )
+
+
+def test_khmer_rendering_restores_protected_values_and_validates() -> None:
+    from lifegoods.translation.provider import FakeTranslationProvider
+
+    provider = FakeTranslationProvider({"ing": KHMER_FLOUR})
+    with TestClient(_rendering_app(provider)) as client:
+        response = _render(
+            client, [{"block_id": "ing", "text": "Wheat flour 45%, sugar", "language": "en"}]
+        )
+
+    assert response.status_code == 200, response.text
+    assert response.headers["cache-control"] == "no-store"
+    body = response.json()
+    assert body["configuration_version"] == "label-khmer-rendering-v1"
+    assert body["blocks"] == [
+        {"block_id": "ing", "state": "rendered", "khmer_text": "ម្សៅស្រូវសាលី 45%, ស្ករ"}
+    ]
+    assert provider.last_request is not None
+    assert provider.last_request.fields == {"ing": "Wheat flour __LG_TOK_0__, sugar"}
+    assert provider.last_request.deadline is not None
+
+
+def test_khmer_text_is_not_needed_and_spends_no_admission() -> None:
+    from lifegoods.translation.provider import FakeTranslationProvider
+
+    class CountingLimiter:
+        calls = 0
+
+        def try_acquire(self, key: str) -> tuple[bool, int]:
+            del key
+            CountingLimiter.calls += 1
+            return True, 0
+
+    provider = FakeTranslationProvider({})
+    with TestClient(_rendering_app(provider, photo_rate_limiter=CountingLimiter())) as client:
+        response = _render(client, [{"block_id": "km", "text": "ម្សៅស្រូវសាលី, ស្ករ"}])
+
+    assert response.status_code == 200
+    assert response.json()["blocks"] == [
+        {"block_id": "km", "state": "not_needed", "khmer_text": None}
+    ]
+    assert provider.call_count == 0
+    assert CountingLimiter.calls == 0
+
+
+def test_block_failing_validation_is_unavailable_never_partial() -> None:
+    from lifegoods.translation.provider import FakeTranslationProvider
+
+    provider = FakeTranslationProvider(
+        {"good": KHMER_FLOUR, "dropped": "ម្សៅ, ស្ករ", "english": "Wheat flour __LG_TOK_0__"}
+    )
+    with TestClient(_rendering_app(provider)) as client:
+        response = _render(
+            client,
+            [
+                {"block_id": "good", "text": "Wheat flour 45%, sugar"},
+                {"block_id": "dropped", "text": "Wheat flour 45%, sugar"},
+                {"block_id": "english", "text": "Wheat flour 45%"},
+                {"block_id": "missing", "text": "Salt"},
+            ],
+        )
+
+    states = {block["block_id"]: block for block in response.json()["blocks"]}
+    assert states["good"]["state"] == "rendered"
+    for block_id in ("dropped", "english", "missing"):
+        assert states[block_id] == {
+            "block_id": block_id,
+            "state": "unavailable",
+            "khmer_text": None,
+        }
+
+
+@pytest.mark.parametrize(
+    ("timed_out", "status", "code"),
+    [(False, 503, "provider_unavailable"), (True, 504, "provider_timeout")],
+)
+def test_khmer_rendering_provider_failure_uses_the_photo_envelope(
+    timed_out: bool, status: int, code: str
+) -> None:
+    from lifegoods.translation.provider import ProviderTranslationResponse
+
+    class FailingProvider:
+        provider_name = "fake"
+        model = "gemini-3.8-flash"
+
+        def translate(self, request: Any) -> ProviderTranslationResponse:
+            del request
+            return ProviderTranslationResponse(
+                translations={}, status="error", timed_out=timed_out
+            )
+
+    with TestClient(_rendering_app(FailingProvider())) as client:
+        response = _render(client, [{"block_id": "ing", "text": "Sugar"}])
+
+    assert response.status_code == status
+    assert response.json()["error"]["code"] == code
+
+
+@pytest.mark.parametrize(
+    ("blocks", "status"),
+    [
+        ([{"block_id": f"b{n}", "text": "Sugar"} for n in range(25)], 422),
+        ([{"block_id": f"b{n}", "text": "s" * 2000} for n in range(5)], 422),
+        ([{"block_id": "b", "text": "s" * 2001}], 422),
+        ([{"block_id": "b", "text": "Sugar"}, {"block_id": "b", "text": "Salt"}], 422),
+        ([{"block_id": "b", "text": "Sugar", "barcode": "8850999320014"}], 422),
+        ([], 422),
+    ],
+)
+def test_khmer_rendering_rejects_out_of_bounds_requests(
+    blocks: list[dict[str, Any]], status: int
+) -> None:
+    from lifegoods.translation.provider import FakeTranslationProvider
+
+    provider = FakeTranslationProvider({})
+    with TestClient(_rendering_app(provider)) as client:
+        response = _render(client, blocks)
+
+    assert response.status_code == status
+    assert response.json()["error"]["code"] == "request_invalid"
+    assert provider.call_count == 0
+
+
+def test_khmer_rendering_rejects_oversized_bodies_before_parsing() -> None:
+    from lifegoods.translation.provider import FakeTranslationProvider
+
+    with TestClient(_rendering_app(FakeTranslationProvider({}))) as client:
+        response = client.post(
+            "/api/v1/label-readings/khmer-renderings",
+            content=b"{" + b" " * (64 * 1024 + 1) + b"}",
+            headers={"content-type": "application/json"},
+        )
+
+    assert response.status_code == 413
+    assert response.json()["error"]["code"] == "size_limit_exceeded"
+
+
+def test_khmer_rendering_shares_the_photo_admission_budget() -> None:
+    from lifegoods.translation.provider import FakeTranslationProvider
+
+    redis_client = fakeredis.FakeRedis(decode_responses=True)
+    app = _rendering_app(
+        FakeTranslationProvider({"ing": KHMER_FLOUR}),
+        photo_rate_limiter=RedisPhotoComparisonRateLimiter(redis_client, requests_per_minute=1),
+    )
+    with TestClient(app) as client:
+        reading = client.post(
+            "/api/v1/label-readings",
+            files=[("photos", ("photo-1.png", _png_bytes(), "image/png"))],
+        )
+        rendering = _render(client, [{"block_id": "ing", "text": "Wheat flour 45%, sugar"}])
+
+    assert reading.status_code == 200
+    assert rendering.status_code == 429
+    assert rendering.json()["error"]["code"] == "rate_limit_exceeded"
+
+
+def test_khmer_rendering_adapter_makes_exactly_one_provider_attempt() -> None:
+    import httpx2 as httpx
+
+    from lifegoods.label_reading.khmer_rendering import create_khmer_rendering_provider
+    from lifegoods.translation.provider import ProviderTranslationRequest
+
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(str(request.url))
+        return httpx.Response(503)
+
+    adapter = create_khmer_rendering_provider(
+        "test-key", http_client=httpx.Client(transport=httpx.MockTransport(handler))
+    )
+    assert adapter is not None
+    response = adapter.translate(ProviderTranslationRequest(fields={"ing": "Sugar"}))
+
+    assert response.status == "error"
+    assert len(calls) == 1
+    assert "gemini-3.8-flash:generateContent" in calls[0]
+
+
+def test_openapi_documents_the_khmer_rendering_request() -> None:
+    from lifegoods.translation.provider import FakeTranslationProvider
+
+    with TestClient(_rendering_app(FakeTranslationProvider({}))) as client:
+        schema = client.get("/openapi.json").json()
+
+    operation = schema["paths"]["/api/v1/label-readings/khmer-renderings"]["post"]
+    assert operation["operationId"] == "renderLabelReadingKhmer"
+    components = schema["components"]["schemas"]
+    assert "KhmerRenderingRequest" in components
+    assert "KhmerRenderingBlockInput" in components
+    assert set(components["KhmerRenderingBlockInput"]["properties"]) == {
+        "block_id",
+        "text",
+        "language",
+    }
