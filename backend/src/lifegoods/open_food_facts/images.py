@@ -12,6 +12,7 @@ from lifegoods.core.concurrency import ExternalLookupLocks, SlidingWindowRequest
 from lifegoods.open_food_facts.models import (
     ExternalImage,
     ExternalImageNotFoundError,
+    ExternalImageRateLimitError,
     ExternalImageUnavailableError,
     ExternalImageUrlInvalidError,
 )
@@ -22,6 +23,12 @@ DEFAULT_MAX_IMAGE_BYTES = 10 * 1024 * 1024
 DEFAULT_MAX_CACHE_BYTES = 32 * 1024 * 1024
 DEFAULT_MAX_CONCURRENT_REQUESTS = 8
 DEFAULT_IMAGE_CACHE_TTL_SECONDS = 24 * 60 * 60
+# Remember missing images briefly so repeated requests never reach Open Food Facts.
+DEFAULT_NOT_FOUND_TTL_SECONDS = 10 * 60
+MAX_NOT_FOUND_ENTRIES = 10_000
+# Duplicate requests wait this long for an in-flight fetch of the same image, then fail
+# instead of holding a server worker for the whole upstream timeout.
+DUPLICATE_WAIT_SECONDS = 2.0
 ALLOWED_IMAGE_MEDIA_TYPES = frozenset(
     {
         "image/gif",
@@ -75,31 +82,72 @@ class OpenFoodFactsImageSource:
         self._cache: OrderedDict[str, _CacheEntry] = OrderedDict()
         self._cache_bytes = 0
         self._cache_lock = Lock()
+        self._not_found: OrderedDict[str, float] = OrderedDict()
 
-    def fetch(self, url: str) -> ExternalImage:
+    def fetch(
+        self, url: str, *, admit: Callable[[], tuple[bool, int]] | None = None
+    ) -> ExternalImage:
+        """Serve from cache, or fetch upstream once ``admit`` (the per-client limit,
+        charged only for cache misses) and the shared upstream budget allow it."""
         _validate_image_url(url, self._image_origin)
         cached = self._cached(url)
         if cached is not None:
             return cached
+        self._raise_if_known_missing(url)
 
-        with self._lookup_locks.hold(url):
-            cached = self._cached(url)
-            if cached is not None:
-                return cached
-            if not self._request_budget.try_acquire():
-                logger.warning("OFF image request budget exhausted; refusing request")
-                raise ExternalImageUnavailableError("OFF image request budget is exhausted")
-            if not self._request_slots.acquire(blocking=False):
-                logger.warning("OFF image request concurrency exhausted; refusing request")
-                raise ExternalImageUnavailableError(
-                    "OFF image request concurrency is exhausted"
-                )
-            try:
-                image = self._fetch(url)
-            finally:
-                self._request_slots.release()
-            self._store(url, image)
-            return image
+        try:
+            with self._lookup_locks.hold(url, timeout=DUPLICATE_WAIT_SECONDS):
+                return self._fetch_uncached(url, admit)
+        except TimeoutError as error:
+            raise ExternalImageUnavailableError(
+                "OFF image request is already in progress"
+            ) from error
+
+    def _fetch_uncached(
+        self, url: str, admit: Callable[[], tuple[bool, int]] | None
+    ) -> ExternalImage:
+        cached = self._cached(url)
+        if cached is not None:
+            return cached
+        self._raise_if_known_missing(url)
+        if admit is not None:
+            allowed, retry_after = admit()
+            if not allowed:
+                raise ExternalImageRateLimitError(retry_after)
+        if not self._request_budget.try_acquire():
+            logger.warning("OFF image request budget exhausted; refusing request")
+            raise ExternalImageUnavailableError("OFF image request budget is exhausted")
+        if not self._request_slots.acquire(blocking=False):
+            logger.warning("OFF image request concurrency exhausted; refusing request")
+            raise ExternalImageUnavailableError(
+                "OFF image request concurrency is exhausted"
+            )
+        try:
+            image = self._fetch(url)
+        except ExternalImageNotFoundError:
+            self._remember_missing(url)
+            raise
+        finally:
+            self._request_slots.release()
+        self._store(url, image)
+        return image
+
+    def _raise_if_known_missing(self, url: str) -> None:
+        with self._cache_lock:
+            expires_at = self._not_found.get(url)
+            if expires_at is None:
+                return
+            if expires_at <= self._monotonic():
+                del self._not_found[url]
+                return
+        raise ExternalImageNotFoundError("OFF image no longer exists")
+
+    def _remember_missing(self, url: str) -> None:
+        with self._cache_lock:
+            self._not_found.pop(url, None)
+            self._not_found[url] = self._monotonic() + DEFAULT_NOT_FOUND_TTL_SECONDS
+            while len(self._not_found) > MAX_NOT_FOUND_ENTRIES:
+                self._not_found.popitem(last=False)
 
     def _fetch(self, url: str) -> ExternalImage:
         try:

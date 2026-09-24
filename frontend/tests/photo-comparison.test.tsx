@@ -1227,7 +1227,7 @@ describe("Compare Nutrition frontend page (/compare)", () => {
         )
         expect(
             formatActionableError(
-                "The extraction limit is 10 requests per minute.",
+                "Too many photo requests. Try again after the Retry-After interval.",
                 "rate_limit_exceeded",
             ),
         ).toBe("Processing capacity has been reached. Wait a moment and retry.")

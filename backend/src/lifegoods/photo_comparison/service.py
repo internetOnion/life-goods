@@ -209,7 +209,7 @@ class PhotoProviderAdmission:
         allowed, retry_after = self.rate_limiter.try_acquire(rate_limit_key)
         if not allowed:
             raise ExtractionRateLimitError(
-                "The photo-extraction limit is 10 requests per minute.",
+                "Too many photo requests. Try again after the Retry-After interval.",
                 retry_after=retry_after,
             )
         if not self.capacity.acquire():

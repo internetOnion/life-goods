@@ -11,7 +11,8 @@ DEFAULT_OPEN_FOOD_FACTS_USER_AGENT = (
     "LifeGoods/0.1.0 (https://github.com/internetOnion/life-goods)"
 )
 DEFAULT_OPEN_FOOD_FACTS_IMAGE_REQUESTS_PER_MINUTE = 60
-DEFAULT_OPEN_FOOD_FACTS_IMAGE_CLIENT_REQUESTS_PER_MINUTE = 120
+# Uncached fetches per client; must stay well below the shared upstream budget.
+DEFAULT_OPEN_FOOD_FACTS_IMAGE_CLIENT_REQUESTS_PER_MINUTE = 20
 DEFAULT_OFF_MONGODB_URI = (
     "mongodb://lifegoods_reader:lifegoods_reader@localhost:27018/lifegoods_off"
 )

@@ -528,7 +528,7 @@ describe("Read This Label as a standalone mode", () => {
             .mockRejectedValueOnce(
                 new PhotoComparisonApiError(
                     "rate_limit_exceeded",
-                    "The photo-extraction limit is 10 requests per minute.",
+                    "Too many photo requests. Try again after the Retry-After interval.",
                 ),
             )
             .mockResolvedValueOnce(labelReadingFixture())
