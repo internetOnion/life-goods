@@ -1,13 +1,12 @@
 import { Camera } from "@phosphor-icons/react"
 
-import { GlassButton as Button } from "@/components/ui/button"
+import { Button, GlassButton } from "@/components/ui/button"
 
 import {
     displayBasisLabel,
     displayValue,
     formatNutrientName,
     formatPreparationLabel,
-    formatStateLabel,
 } from "./helpers"
 import type {
     EvidencePointer,
@@ -41,6 +40,29 @@ interface NutritionColumnCardProps {
     expanded?: boolean
 }
 
+/** 1-based photo numbers a set of evidence pointers refers to, in photo order. */
+function photoNumbers(
+    evidence: EvidencePointer[] | undefined,
+    images: ImageEvidence[],
+): { imageId: string; number: number }[] {
+    const seen = new Map<string, number>()
+    for (const pointer of evidence ?? []) {
+        const index = images.findIndex(
+            (image) => image.image_id === pointer.image_id,
+        )
+        seen.set(pointer.image_id, index >= 0 ? index + 1 : 1)
+    }
+    return [...seen]
+        .map(([imageId, number]) => ({ imageId, number }))
+        .sort((a, b) => a.number - b.number)
+}
+
+const QUALIFIER_PREFIX: Record<string, string> = {
+    less_than: "< ",
+    greater_than: "> ",
+    approximate: "~ ",
+}
+
 export function NutritionColumnCard({
     column,
     images,
@@ -51,35 +73,57 @@ export function NutritionColumnCard({
     const { locale, t } = useCompareTranslation()
     const basisLabel = displayBasisLabel(column.basis, locale)
     const prepLabel = formatPreparationLabel(column.preparation_state, locale)
+    const fields = column.fields ?? []
+    const sources = photoNumbers(
+        fields.flatMap((field) => field.evidence ?? []),
+        images,
+    )
+    // One photo for the whole column: say so once, not on every row.
+    const perRowSources = sources.length > 1
 
     return (
-        <article className="rounded-lg border border-neutral-200/80 bg-white p-3">
-            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                    <div className="font-bold text-neutral-900">
+        <article className="rounded-2xl border border-neutral-200 bg-white p-4">
+            <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+                <div className="min-w-0">
+                    <div className="font-extrabold text-neutral-950">
                         {basisLabel}
                     </div>
-                    <div className="mt-0.5 text-xs text-neutral-500">
+                    <div className="mt-0.5 text-xs text-neutral-600">
                         {prepLabel}
                     </div>
                 </div>
+                {sources.length ? (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-xs font-semibold text-neutral-600">
+                            {t("readFromPhotos")}
+                        </span>
+                        {sources.map((source) => (
+                            <PhotoSourceButton
+                                key={source.imageId}
+                                number={source.number}
+                                onClick={() => onFocusEvidence(source.imageId)}
+                            />
+                        ))}
+                    </div>
+                ) : null}
             </div>
 
             <div
                 className={
                     expanded
-                        ? "mt-3 divide-y divide-neutral-100 border-t border-neutral-100 text-xs"
-                        : "scrollbar-subtle mt-3 max-h-48 divide-y divide-neutral-100 overflow-y-auto border-t border-neutral-100 pr-1 text-xs"
+                        ? "mt-3 divide-y divide-neutral-100 border-t border-neutral-100 text-sm"
+                        : "scrollbar-subtle mt-3 max-h-48 divide-y divide-neutral-100 overflow-y-auto border-t border-neutral-100 pr-1 text-sm"
                 }
             >
-                {(column.fields?.length ?? 0) > 0 ? (
-                    (column.fields ?? []).map((field) => (
+                {fields.length > 0 ? (
+                    fields.map((field) => (
                         <ObservationRow
                             key={field.field_id}
                             field={field}
                             images={images}
                             onFocusEvidence={onFocusEvidence}
                             describeFieldState={describeFieldStates}
+                            showSources={perRowSources}
                         />
                     ))
                 ) : (
@@ -92,16 +136,44 @@ export function NutritionColumnCard({
     )
 }
 
+function PhotoSourceButton({
+    number,
+    onClick,
+}: {
+    number: number
+    onClick: () => void
+}) {
+    const { t } = useCompareTranslation()
+    return (
+        <Button
+            type="button"
+            variant="ghost"
+            onClick={onClick}
+            aria-label={t("viewPhoto", { number })}
+            title={t("viewPhoto", { number })}
+            className="group -my-2 h-11 rounded-full px-0 hover:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 active:bg-transparent"
+        >
+            <span className="border-info-200 bg-info-50 text-info-800 group-hover:bg-info-100 group-focus-visible:ring-primary-500 inline-flex h-7 items-center gap-1 rounded-full border px-2.5 text-xs font-bold group-focus-visible:ring-2">
+                <Camera size={12} weight="bold" aria-hidden="true" />
+                {t("photoShort", { number })}
+            </span>
+        </Button>
+    )
+}
+
 export function ObservationRow({
     field,
     images,
     onFocusEvidence,
     describeFieldState = false,
+    showSources = false,
 }: {
     field: FieldObservation
     images: ImageEvidence[]
     onFocusEvidence: (imageId: string) => void
     describeFieldState?: boolean
+    /** Name the photo on this row (only when a column spans several photos). */
+    showSources?: boolean
 }) {
     const { locale, t } = useCompareTranslation()
     const nutrientName = formatNutrientName(
@@ -113,33 +185,39 @@ export function ObservationRow({
         describeFieldState && field.state
             ? READING_STATE_KEYS[field.state]
             : undefined
+    const sources = showSources ? photoNumbers(field.evidence, images) : []
+    const value = displayValue(field.value_text, field.unit_text || "")
 
     return (
         <div className="flex items-start justify-between gap-4 py-2.5">
             <div className="min-w-0 flex-1">
-                <div className="font-semibold text-neutral-900">
-                    <span>{nutrientName}</span>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="font-semibold text-neutral-900">
+                        {nutrientName}
+                    </span>
+                    {sources.map((source) => (
+                        <PhotoSourceButton
+                            key={source.imageId}
+                            number={source.number}
+                            onClick={() => onFocusEvidence(source.imageId)}
+                        />
+                    ))}
                 </div>
                 {field.original_script &&
                     field.original_script !== nutrientName && (
                         <div
-                            className="font-sans text-xs text-neutral-600"
+                            className="text-xs text-neutral-600"
                             lang={field.language || "und"}
                         >
                             {field.original_script}
                         </div>
                     )}
                 {field.state === "conflicting" && (
-                    <div className="text-warning-700 mt-1 text-[11px] font-medium">
+                    <div className="text-warning-800 mt-1 text-xs font-medium">
                         <span>{t("conflictingValues")} </span>
-                        <span>
-                            {displayValue(
-                                field.value_text,
-                                field.unit_text || "",
-                            )}
-                        </span>
+                        <span className="font-mono">{value}</span>
                         {field.alternatives?.map((alt, i) => (
-                            <span key={i}>
+                            <span key={i} className="font-mono">
                                 {" "}
                                 vs{" "}
                                 {displayValue(
@@ -151,31 +229,17 @@ export function ObservationRow({
                     </div>
                 )}
                 {stateKey ? (
-                    <div className="text-warning-800 mt-1 text-[11px] font-medium">
+                    <div className="text-warning-800 mt-1 text-xs font-medium">
                         {t(stateKey)}
                     </div>
                 ) : null}
-                <details className="mt-0.5 text-[11px] text-neutral-600">
-                    <summary className="cursor-pointer select-none hover:text-neutral-600">
-                        {t("details")}
-                    </summary>
-                    <div className="mt-0.5 font-mono text-[10px] text-neutral-500">
-                        {formatStateLabel(field.state, locale)} ·{" "}
-                        {formatStateLabel(field.row_kind, locale)} ·{" "}
-                        {formatStateLabel(field.qualifier, locale)}
-                    </div>
-                </details>
-                {field.evidence && field.evidence.length > 0 && (
-                    <EvidencePointers
-                        evidence={field.evidence}
-                        images={images}
-                        onFocus={onFocusEvidence}
-                    />
-                )}
             </div>
 
-            <div className="shrink-0 text-right font-mono text-xs font-bold text-neutral-900 tabular-nums">
-                {displayValue(field.value_text, field.unit_text || "")}
+            <div className="shrink-0 text-right font-mono text-sm font-bold text-neutral-900 tabular-nums">
+                {field.value_text &&
+                (field.state === "readable" || field.state === undefined)
+                    ? `${QUALIFIER_PREFIX[field.qualifier ?? "exact"] ?? ""}${value}`
+                    : null}
             </div>
         </div>
     )
@@ -200,7 +264,7 @@ export function EvidencePointers({
                 const photoNumber = photoIndex >= 0 ? photoIndex + 1 : 1
 
                 return (
-                    <Button
+                    <GlassButton
                         key={ptr.image_id}
                         type="button"
                         variant="subtle"
@@ -212,7 +276,7 @@ export function EvidencePointers({
                     >
                         <Camera size={11} />
                         <span>{t("viewPhoto", { number: photoNumber })}</span>
-                    </Button>
+                    </GlassButton>
                 )
             })}
         </div>

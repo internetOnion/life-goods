@@ -1,7 +1,7 @@
 import { useMemo } from "react"
-import { Info, Scales } from "@phosphor-icons/react"
+import { Camera, Info } from "@phosphor-icons/react"
 
-import { GlassButton as Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 import {
@@ -25,6 +25,12 @@ import {
     useCompareTranslation,
     type CompareTranslationKey,
 } from "@/features/photo-evidence/translations"
+
+import { equalRows, rankDifferences, rowDifference } from "./comparisonInsights"
+import { EmptyValue } from "@/features/photo-evidence/EmptyValue"
+
+import { DifferenceRow } from "./DifferenceRow"
+import { ProductLetter } from "./ProductLetter"
 
 type CompareTranslate = (
     key: CompareTranslationKey,
@@ -125,54 +131,40 @@ export function ComparisonSection({
     )
     const packageContext = getPackageContext(leftProduct, rightProduct, t)
 
+    const names = { left: leftProduct.title, right: rightProduct.title }
+    const differences = rankDifferences(amountRows)
+    const sameRows = equalRows(amountRows)
+    const nameOf = (row: ComparisonRow) =>
+        formatNutrientName(
+            row.nutrient,
+            row.left?.observation.label || row.right?.observation.label,
+            locale,
+        )
+
     return (
         <section
-            className="shadow-source-sheet mt-4 rounded-2xl border border-neutral-200 bg-white p-4 text-neutral-900 sm:mt-5 sm:p-6"
+            className="source-sheet mt-4 px-5 pt-5 pb-3 text-neutral-900 sm:mt-5 sm:px-6 sm:pt-6"
             aria-labelledby="comparison-heading"
         >
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0 flex-1">
-                    <div className="icon-heading-row items-start gap-3">
-                        <span className="bg-primary-100 text-primary-700 flex size-11 shrink-0 items-center justify-center rounded-xl">
-                            <Scales size={22} weight="bold" />
-                        </span>
-                        <h2
-                            id="comparison-heading"
-                            className="icon-heading-title flex min-w-0 flex-col items-start gap-0.5 text-xl leading-tight font-extrabold tracking-tight text-neutral-950 sm:text-2xl"
-                        >
-                            <span className="wrap-anywhere">
-                                {leftProduct.title}
-                            </span>
-                            <span className="text-xs leading-none font-bold text-neutral-600 sm:text-sm">
-                                vs
-                            </span>
-                            <span className="wrap-anywhere">
-                                {rightProduct.title}
-                            </span>
-                        </h2>
-                    </div>
+            <h2 id="comparison-heading" className="flex flex-col gap-2.5">
+                <ProductIdentity side="left" product={leftProduct} />
+                <span className="sr-only"> {t("versus")} </span>
+                <ProductIdentity side="right" product={rightProduct} />
+            </h2>
+
+            {comparison ? (
+                <div className="mt-4">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-bold text-neutral-800">
+                        <Camera size={13} weight="bold" aria-hidden="true" />
+                        {t("photoEvidenceBadge")}
+                    </span>
                 </div>
+            ) : null}
 
-                <Button
-                    type="button"
-                    variant="default"
-                    disabled={!isReadyToCompare || isComparing}
-                    onClick={onCompare}
-                    className="bg-primary-600 shadow-action-lift hover:bg-primary-700 active:bg-primary-800 h-11 w-full shrink-0 rounded-xl px-4 font-bold text-white transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50 disabled:shadow-none sm:w-auto"
-                >
-                    {isComparing
-                        ? t("comparing")
-                        : comparison
-                          ? t("compareAgain")
-                          : compareButtonLabel || t("compareProducts")}
-                </Button>
-            </div>
-
-            {/* Status message */}
             {(!comparison || comparisonError) && (
                 <div
                     className={cn(
-                        "mt-2 text-xs font-medium",
+                        "mt-3 text-xs font-medium",
                         comparisonError
                             ? "text-error-600 font-semibold"
                             : isReadyToCompare
@@ -185,87 +177,110 @@ export function ComparisonSection({
                 </div>
             )}
 
-            {/* Main Comparison Area */}
             {comparison && (
-                <div className="mt-4 space-y-4">
-                    {/* Comparison basis */}
+                <div className="mt-5 divide-y divide-neutral-200 border-t border-neutral-200">
                     <div
-                        className={cn(
-                            "rounded-xl border px-3.5 py-3 sm:px-4",
-                            basisTone === "info"
-                                ? "border-info-200 bg-info-50/70"
-                                : basisTone === "warning"
-                                  ? "border-warning-200 bg-warning-50/70"
-                                  : "border-neutral-200 bg-neutral-50/70",
-                        )}
+                        className="py-5"
                         role="note"
                         aria-label={t("comparisonBasisLabel", {
                             basis: comparisonBasis,
                         })}
                     >
-                        <div className="flex items-start gap-2.5">
+                        <p className="flex items-start gap-2 text-lg leading-snug font-extrabold wrap-anywhere text-neutral-950">
                             <Info
                                 size={20}
                                 weight="bold"
+                                aria-hidden="true"
                                 className={cn(
                                     "mt-0.5 shrink-0",
                                     basisTone === "info"
                                         ? "text-info-700"
                                         : basisTone === "warning"
-                                          ? "text-warning-600"
+                                          ? "text-warning-700"
                                           : "text-neutral-600",
                                 )}
                             />
-                            <div className="min-w-0 flex-1 space-y-1">
-                                <p
-                                    className={cn(
-                                        "text-sm leading-snug font-bold wrap-anywhere",
-                                        basisTone === "info"
-                                            ? "text-info-900"
-                                            : basisTone === "warning"
-                                              ? "text-warning-900"
-                                              : "text-neutral-950",
-                                    )}
-                                >
-                                    {t("comparisonBasisLabel", {
-                                        basis: comparisonBasis,
-                                    })}
-                                </p>
-                                <p
-                                    className={cn(
-                                        "text-xs leading-relaxed wrap-anywhere",
-                                        basisTone === "info"
-                                            ? "text-info-800/90"
-                                            : basisTone === "warning"
-                                              ? "text-warning-800/90"
-                                              : "text-neutral-700",
-                                    )}
-                                >
-                                    {basisContext}
-                                </p>
-                                {(preparationContext || packageContext) && (
-                                    <p className="text-xs leading-relaxed wrap-anywhere text-neutral-600">
-                                        {[preparationContext, packageContext]
-                                            .filter(Boolean)
-                                            .join(" ")}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
+                            <span>
+                                {t("comparisonBasisLabel", {
+                                    basis: comparisonBasis,
+                                })}
+                            </span>
+                        </p>
+                        <p className="mt-1 pl-7 text-sm leading-relaxed wrap-anywhere text-neutral-700">
+                            {basisContext}
+                        </p>
+                        {(preparationContext || packageContext) && (
+                            <p className="mt-1 pl-7 text-sm leading-relaxed wrap-anywhere text-neutral-600">
+                                {[preparationContext, packageContext]
+                                    .filter(Boolean)
+                                    .join(" ")}
+                            </p>
+                        )}
                     </div>
 
-                    {/* Table 1: Main Nutrient Amounts */}
-                    <div>
-                        <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-                            <h3 className="text-base font-bold text-neutral-950 sm:text-lg">
-                                {t("nutritionComparison")}
-                            </h3>
-                            <p className="text-xs font-medium text-neutral-600">
-                                {t("nutritionComparisonDescription")}
+                    <section
+                        aria-labelledby="biggest-differences-heading"
+                        className="py-5"
+                    >
+                        <h3
+                            id="biggest-differences-heading"
+                            className="type-section-title text-neutral-950"
+                        >
+                            {t("biggestDifferences")}
+                        </h3>
+                        {differences.length ? (
+                            <>
+                                <p className="mt-1 text-sm text-neutral-600">
+                                    {t("biggestDifferencesNote")}
+                                    {differences.some(
+                                        (item) => item.conditional,
+                                    )
+                                        ? ` ${t("differenceConditional")}`
+                                        : null}
+                                </p>
+                                <ul className="mt-1 divide-y divide-neutral-100">
+                                    {differences.map((item, index) => (
+                                        <DifferenceRow
+                                            key={`${item.row.nutrient}-${index}`}
+                                            item={item}
+                                            name={nameOf(item.row)}
+                                            leftTitle={names.left}
+                                            rightTitle={names.right}
+                                            locale={locale}
+                                            t={t}
+                                            index={index}
+                                        />
+                                    ))}
+                                </ul>
+                            </>
+                        ) : (
+                            <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+                                {t("noDifferencesToShow")}
                             </p>
-                        </div>
+                        )}
+                        {sameRows.length ? (
+                            <p className="border-t border-neutral-100 pt-3 text-sm font-semibold text-neutral-800">
+                                {t("sameInBoth", {
+                                    list: sameRows.map(nameOf).join(", "),
+                                })}
+                            </p>
+                        ) : null}
+                    </section>
 
-                        <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+                    <section
+                        aria-labelledby="all-values-heading"
+                        className="py-5"
+                    >
+                        <h3
+                            id="all-values-heading"
+                            className="type-section-title text-neutral-950"
+                        >
+                            {t("allValues")}
+                        </h3>
+                        <p className="mt-1 text-sm text-neutral-600">
+                            {t("nutritionComparisonDescription")}
+                        </p>
+                        <div className="mt-3 border-t border-neutral-200">
                             <table className="block w-full border-collapse text-left text-xs sm:table sm:table-fixed">
                                 <ComparisonTableColumns />
                                 <ComparisonTableHeader
@@ -277,31 +292,30 @@ export function ComparisonSection({
                                         <AmountTableRow
                                             key={`${row.nutrient}-${index}`}
                                             row={row}
+                                            names={names}
                                         />
                                     ))}
                                 </tbody>
                             </table>
                         </div>
-                        <CellLegend rows={amountRows} />
-                    </div>
+                    </section>
 
-                    {/* Table 2: Label Percentages Section */}
                     {percentageRows.length > 0 && (
                         <section
                             aria-labelledby="label-percentages-heading"
-                            className="space-y-2"
+                            className="py-5"
                         >
                             <h3
                                 id="label-percentages-heading"
-                                className="text-base font-bold text-neutral-950 sm:text-lg"
+                                className="type-section-title text-neutral-950"
                             >
                                 {t("labelPercentages")}
                             </h3>
-                            <p className="text-xs leading-relaxed text-neutral-600">
+                            <p className="mt-1 text-sm leading-relaxed text-neutral-600">
                                 {t("percentageNote")}
                             </p>
 
-                            <div className="mt-2 overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+                            <div className="mt-3 border-t border-neutral-200">
                                 <table className="block w-full border-collapse text-left text-xs sm:table sm:table-fixed">
                                     <ComparisonTableColumns />
                                     <ComparisonTableHeader
@@ -318,271 +332,68 @@ export function ComparisonSection({
                                     </tbody>
                                 </table>
                             </div>
-                            <CellLegend rows={percentageRows} />
                         </section>
                     )}
                 </div>
             )}
+
+            <div className="border-t border-neutral-200 py-4">
+                <Button
+                    type="button"
+                    variant={comparison ? "outline" : "default"}
+                    disabled={!isReadyToCompare || isComparing}
+                    onClick={onCompare}
+                    className={cn(
+                        "h-11 w-full rounded-full px-4 font-bold transition-all active:scale-[0.98] disabled:opacity-50 disabled:shadow-none sm:w-auto",
+                        !comparison &&
+                            "bg-primary-600 shadow-action-lift hover:bg-primary-700 active:bg-primary-800 text-white",
+                    )}
+                >
+                    {isComparing
+                        ? t("comparing")
+                        : comparison
+                          ? t("compareAgain")
+                          : compareButtonLabel || t("compareProducts")}
+                </Button>
+            </div>
         </section>
     )
 }
 
-function ComparisonTableColumns() {
-    return (
-        <colgroup className="hidden sm:table-column-group">
-            <col className="w-[44%]" />
-            <col className="w-[28%]" />
-            <col className="w-[28%]" />
-        </colgroup>
+function ProductIdentity({
+    side,
+    product,
+}: {
+    side: "left" | "right"
+    product: ProductSideState
+}) {
+    const photo = product.photos.find(
+        (candidate) => !candidate.previewError && !candidate.previewUnsupported,
     )
-}
-
-function cellStates(rows: ComparisonRow[]): {
-    missing: boolean
-    unreadable: boolean
-} {
-    let missing = false
-    let unreadable = false
-    for (const row of rows) {
-        for (const side of [row.left, row.right]) {
-            if (!side?.observation) {
-                missing = true
-            } else if (side.observation.state !== "readable") {
-                unreadable = true
-            }
-        }
-    }
-    return { missing, unreadable }
-}
-
-/** Explains the "—" and "?" placeholders used in the table cells. */
-function CellLegend({ rows }: { rows: ComparisonRow[] }) {
-    const { locale } = useCompareTranslation()
-    const { missing, unreadable } = cellStates(rows)
-    if (!missing && !unreadable) return null
     return (
-        <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 px-1 text-xs text-neutral-600">
-            {missing && (
-                <span>
-                    <span className="font-mono font-bold text-neutral-500">
-                        {MISSING_SYMBOL}
-                    </span>{" "}
-                    {getMissingCellText(null, locale)}
-                </span>
-            )}
-            {unreadable && (
-                <span>
-                    <span className="text-warning-700 font-mono font-bold">
-                        {UNREADABLE_SYMBOL}
-                    </span>{" "}
-                    {getMissingCellText("unreadable", locale)}
-                </span>
-            )}
-        </p>
-    )
-}
-
-const MISSING_SYMBOL = "—"
-const UNREADABLE_SYMBOL = "?"
-
-function PlaceholderCell({ state }: { state?: FieldState | null }) {
-    const { locale } = useCompareTranslation()
-    const unreadable =
-        state === "unreadable" ||
-        state === "ambiguous" ||
-        state === "conflicting"
-    return (
-        <span
-            className={cn(
-                "font-mono text-sm font-bold",
-                unreadable ? "text-warning-700" : "text-neutral-400",
-            )}
-            title={getMissingCellText(state ?? null, locale)}
-        >
-            <span aria-hidden="true">
-                {unreadable ? UNREADABLE_SYMBOL : MISSING_SYMBOL}
+        <span className="flex min-w-0 items-center gap-3">
+            <span className="relative shrink-0">
+                {photo ? (
+                    <>
+                        <img
+                            src={photo.url}
+                            alt=""
+                            className="size-12 rounded-xl border border-neutral-200 object-cover"
+                        />
+                        <ProductLetter
+                            side={side}
+                            size="sm"
+                            className="absolute -right-1.5 -bottom-1.5 ring-2 ring-white"
+                        />
+                    </>
+                ) : (
+                    <ProductLetter side={side} />
+                )}
             </span>
-            <span className="sr-only">
-                {getMissingCellText(state ?? null, locale)}
+            <span className="type-row-title min-w-0 wrap-anywhere text-neutral-950 sm:text-xl">
+                {product.title}
             </span>
         </span>
-    )
-}
-
-function ComparisonTableHeader({
-    leftProductTitle,
-    rightProductTitle,
-}: {
-    leftProductTitle: string
-    rightProductTitle: string
-}) {
-    const { t } = useCompareTranslation()
-
-    return (
-        <thead className="block sm:table-header-group">
-            <tr className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,0.85fr)_minmax(0,0.85fr)] border-b border-neutral-200 bg-neutral-50/90 text-xs font-bold tracking-wider text-neutral-600 sm:table-row">
-                <th
-                    scope="col"
-                    className="min-w-0 px-2.5 py-3.5 align-top wrap-anywhere uppercase sm:table-cell sm:px-4"
-                >
-                    {t("nutrient")}
-                </th>
-                <th
-                    scope="col"
-                    className="min-w-0 px-2.5 py-3.5 text-right align-top font-semibold tracking-normal wrap-anywhere text-neutral-700 normal-case sm:table-cell sm:px-4"
-                >
-                    {leftProductTitle}
-                </th>
-                <th
-                    scope="col"
-                    className="min-w-0 px-2.5 py-3.5 text-right align-top font-semibold tracking-normal wrap-anywhere text-neutral-700 normal-case sm:table-cell sm:px-4"
-                >
-                    {rightProductTitle}
-                </th>
-            </tr>
-        </thead>
-    )
-}
-
-function AmountTableRow({ row }: { row: ComparisonRow }) {
-    const { locale } = useCompareTranslation()
-    const nutrientName = formatNutrientName(
-        row.nutrient,
-        row.left?.observation.label || row.right?.observation.label,
-        locale,
-    )
-    return (
-        <tr className="sm:table-row-hover grid grid-cols-[minmax(0,1.3fr)_minmax(0,0.85fr)_minmax(0,0.85fr)] sm:table-row">
-            {/* Nutrient column */}
-            <th
-                scope="row"
-                className="block min-w-0 px-2.5 py-3 text-left align-top sm:table-cell sm:px-4 sm:py-4"
-            >
-                <div className="text-sm font-semibold wrap-anywhere text-neutral-950">
-                    {nutrientName}
-                </div>
-            </th>
-
-            {/* Left product cell */}
-            <td className="block min-w-0 px-2.5 py-3 text-right wrap-anywhere sm:table-cell sm:px-4 sm:py-4 sm:align-top">
-                <ProductAmountCell
-                    reported={row.left}
-                    derived={row.normalized_left}
-                />
-            </td>
-
-            {/* Right product cell */}
-            <td className="block min-w-0 px-2.5 py-3 text-right wrap-anywhere sm:table-cell sm:px-4 sm:py-4 sm:align-top">
-                <ProductAmountCell
-                    reported={row.right}
-                    derived={row.normalized_right}
-                />
-            </td>
-        </tr>
-    )
-}
-
-function ProductAmountCell({
-    reported,
-    derived,
-}: {
-    reported?: ReportedValue | null
-    derived?: DerivedValue | null
-}) {
-    const { locale, t } = useCompareTranslation()
-    if (!reported || !reported.observation) {
-        return <PlaceholderCell />
-    }
-
-    const obs = reported.observation
-    if (obs.state !== "readable") {
-        return (
-            <div>
-                <PlaceholderCell state={obs.state} />
-                {obs.state === "conflicting" && (
-                    <div className="text-warning-800 mt-1 text-xs">
-                        <span>{t("conflictingValues")} </span>
-                        <span className="font-mono">
-                            {displayValue(obs.value_text, obs.unit_text || "")}
-                        </span>
-                        {obs.alternatives?.map((alt, i) => (
-                            <span key={i} className="font-mono">
-                                {" "}
-                                vs{" "}
-                                {displayValue(
-                                    alt.value_text,
-                                    alt.unit_text || "",
-                                )}
-                            </span>
-                        ))}
-                    </div>
-                )}
-            </div>
-        )
-    }
-
-    // Prominent primary value: normalized if available, else reported
-    const displayPrimary = derived
-        ? formatNormalizedValue(derived.value, derived.unit, locale)
-        : displayValue(obs.value_text, obs.unit_text || "")
-
-    return (
-        <div className="font-mono text-sm font-bold text-neutral-950 tabular-nums">
-            {displayPrimary}
-        </div>
-    )
-}
-
-function PercentageTableRow({ row }: { row: ComparisonRow }) {
-    const { locale, t } = useCompareTranslation()
-    const nutrientName = formatNutrientName(
-        row.nutrient,
-        row.left?.observation.label || row.right?.observation.label,
-        locale,
-    )
-
-    return (
-        <tr className="sm:table-row-hover grid grid-cols-[minmax(0,1.3fr)_minmax(0,0.85fr)_minmax(0,0.85fr)] sm:table-row">
-            {/* Nutrient column */}
-            <th
-                scope="row"
-                className="block min-w-0 px-2.5 py-3 text-left align-top sm:table-cell sm:px-4 sm:py-4"
-            >
-                <div className="text-sm font-semibold wrap-anywhere text-neutral-950">
-                    {nutrientName}
-                </div>
-                <div className="text-xs font-medium text-neutral-500">
-                    {t("dailyValue")}
-                </div>
-            </th>
-
-            {/* Left percentage cell */}
-            <td className="block min-w-0 px-2.5 py-3 text-right wrap-anywhere sm:table-cell sm:px-4 sm:py-4 sm:align-top">
-                <PercentageCell reported={row.left} />
-            </td>
-
-            {/* Right percentage cell */}
-            <td className="block min-w-0 px-2.5 py-3 text-right wrap-anywhere sm:table-cell sm:px-4 sm:py-4 sm:align-top">
-                <PercentageCell reported={row.right} />
-            </td>
-        </tr>
-    )
-}
-
-function PercentageCell({ reported }: { reported?: ReportedValue | null }) {
-    if (
-        !reported ||
-        !reported.observation ||
-        reported.observation.state !== "readable"
-    ) {
-        return <PlaceholderCell state={reported?.observation?.state} />
-    }
-
-    const obs = reported.observation
-    return (
-        <div className="font-mono text-sm font-bold text-neutral-950 tabular-nums">
-            {displayValue(obs.value_text, "%")}
-        </div>
     )
 }
 
@@ -656,4 +467,248 @@ function formatPackageQuantity(product: ProductSideState): string | null {
         return null
     }
     return displayValue(quantity.value_text, quantity.unit_text || "")
+}
+
+function ComparisonTableColumns() {
+    return (
+        <colgroup className="hidden sm:table-column-group">
+            <col className="w-[44%]" />
+            <col className="w-[28%]" />
+            <col className="w-[28%]" />
+        </colgroup>
+    )
+}
+
+/** Phones: name across, A and B values side by side beneath. From sm: a table row. */
+const ROW_GRID = "grid grid-cols-2 gap-x-3 py-3 sm:table-row sm:py-0"
+
+function ComparisonTableHeader({
+    leftProductTitle,
+    rightProductTitle,
+}: {
+    leftProductTitle: string
+    rightProductTitle: string
+}) {
+    const { t } = useCompareTranslation()
+    const productHeader = (side: "left" | "right", title: string) => (
+        <th
+            scope="col"
+            className="min-w-0 py-3 pl-4 text-right align-top font-semibold tracking-normal text-neutral-800 normal-case sm:table-cell"
+        >
+            <span className="inline-flex max-w-full items-start justify-end gap-1.5">
+                <ProductLetter
+                    side={side}
+                    size="sm"
+                    className="size-6 rounded-md"
+                />
+                <span className="min-w-0 wrap-anywhere">{title}</span>
+            </span>
+        </th>
+    )
+    return (
+        <thead className="sr-only sm:not-sr-only sm:table-header-group">
+            <tr
+                className={cn(
+                    ROW_GRID,
+                    "hidden border-b border-neutral-200 text-xs font-bold text-neutral-600 sm:table-row",
+                )}
+            >
+                <th
+                    scope="col"
+                    className="min-w-0 py-3 pr-4 align-top tracking-wider uppercase sm:table-cell"
+                >
+                    {t("nutrient")}
+                </th>
+                {productHeader("left", leftProductTitle)}
+                {productHeader("right", rightProductTitle)}
+            </tr>
+        </thead>
+    )
+}
+
+function UnavailableCell({ state }: { state?: FieldState | null }) {
+    const { locale } = useCompareTranslation()
+    return <EmptyValue reason={getMissingCellText(state ?? null, locale)} />
+}
+
+function RowNote({
+    row,
+    names,
+}: {
+    row: ComparisonRow
+    names: { left: string; right: string }
+}) {
+    const { locale, t } = useCompareTranslation()
+    const item = rowDifference(row)
+    if (item) {
+        if (item.difference === 0) {
+            return (
+                <span className="mt-1 inline-block rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-bold text-neutral-700">
+                    {t("sameChip")}
+                </span>
+            )
+        }
+        const moreSide = item.difference > 0 ? "left" : "right"
+        return (
+            <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-neutral-100 py-0.5 pr-2 pl-0.5 font-mono text-xs font-bold whitespace-nowrap text-neutral-800 tabular-nums">
+                <ProductLetter
+                    side={moreSide}
+                    size="sm"
+                    className="size-5 rounded-full"
+                />
+                <span className="sr-only">{names[moreSide]}</span>
+                {t("differenceChip", {
+                    amount: formatNormalizedValue(
+                        Math.abs(item.difference),
+                        item.unit,
+                        locale,
+                    ),
+                })}
+            </span>
+        )
+    }
+    return null
+}
+
+function AmountTableRow({
+    row,
+    names,
+}: {
+    row: ComparisonRow
+    names: { left: string; right: string }
+}) {
+    const { locale } = useCompareTranslation()
+    const nutrientName = formatNutrientName(
+        row.nutrient,
+        row.left?.observation.label || row.right?.observation.label,
+        locale,
+    )
+    return (
+        <tr className={cn("sm:table-row-hover", ROW_GRID)}>
+            <th
+                scope="row"
+                className="col-span-2 block min-w-0 pb-1.5 text-left align-top sm:table-cell sm:py-3.5 sm:pr-4"
+            >
+                <div className="text-sm font-semibold text-neutral-950">
+                    {nutrientName}
+                </div>
+                <RowNote row={row} names={names} />
+            </th>
+            <td className="flex min-w-0 items-baseline gap-2 text-left sm:table-cell sm:py-3.5 sm:pl-4 sm:text-right sm:align-top">
+                <ProductLetter
+                    side="left"
+                    size="sm"
+                    className="size-5 rounded-md sm:hidden"
+                />
+                <ProductAmountCell
+                    reported={row.left}
+                    derived={row.normalized_left}
+                />
+            </td>
+            <td className="flex min-w-0 items-baseline gap-2 text-left sm:table-cell sm:py-3.5 sm:pl-4 sm:text-right sm:align-top">
+                <ProductLetter
+                    side="right"
+                    size="sm"
+                    className="size-5 rounded-md sm:hidden"
+                />
+                <ProductAmountCell
+                    reported={row.right}
+                    derived={row.normalized_right}
+                />
+            </td>
+        </tr>
+    )
+}
+
+function ProductAmountCell({
+    reported,
+    derived,
+}: {
+    reported?: ReportedValue | null
+    derived?: DerivedValue | null
+}) {
+    const { locale } = useCompareTranslation()
+    if (!reported || !reported.observation) {
+        return <UnavailableCell />
+    }
+
+    const obs = reported.observation
+    if (obs.state !== "readable") {
+        return <UnavailableCell state={obs.state} />
+    }
+
+    const qualifier = QUALIFIER_PREFIX[obs.qualifier ?? "exact"] ?? ""
+    const displayPrimary = derived
+        ? formatNormalizedValue(derived.value, derived.unit, locale)
+        : `${qualifier}${displayValue(obs.value_text, obs.unit_text || "")}`
+
+    return (
+        <div className="font-mono text-sm font-bold whitespace-nowrap text-neutral-950 tabular-nums">
+            {displayPrimary}
+        </div>
+    )
+}
+
+const QUALIFIER_PREFIX: Record<string, string> = {
+    less_than: "< ",
+    greater_than: "> ",
+    approximate: "~ ",
+}
+
+function PercentageTableRow({ row }: { row: ComparisonRow }) {
+    const { locale, t } = useCompareTranslation()
+    const nutrientName = formatNutrientName(
+        row.nutrient,
+        row.left?.observation.label || row.right?.observation.label,
+        locale,
+    )
+
+    return (
+        <tr className={cn("sm:table-row-hover", ROW_GRID)}>
+            <th
+                scope="row"
+                className="col-span-2 block min-w-0 pb-1.5 text-left align-top sm:table-cell sm:py-3.5 sm:pr-4"
+            >
+                <div className="text-sm font-semibold text-neutral-950">
+                    {nutrientName}
+                </div>
+                <div className="text-xs font-medium text-neutral-500">
+                    {t("dailyValue")}
+                </div>
+            </th>
+            <td className="flex min-w-0 items-baseline gap-2 text-left sm:table-cell sm:py-3.5 sm:pl-4 sm:text-right sm:align-top">
+                <ProductLetter
+                    side="left"
+                    size="sm"
+                    className="size-5 rounded-md sm:hidden"
+                />
+                <PercentageCell reported={row.left} />
+            </td>
+            <td className="flex min-w-0 items-baseline gap-2 text-left sm:table-cell sm:py-3.5 sm:pl-4 sm:text-right sm:align-top">
+                <ProductLetter
+                    side="right"
+                    size="sm"
+                    className="size-5 rounded-md sm:hidden"
+                />
+                <PercentageCell reported={row.right} />
+            </td>
+        </tr>
+    )
+}
+
+function PercentageCell({ reported }: { reported?: ReportedValue | null }) {
+    if (
+        !reported ||
+        !reported.observation ||
+        reported.observation.state !== "readable"
+    ) {
+        return <UnavailableCell state={reported?.observation?.state} />
+    }
+
+    const obs = reported.observation
+    return (
+        <div className="font-mono text-sm font-bold whitespace-nowrap text-neutral-950 tabular-nums">
+            {displayValue(obs.value_text, "%")}
+        </div>
+    )
 }

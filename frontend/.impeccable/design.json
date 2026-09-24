@@ -1,6 +1,6 @@
 {
     "schemaVersion": 2,
-    "generatedAt": "2026-09-12T11:31:39Z",
+    "generatedAt": "2026-09-24T00:00:00Z",
     "title": "Design System: Life Goods",
     "extensions": {
         "colorMeta": {
@@ -120,6 +120,11 @@
                 "name": "state-transition",
                 "value": "150ms",
                 "purpose": "Button and navigation color transitions."
+            },
+            {
+                "name": "bar-grow",
+                "value": "bar-grow 640ms cubic-bezier(0.16, 1, 0.3, 1) both",
+                "purpose": "Compare Nutrition paired bars grow from zero once, staggered 50ms; motion-safe only, bars start drawn under reduced motion."
             }
         ],
         "breakpoints": [
@@ -260,16 +265,19 @@
             "Do apply wrap-anywhere to all source text and mono identifiers; long taxonomy strings wrap, never overflow.",
             "Do group packaging by meaning (Original Text, recycling instructions, materials, shapes, recycling, components) with normalized, deduplicated values.",
             "Do derive nutrition table columns from supplied data only; stack them on phones.",
-            "Do place Barcodes and measured values in mono with tabular numerals.",
+            "Do place Barcodes and measured values in mono with tabular numerals; the mono stack holds in Khmer too.",
+            "Do open each Nutrition Labels result block with the Shopper's question answered in one plain sentence, evidence beneath.",
+            "Do tell Product A and B apart with the neutral-900 / neutral-500 letter marks and paired neutral bars only.",
             "Do give Compare Products' heading, description, and stepper distinct vertical breathing room while keeping the task path compact."
         ],
         "donts": [
             "Don't turn Source Assessments into dominant score tiles, traffic-light verdicts, or purchase recommendations; keep the attribution sentence directly under the section heading.",
-            "Don't render missing data as \"—\", \"none\", \"N/A\", or a friendlier phrase; only Source Data Unavailable.",
-            "Don't use blue for ordinary Life Goods actions or amber to imply source-data quality; success/error/warning appear only in status.",
+            "Don't render missing Open Food Facts data as \"—\", \"none\", \"N/A\", or a friendlier phrase; only Source Data Unavailable. (Photo Evidence tables use the sr-reasoned dash instead and never say Source Data Unavailable.)",
+            "Don't use blue for ordinary Life Goods actions or amber to imply source-data quality; success/error/warning appear only in status, plus the warning wash on the Shopper's matched allergen words and match pills.",
             "Don't round and shadow every content block, and never use shadows stronger than the sheet vocabulary.",
             "Don't force horizontal scrolling for data; the 320px viewport is the floor.",
-            "Don't upload, retain, or visually imply capture of camera frames beyond the local scanner aperture."
+            "Don't upload, retain, or visually imply capture of camera frames beyond the local scanner aperture.",
+            "Don't give Compare a winner, score, health colour, or good/bad tint on bars or letters, and don't add a provider notice or Khmer toggle to Nutrition Labels results."
         ]
     }
 }

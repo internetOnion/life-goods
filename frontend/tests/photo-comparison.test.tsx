@@ -960,7 +960,7 @@ describe("Compare Nutrition frontend page (/compare)", () => {
             expect(compareMock).toHaveBeenCalledTimes(1)
 
             // Factual results rendered
-            expect(screen.getByText("Sodium")).toBeInTheDocument()
+            expect(screen.getAllByText("Sodium").length).toBeGreaterThan(0)
             expect(screen.getAllByText("1,380 mg").length).toBeGreaterThan(0)
 
             // Comparison results render on their own page: no Compare tab, and the
@@ -1683,9 +1683,11 @@ describe("ComparisonSection Shopper-ready presentation", () => {
         expect(table?.querySelectorAll("col")).toHaveLength(3)
         expect(screen.getByText("ខ្លាញ់មិនឆ្អែតតែមួយ")).toBeInTheDocument()
         expect(container.textContent).not.toMatch(/Asid Lemak|Monounsaturated/)
-        // Missing cell: short symbol in the cell, full sentence in the legend + sr-only
-        expect(screen.getAllByText("—").length).toBe(2) // cell + legend
-        expect(screen.getAllByText("រកមិនឃើញក្នុងរូបថតទាំងនេះ").length).toBe(2)
+        // Missing cell: a plain dash, with the reason for screen readers only
+        expect(screen.getAllByText("—").length).toBeGreaterThan(0)
+        expect(screen.getByText("រកមិនឃើញក្នុងរូបថតទាំងនេះ")).toHaveClass(
+            "sr-only",
+        )
     })
 
     test("displays normalized amounts and visible label percentages", () => {
@@ -1706,19 +1708,15 @@ describe("ComparisonSection Shopper-ready presentation", () => {
         const comparisonHeading = screen.getByRole("heading", {
             name: /Mama Instant Noodles vs Product B/,
         })
-        expect(comparisonHeading).toHaveClass("icon-heading-title")
-        expect(comparisonHeading.parentElement).toHaveClass("icon-heading-row")
-        expect(comparisonHeading).toHaveClass("text-xl")
+        // Each Product is one identity row tied to its A/B mark.
         expect(comparisonHeading).toHaveClass("flex", "flex-col")
         expect(comparisonHeading.children).toHaveLength(3)
         expect(comparisonHeading.children[0]).toHaveTextContent(
-            "Mama Instant Noodles",
+            "AMama Instant Noodles",
         )
         expect(comparisonHeading.children[1]).toHaveTextContent("vs")
-        expect(comparisonHeading.children[2]).toHaveTextContent("Product B")
-        expect(
-            comparisonHeading.parentElement?.querySelector("span"),
-        ).toHaveClass("size-11")
+        expect(comparisonHeading.children[1]).toHaveClass("sr-only")
+        expect(comparisonHeading.children[2]).toHaveTextContent("BProduct B")
         expect(
             screen.queryByText("Based on Photo Evidence."),
         ).not.toBeInTheDocument()
@@ -1730,10 +1728,10 @@ describe("ComparisonSection Shopper-ready presentation", () => {
 
         // 1. Check normalized amounts are displayed prominently
         expect(screen.getAllByText("1,380 mg").length).toBeGreaterThan(0)
-        expect(screen.getByText("1,500 mg")).toBeInTheDocument()
+        expect(screen.getAllByText("1,500 mg").length).toBeGreaterThan(0)
 
         // 2. Check nutrient names are clean English, never internal hash IDs
-        expect(screen.getAllByText("Sodium")).toHaveLength(2)
+        expect(screen.getAllByText("Sodium").length).toBeGreaterThanOrEqual(2)
         expect(screen.getByText("Vitamin B5")).toBeInTheDocument()
         expect(screen.queryByText(/unmatched:/i)).not.toBeInTheDocument()
         expect(screen.queryByText(/fat:[a-f0-9]/i)).not.toBeInTheDocument()
@@ -1780,12 +1778,12 @@ describe("ComparisonSection Shopper-ready presentation", () => {
         expect(percentageHeaderCells[2]).toHaveTextContent("Product B")
 
         for (const table of comparisonTables) {
+            // Open hairline rows on the sheet, not a boxed table.
             expect(table.parentElement).toHaveClass(
-                "rounded-2xl",
-                "border",
+                "border-t",
                 "border-neutral-200",
-                "bg-white",
             )
+            expect(table.parentElement).not.toHaveClass("rounded-2xl")
             expect(table.querySelector("thead > tr")).toHaveClass(
                 "border-b",
                 "border-neutral-200",
@@ -1801,28 +1799,26 @@ describe("ComparisonSection Shopper-ready presentation", () => {
             .getAllByRole("row")
             .filter((row) => row.querySelector("td"))
         expect(amountRows.length).toBeGreaterThan(0)
-        expect(amountRows[0]).toHaveClass(
-            "grid-cols-[minmax(0,1.3fr)_minmax(0,0.85fr)_minmax(0,0.85fr)]",
-        )
+        expect(amountRows[0]).toHaveClass("grid-cols-2")
         expect(within(amountRows[0]!).getByRole("rowheader")).toHaveAttribute(
             "scope",
             "row",
         )
         expect(amountRows[0]?.querySelectorAll("td")).toHaveLength(2)
-        expect(amountRows[0]?.querySelectorAll("td.text-right")).toHaveLength(2)
         expect(within(amountRows[0]!).getByText("Sodium")).toBeInTheDocument()
-        expect(
-            within(amountRows[0]!).queryByText("Mama Instant Noodles"),
-        ).not.toBeInTheDocument()
-        expect(
-            within(amountRows[0]!).queryByText("Product B"),
-        ).not.toBeInTheDocument()
+        // A row names a Product only as screen-reader text beside its A/B mark.
+        for (const name of within(amountRows[0]!).queryAllByText(
+            /Mama Instant Noodles|Product B/,
+        )) {
+            expect(name).toHaveClass("sr-only")
+        }
 
         for (const table of comparisonTables) {
-            expect(within(table).getByText("Mama Instant Noodles")).toHaveClass(
+            const head = table.querySelector("thead") as HTMLElement
+            expect(within(head).getByText("Mama Instant Noodles")).toHaveClass(
                 "wrap-anywhere",
             )
-            expect(within(table).getByText("Product B")).toHaveClass(
+            expect(within(head).getByText("Product B")).toHaveClass(
                 "wrap-anywhere",
             )
         }
@@ -1832,14 +1828,11 @@ describe("ComparisonSection Shopper-ready presentation", () => {
             .filter((row) => row.querySelector("td"))
         expect(percentageRows.length).toBeGreaterThan(0)
         for (const row of percentageRows) {
-            expect(row).toHaveClass(
-                "grid-cols-[minmax(0,1.3fr)_minmax(0,0.85fr)_minmax(0,0.85fr)]",
-            )
+            expect(row).toHaveClass("grid-cols-2")
             expect(within(row).getByRole("rowheader")).toHaveAttribute(
                 "scope",
                 "row",
             )
-            expect(row.querySelectorAll("td.text-right")).toHaveLength(2)
             expect(row.querySelectorAll("td")).toHaveLength(2)
             expect(row).not.toHaveTextContent("Mama Instant Noodles")
             expect(row).not.toHaveTextContent("Product B")
@@ -2821,9 +2814,9 @@ describe("Compare Nutrition uncertainty, partial results, and recovery (#124)", 
         ).toBeInstanceOf(AbortSignal)
 
         // Comparison results render the Product values without a difference column
-        expect(screen.getByText("Protein")).toBeInTheDocument()
-        expect(screen.getByText("12 g")).toBeInTheDocument()
-        expect(screen.getByText("8 g")).toBeInTheDocument()
+        expect(screen.getAllByText("Protein").length).toBeGreaterThan(0)
+        expect(screen.getAllByText("12 g").length).toBeGreaterThan(0)
+        expect(screen.getAllByText("8 g").length).toBeGreaterThan(0)
         expect(
             screen.queryByRole("columnheader", { name: "Difference" }),
         ).not.toBeInTheDocument()
@@ -3123,10 +3116,22 @@ describe("Compare Nutrition uncertainty, partial results, and recovery (#124)", 
             screen.getByText("Comparison basis: Per 100 g"),
         ).toBeInTheDocument()
 
-        // 3. Nutrition table leads with comparison
-        expect(screen.getByText("Sodium")).toBeInTheDocument()
+        // 3. Biggest differences lead, stated as a deterministic sentence,
+        //    then every value in the table
+        expect(
+            screen.getByRole("heading", { name: "Biggest differences" }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByText(
+                "Crisps A has 880 mg more sodium per 100 g than Crisps B.",
+            ),
+        ).toBeInTheDocument()
+        expect(screen.getAllByText("Sodium").length).toBeGreaterThan(0)
         expect(screen.getAllByText("1,380 mg").length).toBeGreaterThan(0)
-        expect(screen.getByText("500 mg")).toBeInTheDocument()
+        expect(screen.getAllByText("500 mg").length).toBeGreaterThan(0)
+        expect(
+            screen.queryByText(/better|healthier|winner/i),
+        ).not.toBeInTheDocument()
         expect(
             screen.queryByRole("columnheader", { name: "Difference" }),
         ).not.toBeInTheDocument()
@@ -3312,21 +3317,19 @@ describe("Compare Nutrition uncertainty, partial results, and recovery (#124)", 
 
         // 1. Explicit zero is shown as "0 g", NOT treated as missing
         expect(screen.getAllByText("0 g").length).toBeGreaterThan(0)
-        expect(screen.getByText("5 g")).toBeInTheDocument()
+        expect(screen.getAllByText("5 g").length).toBeGreaterThan(0)
 
-        // 2. Missing calcium on right product shows a "—" placeholder (with
-        //    accessible text) plus a legend entry, and never zero
-        expect(
-            screen.getAllByText("Not found in these photos").length,
-        ).toBeGreaterThanOrEqual(2)
-        expect(screen.getAllByText("—").length).toBeGreaterThan(0)
+        // 2. Missing calcium and unreadable iron show a plain dash, never
+        //    zero; the reason is kept for screen readers only
+        expect(screen.getAllByText("—")).toHaveLength(2)
+        expect(screen.getByText("Not found in these photos")).toHaveClass(
+            "sr-only",
+        )
+        expect(screen.getByText("Could not read this value")).toHaveClass(
+            "sr-only",
+        )
         expect(screen.getByText("200 mg")).toBeInTheDocument()
-
-        // 3. Unreadable iron shows a "?" placeholder and never zero
-        expect(
-            screen.getAllByText("Could not read this value").length,
-        ).toBeGreaterThanOrEqual(2)
-        expect(screen.getAllByText("?").length).toBeGreaterThan(0)
+        expect(screen.queryByText("?")).not.toBeInTheDocument()
         expect(screen.getByText("4 mg")).toBeInTheDocument()
         expect(
             screen.queryByText("One or both observations are not readable."),
@@ -3494,12 +3497,11 @@ describe("Compare Nutrition uncertainty, partial results, and recovery (#124)", 
             />,
         )
 
-        // Conflicting values are visible
+        // A conflicting reading has no single value: the cell is a dash
         expect(
-            screen.getByText(/Conflicting values on label:/i),
-        ).toBeInTheDocument()
-        expect(screen.getByText("500 mg")).toBeInTheDocument()
-        expect(screen.getByText("vs 650 mg")).toBeInTheDocument()
+            screen.queryByText(/Conflicting values on label:/i),
+        ).not.toBeInTheDocument()
+        expect(screen.getAllByText("—").length).toBeGreaterThan(0)
 
         // Conditional normalization details are not rendered in the results table.
         expect(screen.queryByText("Not comparable")).not.toBeInTheDocument()

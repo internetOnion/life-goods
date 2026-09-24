@@ -1,3 +1,5 @@
+import type { ReactNode } from "react"
+
 import type { FieldObservation, NutritionColumn } from "@/api/generated"
 import {
     NutritionTable,
@@ -14,6 +16,8 @@ import {
 } from "@/features/photo-evidence/translations"
 import type { AppLocale } from "@/i18n/locale"
 
+import { EmptyValue } from "@/features/photo-evidence/EmptyValue"
+
 import { useLabelReadingTranslation } from "../translations"
 
 const QUALIFIER_PREFIX: Record<string, string> = {
@@ -29,13 +33,23 @@ const STATE_KEYS: Record<string, CompareTranslationKey> = {
     conflicting: "unclearInPhoto",
 }
 
-/** A cell states the printed value, or in words why the photo gave none. */
-function nutritionCellText(field: FieldObservation, locale: AppLocale): string {
+/** A cell shows the printed value, or a dash (the reason is for screen readers). */
+function nutritionCellText(
+    field: FieldObservation,
+    locale: AppLocale,
+): ReactNode {
     if (field.state === "readable" || field.state === undefined) {
         const prefix = QUALIFIER_PREFIX[field.qualifier ?? "exact"] ?? ""
         return `${prefix}${displayValue(field.value_text, field.unit_text ?? "")}`
     }
-    return translateCompare(locale, STATE_KEYS[field.state] ?? "unclearInPhoto")
+    return (
+        <EmptyValue
+            reason={translateCompare(
+                locale,
+                STATE_KEYS[field.state] ?? "unclearInPhoto",
+            )}
+        />
+    )
 }
 
 function rowKey(field: FieldObservation): string {
@@ -71,7 +85,11 @@ function buildNutritionRows(
     }
     for (const row of rows.values()) {
         for (const column of columns) {
-            row.cells[column.column_id] ??= "—"
+            row.cells[column.column_id] ??= (
+                <EmptyValue
+                    reason={translateCompare(locale, "notPrintedOnPhoto")}
+                />
+            )
         }
     }
     return [...rows.values()]

@@ -16,6 +16,7 @@ import type {
 import { LabelReadingPage } from "../src/features/label-reading/LabelReadingPage"
 import { PhotoComparisonApiError } from "../src/features/photo-evidence/api"
 import { translateCompare } from "../src/features/photo-evidence/translations"
+import { translateLabelReading } from "../src/features/label-reading/translations"
 import type { PhotoQuality } from "../src/features/photo-evidence/imageQuality"
 import { ProductPage } from "../src/features/product/ProductPage"
 import type { ProductLookup } from "../src/features/product/api"
@@ -394,10 +395,18 @@ describe("Read This Label as a standalone mode", () => {
             name: "Label Reading",
         })
         expect(within(reading).getByText("Photo Evidence")).toBeVisible()
+        // The provider statement lives on the Nutrition Labels hub, not here.
         expect(
-            within(reading).getByText(/not an Open Food Facts Source Record/),
-        ).toBeVisible()
-        // One table: a column per printed column, labelled with basis and state.
+            within(reading).queryByText(/not an Open Food Facts Source Record/),
+        ).not.toBeInTheDocument()
+        // Key numbers first; the full table is one tap away, with a column per
+        // printed column labelled with basis and state.
+        expect(within(reading).getByTestId("reading-key-numbers")).toBeVisible()
+        await user.click(
+            within(reading).getByRole("button", {
+                name: "Full nutrition table",
+            }),
+        )
         const table = within(reading).getByRole("table")
         expect(
             within(table).getByRole("columnheader", {
@@ -429,16 +438,21 @@ describe("Read This Label as a standalone mode", () => {
         await submitReading(user)
         await screen.findByRole("region", { name: "Label Reading" })
 
+        await user.click(
+            screen.getByRole("button", { name: "Full nutrition table" }),
+        )
+        // Cells without a value show a plain dash; the photo-state reason is
+        // kept for screen readers only.
         const table = screen.getByRole("table")
+        expect(within(table).getAllByText("—").length).toBeGreaterThanOrEqual(4)
         expect(
             within(table).getByText("Not readable in your photo"),
-        ).toBeVisible()
-        expect(
-            within(table).getByText("Not printed on the part you photographed"),
-        ).toBeVisible()
-        expect(
-            within(table).getAllByText("Unclear in your photo"),
-        ).toHaveLength(2)
+        ).toHaveClass("sr-only")
+        for (const reason of within(table).getAllByText(
+            "Unclear in your photo",
+        )) {
+            expect(reason).toHaveClass("sr-only")
+        }
         await user.click(
             screen.getByRole("button", { name: "How this was read" }),
         )
@@ -1029,8 +1043,8 @@ describe("Label Reading result (SPEC §29.5)", () => {
         }
     }
 
-    test("leads with printed ingredients, allergen wording, nutrition, and facts", async () => {
-        const { region } = await showReading(
+    test("leads with allergens, then key numbers, ingredients, and facts", async () => {
+        const { region, user } = await showReading(
             labelReadingFixture({
                 identity: {
                     brand: {
@@ -1062,6 +1076,22 @@ describe("Label Reading result (SPEC §29.5)", () => {
         ).toBeVisible()
         expect(within(region).getByText("Country of origin")).toBeVisible()
         expect(within(region).getByText("Thailand")).toBeVisible()
+
+        // Sections follow the Shopper's questions: allergens before nutrition,
+        // nutrition before ingredients.
+        const headings = within(region)
+            .getAllByRole("heading", { level: 3 })
+            .map((heading) => heading.textContent)
+        expect(headings.slice(0, 3)).toEqual([
+            "Your allergens",
+            "Key numbers",
+            "What’s in it",
+        ])
+        await user.click(
+            within(region).getByRole("button", {
+                name: "Full nutrition table",
+            }),
+        )
         expect(within(region).getByRole("table")).toBeVisible()
     })
 
@@ -1070,9 +1100,14 @@ describe("Label Reading result (SPEC §29.5)", () => {
         const { region } = await showReading()
 
         const matches = within(region).getByTestId("reading-concern-matches")
-        expect(matches).toHaveTextContent("Milk · Mentioned: milk powder")
-        expect(matches).toHaveTextContent("Peanuts · May contain: peanuts")
+        expect(matches).toHaveTextContent("ContainsMilk")
+        expect(matches).toHaveTextContent("May containPeanuts")
         expect(matches).not.toHaveTextContent("Celery")
+        // The matched words are marked where they appear in the printed text.
+        const marks = Array.from(region.querySelectorAll("mark")).map((mark) =>
+            mark.textContent?.toLowerCase(),
+        )
+        expect(marks).toContain("milk powder")
         expect(
             within(region).getByText(/Only text that could be read/),
         ).toBeVisible()
@@ -1150,7 +1185,7 @@ describe("Khmer Rendering in a Label Reading (SPEC §29.4)", () => {
         { block_id: "fact_origin", state: "not_needed", khmer_text: null },
     ]
 
-    test("in English, Khmer is written only on request and sent without identifiers", async () => {
+    test("in English, no Khmer is written and there is no toggle", async () => {
         const user = userEvent.setup()
         const renderKhmer = vi.fn<RenderKhmer>().mockResolvedValue(RENDERED)
         renderJourney("/labels/read", {
@@ -1164,42 +1199,11 @@ describe("Khmer Rendering in a Label Reading (SPEC §29.4)", () => {
             name: "Label Reading",
         })
         expect(renderKhmer).not.toHaveBeenCalled()
-
-        await user.click(
-            within(region).getByRole("button", { name: "Show in Khmer" }),
-        )
-
-        expect(renderKhmer).toHaveBeenCalledTimes(1)
-        const [blocks] = renderKhmer.mock.calls[0]!
-        expect(blocks.map((block) => Object.keys(block).sort())).toEqual([
-            ["block_id", "language", "text"],
-            ["block_id", "language", "text"],
-            ["block_id", "language", "text"],
-        ])
-        expect(blocks.map((block) => block.block_id)).toEqual([
-            "ing_en",
-            "stmt_1",
-            "fact_origin",
-        ])
-
-        const rendering = await within(region).findByTestId("khmer-rendering")
-        expect(rendering).toHaveTextContent("Khmer by AI, from your photo")
-        expect(within(rendering).getByText(/ម្សៅស្រូវសាលី/)).toHaveAttribute(
-            "lang",
-            "km",
-        )
-        // The printed text stays; the Khmer is beneath it, never instead of it.
         expect(
-            within(region).getByText(/^Ingredients: wheat flour/),
-        ).toBeVisible()
+            within(region).queryByRole("button", { name: /Khmer/ }),
+        ).not.toBeInTheDocument()
         expect(
-            within(region).getByText(
-                "A Khmer version is not available for this text.",
-            ),
-        ).toBeVisible()
-        expect(within(region).getAllByTestId("khmer-rendering")).toHaveLength(1)
-        expect(
-            within(region).queryByRole("button", { name: "Show in Khmer" }),
+            within(region).queryByTestId("khmer-rendering"),
         ).not.toBeInTheDocument()
     })
 
@@ -1220,8 +1224,21 @@ describe("Khmer Rendering in a Label Reading (SPEC §29.4)", () => {
             }),
         )
 
-        expect(await screen.findByTestId("khmer-rendering")).toBeVisible()
+        const rendering = await screen.findByTestId("khmer-rendering")
+        expect(rendering).toBeVisible()
         expect(renderKhmer).toHaveBeenCalledTimes(1)
+        const [blocks] = renderKhmer.mock.calls[0]!
+        expect(blocks.map((block) => Object.keys(block).sort())).toEqual([
+            ["block_id", "language", "text"],
+            ["block_id", "language", "text"],
+            ["block_id", "language", "text"],
+        ])
+        expect(within(rendering).getByText(/ម្សៅស្រូវសាលី/)).toHaveAttribute(
+            "lang",
+            "km",
+        )
+        // The printed text stays; the Khmer is beneath it, never instead of it.
+        expect(screen.getByText(/^Ingredients: wheat flour/)).toBeVisible()
     })
 
     test("a failure keeps the printed text and retries only when asked", async () => {
@@ -1236,22 +1253,25 @@ describe("Khmer Rendering in a Label Reading (SPEC §29.4)", () => {
             )
             .mockResolvedValueOnce(RENDERED)
         renderJourney("/labels/read", {
+            locale: "km",
             readLabel: vi
                 .fn<ReadLabel>()
                 .mockResolvedValue(labelReadingFixture()),
             renderKhmer,
         })
-        await submitReading(user)
-        const region = await screen.findByRole("region", {
-            name: "Label Reading",
-        })
+        addPhoto()
         await user.click(
-            within(region).getByRole("button", { name: "Show in Khmer" }),
+            screen.getByRole("button", {
+                name: translateCompare("km", "readThisLabelAction"),
+            }),
         )
+        const region = await screen.findByRole("region", {
+            name: translateCompare("km", "labelReadingTitle"),
+        })
 
         const alert = await within(region).findByRole("alert")
         expect(alert).toHaveTextContent(
-            "The Khmer version could not be written.",
+            translateLabelReading("km", "khmerFailed", { reason: "" }).trim(),
         )
         expect(
             within(region).getByText(/^Ingredients: wheat flour/),
@@ -1259,7 +1279,9 @@ describe("Khmer Rendering in a Label Reading (SPEC §29.4)", () => {
         expect(renderKhmer).toHaveBeenCalledTimes(1)
 
         await user.click(
-            within(alert).getByRole("button", { name: "Try Khmer again" }),
+            within(alert).getByRole("button", {
+                name: translateLabelReading("km", "retryKhmer"),
+            }),
         )
         expect(
             await within(region).findByTestId("khmer-rendering"),
@@ -1278,26 +1300,31 @@ describe("Khmer Rendering in a Label Reading (SPEC §29.4)", () => {
                 }),
         )
         renderJourney("/labels/read", {
+            locale: "km",
             readLabel: vi
                 .fn<ReadLabel>()
                 .mockResolvedValueOnce(labelReadingFixture())
                 .mockResolvedValueOnce(labelReadingFixture()),
             renderKhmer,
         })
-        await submitReading(user)
+        addPhoto()
         await user.click(
-            await screen.findByRole("button", { name: "Show in Khmer" }),
+            screen.getByRole("button", {
+                name: translateCompare("km", "readThisLabelAction"),
+            }),
         )
-        await user.click(screen.getByRole("button", { name: "Read again" }))
-        await screen.findByRole("button", { name: "Show in Khmer" })
+        await waitFor(() => expect(renderKhmer).toHaveBeenCalledTimes(1))
+        await user.click(
+            screen.getByRole("button", {
+                name: translateCompare("km", "readAgainAction"),
+            }),
+        )
+        await waitFor(() => expect(renderKhmer).toHaveBeenCalledTimes(2))
 
         resolveFirst(RENDERED)
         await Promise.resolve()
 
         expect(screen.queryByTestId("khmer-rendering")).not.toBeInTheDocument()
-        expect(
-            screen.getByRole("button", { name: "Show in Khmer" }),
-        ).toBeVisible()
     })
 })
 
