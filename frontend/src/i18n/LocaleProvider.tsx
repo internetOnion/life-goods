@@ -12,6 +12,7 @@ import {
     LocaleContext,
     type AppLocale,
 } from "@/i18n/locale"
+import { telegramLanguageCode } from "@/lib/telegram"
 
 const defaultLocaleStorageKey = "lifegoods.locale.v1"
 
@@ -26,8 +27,8 @@ function readStoredLocale(
     storageKey: string,
     enabledLocales: readonly AppLocale[],
 ): AppLocale {
-    const fallback = enabledLocales[0] ?? "en"
-    if (typeof window === "undefined") return fallback
+    if (typeof window === "undefined") return enabledLocales[0] ?? "en"
+    const fallback = defaultLocale(enabledLocales)
 
     try {
         const storedLocale = window.localStorage.getItem(storageKey)
@@ -37,6 +38,15 @@ function readStoredLocale(
     } catch {
         return fallback
     }
+}
+
+/** Khmer-first, except that a Telegram app set to English starts in English. */
+function defaultLocale(enabledLocales: readonly AppLocale[]): AppLocale {
+    const telegramLanguage = telegramLanguageCode()?.toLowerCase()
+    if (telegramLanguage?.startsWith("en") && enabledLocales.includes("en")) {
+        return "en"
+    }
+    return enabledLocales[0] ?? "en"
 }
 
 type LocaleProviderProps = {

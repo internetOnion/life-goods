@@ -1401,6 +1401,25 @@ Barcode miss). It reads the whole printed label, not only nutrition values.
   current page. Leaving the route discards them. They are never stored, exported,
   offered as a contribution, or carried into Compare Nutrition.
 
+## 30. Telegram Mini App (ADR 0006)
+
+- The production web app is also the Main Mini App of the Life Goods Telegram bot; there is no
+  separate build and no bot server.
+- Telegram's SDK loads only when Telegram launched the page (`tgWebApp*` launch parameters,
+  remembered in session storage). On the ordinary web nothing is loaded.
+- Inside Telegram: `ready()`, `expand()` and `disableVerticalSwipes()` are called; the header
+  and background colour match the app; Telegram's back button appears away from Scan and
+  returns within the app (or to Scan after a deep link); links to other origins open with
+  `openLink`.
+- The initial locale is English only when the Telegram interface language is English and no
+  locale has been saved; otherwise Khmer. A saved choice always wins.
+- `t.me/<bot>?startapp=<barcode>` opens that Product when the value is 8–14 digits; anything
+  else is ignored.
+- `initData`, Telegram user identity and other launch data are never sent to the backend,
+  logged or stored, and are removed from the address bar once the SDK has read them.
+- Edge headers allow `script-src https://telegram.org` and
+  `frame-ancestors 'self' https://web.telegram.org`; no other site may frame the app.
+
 ## Deployment health probes
 
 `GET /api/health/live` returns `{ "status": "alive" }` without dependency checks.
