@@ -22,7 +22,6 @@ const en = {
     captureNavigation: "Photo capture navigation",
     back: "Back",
     backToStart: "Back to start",
-    backToResults: "Back to comparison results",
     backToProductA: "Back to Product A",
     continueToProductB: "Continue to Product B",
     returnToResults: "Return to comparison results",
@@ -81,7 +80,6 @@ const en = {
     compareNutrition: "Compare nutrition",
     comparisonProgress: "Comparison progress",
     statusPrefix: "Status",
-    alertPrefix: "Alert",
     complete: "complete",
     inProgress: "in progress",
     waiting: "waiting",
@@ -90,7 +88,6 @@ const en = {
         "Photos are sent to the configured processing provider. Life Goods does not save your photos or comparison history.",
     cancelComparison: "Cancel comparison",
     comparisonSteps: "Comparison steps",
-    currentStep: "Current step",
     productDisplayName: "{{product}} display name",
     photos: "Photos",
     selectedCount: "{{count}} of {{total}} selected",
@@ -136,22 +133,11 @@ const en = {
     usingBasis: "Using {{basis}} · {{preparation}}",
     retakeSuggestions: "Retake suggestions",
     notVisible: "Not visible in these photos",
-    columnsDetected: "Nutrition columns",
-    fieldsDetected: "{{count}} visible nutrients detected",
-    noVisibleNutrients: "No visible nutrient values",
     noVisibleColumn: "No visible nutrients in this column",
     details: "Details",
-    labelWording: "Wording read from label",
-    evidenceDetails: "Photo Evidence details",
-    fieldState: "Reading state",
-    retakeReasons: "Why another photo may help",
     providerNote:
         "The provider could not read enough visible information. Use the guidance above and retry.",
-    productNumber: "Product {{number}}",
     active: "Active",
-    switchAnytime: "You can switch columns after comparing.",
-    dismiss: "Dismiss",
-    closeColumnSelection: "Close column selection",
     mixedBases: "Mixed label bases",
     someDifferentBases:
         "Some nutrients use different bases. Exceptions are explained in the results.",
@@ -162,8 +148,6 @@ const en = {
     basisUnspecified: "The reported basis is not fully specified.",
     nutritionComparison: "Nutrition Comparison",
     nutrient: "Nutrient",
-    difference: "Difference",
-    notes: "Notes",
     labelPercentages: "Label Percentages",
     percentageNote:
         "Daily value percentages are label reference values and may use different serving bases.",
@@ -171,26 +155,6 @@ const en = {
     couldNotRead: "Could not read this value",
     notFoundPhotos: "Not found in these photos",
     conflictingValues: "Conflicting values on label:",
-    identicalAmount: "Identical amount",
-    equalAmount: "Equal amount",
-    hasMore: "{{product}} has more",
-    notComparable: "Not comparable",
-    noDifference: "No difference calculated",
-    comparisonUnavailable:
-        "The available label details do not support a reliable numeric difference.",
-    percentageUnavailable:
-        "Label percentages are shown for reference and are not compared numerically.",
-    unreadableUnavailable: "One or both values could not be read clearly.",
-    qualifiedUnavailable:
-        "A qualified label value cannot produce an exact numeric difference.",
-    preparationMismatch: "The Products report different preparation states.",
-    unitsIncompatible: "The reported measurement units are not compatible.",
-    quantitiesUnavailable:
-        "The visible package or serving quantities are not enough for a common comparison.",
-    conditionalPreparation:
-        "Preparation state is unknown, so the normalized values are conditional.",
-    preparationNeither:
-        "Neither label says whether the Product is dry, as sold, or prepared.",
     preparationSame: "Preparation: {{value}}.",
     preparationDifferent:
         "Preparation: {{leftProduct}} — {{left}}; {{rightProduct}} — {{right}}.",
@@ -233,7 +197,6 @@ const en = {
     readyForPhoto: "Ready to take photo",
     frameLabel: "Fill the frame with the complete panel",
     takingPhoto: "Taking photo…",
-    retryCamera: "Try camera again",
     useDeviceCamera: "Use device camera",
     perPackage: "Per package",
     perServing: "Per serving",
@@ -257,18 +220,18 @@ const en = {
     // Nutrition Labels section and Read This Label (SPEC §29)
     labelsPageTitle: "Nutrition Labels",
     labelsPageDescription:
-        "Read one Product's nutrition label or compare two, from your photos.",
+        "Read one Product's package label or compare two nutrition labels, from your photos.",
     labelsIntro:
-        "Photograph a nutrition label to read its printed values, or photograph two to compare them.",
+        "Photograph one package to read its ingredients, allergen statement, and nutrition, or photograph two nutrition labels to compare them.",
     readModeTitle: "Read This Label",
     readModeDescription:
-        "Photograph one Product's nutrition panel and see every value printed on it.",
+        "Photograph a package to read its ingredients, allergen statement, and nutrition as printed.",
     compareModeTitle: "Compare Nutrition",
     compareModeDescription:
         "Photograph two Products' nutrition panels and see how their values differ.",
     readPageTitle: "Read This Label",
     readPageDescription:
-        "Read the nutrition values printed on one Product's label from your photos.",
+        "Read the ingredients, allergen statement, and nutrition printed on one Product's package, from your photos.",
     readSubjectTitle: "This Product",
     readThisLabelAction: "Read this label",
     readAgainAction: "Read again",
@@ -278,7 +241,6 @@ const en = {
     photoEvidenceBadge: "Photo Evidence",
     photoEvidenceNotice:
         "Read from your photos by the configured AI provider. This is Photo Evidence, not an Open Food Facts Source Record. Life Goods has not verified these values and does not keep them.",
-    printedColumnsHeading: "Nutrition columns printed on the label",
     noColumnsRead: "No nutrition columns could be read from these photos.",
     notReadableInPhoto: "Not readable in your photo",
     notPrintedOnPhoto: "Not printed on the part you photographed",
@@ -309,7 +271,6 @@ const km: Record<keyof typeof en, string> = {
     captureNavigation: "ការរុករកជំហានថតរូប",
     back: "ត្រឡប់ក្រោយ",
     backToStart: "ត្រឡប់ទៅដើម",
-    backToResults: "ត្រឡប់ទៅលទ្ធផលប្រៀបធៀប",
     backToProductA: "ត្រឡប់ទៅផលិតផល ក",
     continueToProductB: "បន្តទៅផលិតផល ខ",
     returnToResults: "ត្រឡប់ទៅលទ្ធផលប្រៀបធៀប",
@@ -368,7 +329,6 @@ const km: Record<keyof typeof en, string> = {
     compareNutrition: "ប្រៀបធៀបអាហារូបត្ថម្ភ",
     comparisonProgress: "ដំណើរការប្រៀបធៀប",
     statusPrefix: "ស្ថានភាព",
-    alertPrefix: "ការជូនដំណឹង",
     complete: "បានបញ្ចប់",
     inProgress: "កំពុងដំណើរការ",
     waiting: "កំពុងរង់ចាំ",
@@ -377,7 +337,6 @@ const km: Record<keyof typeof en, string> = {
         "រូបថតត្រូវបានផ្ញើទៅអ្នកផ្ដល់សេវាដំណើរការ។ Life Goods មិនរក្សាទុករូបថត ឬប្រវត្តិប្រៀបធៀបរបស់អ្នកទេ។",
     cancelComparison: "បោះបង់ការប្រៀបធៀប",
     comparisonSteps: "ជំហានប្រៀបធៀប",
-    currentStep: "ជំហានបច្ចុប្បន្ន",
     productDisplayName: "ឈ្មោះបង្ហាញរបស់ {{product}}",
     photos: "រូបថត",
     selectedCount: "បានជ្រើស {{count}} ក្នុងចំណោម {{total}}",
@@ -423,22 +382,11 @@ const km: Record<keyof typeof en, string> = {
     usingBasis: "កំពុងប្រើ {{basis}} · {{preparation}}",
     retakeSuggestions: "ការណែនាំសម្រាប់ថតម្ដងទៀត",
     notVisible: "មិនឃើញក្នុងរូបថតទាំងនេះ",
-    columnsDetected: "ជួរឈរអាហារូបត្ថម្ភ",
-    fieldsDetected: "បានអានសារធាតុចិញ្ចឹម {{count}}",
-    noVisibleNutrients: "មិនឃើញតម្លៃសារធាតុចិញ្ចឹម",
     noVisibleColumn: "មិនឃើញសារធាតុចិញ្ចឹមក្នុងជួរឈរនេះ",
     details: "ព័ត៌មានលម្អិត",
-    labelWording: "ពាក្យដែលបានអានពីស្លាក",
-    evidenceDetails: "ព័ត៌មានលម្អិតនៃ Photo Evidence",
-    fieldState: "ស្ថានភាពអាន",
-    retakeReasons: "មូលហេតុដែលរូបថ្មីអាចជួយបាន",
     providerNote:
         "អ្នកផ្ដល់សេវាមិនអាចអានព័ត៌មានច្បាស់បានគ្រប់គ្រាន់ទេ។ ប្រើការណែនាំខាងលើ ហើយសាកល្បងម្ដងទៀត។",
-    productNumber: "ផលិតផល {{number}}",
     active: "កំពុងប្រើ",
-    switchAnytime: "អ្នកអាចប្ដូរជួរឈរបន្ទាប់ពីប្រៀបធៀប។",
-    dismiss: "បិទ",
-    closeColumnSelection: "បិទការជ្រើសជួរឈរ",
     mixedBases: "មូលដ្ឋានស្លាកខុសគ្នា",
     someDifferentBases:
         "សារធាតុចិញ្ចឹមខ្លះប្រើមូលដ្ឋានខុសគ្នា។ ករណីលើកលែងត្រូវបានពន្យល់ក្នុងលទ្ធផល។",
@@ -449,8 +397,6 @@ const km: Record<keyof typeof en, string> = {
     basisUnspecified: "មូលដ្ឋានដែលបានបង្ហាញមិនទាន់ច្បាស់លាស់។",
     nutritionComparison: "ការប្រៀបធៀបអាហារូបត្ថម្ភ",
     nutrient: "សារធាតុចិញ្ចឹម",
-    difference: "ភាពខុសគ្នា",
-    notes: "ចំណាំ",
     labelPercentages: "ភាគរយលើស្លាក",
     percentageNote:
         "ភាគរយតម្លៃប្រចាំថ្ងៃគឺសម្រាប់យោង ហើយអាចប្រើមូលដ្ឋានចំណែកបរិភោគខុសគ្នា។",
@@ -458,26 +404,6 @@ const km: Record<keyof typeof en, string> = {
     couldNotRead: "មិនអាចអានតម្លៃនេះបាន",
     notFoundPhotos: "រកមិនឃើញក្នុងរូបថតទាំងនេះ",
     conflictingValues: "តម្លៃលើស្លាកមិនត្រូវគ្នា៖",
-    identicalAmount: "បរិមាណដូចគ្នា",
-    equalAmount: "បរិមាណស្មើគ្នា",
-    hasMore: "{{product}} មានច្រើនជាង",
-    notComparable: "មិនអាចប្រៀបធៀបបាន",
-    noDifference: "មិនបានគណនាភាពខុសគ្នា",
-    comparisonUnavailable:
-        "ព័ត៌មានលើស្លាកដែលមានមិនអាចគាំទ្រការគណនាភាពខុសគ្នាដែលអាចទុកចិត្តបាន។",
-    percentageUnavailable:
-        "ភាគរយលើស្លាកត្រូវបានបង្ហាញសម្រាប់យោង និងមិនត្រូវបានប្រៀបធៀបជាលេខទេ។",
-    unreadableUnavailable: "តម្លៃមួយ ឬទាំងពីរមិនអាចអានបានច្បាស់។",
-    qualifiedUnavailable:
-        "តម្លៃមានលក្ខខណ្ឌលើស្លាកមិនអាចបង្កើតភាពខុសគ្នាជាលេខជាក់លាក់បានទេ។",
-    preparationMismatch: "ផលិតផលទាំងពីរបង្ហាញស្ថានភាពរៀបចំខុសគ្នា។",
-    unitsIncompatible: "ឯកតារង្វាស់ដែលបានបង្ហាញមិនត្រូវគ្នា។",
-    quantitiesUnavailable:
-        "បរិមាណកញ្ចប់ ឬចំណែកបរិភោគដែលមើលឃើញមិនគ្រប់គ្រាន់សម្រាប់មូលដ្ឋានរួម។",
-    conditionalPreparation:
-        "មិនមានព័ត៌មានអំពីការរៀបចំ ដូច្នេះតម្លៃដែលបានបម្លែងមានលក្ខខណ្ឌ។",
-    preparationNeither:
-        "ស្លាកទាំងពីរមិនបញ្ជាក់ថាផលិតផលនៅសភាពស្ងួត តាមដែលលក់ ឬបានរៀបចំរួចទេ។",
     preparationSame: "ការរៀបចំ៖ {{value}}។",
     preparationDifferent:
         "ការរៀបចំ៖ {{leftProduct}} — {{left}}; {{rightProduct}} — {{right}}។",
@@ -520,7 +446,6 @@ const km: Record<keyof typeof en, string> = {
     readyForPhoto: "រួចរាល់សម្រាប់ថតរូប",
     frameLabel: "ដាក់ផ្ទាំងទាំងមូលនៅក្នុងស៊ុម",
     takingPhoto: "កំពុងថត…",
-    retryCamera: "សាកល្បងកាមេរ៉ាម្ដងទៀត",
     useDeviceCamera: "ប្រើកាមេរ៉ាឧបករណ៍",
     perPackage: "ក្នុងមួយកញ្ចប់",
     perServing: "ក្នុងមួយចំណែកបរិភោគ",
@@ -542,18 +467,18 @@ const km: Record<keyof typeof en, string> = {
     requestFailed: "សំណើបានបរាជ័យ។ សូមសាកល្បងម្ដងទៀត។",
     labelsPageTitle: "ស្លាកអាហារូបត្ថម្ភ",
     labelsPageDescription:
-        "អានស្លាកអាហារូបត្ថម្ភរបស់ផលិតផលមួយ ឬប្រៀបធៀបពីរ ពីរូបថតរបស់អ្នក។",
+        "អានស្លាកលើកញ្ចប់របស់ផលិតផលមួយ ឬប្រៀបធៀបស្លាកអាហារូបត្ថម្ភពីរ ពីរូបថតរបស់អ្នក។",
     labelsIntro:
-        "ថតរូបស្លាកអាហារូបត្ថម្ភ ដើម្បីអានតម្លៃដែលបានបោះពុម្ព ឬថតរូបស្លាកពីរ ដើម្បីប្រៀបធៀប។",
+        "ថតរូបកញ្ចប់មួយ ដើម្បីអានគ្រឿងផ្សំ សេចក្តីថ្លែងអំពីអាឡែហ្ស៊ី និងអាហារូបត្ថម្ភ ឬថតរូបស្លាកអាហារូបត្ថម្ភពីរ ដើម្បីប្រៀបធៀប។",
     readModeTitle: "អានស្លាកនេះ",
     readModeDescription:
-        "ថតរូបផ្ទាំងអាហារូបត្ថម្ភរបស់ផលិតផលមួយ ហើយមើលតម្លៃទាំងអស់ដែលបានបោះពុម្ព។",
+        "ថតរូបកញ្ចប់ ដើម្បីអានគ្រឿងផ្សំ សេចក្តីថ្លែងអំពីអាឡែហ្ស៊ី និងអាហារូបត្ថម្ភ ដូចដែលបានបោះពុម្ព។",
     compareModeTitle: "ប្រៀបធៀបអាហារូបត្ថម្ភ",
     compareModeDescription:
         "ថតរូបផ្ទាំងអាហារូបត្ថម្ភរបស់ផលិតផលពីរ ហើយមើលភាពខុសគ្នានៃតម្លៃ។",
     readPageTitle: "អានស្លាកនេះ",
     readPageDescription:
-        "អានតម្លៃអាហារូបត្ថម្ភដែលបានបោះពុម្ពលើស្លាករបស់ផលិតផលមួយ ពីរូបថតរបស់អ្នក។",
+        "អានគ្រឿងផ្សំ សេចក្តីថ្លែងអំពីអាឡែហ្ស៊ី និងអាហារូបត្ថម្ភដែលបានបោះពុម្ពលើកញ្ចប់របស់ផលិតផលមួយ ពីរូបថតរបស់អ្នក។",
     readSubjectTitle: "ផលិតផលនេះ",
     readThisLabelAction: "អានស្លាកនេះ",
     readAgainAction: "អានម្ដងទៀត",
@@ -563,7 +488,6 @@ const km: Record<keyof typeof en, string> = {
     photoEvidenceBadge: "ភស្តុតាងពីរូបថត",
     photoEvidenceNotice:
         "អានពីរូបថតរបស់អ្នកដោយអ្នកផ្ដល់សេវា AI ដែលបានកំណត់។ នេះជាភស្តុតាងពីរូបថត មិនមែនជាកំណត់ត្រាប្រភព Open Food Facts ទេ។ Life Goods មិនបានផ្ទៀងផ្ទាត់តម្លៃទាំងនេះ ហើយមិនរក្សាទុកវាទេ។",
-    printedColumnsHeading: "ជួរអាហារូបត្ថម្ភដែលបានបោះពុម្ពលើស្លាក",
     noColumnsRead: "មិនអាចអានជួរអាហារូបត្ថម្ភពីរូបថតទាំងនេះបានទេ។",
     notReadableInPhoto: "មិនអាចអានបានក្នុងរូបថតរបស់អ្នក",
     notPrintedOnPhoto: "មិនមានបោះពុម្ពលើផ្នែកដែលអ្នកបានថត",
