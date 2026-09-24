@@ -560,9 +560,12 @@ export function ProductPage({ lookup = lookupProduct }: ProductPageProps) {
                                             ?.storage_instruction_items
                                     }
                                 />
-                                <ProvenanceCard candidate={candidate} />
                             </TabsContent>
                         </Tabs>
+                        {/* Source Attribution stays visible whichever tab is open. */}
+                        <div className="mt-4">
+                            <ProvenanceCard candidate={candidate} />
+                        </div>
                     </div>
                 )}
             </Container>

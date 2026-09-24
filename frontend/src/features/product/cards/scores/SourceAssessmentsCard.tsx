@@ -73,6 +73,12 @@ export function SourceAssessmentsCard({
                         score={ecoscoreScore}
                     />
                 </div>
+                {!showHeader && (
+                    // Without the header, keep the Source Assessments visibly attributed.
+                    <p className="border-t border-neutral-200 px-4 py-2.5 text-xs leading-relaxed text-neutral-600 sm:px-5">
+                        {t("sourceAssessmentsDescription")}
+                    </p>
+                )}
             </CardContent>
         </Card>
     )

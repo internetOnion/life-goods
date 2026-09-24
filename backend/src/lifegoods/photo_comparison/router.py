@@ -95,7 +95,7 @@ _ERROR_EXAMPLES = {
         "value": {
             "error": {
                 "code": "rate_limit_exceeded",
-                "message": "The extraction limit is 10 requests per minute.",
+                "message": "Too many photo requests. Try again after the Retry-After interval.",
             }
         },
     },

@@ -129,7 +129,7 @@ describe("Product page (life-goods-viewer layout)", () => {
         })
         expect(productDetails).toBeVisible()
 
-        // Summary is the default and contains attributed Source Assessment banners.
+        // Summary is the default and keeps its Source Assessments visibly attributed.
         const summaryPanel = screen.getByRole("tabpanel")
         expect(
             within(summaryPanel).queryByRole("heading", {
@@ -137,10 +137,14 @@ describe("Product page (life-goods-viewer layout)", () => {
             }),
         ).not.toBeInTheDocument()
         expect(
-            within(summaryPanel).queryByText(
+            within(summaryPanel).getByText(
                 "Open Food Facts calculations; not Life Goods judgments or purchase recommendations.",
             ),
-        ).not.toBeInTheDocument()
+        ).toBeVisible()
+        // Source Attribution is outside the tabs, so it is visible on every tab.
+        expect(
+            screen.getByRole("heading", { name: "Data Source & Citation" }),
+        ).toBeVisible()
         expect(
             within(summaryPanel).getByRole("link", {
                 name: /Nutri-Score D/,
@@ -285,7 +289,7 @@ describe("Product page (life-goods-viewer layout)", () => {
             }),
         ).toBeVisible()
         expect(
-            within(labelsPanel).getByRole("heading", {
+            screen.getByRole("heading", {
                 name: "Data Source & Citation",
             }),
         ).toBeVisible()
@@ -731,7 +735,7 @@ describe("Product page (life-goods-viewer layout)", () => {
         )
         const labels = screen.getByRole("tabpanel")
         expect(
-            within(labels).getByRole("heading", {
+            screen.getByRole("heading", {
                 name: "Data Source & Citation",
             }),
         ).toBeVisible()

@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
@@ -125,6 +126,12 @@ class ExternalImageNotFoundError(RuntimeError):
     pass
 
 
+class ExternalImageRateLimitError(RuntimeError):
+    def __init__(self, retry_after: int) -> None:
+        super().__init__("Too many uncached image requests from this client")
+        self.retry_after = retry_after
+
+
 @dataclass(frozen=True, slots=True)
 class ExternalImage:
     content: bytes
@@ -132,4 +139,6 @@ class ExternalImage:
 
 
 class ExternalImageSource(Protocol):
-    def fetch(self, url: str) -> ExternalImage: ...
+    def fetch(
+        self, url: str, *, admit: Callable[[], tuple[bool, int]] | None = None
+    ) -> ExternalImage: ...

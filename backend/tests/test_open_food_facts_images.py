@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from lifegoods.open_food_facts import (
     ExternalImage,
     ExternalImageNotFoundError,
+    ExternalImageRateLimitError,
     ExternalImageUnavailableError,
     ExternalImageUrlInvalidError,
     OpenFoodFactsImageSource,
@@ -204,6 +205,80 @@ def test_applies_the_image_request_budget_only_to_cache_misses() -> None:
         )
 
 
+def test_client_admission_is_charged_only_for_upstream_fetches() -> None:
+    source = image_source(
+        httpx.MockTransport(
+            lambda _request: httpx.Response(
+                200, content=JPEG_BYTES, headers={"content-type": "image/jpeg"}
+            )
+        )
+    )
+    charges: list[str] = []
+
+    def admit() -> tuple[bool, int]:
+        charges.append("charged")
+        return len(charges) <= 1, 30
+
+    source.fetch(IMAGE_URL, admit=admit)
+    source.fetch(IMAGE_URL, admit=admit)  # cached: free
+    with pytest.raises(ExternalImageRateLimitError) as limited:
+        source.fetch(
+            "https://images.openfoodfacts.org/images/products/401/front_en.jpg", admit=admit
+        )
+
+    assert charges == ["charged", "charged"]
+    assert limited.value.retry_after == 30
+
+
+def test_missing_images_are_remembered_without_refetching() -> None:
+    requests: list[httpx.Request] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(404)
+
+    source = image_source(httpx.MockTransport(respond))
+    charges: list[int] = []
+
+    def admit() -> tuple[bool, int]:
+        charges.append(1)
+        return True, 0
+
+    for _ in range(3):
+        with pytest.raises(ExternalImageNotFoundError):
+            source.fetch(IMAGE_URL, admit=admit)
+
+    assert len(requests) == 1
+    assert len(charges) == 1
+
+
+def test_duplicate_requests_do_not_wait_for_a_slow_fetch() -> None:
+    import threading
+    import time
+
+    started = threading.Event()
+    release = threading.Event()
+
+    def respond(_request: httpx.Request) -> httpx.Response:
+        started.set()
+        release.wait(10)
+        return httpx.Response(200, content=JPEG_BYTES, headers={"content-type": "image/jpeg"})
+
+    source = image_source(httpx.MockTransport(respond))
+    first = threading.Thread(target=source.fetch, args=(IMAGE_URL,))
+    first.start()
+    started.wait(5)
+    began = time.monotonic()
+    try:
+        with pytest.raises(ExternalImageUnavailableError):
+            source.fetch(IMAGE_URL)
+        assert time.monotonic() - began < 5
+    finally:
+        release.set()
+        first.join()
+    assert source.fetch(IMAGE_URL).content == JPEG_BYTES
+
+
 def test_refetches_an_image_after_the_bounded_cache_ttl() -> None:
     now = 0.0
     request_count = 0
@@ -250,7 +325,14 @@ class StubImageSource:
     def __init__(self, result: ExternalImage | Exception) -> None:
         self.result = result
 
-    def fetch(self, _url: str) -> ExternalImage:
+    def fetch(
+        self, _url: str, *, admit: Callable[[], tuple[bool, int]] | None = None
+    ) -> ExternalImage:
+        # Behaves like a cache miss: the per-client admission is charged first.
+        if admit is not None:
+            allowed, retry_after = admit()
+            if not allowed:
+                raise ExternalImageRateLimitError(retry_after)
         if isinstance(self.result, Exception):
             raise self.result
         return self.result

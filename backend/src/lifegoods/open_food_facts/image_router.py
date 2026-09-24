@@ -11,6 +11,7 @@ from lifegoods.core.errors import ErrorCode, ErrorDetail, ErrorEnvelope
 from lifegoods.core.rate_limit import RedisSlidingWindowRateLimiter
 from lifegoods.open_food_facts.models import (
     ExternalImageNotFoundError,
+    ExternalImageRateLimitError,
     ExternalImageSource,
     ExternalImageUnavailableError,
     ExternalImageUrlInvalidError,
@@ -28,7 +29,8 @@ class ImageProxyRateLimiter(Protocol):
 
 
 class RedisImageProxyRateLimiter(RedisSlidingWindowRateLimiter):
-    """Per-client limit, so one client cannot spend the shared upstream image budget."""
+    """Per-client limit on uncached fetches, so one client cannot spend the shared
+    upstream image budget."""
 
     def __init__(
         self,
@@ -77,8 +79,10 @@ def get_open_food_facts_image(
     url: Annotated[str, Query(min_length=1)],
 ) -> Response:
     client = request.client.host if request.client is not None else "unknown"
-    allowed, retry_after = limiter.try_acquire(client)
-    if not allowed:
+    try:
+        # Cached images are free; the per-client limit is charged only for upstream fetches.
+        image = source.fetch(url, admit=lambda: limiter.try_acquire(client))
+    except ExternalImageRateLimitError as error:
         envelope = ErrorEnvelope(
             error=ErrorDetail(
                 code=ErrorCode.RATE_LIMIT_EXCEEDED,
@@ -88,10 +92,8 @@ def get_open_food_facts_image(
         return JSONResponse(
             status_code=429,
             content=envelope.model_dump(),
-            headers={"Retry-After": str(retry_after)},
+            headers={"Retry-After": str(error.retry_after)},
         )
-    try:
-        image = source.fetch(url)
     except ExternalImageUrlInvalidError:
         envelope = ErrorEnvelope(
             error=ErrorDetail(

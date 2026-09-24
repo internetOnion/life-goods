@@ -197,8 +197,12 @@ Redis remains disposable infrastructure for Product Lookup caching and anonymous
 The Product Lookup endpoint is public and requires no authentication. Apply a practical per-IP rate limit that allows ordinary shopping sessions while discouraging automated extraction.
 
 The Open Food Facts image proxy keeps its shared upstream budget and also applies a per-client
-limit (`LIFEGOODS_OPEN_FOOD_FACTS_IMAGE_CLIENT_REQUESTS_PER_MINUTE`, default 120), returning `429`
-`RATE_LIMIT_EXCEEDED` with `Retry-After`, so one client cannot exhaust the shared budget. Neither
+limit to uncached fetches only (`LIFEGOODS_OPEN_FOOD_FACTS_IMAGE_CLIENT_REQUESTS_PER_MINUTE`,
+default 20, kept below the shared budget), returning `429` `RATE_LIMIT_EXCEEDED` with
+`Retry-After`, so one client cannot exhaust the shared budget; cached images are not charged.
+Missing images are remembered for ten minutes without refetching, and a request for an image
+already being fetched waits at most two seconds before a `502`, so duplicates never hold a
+worker for the upstream timeout. Neither
 image URLs nor error text containing them are logged, because image paths contain the Barcode.
 
 In staging and production (`LIFEGOODS_ENVIRONMENT`), the backend serves no `/docs`, `/redoc`,

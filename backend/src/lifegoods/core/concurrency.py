@@ -107,11 +107,19 @@ class ExternalLookupLocks:
         self._entries: dict[str, _LockEntry] = {}
 
     @contextmanager
-    def hold(self, key: str) -> Generator[None]:
+    def hold(self, key: str, *, timeout: float | None = None) -> Generator[None]:
+        """Serialize work per key; with ``timeout``, raise ``TimeoutError`` instead of
+        waiting longer than that for the current holder."""
         with self._guard:
             entry = self._entries.setdefault(key, _LockEntry(lock=Lock()))
             entry.users += 1
-        entry.lock.acquire()
+        acquired = entry.lock.acquire(timeout=-1 if timeout is None else timeout)
+        if not acquired:
+            with self._guard:
+                entry.users -= 1
+                if entry.users == 0:
+                    del self._entries[key]
+            raise TimeoutError(f"Lookup for {key!r} is still in progress")
         try:
             yield
         finally:
