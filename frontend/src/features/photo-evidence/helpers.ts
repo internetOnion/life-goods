@@ -297,9 +297,11 @@ export function formatActionableError(
     locale: AppLocale = "en",
 ): string {
     switch (code) {
-        case "request_invalid":
         case "unsupported_image_format":
             return translateCompare(locale, "invalidPhotoRequest")
+        // The bytes, not the format, were the problem: an empty or truncated upload.
+        case "request_invalid":
+            return translateCompare(locale, "photoUnreadableOnDevice")
         case "size_limit_exceeded":
             return translateCompare(locale, "photoRequestTooLarge")
         case "rate_limit_exceeded":
@@ -387,4 +389,30 @@ export function isHeicFile(file: File): boolean {
     if (type)
         return type.startsWith("image/heic") || type.startsWith("image/heif")
     return HEIC_EXTENSIONS.has(fileExtension(file))
+}
+
+/**
+ * A picked `File` is only a handle to device storage, so its bytes are re-read while the
+ * upload streams — and that read can come up short or fail outright, most often for an
+ * iCloud-optimized photo the device has not downloaded. Reading the file fully here does
+ * two things: it detects an empty, truncated or unreadable photo before anything is sent,
+ * and it returns an in-memory copy to upload instead, so the request body can no longer
+ * depend on a second read of device storage.
+ *
+ * Returns null when the photo cannot be read in full, and the file itself where the
+ * environment offers no way to check — the backend still validates the bytes.
+ */
+export async function verifiedPhotoFile(file: File): Promise<File | null> {
+    if (file.size === 0) return null
+    if (typeof file.arrayBuffer !== "function") return file
+    try {
+        const bytes = await file.arrayBuffer()
+        if (bytes.byteLength !== file.size) return null
+        return new File([bytes], file.name, {
+            type: file.type,
+            lastModified: file.lastModified,
+        })
+    } catch {
+        return null
+    }
 }

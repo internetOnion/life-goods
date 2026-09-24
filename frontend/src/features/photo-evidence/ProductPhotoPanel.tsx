@@ -300,59 +300,58 @@ export function ProductPhotoPanel({
                                         "bg-error-50 ring-error-200 ring-1 ring-inset",
                                 )}
                             >
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={() => onInspectPhoto?.(index)}
-                                    className="size-full cursor-zoom-in rounded-none p-0 text-left hover:bg-transparent focus:outline-hidden"
-                                    title={t("inspectPhoto", {
-                                        product: product.title,
-                                        number: index + 1,
-                                    })}
-                                    aria-label={t("inspectPhoto", {
-                                        product: product.title,
-                                        number: index + 1,
-                                    })}
-                                    disabled={
-                                        photo.previewError ||
-                                        photo.previewUnsupported
-                                    }
-                                >
-                                    {photo.previewUnsupported ? (
-                                        <span
-                                            role="img"
-                                            aria-label={t(
-                                                "photoPreviewUnsupported",
-                                            )}
-                                            className="flex size-full flex-col items-center justify-center gap-2 p-3 text-center text-xs font-bold text-neutral-100"
-                                        >
-                                            <Image
-                                                size={24}
-                                                weight="bold"
-                                                aria-hidden="true"
-                                            />
-                                            <span>
-                                                {t("photoPreviewUnsupported")}
-                                            </span>
+                                {/* A placeholder tile is not interactive, and must not
+                                    inherit the glass pill shape or the no-wrap label of a
+                                    Button, so it is rendered on its own. */}
+                                {photo.previewUnsupported ? (
+                                    <span
+                                        role="img"
+                                        aria-label={t(
+                                            "photoPreviewUnsupported",
+                                        )}
+                                        className="flex size-full flex-col items-center justify-center gap-2 p-3 text-center text-xs font-bold break-words whitespace-normal text-neutral-100"
+                                    >
+                                        <Image
+                                            size={24}
+                                            weight="bold"
+                                            aria-hidden="true"
+                                        />
+                                        <span>
+                                            {t("photoPreviewUnsupported")}
                                         </span>
-                                    ) : photo.previewError ? (
-                                        <span
-                                            role="img"
-                                            aria-label={t(
-                                                "photoPreviewUnavailable",
-                                            )}
-                                            className="text-error-800 flex size-full flex-col items-center justify-center gap-2 p-3 text-center text-xs font-bold"
-                                        >
-                                            <WarningCircle
-                                                size={24}
-                                                weight="bold"
-                                                aria-hidden="true"
-                                            />
-                                            <span>
-                                                {t("photoPreviewUnavailable")}
-                                            </span>
+                                    </span>
+                                ) : photo.previewError ? (
+                                    <span
+                                        role="img"
+                                        aria-label={t(
+                                            "photoPreviewUnavailable",
+                                        )}
+                                        className="text-error-800 flex size-full flex-col items-center justify-center gap-2 p-3 text-center text-xs font-bold break-words whitespace-normal"
+                                    >
+                                        <WarningCircle
+                                            size={24}
+                                            weight="bold"
+                                            aria-hidden="true"
+                                        />
+                                        <span>
+                                            {t("photoPreviewUnavailable")}
                                         </span>
-                                    ) : (
+                                    </span>
+                                ) : (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={() => onInspectPhoto?.(index)}
+                                        className="size-full cursor-zoom-in rounded-none p-0 text-left hover:bg-transparent focus:outline-hidden"
+                                        title={t("inspectPhoto", {
+                                            product: product.title,
+                                            number: index + 1,
+                                        })}
+                                        aria-label={t("inspectPhoto", {
+                                            product: product.title,
+                                            number: index + 1,
+                                        })}
+                                    >
                                         <img
                                             src={photo.url}
                                             alt={`${product.title} photo ${index + 1}`}
@@ -361,8 +360,8 @@ export function ProductPhotoPanel({
                                             }
                                             className="size-full object-cover transition-transform duration-200 group-hover:scale-105"
                                         />
-                                    )}
-                                </Button>
+                                    </Button>
+                                )}
                                 <span className="pointer-events-none absolute bottom-1.5 left-1.5 rounded-md bg-neutral-950/80 px-2 py-0.5 font-mono text-[10px] font-bold text-white select-none">
                                     {t("photoNumber", { number: index + 1 })}
                                 </span>

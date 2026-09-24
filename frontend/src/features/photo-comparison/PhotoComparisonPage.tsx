@@ -30,6 +30,7 @@ import {
     PHOTO_INPUT_ACCEPT,
     formatActionableError,
     isAcceptedPhotoFile,
+    verifiedPhotoFile,
     isHeicFile,
     isSupportedImageFile,
     pickDefaultColumnId,
@@ -500,11 +501,70 @@ export function PhotoComparisonPage({
         })
     }
 
+    /**
+     * Photo tiles appear as soon as they are picked, so each file is read in full just
+     * after: a photo whose bytes are missing or incomplete — an iCloud-optimized photo the
+     * device has not downloaded, say — is flagged as unusable instead of being uploaded
+     * short, and every other photo is swapped for the verified in-memory copy so the
+     * upload never re-reads device storage.
+     */
+    const verifyPhotos = async (side: "left" | "right", files: File[]) => {
+        const checked = await Promise.all(
+            files.map(async (file) => ({
+                file,
+                verified: await verifiedPhotoFile(file),
+            })),
+        )
+        const unreadable = new Set(
+            checked.filter((item) => item.verified === null).map((i) => i.file),
+        )
+        const verified = new Map(
+            checked
+                .filter((item) => item.verified && item.verified !== item.file)
+                .map((item) => [item.file, item.verified as File]),
+        )
+        if (unreadable.size === 0 && verified.size === 0) return
+
+        const setProduct = side === "left" ? setLeftProduct : setRightProduct
+        setProduct((prev) => {
+            const affected = prev.photos.filter(
+                (photo) =>
+                    unreadable.has(photo.file) || verified.has(photo.file),
+            )
+            if (affected.length === 0) return prev
+
+            const photos = prev.photos.map((photo) => {
+                if (unreadable.has(photo.file)) {
+                    return { ...photo, previewError: true }
+                }
+                const replacement = verified.get(photo.file)
+                return replacement ? { ...photo, file: replacement } : photo
+            })
+
+            // Swapping in verified bytes is invisible to the Shopper; only an
+            // unusable photo resets the side and raises an error.
+            if (!affected.some((photo) => unreadable.has(photo.file))) {
+                return { ...prev, photos }
+            }
+
+            return {
+                ...prev,
+                photos,
+                extraction: null,
+                selectedColumnId: null,
+                error: t("photoUnreadableOnDevice"),
+                retry: false,
+                loading: false,
+                revision: prev.revision + 1,
+            }
+        })
+    }
+
     const handleAddFiles = (side: "left" | "right", files: File[]) => {
         resetSideProcessing(side)
 
-        const hasAcceptedFile = files.some(isAcceptedPhotoFile)
-        if (hasAcceptedFile) {
+        const acceptedFiles = files.filter(isAcceptedPhotoFile)
+        if (acceptedFiles.length > 0) {
             setActiveSide(side)
             setFlowPhase("review")
         }
@@ -541,9 +601,7 @@ export function PhotoComparisonPage({
                 )
             }
 
-            const validFiles = files
-                .filter(isAcceptedPhotoFile)
-                .slice(0, available)
+            const validFiles = acceptedFiles.slice(0, available)
 
             if (validFiles.length === 0) {
                 return {
@@ -573,6 +631,8 @@ export function PhotoComparisonPage({
                 loading: false,
             }
         })
+
+        void verifyPhotos(side, acceptedFiles)
     }
 
     const handleRemovePhoto = (side: "left" | "right", index: number) => {
@@ -658,6 +718,8 @@ export function PhotoComparisonPage({
                 loading: false,
             }
         })
+
+        void verifyPhotos(side, [file])
     }
 
     const handleClearPhotos = (side: "left" | "right") => {

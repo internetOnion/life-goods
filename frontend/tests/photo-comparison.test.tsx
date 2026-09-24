@@ -18,6 +18,7 @@ import {
     displayValue,
     formatActionableError,
     formatNutrientName,
+    verifiedPhotoFile,
     pickDefaultColumnId,
 } from "../src/features/photo-evidence/helpers"
 import { LocaleContext } from "../src/i18n/locale"
@@ -1203,10 +1204,12 @@ describe("Compare Nutrition frontend page (/compare)", () => {
     test("normalizes every stable API error code without exposing raw messages", () => {
         expect(
             formatActionableError(
-                "The request payload is not valid.",
+                "The submitted photo is empty.",
                 "request_invalid",
             ),
-        ).toBe("Choose a valid JPEG, PNG or HEIC photo, then try again.")
+        ).toBe(
+            "This photo could not be read from your device. It may not be fully downloaded — open it in your photo app first, or choose another photo.",
+        )
         expect(
             formatActionableError(
                 "Only JPEG and PNG photos are supported.",
@@ -2300,12 +2303,81 @@ describe("Photo inspection and UX features", () => {
 
         // A HEIC preview the browser cannot render keeps the photo usable.
         fireEvent.error(screen.getByAltText("Product A photo 2"))
-        expect(
-            screen.getByRole("img", {
-                name: "Preview not available in this browser. The photo will still be read.",
-            }),
-        ).toBeInTheDocument()
+        const placeholder = screen.getByRole("img", {
+            name: "Preview not available in this browser. The photo will still be read.",
+        })
+        expect(placeholder).toBeInTheDocument()
+        // Rendering it inside the glass Button turned the tile into a pill with
+        // unwrappable text; the placeholder must stand on its own.
+        expect(placeholder.closest("button")).toBeNull()
+        expect(placeholder).toHaveClass("whitespace-normal")
         expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+    })
+
+    test("flags a picked photo whose bytes cannot be read from the device", async () => {
+        renderRoute("/compare")
+
+        const fileInput = document.getElementById(
+            "upload-photos-left",
+        ) as HTMLInputElement
+
+        // An iCloud-optimized photo the device never finished downloading: the picker
+        // hands over a File, but only part of it can be read.
+        const undownloaded = new File(["heic"], "IMG_0003.HEIC", {
+            type: "image/heic",
+        })
+        Object.defineProperty(undownloaded, "arrayBuffer", {
+            value: () => Promise.resolve(new ArrayBuffer(1)),
+        })
+
+        fireEvent.change(fileInput, { target: { files: [undownloaded] } })
+
+        const alert = await screen.findByRole("alert")
+        expect(alert).toHaveTextContent(
+            "This photo could not be read from your device.",
+        )
+    })
+
+    test("verifies photo bytes and only rejects what cannot be read in full", async () => {
+        const empty = new File([], "IMG_0004.HEIC", { type: "image/heic" })
+        expect(await verifiedPhotoFile(empty)).toBeNull()
+
+        const unreadable = new File(["heic"], "IMG_0005.HEIC", {
+            type: "image/heic",
+        })
+        Object.defineProperty(unreadable, "arrayBuffer", {
+            value: () => Promise.reject(new Error("unavailable")),
+        })
+        expect(await verifiedPhotoFile(unreadable)).toBeNull()
+
+        // A short read is the truncation case a first-byte check cannot see.
+        const truncated = new File(["heic-photo"], "IMG_0006.HEIC", {
+            type: "image/heic",
+        })
+        Object.defineProperty(truncated, "arrayBuffer", {
+            value: () => Promise.resolve(new ArrayBuffer(3)),
+        })
+        expect(await verifiedPhotoFile(truncated)).toBeNull()
+
+        const complete = new File(["heic-photo"], "IMG_0007.HEIC", {
+            type: "image/heic",
+        })
+        Object.defineProperty(complete, "arrayBuffer", {
+            value: () => Promise.resolve(new ArrayBuffer(complete.size)),
+        })
+        const verified = await verifiedPhotoFile(complete)
+        // The upload carries the verified in-memory copy, not the picked handle.
+        expect(verified).not.toBeNull()
+        expect(verified).not.toBe(complete)
+        expect(verified?.name).toBe("IMG_0007.HEIC")
+        expect(verified?.type).toBe("image/heic")
+        expect(verified?.size).toBe(complete.size)
+
+        // jsdom has no Blob.arrayBuffer; the photo must not be rejected for that.
+        const uncheckable = new File(["heic"], "IMG_0008.HEIC", {
+            type: "image/heic",
+        })
+        expect(await verifiedPhotoFile(uncheckable)).toBe(uncheckable)
     })
 
     test("shows the extraction error on the Product whose photos failed", async () => {
