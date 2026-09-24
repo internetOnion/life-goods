@@ -1079,8 +1079,18 @@ Browser Back preserves the in-memory photos, extraction, and selections; advanci
 to the other Product replaces the chooser history entry. Direct entry without
 the required in-memory extraction returns to `/labels/compare`.
 
-Results lead with Product identities, the comparison basis, and the nutrition
-comparison. Factual differences use deterministic localized templates rather than
+Results lead with Product identities (each tied to a neutral A or B mark), the
+comparison basis, and the nutrition comparison. The comparison opens with the
+biggest differences: up to four amount rows with a normalized pair, ordered by
+the size of the gap relative to the larger amount (never by which amount is
+preferable), each stated as a deterministic localized sentence ("A has 880 mg
+more sodium per 100 g than B") above paired bars in two neutral tones. A
+conditional row keeps its values and says that it assumes both labels are
+measured the same way. All values follow in one table, where each nutrient
+carries its difference; a cell with no usable value (missing, unreadable,
+unclear, or conflicting) shows only a dash, with the reason available to screen
+readers. The results carry the Photo Evidence label but do not repeat the
+provider statement, which the Nutrition Labels hub states once. Factual differences use deterministic localized templates rather than
 a second generative interpretation call. Equal values are shown clearly. Missing,
 unreadable, conflicting, qualified, or incompatible values are explained rather
 than shown as zero or as an absence, and usable partial results remain available
@@ -1316,26 +1326,36 @@ Barcode miss). It reads the whole printed label, not only nutrition values.
   fails validation is `unavailable`, never a partial string.
 - It uses no generated-data storage, translation cache, or translation quota, and
   is not Khmer Translation.
-- The frontend requests rendering automatically when the locale is Khmer, and on
-  a "Show in Khmer" action otherwise. A response for a superseded reading is
+- The frontend requests rendering automatically when the locale is Khmer and
+  never otherwise; there is no in-result language toggle. A Shopper who wants
+  Khmer chooses it as the app language. A response for a superseded reading is
   ignored. A capacity limit shows a retry action; there is no automatic retry.
 
 ### 29.5 Result
 
-- Results are titled Label Reading and labelled Photo Evidence, with a single
-  notice that the values were read from the Shopper's photos by the configured AI
-  provider, are not an Open Food Facts Source Record, and are not verified or kept.
-- Sections, in order, each shown only when it has content:
-  1. a hero with the front photo, brand, name, and package quantity;
-  2. ingredients: Printed Text with its `lang` attribute, and the Khmer Rendering
-     beneath it, labelled as Khmer by AI from the Shopper's photo;
-  3. "Allergen statement printed on the label": the verbatim statements, then the
-     Shopper's selected allergens found in the text read. A permanent line states
-     that only readable text was checked. There is never a "none found", "not
-     found", or "free of" statement;
-  4. one nutrition table with a column per printed column (basis and preparation
-     state), nutrient names localized from the canonical nutrient key, and
-     qualifiers and unclear readings stated in words;
+- Results are titled Label Reading and labelled Photo Evidence. The statement
+  that photos are processed by the configured AI provider and not kept is made
+  once, on the Nutrition Labels hub, and is not repeated on the result.
+- Sections, in order, each opening with the Shopper's question and shown only
+  when it has content:
+  1. a hero with the front photo, brand, name, and package quantity, followed by
+     the Label Reading title and the Photo Evidence label;
+  2. "Your allergens": the Shopper's selected allergens found in the text read,
+     answered in one sentence and listed with Contains or May contain, then the
+     verbatim Printed Allergen Statements. A
+     permanent line states that only readable text was checked. There is never a
+     "none found", "not found", or "free of" statement;
+  3. "Key numbers": up to six headline nutrients (energy, fat, saturated fat,
+     sugars, sodium or salt, protein) as printed in the most comparable column,
+     with that column's basis and preparation state, then one nutrition table
+     behind a "Full nutrition table" action with a column per printed column,
+     nutrient names localized from the canonical nutrient key, and printed
+     qualifiers kept (`<`, `~`). A value the photo did not give shows only a dash,
+     with its photo-state reason available to screen readers. With no headline
+     nutrient the table shows directly;
+  4. ingredients: Printed Text with its `lang` attribute, the Shopper's matched
+     allergen words marked where they appear, and the Khmer Rendering beneath it,
+     labelled as Khmer by AI from the Shopper's photo;
   5. printed facts.
 - Field-level evidence (photo pointers, states, retake reasons, model and
   configuration version) is behind a "How this was read" action.

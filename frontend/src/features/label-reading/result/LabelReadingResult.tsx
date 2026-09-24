@@ -1,23 +1,15 @@
-import {
-    ArrowCounterClockwise,
-    CaretDown,
-    Camera,
-    Translate,
-    WarningCircle,
-} from "@phosphor-icons/react"
+import { ArrowCounterClockwise, CaretDown, Camera } from "@phosphor-icons/react"
 import { useState, type Ref } from "react"
 import { Link } from "react-router"
 
 import type {
     KhmerRenderedBlock,
     LabelReading,
-    PrintedAllergenStatement,
     PrintedFact,
 } from "@/api/generated"
 import { appRoutes } from "@/app/routes"
-import { GlassButton as Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { useSelectedConcernStorage } from "@/features/concerns/storage"
-import { translateConcernLabel } from "@/features/concerns/translations"
 import { NutritionColumnCard } from "@/features/photo-evidence/EvidenceViews"
 import { displayValue } from "@/features/photo-evidence/helpers"
 import { useCompareTranslation } from "@/features/photo-evidence/translations"
@@ -28,7 +20,8 @@ import {
     useLabelReadingTranslation,
     type LabelReadingTranslationKey,
 } from "../translations"
-import { LabelNutritionTable } from "./LabelNutritionTable"
+import { AllergenAnswer } from "./AllergenAnswer"
+import { KeyNutrients } from "./KeyNutrients"
 import { PrintedTextField, type KhmerDisplay } from "./PrintedTextField"
 
 /** Khmer Rendering for one Label Reading (SPEC §29.4), owned by the page. */
@@ -49,12 +42,6 @@ function khmerFor(
     return undefined
 }
 
-const STATEMENT_KEYS: Record<string, LabelReadingTranslationKey> = {
-    contains: "statementContains",
-    may_contain: "statementMayContain",
-    other: "statementOther",
-}
-
 const FACT_KEYS: Record<string, LabelReadingTranslationKey> = {
     serving_size: "factServingSize",
     servings_per_package: "factServingsPerPackage",
@@ -64,20 +51,10 @@ const FACT_KEYS: Record<string, LabelReadingTranslationKey> = {
     importer: "factImporter",
 }
 
-function SectionHeading({ id, children }: { id: string; children: string }) {
-    return (
-        <h3 id={id} className="text-sm font-extrabold text-neutral-950">
-            {children}
-        </h3>
-    )
-}
-
 export interface LabelReadingResultProps {
     reading: LabelReading
     frontPhotoUrl?: string
     khmer: KhmerState
-    /** Whether any Printed Text can be rendered into Khmer. */
-    canRenderKhmer: boolean
     onRequestKhmer: () => void
     onFocusEvidence: (imageId: string) => void
     ref?: Ref<HTMLElement>
@@ -92,7 +69,6 @@ export function LabelReadingResult({
     reading,
     frontPhotoUrl,
     khmer,
-    canRenderKhmer,
     onRequestKhmer,
     onFocusEvidence,
     ref,
@@ -114,76 +90,29 @@ export function LabelReadingResult({
     const matches = findLabelConcernMatches(mentions, concerns.ids)
     const retakeReasons = reading.retake_reasons ?? []
 
+    const khmerForBlock = (blockId: string) => khmerFor(khmer, blockId)
+    const highlightWords = matches.flatMap((match) => match.matchedTexts)
+
     return (
         <section
             ref={ref}
             tabIndex={-1}
             aria-labelledby="label-reading-heading"
-            className="mt-6 space-y-6 focus:outline-none"
+            className="source-sheet mt-6 px-5 pt-5 pb-2 focus:outline-none sm:px-6"
         >
-            <div>
-                <div className="flex flex-wrap items-center gap-2">
-                    <h2
-                        id="label-reading-heading"
-                        className="text-xl font-extrabold tracking-tight text-neutral-950 sm:text-2xl"
-                    >
-                        {tc("labelReadingTitle")}
-                    </h2>
-                    <span className="border-warning-200 bg-warning-50 text-warning-900 inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-bold">
-                        <Camera size={13} weight="bold" aria-hidden="true" />
-                        {tc("photoEvidenceBadge")}
-                    </span>
-                </div>
-                <p className="border-warning-200 bg-warning-50/70 text-warning-950 mt-3 rounded-xl border p-3 text-sm leading-relaxed">
-                    {tc("photoEvidenceNotice")}
-                </p>
-                {canRenderKhmer && khmer.status === "idle" ? (
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={onRequestKhmer}
-                        className="mt-3 h-10 gap-1.5 rounded-xl px-3 text-sm font-bold"
-                    >
-                        <Translate size={16} weight="bold" aria-hidden="true" />
-                        <span>{t("showInKhmer")}</span>
-                    </Button>
-                ) : null}
-                {khmer.status === "error" ? (
-                    <div
-                        role="alert"
-                        className="mt-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700"
-                    >
-                        <p>{t("khmerFailed", { reason: khmer.message })}</p>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={onRequestKhmer}
-                            className="mt-2 h-10 gap-1.5 rounded-xl bg-white px-3 text-xs font-bold"
-                        >
-                            <ArrowCounterClockwise
-                                size={15}
-                                weight="bold"
-                                aria-hidden="true"
-                            />
-                            <span>{t("retryKhmer")}</span>
-                        </Button>
-                    </div>
-                ) : null}
-            </div>
-
-            <div className="flex items-start gap-3" data-testid="reading-hero">
+            <div className="flex items-start gap-4" data-testid="reading-hero">
                 {frontPhotoUrl ? (
                     <img
                         src={frontPhotoUrl}
                         alt=""
-                        className="size-20 shrink-0 rounded-xl border border-neutral-200 object-cover"
+                        className="size-20 shrink-0 rounded-2xl border border-neutral-200 object-cover sm:size-24"
                     />
                 ) : null}
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                     {identity?.brand?.value_text ? (
                         <p
                             lang={identity.brand.language || undefined}
-                            className="text-xs font-bold tracking-wide text-neutral-600 uppercase"
+                            className="text-sm font-semibold wrap-anywhere text-neutral-600"
                         >
                             {identity.brand.value_text}
                         </p>
@@ -191,7 +120,7 @@ export function LabelReadingResult({
                     {identity?.name?.value_text ? (
                         <p
                             lang={identity.name.language || undefined}
-                            className="text-lg leading-tight font-extrabold wrap-anywhere text-neutral-950"
+                            className="type-section-title wrap-anywhere text-neutral-950 sm:text-2xl"
                         >
                             {identity.name.value_text}
                         </p>
@@ -201,10 +130,12 @@ export function LabelReadingResult({
                             {tc("packageWeight")}:
                         </span>{" "}
                         {quantity?.state === "readable" ? (
-                            displayValue(
-                                quantity.value_text,
-                                quantity.unit_text || "",
-                            )
+                            <span className="font-mono tabular-nums">
+                                {displayValue(
+                                    quantity.value_text,
+                                    quantity.unit_text || "",
+                                )}
+                            </span>
                         ) : (
                             <span className="text-neutral-600 italic">
                                 {tc("notPrintedOnPhoto")}
@@ -214,275 +145,194 @@ export function LabelReadingResult({
                 </div>
             </div>
 
-            <section aria-labelledby="reading-ingredients">
-                <SectionHeading id="reading-ingredients">
-                    {t("ingredientsHeading")}
-                </SectionHeading>
-                {ingredients.length ? (
-                    <div className="mt-2 space-y-3">
-                        {ingredients.map((block) => (
-                            <PrintedTextField
-                                key={block.block_id}
-                                text={block.original_script}
-                                language={block.language}
-                                state={block.state}
-                                locale={locale}
-                                khmer={khmerFor(khmer, block.block_id)}
-                                className="rounded-xl border border-neutral-200 bg-white p-3"
-                            />
-                        ))}
-                    </div>
-                ) : (
-                    <p className="mt-2 text-sm text-neutral-600 italic">
-                        {t("noIngredientsRead")}
-                    </p>
-                )}
-            </section>
-
-            <section
-                aria-labelledby="reading-allergens"
-                data-testid="reading-allergens"
-            >
-                <SectionHeading id="reading-allergens">
-                    {t("allergenHeading")}
-                </SectionHeading>
-                {statements.length ? (
-                    <ul className="mt-2 space-y-2">
-                        {statements.map((statement) => (
-                            <AllergenStatementItem
-                                key={statement.block_id}
-                                statement={statement}
-                                label={t(
-                                    STATEMENT_KEYS[statement.kind ?? "other"] ??
-                                        "statementOther",
-                                )}
-                                locale={locale}
-                                khmer={khmerFor(khmer, statement.block_id)}
-                            />
-                        ))}
-                    </ul>
-                ) : (
-                    <p className="mt-2 text-sm text-neutral-600 italic">
-                        {t("noAllergenStatementRead")}
-                    </p>
-                )}
-
-                <div className="mt-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-sm">
-                    {concerns.ids.length === 0 ? (
-                        <Link
-                            to={appRoutes.concerns}
-                            className="text-primary-700 font-bold underline-offset-4 hover:underline"
-                        >
-                            {t("chooseAllergensPrompt")}
-                        </Link>
-                    ) : mentions?.state === "completed" ? (
-                        <>
-                            {matches.length ? (
-                                <>
-                                    <h4 className="font-bold text-neutral-950">
-                                        {t("concernMatchesHeading")}
-                                    </h4>
-                                    <ul
-                                        className="mt-1.5 space-y-1"
-                                        data-testid="reading-concern-matches"
-                                    >
-                                        {matches.map((match) => (
-                                            <li
-                                                key={match.concernId}
-                                                className="text-warning-950 flex items-start gap-1.5"
-                                            >
-                                                <WarningCircle
-                                                    size={15}
-                                                    weight="bold"
-                                                    aria-hidden="true"
-                                                    className="text-warning-700 mt-0.5 shrink-0"
-                                                />
-                                                <span>
-                                                    <span className="font-bold">
-                                                        {translateConcernLabel(
-                                                            locale,
-                                                            match.concernId,
-                                                            match.label,
-                                                        )}
-                                                    </span>
-                                                    {" · "}
-                                                    {t(
-                                                        match.kind ===
-                                                            "contains"
-                                                            ? "concernMatchContains"
-                                                            : "concernMatchMayContain",
-                                                        {
-                                                            text: match.matchedTexts.join(
-                                                                ", ",
-                                                            ),
-                                                        },
-                                                    )}
-                                                </span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </>
-                            ) : null}
-                            <p
-                                className={cn(
-                                    "text-xs leading-relaxed text-neutral-600",
-                                    matches.length && "mt-2",
-                                )}
-                            >
-                                {t("onlyReadableChecked")}
-                            </p>
-                        </>
-                    ) : (
-                        <p className="text-xs leading-relaxed text-neutral-600">
-                            {mentions?.reason === "no_english_printed_text"
-                                ? t("allergensNotCheckedEnglish")
-                                : t("allergensNotChecked")}
-                        </p>
-                    )}
+            <div className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-2">
+                <h2
+                    id="label-reading-heading"
+                    className="text-base font-extrabold text-neutral-950"
+                >
+                    {tc("labelReadingTitle")}
+                </h2>
+                <span className="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-bold text-neutral-800">
+                    <Camera size={13} weight="bold" aria-hidden="true" />
+                    {tc("photoEvidenceBadge")}
+                </span>
+            </div>
+            {khmer.status === "error" ? (
+                <div
+                    role="alert"
+                    className="mt-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700"
+                >
+                    <p>{t("khmerFailed", { reason: khmer.message })}</p>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={onRequestKhmer}
+                        className="mt-2 h-10 gap-1.5 rounded-xl bg-white px-3 text-xs font-bold"
+                    >
+                        <ArrowCounterClockwise
+                            size={15}
+                            weight="bold"
+                            aria-hidden="true"
+                        />
+                        <span>{t("retryKhmer")}</span>
+                    </Button>
                 </div>
-            </section>
-
-            <section aria-labelledby="reading-nutrition">
-                <SectionHeading id="reading-nutrition">
-                    {t("nutritionHeading")}
-                </SectionHeading>
-                <div className="mt-2">
-                    {columns.length ? (
-                        <LabelNutritionTable columns={columns} />
-                    ) : (
-                        <p className="text-sm text-neutral-600 italic">
-                            {tc("noColumnsRead")}
-                        </p>
-                    )}
-                </div>
-            </section>
-
-            {facts.length ? (
-                <section aria-labelledby="reading-facts">
-                    <SectionHeading id="reading-facts">
-                        {t("factsHeading")}
-                    </SectionHeading>
-                    <dl className="mt-2 divide-y divide-neutral-200 rounded-xl border border-neutral-200 bg-white">
-                        {facts.map((fact) => (
-                            <PrintedFactRow
-                                key={fact.block_id}
-                                fact={fact}
-                                label={t(
-                                    FACT_KEYS[fact.kind] ?? "factsHeading",
-                                )}
-                                locale={locale}
-                                khmer={khmerFor(khmer, fact.block_id)}
-                            />
-                        ))}
-                    </dl>
-                </section>
             ) : null}
 
-            <div>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    aria-expanded={showDetails}
-                    aria-controls="reading-details"
-                    onClick={() => setShowDetails((open) => !open)}
-                    className="h-10 gap-1.5 rounded-xl px-2 text-sm font-bold text-neutral-700"
-                >
-                    <CaretDown
-                        size={15}
-                        weight="bold"
-                        aria-hidden="true"
-                        className={cn(
-                            "transition-transform",
-                            showDetails && "rotate-180",
-                        )}
-                    />
-                    <span>
-                        {showDetails ? t("hideHowRead") : t("showHowRead")}
-                    </span>
-                </Button>
-                {showDetails ? (
-                    <div id="reading-details" className="mt-2 space-y-3">
-                        {columns.length ? (
-                            <ul className="grid gap-3 sm:grid-cols-2">
-                                {columns.map((column) => (
-                                    <li key={column.column_id}>
-                                        <NutritionColumnCard
-                                            column={column}
-                                            images={reading.images}
-                                            onFocusEvidence={onFocusEvidence}
-                                            describeFieldStates
-                                            expanded
-                                        />
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : null}
-                        {retakeReasons.length ? (
-                            <div className="border-warning-200 bg-warning-50 text-warning-900 rounded-xl border p-3 text-xs">
-                                <p className="text-warning-950 font-bold">
-                                    {tc("retakeSuggestions")}
+            <div className="mt-5 divide-y divide-neutral-200 border-t border-neutral-200">
+                <AllergenAnswer
+                    hasSelectedConcerns={concerns.ids.length > 0}
+                    matches={matches}
+                    mentions={mentions}
+                    statements={statements}
+                    locale={locale}
+                    khmerFor={khmerForBlock}
+                />
+
+                <KeyNutrients columns={columns} />
+
+                <section aria-labelledby="reading-ingredients" className="py-6">
+                    <h3
+                        id="reading-ingredients"
+                        className="type-section-title text-neutral-950"
+                    >
+                        {t("ingredientsQuestion")}
+                    </h3>
+                    {ingredients.length ? (
+                        <>
+                            {highlightWords.length ? (
+                                <p className="mt-1 text-sm text-neutral-600">
+                                    {t("ingredientsHighlightNote")}
                                 </p>
-                                <ul className="text-warning-800 mt-2 list-disc space-y-1 pl-4">
-                                    {locale === "km" ? (
-                                        <li>{tc("providerNote")}</li>
-                                    ) : (
-                                        retakeReasons.map((reason, index) => (
-                                            <li key={index}>{reason}</li>
-                                        ))
-                                    )}
-                                </ul>
+                            ) : null}
+                            <div className="mt-3 space-y-4">
+                                {ingredients.map((block) => (
+                                    <PrintedTextField
+                                        key={block.block_id}
+                                        text={block.original_script}
+                                        language={block.language}
+                                        state={block.state}
+                                        locale={locale}
+                                        khmer={khmerForBlock(block.block_id)}
+                                        highlights={highlightWords}
+                                    />
+                                ))}
                             </div>
-                        ) : null}
-                        <p className="font-mono text-xs text-neutral-500">
-                            {t("readBy", {
-                                provider: reading.provider ?? "",
-                                model: reading.model ?? "",
-                                configuration:
-                                    reading.configuration_version ?? "",
-                            })}
+                        </>
+                    ) : (
+                        <p className="mt-2 text-sm text-neutral-600 italic">
+                            {t("noIngredientsRead")}
                         </p>
-                    </div>
+                    )}
+                </section>
+
+                {facts.length ? (
+                    <section aria-labelledby="reading-facts" className="py-6">
+                        <h3
+                            id="reading-facts"
+                            className="type-section-title text-neutral-950"
+                        >
+                            {t("factsHeading")}
+                        </h3>
+                        <dl className="mt-3 divide-y divide-neutral-100 border-t border-neutral-100">
+                            {facts.map((fact) => (
+                                <PrintedFactRow
+                                    key={fact.block_id}
+                                    fact={fact}
+                                    label={t(
+                                        FACT_KEYS[fact.kind] ?? "factsHeading",
+                                    )}
+                                    locale={locale}
+                                    khmer={khmerForBlock(fact.block_id)}
+                                />
+                            ))}
+                        </dl>
+                    </section>
                 ) : null}
+
+                <div className="py-4">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        aria-expanded={showDetails}
+                        aria-controls="reading-details"
+                        onClick={() => setShowDetails((open) => !open)}
+                        className="-ml-2 h-11 gap-1.5 rounded-xl px-2 text-sm font-bold text-neutral-700"
+                    >
+                        <CaretDown
+                            size={15}
+                            weight="bold"
+                            aria-hidden="true"
+                            className={cn(
+                                "transition-transform",
+                                showDetails && "rotate-180",
+                            )}
+                        />
+                        <span>
+                            {showDetails ? t("hideHowRead") : t("showHowRead")}
+                        </span>
+                    </Button>
+                    {showDetails ? (
+                        <div id="reading-details" className="mt-2 space-y-3">
+                            {columns.length ? (
+                                <ul className="grid gap-3 sm:grid-cols-2">
+                                    {columns.map((column) => (
+                                        <li key={column.column_id}>
+                                            <NutritionColumnCard
+                                                column={column}
+                                                images={reading.images}
+                                                onFocusEvidence={
+                                                    onFocusEvidence
+                                                }
+                                                describeFieldStates
+                                                expanded
+                                            />
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : null}
+                            {retakeReasons.length ? (
+                                <div className="border-warning-200 bg-warning-50 text-warning-900 rounded-xl border p-3 text-xs">
+                                    <p className="text-warning-950 font-bold">
+                                        {tc("retakeSuggestions")}
+                                    </p>
+                                    <ul className="text-warning-800 mt-2 list-disc space-y-1 pl-4">
+                                        {locale === "km" ? (
+                                            <li>{tc("providerNote")}</li>
+                                        ) : (
+                                            retakeReasons.map(
+                                                (reason, index) => (
+                                                    <li key={index}>
+                                                        {reason}
+                                                    </li>
+                                                ),
+                                            )
+                                        )}
+                                    </ul>
+                                </div>
+                            ) : null}
+                            <p className="font-mono text-xs text-neutral-500">
+                                {t("readBy", {
+                                    provider: reading.provider ?? "",
+                                    model: reading.model ?? "",
+                                    configuration:
+                                        reading.configuration_version ?? "",
+                                })}
+                            </p>
+                        </div>
+                    ) : null}
+                    <p className="mt-2 text-sm text-neutral-600">
+                        {tc("compareInsteadPrompt")}{" "}
+                        <Link
+                            to={appRoutes.labelsCompare}
+                            className="text-primary-700 font-bold underline-offset-4 hover:underline"
+                        >
+                            {tc("compareInsteadLink")}
+                        </Link>
+                    </p>
+                </div>
             </div>
-
-            <p className="text-sm text-neutral-600">
-                {tc("compareInsteadPrompt")}{" "}
-                <Link
-                    to={appRoutes.labelsCompare}
-                    className="text-primary-700 font-bold underline-offset-4 hover:underline"
-                >
-                    {tc("compareInsteadLink")}
-                </Link>
-            </p>
         </section>
-    )
-}
-
-function AllergenStatementItem({
-    statement,
-    label,
-    locale,
-    khmer,
-}: {
-    statement: PrintedAllergenStatement
-    label: string
-    locale: "en" | "km"
-    khmer: KhmerDisplay | undefined
-}) {
-    return (
-        <li className="rounded-xl border border-neutral-200 bg-white p-3">
-            <p className="text-xs font-bold tracking-wide text-neutral-600 uppercase">
-                {label}
-            </p>
-            <PrintedTextField
-                text={statement.original_script}
-                language={statement.language}
-                state={statement.state}
-                locale={locale}
-                khmer={khmer}
-                className="mt-1"
-            />
-        </li>
     )
 }
 
@@ -498,7 +348,7 @@ function PrintedFactRow({
     khmer: KhmerDisplay | undefined
 }) {
     return (
-        <div className="flex flex-col gap-0.5 px-3 py-2.5 sm:flex-row sm:gap-3">
+        <div className="flex flex-col gap-0.5 py-2.5 sm:flex-row sm:gap-3">
             <dt className="text-xs font-bold text-neutral-600 sm:w-40 sm:shrink-0">
                 {label}
             </dt>

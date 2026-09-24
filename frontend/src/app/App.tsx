@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react"
 import { Navigate, Route, Routes } from "react-router"
 
 import { ConcernsPage } from "@/features/concerns/ConcernsPage"
@@ -20,6 +21,11 @@ import { AppShell } from "@/ui/AppShell"
 import { LocaleProvider } from "@/i18n/LocaleProvider"
 
 import { appRoutes } from "./routes"
+
+/** Fixture preview of the label results; compiled out of production builds. */
+const DevResultsPage = import.meta.env.DEV
+    ? lazy(() => import("@/dev/DevResultsPage"))
+    : null
 
 type AppProps = {
     lookup?: ProductLookup
@@ -95,6 +101,16 @@ export function App({ lookup = lookupProduct, demoMode = false }: AppProps) {
                             <Navigate to={appRoutes.labelsCompare} replace />
                         }
                     />
+                    {DevResultsPage ? (
+                        <Route
+                            path="/dev/results"
+                            element={
+                                <Suspense>
+                                    <DevResultsPage />
+                                </Suspense>
+                            }
+                        />
+                    ) : null}
                     <Route path="*" element={<NotFoundPage />} />
                 </Routes>
             </AppShell>

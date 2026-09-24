@@ -224,6 +224,8 @@ The palette separates Life Goods action, external-source attribution, reading su
 
 One centered reading rail: maximum `36rem`, `1rem` mobile gutters widening to `1.5rem` at `sm`. Minimum viewport width is 320px; every layout must survive it. The sticky header is `4rem` high, and the Product section rail pins immediately beneath it. Product sections stack inside one white sheet separated by hairlines with `2.5rem` vertical padding. Detail rows use a `10rem` label column only when space supports it; nutrition reads as a labelled stacked list on phones and a right-aligned table from `sm`, with columns derived from supplied data only. Space above a heading is always larger than the space below it. Compare Products uses a two-step Product A → Product B capture control with `0.75rem` top and bottom separation on mobile, widening to `1rem` at `sm`; the current step carries amber emphasis and each step remains a 44px touch target. Comparison results render on their own page, led by Product identities and the comparison basis, with a clear return to edit either Product. Read This Label uses a camera-first capture path: an intro shows an unfolded carton marked 1 (front), 2 (back), and a dashed 3 (optional side), then the dark camera sheet carries a top rail of three 44px step wells joined by a line that turns amber as each photo settles into its well, a per-step faint outline of what that package face usually carries inside the frame, and a round amber shutter. After the camera closes, the same path reads as a vertical list with thumbnails, and the next required step is marked up next.
 
+Nutrition Labels results (Read This Label and Compare Nutrition) are answer-first: one white source sheet, blocks separated by hairlines with `1.5rem` (Label Reading) or `1.25rem` (Compare) vertical padding, each block opening with the Shopper's question answered in one plain sentence and the printed evidence beneath. A Label Reading runs identity (front-photo thumbnail, brand, name, package quantity) → the `Photo Evidence` chip → **Your allergens** (an answer line at `1.125rem` extra-bold, then Contains / May contain divider rows, then the printed allergen statement verbatim) → **Key numbers** (up to six headline nutrients from the most comparable column as name/value divider rows, full table behind a disclosure) → **What's in it** (ingredients as printed, the Shopper's matched allergen words marked) → **Other printed details** (label/value rows, `10rem` label column from `sm`) → a **How this was read** disclosure holding the per-column evidence cards, retake suggestions, and the provider/model line. Compare Nutrition runs A/B identity rows → `Photo Evidence` chip → the comparison basis line at `1.125rem` extra-bold → **Biggest differences** → **All values** → printed percentages. Results carry no provider notice and no Khmer toggle: Khmer Rendering appears only when the app language is Khmer (with a retry if it fails), and the `Photo Evidence` chip is the one provenance mark.
+
 ## Elevation & Depth
 
 Flat by default; tonal layering and borders come before shadow. Source sheets and the scanner aperture retain their established elevation. Floating navigation and opt-in glass controls use a soft material lift with a restrained inset highlight.
@@ -329,6 +331,17 @@ A single dark glass surface (#131519) with `1.5rem` corners, a restrained slate 
 
 A pale blue wash (info-50), dark blue informational iconography, divider rows, and explicit blue links to Open Food Facts and licensing. It explains provenance without adopting source data as Life Goods-owned content — the only tinted panel on the reading sheet.
 
+### Nutrition Labels Results
+
+- **Photo Evidence chip:** full-pill `neutral-100` with bold `0.75rem` `neutral-800` text and a 13px camera icon, placed once under the identity; never repeated per section.
+- **Allergen answer:** a single sentence naming only what was found (`{list} appear in the label text we read`); matched rows pair a small pill (Contains: warning-100 fill, warning-900 text; May contain: white with warning-200 border) with the allergen name. An empty match is never turned into a sentence; a fixed note says only readable text was checked. Matched words inside printed ingredients use a `<mark>` in the same warning wash (#F6ECDA / #432D03), bold, `0.3rem` corners, whole-word, the text itself unaltered.
+- **Key number rows:** name left in semibold sans, value right in `1.125rem` bold mono tabular numerals; kJ and kcal share a row separated by a slash. Values are never ranked, coloured, or judged.
+- **Product letter marks:** A and B are `0.5rem`-cornered squares with white extra-bold letters — A on `neutral-900`, B on `neutral-500` — overlaid on each Product's thumbnail and repeated beside bars, table headers, and phone value cells. Two neutral tones tell the sides apart without implying either is better.
+- **Difference row (signature):** nutrient name, one deterministic sentence (`A has {amount} more {nutrient} than B {basis}`), then paired SVG bars on a `neutral-100` pill track scaled to the larger amount, each ending in a bold mono value. Bars grow from zero once (`bar-grow`, 640ms, `cubic-bezier(0.16, 1, 0.3, 1)`, staggered 50ms) under `motion-safe` only; they are `aria-hidden`, with an sr-only sentence of both values. A single conditional-preparation note joins the section's intro line rather than repeating per row. Rows with equal values collapse into one "Same in both" line.
+- **All values:** open divider rows, not boxed cards. On phones the nutrient name spans the row with A and B values side by side beneath, each led by its letter mark; from `sm` it becomes a fixed 44/28/28 table with letter-marked column headers. A difference pill (letter mark + mono amount) or a "Same" pill sits under the nutrient name.
+- **Empty photo cells:** a plain `neutral-400` mono "—" with the reason (not readable, not printed, unclear) kept sr-only. This applies to Photo Evidence tables only; Open Food Facts source values keep `Source Data Unavailable`.
+- **Evidence cards:** in "How this was read", each nutrition column is a `1rem`-cornered bordered white card headed by basis and preparation; when the column came from one photo it names that photo once in the header ("Read from Photo N"), and only a column spanning several photos names the photo per row.
+
 ## Do's and Don'ts
 
 ### Do:
@@ -337,17 +350,20 @@ A pale blue wash (info-50), dark blue informational iconography, divider rows, a
 - **Do** apply `wrap-anywhere` to all source text and mono identifiers; long taxonomy strings wrap, never overflow.
 - **Do** group packaging by meaning (Original Text, recycling instructions, materials, shapes, recycling, components) with normalized, deduplicated values.
 - **Do** derive nutrition table columns from supplied data only; stack them on phones.
-- **Do** place Barcodes and measured values in mono with tabular numerals.
+- **Do** place Barcodes and measured values in mono with tabular numerals; the mono stack holds in Khmer too (`:lang(km) .font-mono`).
+- **Do** open each Nutrition Labels result block with the Shopper's question answered in one plain sentence, evidence beneath.
+- **Do** tell Product A and B apart with the neutral-900 / neutral-500 letter marks and paired neutral bars only.
 - **Do** choose icons and illustrations that accurately represent the semantic meaning of the underlying data, ingredient, action, or state.
 - **Do** use any icon library or bespoke SVG that maintains the vibe-coded, tactile Life Goods design language and optical harmony.
 
 ### Don't:
 
 - **Don't** turn Source Assessments into dominant score tiles, traffic-light verdicts, or purchase recommendations; keep the attribution sentence directly under the section heading.
-- **Don't** render missing data as "—", "none", "N/A", or a friendlier phrase; only `Source Data Unavailable`.
-- **Don't** use blue for ordinary Life Goods actions or amber to imply source-data quality; success/error/warning appear only in status.
+- **Don't** render missing Open Food Facts data as "—", "none", "N/A", or a friendlier phrase; only `Source Data Unavailable`. (Photo Evidence tables use the sr-reasoned dash instead and never say `Source Data Unavailable`.)
+- **Don't** use blue for ordinary Life Goods actions or amber to imply source-data quality; success/error/warning appear only in status, plus the warning wash on the Shopper's matched allergen words and match pills.
 - **Don't** round and shadow every content block, and never use shadows stronger than the sheet vocabulary.
 - **Don't** force horizontal scrolling for data; the 320px viewport is the floor.
 - **Don't** upload, retain, or visually imply capture of camera frames beyond the local scanner aperture.
 - **Don't** force an icon library choice or generic placeholder that compromises semantic meaning (e.g., using a coffee bean for soybean, a carrot for celery, or a receipt for nutrition facts).
+- **Don't** give Compare a winner, score, health colour, or good/bad tint on bars or letters, and don't add a provider notice or Khmer toggle to Nutrition Labels results.
 - **Don't** use sterile, bland, or corporate-style stock illustrations and generic icons that lack visual character.

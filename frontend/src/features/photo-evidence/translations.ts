@@ -161,6 +161,8 @@ const en = {
     packageQuantities:
         "Package quantities: {{leftProduct}} — {{left}}; {{rightProduct}} — {{right}}.",
     viewPhoto: "View photo {{number}}",
+    readFromPhotos: "Read from",
+    photoShort: "Photo {{number}}",
     photoInspection: "{{product}} photo inspection",
     photoOf: "Photo {{current}} of {{total}}",
     fitScreen: "Fit to screen",
@@ -251,6 +253,25 @@ const en = {
     resetReading: "Start over",
     providerDisclosure:
         "Your photos are sent to the configured AI provider for processing. Life Goods does not keep your photos, readings, or comparisons.",
+    biggestDifferences: "Biggest differences",
+    biggestDifferencesNote:
+        "Ordered by the size of the gap, not by which amount is preferable.",
+    differenceSentence:
+        "{{more}} has {{amount}} more {{nutrient}} {{basis}} than {{less}}.",
+    differenceConditional:
+        "Preparation is not stated on both labels, so this assumes both are measured the same way.",
+    sameInBoth: "Same in both: {{list}}",
+    noDifferencesToShow:
+        "No amounts could be lined up on a common basis. Every value read is listed below.",
+    allValues: "All values",
+    differenceChip: "+{{amount}}",
+    sameChip: "Same",
+    phrasePer100g: "per 100 g",
+    phrasePer100ml: "per 100 ml",
+    phrasePerServing: "per serving",
+    phrasePerPackage: "per package",
+    versus: "vs",
+    editProduct: "Edit",
 } as const
 
 const km: Record<keyof typeof en, string> = {
@@ -410,6 +431,8 @@ const km: Record<keyof typeof en, string> = {
     packageQuantities:
         "បរិមាណកញ្ចប់៖ {{leftProduct}} — {{left}}; {{rightProduct}} — {{right}}។",
     viewPhoto: "មើលរូបទី {{number}}",
+    readFromPhotos: "អានពី",
+    photoShort: "រូបទី {{number}}",
     photoInspection: "ពិនិត្យរូបថត {{product}}",
     photoOf: "រូបទី {{current}} ក្នុងចំណោម {{total}}",
     fitScreen: "បង្ហាញឱ្យសមអេក្រង់",
@@ -498,6 +521,25 @@ const km: Record<keyof typeof en, string> = {
     resetReading: "ចាប់ផ្តើមឡើងវិញ",
     providerDisclosure:
         "រូបថតរបស់អ្នកត្រូវបានផ្ញើទៅអ្នកផ្ដល់សេវា AI ដែលបានកំណត់ ដើម្បីដំណើរការ។ Life Goods មិនរក្សាទុករូបថត ការអាន ឬការប្រៀបធៀបរបស់អ្នកទេ។",
+    biggestDifferences: "ភាពខុសគ្នាធំបំផុត",
+    biggestDifferencesNote:
+        "តម្រៀបតាមទំហំគម្លាត មិនមែនតាមបរិមាណណាដែលល្អជាងនោះទេ។",
+    differenceSentence:
+        "{{more}} មាន{{nutrient}}ច្រើនជាង {{less}} {{amount}} {{basis}}។",
+    differenceConditional:
+        "ស្លាកទាំងពីរមិនបានបញ្ជាក់ពីការរៀបចំ ដូច្នេះនេះសន្មតថាទាំងពីរត្រូវបានវាស់តាមរបៀបដូចគ្នា។",
+    sameInBoth: "ដូចគ្នាទាំងពីរ៖ {{list}}",
+    noDifferencesToShow:
+        "មិនអាចតម្រឹមបរិមាណណាមួយលើមូលដ្ឋានរួមបានទេ។ តម្លៃទាំងអស់ដែលបានអានមាននៅខាងក្រោម។",
+    allValues: "តម្លៃទាំងអស់",
+    differenceChip: "+{{amount}}",
+    sameChip: "ដូចគ្នា",
+    phrasePer100g: "ក្នុង 100 ក្រាម",
+    phrasePer100ml: "ក្នុង 100 មីលីលីត្រ",
+    phrasePerServing: "ក្នុងមួយចំណែកបរិភោគ",
+    phrasePerPackage: "ក្នុងមួយកញ្ចប់",
+    versus: "និង",
+    editProduct: "កែ",
 }
 
 export const compareTranslations = { en, km } as const

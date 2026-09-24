@@ -235,8 +235,8 @@ export function LabelReadingPage({
         }
     }
 
-    // A new reading resets its Khmer Rendering. In Khmer, it is requested
-    // automatically once per reading; in English, only on "Show in Khmer".
+    // A new reading resets its Khmer Rendering. It is requested automatically
+    // once per reading when the locale is Khmer, and never in English.
     useEffect(() => {
         const current = reading.reading
         if (khmerForRef.current !== current) {
@@ -753,9 +753,6 @@ export function LabelReadingPage({
                         ref={resultsRef}
                         reading={reading.reading}
                         khmer={khmer}
-                        canRenderKhmer={
-                            khmerRenderingBlocks(reading.reading).length > 0
-                        }
                         onRequestKhmer={() => {
                             if (reading.reading) {
                                 void requestKhmer(reading.reading)

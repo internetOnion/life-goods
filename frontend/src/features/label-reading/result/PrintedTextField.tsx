@@ -24,7 +24,51 @@ export interface PrintedTextFieldProps {
     state: FieldState | undefined
     locale: AppLocale
     khmer?: KhmerDisplay
+    /** Printed words to mark, e.g. the Shopper's matched allergen words. */
+    highlights?: readonly string[]
     className?: string
+}
+
+function escapeRegExp(text: string): string {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+/**
+ * Marks each whole occurrence of a highlight in the printed text, ignoring case.
+ * The text itself is never altered, only wrapped.
+ */
+function HighlightedText({
+    text,
+    highlights,
+}: {
+    text: string
+    highlights: readonly string[]
+}) {
+    const terms = [...new Set(highlights.map((term) => term.trim()))]
+        .filter(Boolean)
+        .sort((a, b) => b.length - a.length)
+    if (terms.length === 0) return <>{text}</>
+    const pattern = new RegExp(
+        `(?<![\\p{L}\\p{N}])(${terms.map(escapeRegExp).join("|")})(?![\\p{L}\\p{N}])`,
+        "giu",
+    )
+    const parts = text.split(pattern)
+    return (
+        <>
+            {parts.map((part, index) =>
+                index % 2 === 1 ? (
+                    <mark
+                        key={index}
+                        className="bg-warning-100 text-warning-900 rounded-[0.3rem] box-decoration-clone px-0.5 font-bold"
+                    >
+                        {part}
+                    </mark>
+                ) : (
+                    part
+                ),
+            )}
+        </>
+    )
 }
 
 function KhmerRendering({
@@ -84,6 +128,7 @@ export function PrintedTextField({
     state,
     locale,
     khmer,
+    highlights,
     className,
 }: PrintedTextFieldProps) {
     if (state && state !== "readable") {
@@ -100,9 +145,13 @@ export function PrintedTextField({
         <div className={className}>
             <p
                 lang={language && language !== "und" ? language : undefined}
-                className="text-sm leading-relaxed whitespace-pre-line text-neutral-900"
+                className="text-base leading-relaxed wrap-anywhere whitespace-pre-line text-neutral-900"
             >
-                {text}
+                {text && highlights?.length ? (
+                    <HighlightedText text={text} highlights={highlights} />
+                ) : (
+                    text
+                )}
             </p>
             {khmer ? <KhmerRendering khmer={khmer} locale={locale} /> : null}
         </div>
